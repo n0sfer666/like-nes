@@ -44,20 +44,22 @@ static void tick(World& w) {
     }
 }
 
-static uint64_t fnv1a(const void* data, size_t n) {
-    const uint8_t* p = static_cast<const uint8_t*>(data);
-    uint64_t h = 1469598103934665603ull;
-    for (size_t i = 0; i < n; ++i) { h ^= p[i]; h *= 1099511628211ull; }
+static constexpr uint64_t FNV_OFFSET = 1469598103934665603ull;
+static constexpr uint64_t FNV_PRIME = 1099511628211ull;
+
+// Хеш int32 по байтам в ФИКСИРОВАННОМ little-endian порядке (через сдвиги) —
+// не зависит от endianness машины, поэтому тест проверяет именно арифметику fix32,
+// а не byte-order памяти.
+static uint64_t hash_i32(uint64_t h, int32_t v) {
+    uint32_t u = static_cast<uint32_t>(v);
+    for (int b = 0; b < 4; ++b) { h ^= (u >> (8 * b)) & 0xFFu; h *= FNV_PRIME; }
     return h;
 }
 
 static uint64_t hash_world(const World& w) {
-    uint64_t h = 1469598103934665603ull;
+    uint64_t h = FNV_OFFSET;
     auto mix = [&](const fix32* a) {
-        for (int i = 0; i < N_ENTITIES; ++i) {
-            uint64_t x = fnv1a(&a[i].raw, sizeof(a[i].raw));
-            h ^= x; h *= 1099511628211ull;
-        }
+        for (int i = 0; i < N_ENTITIES; ++i) h = hash_i32(h, a[i].raw);
     };
     mix(w.px); mix(w.py); mix(w.vx); mix(w.vy);
     return h;
