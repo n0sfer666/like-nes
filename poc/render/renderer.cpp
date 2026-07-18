@@ -41,6 +41,16 @@ WGPURenderPassEncoder begin_color(WGPUCommandEncoder enc, WGPUTextureView view,
     return wgpuCommandEncoderBeginRenderPass(enc, &rp);
 }
 
+void fullscreen_pass(WGPUCommandEncoder enc, WGPUTextureView view, WGPURenderPipeline pipe,
+                     WGPUBindGroup bg, const uint32_t* dyn_off) {
+    WGPURenderPassEncoder p = begin_color(enc, view, WGPUColor{0, 0, 0, 1});
+    wgpuRenderPassEncoderSetPipeline(p, pipe);
+    wgpuRenderPassEncoderSetBindGroup(p, 0, bg, dyn_off ? 1 : 0, dyn_off);
+    wgpuRenderPassEncoderDraw(p, 3, 1, 0, 0);
+    wgpuRenderPassEncoderEnd(p);
+    wgpuRenderPassEncoderRelease(p);
+}
+
 } // namespace
 
 void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
@@ -59,10 +69,23 @@ void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
     ld.size = sizeof(LightsUniform);
     lights_ubo_ = wgpuDeviceCreateBuffer(device, &ld);
 
+    WGPUBufferDescriptor bld = {};
+    bld.usage = WGPUBufferUsage_Uniform | WGPUBufferUsage_CopyDst;
+    bld.size = uniform_stride_ * 2;
+    blur_ubo_ = wgpuDeviceCreateBuffer(device, &bld);
+
     build_targets();
+
+    // Направления blur — константны для фикс. разрешения: пишем один раз (не per-frame).
+    BlurUniform bh = {}; bh.dir[0] = 1.0f / bloom_w_; bh.dir[1] = 0.0f;
+    BlurUniform bv = {}; bv.dir[0] = 0.0f; bv.dir[1] = 1.0f / bloom_h_;
+    wgpuQueueWriteBuffer(queue, blur_ubo_, 0, &bh, sizeof(bh));
+    wgpuQueueWriteBuffer(queue, blur_ubo_, uniform_stride_, &bv, sizeof(bv));
+
     build_gbuffer();
     build_lighting();
     build_forward();
+    build_bloom();
     build_tonemap();
 }
 
@@ -73,12 +96,15 @@ void Renderer::build_targets() {
     albedo_ = arena_.acquire(TargetDesc{w_, h_, GBUFFER_ALBEDO_FMT, rt});
     normal_ = arena_.acquire(TargetDesc{w_, h_, GBUFFER_NORMAL_FMT, rt});
     hdr_ = arena_.acquire(TargetDesc{w_, h_, HDR_FMT, rt});
+    bloom_w_ = w_ / 2; bloom_h_ = h_ / 2;
+    bloom_a_ = arena_.acquire(TargetDesc{bloom_w_, bloom_h_, HDR_FMT, rt});
+    bloom_b_ = arena_.acquire(TargetDesc{bloom_w_, bloom_h_, HDR_FMT, rt});
 }
 
 void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {
     arena_.begin_frame();
     write_sprite(queue_, uniforms_, 0, snap.opaque, snap.aspect, 1.0f, 0.0f);
-    write_sprite(queue_, uniforms_, uniform_stride_, snap.glow, snap.aspect, 0.62f, 1.6f);
+    write_sprite(queue_, uniforms_, uniform_stride_, snap.glow, snap.aspect, 0.62f, 2.8f);
     write_lights(queue_, lights_ubo_, snap);
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(device_, nullptr);
@@ -102,12 +128,7 @@ void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {
     wgpuRenderPassEncoderRelease(p);
 
     // deferred lighting → HDR (линейный).
-    WGPURenderPassEncoder l = begin_color(enc, hdr_, WGPUColor{0, 0, 0, 1});
-    wgpuRenderPassEncoderSetPipeline(l, lighting_pipe_);
-    wgpuRenderPassEncoderSetBindGroup(l, 0, lighting_bg_, 0, nullptr);
-    wgpuRenderPassEncoderDraw(l, 3, 1, 0, 0);
-    wgpuRenderPassEncoderEnd(l);
-    wgpuRenderPassEncoderRelease(l);
+    fullscreen_pass(enc, hdr_, lighting_pipe_, lighting_bg_, nullptr);
 
     // [transparent] forward-пасс поверх HDR (та же lighting-technique, alpha-blend).
     WGPURenderPassColorAttachment fa = {};
@@ -124,13 +145,14 @@ void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {
     wgpuRenderPassEncoderEnd(f);
     wgpuRenderPassEncoderRelease(f);
 
-    // tonemap HDR → output.
-    WGPURenderPassEncoder t = begin_color(enc, out_view, WGPUColor{0, 0, 0, 1});
-    wgpuRenderPassEncoderSetPipeline(t, tonemap_pipe_);
-    wgpuRenderPassEncoderSetBindGroup(t, 0, tonemap_bg_, 0, nullptr);
-    wgpuRenderPassEncoderDraw(t, 3, 1, 0, 0);
-    wgpuRenderPassEncoderEnd(t);
-    wgpuRenderPassEncoderRelease(t);
+    // bloom-подграф: bright-pass → blur H → blur V (half-res, транзитные таргеты арены).
+    uint32_t hoff = 0, voff = uniform_stride_;
+    fullscreen_pass(enc, bloom_a_, bright_pipe_, bright_bg_, nullptr);
+    fullscreen_pass(enc, bloom_b_, blur_pipe_, blur_bg_h_, &hoff);
+    fullscreen_pass(enc, bloom_a_, blur_pipe_, blur_bg_v_, &voff);
+
+    // tonemap HDR + bloom → output.
+    fullscreen_pass(enc, out_view, tonemap_pipe_, tonemap_bg_, nullptr);
 
     WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
     wgpuQueueSubmit(queue_, 1, &cmd);
@@ -142,6 +164,13 @@ void Renderer::shutdown() {
     if (tonemap_pipe_) wgpuRenderPipelineRelease(tonemap_pipe_);
     if (tonemap_bg_) wgpuBindGroupRelease(tonemap_bg_);
     if (tonemap_bgl_) wgpuBindGroupLayoutRelease(tonemap_bgl_);
+    if (blur_pipe_) wgpuRenderPipelineRelease(blur_pipe_);
+    if (blur_bg_v_) wgpuBindGroupRelease(blur_bg_v_);
+    if (blur_bg_h_) wgpuBindGroupRelease(blur_bg_h_);
+    if (blur_bgl_) wgpuBindGroupLayoutRelease(blur_bgl_);
+    if (bright_pipe_) wgpuRenderPipelineRelease(bright_pipe_);
+    if (bright_bg_) wgpuBindGroupRelease(bright_bg_);
+    if (bright_bgl_) wgpuBindGroupLayoutRelease(bright_bgl_);
     if (forward_pipe_) wgpuRenderPipelineRelease(forward_pipe_);
     if (forward_bg_) wgpuBindGroupRelease(forward_bg_);
     if (forward_bgl_) wgpuBindGroupLayoutRelease(forward_bgl_);
@@ -151,6 +180,7 @@ void Renderer::shutdown() {
     if (gbuffer_pipe_) wgpuRenderPipelineRelease(gbuffer_pipe_);
     if (gbuffer_bg_) wgpuBindGroupRelease(gbuffer_bg_);
     if (gbuffer_bgl_) wgpuBindGroupLayoutRelease(gbuffer_bgl_);
+    if (blur_ubo_) wgpuBufferRelease(blur_ubo_);
     if (lights_ubo_) wgpuBufferRelease(lights_ubo_);
     if (uniforms_) wgpuBufferRelease(uniforms_);
     arena_.shutdown();

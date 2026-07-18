@@ -74,8 +74,6 @@ void Renderer::build_gbuffer() {
     wgpuPipelineLayoutRelease(pl);
 }
 
-namespace {
-
 // Fullscreen-пайплайн (VS = fullscreen-triangle) с готовыми bind-group-layout и fragment-модулем.
 WGPURenderPipeline make_fullscreen_pipe(WGPUDevice device, WGPUBindGroupLayout bgl,
                                         WGPUShaderModule fsm, WGPUTextureFormat fmt) {
@@ -101,8 +99,6 @@ WGPURenderPipeline make_fullscreen_pipe(WGPUDevice device, WGPUBindGroupLayout b
     wgpuPipelineLayoutRelease(pl);
     return pipe;
 }
-
-} // namespace
 
 void Renderer::build_lighting() {
     WGPUBindGroupLayoutEntry e[4] = {};
@@ -135,21 +131,23 @@ void Renderer::build_lighting() {
 }
 
 void Renderer::build_tonemap() {
-    WGPUBindGroupLayoutEntry e[2] = {};
+    WGPUBindGroupLayoutEntry e[3] = {};
     e[0].binding = 0; e[0].visibility = WGPUShaderStage_Fragment;
     e[0].sampler.type = WGPUSamplerBindingType_Filtering;
     e[1].binding = 1; e[1].visibility = WGPUShaderStage_Fragment;
     e[1].texture.sampleType = WGPUTextureSampleType_Float;
     e[1].texture.viewDimension = WGPUTextureViewDimension_2D;
+    e[2] = e[1]; e[2].binding = 2;
     WGPUBindGroupLayoutDescriptor bgld = {};
-    bgld.entryCount = 2; bgld.entries = e;
+    bgld.entryCount = 3; bgld.entries = e;
     tonemap_bgl_ = wgpuDeviceCreateBindGroupLayout(device_, &bgld);
 
-    WGPUBindGroupEntry b[2] = {};
+    WGPUBindGroupEntry b[3] = {};
     b[0].binding = 0; b[0].sampler = sprite_->sampler;
     b[1].binding = 1; b[1].textureView = hdr_;
+    b[2].binding = 2; b[2].textureView = bloom_a_;
     WGPUBindGroupDescriptor bgd = {};
-    bgd.layout = tonemap_bgl_; bgd.entryCount = 2; bgd.entries = b;
+    bgd.layout = tonemap_bgl_; bgd.entryCount = 3; bgd.entries = b;
     tonemap_bg_ = wgpuDeviceCreateBindGroup(device_, &bgd);
 
     WGPUShaderModule fsm = make_shader(device_, tonemap_fs_wgsl());
