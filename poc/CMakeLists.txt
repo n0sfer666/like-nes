@@ -49,6 +49,26 @@ add_executable(poc src/main.cpp)
 target_link_libraries(poc PRIVATE glfw webgpu glfw3webgpu)
 target_copy_webgpu_binaries(poc)
 
+# --- stb (PNG read/write для golden-image) ---
+# Репозиторий без CMakeLists — MakeAvailable только выкачивает исходники (stb_SOURCE_DIR).
+FetchContent_Declare(stb
+  GIT_REPOSITORY https://github.com/nothings/stb
+  GIT_TAG f0569113c93ad095470c54bf34a17b36646bbbb5
+)
+FetchContent_MakeAvailable(stb)
+
+# --- Render-вертикаль PoC (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
+add_library(render_core STATIC
+  render/gpu.cpp render/arena.cpp render/scene.cpp render/sprite.cpp
+  render/gpu_util.cpp render/shaders_gbuffer.cpp render/renderer.cpp
+  render/renderer_pipelines.cpp render/capture.cpp render/stb_impl.cpp)
+target_include_directories(render_core PUBLIC ${stb_SOURCE_DIR})
+target_link_libraries(render_core PUBLIC webgpu)
+
+add_executable(render_demo render/demo_main.cpp)
+target_link_libraries(render_demo PRIVATE render_core glfw webgpu glfw3webgpu)
+target_copy_webgpu_binaries(render_demo)
+
 # Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
 add_executable(determinism_test src/determinism_test.cpp)
 
