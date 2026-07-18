@@ -62,6 +62,7 @@ void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
     build_targets();
     build_gbuffer();
     build_lighting();
+    build_forward();
     build_tonemap();
 }
 
@@ -77,6 +78,7 @@ void Renderer::build_targets() {
 void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {
     arena_.begin_frame();
     write_sprite(queue_, uniforms_, 0, snap.opaque, snap.aspect, 1.0f, 0.0f);
+    write_sprite(queue_, uniforms_, uniform_stride_, snap.glow, snap.aspect, 0.62f, 1.6f);
     write_lights(queue_, lights_ubo_, snap);
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(device_, nullptr);
@@ -107,6 +109,21 @@ void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {
     wgpuRenderPassEncoderEnd(l);
     wgpuRenderPassEncoderRelease(l);
 
+    // [transparent] forward-пасс поверх HDR (та же lighting-technique, alpha-blend).
+    WGPURenderPassColorAttachment fa = {};
+    fa.view = hdr_; fa.loadOp = WGPULoadOp_Load; fa.storeOp = WGPUStoreOp_Store;
+    WGPURenderPassDescriptor fpass = {};
+    fpass.colorAttachmentCount = 1; fpass.colorAttachments = &fa;
+    WGPURenderPassEncoder f = wgpuCommandEncoderBeginRenderPass(enc, &fpass);
+    wgpuRenderPassEncoderSetPipeline(f, forward_pipe_);
+    uint32_t goff = uniform_stride_;
+    wgpuRenderPassEncoderSetBindGroup(f, 0, forward_bg_, 1, &goff);
+    wgpuRenderPassEncoderSetVertexBuffer(f, 0, sprite_->vbo, 0, WGPU_WHOLE_SIZE);
+    wgpuRenderPassEncoderSetIndexBuffer(f, sprite_->ibo, WGPUIndexFormat_Uint16, 0, WGPU_WHOLE_SIZE);
+    wgpuRenderPassEncoderDrawIndexed(f, SPRITE_INDEX_COUNT, 1, 0, 0, 0);
+    wgpuRenderPassEncoderEnd(f);
+    wgpuRenderPassEncoderRelease(f);
+
     // tonemap HDR → output.
     WGPURenderPassEncoder t = begin_color(enc, out_view, WGPUColor{0, 0, 0, 1});
     wgpuRenderPassEncoderSetPipeline(t, tonemap_pipe_);
@@ -125,6 +142,9 @@ void Renderer::shutdown() {
     if (tonemap_pipe_) wgpuRenderPipelineRelease(tonemap_pipe_);
     if (tonemap_bg_) wgpuBindGroupRelease(tonemap_bg_);
     if (tonemap_bgl_) wgpuBindGroupLayoutRelease(tonemap_bgl_);
+    if (forward_pipe_) wgpuRenderPipelineRelease(forward_pipe_);
+    if (forward_bg_) wgpuBindGroupRelease(forward_bg_);
+    if (forward_bgl_) wgpuBindGroupLayoutRelease(forward_bgl_);
     if (lighting_pipe_) wgpuRenderPipelineRelease(lighting_pipe_);
     if (lighting_bg_) wgpuBindGroupRelease(lighting_bg_);
     if (lighting_bgl_) wgpuBindGroupLayoutRelease(lighting_bgl_);

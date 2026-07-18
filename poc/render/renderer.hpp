@@ -21,6 +21,7 @@ private:
     void build_targets();
     void build_gbuffer();
     void build_lighting();
+    void build_forward();
     void build_tonemap();
 
     WGPUDevice device_ = nullptr;
@@ -45,6 +46,10 @@ private:
     WGPUBindGroupLayout lighting_bgl_ = nullptr;
     WGPUBindGroup lighting_bg_ = nullptr;
     WGPURenderPipeline lighting_pipe_ = nullptr;
+
+    WGPUBindGroupLayout forward_bgl_ = nullptr;
+    WGPUBindGroup forward_bg_ = nullptr;
+    WGPURenderPipeline forward_pipe_ = nullptr;
 
     WGPUBindGroupLayout tonemap_bgl_ = nullptr;
     WGPUBindGroup tonemap_bg_ = nullptr;
