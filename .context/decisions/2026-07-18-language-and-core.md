@@ -2,7 +2,11 @@
 
 - **Дата:** 2026-07-18
 - **Статус:** **Accepted** — язык **C++** утверждён владельцем 2026-07-18. Архитектурные
-  допущения (hot-reload, детерминизм+fixed-point, WebGPU-потолок) — **pending PoC (T4)**.
+  допущения **валидированы walking-skeleton PoC (T4)**: детерминизм fixed-point (golden-hash
+  идентичен на macOS/clang, Ubuntu/gcc, Windows/MSVC, x86↔ARM), WebGPU-рендер (реальный Metal),
+  hot-reload stateless dylib + крэш-изоляция (Linux+macOS). CI зелёный на 3 ОС
+  (github.com/n0sfer666/like-nes). Открыто: real-GPU рендер на Linux/Windows (CI headless —
+  offscreen-рендер позже).
 - **Контекст:** [`../specs/2026-07-18-language-and-core.md`](../specs/2026-07-18-language-and-core.md)
 
 ## Проблема
