@@ -19,7 +19,9 @@ bool write_png(const char* path, const std::vector<uint8_t>& rgba, uint32_t w, u
 bool read_png(const char* path, std::vector<uint8_t>& out, uint32_t& w, uint32_t& h);
 
 // Perceptual/epsilon-сравнение (НЕ побайтовый хеш): средняя/макс. ошибка канала [0..1]
-// и доля пикселей за порогом. GPU-рендер не бит-в-бит между вендорами/драйверами.
+// и доля ПИКСЕЛЕЙ (по макс. каналу) за порогом. GPU-рендер не бит-в-бит между вендорами.
+// pass требует И малой доли расходящихся пикселей, И ограниченной пиковой ошибки
+// (иначе малый, но грубый артефакт прошёл бы гейт).
 struct DiffResult {
     double mean_abs;
     double max_abs;
@@ -27,6 +29,6 @@ struct DiffResult {
     bool pass;
 };
 DiffResult compare(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b,
-                   double per_pixel_eps, double frac_tolerance);
+                   double per_pixel_eps, double frac_tolerance, double max_abs_cap);
 
 } // namespace capture
