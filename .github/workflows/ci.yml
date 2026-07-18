@@ -1,0 +1,68 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-determinism:
+    name: build+determinism (${{ matrix.os }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      # NOTE: третьи-партийные экшены при провижене CI стоит запинить на commit SHA.
+      - uses: actions/checkout@v4.2.2
+
+      - name: Linux deps (X11 for GLFW, lavapipe for headless Vulkan, xvfb)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools xvfb
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@v5
+
+      - name: MSVC env (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure
+        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build (poc + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
+        run: cmake --build poc/build
+
+      - name: Determinism — golden-hash must match across OS/compilers
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 \( -name 'determinism_test' -o -name 'determinism_test.exe' \) | head -1)
+          echo "binary: $BIN"
+          "$BIN" | tee out.txt
+          grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "run1==run2: YES" out.txt
+
+      - name: Hot-reload PoC (POSIX only) — state-in-host + reload + crash isolation
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          ./poc/build/hotreload_host poc/build/game_a.* poc/build/game_b.* poc/build/game_crash.* | tee hr.txt
+          grep -q "hot-reload PoC: PASS" hr.txt
+
+      - name: Render smoke (Linux, lavapipe+xvfb) — best-effort
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+        run: xvfb-run -a ./poc/build/poc
+
+      - name: Render smoke (macOS, native Metal) — best-effort
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        run: ./poc/build/poc

@@ -40,3 +40,17 @@ FetchContent_MakeAvailable(glfw3webgpu)
 add_executable(poc src/main.cpp)
 target_link_libraries(poc PRIVATE glfw webgpu glfw3webgpu)
 target_copy_webgpu_binaries(poc)
+
+# Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
+add_executable(determinism_test src/determinism_test.cpp)
+
+# Hot-reload PoC (dlopen/dlsym + sigsetjmp крэш-изоляция) — POSIX-only (dlfcn/sigaction),
+# в Windows-джоб не входит. game_crash на -O0, чтобы null-deref не соптимизировался.
+if(NOT WIN32)
+    add_library(game_a MODULE hotreload/game_a.cpp)
+    add_library(game_b MODULE hotreload/game_b.cpp)
+    add_library(game_crash MODULE hotreload/game_crash.cpp)
+    target_compile_options(game_crash PRIVATE -O0)
+    set_target_properties(game_a game_b game_crash PROPERTIES PREFIX "")
+    add_executable(hotreload_host hotreload/host.cpp)
+endif()
