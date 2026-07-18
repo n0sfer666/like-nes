@@ -1,7 +1,7 @@
 # ADR 0002: Архитектура рендер-пайплайна (2D, Hollow-Knight-уровень)
 
 - **Дата:** 2026-07-18
-- **Статус:** **Proposed** — дизайн зафиксирован; валидируется render-вертикалью PoC (T4).
+- **Статус:** **Accepted** (2026-07-18) — validation gate пройден render-вертикалью PoC (T4).
 - **Контекст:** [спека #2](../specs/2026-07-18-render-pipeline.md); наследует [ADR 0001](2026-07-18-language-and-core.md).
 
 ## Проблема
@@ -40,14 +40,20 @@
 > контента — это преждевременная сложность. Владелец выбрал «RHI под два» осознанно; реализация
 > Vulkan отложена фазированием.
 
-## Условия финализации (validation gate)
+## Условия финализации (validation gate) — ✅ ПРОЙДЕН
 
 Proposed → Accepted когда render-вертикаль PoC (T4) закрывает риск освещения:
-1. Непрозрачный нормал-мапленный спрайт (deferred-2D) **+ прозрачный спрайт через forward-пасс**
-   (валидирует шов lighting-technique) + 2-3 динамических света на WebGPU-десктопе — на экране.
-2. Линейный HDR + bloom (render-graph) + тонмаппинг.
-3. **Epsilon/perceptual golden-image** (offscreen, зафиксированный эталонный рендер) зелёный —
-   НЕ побайтовый хеш (GPU-рендер не бит-в-бит между вендорами/софт-рендерами).
+1. ✅ Непрозрачный нормал-мапленный спрайт (deferred-2D) **+ прозрачный спрайт через forward-пасс**
+   (валидирует шов lighting-technique) + 3 динамических света на WebGPU/Metal-десктопе — на экране.
+2. ✅ Линейный HDR (rgba16float) + bloom (render-graph, аренный пул) + ACES-тонмаппинг.
+3. ✅ **Epsilon/perceptual golden-image** (offscreen, Metal-эталон на пиннутой машине) зелёный —
+   НЕ побайтовый хеш; негативный тест подтвердил, что гейт ловит регрессии.
+
+**PoC:** `poc/render/` (см. [спеку #2](../specs/2026-07-18-render-pipeline.md) → «Тестовая стратегия»);
+target'ы `render_demo` (окно) / `render_golden` (headless T4). Инварианты соблюдены: «GPU не
+кормит сим» (readback только в файл/тест), транзитные таргеты через аренный пул (allocs стабильны,
+без per-frame heap). Honest-limit: committed-golden пиннут на Metal этой машины; портируемый
+lavapipe-golden для cross-machine CI — follow-up (open Q #6). RHI↔Vulkan-шов остаётся open Q #3.
 
 ## Последствия
 

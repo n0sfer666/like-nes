@@ -19,12 +19,20 @@
 - Sim-домен (позиции спрайтов/светов) в fix32; float ТОЛЬКО на границе рендера (snapshot).
 - Нет GPU→CPU→sim readback. Offscreen readback идёт ТОЛЬКО в тест/файл, не в сим.
 
-## Шаги
-1. [ ] G-buffer + normal-mapped непрозрачный спрайт (deferred-2D), визуализация на экране + PNG-дамп
-2. [ ] 3 динамических света (deferred lighting fullscreen → HDR)
-3. [ ] Forward-пасс прозрачного спрайта (общий lighting-модуль → шов technique)
-4. [ ] Линейный HDR + bloom (render-graph, аренный пул) + тонмаппинг
-5. [ ] T4 offscreen epsilon/perceptual golden + скриншот
+## Шаги — ВСЕ ЗАКРЫТЫ (T4-гейт зелёный)
+1. [x] G-buffer + normal-mapped непрозрачный спрайт (deferred-2D) — commit e641d0e
+2. [x] 3 динамических света (deferred lighting → HDR) — commit 344c0a0
+3. [x] Forward-пасс прозрачного спрайта (общий shade() → шов technique) — commit e4f31c4
+4. [x] Линейный HDR + bloom (render-graph, аренный пул) + ACES тонмаппинг — commit 5be36b3
+5. [x] T4 offscreen epsilon/perceptual golden + негативный тест + скриншот — commit e03d590
+
+## Результат
+- ADR 0002 → Accepted, спека #2 → Validated. PoC: poc/render/ (render_demo окно, render_golden headless).
+- Арена: allocs стабильны на 5 транзитных таргетах (инвариант #5). selftest бит-в-бит run-to-run.
+- Известные упрощения / open Q: нормаль не контр-вращается на u.rot (общая 2D-упрощёнка);
+  back-to-front сортировки нет (1 прозрачный спрайт); lavapipe-golden для cross-machine CI — follow-up;
+  RHI↔Vulkan-шов — open Q #3 (валидируется только 2-м backend'ом).
+- naga-грабли: динамический индекс по массиву-значению запрещён → копия в function-var (`var LL=L`, `var w=`).
 
 ## Структура файлов (poc/render/)
 - gpu.{hpp,cpp} — контекст (headless + surface)
