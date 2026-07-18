@@ -71,6 +71,11 @@ add_executable(render_demo render/demo_main.cpp)
 target_link_libraries(render_demo PRIVATE render_core glfw webgpu glfw3webgpu)
 target_copy_webgpu_binaries(render_demo)
 
+# Headless T4-гейт: offscreen epsilon/perceptual golden (без окна, для CI).
+add_executable(render_golden render/golden_main.cpp)
+target_link_libraries(render_golden PRIVATE render_core webgpu)
+target_copy_webgpu_binaries(render_golden)
+
 # Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
 add_executable(determinism_test src/determinism_test.cpp)
 

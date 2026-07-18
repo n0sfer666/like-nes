@@ -94,19 +94,25 @@ bool read_png(const char* path, std::vector<uint8_t>& out, uint32_t& w, uint32_t
 }
 
 DiffResult compare(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b,
-                   double per_pixel_eps, double frac_tolerance) {
+                   double per_pixel_eps, double frac_tolerance, double max_abs_cap) {
     DiffResult r = {0, 0, 0, false};
-    if (a.size() != b.size() || a.empty()) return r;
-    double sum = 0; size_t over = 0;
-    for (size_t i = 0; i < a.size(); ++i) {
-        const double d = std::fabs((double)a[i] - (double)b[i]) / 255.0;
-        sum += d;
-        if (d > r.max_abs) r.max_abs = d;
-        if (d > per_pixel_eps) ++over;
+    if (a.size() != b.size() || a.empty() || a.size() % 4 != 0) return r;
+    const size_t pixels = a.size() / 4;
+    double sum = 0; size_t px_over = 0;
+    for (size_t p = 0; p < pixels; ++p) {
+        double pmax = 0;
+        for (size_t c = 0; c < 4; ++c) {
+            const size_t i = p * 4 + c;
+            const double d = std::fabs((double)a[i] - (double)b[i]) / 255.0;
+            sum += d;
+            if (d > r.max_abs) r.max_abs = d;
+            if (d > pmax) pmax = d;
+        }
+        if (pmax > per_pixel_eps) ++px_over;
     }
     r.mean_abs = sum / a.size();
-    r.frac_over = (double)over / a.size();
-    r.pass = r.frac_over <= frac_tolerance;
+    r.frac_over = (double)px_over / pixels;
+    r.pass = r.frac_over <= frac_tolerance && r.max_abs <= max_abs_cap;
     return r;
 }
 
