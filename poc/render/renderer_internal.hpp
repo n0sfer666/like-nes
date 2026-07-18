@@ -12,6 +12,13 @@ struct SpriteUniform {
     float _pad;
 };
 
+// std140-совместимый layout светов (совпадает с WGSL LightsU): vec4-выровнен.
+struct LightsUniform {
+    float header[4];       // count, aspect, ambient, _
+    float ambient_col[4];  // rgb ambient
+    float lights[6][4];    // на свет: [x,y,z,radius], [r,g,b,intensity]
+};
+
 inline WGPUColorTargetState color_target(WGPUTextureFormat fmt) {
     WGPUColorTargetState t = {};
     t.format = fmt;

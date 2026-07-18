@@ -26,9 +26,9 @@ SceneSnapshot Scene::snapshot(float aspect) const {
         const float a = t * (0.7f + 0.18f * i) + i * 2.094f;
         const float rad = 0.60f + 0.12f * std::sin(t * 0.5f + i);
         s.lights[i] = LightState{
-            rad * std::cos(a), rad * std::sin(a), 0.35f,
+            rad * std::cos(a), rad * std::sin(a), 0.42f,
             col[i][0], col[i][1], col[i][2],
-            1.35f, 1.1f,
+            3.2f, 1.55f,
         };
     }
     return s;

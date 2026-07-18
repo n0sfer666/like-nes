@@ -60,8 +60,9 @@ FetchContent_MakeAvailable(stb)
 # --- Render-вертикаль PoC (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
 add_library(render_core STATIC
   render/gpu.cpp render/arena.cpp render/scene.cpp render/sprite.cpp
-  render/gpu_util.cpp render/shaders_gbuffer.cpp render/renderer.cpp
-  render/renderer_pipelines.cpp render/capture.cpp render/stb_impl.cpp)
+  render/gpu_util.cpp render/shaders_gbuffer.cpp render/shaders_lighting.cpp
+  render/shaders_post.cpp render/renderer.cpp render/renderer_pipelines.cpp
+  render/capture.cpp render/stb_impl.cpp)
 target_include_directories(render_core PUBLIC ${stb_SOURCE_DIR})
 target_link_libraries(render_core PUBLIC webgpu)
 
