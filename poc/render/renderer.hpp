@@ -1,0 +1,49 @@
+#pragma once
+#include <webgpu/webgpu.h>
+
+#include "arena.hpp"
+#include "scene.hpp"
+#include "sprite.hpp"
+
+// Render-graph десктоп-tier: gbuffer(deferred) → lighting → forward → bloom → tonemap.
+// Таргеты пре-варминг на init (арена, стабильные views), bind-group'ы собраны один раз →
+// в render() НЕТ per-frame heap/GPU-аллокаций (инвариант #5).
+class Renderer {
+public:
+    void init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
+              WGPUTextureFormat out_format, uint32_t w, uint32_t h);
+    void render(const SceneSnapshot& snap, WGPUTextureView out_view);
+    void shutdown();
+
+    const TargetArena& arena() const { return arena_; }
+
+private:
+    void build_targets();
+    void build_gbuffer();
+    void build_preview();
+
+    WGPUDevice device_ = nullptr;
+    WGPUQueue queue_ = nullptr;
+    const Sprite* sprite_ = nullptr;
+    WGPUTextureFormat out_format_ = WGPUTextureFormat_Undefined;
+    uint32_t w_ = 0, h_ = 0;
+
+    TargetArena arena_;
+    WGPUTextureView albedo_ = nullptr;
+    WGPUTextureView normal_ = nullptr;
+
+    WGPUBuffer uniforms_ = nullptr;
+    uint32_t uniform_stride_ = 256;
+
+    WGPUBindGroupLayout gbuffer_bgl_ = nullptr;
+    WGPUBindGroup gbuffer_bg_ = nullptr;
+    WGPURenderPipeline gbuffer_pipe_ = nullptr;
+
+    WGPUBindGroupLayout preview_bgl_ = nullptr;
+    WGPUBindGroup preview_bg_ = nullptr;
+    WGPURenderPipeline preview_pipe_ = nullptr;
+};
+
+constexpr WGPUTextureFormat GBUFFER_ALBEDO_FMT = WGPUTextureFormat_RGBA8Unorm;
+constexpr WGPUTextureFormat GBUFFER_NORMAL_FMT = WGPUTextureFormat_RGBA8Unorm;
+constexpr WGPUTextureFormat HDR_FMT = WGPUTextureFormat_RGBA16Float;
