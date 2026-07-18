@@ -20,7 +20,8 @@ public:
 private:
     void build_targets();
     void build_gbuffer();
-    void build_preview();
+    void build_lighting();
+    void build_tonemap();
 
     WGPUDevice device_ = nullptr;
     WGPUQueue queue_ = nullptr;
@@ -31,17 +32,23 @@ private:
     TargetArena arena_;
     WGPUTextureView albedo_ = nullptr;
     WGPUTextureView normal_ = nullptr;
+    WGPUTextureView hdr_ = nullptr;
 
     WGPUBuffer uniforms_ = nullptr;
     uint32_t uniform_stride_ = 256;
+    WGPUBuffer lights_ubo_ = nullptr;
 
     WGPUBindGroupLayout gbuffer_bgl_ = nullptr;
     WGPUBindGroup gbuffer_bg_ = nullptr;
     WGPURenderPipeline gbuffer_pipe_ = nullptr;
 
-    WGPUBindGroupLayout preview_bgl_ = nullptr;
-    WGPUBindGroup preview_bg_ = nullptr;
-    WGPURenderPipeline preview_pipe_ = nullptr;
+    WGPUBindGroupLayout lighting_bgl_ = nullptr;
+    WGPUBindGroup lighting_bg_ = nullptr;
+    WGPURenderPipeline lighting_pipe_ = nullptr;
+
+    WGPUBindGroupLayout tonemap_bgl_ = nullptr;
+    WGPUBindGroup tonemap_bg_ = nullptr;
+    WGPURenderPipeline tonemap_pipe_ = nullptr;
 };
 
 constexpr WGPUTextureFormat GBUFFER_ALBEDO_FMT = WGPUTextureFormat_RGBA8Unorm;
