@@ -1,7 +1,7 @@
 # Спецификация #2: Рендер-пайплайн и спецэффекты (Hollow-Knight-уровень)
 
 - **Дата:** 2026-07-18
-- **Статус:** Proposed — DoD = дизайн + render-вертикаль PoC (T4). См. [ADR 0002](../decisions/2026-07-18-render-pipeline.md)
+- **Статус:** **Validated** (2026-07-18) — дизайн + render-вертикаль PoC (T4) закрыты; ADR 0002 Accepted. См. [ADR 0002](../decisions/2026-07-18-render-pipeline.md). PoC: `poc/render/`.
 - **Наследует:** [спека #1](2026-07-18-language-and-core.md) (C++, WebGPU, инвариант «GPU не кормит сим»).
 
 ## Контекст
