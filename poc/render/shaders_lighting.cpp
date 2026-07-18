@@ -49,3 +49,47 @@ fn fs(@location(0) uv: vec2f) -> @location(0) vec4f {
 }
 )WGSL";
 }
+
+// Forward-пасс прозрачного спрайта — ВТОРОЙ потребитель того же lighting_module_wgsl().
+// Тот же shade(), что и deferred: доказывает, что шов technique держит второго потребителя.
+std::string forward_wgsl() {
+    return lighting_module_wgsl() + R"WGSL(
+struct SpriteU {
+    pos: vec2f, scale: f32, rot: f32, aspect: f32, alpha: f32, emissive: f32, _pad: f32,
+};
+@group(0) @binding(0) var<uniform> u: SpriteU;
+@group(0) @binding(1) var samp: sampler;
+@group(0) @binding(2) var albedoTex: texture_2d<f32>;
+@group(0) @binding(3) var normalTex: texture_2d<f32>;
+@group(0) @binding(4) var<uniform> lights: LightsU;
+
+struct VSOut {
+    @builtin(position) clip: vec4f,
+    @location(0) uv: vec2f,
+    @location(1) world: vec2f,
+};
+
+@vertex
+fn vs(@location(0) pos: vec2f, @location(1) uv: vec2f) -> VSOut {
+    var p = pos * u.scale;
+    let c = cos(u.rot);
+    let s = sin(u.rot);
+    p = vec2f(p.x * c - p.y * s, p.x * s + p.y * c);
+    p += u.pos;
+    var o: VSOut;
+    o.world = p;
+    o.clip = vec4f(p.x / u.aspect, p.y, 0.0, 1.0);
+    o.uv = uv;
+    return o;
+}
+
+@fragment
+fn fs(in: VSOut) -> @location(0) vec4f {
+    let a = textureSample(albedoTex, samp, in.uv);
+    let n = normalize(textureSample(normalTex, samp, in.uv).xyz * 2.0 - 1.0);
+    var col = shade(a.rgb, n, in.world, lights);
+    col = col + a.rgb * u.emissive;
+    return vec4f(col, a.a * u.alpha);
+}
+)WGSL";
+}
