@@ -22,6 +22,7 @@ private:
     void build_gbuffer();
     void build_lighting();
     void build_forward();
+    void build_bloom();
     void build_tonemap();
 
     WGPUDevice device_ = nullptr;
@@ -34,10 +35,14 @@ private:
     WGPUTextureView albedo_ = nullptr;
     WGPUTextureView normal_ = nullptr;
     WGPUTextureView hdr_ = nullptr;
+    WGPUTextureView bloom_a_ = nullptr;
+    WGPUTextureView bloom_b_ = nullptr;
+    uint32_t bloom_w_ = 0, bloom_h_ = 0;
 
     WGPUBuffer uniforms_ = nullptr;
     uint32_t uniform_stride_ = 256;
     WGPUBuffer lights_ubo_ = nullptr;
+    WGPUBuffer blur_ubo_ = nullptr;
 
     WGPUBindGroupLayout gbuffer_bgl_ = nullptr;
     WGPUBindGroup gbuffer_bg_ = nullptr;
@@ -50,6 +55,15 @@ private:
     WGPUBindGroupLayout forward_bgl_ = nullptr;
     WGPUBindGroup forward_bg_ = nullptr;
     WGPURenderPipeline forward_pipe_ = nullptr;
+
+    WGPUBindGroupLayout bright_bgl_ = nullptr;
+    WGPUBindGroup bright_bg_ = nullptr;
+    WGPURenderPipeline bright_pipe_ = nullptr;
+
+    WGPUBindGroupLayout blur_bgl_ = nullptr;
+    WGPUBindGroup blur_bg_h_ = nullptr;
+    WGPUBindGroup blur_bg_v_ = nullptr;
+    WGPURenderPipeline blur_pipe_ = nullptr;
 
     WGPUBindGroupLayout tonemap_bgl_ = nullptr;
     WGPUBindGroup tonemap_bg_ = nullptr;

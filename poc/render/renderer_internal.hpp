@@ -19,6 +19,11 @@ struct LightsUniform {
     float lights[6][4];    // на свет: [x,y,z,radius], [r,g,b,intensity]
 };
 
+struct BlurUniform {
+    float dir[2];
+    float _pad[2];
+};
+
 inline WGPUColorTargetState color_target(WGPUTextureFormat fmt) {
     WGPUColorTargetState t = {};
     t.format = fmt;
@@ -26,3 +31,6 @@ inline WGPUColorTargetState color_target(WGPUTextureFormat fmt) {
     t.writeMask = WGPUColorWriteMask_All;
     return t;
 }
+
+WGPURenderPipeline make_fullscreen_pipe(WGPUDevice device, WGPUBindGroupLayout bgl,
+                                        WGPUShaderModule fsm, WGPUTextureFormat fmt);
