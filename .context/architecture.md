@@ -30,6 +30,11 @@
 └──────────────────────────────────────────────┘
 ```
 
+> **HAL ↔ RHI (спека #2):** render-часть HAL — это **RHI** (render-graph-центричный, спека #2).
+> Это ОДНА граница, не два слоя: RHI-backend'ы = WebGPU (Dawn/wgpu-native, сейчас) → Vulkan/Metal/
+> D3D12/GLES, плюс нативный Vulkan-backend и консольные (GNM/NVN) как отдельные RHI-backend'ы позже.
+> Platform-часть HAL (окно/ввод/fs/таймер) — независима от RHI.
+
 ## Инварианты (нарушение = баг)
 
 1. **Весь мутабельный игровой state живёт в host, shared-lib — stateless.**

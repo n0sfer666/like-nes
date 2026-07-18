@@ -24,8 +24,8 @@ indie-продуктов уровня Hollow Knight. Только движок �
 
 | # | Спека | Статус |
 |---|---|---|
-| 1 | Выбор языка + архитектура ядра | **В работе** — [`specs/2026-07-18-language-and-core.md`](specs/2026-07-18-language-and-core.md) |
-| 2 | Рендер-пайплайн и спецэффекты (2D, Hollow-Knight-уровень) | planned |
+| 1 | Выбор языка + архитектура ядра | **Закрыта** (C++, PoC validated, CI 3 ОС) — [`specs/2026-07-18-language-and-core.md`](specs/2026-07-18-language-and-core.md) |
+| 2 | Рендер-пайплайн и спецэффекты (2D, Hollow-Knight-уровень) | **Дизайн готов** (Proposed), PoC впереди — [`specs/2026-07-18-render-pipeline.md`](specs/2026-07-18-render-pipeline.md) |
 | 3 | Аудио-подсистема | planned |
 | 4 | Система ввода (все устройства) | planned |
 | 5 | Ассет-пайплайн (формат, компрессия, стриминг) | planned |
