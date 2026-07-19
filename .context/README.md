@@ -28,7 +28,7 @@ indie-продуктов уровня Hollow Knight. Только движок �
 | 2 | Рендер-пайплайн и спецэффекты (2D, Hollow-Knight-уровень) | **Закрыта** (ADR Accepted, render-вертикаль PoC validated T4) — [`specs/2026-07-18-render-pipeline.md`](specs/2026-07-18-render-pipeline.md) |
 | 3 | Аудио-подсистема | planned |
 | 4 | Система ввода (все устройства) | planned |
-| 5 | Ассет-пайплайн (формат, компрессия, стриминг) | planned |
+| 5 | Ассет-пайплайн (формат, компрессия, стриминг) | **Закрыта** (ADR 0003 Accepted, asset-вертикаль PoC validated T4: байт-golden bake / zero-copy+ASan / детерм.-гейт / шов asset→render / hot-reload) — [`specs/2026-07-19-asset-pipeline.md`](specs/2026-07-19-asset-pipeline.md) |
 | 6 | Система плагинов + конфигурируемый интерфейс | planned |
 | 7 | IDE: UI/UX и архитектура редактора | planned |
 | 8 | Билд/деплой и кросс-компиляция | planned |
