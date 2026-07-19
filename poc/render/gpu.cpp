@@ -26,6 +26,14 @@ WGPUDevice request_device(WGPUAdapter adapter) {
     WGPUDevice out = nullptr;
     WGPUDeviceDescriptor desc = {};
     desc.label = "like-nes-render-device";
+    // BC-текстуры нужны ассет-шву (baked KTX2→BC7). Best-effort: включаем, если адаптер
+    // поддерживает (desktop Metal/Vulkan — да); render-путь фичу игнорирует.
+    WGPUFeatureName feats[1];
+    uint32_t feat_count = 0;
+    if (wgpuAdapterHasFeature(adapter, WGPUFeatureName_TextureCompressionBC))
+        feats[feat_count++] = WGPUFeatureName_TextureCompressionBC;
+    desc.requiredFeatureCount = feat_count;
+    desc.requiredFeatures = feats;
     wgpuAdapterRequestDevice(
         adapter, &desc,
         [](WGPURequestDeviceStatus status, WGPUDevice device, char const* msg, void* ud) {

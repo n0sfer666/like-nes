@@ -15,6 +15,10 @@ namespace capture {
 std::vector<uint8_t> render_offscreen(WGPUDevice device, WGPUQueue queue, Renderer& renderer,
                                       const SceneSnapshot& snap, uint32_t w, uint32_t h);
 
+// Чтение RGBA8-текстуры (CopySrc) обратно на CPU. Только в файл/тест, не в сим.
+std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTexture tex,
+                                   uint32_t w, uint32_t h);
+
 bool write_png(const char* path, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h);
 bool read_png(const char* path, std::vector<uint8_t>& out, uint32_t& w, uint32_t& h);
 
