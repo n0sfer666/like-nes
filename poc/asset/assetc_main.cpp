@@ -66,6 +66,39 @@ bool bake_shader(const codec::Tools& t, const std::string& src, const char* name
 
 void bake_bulk(const char* name, std::vector<AssetInput>& out); // fwd
 
+bool read_file(const std::string& path, std::vector<uint8_t>& out) {
+    FILE* f = std::fopen(path.c_str(), "rb");
+    if (!f) return false;
+    std::fseek(f, 0, SEEK_END);
+    long n = std::ftell(f);
+    std::fseek(f, 0, SEEK_SET);
+    if (n < 0) { std::fclose(f); return false; }
+    out.resize(static_cast<size_t>(n));
+    size_t rd = std::fread(out.data(), 1, static_cast<size_t>(n), f);
+    std::fclose(f);
+    return rd == static_cast<size_t>(n);
+}
+
+// Аудио (спека #3): vorbis-контейнер как Mmap zero-copy (декод в рантайме stb_vorbis).
+// Бейк детерминирован — копирует committed .ogg байты (энкодер не нужен в CI).
+bool bake_audio(const std::string& src, const char* name, bool loop, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> ogg;
+    if (!read_file(src, ogg)) {
+        std::fprintf(stderr, "[assetc] audio read failed: %s\n", src.c_str());
+        return false;
+    }
+    AssetInput a;
+    a.guid = guid_of(name);
+    a.type = AssetType::Audio;
+    a.codec = Codec::Vorbis;
+    a.residency = Residency::Mmap; // zero-copy сжатые байты; PCM-декод — аудио-слой
+    a.uncompressed_size = static_cast<uint32_t>(ogg.size());
+    a.variant_key = loop ? AUDIO_FLAG_LOOP : 0u;
+    a.payload = std::move(ogg);
+    out.push_back(std::move(a));
+    return true;
+}
+
 // Синтетический ассет (raw payload детерм. паттерна) — без внешних кодеков.
 AssetInput synth_asset(const char* name, AssetType type, Codec codec, Residency res,
                        uint32_t size, uint8_t seed) {
@@ -124,6 +157,27 @@ int main(int argc, char** argv) {
         std::printf("[assetc] bundle_hash = 0x%016llx\n", (unsigned long long)h->bundle_hash);
         return 0;
     }
+    // Аудио-бандл (спека #3): committed .ogg → Mmap/Vorbis. Отдельный бандл — golden-хеши
+    // рендер/ассет-бейков не трогаются.
+    if (std::strcmp(argv[1], "--audio") == 0) {
+        if (argc < 4) {
+            std::fprintf(stderr, "usage: assetc --audio <src-dir> <out.bundle>\n");
+            return 2;
+        }
+        std::string asrc = argv[2];
+        std::vector<AssetInput> assets;
+        bool ok = bake_audio(asrc + "/sfx_ping.ogg", "sfx_ping", false, assets);
+        ok = ok && bake_audio(asrc + "/music.ogg", "music", true, assets);
+        if (!ok) return 1;
+        std::vector<uint8_t> bundle = write_bundle(std::move(assets));
+        if (!codec::write_file(argv[3], bundle)) return 1;
+        const BundleHeader* h = reinterpret_cast<const BundleHeader*>(bundle.data());
+        std::printf("[assetc] audio %s (%u bytes, %u assets)\n", argv[3], h->total_size,
+                    h->asset_count);
+        std::printf("[assetc] bundle_hash = 0x%016llx\n", (unsigned long long)h->bundle_hash);
+        return 0;
+    }
+
     std::string src = argv[1];
     std::string out_path = argv[2];
     codec::Tools tools{"tint", "basisu"};

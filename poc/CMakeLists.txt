@@ -82,6 +82,17 @@ FetchContent_Declare(zstd
   SOURCE_SUBDIR build/cmake)
 FetchContent_MakeAvailable(zstd)
 
+# --- miniaudio (AudioDevice HAL-бэкенд, спека #3) ---
+# Single-header (как stb): SOURCE_SUBDIR в несуществующий подкаталог → MakeAvailable ТОЛЬКО
+# выкачивает исходники. Реальное устройство — локально; в headless-CI выключается опцией.
+option(AUDIO_MINIAUDIO "Real audio device via miniaudio (local; OFF в headless CI)" ON)
+FetchContent_Declare(miniaudio
+  GIT_REPOSITORY https://github.com/mackron/miniaudio
+  GIT_TAG 0.11.21
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR do-not-build)
+FetchContent_MakeAvailable(miniaudio)
+
 # POSIX-only (fork/execvp bake-tools, mmap загрузка) — Windows-путь позже, как hotreload.
 if(NOT WIN32)
   find_package(Threads REQUIRED)
@@ -106,6 +117,30 @@ if(NOT WIN32)
   # Hot-reload roundtrip (свап бандла, стабильный guid). Self-contained — CI на всех POSIX.
   add_executable(asset_hot_reload_test asset/asset_hot_reload_test.cpp)
   target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
+endif()
+
+# --- Аудио-вертикаль PoC (спека #3): mixer + шины + 2D-пан + стрим/резидент + детерминизм ---
+# audio_core: микшер (Float/Fix32 seam) + декод (stb_vorbis, present в fetched stb). Без
+# устройства/ассетов → deviceless-гейты гоняются в CI на всех POSIX.
+if(NOT WIN32)
+  add_library(audio_core STATIC
+    audio/mixer.cpp audio/decoder.cpp audio/stb_vorbis_impl.c)
+  target_include_directories(audio_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/audio ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR})
+  target_link_libraries(audio_core PUBLIC Threads::Threads)
+
+  # Гейт #1 (байт-golden хеш микса, Fix32 над детерм. PCM). CI на всех POSIX.
+  add_executable(audio_golden audio/audio_golden_main.cpp)
+  target_link_libraries(audio_golden PRIVATE audio_core)
+
+  # Гейт #2 (замедл./джиттер callback → тот же sim-hash). TSan-джоб. CI на всех POSIX.
+  add_executable(audio_determinism_test audio/audio_determinism_test.cpp)
+  target_link_libraries(audio_determinism_test PRIVATE audio_core)
+
+  # Гейт #3 (RT-safe callback: no-alloc/lock-free). ASan/UBSan-джоб. CI на всех POSIX.
+  add_executable(audio_rt_test audio/audio_rt_test.cpp)
+  target_link_libraries(audio_rt_test PRIVATE audio_core)
 endif()
 
 # --- Render-вертикаль PoC (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
