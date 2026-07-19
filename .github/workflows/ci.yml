@@ -90,3 +90,41 @@ jobs:
           BIN=$(find poc/build -maxdepth 2 -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
+
+      # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех POSIX-ОС ---
+      # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
+      # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,
+      # zstd ПИННУТ v1.5.6 → cross-machine байт-golden) + гейты #2/#3 + hot-reload + ASan.
+      - name: Asset — synthetic byte-golden bake (gate #1, cross-OS writer+zstd)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          A=$(find poc/build -maxdepth 2 -name 'assetc' | head -1)
+          [ -n "$A" ] || { echo "assetc not built"; exit 1; }
+          "$A" --synthetic syn.bundle | tee syn.txt
+          grep -q "0xf2255dc74fbdb6bc" syn.txt || { echo "SYNTH HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
+          "$A" --synthetic syn2.bundle >/dev/null
+          a=$(shasum -a256 syn.bundle | awk '{print $1}')
+          b=$(shasum -a256 syn2.bundle | awk '{print $1}')
+          [ "$a" = "$b" ] || { echo "bake not run-to-run identical"; exit 1; }
+
+      - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          T=$(find poc/build -maxdepth 2 -name 'asset_test' | head -1); "$T" syn.bundle
+          D=$(find poc/build -maxdepth 2 -name 'asset_determinism_test' | head -1); "$D" syn.bundle
+          H=$(find poc/build -maxdepth 2 -name 'asset_hot_reload_test' | head -1); "$H" .
+
+      - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ZLIB=$(find poc/build -name 'libzstd_static.a' | head -1)
+          ZINC=$(find poc/build -path '*zstd-src/lib' -type d | head -1)
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+            -Ipoc/asset -I"$ZINC" \
+            poc/asset/asset_test.cpp poc/asset/asset_manager.cpp \
+            poc/asset/platform_io.cpp poc/asset/bundle_view.cpp \
+            "$ZLIB" -lpthread -o asset_test_san
+          ./asset_test_san syn.bundle
