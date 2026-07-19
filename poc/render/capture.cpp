@@ -34,6 +34,14 @@ std::vector<uint8_t> render_offscreen(WGPUDevice device, WGPUQueue queue, Render
 
     renderer.render(snap, view);
 
+    std::vector<uint8_t> out = readback_rgba(device, queue, tex, w, h);
+    wgpuTextureViewRelease(view);
+    wgpuTextureRelease(tex);
+    return out;
+}
+
+std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTexture tex,
+                                   uint32_t w, uint32_t h) {
     const uint32_t row = w * 4;
     const uint32_t padded = align256(row);
     WGPUBufferDescriptor bd = {};
@@ -74,9 +82,7 @@ std::vector<uint8_t> render_offscreen(WGPUDevice device, WGPUQueue queue, Render
     }
 
     wgpuBufferRelease(buf);
-    wgpuTextureViewRelease(view);
-    wgpuTextureRelease(tex);
-    return out;
+    return out; // tex/view принадлежат вызывающему
 }
 
 bool write_png(const char* path, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h) {

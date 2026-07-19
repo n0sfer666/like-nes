@@ -57,6 +57,17 @@ FetchContent_Declare(stb
 )
 FetchContent_MakeAvailable(stb)
 
+# --- basis_universal transcoder (KTX2/UASTC → BC7 в рантайме, спека #5) ---
+# SOURCE_SUBDIR указывает в несуществующий подкаталог → MakeAvailable ТОЛЬКО выкачивает
+# исходники (не билдит их CLI). Используем один файл транскодера. Пин по тегу (детерм.).
+FetchContent_Declare(basisu
+  GIT_REPOSITORY https://github.com/BinomialLLC/basis_universal
+  GIT_TAG v1_60
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR do-not-build
+)
+FetchContent_MakeAvailable(basisu)
+
 # --- Ассет-вертикаль PoC (спека #5): assetc bake + рантайм-загрузка + шов в render ---
 # zstd для bulk-кодека (decompress → арена). Desktop: brew/apt libzstd.
 # zstd ПИННУТ из исходников (не системный) → байт-детерминизм бейка cross-machine
@@ -115,6 +126,23 @@ target_copy_webgpu_binaries(render_demo)
 add_executable(render_golden render/golden_main.cpp)
 target_link_libraries(render_golden PRIVATE render_core webgpu)
 target_copy_webgpu_binaries(render_golden)
+
+# --- Шов asset→render (спека #5 гейт): baked BC7 tex + baked Tint SPIR-V → GPU → offscreen ---
+if(NOT WIN32)
+  # basis транскодер — один файл; KTX2 без zstd-суперкомпрессии → BASISD_SUPPORT_KTX2_ZSTD=0
+  # (не тянем вендорный zstd, нет конфликта символов с нашим libzstd).
+  add_library(basis_transcoder STATIC ${basisu_SOURCE_DIR}/transcoder/basisu_transcoder.cpp)
+  target_include_directories(basis_transcoder PUBLIC ${basisu_SOURCE_DIR}/transcoder)
+  target_compile_definitions(basis_transcoder PUBLIC BASISD_SUPPORT_KTX2=1 BASISD_SUPPORT_KTX2_ZSTD=0)
+
+  add_library(asset_gpu STATIC asset/transcode.cpp)
+  target_link_libraries(asset_gpu PUBLIC basis_transcoder)
+
+  add_executable(asset_render asset/asset_render_main.cpp)
+  target_include_directories(asset_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/render)
+  target_link_libraries(asset_render PRIVATE asset_core asset_gpu render_core webgpu)
+  target_copy_webgpu_binaries(asset_render)
+endif()
 
 # Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
 add_executable(determinism_test src/determinism_test.cpp)
