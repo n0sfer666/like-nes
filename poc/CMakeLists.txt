@@ -141,6 +141,24 @@ if(NOT WIN32)
   # Гейт #3 (RT-safe callback: no-alloc/lock-free). ASan/UBSan-джоб. CI на всех POSIX.
   add_executable(audio_rt_test audio/audio_rt_test.cpp)
   target_link_libraries(audio_rt_test PRIVATE audio_core)
+
+  # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
+  add_executable(audio_seam audio/audio_seam_main.cpp)
+  target_link_libraries(audio_seam PRIVATE audio_core asset_core)
+
+  if(AUDIO_MINIAUDIO)
+    add_library(audio_device STATIC audio/device.cpp audio/miniaudio_impl.c)
+    target_include_directories(audio_device PUBLIC
+      ${CMAKE_CURRENT_SOURCE_DIR}/audio ${CMAKE_CURRENT_SOURCE_DIR}/src ${miniaudio_SOURCE_DIR})
+    target_compile_definitions(audio_device PUBLIC AUDIO_HAVE_MINIAUDIO)
+    if(APPLE)
+      target_link_libraries(audio_device PUBLIC "-framework CoreAudio" "-framework AudioToolbox"
+        "-framework CoreFoundation")
+    else()
+      target_link_libraries(audio_device PUBLIC ${CMAKE_DL_LIBS} Threads::Threads m)
+    endif()
+    target_link_libraries(audio_seam PRIVATE audio_device)
+  endif()
 endif()
 
 # --- Render-вертикаль PoC (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
