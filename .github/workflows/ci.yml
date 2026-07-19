@@ -34,7 +34,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure
-        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF
 
       - name: Build (poc + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
         run: cmake --build poc/build
@@ -128,3 +128,35 @@ jobs:
             poc/asset/platform_io.cpp poc/asset/bundle_view.cpp \
             "$ZLIB" -lpthread -o asset_test_san
           ./asset_test_san syn.bundle
+
+      # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех POSIX-ОС ---
+      # Реальное устройство (miniaudio --play) — локальный pinned-T4 (как perceptual-golden
+      # render-PoC). CI гоняет: байт-golden микса (Fix32, целочисл. → cross-machine), детерм.-гейт
+      # (тайминг callback не течёт в sim), RT-safety, шов (реальный vorbis-декод stb_vorbis, offline).
+      - name: Audio — mix byte-golden (gate #1) + determinism (gate #2) + RT-safety (gate #3)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          G=$(find poc/build -maxdepth 2 -name 'audio_golden' | head -1); "$G" | tee ag.txt
+          grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          D=$(find poc/build -maxdepth 2 -name 'audio_determinism_test' | head -1); "$D"
+          R=$(find poc/build -maxdepth 2 -name 'audio_rt_test' | head -1); "$R"
+
+      - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          A=$(find poc/build -maxdepth 2 -name 'assetc' | head -1)
+          "$A" --audio poc/audio/assets/src audio.bundle
+          S=$(find poc/build -maxdepth 2 -name 'audio_seam' | head -1); "$S" audio.bundle
+
+      - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+            poc/audio/audio_rt_test.cpp poc/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+            poc/audio/audio_golden_main.cpp poc/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread \
+            poc/audio/audio_determinism_test.cpp poc/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
