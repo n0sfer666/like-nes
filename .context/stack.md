@@ -22,6 +22,7 @@
 | Память | арены/пулы + per-frame allocator (+ ASan/UBSan) | предсказуемость; safety вручную (нет borrow-checker) |
 | Ассеты/диск | кастомный бинформат (target-native, mmap zero-copy) + гибрид mmap/async-стрим + кодек-по-классу | минимум RAM/диск/времени загрузки; дизайн — спека #5, ADR 0003 |
 | Рендер | **Dawn (C++ WebGPU)** / wgpu-native | Vulkan/Metal/D3D12/GLES из коробки |
+| Аудио | **miniaudio** за HAL + свой микшер (шины/2D-пан/ducking); гибрид float/fix32-детерм. | output-домен вне sim; sample-time команды → тайминг не течёт в sim; спека #3, ADR 0004 |
 | Ошибки | SEH/сигнал-изоляция на host↔lib границе | live-разработка не падает целиком (сложнее, чем catch_unwind) |
 | Toolchain | бандл пиннед C++ (clang+build) + NDK/iOS SDK | воспроизводимые билды, desktop→mobile |
 | Консоли | HAL + **офиц. C++ SDK-путь** | риск снят (в отличие от Rust) |
