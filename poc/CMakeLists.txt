@@ -57,6 +57,46 @@ FetchContent_Declare(stb
 )
 FetchContent_MakeAvailable(stb)
 
+# --- Ассет-вертикаль PoC (спека #5): assetc bake + рантайм-загрузка + шов в render ---
+# zstd для bulk-кодека (decompress → арена). Desktop: brew/apt libzstd.
+# zstd ПИННУТ из исходников (не системный) → байт-детерминизм бейка cross-machine
+# (спека #5: pinned codec versions). Системный libzstd варьируется по версиям меж раннерами.
+set(ZSTD_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
+FetchContent_Declare(zstd
+  GIT_REPOSITORY https://github.com/facebook/zstd
+  GIT_TAG v1.5.6
+  GIT_SHALLOW TRUE
+  SOURCE_SUBDIR build/cmake)
+FetchContent_MakeAvailable(zstd)
+
+# POSIX-only (fork/execvp bake-tools, mmap загрузка) — Windows-путь позже, как hotreload.
+if(NOT WIN32)
+  find_package(Threads REQUIRED)
+  add_library(asset_core STATIC
+    asset/bundle_writer.cpp asset/codec.cpp
+    asset/platform_io.cpp asset/bundle_view.cpp asset/asset_manager.cpp)
+  target_include_directories(asset_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
+  target_link_libraries(asset_core PUBLIC libzstd_static Threads::Threads)
+
+  add_executable(assetc asset/assetc_main.cpp)
+  target_link_libraries(assetc PRIVATE asset_core)
+
+  # Headless гейт #2 (zero-copy / no per-frame heap). ASan/UBSan-джоб — Phase 6.
+  add_executable(asset_test asset/asset_test.cpp)
+  target_link_libraries(asset_test PRIVATE asset_core)
+
+  # Headless гейт #3 (замедленный I/O → тот же sim-hash). Без GPU — CI на всех POSIX-ОС.
+  add_executable(asset_determinism_test asset/asset_determinism_test.cpp)
+  target_link_libraries(asset_determinism_test PRIVATE asset_core)
+
+  # Hot-reload roundtrip (свап бандла, стабильный guid). Self-contained — CI на всех POSIX.
+  add_executable(asset_hot_reload_test asset/asset_hot_reload_test.cpp)
+  target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
+endif()
+
 # --- Render-вертикаль PoC (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
 add_library(render_core STATIC
   render/gpu.cpp render/arena.cpp render/scene.cpp render/sprite.cpp
