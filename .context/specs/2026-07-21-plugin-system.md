@@ -1,9 +1,9 @@
 # Спецификация #6: Система плагинов + конфигурируемый интерфейс
 
 - **Дата:** 2026-07-21
-- **Статус:** **Proposed** — интервью пройдено (owner, AskUserQuestion 2026-07-21), дизайн
-  зафиксирован; walking-skeleton plugin-вертикаль PoC (T4) в работе. ADR
-  [0006](../decisions/2026-07-21-plugin-system.md) → Proposed.
+- **Статус:** **Validated** — walking-skeleton plugin-вертикаль PoC закрыта (T4, все 6 гейтов зелёные,
+  live UI-shell на owner-HW подтверждён, WASM-sandbox local pinned-T4 на wasmtime; см. «Результат PoC»).
+  ADR [0006](../decisions/2026-07-21-plugin-system.md) → Accepted.
 - **Наследует:** [спека #1](2026-07-18-language-and-core.md) (детерминизм: fixed timestep, sim-hash,
   fix32, hot-reload shared-lib, SEH/сигнал-изоляция host↔lib, детерм. граф систем),
   [#2](2026-07-18-render-pipeline.md) (render-graph = точка расширения render-pass; GLFW-окно = host
@@ -97,7 +97,7 @@
 > WAMR) фиксируется в ADR по итогу фазы 5. Marketplace/подпись/песочница-политика, версионирование API
 > (semver-эволюция), полноценный IDE (#7) — точки расширения / отдельные спеки.
 
-## Результат PoC (частичный — WASM отложен, live-UI ждёт owner)
+## Результат PoC — ✅ все 6 гейтов зелёные (T4)
 
 Реализация `poc/plugin/` (walking-skeleton). Статус гейтов:
 
@@ -117,10 +117,13 @@
   битом вводе (нет terminate). ASan+UBSan-чисто. **Live `plugin_ui_shell`** (Dear ImGui docking +
   GLFW + GL3): панели рождаются из 2 манифестов и докируются по хинту — **подтверждено live на
   owner-HW (macOS 2026-07-21):** окно отрисовалось, панели видны (как input_demo / miniaudio --play).
-- **Гейт 5 (WASM-sandbox) — ⏸ ОТЛОЖЕН owner'ом (2026-07-21):** wasm-тулчейн (llvm wasm32 + wasmtime
-  C-API) не установлен локально; runtime выбран (**wasmtime**), реализация escape+native≡WASM —
-  follow-up.
+- **Гейт 5 (WASM-sandbox) — ✅ ЗЕЛЁНЫЙ (local pinned-T4).** `plugin_wasm_test` (wasmtime C-API v26,
+  guest = WAT `gravity.wat` на i32 fix32, загрузка через `wasmtime_wat2wasm` — без wasm-ld):
+  **native≡WASM** WASM golden = `0x7ad0493f0f2ddf47` = native (бит-в-бит fix32 через ABI-границу);
+  **escape OOB** linear-memory → wasmtime trap, host жив; **escape** вызов незаявленного host-import →
+  link rejected (capability-контроль). UBSan-чисто (ASan несовместим с guard-page SIGSEGV wasmtime).
 
 **CI:** determinism/seam/isolation — POSIX (macOS+Linux) + Windows build-валидация; manifest — все 3 OS;
-ASan/UBSan — Linux. ADR/spec остаются **Proposed** до закрытия гейта 5 (WASM) и live-UI (owner).
-Коммиты: step 1 `4a8fc55` (native), step 2 `749408d` (UI-shell), step 3 `4fe43a3` (CI).
+ASan/UBSan — Linux. WASM + live-UI — **local pinned-T4** (C-API/окно не на раннерах), как miniaudio
+`--play` / perceptual-golden render #2. ADR **Accepted** / spec **Validated** — все 6 гейтов закрыты.
+Коммиты: `4a8fc55` native · `749408d` UI · `4fe43a3` CI · `f839d4b`/`758b8f7` docs · +WASM (этот).

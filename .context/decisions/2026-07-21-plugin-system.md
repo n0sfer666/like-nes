@@ -1,8 +1,9 @@
 # ADR 0006: Система плагинов + конфигурируемый интерфейс
 
 - **Дата:** 2026-07-21
-- **Статус:** **Proposed** — интервью пройдено (owner, 2026-07-21), дизайн зафиксирован; переходит в
-  **Accepted** по закрытию validation gate (walking-skeleton plugin-вертикаль PoC, T4 — условия ниже).
+- **Статус:** **Accepted** (2026-07-21) — validation gate закрыт: walking-skeleton plugin-вертикаль
+  PoC (T4) зелёная (все 6 условий финализации выполнены, см. ниже + «Результат PoC» в спеке #6;
+  gate 6 UI-shell подтверждён live на owner-HW macOS; gate 5 WASM — local pinned-T4 на wasmtime).
 - **Контекст:** [спека #6](../specs/2026-07-21-plugin-system.md); наследует
   [ADR 0001](2026-07-18-language-and-core.md) (детерминизм, fixed timestep, sim-hash, fix32,
   hot-reload shared-lib, SEH/сигнал-изоляция host↔lib, детерм. граф систем),
@@ -49,24 +50,25 @@ marketplace; чистый WASM — платит маршалингом на ка
 доказательство, что песочница не ломает воспроизводимость. Изоляция сбоев переиспользует уже
 доказанный seam #1 (сигнал/SEH), WASM добавляет trap-границу поверх.
 
-## Условия финализации (validation gate) — открыты, Proposed
+## Условия финализации (validation gate) — ✅ ЗАКРЫТЫ 2026-07-21
 
-Proposed → Accepted, когда walking-skeleton plugin-вертикаль (T4) закрывает главные риски
-(реализация `poc/plugin/`, детали — «Результат PoC» в спеке #6):
+Proposed → Accepted: walking-skeleton plugin-вертикаль (T4) закрыла главные риски (реализация
+`poc/plugin/`, детали — «Результат PoC» в спеке #6):
 
-1. **Детерминизм:** golden sim-hash воспроизводим run-to-run/cross-machine; (а) sim-плагин реально
-   влияет на hash (H_with ≠ H_without → гейт ловит регресс), (б) H_with НЕ зависит от порядка загрузки
-   плагинов (топосорт по зависимостям, НЕ по dlopen), (в) native-плагин ≡ WASM-плагин той же логики.
-   ASan/UBSan-чисто.
-2. **Изоляция:** крэш (null-deref) в native-плагине ловится на границе (сигнал/SEH) → плагин failed +
-   выключен, host и остальные плагины живы.
-3. **Hot-reload:** hot-swap плагина без рестарта host; host-owned state переживает swap.
-4. **Шов (реестр реален):** ≥1 плагин через `ExtensionPointRegistry` реально драйвит существующую
-   подсистему сквозным примером (min: ecs-system в детерм. графе + asset-codec-регистрация).
-5. **WASM-sandbox:** untrusted WASM-плагин исполняется в песочнице; выход за границы (OOB linear-memory
-   / вызов незаявленного capability) → trap, host жив, host-память не тронута.
-6. **Live (owner HW, macOS):** hot-reload swap + WASM escape-тест + UI-shell (докируемые панели из
-   манифестов) на реальном окне (GLFW #2).
+1. **Детерминизм — ✅** golden sim-hash воспроизводим; sim-плагин реально влияет (H_with=`0x7ad0493f0f2ddf47`
+   ≠ H_without=`0x7263e404db89bcaf` → ловит регресс); H_with НЕ зависит от порядка загрузки (топосорт по
+   зависимостям + tie-break по id, НЕ dlopen); native ≡ WASM (тот же hash); cross-arch (macOS ARM ≡
+   Linux x86_64 CI). ASan/UBSan-чисто.
+2. **Изоляция — ✅** native-крэш (null-deref) пойман на probe-активации (сигнал-изоляция, флаг `armed`
+   скоупит перехват) → плагин failed + выключен, host и остальные плагины живы. ASan-чисто.
+3. **Hot-reload — ✅** hot-swap без рестарта; host-owned state переживает swap; re-probe после reload
+   снова ловит крэшер; дубли/утечки handle отсутствуют.
+4. **Шов (реестр реален) — ✅** asset-codec RLE0 decode end-to-end + все 6 типов ext-point через единый
+   `ExtensionPointRegistry`; ecs-system в детерм. графе.
+5. **WASM-sandbox — ✅** untrusted WAT-гость (wasmtime v26): native≡WASM бит-в-бит fix32; OOB
+   linear-memory → trap (host жив); незаявленный host-import → link rejected. Local pinned-T4. UBSan-чисто.
+6. **Live (owner HW, macOS) — ✅** UI-shell (докируемые панели из манифестов, GLFW+ImGui) подтверждён
+   live owner-ом (2026-07-21: окно+панели видны). Isolation/hot-reload — CI+local; WASM — local pinned-T4.
 
 ## Последствия
 
