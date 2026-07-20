@@ -160,3 +160,38 @@ jobs:
             poc/audio/audio_golden_main.cpp poc/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread \
             poc/audio/audio_determinism_test.cpp poc/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
+
+      # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
+      # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет
+      # input_demo (по одному на ОС) — компиляционная валидация. Реальные устройства + rumble =
+      # локальный pinned-T4 на owner-HW (macOS+Xbox), как perceptual-golden render / miniaudio --play.
+      - name: Input — determinism golden (gate #1, integer/fix32 → cross-machine) + poll-rate indep + replay
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 \( -name 'input_determinism_test' -o -name 'input_determinism_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "input_determinism_test not built"; exit 1; }
+          "$BIN" | tee id.txt
+          grep -q "0x4c6429af58bde01e" id.txt || { echo "INPUT DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "input-determinism: PASS" id.txt
+
+      - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + rt-safety (gate #3)
+        shell: bash
+        run: |
+          AM=$(find poc/build -maxdepth 2 \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
+          RT=$(find poc/build -maxdepth 2 \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
+
+      - name: Input — race/timing-independence (gate #2, one-way SPSC)
+        shell: bash
+        run: |
+          RC=$(find poc/build -maxdepth 2 \( -name 'input_race_test' -o -name 'input_race_test.exe' \) | head -1); "$RC"
+
+      - name: Input — ASan/UBSan (gates #1/#3, action-map) + TSan (gate #2 race), Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Ipoc -std=gnu++20"
+          c++ $SAN poc/input/action_map.cpp poc/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
+          c++ $SAN poc/input/action_map.cpp poc/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
+          c++ $SAN poc/input/action_map.cpp poc/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -Ipoc -pthread \
+            poc/input/action_map.cpp poc/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
