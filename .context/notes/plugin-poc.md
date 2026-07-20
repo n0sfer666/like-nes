@@ -91,7 +91,7 @@
 4. [x] determinism gate: golden order-indep + plugin-effect (ASan+UBSan, CI cross-arch)
 5. [ ] **WASM-sandbox — ОТЛОЖЕНО owner'ом** (тулчейн; runtime=wasmtime выбран): escape + native≡WASM
 6. [x] crash-изоляция (probe→disable, host жив) + hot-reload swap + re-probe
-7. [x/~] UI-shell: manifest→докируемые панели (Dear ImGui docking); headless-гейт зелёный, **live owner-run ждёт**
+7. [x] UI-shell: manifest→докируемые панели (Dear ImGui docking); headless-гейт зелёный + **live owner-подтверждён** (macOS 2026-07-21)
 8. [x] CI wiring (determinism/seam/isolation POSIX + manifest 3 OS + ASan/UBSan Linux)
 9. [x] verify T4 (гейты 1-4,6) → code-reviewer x2 (native FAIL→9 fixed; UI FAIL→3 fixed) → зелёно
 10. [~] ADR/spec **Proposed** (ждёт gate 5 WASM + live-UI) / README #6 «в работе» / dev-log / step 1-3
