@@ -316,3 +316,25 @@ if(PLUGIN_UI)
     target_link_libraries(plugin_ui_shell PRIVATE GL)
   endif()
 endif()
+
+# WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
+# (i32 fix32, детерм.), грузится через wasmtime_wat2wasm (без wasm-ld). Local pinned-T4 (C-API
+# prebuilt в poc/deps, не в git; CI — follow-up). Гейты: native≡WASM sim-hash + OOB/cap escape→trap.
+option(PLUGIN_WASM "Build WASM-sandbox gate (wasmtime C-API from poc/deps)" ON)
+if(PLUGIN_WASM)
+  file(GLOB WASMTIME_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/wasmtime-*-c-api)
+  if(WASMTIME_DIR AND EXISTS ${WASMTIME_DIR}/include/wasmtime.h)
+    add_executable(plugin_wasm_test plugin/plugin_wasm_test.cpp plugin/wasm_host.cpp)
+    target_include_directories(plugin_wasm_test PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src ${WASMTIME_DIR}/include)
+    target_link_libraries(plugin_wasm_test PRIVATE plugin_core ${WASMTIME_DIR}/lib/libwasmtime.a)
+    if(APPLE)
+      target_link_libraries(plugin_wasm_test PRIVATE
+        "-framework CoreFoundation" "-framework Security" "-framework SystemConfiguration")
+    elseif(UNIX)
+      target_link_libraries(plugin_wasm_test PRIVATE pthread dl m)
+    endif()
+  else()
+    message(STATUS "PLUGIN_WASM: wasmtime C-API не найден в poc/deps — gate #5 пропущен")
+  endif()
+endif()

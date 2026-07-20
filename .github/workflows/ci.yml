@@ -34,7 +34,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure
-        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF
+        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 
       - name: Build (poc + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
         run: cmake --build poc/build

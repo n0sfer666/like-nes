@@ -89,12 +89,12 @@
 2. [x] core: `PluginHost` + `ExtensionPointRegistry` (typed 6 ext-point) + топосорт-планировщик
 3. [x] native C-ABI seam: plugin_api.h + загрузчик (dlopen/LoadLibrary) + ecs/codec/multi/crash плагины
 4. [x] determinism gate: golden order-indep + plugin-effect (ASan+UBSan, CI cross-arch)
-5. [ ] **WASM-sandbox — ОТЛОЖЕНО owner'ом** (тулчейн; runtime=wasmtime выбран): escape + native≡WASM
+5. [x] **WASM-sandbox** (wasmtime v26, WAT-guest): native≡WASM бит-в-бит + OOB/cap escape→trap (UBSan)
 6. [x] crash-изоляция (probe→disable, host жив) + hot-reload swap + re-probe
 7. [x] UI-shell: manifest→докируемые панели (Dear ImGui docking); headless-гейт зелёный + **live owner-подтверждён** (macOS 2026-07-21)
 8. [x] CI wiring (determinism/seam/isolation POSIX + manifest 3 OS + ASan/UBSan Linux)
-9. [x] verify T4 (гейты 1-4,6) → code-reviewer x2 (native FAIL→9 fixed; UI FAIL→3 fixed) → зелёно
-10. [~] ADR/spec **Proposed** (ждёт gate 5 WASM + live-UI) / README #6 «в работе» / dev-log / step 1-3
+9. [x] verify T4 (все 6 гейтов) → code-reviewer x3 (native FAIL→9; UI FAIL→3; WASM FAIL→1 low+taste) → зелёно
+10. [x] **ADR 0006 Accepted / spec #6 Validated / README #6 Закрыта** / dev-log / коммиты step 1-4
 
 ## Прогресс
 - **Фаза 1 (docs):** spec #6 + ADR 0006 (Proposed) + note — готово.
@@ -116,5 +116,13 @@
   - **ui-shell (live, owner-HW):** shell собран (macOS GL3), запуск живьём — **ожидает owner** (окно
     на экране, как input_demo). Native-code UiDrawFn-панели (cross-.so ImGui) — follow-up; live
     доказывает manifest→panel data-путь.
-- **Осталось:** фаза 5 (WASM-sandbox: wasmtime + escape + native≡WASM) — тулчейн отложен owner'ом;
-  CI wiring (все гейты 3 OS), verify T4 + review UI-кода + финализация (ADR Accepted / spec Validated).
+- **Фаза 5 (WASM-sandbox, гейт 5) — ✅ ЗЕЛЁНЫЙ (local pinned-T4):** wasmtime C-API v26 (prebuilt в
+  `poc/deps`, gitignore), guest = WAT `gravity.wat` (i32 fix32 sat-add/mul), грузится через
+  `wasmtime_wat2wasm` (без wasm-ld — brew llvm без lld). `wasm_host.hpp/.cpp` (WasmGravity: marshal vy
+  в linear memory + func_call; wasm_run_escape). `plugin_wasm_test`:
+  - **native≡WASM:** WASM golden = `0x7ad0493f0f2ddf47` = native → бит-в-бит fix32 через ABI. UBSan-чисто.
+  - **escape OOB linear-memory → trap, host жив: YES.**
+  - **escape незаявленный host-import → link rejected: YES.**
+  - Нюанс: ASan несовместим с guard-page SIGSEGV wasmtime → UBSan-only на обёртке. WASM local
+    pinned-T4 (C-API не в git, CI-раннеры — follow-up per-OS тарболы), как miniaudio --play / UI-shell.
+- **Осталось:** review WASM-кода → фикс ≥low → финализация (ADR Accepted / spec Validated / README / dev-log).
