@@ -85,19 +85,16 @@
 - Гейт: OOB linear-memory trap + вызов незаявленного import → trap + native≡WASM sim-hash.
 
 ## Фазы
-1. [ ] docs: spec #6 + ADR 0006 (Proposed) + этот note
-2. [ ] core: `PluginHost` + `ExtensionPointRegistry` (typed reg: ecs-system/render-pass/asset-codec/
-       input-source/audio-bus/ui-panel) + манифест-парсер + capability-таблица
-3. [ ] native C-ABI seam: plugin_api.h (C-ABI), загрузчик (переиспользуем hotreload), ≥1 ECS-плагин
-       в детерм. графе + asset-codec-плагин
-4. [ ] determinism gate: golden sim-hash с/без плагина + переупорядочивание (deviceless, CI)
-5. [ ] WASM-sandbox: выбор runtime (wasmtime/wamr) за HAL, WASM-плагин той же sim-логики,
-       escape-тест (OOB/cap-trap), native≡WASM hash-гейт
-6. [ ] crash-изоляция гейт (native null-deref → disable, host жив) + hot-reload swap
-7. [ ] UI-shell: минимальный докируемый shell (GLFW #2), панели из манифестов, live owner
-8. [ ] CI wiring (гейты 3 OS + ASan/UBSan; WASM-гейт)
-9. [ ] verify T4 → code-reviewer → фикс ≥low
-10. [ ] ADR Accepted / spec Validated / README #6 / stack.md / dev-log / коммиты по фазам
+1. [x] docs: spec #6 + ADR 0006 (Proposed) + этот note
+2. [x] core: `PluginHost` + `ExtensionPointRegistry` (typed 6 ext-point) + топосорт-планировщик
+3. [x] native C-ABI seam: plugin_api.h + загрузчик (dlopen/LoadLibrary) + ecs/codec/multi/crash плагины
+4. [x] determinism gate: golden order-indep + plugin-effect (ASan+UBSan, CI cross-arch)
+5. [ ] **WASM-sandbox — ОТЛОЖЕНО owner'ом** (тулчейн; runtime=wasmtime выбран): escape + native≡WASM
+6. [x] crash-изоляция (probe→disable, host жив) + hot-reload swap + re-probe
+7. [x/~] UI-shell: manifest→докируемые панели (Dear ImGui docking); headless-гейт зелёный, **live owner-run ждёт**
+8. [x] CI wiring (determinism/seam/isolation POSIX + manifest 3 OS + ASan/UBSan Linux)
+9. [x] verify T4 (гейты 1-4,6) → code-reviewer x2 (native FAIL→9 fixed; UI FAIL→3 fixed) → зелёно
+10. [~] ADR/spec **Proposed** (ждёт gate 5 WASM + live-UI) / README #6 «в работе» / dev-log / step 1-3
 
 ## Прогресс
 - **Фаза 1 (docs):** spec #6 + ADR 0006 (Proposed) + note — готово.
