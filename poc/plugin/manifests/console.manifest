@@ -1,0 +1,10 @@
+plugin console 1.0 api=1
+
+panel console "Console" dock=bottom
+  text "[host] plugin system 'gravity' registered"
+  text "[host] plugin system 'wind' registered"
+  text "[host] RLE0 codec registered"
+  button "Clear"
+
+panel viewport "Viewport" dock=center
+  text "sim golden-hash: 0x7ad0493f0f2ddf47"

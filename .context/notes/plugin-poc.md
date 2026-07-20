@@ -110,5 +110,14 @@
   - Гейты 2+3 (isolation+hot-reload): zzz_crash пойман на probe → disabled, host жив, ecs=4; host-state переживает swap. Обычная сборка (реальный dlclose).
   - **Нюанс:** ASan×dlclose на macOS → SIGSEGV в рантайме ASan (ограничение платформы, не баг: UBSan чист).
     `dl_close` компилируется вне ASan-сборки (`__has_feature(address_sanitizer)`); реальный dlclose/hot-reload — в обычной сборке (isolation-гейт).
-- **Осталось:** фаза 5 (WASM-sandbox: runtime + escape + native≡WASM), фаза 7 (UI-shell), манифест
-  plugin.toml (version/deps/capabilities), CI wiring, verify T4 + review + финализация.
+- **Фаза 7 (UI-shell, гейт 6):** `manifest.hpp/.cpp` (декларативный парсер: plugin/panel/dock/
+  widgets), `ui_shell_main.cpp` (Dear ImGui docking v1.91.5 + GLFW + OpenGL3), манифесты
+  inspector/console. Панели рождаются из манифестов, докируются по dock-хинту (DockBuilder),
+  View-меню тоглит, ImGui-докинг даёт runtime-реконфиг (drag/resize/close). Гейты:
+  - **plugin-manifest (headless, CI):** PASS — данные→2+2 панели, dock right/left/bottom/center,
+    widgets. ASan+UBSan-чисто.
+  - **ui-shell (live, owner-HW):** shell собран (macOS GL3), запуск живьём — **ожидает owner** (окно
+    на экране, как input_demo). Native-code UiDrawFn-панели (cross-.so ImGui) — follow-up; live
+    доказывает manifest→panel data-путь.
+- **Осталось:** фаза 5 (WASM-sandbox: wasmtime + escape + native≡WASM) — тулчейн отложен owner'ом;
+  CI wiring (все гейты 3 OS), verify T4 + review UI-кода + финализация (ADR Accepted / spec Validated).
