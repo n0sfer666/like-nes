@@ -23,6 +23,7 @@
 | Ассеты/диск | кастомный бинформат (target-native, mmap zero-copy) + гибрид mmap/async-стрим + кодек-по-классу | минимум RAM/диск/времени загрузки; дизайн — спека #5, ADR 0003 |
 | Рендер | **Dawn (C++ WebGPU)** / wgpu-native | Vulkan/Metal/D3D12/GLES из коробки |
 | Аудио | **miniaudio** за HAL + свой микшер (шины/2D-пан/ducking); гибрид float/fix32-детерм. | output-домен вне sim; sample-time команды → тайминг не течёт в sim; спека #3, ADR 0004 |
+| Ввод | **platform-native gamepad** (XInput/GameController/evdev) за HAL `InputSource` + GLFW-пумп kbd/mouse; action-map (перебинды/контексты/per-player/буфер); per-tick `InputFrame`-снапшот (fix32-оси) | единств. недетерм. вход → коалесценция @tick sync-point, метка=тик (не wall-clock) → реплей/rollback; спека #4, ADR 0005 |
 | Ошибки | SEH/сигнал-изоляция на host↔lib границе | live-разработка не падает целиком (сложнее, чем catch_unwind) |
 | Toolchain | бандл пиннед C++ (clang+build) + NDK/iOS SDK | воспроизводимые билды, desktop→mobile |
 | Консоли | HAL + **офиц. C++ SDK-путь** | риск снят (в отличие от Rust) |

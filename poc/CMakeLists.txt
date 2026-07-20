@@ -197,6 +197,47 @@ if(NOT WIN32)
   target_copy_webgpu_binaries(asset_render)
 endif()
 
+# --- input_core: action-map + coalesce + SPSC (спека #4). Deviceless-гейты — на всех ОС в CI.
+# Native-бэкенды (XInput/RawInput · GameController · evdev) + live-демо — под INPUT_NATIVE ниже.
+add_library(input_core STATIC input/action_map.cpp)
+target_include_directories(input_core PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/input ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/asset)
+target_link_libraries(input_core PUBLIC Threads::Threads)
+
+add_executable(input_determinism_test input/input_determinism_test.cpp)
+target_link_libraries(input_determinism_test PRIVATE input_core)
+
+add_executable(input_race_test input/input_race_test.cpp)
+target_link_libraries(input_race_test PRIVATE input_core)
+
+add_executable(input_rt_test input/input_rt_test.cpp)
+target_link_libraries(input_rt_test PRIVATE input_core)
+
+add_executable(input_actionmap_test input/input_actionmap_test.cpp)
+target_link_libraries(input_actionmap_test PRIVATE input_core)
+
+# Live-демо: GLFW-пумп (kbd/mouse) + native gamepad (GameController/XInput/evdev) + rumble.
+# Реальные устройства → owner-HW (macOS live). OFF в headless CI (нужен дисплей/HID).
+option(INPUT_NATIVE "Build native input demo (GLFW + platform gamepad backend)" ON)
+if(INPUT_NATIVE)
+  if(APPLE)
+    set(INPUT_GAMEPAD_SRC input/source_gamepad_macos.mm)
+  elseif(WIN32)
+    set(INPUT_GAMEPAD_SRC input/source_gamepad_win.cpp)
+  else()
+    set(INPUT_GAMEPAD_SRC input/source_gamepad_linux.cpp)
+  endif()
+  add_executable(input_demo input/input_demo_main.cpp input/source_glfw.cpp ${INPUT_GAMEPAD_SRC})
+  target_link_libraries(input_demo PRIVATE input_core glfw)
+  if(APPLE)
+    # ARC для .mm: без него createEngine/createPlayer (autoreleased) повисают → UAF + утечки.
+    set_source_files_properties(input/source_gamepad_macos.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_link_libraries(input_demo PRIVATE "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+  elseif(WIN32)
+    target_link_libraries(input_demo PRIVATE Xinput9_1_0)
+  endif()
+endif()
+
 # Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
 add_executable(determinism_test src/determinism_test.cpp)
 
