@@ -34,7 +34,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure
-        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF
+        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF
 
       - name: Build (poc + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
         run: cmake --build poc/build
@@ -195,3 +195,64 @@ jobs:
           c++ $SAN poc/input/action_map.cpp poc/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -Ipoc -pthread \
             poc/input/action_map.cpp poc/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
+
+      # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation на POSIX (сигнал-изоляция —
+      # POSIX; Windows SEH — follow-up, там только build-валидация). Manifest-гейт (конфиг-интерфейс
+      # = данные) — на ВСЕХ ОС. Native C-ABI загрузка кросс-платформенна (dlopen/LoadLibrary).
+      # Determinism golden (fix32, целочисл.) сверяется cross-arch (macOS ARM ≡ Linux x86_64).
+      # WASM-sandbox (gate #5) + live UI-shell — follow-up (тулчейн/owner-HW), как miniaudio --play.
+      - name: Plugin — determinism golden sim-hash (gate #1: order-independent + plugin-effect + cross-arch)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          DT=$(find poc/build -maxdepth 2 -name 'plugin_determinism_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
+          W=$(find poc/build -maxdepth 2 -name 'plugin_wind.*' | head -1)
+          [ -n "$DT" ] || { echo "plugin_determinism_test not built"; exit 1; }
+          "$DT" "$G" "$W" | tee pd.txt
+          grep -q "0x7ad0493f0f2ddf47" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "plugin-determinism: PASS" pd.txt
+
+      - name: Plugin — seam (asset-codec decode + all 6 ext-point kinds registered, gate #4)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          ST=$(find poc/build -maxdepth 2 -name 'plugin_seam_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
+          R=$(find poc/build -maxdepth 2 -name 'plugin_rle_codec.*' | head -1)
+          M=$(find poc/build -maxdepth 2 -name 'plugin_multi.*' | head -1)
+          "$ST" "$G" "$R" "$M" | tee ps.txt
+          grep -q "plugin-seam: PASS" ps.txt
+
+      - name: Plugin — crash isolation + hot-reload swap (gates #2/#3, POSIX signal isolation)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          IT=$(find poc/build -maxdepth 2 -name 'plugin_isolation_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
+          W=$(find poc/build -maxdepth 2 -name 'plugin_wind.*' | head -1)
+          C=$(find poc/build -maxdepth 2 -name 'plugin_crash.*' | head -1)
+          "$IT" "$G" "$W" "$C" | tee pi.txt
+          grep -q "plugin-isolation: PASS" pi.txt
+
+      - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
+        shell: bash
+        run: |
+          MT=$(find poc/build -maxdepth 2 \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
+          [ -n "$MT" ] || { echo "plugin_manifest_test not built"; exit 1; }
+          "$MT" poc/plugin/manifests/inspector.manifest poc/plugin/manifests/console.manifest poc/plugin/manifests/bad.manifest | tee pm.txt
+          grep -q "plugin-manifest: PASS" pm.txt
+
+      - name: Plugin — ASan/UBSan (loader/registry/probe + manifest robustness, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/plugin -Ipoc/src"
+          c++ $SAN poc/plugin/manifest.cpp poc/plugin/plugin_manifest_test.cpp -o plugin_manifest_san
+          ./plugin_manifest_san poc/plugin/manifests/inspector.manifest poc/plugin/manifests/console.manifest poc/plugin/manifests/bad.manifest
+          c++ $SAN -shared -fPIC poc/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
+          c++ $SAN -shared -fPIC poc/plugin/plugins/wind.cpp -o plugin_wind_san.so
+          c++ $SAN poc/plugin/registry.cpp poc/plugin/host.cpp poc/plugin/builtin.cpp poc/plugin/manifest.cpp \
+            poc/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
+          ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
+          grep -q "plugin-determinism: PASS" pdsan.txt
