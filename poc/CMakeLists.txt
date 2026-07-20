@@ -251,3 +251,36 @@ if(NOT WIN32)
     set_target_properties(game_a game_b game_crash PROPERTIES PREFIX "")
     add_executable(hotreload_host hotreload/host.cpp)
 endif()
+
+# --- plugin_core: ExtensionPointRegistry + PluginHost (C-ABI native + WASM-точка) + встроенные
+# sim-системы (спека #6). Загрузчик кросс-платформенный (dlopen/LoadLibrary); сигнал-изоляция —
+# POSIX (Windows SEH — follow-up). Гейты determinism/seam — на всех 3 OS; isolation — POSIX.
+add_library(plugin_core STATIC plugin/registry.cpp plugin/host.cpp plugin/builtin.cpp)
+target_include_directories(plugin_core PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
+if(NOT WIN32)
+  target_link_libraries(plugin_core PUBLIC ${CMAKE_DL_LIBS})
+endif()
+
+add_executable(plugin_determinism_test plugin/plugin_determinism_test.cpp)
+target_link_libraries(plugin_determinism_test PRIVATE plugin_core)
+
+add_executable(plugin_seam_test plugin/plugin_seam_test.cpp)
+target_link_libraries(plugin_seam_test PRIVATE plugin_core)
+
+add_executable(plugin_isolation_test plugin/plugin_isolation_test.cpp)
+target_link_libraries(plugin_isolation_test PRIVATE plugin_core)
+
+# Native C-ABI плагины как MODULE (.so/.dll без lib-префикса). crash на -O0, чтобы null-deref
+# не соптимизировался (как game_crash в hot-reload).
+add_library(plugin_gravity MODULE plugin/plugins/gravity.cpp)
+add_library(plugin_wind MODULE plugin/plugins/wind.cpp)
+add_library(plugin_rle_codec MODULE plugin/plugins/rle_codec.cpp)
+add_library(plugin_multi MODULE plugin/plugins/multi.cpp)
+add_library(plugin_crash MODULE plugin/plugins/crash.cpp)
+target_compile_options(plugin_crash PRIVATE -O0)
+foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash)
+  target_include_directories(${P} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  set_target_properties(${P} PROPERTIES PREFIX "")
+endforeach()
