@@ -112,11 +112,11 @@
 - **Гейт 4 (шов реестра) — ✅ ЗЕЛЁНЫЙ.** `plugin_seam_test`: asset-codec RLE0 decode end-to-end;
   все **6 типов ext-point** (ecs-system/render-pass/asset-codec/input-source/audio-bus/ui-panel)
   регистрируются через единый реестр. ASan-чисто.
-- **Гейт 6 (конфиг-интерфейс) — ✅ headless ЗЕЛЁНЫЙ / live ждёт owner.** `plugin_manifest_test`:
+- **Гейт 6 (конфиг-интерфейс) — ✅ ЗЕЛЁНЫЙ (headless + live).** `plugin_manifest_test`:
   декларативный манифест → панели + dock-слоты (right/left/bottom/center) + widgets; robustness на
   битом вводе (нет terminate). ASan+UBSan-чисто. **Live `plugin_ui_shell`** (Dear ImGui docking +
-  GLFW + GL3) собран, панели рождаются из манифестов и докируются по хинту — **live-прогон на owner-HW
-  (macOS) ожидается** (как input_demo / miniaudio --play).
+  GLFW + GL3): панели рождаются из 2 манифестов и докируются по хинту — **подтверждено live на
+  owner-HW (macOS 2026-07-21):** окно отрисовалось, панели видны (как input_demo / miniaudio --play).
 - **Гейт 5 (WASM-sandbox) — ⏸ ОТЛОЖЕН owner'ом (2026-07-21):** wasm-тулчейн (llvm wasm32 + wasmtime
   C-API) не установлен локально; runtime выбран (**wasmtime**), реализация escape+native≡WASM —
   follow-up.
