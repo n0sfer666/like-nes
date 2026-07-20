@@ -1,0 +1,13 @@
+# Declarative plugin manifest — panels are born from this data, not code.
+plugin inspector 1.0 api=1
+
+panel inspector "Inspector" dock=right
+  text "Selected entity: none"
+  slider "Gravity"
+  checkbox "Show colliders"
+  button "Reset velocities"
+
+panel hierarchy "Hierarchy" dock=left
+  text "World (256 entities)"
+  text "  + Player"
+  text "  + Enemies (12)"

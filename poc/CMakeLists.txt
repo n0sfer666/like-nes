@@ -255,7 +255,7 @@ endif()
 # --- plugin_core: ExtensionPointRegistry + PluginHost (C-ABI native + WASM-точка) + встроенные
 # sim-системы (спека #6). Загрузчик кросс-платформенный (dlopen/LoadLibrary); сигнал-изоляция —
 # POSIX (Windows SEH — follow-up). Гейты determinism/seam — на всех 3 OS; isolation — POSIX.
-add_library(plugin_core STATIC plugin/registry.cpp plugin/host.cpp plugin/builtin.cpp)
+add_library(plugin_core STATIC plugin/registry.cpp plugin/host.cpp plugin/builtin.cpp plugin/manifest.cpp)
 target_include_directories(plugin_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(NOT WIN32)
@@ -271,6 +271,10 @@ target_link_libraries(plugin_seam_test PRIVATE plugin_core)
 add_executable(plugin_isolation_test plugin/plugin_isolation_test.cpp)
 target_link_libraries(plugin_isolation_test PRIVATE plugin_core)
 
+# Headless-гейт конфигурируемого интерфейса: манифест (данные) → панели/докинг. Без окна, в CI.
+add_executable(plugin_manifest_test plugin/plugin_manifest_test.cpp)
+target_link_libraries(plugin_manifest_test PRIVATE plugin_core)
+
 # Native C-ABI плагины как MODULE (.so/.dll без lib-префикса). crash на -O0, чтобы null-deref
 # не соптимизировался (как game_crash в hot-reload).
 add_library(plugin_gravity MODULE plugin/plugins/gravity.cpp)
@@ -278,9 +282,37 @@ add_library(plugin_wind MODULE plugin/plugins/wind.cpp)
 add_library(plugin_rle_codec MODULE plugin/plugins/rle_codec.cpp)
 add_library(plugin_multi MODULE plugin/plugins/multi.cpp)
 add_library(plugin_crash MODULE plugin/plugins/crash.cpp)
-target_compile_options(plugin_crash PRIVATE -O0)
+target_compile_options(plugin_crash PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O0>)
 foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash)
   target_include_directories(${P} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
+
+# Live UI-shell: Dear ImGui (docking) + GLFW + OpenGL3. Докируемые панели из манифестов.
+# Owner-HW (macOS live). OFF в headless CI (нужен дисплей/GL).
+option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW)" ON)
+if(PLUGIN_UI)
+  FetchContent_Declare(imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG v1.91.5-docking)
+  FetchContent_MakeAvailable(imgui)
+  add_library(imgui STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp)
+  target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
+  target_link_libraries(imgui PUBLIC glfw)
+  add_executable(plugin_ui_shell plugin/ui_shell_main.cpp)
+  target_link_libraries(plugin_ui_shell PRIVATE plugin_core imgui glfw)
+  if(APPLE)
+    target_link_libraries(plugin_ui_shell PRIVATE "-framework OpenGL")
+  elseif(WIN32)
+    target_link_libraries(plugin_ui_shell PRIVATE opengl32)
+  else()
+    target_link_libraries(plugin_ui_shell PRIVATE GL)
+  endif()
+endif()

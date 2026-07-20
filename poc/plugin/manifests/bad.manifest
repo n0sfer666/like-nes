@@ -1,0 +1,4 @@
+plugin broken 0.1 api=v99999999999999999999
+
+panel "quoted dock=fake title" dock=left
+  text "value with dock=nope inside"
