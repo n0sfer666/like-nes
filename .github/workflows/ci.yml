@@ -393,3 +393,27 @@ jobs:
           c++ $SAN poc/ide/perf_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
+
+      # --- IDE-вертикаль срез 5 (спека #7, гейт 6) — live UI data-путь. property-grid из flecs meta
+      # (генерик, любой компонент) + гизмо/камера transform — headless-гейт (data, что кормит UI).
+      # Live-окно (вьюпорт+инспектор+гизмо, editor_shell) — owner-HW (imgui/GL, PLUGIN_UI on), как
+      # plugin UI-shell / input_demo. Здесь CI валидирует data-путь + сборку.
+      - name: IDE — editor data-path (property-grid from meta + gizmo/camera, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 -name 'editor_selftest' | head -1)
+          [ -n "$BIN" ] || { echo "editor_selftest not built"; exit 1; }
+          "$BIN" | tee ide_editor.txt
+          grep -q "ide-editor-data: PASS" ide_editor.txt
+
+      - name: IDE — editor data-path ASan/UBSan (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
+          c++ $SAN poc/ide/editor/editor_selftest.cpp poc/ide/editor/property_grid.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
+          ./ide_editor_san | tee ide_editor_san.txt
+          grep -q "ide-editor-data: PASS" ide_editor_san.txt

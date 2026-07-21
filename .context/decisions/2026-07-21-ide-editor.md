@@ -94,7 +94,10 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
 5. ✅ **Build-loop** — watch .cpp (mtime) → build (реальный компилятор, захват вывода) → hot-reload .so
    (host-state переживает, dlopen #1); диагностик-парсер (file:line, click-to-open) + build-fail в панель.
    POSIX CI (build-часть); live-панель — owner follow-up. Срез 3.
-6. ⏳ **Live UI** — вьюпорт #2 + гизмо + inspector/property-grid на flecs meta (live owner-HW).
+6. 🔶 **Live UI** — property-grid **из flecs meta (генерик, любой компонент)** + гизмо/камера
+   world↔screen (детерм. round-trip) — **data-путь валидирован headless (CI) ✅**; editor_shell
+   (ImGui docking #6: вьюпорт+гизмо+инспектор+иерархия-виртуализ.+undo) **собирается ✅**. Live-окно
+   на экране — **owner-HW pending** (как plugin UI-shell / input_demo). Срез 5.
 7. ✅ **Перф** — 10k+ сущностей (owner-HW): выделение 159µs (≤3ms), property-grid 0.17µs/кадр (≤20µs,
    zero-alloc), виртуализация-окно ~0µs/кадр (≤5µs), undo 0.31µs/оп (≤50µs). **Zero per-frame heap**
    (override operator new = 0 аллокаций в hot-UI пути) + **масштаб-инвариантность 10k↔50k** (property-grid/
@@ -106,8 +109,11 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    shmem-зеркало (seqlock, read-only mmap), control-plane = socket.** Срез 2. Cross-platform crash-cleanup
    shmem (SIGBUS/orphan) на Windows — follow-up.
 
-> **Итог гейтов:** 7/8 закрыты (1,2,3,4,5,7,8), транспорт зафиксирован. Осталось **6 (live UI, owner-HW:
-> вьюпорт+гизмо+property-grid)** — финальный срез; ADR остаётся **Proposed** до его закрытия.
+> **Итог гейтов:** 7/8 полностью (1,2,3,4,5,7,8); гейт 6 — **data-путь+сборка ✅, live-окно owner-HW
+> pending**. Транспорт зафиксирован (гейт 8). Три research-развилки доказаны PoC: **UI=ImGui docking**
+> (editor_shell собран), **рефлексия=flecs meta** (одна рефлексия обслужила save/load + IPC-зеркало +
+> property-grid — все три опоры зелёные), **IPC=shmem** (замер ~17×). ADR остаётся **Proposed** до
+> live-подтверждения гейта 6 на owner-HW → тогда **Accepted**.
 
 ## Последствия
 
