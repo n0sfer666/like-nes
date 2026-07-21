@@ -94,10 +94,12 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
 5. ✅ **Build-loop** — watch .cpp (mtime) → build (реальный компилятор, захват вывода) → hot-reload .so
    (host-state переживает, dlopen #1); диагностик-парсер (file:line, click-to-open) + build-fail в панель.
    POSIX CI (build-часть); live-панель — owner follow-up. Срез 3.
-6. 🔶 **Live UI** — property-grid **из flecs meta (генерик, любой компонент)** + гизмо/камера
-   world↔screen (детерм. round-trip) — **data-путь валидирован headless (CI) ✅**; editor_shell
-   (ImGui docking #6: вьюпорт+гизмо+инспектор+иерархия-виртуализ.+undo) **собирается ✅**. Live-окно
-   на экране — **owner-HW pending** (как plugin UI-shell / input_demo). Срез 5.
+6. ✅ **Live UI** — property-grid **из flecs meta (генерик, любой компонент)** + гизмо/камера
+   world↔screen (детерм. round-trip) — data-путь валидирован headless (CI); editor_shell (ImGui docking
+   #6: вьюпорт+гизмо+инспектор+иерархия-виртуализ.+undo) **live owner-HW подтверждён ✅** (окно, панели,
+   гизмо, property-grid, drag+undo). Рендер-бэкенд ImGui мигрирован OpenGL3→**WebGPU** (imgui_impl_wgpu /
+   wgpu-native, как render #2 — OpenGL deprecated на macOS); WebGPU-сборка проверена под lldb (окно+
+   render-loop без краша), **owner визуально переподтверждает пиксели**. Срез 5.
 7. ✅ **Перф** — 10k+ сущностей (owner-HW): выделение 159µs (≤3ms), property-grid 0.17µs/кадр (≤20µs,
    zero-alloc), виртуализация-окно ~0µs/кадр (≤5µs), undo 0.31µs/оп (≤50µs). **Zero per-frame heap**
    (override operator new = 0 аллокаций в hot-UI пути) + **масштаб-инвариантность 10k↔50k** (property-grid/

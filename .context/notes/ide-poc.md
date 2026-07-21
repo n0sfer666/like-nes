@@ -121,6 +121,13 @@ headless data-путь, live за owner».
   `Scene`/`CommandBus` были глобалами → flecs::world конструировался в static-init (до main). Фикс:
   состояние → локаль `EditorState` в main(). Подтверждено lldb: после фикса процесс входит в render-loop
   без краша. Урок: **flecs-мир не создавать в static-init**. Ревью рефактора → чисто.
+- **WebGPU-бэкенд (owner: OpenGL deprecated опасен):** editor_shell мигрирован с ImGui-OpenGL3 на
+  **imgui_impl_wgpu (wgpu-native, как render #2)** — OpenGL на macOS deprecated с 10.14, могут выпилить.
+  glfw `GLFW_NO_API` + glfw3webgpu surface + GpuContext (render/gpu.cpp) + `IMGUI_IMPL_WEBGPU_BACKEND_WGPU`.
+  Render-loop: surface texture → render pass (clear) → `ImGui_ImplWGPU_RenderDrawData` → submit → present;
+  resize → реконфиг surface. **0 deprecation-варнингов** (было 3: glViewport/glClear/glClearColor).
+  Запуск под lldb: окно открылось, render-loop без краша. Follow-up: plugin_ui_shell (#6) всё ещё на
+  OpenGL3 — тот же паттерн миграции; memset-варнинг внутри imgui_impl_glfw — сторонний код imgui.
 
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
