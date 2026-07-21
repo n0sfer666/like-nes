@@ -365,4 +365,28 @@ if(IDE_POC)
 
   add_executable(command_test ide/command_test.cpp)
   target_link_libraries(command_test PRIVATE scene_core)
+
+  # IPC-вертикаль (гейты 3/4/8): Play-процесс + read-only shmem-зеркало + крэш-изоляция + bench.
+  # POSIX (shm_open/mmap/fork). Windows — follow-up (код+CI-build, как #6 SEH).
+  if(NOT WIN32)
+    add_library(ipc_core STATIC ide/ipc/shmem.cpp)
+    target_include_directories(ipc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ide)
+    if(NOT APPLE)
+      target_link_libraries(ipc_core PUBLIC rt)   # shm_open на Linux — в librt
+    endif()
+
+    add_executable(ide_ipc_selftest ide/ipc_selftest.cpp)
+    target_link_libraries(ide_ipc_selftest PRIVATE ipc_core Threads::Threads)
+
+    add_executable(game_child ide/game_child.cpp)
+    target_link_libraries(game_child PRIVATE ipc_core Threads::Threads)
+
+    # Гейты 3/4 + layout-drift: parent spawn'ит game_child (путь → argv[1]).
+    add_executable(play_spawn_test ide/play_spawn_test.cpp)
+    target_link_libraries(play_spawn_test PRIVATE ipc_core Threads::Threads)
+
+    # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007.
+    add_executable(ide_ipc_bench ide/ipc_bench.cpp)
+    target_link_libraries(ide_ipc_bench PRIVATE ipc_core Threads::Threads)
+  endif()
 endif()

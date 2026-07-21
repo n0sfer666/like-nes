@@ -292,3 +292,48 @@ jobs:
           c++ $SAN poc/ide/command_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
+
+      # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. POSIX (shm_open/mmap/fork);
+      # Windows — follow-up (код собирается, но IPC-цели POSIX-only, как #6 SEH). seqlock single-writer/
+      # multi-reader; крэш child (граница процессов) не роняет parent-редактор; layout-drift → reject;
+      # bench shmem vs socket фиксирует транспорт (ADR 0007 гейт 8).
+      - name: IDE — IPC seqlock self-test (consistent snapshot under contention, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 -name 'ide_ipc_selftest' | head -1)
+          [ -n "$BIN" ] || { echo "ide_ipc_selftest not built"; exit 1; }
+          "$BIN" | tee ide_seq.txt
+          grep -q "ipc-seqlock: PASS" ide_seq.txt
+
+      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          T=$(find poc/build -maxdepth 2 -name 'play_spawn_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -name 'game_child' | head -1)
+          [ -n "$T" ] && [ -n "$G" ] || { echo "IDE IPC binaries not built"; exit 1; }
+          "$T" "$G" | tee ide_play.txt
+          grep -q "ide-play-spawn: PASS" ide_play.txt
+
+      - name: IDE — IPC transport bench shmem vs socket (gate 8, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          B=$(find poc/build -maxdepth 2 -name 'ide_ipc_bench' | head -1)
+          [ -n "$B" ] || { echo "ide_ipc_bench not built"; exit 1; }
+          "$B" | tee ide_bench.txt
+          grep -q "ide-ipc-bench: PASS" ide_bench.txt
+
+      - name: IDE — IPC ASan/UBSan (shmem/seqlock/spawn, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/ide"
+          c++ $SAN poc/ide/ipc_selftest.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_seq_san
+          ./ide_seq_san | tee ide_seq_san.txt
+          grep -q "ipc-seqlock: PASS" ide_seq_san.txt
+          c++ $SAN poc/ide/game_child.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
+          c++ $SAN poc/ide/play_spawn_test.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
+          ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
+          grep -q "ide-play-spawn: PASS" ide_play_san.txt

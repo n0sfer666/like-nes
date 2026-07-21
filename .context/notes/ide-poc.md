@@ -61,9 +61,47 @@ opt-in `Parent`-компонент (не навязана). Все мутаци�
 6. [x] command-bus (header-only) + undo/redo + группировка + redo-truncation + destroy-snapshot
 7. [x] gate 2: do/undo/redo + группировка + truncation + destroy-restore → ЗЕЛЁНО
 8. [x] CI wiring (гейты 1+2 golden-grep на 3 OS + ASan/UBSan Linux)
-9. [~] verify T4 (гейты 1+2 локально зелёные + ASan/UBSan чисто) → code-reviewer (gate1 FAIL→5 фикс) →
-       re-review gate2 → commit
-10. [ ] чекпоинт: dev-log + решение о следующем срезе
+9. [x] verify T4 (гейты 1+2 зелёные + ASan/UBSan чисто) → code-reviewer ×2 (gate1 FAIL→5; gate2
+       FAIL→2low+1taste) → все фикс → commit `21808b5`
+10. [x] чекпоинт: dev-log записан; решение о следующем срезе — за owner (Play+IPC / live UI / build-loop)
+
+## Срез 2 — Процесс + IPC (owner-выбор 2026-07-21): гейты 3 (Play-spawn+зеркало), 4 (крэш-изоляция), 8 (IPC-замер)
+Главный арх. риск спеки. DoD: (3) spawn game-процесса + read-only shmem-зеркало 10k сущностей,
+редактор читает консистентный снапшот; layout-drift → reject. (4) крэш child → parent(редактор) жив,
+детектит смерть, чистит. (8) bench shmem vs socket @10k: p50/p99, копии/кадр, CPU% → фиксация
+транспорта в ADR 0007. POSIX live+CI (macOS owner); Windows — код+CI-build (follow-up, как #6 SEH).
+
+Модули: `ide/ipc/` — mirror-layout (POD header+MirrorEntity[], schema_hash/layout_version), shmem
+(POSIX shm_open/mmap RW-writer/RO-reader), seqlock (single-writer/multi-reader), socket_channel
+(unix-socket control + bench-путь). `ide/game_child.cpp` (sim→publish зеркало, `--crash` режим),
+`ide/play_spawn_test.cpp` (гейт 3+4), `ide/ipc_bench.cpp` (гейт 8).
+
+Фазы среза 2:
+1. [x] ipc/mirror + shmem + seqlock + same-process self-test (195k чтений, 0 torn) — ЗЕЛЁНО
+2. [x] game_child (fork/exec) publish → parent read зеркало 10k (гейт 3) + layout-drift reject — ЗЕЛЁНО
+3. [x] крэш-изоляция: child null-deref → parent жив + waitpid-детект (гейт 4) — ЗЕЛЁНО
+4. [x] ipc_bench shmem vs socket (гейт 8): shmem ~25–50× дешевле → транспорт зафиксирован в ADR
+5. [x] CI wiring (POSIX run + Win build-skip) + ASan/UBSan
+6. [~] verify T4 (все гейты среза 2 зелёные + ASan) → code-reviewer → commit → чекпоинт
+
+## Прогресс среза 2
+- **Гейт 3 (Play-spawn + зеркало) — ✅:** `ide/ipc/` (mirror POD-layout + schema_hash/layout_version,
+  seqlock single-writer/multi-reader, POSIX shmem RW-writer/RO-reader), `game_child` (fork+exec,
+  публикует sim-зеркало), `play_spawn_test` (parent создаёт shmem owner+RO, читает консистентный
+  снапшот 10k: guids+count+единый gen). 5/5 прогонов стабильно.
+- **Гейт 4 (крэш-изоляция) — ✅:** crash-режим child (null-deref) → SIGSEGV (обычн.) / SIGABRT (ASan),
+  parent детектит через waitpid + жив + читает устаревшее зеркало без краха. Граница процессов = 100%.
+- **Layout-drift — ✅:** badlayout-child (layout_version=999) → reader отвергает (magic/layout/schema_hash
+  guard до seq_read) — не читает мусор.
+- **Гейт 8 (замер) — ✅:** симметрично (produce+транспорт+read у обоих): shmem p50≈11.6µs/p99≈12–13µs
+  (0 сериализации, read из mmap) vs socket p50≈200µs/p99≈255µs (320KB/кадр, memcpy+syscall+kernel) →
+  **~17× (p50) / ~20× (p99) → data-plane=shmem**.
+- **Санитайзеры:** ASan/UBSan чисто (self-test, parent+child); ASan-SEGV в stderr = намеренный крэш child
+  (grep по stdout PASS). TSan на seqlock не применяю (data-plane намеренно не-атомарен; в гейтах
+  writer/reader — разные процессы, внутрипроцессной гонки нет).
+- **Границы:** bench = 2-поток in-process (механизм-стоимость честна: socketpair — реальный kernel-путь);
+  Windows IPC/shmem-cleanup — follow-up (POSIX-only, как #6 SEH). double-buffer поверх seqlock —
+  оптимизация follow-up (seqlock-retry достаточен и измерен).
 
 ## Прогресс
 - **Гейт 1 (scene round-trip) — ✅ ЗЕЛЁНЫЙ:** `ide/` — components (Name/Parent/Position/Velocity,
