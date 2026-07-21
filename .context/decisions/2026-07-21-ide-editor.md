@@ -91,7 +91,9 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    seqlock-снапшот (POSIX CI + live macOS). Срез 2.
 4. ✅ **Крэш-изоляция** — null-deref child → parent-редактор жив, waitpid-детект (POSIX live+CI; Win —
    follow-up). Срез 2.
-5. ⏳ **Build-loop** — watch .cpp → build → hot-reload .so, ошибки в панель (live owner + CI build-часть).
+5. ✅ **Build-loop** — watch .cpp (mtime) → build (реальный компилятор, захват вывода) → hot-reload .so
+   (host-state переживает, dlopen #1); диагностик-парсер (file:line, click-to-open) + build-fail в панель.
+   POSIX CI (build-часть); live-панель — owner follow-up. Срез 3.
 6. ⏳ **Live UI** — вьюпорт #2 + гизмо + inspector/property-grid на flecs meta (live owner-HW).
 7. ⏳ **Перф** — 10k+ сущностей: выделение/property-grid/undo ≤ бюджет (CI-бенч + live).
 8. ✅ **IPC-замер** — **shmem vs socket @10k, симметрично (produce+транспорт+read у обоих), owner-HW ARM:
@@ -101,8 +103,8 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    shmem-зеркало (seqlock, read-only mmap), control-plane = socket.** Срез 2. Cross-platform crash-cleanup
    shmem (SIGBUS/orphan) на Windows — follow-up.
 
-> **Итог гейтов:** 5/8 закрыты (1,2,3,4,8), транспорт зафиксирован. Осталось 5,6,7 (build-loop, live UI,
-> перф) — следующие срезы; ADR остаётся **Proposed** до их закрытия.
+> **Итог гейтов:** 6/8 закрыты (1,2,3,4,5,8), транспорт зафиксирован. Осталось 6 (live UI), 7 (перф) —
+> следующие срезы; ADR остаётся **Proposed** до их закрытия.
 
 ## Последствия
 

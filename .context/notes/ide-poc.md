@@ -82,7 +82,20 @@ opt-in `Parent`-компонент (не навязана). Все мутаци�
 3. [x] крэш-изоляция: child null-deref → parent жив + waitpid-детект (гейт 4) — ЗЕЛЁНО
 4. [x] ipc_bench shmem vs socket (гейт 8): shmem ~25–50× дешевле → транспорт зафиксирован в ADR
 5. [x] CI wiring (POSIX run + Win build-skip) + ASan/UBSan
-6. [~] verify T4 (все гейты среза 2 зелёные + ASan) → code-reviewer → commit → чекпоинт
+6. [x] verify T4 (все гейты среза 2 зелёные + ASan) → code-reviewer ×2 (FAIL→1med+4low фикс; re-review
+       PASS) → commit `3a500d3` → чекпоинт. **Гейты 5/8 закрыты (1,2,3,4,8); осталось 5,6,7.**
+
+## Срез 3 — Build-loop (owner-выбор): гейт 5
+DoD: watch .cpp → build → hot-reload .so + панель ошибок (click-to-`file:line`). Переиспользует
+dlopen/hot-reload #1. Build-часть CI-тестируема; live-панель — owner follow-up.
+- **Гейт 5 — ✅ ЗЕЛЁНЫЙ:** `ide/build/` — diagnostics (парсер clang/gcc `file:line:col: sev: msg` →
+  структурные записи для панели + click-to-open), build_orchestrator (fork/exec компилятора + захват
+  stdout+stderr → BuildResult{success,diagnostics}; file_changed mtime-watcher). `build_loop_test`:
+  v1 build→load→acc=3; правка→watcher-детект→rebuild→hot-reload v2→acc=33 (host-state пережил, поведение
+  сменилось); битая правка→build fail + диагностика error с file:line. `diagnostics_test` — детерм. unit
+  (cross-OS, 3 диагностики + краевые). Стабильно ×3, ASan/UBSan чисто. CI: 3 шага (POSIX) + ASan Linux.
+- **Границы:** live build-панель (ImGui) + click-to-open во внешний редактор — owner follow-up (гейт 6
+  live UI). Инкрементальность = пересборка одной .so (как #1/#6). Windows — follow-up (fork/exec POSIX).
 
 ## Прогресс среза 2
 - **Гейт 3 (Play-spawn + зеркало) — ✅:** `ide/ipc/` (mirror POD-layout + schema_hash/layout_version,

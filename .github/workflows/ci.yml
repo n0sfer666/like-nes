@@ -337,3 +337,36 @@ jobs:
           c++ $SAN poc/ide/play_spawn_test.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
           ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
           grep -q "ide-play-spawn: PASS" ide_play_san.txt
+
+      # --- IDE-вертикаль срез 3 (спека #7, гейт 5) — build-loop. POSIX (fork/exec компилятора +
+      # dlopen hot-reload #1). Диагностик-парсер (click-to-open) — детерм. unit (cross-OS формат).
+      # build-loop гоняет реальный компилятор (build-часть гейта); live-панель — owner follow-up.
+      - name: IDE — diagnostics parser (gate 5 click-to-open, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 -name 'diagnostics_test' | head -1)
+          [ -n "$BIN" ] || { echo "diagnostics_test not built"; exit 1; }
+          "$BIN" | tee ide_diag.txt
+          grep -q "ide-diagnostics: PASS" ide_diag.txt
+
+      - name: IDE — build-loop watch->build->hot-reload .so (gate 5, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 -name 'build_loop_test' | head -1)
+          [ -n "$BIN" ] || { echo "build_loop_test not built"; exit 1; }
+          "$BIN" | tee ide_bl.txt
+          grep -q "ide-build-loop: PASS" ide_bl.txt
+
+      - name: IDE — build-loop ASan/UBSan (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/ide"
+          c++ $SAN poc/ide/compile/diagnostics_test.cpp poc/ide/compile/diagnostics.cpp -o ide_diag_san
+          ./ide_diag_san | tee ide_diag_san.txt
+          grep -q "ide-diagnostics: PASS" ide_diag_san.txt
+          c++ $SAN -DIDE_CXX='"c++"' poc/ide/build_loop_test.cpp poc/ide/compile/diagnostics.cpp poc/ide/compile/build_orchestrator.cpp -ldl -o ide_bl_san
+          ./ide_bl_san | tee ide_bl_san.txt
+          grep -q "ide-build-loop: PASS" ide_bl_san.txt
