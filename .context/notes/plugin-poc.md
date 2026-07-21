@@ -125,4 +125,25 @@
   - **escape незаявленный host-import → link rejected: YES.**
   - Нюанс: ASan несовместим с guard-page SIGSEGV wasmtime → UBSan-only на обёртке. WASM local
     pinned-T4 (C-API не в git, CI-раннеры — follow-up per-OS тарболы), как miniaudio --play / UI-shell.
-- **Осталось:** review WASM-кода → фикс ≥low → финализация (ADR Accepted / spec Validated / README / dev-log).
+- **Финализация — ✅ done:** review WASM (FAIL→1 low+2 taste fixed) → ADR Accepted / spec Validated /
+  README #6 Закрыта / dev-log. Коммит `87d09dd`.
+
+## Follow-up — НЕ закрыто, доделать позже (спека #6 Validated, но это точки расширения)
+Вертикаль доказала главные риски (все 6 гейтов), НО ряд путей осознанно оставлен на потом. Чеклист:
+1. [ ] **WASM в CI** — сейчас local pinned-T4 (C-API prebuilt в `poc/deps`, не в git). Нужны per-OS
+       тарболы wasmtime C-API (linux/mac/win) через FetchContent + job. (как miniaudio --play).
+2. [ ] **Native-code UiDrawFn-панели** — сейчас панели data-driven из манифеста; code-drawn ui-panel
+       через C-ABI требует cross-.so ImGui (SetCurrentContext + shared allocator в плагин). API готов.
+3. [ ] **Windows SEH live-изоляция** — сейчас код + CI-компиляция (нет Win-HW). *nix сигнал — live+CI.
+4. [ ] **Windows/Linux native-load live** determinism/seam/isolation — сейчас POSIX-run + Win build-only.
+5. [ ] **Полный live-прогон 6 ext-point** — сейчас ecs-system + asset-codec + ui-panel сквозные;
+       render-pass/input-source/audio-bus — регистрация + unit (реальная интеграция с #2/#4/#3 позже).
+6. [ ] **Capability-политика untrusted** — escape-тест доказал границу; нужен декларативный capability
+       в манифесте (какие host-import разрешены) + энфорс при линковке WASM (сейчас imports=null,0).
+7. [ ] **Multi-tick/fuzzing probe** — probe single-shot @tick0; крэшер на поздних данных проходит.
+8. [ ] **plugin.toml реальный TOML** + `min=/max=` для slider (сейчас line-based `.manifest`, min/max
+       мёртвые поля — taste из UI-ревью).
+9. [ ] **CMake `file(GLOB WASMTIME_DIR)`** — при >1 каталоге deps сломается (taste; `list(GET 0)`).
+10. [ ] **Marketplace-инфра** — подпись плагинов / политика песочницы / semver-эволюция API — отдельная спека.
+> Актуальность строк тест-матрицы выше (45-49) — это ИСХОДНЫЙ план; реальный итог гейтов — в «Результат
+> PoC» спеки #6. Расхождение (план «все OS» vs итог «POSIX+Win-build / WASM local») — п.1,3,4 этого чеклиста.
