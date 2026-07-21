@@ -97,6 +97,27 @@ dlopen/hot-reload #1. Build-часть CI-тестируема; live-панел�
 - **Границы:** live build-панель (ImGui) + click-to-open во внешний редактор — owner follow-up (гейт 6
   live UI). Инкрементальность = пересборка одной .so (как #1/#6). Windows — follow-up (fork/exec POSIX).
 
+## Срез 5 — Live UI (owner-выбор): гейт 6 — 🔶 data-путь+сборка ✅, live окно owner-pending
+DoD: вьюпорт #2 + гизмо + property-grid из flecs meta в ImGui-shell #6. Owner выбрал «собрать shell +
+headless data-путь, live за owner».
+- **Гейт 6 data-путь — ✅:** `ide/editor/` — property_grid (**meta-driven генерик**: обход EcsStruct
+  member-list любого компонента → значения прямым чтением по offset+kind; fix32 opaque→raw, std::string
+  opaque→строка, примитивы u64/i32/f32; range из meta для слайдеров), gizmo (2D камера world↔screen
+  детерм. round-trip + гизмо screen-space хит-тест). `editor_selftest` (headless): property-grid
+  Position/Velocity(fix32)/Name(string)/Parent(u64) значения верны + пустая/missing сущность + камера
+  round-trip identity + гизмо хит-тест. ASan/UBSan чисто. **Третья опора «одной рефлексии» закрыта**
+  (save/load #1 + IPC-зеркало #3 + property-grid #6 — все из flecs meta).
+- **editor_shell — ✅ собран:** `editor_shell_main.cpp` — ImGui docking (#6): Hierarchy (виртуализ.
+  ImGuiListClipper) + Inspector (property-grid rows + DragInt2 Position через command-bus + undo/redo) +
+  Viewport (ImGui draw-list: сетка + сущности-точки world→screen + selection-outline + гизмо-оси) +
+  Console. Линкуется imgui+glfw+GL (PLUGIN_UI on). **Live-запуск окна — owner-HW pending.**
+- **Границы:** live-окно на экране — owner (как plugin UI-shell / input_demo). Генерик-opaque
+  произвольного C++-типа (не fix32/std::string) в property-grid — follow-up (serialize-callback;
+  cursor.get_int для I32-opaque вернул 0 → перешёл на прямое чтение по offset). Редактирование в
+  инспекторе — Position typed через bus; полный generic-edit из meta = follow-up.
+- **Нюанс (cursor):** `ecs_meta_get_int` НЕ инвокает opaque-serialize для fix32 (→0), хотя get_string
+  для std::string работает; чтение значений — прямым offset+kind (детерм., корректно для схемы).
+
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
 - **Гейт 7 — ✅:** `ide/perf_test.cpp` (reuse scene_core + command). Override operator new = счётчик

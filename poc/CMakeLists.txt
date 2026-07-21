@@ -403,5 +403,27 @@ if(IDE_POC)
     # Гейт 7: перф 10k — выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap.
     add_executable(perf_test ide/perf_test.cpp)
     target_link_libraries(perf_test PRIVATE scene_core)
+
+    # Гейт 6 data-путь: property-grid из flecs meta + гизмо/камера transform (headless-гейт).
+    # Live-окно (вьюпорт+инспектор+гизмо) — editor_shell ниже (owner-HW).
+    add_library(editor_core STATIC ide/editor/property_grid.cpp)
+    target_include_directories(editor_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ide)
+    target_link_libraries(editor_core PUBLIC scene_core)
+    add_executable(editor_selftest ide/editor/editor_selftest.cpp)
+    target_link_libraries(editor_selftest PRIVATE editor_core)
+
+    # Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
+    # Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.
+    if(TARGET imgui)
+      add_executable(editor_shell ide/editor/editor_shell_main.cpp)
+      target_link_libraries(editor_shell PRIVATE editor_core imgui glfw)
+      if(APPLE)
+        target_link_libraries(editor_shell PRIVATE "-framework OpenGL")
+      elseif(WIN32)
+        target_link_libraries(editor_shell PRIVATE opengl32)
+      else()
+        target_link_libraries(editor_shell PRIVATE GL)
+      endif()
+    endif()
   endif()
 endif()
