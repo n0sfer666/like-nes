@@ -95,7 +95,10 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    (host-state переживает, dlopen #1); диагностик-парсер (file:line, click-to-open) + build-fail в панель.
    POSIX CI (build-часть); live-панель — owner follow-up. Срез 3.
 6. ⏳ **Live UI** — вьюпорт #2 + гизмо + inspector/property-grid на flecs meta (live owner-HW).
-7. ⏳ **Перф** — 10k+ сущностей: выделение/property-grid/undo ≤ бюджет (CI-бенч + live).
+7. ✅ **Перф** — 10k+ сущностей (owner-HW): выделение 159µs (≤3ms), property-grid 0.17µs/кадр (≤20µs,
+   zero-alloc), виртуализация-окно ~0µs/кадр (≤5µs), undo 0.31µs/оп (≤50µs). **Zero per-frame heap**
+   (override operator new = 0 аллокаций в hot-UI пути) + **масштаб-инвариантность 10k↔50k** (property-grid/
+   undo O(1), окно O(видимого), не O(N)). CI-бенч POSIX. Срез 4.
 8. ✅ **IPC-замер** — **shmem vs socket @10k, симметрично (produce+транспорт+read у обоих), owner-HW ARM:
    shmem p50≈11.6µs / p99≈12–13µs, 0 сериализации (read из mmap); socket p50≈200µs / p99≈252–259µs,
    320KB/кадр (memcpy+syscall+kernel) → shmem ~17× дешевле p50, ~20× p99.** Layout-drift
@@ -103,8 +106,8 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    shmem-зеркало (seqlock, read-only mmap), control-plane = socket.** Срез 2. Cross-platform crash-cleanup
    shmem (SIGBUS/orphan) на Windows — follow-up.
 
-> **Итог гейтов:** 6/8 закрыты (1,2,3,4,5,8), транспорт зафиксирован. Осталось 6 (live UI), 7 (перф) —
-> следующие срезы; ADR остаётся **Proposed** до их закрытия.
+> **Итог гейтов:** 7/8 закрыты (1,2,3,4,5,7,8), транспорт зафиксирован. Осталось **6 (live UI, owner-HW:
+> вьюпорт+гизмо+property-grid)** — финальный срез; ADR остаётся **Proposed** до его закрытия.
 
 ## Последствия
 
