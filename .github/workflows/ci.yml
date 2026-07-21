@@ -256,3 +256,39 @@ jobs:
             poc/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
+
+      # --- IDE-вертикаль (спека #7), срез 1 — фундамент редактора: flecs scene-doc + детерм.
+      # round-trip + undo/redo. Гейт 1 golden (fix32 целочисл., текст ASCII → cross-OS байт-golden,
+      # сверяется на всех 3 OS, как input/plugin). Гейт 2 (undo/redo command-bus) — на всех OS.
+      # ASan/UBSan (Linux) валидирует память ide-кода. Live UI/Play-процесс/IPC — следующие срезы.
+      - name: IDE — scene round-trip byte-golden (gate 1, fix32 integer -> cross-OS) + run-to-run
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 \( -name 'scene_roundtrip_test' -o -name 'scene_roundtrip_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "scene_roundtrip_test not built"; exit 1; }
+          "$BIN" | tee ide_rt.txt
+          grep -q "0x2de54a36e54e0684" ide_rt.txt || { echo "IDE SCENE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "scene-roundtrip: PASS" ide_rt.txt
+
+      - name: IDE — undo/redo command bus (gate 2: do/undo/redo + grouping + redo-truncation)
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 \( -name 'command_test' -o -name 'command_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "command_test not built"; exit 1; }
+          "$BIN" | tee ide_cmd.txt
+          grep -q "command-undo: PASS" ide_cmd.txt
+
+      - name: IDE — ASan/UBSan (scene-doc + serialize + command, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
+          [ -n "$FLECSLIB" ] || { echo "libflecs_static.a not found"; exit 1; }
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
+          c++ $SAN poc/ide/scene_roundtrip_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_rt_san
+          ./ide_rt_san | tee ide_rt_san.txt
+          grep -q "scene-roundtrip: PASS" ide_rt_san.txt
+          c++ $SAN poc/ide/command_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
+          ./ide_cmd_san | tee ide_cmd_san.txt
+          grep -q "command-undo: PASS" ide_cmd_san.txt
