@@ -388,5 +388,16 @@ if(IDE_POC)
     # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007.
     add_executable(ide_ipc_bench ide/ipc_bench.cpp)
     target_link_libraries(ide_ipc_bench PRIVATE ipc_core Threads::Threads)
+
+    # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
+    # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).
+    add_library(build_core STATIC ide/compile/diagnostics.cpp ide/compile/build_orchestrator.cpp)
+    target_include_directories(build_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/ide)
+    add_executable(build_loop_test ide/build_loop_test.cpp)
+    target_link_libraries(build_loop_test PRIVATE build_core ${CMAKE_DL_LIBS})
+    target_compile_definitions(build_loop_test PRIVATE IDE_CXX="${CMAKE_CXX_COMPILER}")
+
+    add_executable(diagnostics_test ide/compile/diagnostics_test.cpp)
+    target_link_libraries(diagnostics_test PRIVATE build_core)
   endif()
 endif()
