@@ -139,6 +139,14 @@ headless data-путь, live за owner».
   CMAKE_WARN_DEPRECATED не сработал — zstd переустанавливает политику); (2) imgui_impl_glfw `memset`
   non-trivial → `-Wno-nontrivial-memcall` на imgui-таргете (Clang). Проверено: чистый reconfigure 0
   deprecated, форс-пересборка imgui_impl_glfw 0 варнингов, headless-гейты зелёные. Оба — код зависимостей.
+- **Полная чистка сборки (owner: «сделай всё, проверь вывод»):** чистая сборка с нуля (build-fresh)
+  вскрыла ещё сторонние варнинги в asset/render/audio-вертикалях (#2/#3/#5): basisu-транскодер
+  (memset/memcpy non-trivial + GCC-only `-Wclass-memaccess` pragma → clang unknown-warning-option), stb
+  (stb_vorbis tautological-compare, stb_image_write sprintf deprecated), ld-дубль glfw на poc/render_demo.
+  Все точечно заглушены: basisu/stb include → SYSTEM + per-source/target `-Wno-*` (Clang-guard); poc/
+  render_demo — убран явный glfw (транзитивно из glfw3webgpu). **Форс-рекомпиляция всех сторонних TU →
+  0 warning/0 error/0 ld-dup;** функц. гейты (determinism/render_golden/audio/asset/IDE) зелёные —
+  линковка не сломана. Наш код был чист изначально (0), все варнинги — сторонние.
 
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
