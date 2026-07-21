@@ -81,19 +81,28 @@ IPC-стоимости снят выбором транспорта (shmem zero-
 (а не IDE-из-плагинов) — размен скорости старта против чистоты догфуда: смягчается тем, что hook-points
 проектируются как настоящий API (#6-реестр) и часть first-party панелей идёт через него.
 
-## Условия финализации (validation gate) — pending, T4
+## Условия финализации (validation gate) — частично, T4
 
 Proposed → Accepted при закрытии walking-skeleton IDE-вертикали (как render/asset/audio/input/plugin PoC),
-гейты (спека #7, тест-матрица):
-1. **Scene round-trip** — save→reload→save байт-идентичны; bake детерм. golden (CI 3 OS).
-2. **Undo/redo** — command do/undo/redo корректность + группировка (CI).
-3. **Play spawn + IPC** — spawn игры-процесса + read-only зеркало 10k сущностей (CI headless + live).
-4. **Крэш-изоляция** — крэш игры → редактор жив (*nix live+CI; Win код+CI-build).
-5. **Build-loop** — watch .cpp → build → hot-reload .so, ошибки в панель (live owner + CI build-часть).
-6. **Live UI** — вьюпорт #2 + гизмо + inspector/property-grid на flecs meta (live owner-HW).
-7. **Перф** — 10k+ сущностей: выделение/property-grid/undo ≤ бюджет (CI-бенч + live).
-8. **IPC-замер** — shmem vs socket p50/p99, копии/кадр, CPU%, cross-platform crash-cleanup, layout-drift
-   rejection → выбор транспорта фиксируется в этом ADR по итогу.
+гейты (спека #7, тест-матрица). Статус PoC (срезы 1–2, POSIX+CI):
+1. ✅ **Scene round-trip** — save→reload→save байт-идентичны; golden `0x2de54a36e54e0684` (CI 3 OS). Срез 1.
+2. ✅ **Undo/redo** — command do/undo/redo + группировка + redo-truncation (CI 3 OS). Срез 1.
+3. ✅ **Play spawn + IPC** — fork+exec game-процесса + read-only shmem-зеркало 10k, консистентный
+   seqlock-снапшот (POSIX CI + live macOS). Срез 2.
+4. ✅ **Крэш-изоляция** — null-deref child → parent-редактор жив, waitpid-детект (POSIX live+CI; Win —
+   follow-up). Срез 2.
+5. ⏳ **Build-loop** — watch .cpp → build → hot-reload .so, ошибки в панель (live owner + CI build-часть).
+6. ⏳ **Live UI** — вьюпорт #2 + гизмо + inspector/property-grid на flecs meta (live owner-HW).
+7. ⏳ **Перф** — 10k+ сущностей: выделение/property-grid/undo ≤ бюджет (CI-бенч + live).
+8. ✅ **IPC-замер** — **shmem vs socket @10k, симметрично (produce+транспорт+read у обоих), owner-HW ARM:
+   shmem p50≈11.6µs / p99≈12–13µs, 0 сериализации (read из mmap); socket p50≈200µs / p99≈252–259µs,
+   320KB/кадр (memcpy+syscall+kernel) → shmem ~17× дешевле p50, ~20× p99.** Layout-drift
+   (schema_hash/layout_version) → reader отвергает снапшот (валид.). **Решение зафиксировано: data-plane =
+   shmem-зеркало (seqlock, read-only mmap), control-plane = socket.** Срез 2. Cross-platform crash-cleanup
+   shmem (SIGBUS/orphan) на Windows — follow-up.
+
+> **Итог гейтов:** 5/8 закрыты (1,2,3,4,8), транспорт зафиксирован. Осталось 5,6,7 (build-loop, live UI,
+> перф) — следующие срезы; ADR остаётся **Proposed** до их закрытия.
 
 ## Последствия
 
