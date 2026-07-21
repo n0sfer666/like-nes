@@ -1,9 +1,13 @@
 #include "manifest.hpp"
+#include "gpu.hpp"
+#include "wgpu_imgui.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_opengl3.h"
+#include "backends/imgui_impl_wgpu.h"
 #include <GLFW/glfw3.h>
+#include <glfw3webgpu.h>
+#include <webgpu/webgpu.h>
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -66,25 +70,40 @@ int main(int argc, char** argv) {
     if (panels.empty()) { std::fprintf(stderr, "[shell] no panels\n"); return 2; }
 
     if (!glfwInit()) { std::fprintf(stderr, "[shell] glfwInit failed\n"); return 1; }
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // WebGPU-surface, без GL-контекста
     GLFWwindow* win = glfwCreateWindow(1280, 800, "like-nes plugin UI-shell (panels from manifests)", nullptr, nullptr);
     if (!win) { glfwTerminate(); return 1; }
-    glfwMakeContextCurrent(win);
-    glfwSwapInterval(1);
+
+    GpuContext gpu;
+    gpu.instance = wgpuCreateInstance(nullptr);
+    WGPUSurface surface = glfwGetWGPUSurface(gpu.instance, win);
+    if (!gpu.init(surface)) {
+        wgpuSurfaceRelease(surface); gpu.shutdown();
+        glfwDestroyWindow(win); glfwTerminate(); return 1;
+    }
+    int fbw = 0, fbh = 0;
+    glfwGetFramebufferSize(win, &fbw, &fbh);
+    WGPUTextureFormat fmt = wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
 
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(win, true);
-    ImGui_ImplOpenGL3_Init("#version 150");
+    ImGui_ImplGlfw_InitForOther(win, true);
+    ImGui_ImplWGPU_InitInfo info;
+    info.Device = gpu.device;
+    info.RenderTargetFormat = fmt;
+    ImGui_ImplWGPU_Init(&info);
 
     bool layout_built = false;
     while (!glfwWindowShouldClose(win)) {
         glfwPollEvents();
-        ImGui_ImplOpenGL3_NewFrame();
+        int cw = 0, ch = 0;
+        glfwGetFramebufferSize(win, &cw, &ch);
+        if (cw > 0 && ch > 0 && (cw != fbw || ch != fbh)) {   // resize → реконфиг surface
+            fbw = cw; fbh = ch;
+            wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+        }
+        ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
@@ -129,17 +148,14 @@ int main(int argc, char** argv) {
         for (auto& p : panels) draw_panel(p);
 
         ImGui::Render();
-        int w, h; glfwGetFramebufferSize(win, &w, &h);
-        glViewport(0, 0, w, h);
-        glClearColor(0.10f, 0.11f, 0.13f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        glfwSwapBuffers(win);
+        wgpu_imgui::present(gpu, surface, WGPUColor{0.10, 0.11, 0.13, 1.0});
     }
 
-    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplWGPU_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    wgpuSurfaceRelease(surface);
+    gpu.shutdown();
     glfwDestroyWindow(win);
     glfwTerminate();
     return 0;

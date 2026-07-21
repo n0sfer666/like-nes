@@ -126,8 +126,14 @@ headless data-путь, live за owner».
   glfw `GLFW_NO_API` + glfw3webgpu surface + GpuContext (render/gpu.cpp) + `IMGUI_IMPL_WEBGPU_BACKEND_WGPU`.
   Render-loop: surface texture → render pass (clear) → `ImGui_ImplWGPU_RenderDrawData` → submit → present;
   resize → реконфиг surface. **0 deprecation-варнингов** (было 3: glViewport/glClear/glClearColor).
-  Запуск под lldb: окно открылось, render-loop без краша. Follow-up: plugin_ui_shell (#6) всё ещё на
-  OpenGL3 — тот же паттерн миграции; memset-варнинг внутри imgui_impl_glfw — сторонний код imgui.
+  Запуск под lldb: окно открылось, render-loop без краша.
+- **WebGPU-консолидация (owner: мигрировать plugin_ui_shell #6 + проверить остальное):** grep по всему
+  репо → единственный OpenGL был в `plugin/ui_shell_main.cpp` (render_demo уже на WebGPU). Мигрировал и
+  его; общую WebGPU+ImGui оконную обвязку вынес в шаредный `render/wgpu_imgui.{hpp,cpp}` (configure_surface
+  + present) — DRY, оба шелла тонкие (editor_shell_main 72 строки, plugin 162). imgui-либа: opengl3-бэкенд
+  УБРАН, только wgpu-бэкенд + wgpu_imgui + webgpu PUBLIC. **OpenGL полностью вычищен из исходников**
+  (otool: оба шелла линкуют libwgpu_native, ни один — OpenGL.framework). Оба запускаются без краша (lldb),
+  plugin-manifest headless-гейт PASS. memset-варнинг в imgui_impl_glfw — сторонний код imgui (не наш).
 
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
