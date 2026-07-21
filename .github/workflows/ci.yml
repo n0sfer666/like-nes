@@ -370,3 +370,26 @@ jobs:
           c++ $SAN -DIDE_CXX='"c++"' poc/ide/build_loop_test.cpp poc/ide/compile/diagnostics.cpp poc/ide/compile/build_orchestrator.cpp -ldl -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
+
+      # --- IDE-вертикаль срез 4 (спека #7, гейт 7) — перф 10k. Выделение/property-grid/undo/
+      # виртуализация ≤ бюджет + zero per-frame heap (override operator new считает аллокации) +
+      # масштаб-инвариантность (10k vs 50k → O(1)/O(видимого), не O(N)). POSIX (в IDE_POC-блоке).
+      - name: IDE — perf 10k (selection/property-grid/undo/virtualization <= budget, POSIX)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 -name 'perf_test' | head -1)
+          [ -n "$BIN" ] || { echo "perf_test not built"; exit 1; }
+          "$BIN" | tee ide_perf.txt
+          grep -q "ide-perf: PASS" ide_perf.txt
+
+      - name: IDE — perf ASan/UBSan (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
+          c++ $SAN poc/ide/perf_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
+          ./ide_perf_san | tee ide_perf_san.txt
+          grep -q "ide-perf: PASS" ide_perf_san.txt

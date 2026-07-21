@@ -399,5 +399,9 @@ if(IDE_POC)
 
     add_executable(diagnostics_test ide/compile/diagnostics_test.cpp)
     target_link_libraries(diagnostics_test PRIVATE build_core)
+
+    # Гейт 7: перф 10k — выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap.
+    add_executable(perf_test ide/perf_test.cpp)
+    target_link_libraries(perf_test PRIVATE scene_core)
   endif()
 endif()

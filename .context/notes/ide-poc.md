@@ -85,7 +85,7 @@ opt-in `Parent`-компонент (не навязана). Все мутаци�
 6. [x] verify T4 (все гейты среза 2 зелёные + ASan) → code-reviewer ×2 (FAIL→1med+4low фикс; re-review
        PASS) → commit `3a500d3` → чекпоинт. **Гейты 5/8 закрыты (1,2,3,4,8); осталось 5,6,7.**
 
-## Срез 3 — Build-loop (owner-выбор): гейт 5
+## Срез 3 — Build-loop (owner-выбор): гейт 5 — ✅ ЗЕЛЁНЫЙ, коммит `a676ec6` (dir=`ide/compile/`, не `build*`)
 DoD: watch .cpp → build → hot-reload .so + панель ошибок (click-to-`file:line`). Переиспользует
 dlopen/hot-reload #1. Build-часть CI-тестируема; live-панель — owner follow-up.
 - **Гейт 5 — ✅ ЗЕЛЁНЫЙ:** `ide/build/` — diagnostics (парсер clang/gcc `file:line:col: sev: msg` →
@@ -96,6 +96,24 @@ dlopen/hot-reload #1. Build-часть CI-тестируема; live-панел�
   (cross-OS, 3 диагностики + краевые). Стабильно ×3, ASan/UBSan чисто. CI: 3 шага (POSIX) + ASan Linux.
 - **Границы:** live build-панель (ImGui) + click-to-open во внешний редактор — owner follow-up (гейт 6
   live UI). Инкрементальность = пересборка одной .so (как #1/#6). Windows — follow-up (fork/exec POSIX).
+
+## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
+DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
+- **Гейт 7 — ✅:** `ide/perf_test.cpp` (reuse scene_core + command). Override operator new = счётчик
+  аллокаций. Результаты (owner-HW ARM): выделение 159µs (≤3ms), property-grid 0.17µs/кадр (≤20µs),
+  виртуализация-окно K=64 ~0µs/кадр (≤5µs), undo 0.31µs/оп (≤50µs). **Zero per-frame heap** в hot-UI
+  (selection-скан/property-grid/окно = 0 аллокаций). **Масштаб-инвариантность 10k↔50k:** property-grid
+  и undo O(1) в размере сцены, окно O(видимого) — не O(N). Стабильно ×3, ASan/UBSan чисто.
+- **Технич.:** property-grid hot-путь = typed `try_get<T>` → snprintf в фикс. буфер (zero-alloc);
+  виртуализация = плоский отсортир. индекс guid → срез [off,off+K] O(K); выделение = скан by_guid_
+  в преаллок. буфер. CI: 2 шага (perf POSIX + ASan Linux).
+- **Границы:** meta-cursor generic zero-alloc property-grid (вместо typed try_get) — follow-up для
+  произвольных компонентов; undo аллоцирует std::function-замыкание (per-action, не per-frame — ок).
+  Счётчик считает только operator new (не flecs-internal malloc — try_get без alloc, но следящий гейт
+  уже операторов new). Scale-guard (10k↔50k, порог ×4+ε) ловит ~6x-регресс, не истинный линейный O(N)
+  (baseline sub-µs + аддитив на шум CI) — ужесточение = риск флейка; строгий тесный порог = follow-up
+  (нагрузка 10k↔100k). Ревью code-reviewer ×2 (FAIL→3med+3low: DCE/malloc-scope/scale-invariance/
+  бюджеты/ASan-timing/snprintf-кламп → все фикс; re-review PASS, 1 taste оставлен).
 
 ## Прогресс среза 2
 - **Гейт 3 (Play-spawn + зеркало) — ✅:** `ide/ipc/` (mirror POD-layout + schema_hash/layout_version,
