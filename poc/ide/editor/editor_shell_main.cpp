@@ -1,5 +1,6 @@
 #include "editor_ui.hpp"
 #include "gpu.hpp"
+#include "wgpu_imgui.hpp"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_wgpu.h"
 #include <GLFW/glfw3.h>
@@ -8,27 +9,10 @@
 #include <cstdio>
 
 // Live editor-shell (спека #7, гейт 6): ImGui docking (#6) UI из editor_ui.hpp + рендер-бэкенд
-// WebGPU (imgui_impl_wgpu / wgpu-native, как render #2 — НЕ deprecated OpenGL). Owner-HW (окно).
-// Состояние — ЛОКАЛИ main, НЕ глобалы (flecs::world в static-init → SIGSEGV).
+// WebGPU (wgpu-native, как render #2 — НЕ deprecated OpenGL); оконная обвязка = render/wgpu_imgui.
+// Owner-HW (окно). Состояние — ЛОКАЛИ main, НЕ глобалы (flecs::world в static-init → SIGSEGV).
 using namespace ide;
 using namespace ide::editor;
-
-namespace {
-
-WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d, uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(s, a, &caps);
-    WGPUTextureFormat fmt = caps.formatCount > 0 ? caps.formats[0] : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = d; cfg.format = fmt; cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto; cfg.width = w; cfg.height = h;
-    cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(s, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return fmt;
-}
-
-} // namespace
 
 int main() {
     EditorState st;   // flecs-мир создаётся ЗДЕСЬ (не в static-init)
@@ -48,7 +32,7 @@ int main() {
     }
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(win, &fbw, &fbh);
-    WGPUTextureFormat fmt = configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+    WGPUTextureFormat fmt = wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
 
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -66,7 +50,7 @@ int main() {
         glfwGetFramebufferSize(win, &w, &h);
         if (w > 0 && h > 0 && (w != fbw || h != fbh)) {   // resize → реконфиг surface
             fbw = w; fbh = h;
-            configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+            wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
         }
 
         ImGui_ImplWGPU_NewFrame();
@@ -74,31 +58,7 @@ int main() {
         ImGui::NewFrame();
         draw_ui(st, built);
         ImGui::Render();
-
-        WGPUSurfaceTexture stex = {};
-        wgpuSurfaceGetCurrentTexture(surface, &stex);
-        if (stex.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-            if (stex.texture) wgpuTextureRelease(stex.texture);
-            continue;
-        }
-        WGPUTextureView view = wgpuTextureCreateView(stex.texture, nullptr);
-        WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassColorAttachment color = {};
-        color.view = view; color.loadOp = WGPULoadOp_Clear; color.storeOp = WGPUStoreOp_Store;
-        color.clearValue = WGPUColor{0.08, 0.09, 0.11, 1.0};
-        WGPURenderPassDescriptor rp = {};
-        rp.colorAttachmentCount = 1; rp.colorAttachments = &color;
-        WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(enc, &rp);
-        ImGui_ImplWGPU_RenderDrawData(ImGui::GetDrawData(), pass);
-        wgpuRenderPassEncoderEnd(pass);
-        wgpuRenderPassEncoderRelease(pass);
-        WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
-        wgpuQueueSubmit(gpu.queue, 1, &cmd);
-        wgpuCommandBufferRelease(cmd);
-        wgpuCommandEncoderRelease(enc);
-        wgpuSurfacePresent(surface);
-        wgpuTextureViewRelease(view);
-        wgpuTextureRelease(stex.texture);
+        wgpu_imgui::present(gpu, surface, WGPUColor{0.08, 0.09, 0.11, 1.0});
     }
 
     ImGui_ImplWGPU_Shutdown();

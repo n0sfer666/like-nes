@@ -289,34 +289,32 @@ foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
 
-# Live UI-shell: Dear ImGui (docking) + GLFW + OpenGL3. Докируемые панели из манифестов.
-# Owner-HW (macOS live). OFF в headless CI (нужен дисплей/GL).
-option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW)" ON)
+# Live UI-shell: Dear ImGui (docking) + GLFW + WebGPU (wgpu-native, как render #2 — OpenGL deprecated
+# на macOS). Докируемые панели из манифестов. Owner-HW (macOS live). OFF в headless CI (нужен дисплей).
+option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW + WebGPU)" ON)
 if(PLUGIN_UI)
   FetchContent_Declare(imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG v1.91.5-docking)
   FetchContent_MakeAvailable(imgui)
-  # Ядро ImGui + glfw + opengl3-бэкенд (plugin_ui_shell). wgpu-бэкенд (editor_shell) НЕ здесь —
-  # компилируется прямо в editor_shell, чтобы plugin_ui_shell не тянул webgpu-зависимость.
+  # Ядро ImGui + glfw + WebGPU-бэкенд + общая оконная обвязка (render/wgpu_imgui). Оба shell'а
+  # (plugin + editor) рендерят через WebGPU — без deprecated OpenGL.
   add_library(imgui STATIC
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp)
-  target_include_directories(imgui PUBLIC ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
-  target_link_libraries(imgui PUBLIC glfw)
-  add_executable(plugin_ui_shell plugin/ui_shell_main.cpp)
-  target_link_libraries(plugin_ui_shell PRIVATE plugin_core imgui glfw)
-  if(APPLE)
-    target_link_libraries(plugin_ui_shell PRIVATE "-framework OpenGL")
-  elseif(WIN32)
-    target_link_libraries(plugin_ui_shell PRIVATE opengl32)
-  else()
-    target_link_libraries(plugin_ui_shell PRIVATE GL)
-  endif()
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_wgpu.cpp
+    render/wgpu_imgui.cpp)
+  target_include_directories(imgui PUBLIC
+    ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${CMAKE_CURRENT_SOURCE_DIR}/render)
+  target_link_libraries(imgui PUBLIC glfw webgpu)
+  target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
+
+  add_executable(plugin_ui_shell plugin/ui_shell_main.cpp render/gpu.cpp)
+  target_link_libraries(plugin_ui_shell PRIVATE plugin_core imgui glfw3webgpu webgpu)
+  target_copy_webgpu_binaries(plugin_ui_shell)
 endif()
 
 # WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
@@ -417,13 +415,9 @@ if(IDE_POC)
     # Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
     # Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.
     if(TARGET imgui)
-      # WebGPU-бэкенд ImGui (wgpu-native, как render #2) — БЕЗ deprecated OpenGL. imgui_impl_wgpu.cpp
-      # компилируется ЗДЕСЬ (не в общей imgui-либе) → plugin_ui_shell не зависит от webgpu. GpuContext
-      # из render/gpu.cpp; glfw3webgpu — surface из GLFW-окна.
-      add_executable(editor_shell ide/editor/editor_shell_main.cpp render/gpu.cpp
-        ${imgui_SOURCE_DIR}/backends/imgui_impl_wgpu.cpp)
-      target_include_directories(editor_shell PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/render)
-      target_compile_definitions(editor_shell PRIVATE IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
+      # WebGPU-бэкенд + оконная обвязка — в imgui-либе (render/wgpu_imgui). GpuContext из render/gpu.cpp;
+      # glfw3webgpu — surface из GLFW-окна.
+      add_executable(editor_shell ide/editor/editor_shell_main.cpp render/gpu.cpp)
       target_link_libraries(editor_shell PRIVATE editor_core imgui glfw3webgpu webgpu)
       target_copy_webgpu_binaries(editor_shell)
     endif()
