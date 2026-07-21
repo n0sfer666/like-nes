@@ -338,3 +338,31 @@ if(PLUGIN_WASM)
     message(STATUS "PLUGIN_WASM: wasmtime C-API не найден в poc/deps — gate #5 пропущен")
   endif()
 endif()
+
+# --- IDE-вертикаль (спека #7) — фундамент: flecs scene-doc + детерм. round-trip + undo/redo ---
+# flecs = ECS-мир + meta/json рефлексия (единый источник: property-grid + IPC-зеркало + save/load).
+# Гейт 1 (scene round-trip): текст-source(JSON)+стабильные GUID → save->reload->save байт-идентичны +
+# детерм. golden bake-hash (fix32 целочисл. → cross-arch). Гейт 2 (undo/redo): command-bus. На 3 OS.
+option(IDE_POC "Build IDE editor foundation (flecs scene-doc + round-trip + undo)" ON)
+if(IDE_POC)
+  set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
+  set(FLECS_STATIC ON CACHE BOOL "" FORCE)
+  set(FLECS_PIC ON CACHE BOOL "" FORCE)
+  set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(flecs
+    GIT_REPOSITORY https://github.com/SanderMertens/flecs
+    GIT_TAG v4.1.6
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(flecs)
+
+  add_library(scene_core STATIC ide/scene.cpp ide/serialize.cpp)
+  target_include_directories(scene_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/ide ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  target_link_libraries(scene_core PUBLIC flecs_static)
+
+  add_executable(scene_roundtrip_test ide/scene_roundtrip_test.cpp)
+  target_link_libraries(scene_roundtrip_test PRIVATE scene_core)
+
+  add_executable(command_test ide/command_test.cpp)
+  target_link_libraries(command_test PRIVATE scene_core)
+endif()

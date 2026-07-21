@@ -53,16 +53,31 @@ opt-in `Parent`-компонент (не навязана). Все мутаци�
   follow-up при желании.
 
 ## Фазы (этот срез)
-1. [ ] docs: note (этот файл) + коммит spec #7 + ADR 0007 (Proposed) [phase-1 docs]
-2. [ ] flecs FetchContent + smoke (meta+json собираются и работают на owner-HW)
-3. [ ] scene-doc: components + meta-регистрация + fix32 opaque + Scene(GUID↔entity)
-4. [ ] serialize: детерм. JSON (GUID-порядок, meta-driven per-component) + deserialize
-5. [ ] gate 1: round-trip byte-identical + golden bake-hash (тест) → зелёно
-6. [ ] command-bus + undo/redo + группировка
-7. [ ] gate 2: do/undo/redo + группировка (тест) → зелёно
-8. [ ] CI wiring (гейты 1+2, 3 OS / POSIX + golden-hash grep) + ASan/UBSan
-9. [ ] verify T4 (гейты 1+2 зелёные локально + CI) → code-reviewer → фикс ≥low
+1. [x] docs: note (этот файл) + коммит spec #7 + ADR 0007 (Proposed) [phase-1 docs] — `e5c8836`
+2. [x] flecs FetchContent (v4.1.6, flecs_static) + API-сверка (opaque/to_json/from_json/member)
+3. [x] scene-doc: components + meta-регистрация + fix32 opaque + Scene(GUID↔entity)
+4. [x] serialize: детерм. текст-конверт (GUID-порядок, meta-driven flecs-JSON) + deserialize
+5. [x] gate 1: round-trip byte-identical + golden `0x2de54a36e54e0684` + run-to-run → ЗЕЛЁНО
+6. [x] command-bus (header-only) + undo/redo + группировка + redo-truncation + destroy-snapshot
+7. [x] gate 2: do/undo/redo + группировка + truncation + destroy-restore → ЗЕЛЁНО
+8. [x] CI wiring (гейты 1+2 golden-grep на 3 OS + ASan/UBSan Linux)
+9. [~] verify T4 (гейты 1+2 локально зелёные + ASan/UBSan чисто) → code-reviewer (gate1 FAIL→5 фикс) →
+       re-review gate2 → commit
 10. [ ] чекпоинт: dev-log + решение о следующем срезе
 
 ## Прогресс
-- (старт) — фаза 1 в работе.
+- **Гейт 1 (scene round-trip) — ✅ ЗЕЛЁНЫЙ:** `ide/` — components (Name/Parent/Position/Velocity,
+  fix32 opaque→I32, std::string opaque), Scene (flecs::world + std::map<guid,entity>, детерм.
+  итерация), serialize (текст-конверт `E <guid>`/`C <Name> <flecs-json>`, meta-driven to_json/
+  from_json — доказывает ставку «одна рефлексия»). save→reload→save байт-идентичны; golden
+  `0x2de54a36e54e0684` (FNV над ASCII+целочисл. fix32-raw → cross-OS); run-to-run идентичен.
+  ASan/UBSan чисто (macOS; LSan→Linux CI). Сущности сорт. по GUID вопреки порядку создания.
+- **Гейт 2 (undo/redo) — ✅ ЗЕЛЁНЫЙ:** `command.hpp` (header-only CommandBus): create/destroy/
+  set_component<T> через bus, единый линейный undo-стек, транзакции (begin/end_group → drag=1 undo),
+  новая команда обрубает redo-хвост, destroy-undo через per-entity snapshot (reuse рефлексии).
+  Оракул — serialize() гейта 1. ASan/UBSan чисто.
+- **Ревью:** code-reviewer (gate1) → FAIL: 2 medium (OOB `+2` в парсере, C-до-E краш) + 3 low
+  (dup-guid leak, вакуумные command-цели, CRLF) — все исправлены (starts_with-парсер, have_cur guard,
+  destruct старой сущности в create, header-only command, `\r`-trim). Re-review gate2 — pending.
+- **Границы:** формат = строковый конверт вокруг flecs-JSON (не полный TOML/JSON-парсер) — как
+  line-based .manifest в #6; реальный TOML/JSON doc-парсер = follow-up. Live UI/Play/IPC — след. срезы.
