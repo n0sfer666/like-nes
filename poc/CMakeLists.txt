@@ -11,6 +11,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Сторонние зависимости (zstd и пр.) объявляют старый cmake_minimum_required (<3.10) → CMake-варнинг
+# «deprecated». Поднимаем эффективную минимальную политику зависимостей до 3.10 (CMake ≥3.31; на старом
+# CMake переменная игнорируется). Нашу планку 3.24 не трогает — это пол для деп-сабпроектов.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
+
 include(FetchContent)
 
 # --- GLFW (windowing) ---
@@ -311,6 +316,9 @@ if(PLUGIN_UI)
     ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${CMAKE_CURRENT_SOURCE_DIR}/render)
   target_link_libraries(imgui PUBLIC glfw webgpu)
   target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
+  # Варнинг memset(non-trivial) в imgui_impl_glfw.cpp — код самого imgui (не наш); глушим точечно.
+  target_compile_options(imgui PRIVATE
+    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-nontrivial-memcall>)
 
   add_executable(plugin_ui_shell plugin/ui_shell_main.cpp render/gpu.cpp)
   target_link_libraries(plugin_ui_shell PRIVATE plugin_core imgui glfw3webgpu webgpu)

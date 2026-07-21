@@ -134,6 +134,11 @@ headless data-путь, live за owner».
   УБРАН, только wgpu-бэкенд + wgpu_imgui + webgpu PUBLIC. **OpenGL полностью вычищен из исходников**
   (otool: оба шелла линкуют libwgpu_native, ни один — OpenGL.framework). Оба запускаются без краша (lldb),
   plugin-manifest headless-гейт PASS. memset-варнинг в imgui_impl_glfw — сторонний код imgui (не наш).
+- **Заглушены сторонние build-варнинги (owner):** (1) zstd `cmake_minimum_required <3.10` deprecated →
+  `CMAKE_POLICY_VERSION_MINIMUM 3.10` (CMake≥3.31; поднимает деп-политику, нашу 3.24 не трогает;
+  CMAKE_WARN_DEPRECATED не сработал — zstd переустанавливает политику); (2) imgui_impl_glfw `memset`
+  non-trivial → `-Wno-nontrivial-memcall` на imgui-таргете (Clang). Проверено: чистый reconfigure 0
+  deprecated, форс-пересборка imgui_impl_glfw 0 варнингов, headless-гейты зелёные. Оба — код зависимостей.
 
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
