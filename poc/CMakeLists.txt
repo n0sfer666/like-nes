@@ -51,7 +51,7 @@ FetchContent_Declare(glfw3webgpu
 FetchContent_MakeAvailable(glfw3webgpu)
 
 add_executable(poc src/main.cpp)
-target_link_libraries(poc PRIVATE glfw webgpu glfw3webgpu)
+target_link_libraries(poc PRIVATE webgpu glfw3webgpu)   # glfw — транзитивно из glfw3webgpu (без дубля)
 target_copy_webgpu_binaries(poc)
 
 # --- stb (PNG read/write для golden-image) ---
@@ -130,6 +130,8 @@ endif()
 if(NOT WIN32)
   add_library(audio_core STATIC
     audio/mixer.cpp audio/decoder.cpp audio/stb_vorbis_impl.c)
+  # stb_vorbis.c — сторонний (tautological-compare); глушим точечно на этом TU.
+  set_source_files_properties(audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-Wno-tautological-compare")
   target_include_directories(audio_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/audio ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR})
@@ -173,11 +175,13 @@ add_library(render_core STATIC
   render/shaders_post.cpp render/renderer.cpp render/renderer_pipelines.cpp
   render/renderer_forward.cpp render/renderer_bloom.cpp render/capture.cpp
   render/stb_impl.cpp)
-target_include_directories(render_core PUBLIC ${stb_SOURCE_DIR})
+target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
 target_link_libraries(render_core PUBLIC webgpu)
+# stb_image_write.h использует sprintf (deprecated на macOS) — сторонний код, глушим точечно.
+set_source_files_properties(render/stb_impl.cpp PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
 
 add_executable(render_demo render/demo_main.cpp)
-target_link_libraries(render_demo PRIVATE render_core glfw webgpu glfw3webgpu)
+target_link_libraries(render_demo PRIVATE render_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
 target_copy_webgpu_binaries(render_demo)
 
 # Headless T4-гейт: offscreen epsilon/perceptual golden (без окна, для CI).
@@ -190,11 +194,17 @@ if(NOT WIN32)
   # basis транскодер — один файл; KTX2 без zstd-суперкомпрессии → BASISD_SUPPORT_KTX2_ZSTD=0
   # (не тянем вендорный zstd, нет конфликта символов с нашим libzstd).
   add_library(basis_transcoder STATIC ${basisu_SOURCE_DIR}/transcoder/basisu_transcoder.cpp)
-  target_include_directories(basis_transcoder PUBLIC ${basisu_SOURCE_DIR}/transcoder)
+  target_include_directories(basis_transcoder SYSTEM PUBLIC ${basisu_SOURCE_DIR}/transcoder)
   target_compile_definitions(basis_transcoder PUBLIC BASISD_SUPPORT_KTX2=1 BASISD_SUPPORT_KTX2_ZSTD=0)
+  # basisu-транскодер — сторонний: memset/memcpy non-trivial + GCC-only -Wclass-memaccess pragma
+  # (clang: unknown-warning-option). Глушим точечно на сторонних TU.
+  target_compile_options(basis_transcoder PRIVATE
+    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-nontrivial-memcall -Wno-unknown-warning-option>)
 
   add_library(asset_gpu STATIC asset/transcode.cpp)
   target_link_libraries(asset_gpu PUBLIC basis_transcoder)
+  target_compile_options(asset_gpu PRIVATE
+    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-unknown-warning-option>)   # basisu.h GCC-pragma
 
   add_executable(asset_render asset/asset_render_main.cpp)
   target_include_directories(asset_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/render)
