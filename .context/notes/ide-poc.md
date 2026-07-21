@@ -117,6 +117,10 @@ headless data-путь, live за owner».
   инспекторе — Position typed через bus; полный generic-edit из meta = follow-up.
 - **Нюанс (cursor):** `ecs_meta_get_int` НЕ инвокает opaque-serialize для fix32 (→0), хотя get_string
   для std::string работает; чтение значений — прямым offset+kind (детерм., корректно для схемы).
+- **БАГ+ФИКС (owner live):** первый запуск editor_shell → SIGSEGV в `flecs_table_ensure_edge`. Причина:
+  `Scene`/`CommandBus` были глобалами → flecs::world конструировался в static-init (до main). Фикс:
+  состояние → локаль `EditorState` в main(). Подтверждено lldb: после фикса процесс входит в render-loop
+  без краша. Урок: **flecs-мир не создавать в static-init**. Ревью рефактора → чисто.
 
 ## Срез 4 — Перф 10k (owner-выбор): гейт 7 — ✅ ЗЕЛЁНЫЙ
 DoD: выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap на 10k+.
