@@ -97,7 +97,9 @@ dlopen/hot-reload #1. Build-часть CI-тестируема; live-панел�
 - **Границы:** live build-панель (ImGui) + click-to-open во внешний редактор — owner follow-up (гейт 6
   live UI). Инкрементальность = пересборка одной .so (как #1/#6). Windows — follow-up (fork/exec POSIX).
 
-## Срез 5 — Live UI (owner-выбор): гейт 6 — 🔶 data-путь+сборка ✅, live окно owner-pending
+## ✅ СПЕКА #7 VALIDATED (2026-07-23) — ADR 0007 Accepted, все 8 гейтов, README Закрыта. Follow-up → ADR.
+
+## Срез 5 — Live UI (owner-выбор): гейт 6 — ✅ live owner-HW подтверждён 2026-07-23 (оба shell'а на WebGPU)
 DoD: вьюпорт #2 + гизмо + property-grid из flecs meta в ImGui-shell #6. Owner выбрал «собрать shell +
 headless data-путь, live за owner».
 - **Гейт 6 data-путь — ✅:** `ide/editor/` — property_grid (**meta-driven генерик**: обход EcsStruct
