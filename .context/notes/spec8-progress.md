@@ -46,7 +46,19 @@
     native_main (идемпотентный teardown, guard re-init, one-time sim-setup), общий batch.cpp НЕ тронут.
   - [ ] **Осталось (отдельная сессия):** iOS на owner-устройствах iPhone/iPad (нужна подпись owner),
     полировка тача/ориентации/виртуального-стика-оверлея на реальных устройствах.
-- [ ] **S3** Гейт 1 воспр. билд (P0–P3), CI build-twice+cmp.
+- [~] **S3** Гейт 1 воспр. билд. **P0–P2 + SHA-пин депов — DONE** (`1e4c0e7`). Контейнер (P3 cross-machine) — отдельно.
+  - **Флаги** (`poc/cmake/determinism.cmake`, до FetchContent → покрывает депы): `-ffile-prefix-map`
+    (source+binary→`.`), `-fno-ident`, детерм. `ar Dqc`/`ranlib -D` (Linux) / `ZERO_AR_DATE` env (macOS),
+    `--build-id=none` (Linux), MSVC `/Brepro`+`/INCREMENTAL:NO`; `SOURCE_DATE_EPOCH` (env) → `__DATE__`.
+  - **rpath-фикс (`reproducible_rpath`):** GPU-таргеты иначе получают АБСОЛЮТНЫЙ build-rpath в _deps
+    (путь течёт → ломает cmp); webgpu-хелпер хардкодит `INSTALL_RPATH "./"` (cwd-относит.). Перекрыли на
+    `@executable_path`/`$ORIGIN` (7 GPU-таргетов) → детерм. И запуск из любого cwd (+ бонус для packaging S5).
+  - **SHA-пин:** все 8 FetchContent-депов (тег→полный SHA, тег в комменте). stb уже был SHA.
+  - **Проверка (T4):** macOS build-twice-на-разных-путях → 181 арт., 0 diffs; Linux (Docker ubuntu) →
+    183 арт., 0 diffs; SHA-fetch ок; full `all` собран чисто; exe запускается из любого cwd. CI-гейт
+    (ubuntu) build-twice+cmp. Ревью: 4 находки (1 med CI-время→ubuntu-only, 1 low cmp-guard, 2 taste).
+  - [ ] **Осталось (отдельно):** герметичный Docker-тулчейн-контейнер + cross-machine байт-идентичность
+    (P3 stretch); Windows/MSVC-детерминизм в CI (сейчас build-only, репро = follow-up).
 - [ ] **S4** Гейт 3 кросс-компиляция (native-matrix замер + mobile NDK/iOS build).
 - [ ] **S5** Гейт 4+2 бандл per-OS + шов assetc→билд.
 - [ ] **S6** Гейт 5 release-оркестрация (tag→matrix→артефакты+VDF).
@@ -58,7 +70,7 @@
 
 ## Открытые числа (заполнять по PoC)
 - build-time native-matrix (`max` vs sum) — S4.
-- byte-repro pass per-OS (`cmp`) — S3.
+- byte-repro pass per-OS (`cmp`) — **S3 done:** macOS 181 арт. 0 diffs, Linux(Docker) 183 арт. 0 diffs.
 - version-stamp custom-target форма (без лишних ре-компиляций) — S5.
 
 ## Заметки/грабли (пополнять)
