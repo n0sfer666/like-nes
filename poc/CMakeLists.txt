@@ -16,6 +16,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # CMake переменная игнорируется). Нашу планку 3.24 не трогает — это пол для деп-сабпроектов.
 set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
 
+# P0-P2 воспроизводимый билд (детерм.-флаги, path-remap, детерм. архивы). Гейт 1 спеки #8.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/determinism.cmake)
+
 include(FetchContent)
 
 # --- GLFW (windowing) ---
@@ -26,7 +29,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw
   GIT_REPOSITORY https://github.com/glfw/glfw
-  GIT_TAG 3.4
+  GIT_TAG a74efa0d5628b74adc0426af4c5710e287fa7c2c  # 3.4
   GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(glfw)
@@ -39,20 +42,21 @@ set(WEBGPU_BACKEND "WGPU" CACHE STRING "" FORCE)
 set(WEBGPU_BUILD_FROM_SOURCE OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(webgpu
   GIT_REPOSITORY https://github.com/eliemichel/WebGPU-distribution
-  GIT_TAG main-v0.2.0
+  GIT_TAG f2b81861a0c1889ef51b79fc777da8e11c37bdb3  # main-v0.2.0
 )
 FetchContent_MakeAvailable(webgpu)
 
 # --- glfw3webgpu (surface creation glue) ---
 FetchContent_Declare(glfw3webgpu
   GIT_REPOSITORY https://github.com/eliemichel/glfw3webgpu
-  GIT_TAG v1.2.0
+  GIT_TAG 39a80205998c6cbf803e18e750d964c23a47ef39  # v1.2.0
 )
 FetchContent_MakeAvailable(glfw3webgpu)
 
 add_executable(poc src/main.cpp)
 target_link_libraries(poc PRIVATE webgpu glfw3webgpu)   # glfw — транзитивно из glfw3webgpu (без дубля)
 target_copy_webgpu_binaries(poc)
+reproducible_rpath(poc)
 
 # --- stb (PNG read/write для golden-image) ---
 # Репозиторий без CMakeLists — MakeAvailable только выкачивает исходники (stb_SOURCE_DIR).
@@ -67,7 +71,7 @@ FetchContent_MakeAvailable(stb)
 # исходники (не билдит их CLI). Используем один файл транскодера. Пин по тегу (детерм.).
 FetchContent_Declare(basisu
   GIT_REPOSITORY https://github.com/BinomialLLC/basis_universal
-  GIT_TAG v1_60
+  GIT_TAG 323239a6a5ffa57d6570cfc403be99156e33a8b0  # v1_60
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR do-not-build
 )
@@ -82,7 +86,7 @@ set(ZSTD_BUILD_SHARED OFF CACHE BOOL "" FORCE)
 set(ZSTD_BUILD_STATIC ON CACHE BOOL "" FORCE)
 FetchContent_Declare(zstd
   GIT_REPOSITORY https://github.com/facebook/zstd
-  GIT_TAG v1.5.6
+  GIT_TAG 35016bc1c0b9a2f7121b7ecc312100aad7d9f2ad  # v1.5.6
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR build/cmake)
 FetchContent_MakeAvailable(zstd)
@@ -93,7 +97,7 @@ FetchContent_MakeAvailable(zstd)
 option(AUDIO_MINIAUDIO "Real audio device via miniaudio (local; OFF в headless CI)" ON)
 FetchContent_Declare(miniaudio
   GIT_REPOSITORY https://github.com/mackron/miniaudio
-  GIT_TAG 0.11.21
+  GIT_TAG 4a5b74bef029b3592c54b6048650ee5f972c1a48  # 0.11.21
   GIT_SHALLOW TRUE
   SOURCE_SUBDIR do-not-build)
 FetchContent_MakeAvailable(miniaudio)
@@ -183,11 +187,13 @@ set_source_files_properties(render/stb_impl.cpp PROPERTIES COMPILE_OPTIONS "-Wno
 add_executable(render_demo render/demo_main.cpp)
 target_link_libraries(render_demo PRIVATE render_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
 target_copy_webgpu_binaries(render_demo)
+reproducible_rpath(render_demo)
 
 # Headless T4-гейт: offscreen epsilon/perceptual golden (без окна, для CI).
 add_executable(render_golden render/golden_main.cpp)
 target_link_libraries(render_golden PRIVATE render_core webgpu)
 target_copy_webgpu_binaries(render_golden)
+reproducible_rpath(render_golden)
 
 # --- Шов asset→render (спека #5 гейт): baked BC7 tex + baked Tint SPIR-V → GPU → offscreen ---
 if(NOT WIN32)
@@ -210,6 +216,7 @@ if(NOT WIN32)
   target_include_directories(asset_render PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/render)
   target_link_libraries(asset_render PRIVATE asset_core asset_gpu render_core webgpu)
   target_copy_webgpu_binaries(asset_render)
+  reproducible_rpath(asset_render)
 endif()
 
 # --- input_core: action-map + coalesce + SPSC (спека #4). Deviceless-гейты — на всех ОС в CI.
@@ -310,7 +317,7 @@ option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW + WebGPU
 if(PLUGIN_UI)
   FetchContent_Declare(imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
-    GIT_TAG v1.91.5-docking)
+    GIT_TAG 97fa363adb1439d11b613d96bcda86d44ea16f4e)  # v1.91.5-docking
   FetchContent_MakeAvailable(imgui)
   # Ядро ImGui + glfw + WebGPU-бэкенд + общая оконная обвязка (render/wgpu_imgui). Оба shell'а
   # (plugin + editor) рендерят через WebGPU — без deprecated OpenGL.
@@ -333,6 +340,7 @@ if(PLUGIN_UI)
   add_executable(plugin_ui_shell plugin/ui_shell_main.cpp render/gpu.cpp)
   target_link_libraries(plugin_ui_shell PRIVATE plugin_core imgui glfw3webgpu webgpu)
   target_copy_webgpu_binaries(plugin_ui_shell)
+  reproducible_rpath(plugin_ui_shell)
 endif()
 
 # WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
@@ -369,7 +377,7 @@ if(IDE_POC)
   set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
   FetchContent_Declare(flecs
     GIT_REPOSITORY https://github.com/SanderMertens/flecs
-    GIT_TAG v4.1.6
+    GIT_TAG fb55f3c25660425cfe1bc4cf5e6bff8b3f18a9b8  # v4.1.6
     GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(flecs)
 
@@ -438,6 +446,7 @@ if(IDE_POC)
       add_executable(editor_shell ide/editor/editor_shell_main.cpp render/gpu.cpp)
       target_link_libraries(editor_shell PRIVATE editor_core imgui glfw3webgpu webgpu)
       target_copy_webgpu_binaries(editor_shell)
+      reproducible_rpath(editor_shell)
     endif()
   endif()
 
@@ -471,4 +480,5 @@ if(IDE_POC)
     target_link_libraries(game_sidescroller PRIVATE Xinput9_1_0)
   endif()
   target_copy_webgpu_binaries(game_sidescroller)
+  reproducible_rpath(game_sidescroller)
 endif()

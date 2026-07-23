@@ -48,6 +48,34 @@ jobs:
           grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "run1==run2: YES" out.txt
 
+      # Гейт 1 (воспр. билд) — per-triple same-host. Один раннер (ubuntu): cross-OS байт-идентичность =
+      # non-goal (ADR 0008), а +2 полных билда × 3 ОС рискуют timeout-minutes:30. macOS проверен локально
+      # (нативно, 181 арт. 0 diffs); Windows/MSVC-детерминизм = follow-up.
+      - name: Reproducible build (Gate 1) — build-twice on different paths, cmp byte-identical
+        if: runner.os == 'Linux'
+        shell: bash
+        env:
+          SOURCE_DATE_EPOCH: '1700000000'
+          ZERO_AR_DATE: '1'
+        run: |
+          A=/tmp/repro-a
+          B=/tmp/repro-bbbbbbbbbbbbbbbb
+          for D in "$A" "$B"; do
+            rm -rf "$D"
+            cmake -S poc -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+              -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF
+            cmake --build "$D" --target game_sidescroller
+          done
+          d=0; t=0
+          while IFS= read -r f; do
+            rel="${f#$A/}"
+            if [ ! -f "$B/$rel" ]; then echo "MISSING in B: $rel"; d=$((d+1)); continue; fi
+            t=$((t+1)); cmp -s "$f" "$B/$rel" || { echo "DIFF: $rel"; d=$((d+1)); }
+          done < <(find "$A" \( -name '*.o' -o -name '*.a' \) -o -type f -name 'game_sidescroller')
+          echo "repro on ${{ matrix.os }}: compared=$t diffs=$d"
+          [ "$t" -gt 0 ] || { echo "no artifacts compared — vacuous gate"; exit 1; }
+          [ "$d" -eq 0 ] || { echo "REPRO MISMATCH on ${{ matrix.os }}"; exit 1; }
+
       - name: Hot-reload PoC (POSIX only) — state-in-host + reload + crash isolation
         if: runner.os != 'Windows'
         shell: bash
