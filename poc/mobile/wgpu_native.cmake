@@ -25,9 +25,21 @@ endif()
 find_program(CARGO_BIN cargo REQUIRED)
 set(WGPU_LIB "${wgpu_native_src_SOURCE_DIR}/target/${WGPU_RUST_TARGET}/release/libwgpu_native.a")
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+  if(NOT DEFINED ANDROID_PLATFORM_LEVEL)
+    set(ANDROID_PLATFORM_LEVEL 24)
+  endif()
+  set(_tcbin "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin")
+  set(_lk "${_tcbin}/aarch64-linux-android${ANDROID_PLATFORM_LEVEL}-clang")
+  set(WGPU_CARGO_ENV ${CMAKE_COMMAND} -E env
+    "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${_lk}"
+    "CC_aarch64_linux_android=${_lk}"
+    "AR_aarch64_linux_android=${_tcbin}/llvm-ar")
+endif()
+
 add_custom_command(
   OUTPUT "${WGPU_LIB}"
-  COMMAND ${CARGO_BIN} build --release --locked --target ${WGPU_RUST_TARGET}
+  COMMAND ${WGPU_CARGO_ENV} ${CARGO_BIN} build --release --locked --target ${WGPU_RUST_TARGET}
           --manifest-path "${wgpu_native_src_SOURCE_DIR}/Cargo.toml"
   WORKING_DIRECTORY "${wgpu_native_src_SOURCE_DIR}"
   COMMENT "Building wgpu-native from Rust source for ${WGPU_RUST_TARGET}"
