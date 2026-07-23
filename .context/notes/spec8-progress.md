@@ -25,10 +25,21 @@
   offscreen PNG). **T4 macOS live: pass** (build-all clean / demo рендерит управление во все стороны /
   окно открывается+present+чистый выход+GameController.framework). code-review: 6 находок
   (1 high/2 med/2 low fixed, 1 taste skip). Паритет 3 ОС → CI native-matrix (авто в `all` под IDE_POC).
-- [ ] **S2b** Mobile bring-up: **wgpu-native из Rust-исходников** под aarch64-linux-android +
-  aarch64-apple-ios(+sim), запуск игры на Android Pixel 8a эму / iOS sim+iPhone+iPad (owner-подпись
-  устройств). **T4: запуск+управление.** Отдельная сессия (owner решил резать S2a/S2b — тяжёлый
-  mobile-тулчейн + завязка на owner-устройства).
+- [~] **S2b** Mobile bring-up. **iOS-симулятор — DONE**, коммит `727be61`.
+  - **Research-гейт (доказан):** wgpu-native **v0.19.4.1** (= версия desktop-prebuilt из
+    `wgpu-native-git-tag.txt`) собран ИЗ Rust-исходников под `aarch64-apple-ios-sim` (otool:
+    platform 7 = iOS Simulator, minos 14.0, arm64). Заголовки `webgpu.h`/`wgpu.h` **байт-идентичны**
+    desktop → C++ игры компилируется 1:1 (главный риск снят). Rust 1.94 собрал крейт 2024 чисто (~1 мин).
+  - **iOS app-shell (`poc/ios/`, standalone CMake):** CAMetalLayer→wgpu surface, CADisplayLink 60Hz,
+    тач→виртуальный стик→PadAxis через реальный HAL #4, аспект-корректный вьюпорт. Игра (game/* +
+    input_core + render/gpu + flecs) запущена на **iPhone 16 симуляторе**: рендерит корабль+starfield,
+    `--demo` двигает корабль. **T4: запуск+управление pass** (живой тач owner проверит сам).
+  - **Воспроизводимость:** `poc/mobile/wgpu_native.cmake` — FetchContent пин wgpu-native + cargo
+    `--locked` custom-command → IMPORTED static lib + header-шим. Тест==коммит.
+  - code-review: 7 находок (4 low + 3 taste, все fixed — retain-cycle CADisplayLink через weak-proxy,
+    -dealloc, одиночный тач, пауза в фоне).
+  - [ ] **Осталось (отдельные сессии):** Android-эму (NDK + ANativeWindow + APK), iOS на owner-
+    устройствах iPhone/iPad (подпись), полировка тача/ориентации на устройстве.
 - [ ] **S3** Гейт 1 воспр. билд (P0–P3), CI build-twice+cmp.
 - [ ] **S4** Гейт 3 кросс-компиляция (native-matrix замер + mobile NDK/iOS build).
 - [ ] **S5** Гейт 4+2 бандл per-OS + шов assetc→билд.
@@ -63,3 +74,17 @@
   НЕ через float-арифметику + from_float (даже для «визуальной» раскладки — ломается на fast-math/FMA).
 - **GIF-пайплайн (нет ffmpeg/magick):** `--demo` пишет PNG-кадры → `uv run --with Pillow python3`
   собирает GIF (эфемерно, Python uv-managed — pip запрещён). Готовый скрипт-паттерн в job-tmp.
+- **S2b-грабли (iOS):**
+  - Версию wgpu-native брать из `_deps/webgpu-backend-wgpu-src/wgpu-native-git-tag.txt` (v0.19.4.1) —
+    та же версия → заголовки байт-идентичны → C++ без изменений. Собирать иную версию = риск API-дрейфа.
+  - Заголовки wgpu-native лежат `ffi/webgpu-headers/webgpu.h` + `ffi/wgpu.h` (оба include `"webgpu.h"`
+    из своей папки), а код включает `<webgpu/…>` → нужен header-шим `webgpu/{webgpu.h,wgpu.h}`.
+  - GLFW — desktop-only; на iOS окно/surface = UIView(CAMetalLayer)+`WGPUSurfaceDescriptorFromMetalLayer`.
+    Тач-ввод → PadAxis через action-map (ре-юз gamepad-биндингов), НЕ новый путь.
+  - **Ориентация iOS 26:** landscape-mask на программном UIWindow НЕ поворачивает устройство, а
+    ВРАЩАЕТ контент → сцена на 90°. Решение: portrait-lock + **аспект-корректный вьюпорт в движке**
+    (мир 960×540 вписывается в любую surface, короткая ось заполняется) — робастно к ориентации/DPI.
+  - Симулятор: `simctl` НЕ инъектит тач → доказательство управления через `--demo` (scripted PadAxis),
+    как на десктопе. Скриншоты `simctl io booted screenshot` → GIF через Pillow.
+  - CADisplayLink retain-cycle: target через weak-proxy (`forwardingTargetForSelector`), иначе VC+все
+    C++/WebGPU-ивары не освобождаются; +пауза по background-нотификациям (краш Metal при рендере в фоне).
