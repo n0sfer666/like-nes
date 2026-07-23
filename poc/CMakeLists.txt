@@ -440,4 +440,35 @@ if(IDE_POC)
       target_copy_webgpu_binaries(editor_shell)
     endif()
   endif()
+
+  # --- Игра-образец (спека #8, S2a): sidescroller-скелет — flecs+fix32 fixed-timestep + ввод #4 +
+  # WebGPU спрайт-батч (инстансинг) + плейсхолдер-спрайты. GpuContext переиспользуется из render/gpu.cpp
+  # (без всего render_core); батч — свой. --demo пишет offscreen PNG-кадры (headless, для GIF/CI-smoke).
+  set(GAME_INPUT_SRC input/source_glfw.cpp)
+  if(APPLE)
+    list(APPEND GAME_INPUT_SRC input/source_gamepad_macos.mm)
+  elseif(WIN32)
+    list(APPEND GAME_INPUT_SRC input/source_gamepad_win.cpp)
+  else()
+    list(APPEND GAME_INPUT_SRC input/source_gamepad_linux.cpp)
+  endif()
+  add_executable(game_sidescroller
+    game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
+    game/batch.cpp game/art.cpp game/sim.cpp game/controls.cpp game/capture.cpp
+    render/gpu.cpp ${GAME_INPUT_SRC})
+  target_include_directories(game_sidescroller PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
+  target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
+  target_link_libraries(game_sidescroller PRIVATE
+    input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+  set_source_files_properties(game/capture.cpp PROPERTIES
+    COMPILE_OPTIONS "-Wno-deprecated-declarations")   # stb_image_write sprintf
+  if(APPLE)
+    set_source_files_properties(input/source_gamepad_macos.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    target_link_libraries(game_sidescroller PRIVATE
+      "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+  elseif(WIN32)
+    target_link_libraries(game_sidescroller PRIVATE Xinput9_1_0)
+  endif()
+  target_copy_webgpu_binaries(game_sidescroller)
 endif()
