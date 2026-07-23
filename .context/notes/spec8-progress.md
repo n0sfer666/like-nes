@@ -59,8 +59,32 @@
     (ubuntu) build-twice+cmp. Ревью: 4 находки (1 med CI-время→ubuntu-only, 1 low cmp-guard, 2 taste).
   - [ ] **Осталось (отдельно):** герметичный Docker-тулчейн-контейнер + cross-machine байт-идентичность
     (P3 stretch); Windows/MSVC-детерминизм в CI (сейчас build-only, репро = follow-up).
-- [ ] **S4** Гейт 3 кросс-компиляция (native-matrix замер + mobile NDK/iOS build).
-- [ ] **S5** Гейт 4+2 бандл per-OS + шов assetc→билд.
+- [x] **S4** Гейт 3 кросс-компиляция — **DONE** (`scripts/xcompile_verify.sh`, локальный pinned-T4).
+  - **Desktop native-matrix замер:** single-node (macOS) clean `all` = 16s. CI matrix (3 ОС concurrent,
+    `fail-fast:false`) wall = max(t_linux,t_win,t_mac), НЕ sum → ~3x (истор. CI: mac 42 / ubuntu 66 /
+    win 62s → wall 66 vs sum 170). CI-изменений по mobile НЕ вносили (owner: локальный T4).
+  - **Mobile true-cross (arch-verify pass):** iOS `aarch64-apple-ios-sim` → `lipo` arm64 + `vtool`
+    platform IOSSIMULATOR (Mach-O EXECUTE ARM64); wgpu-native из Rust arm64. Android
+    `aarch64-linux-android` (NDK arm64-v8a) → `file` ELF ARM aarch64; APK содержит
+    `lib/arm64-v8a/{libgame,libc++_shared}.so`. iOS-device (не-симулятор) — не делали (owner: S10).
+  - **Грабля:** `unzip -l big.apk | grep -q` под `set -o pipefail` → grep короткозамыкает, unzip
+    SIGPIPE → ложный fail. Фикс: захват в переменную + pure-shell `case`.
+- [x] **S5** Гейт 4+2 бандл per-OS + шов assetc→билд — **DONE** (macOS live).
+  - **Шов (гейт 2):** `game/assets/atlas.png` (source) → `assetc --game` UASTC-бейк →
+    `game/assets/game.bundle` (committed golden, hash `0x5e391d11f4910868`). Рантайм
+    (`game/bundle_atlas.cpp`) открывает бандл через `AssetManager`, транскодит UASTC→BC7
+    (`asset_gpu`) → `SpriteBatch` грузит BC7-текстуру (не процедурный код). `build_atlas()` остаётся
+    fallback + для mobile-шеллов. WIN32 (`bundle_atlas_stub.cpp`): basis POSIX-only → процедурный
+    fallback (паритет поведения). Fallback при отсутствии бандла проверен (рендерит).
+  - **Бандл per-OS (гейт 4):** ручные CMake `install()`-правила (`COMPONENT game`): macOS `.app`
+    (Contents/MacOS+Frameworks(@rpath `@executable_path/../Frameworks`)+Resources+Info.plist) /
+    Linux tarball / Windows папка. version-stamp: `configure_file` git-hash → `version.txt`+Info.plist.
+    `scripts/package.sh` (`cmake --install --component game`).
+  - **T4 macOS live pass:** `.app` запущен из ЧУЖОГО cwd (/tmp) → dylib через @rpath + `game.bundle`
+    через `../Resources` (самодостаточен); окно открылось+present+чистый выход; `--demo` рендерит
+    корабль+starfield из **бейкнутой** BC7-текстуры (скриншот). Инварианты целы: determinism golden
+    `0xa213fe659921c9fb`, asset synthetic `0xf2255dc74fbdb6bc` — не поехали; full `all` build чист.
+    Linux tarball/Windows папка — install-правила есть, owner тестит на своих ОС (как S2).
 - [ ] **S6** Гейт 5 release-оркестрация (tag→matrix→артефакты+VDF).
 - [ ] **S7** Игра: бой (снаряды/враги/коллизии/счёт).
 - [ ] **S8** Игра: босс + мини-сюжет + экран очков.
@@ -69,9 +93,10 @@
 - [ ] **S11** Финализация (ADR Accepted / spec Validated / README #8 / dev-log).
 
 ## Открытые числа (заполнять по PoC)
-- build-time native-matrix (`max` vs sum) — S4.
+- build-time native-matrix (`max` vs sum) — **S4 done:** single-node macOS 16s; matrix wall=max, не sum.
 - byte-repro pass per-OS (`cmp`) — **S3 done:** macOS 181 арт. 0 diffs, Linux(Docker) 183 арт. 0 diffs.
-- version-stamp custom-target форма (без лишних ре-компиляций) — S5.
+- version-stamp custom-target форма (без лишних ре-компиляций) — **S5 done:** `configure_file` git-hash
+  → `version.txt` + Info.plist (@ONLY, при install; ре-компиляций exe не вызывает).
 
 ## Заметки/грабли (пополнять)
 - FetchContent-депы живут в `build/_deps/*-src` → `-ffile-prefix-map` маппить и BINARY dir, не только SOURCE.

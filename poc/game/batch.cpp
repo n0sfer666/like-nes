@@ -65,19 +65,29 @@ void SpriteBatch::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat tar
     device_ = device; queue_ = queue;
     cpu_.reserve(MAX_INSTANCES);
 
+    // Baked-путь (шов assetc→билд): BC7 из бандла. Иначе RGBA (процедурный/mobile-шелл).
+    const bool baked = !atlas.bc7.empty();
     WGPUTextureDescriptor td = {};
     td.dimension = WGPUTextureDimension_2D;
     td.size = WGPUExtent3D{atlas.w, atlas.h, 1};
-    td.format = WGPUTextureFormat_RGBA8Unorm;
+    td.format = baked ? WGPUTextureFormat_BC7RGBAUnorm : WGPUTextureFormat_RGBA8Unorm;
     td.mipLevelCount = 1; td.sampleCount = 1;
     td.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
     tex_ = wgpuDeviceCreateTexture(device, &td);
     WGPUImageCopyTexture dst = {};
     dst.texture = tex_; dst.aspect = WGPUTextureAspect_All;
     WGPUTextureDataLayout layout = {};
-    layout.bytesPerRow = 4 * atlas.w; layout.rowsPerImage = atlas.h;
+    const uint8_t* src; size_t src_sz;
+    if (baked) {
+        layout.bytesPerRow = ((atlas.w + 3) / 4) * 16; // BC7: 16 байт/4x4-блок
+        layout.rowsPerImage = (atlas.h + 3) / 4;
+        src = atlas.bc7.data(); src_sz = atlas.bc7.size();
+    } else {
+        layout.bytesPerRow = 4 * atlas.w; layout.rowsPerImage = atlas.h;
+        src = atlas.px.data(); src_sz = atlas.px.size();
+    }
     WGPUExtent3D ext = {atlas.w, atlas.h, 1};
-    wgpuQueueWriteTexture(queue, &dst, atlas.px.data(), atlas.px.size(), &layout, &ext);
+    wgpuQueueWriteTexture(queue, &dst, src, src_sz, &layout, &ext);
     view_ = wgpuTextureCreateView(tex_, nullptr);
 
     WGPUSamplerDescriptor sd = {};

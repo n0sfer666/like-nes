@@ -178,6 +178,30 @@ int main(int argc, char** argv) {
         return 0;
     }
 
+    // Игра-образец (спека #8 шов assetc→билд): плейсхолдер-atlas.png → target-native
+    // UASTC bake → game.bundle. Рантайм игры транскодит UASTC→BC7 и грузит из бандла
+    // (не из процедурного кода). Отдельный бандл — golden-хеши прочих бейков не трогаются.
+    if (std::strcmp(argv[1], "--game") == 0) {
+        if (argc < 4) {
+            std::fprintf(stderr, "usage: assetc --game <src-dir> <out.bundle> [--basisu P]\n");
+            return 2;
+        }
+        std::string gsrc = argv[2], gout = argv[3];
+        codec::Tools gtools{"tint", "basisu"};
+        for (int i = 4; i + 1 < argc; i += 2)
+            if (std::strcmp(argv[i], "--basisu") == 0) gtools.basisu = argv[i + 1];
+        std::vector<AssetInput> gassets;
+        const std::string gtmp = gout + ".ktx2.tmp";
+        if (!bake_texture(gtools, gsrc + "/atlas.png", "atlas", gtmp, gassets)) return 1;
+        std::vector<uint8_t> gb = write_bundle(std::move(gassets));
+        if (!codec::write_file(gout, gb)) return 1;
+        const BundleHeader* h = reinterpret_cast<const BundleHeader*>(gb.data());
+        std::printf("[assetc] game %s (%u bytes, %u assets)\n", gout.c_str(), h->total_size,
+                    h->asset_count);
+        std::printf("[assetc] bundle_hash = 0x%016llx\n", (unsigned long long)h->bundle_hash);
+        return 0;
+    }
+
     std::string src = argv[1];
     std::string out_path = argv[2];
     codec::Tools tools{"tint", "basisu"};
