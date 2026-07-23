@@ -1,9 +1,12 @@
 # Спецификация #7: IDE — UI/UX и архитектура редактора
 
-- **Дата:** 2026-07-21
-- **Статус:** **Proposed** — интервью пройдено (owner-driven, AskUserQuestion ×4 пачки). ADR 0007 —
-  Proposed (создать); PoC-вертикаль — pending **T4**. Три выбора уходят в research→ADR / PoC-замер
-  (UI-тулкит, рефлексия, IPC-транспорт) по правилу «доказывать данными».
+- **Дата:** 2026-07-21 (Validated: 2026-07-23)
+- **Статус:** **Validated** — интервью пройдено (owner-driven, AskUserQuestion ×4 пачки); ADR 0007
+  **Accepted**; PoC-вертикаль (walking-skeleton, 5 срезов) **закрыта — все 8 гейтов зелёные, T4**
+  (гейт 6 live owner-HW подтверждён 2026-07-23). Три research-развилки доказаны данными: **UI=ImGui
+  docking** (WebGPU-бэкенд), **рефлексия=flecs meta** (одна рефлексия = save/load + IPC-зеркало +
+  property-grid), **IPC=shmem** (замер ~17× быстрее socket). Follow-up — в ADR 0007. Коммиты
+  `e5c8836`→`5c84232` (poc/plugin-system).
 - **Наследует:** [#1](2026-07-18-language-and-core.md) (host владеет state, детерминизм, snapshot/
   rollback, hot-reload shared-lib, SEH/сигнал-изоляция host↔lib, детерм. граф систем),
   [#2](2026-07-18-render-pipeline.md) (render-graph, GLFW-окно — вьюпорт),

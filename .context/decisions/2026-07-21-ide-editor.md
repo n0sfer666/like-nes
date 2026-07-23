@@ -1,8 +1,10 @@
 # ADR 0007: IDE — UI/UX и архитектура редактора
 
-- **Дата:** 2026-07-21
-- **Статус:** **Proposed** — интервью пройдено, 3 research-развилки закрыты desk-research'ем (см.
-  «Обоснование»); validation gate (walking-skeleton IDE-вертикаль, T4) — **pending**.
+- **Дата:** 2026-07-21 (Accepted: 2026-07-23)
+- **Статус:** **Accepted** — интервью пройдено, 3 research-развилки закрыты desk-research'ем (см.
+  «Обоснование»); validation gate (walking-skeleton IDE-вертикаль, T4) — **закрыт: все 8 гейтов
+  зелёные** (гейт 6 live owner-HW подтверждён 2026-07-23: оба shell'а рендерят через WebGPU, панели/
+  вьюпорт/гизмо/property-grid/undo работают). 5 срезов PoC, `poc/ide/` + `poc/render/wgpu_imgui`.
 - **Контекст:** [спека #7](../specs/2026-07-21-ide-editor.md); наследует [ADR 0001](2026-07-18-language-and-core.md)
   (host владеет state, детерминизм, snapshot/rollback, hot-reload shared-lib, SEH/сигнал-изоляция),
   [0002](2026-07-18-render-pipeline.md) (render-graph, GLFW-окно), [0003](2026-07-19-asset-pipeline.md)
@@ -81,7 +83,7 @@ IPC-стоимости снят выбором транспорта (shmem zero-
 (а не IDE-из-плагинов) — размен скорости старта против чистоты догфуда: смягчается тем, что hook-points
 проектируются как настоящий API (#6-реестр) и часть first-party панелей идёт через него.
 
-## Условия финализации (validation gate) — частично, T4
+## Условия финализации (validation gate) — ✅ ЗАКРЫТ (8/8), T4
 
 Proposed → Accepted при закрытии walking-skeleton IDE-вертикали (как render/asset/audio/input/plugin PoC),
 гейты (спека #7, тест-матрица). Статус PoC (срезы 1–2, POSIX+CI):
@@ -96,10 +98,9 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    POSIX CI (build-часть); live-панель — owner follow-up. Срез 3.
 6. ✅ **Live UI** — property-grid **из flecs meta (генерик, любой компонент)** + гизмо/камера
    world↔screen (детерм. round-trip) — data-путь валидирован headless (CI); editor_shell (ImGui docking
-   #6: вьюпорт+гизмо+инспектор+иерархия-виртуализ.+undo) **live owner-HW подтверждён ✅** (окно, панели,
-   гизмо, property-grid, drag+undo). Рендер-бэкенд ImGui мигрирован OpenGL3→**WebGPU** (imgui_impl_wgpu /
-   wgpu-native, как render #2 — OpenGL deprecated на macOS); WebGPU-сборка проверена под lldb (окно+
-   render-loop без краша), **owner визуально переподтверждает пиксели**. Срез 5.
+   #6: вьюпорт+гизмо+инспектор+иерархия-виртуализ.+undo) **live owner-HW подтверждён ✅ 2026-07-23** (окно,
+   панели, гизмо, property-grid, drag+undo — оба shell'а). Рендер-бэкенд ImGui = **WebGPU** (imgui_impl_wgpu /
+   wgpu-native, как render #2 — OpenGL полностью убран из проекта). Срез 5.
 7. ✅ **Перф** — 10k+ сущностей (owner-HW): выделение 159µs (≤3ms), property-grid 0.17µs/кадр (≤20µs,
    zero-alloc), виртуализация-окно ~0µs/кадр (≤5µs), undo 0.31µs/оп (≤50µs). **Zero per-frame heap**
    (override operator new = 0 аллокаций в hot-UI пути) + **масштаб-инвариантность 10k↔50k** (property-grid/
@@ -111,11 +112,25 @@ Proposed → Accepted при закрытии walking-skeleton IDE-вертик�
    shmem-зеркало (seqlock, read-only mmap), control-plane = socket.** Срез 2. Cross-platform crash-cleanup
    shmem (SIGBUS/orphan) на Windows — follow-up.
 
-> **Итог гейтов:** 7/8 полностью (1,2,3,4,5,7,8); гейт 6 — **data-путь+сборка ✅, live-окно owner-HW
-> pending**. Транспорт зафиксирован (гейт 8). Три research-развилки доказаны PoC: **UI=ImGui docking**
-> (editor_shell собран), **рефлексия=flecs meta** (одна рефлексия обслужила save/load + IPC-зеркало +
-> property-grid — все три опоры зелёные), **IPC=shmem** (замер ~17×). ADR остаётся **Proposed** до
-> live-подтверждения гейта 6 на owner-HW → тогда **Accepted**.
+> **Итог гейтов:** ✅ **8/8 закрыты** (1–8). Транспорт зафиксирован (гейт 8). Три research-развилки
+> доказаны PoC: **UI=ImGui docking** (оба shell'а на WebGPU, live owner-подтверждён), **рефлексия=flecs
+> meta** (одна рефлексия обслужила save/load + IPC-зеркало + property-grid — все три опоры зелёные),
+> **IPC=shmem** (замер ~17× быстрее socket). ADR → **Accepted 2026-07-23**.
+
+## Follow-up (спека #7 Validated, но точки расширения — доделать позже)
+Вертикаль доказала все 8 гейтов, но ряд путей осознанно оставлен:
+1. [ ] **Windows** IPC/shmem-cleanup (SIGBUS/orphan) + процесс-spawn + SEH-изоляция live — POSIX-only, как #6 SEH.
+2. [ ] **Реальный TOML/JSON doc-парсер** сцены (сейчас строковый конверт вокруг flecs-JSON значений).
+3. [ ] **Generic-opaque property-grid** произвольного C++-типа (не fix32/std::string) — через serialize-callback.
+4. [ ] **Полный generic-edit** инспектора из meta (сейчас Position typed через bus) + слайдеры из meta-range.
+5. [ ] **flecs meta codegen-хелпер** (`.member()` boilerplate) поверх шага #5 (research-решение ADR).
+6. [ ] **double-buffer поверх seqlock** (оптимизация; seqlock-retry достаточен и измерен).
+7. [ ] **shmem-зеркало real seam** к #1-sim (сейчас game_child синтет.-sim; реальная интеграция с host-движком).
+8. [ ] **Build-loop**: инкрем. билд конкретной .so через реальный cmake/watch-демон; live build-панель + click-to-open.
+9. [ ] **CI live-UI** (editor_shell/plugin_ui_shell) — сейчас build+lldb-smoke; окно на CI-раннере follow-up.
+10. [ ] **plugin_ui_shell** уже мигрирован на WebGPU (единообразие достигнуто в этой сессии).
+11. [ ] **a11y** — клавнавигация + контраст-темы в #7; полный screen-reader (AccessKit) — риск ImGui, follow-up.
+12. [ ] **Гизмо**: реальное перетаскивание хэндлов мышью (сейчас screen-space хит-тест + отрисовка; drag через Inspector).
 
 ## Последствия
 
