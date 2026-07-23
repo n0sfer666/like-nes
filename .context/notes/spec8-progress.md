@@ -25,7 +25,7 @@
   offscreen PNG). **T4 macOS live: pass** (build-all clean / demo рендерит управление во все стороны /
   окно открывается+present+чистый выход+GameController.framework). code-review: 6 находок
   (1 high/2 med/2 low fixed, 1 taste skip). Паритет 3 ОС → CI native-matrix (авто в `all` под IDE_POC).
-- [~] **S2b** Mobile bring-up. **iOS-симулятор — DONE**, коммит `727be61`.
+- [~] **S2b** Mobile bring-up. **iOS-симулятор + Android-эмулятор — DONE** (`727be61` iOS, `122cf14` Android).
   - **Research-гейт (доказан):** wgpu-native **v0.19.4.1** (= версия desktop-prebuilt из
     `wgpu-native-git-tag.txt`) собран ИЗ Rust-исходников под `aarch64-apple-ios-sim` (otool:
     platform 7 = iOS Simulator, minos 14.0, arm64). Заголовки `webgpu.h`/`wgpu.h` **байт-идентичны**
@@ -38,8 +38,14 @@
     `--locked` custom-command → IMPORTED static lib + header-шим. Тест==коммит.
   - code-review: 7 находок (4 low + 3 taste, все fixed — retain-cycle CADisplayLink через weak-proxy,
     -dealloc, одиночный тач, пауза в фоне).
-  - [ ] **Осталось (отдельные сессии):** Android-эму (NDK + ANativeWindow + APK), iOS на owner-
-    устройствах iPhone/iPad (подпись), полировка тача/ориентации на устройстве.
+  - **Android-эму DONE (`122cf14`):** NativeActivity чистый C++/NDK (android_native_app_glue),
+    ANativeWindow→wgpu surface (Vulkan), тач(AMotionEvent)→виртуальный стик→PadAxis. wgpu-native из
+    Rust под `aarch64-linux-android` (readelf: AArch64). Ручная APK (`build_apk.sh`: aapt2+zipalign+
+    apksigner, без Gradle/dex). Запущено на Pixel_8a эму: рендер+РЕАЛЬНЫЙ тач (adb motionevent) двигает
+    корабль. Ревью: 5 находок (1 high double-teardown→double-free) — фикс lifecycle локально в
+    native_main (идемпотентный teardown, guard re-init, one-time sim-setup), общий batch.cpp НЕ тронут.
+  - [ ] **Осталось (отдельная сессия):** iOS на owner-устройствах iPhone/iPad (нужна подпись owner),
+    полировка тача/ориентации/виртуального-стика-оверлея на реальных устройствах.
 - [ ] **S3** Гейт 1 воспр. билд (P0–P3), CI build-twice+cmp.
 - [ ] **S4** Гейт 3 кросс-компиляция (native-matrix замер + mobile NDK/iOS build).
 - [ ] **S5** Гейт 4+2 бандл per-OS + шов assetc→билд.
@@ -88,3 +94,19 @@
     как на десктопе. Скриншоты `simctl io booted screenshot` → GIF через Pillow.
   - CADisplayLink retain-cycle: target через weak-proxy (`forwardingTargetForSelector`), иначе VC+все
     C++/WebGPU-ивары не освобождаются; +пауза по background-нотификациям (краш Metal при рендере в фоне).
+- **S2b-грабли (Android):**
+  - NativeActivity (чистый C++/NDK, `android_native_app_glue`, `ANativeActivity_onCreate` через
+    `-u`-линк) → surface из ANativeWindow (SType 0x9), wgpu использует **Vulkan**-бэкенд on-device.
+    Тач(`AMotionEvent`, ACTION_MASK, getX/Y(0))→виртуальный стик→PadAxis (тот же HAL). НЕ нужен Java/JNI.
+  - **APK без Gradle:** NativeActivity не требует classes.dex → ручная упаковка `aapt2 link` (только
+    манифест, без res) + `zip` native-либ + `zipalign 4` + `apksigner` (debug-keystore). Минует
+    риск AGP×JDK26. `extractNativeLibs=true` → сжатые .so ок. Нужен `libc++_shared.so` из NDK рядом.
+  - **cargo под android из CMake:** линкер = `$NDK/.../aarch64-linux-android<API>-clang` через env
+    (`CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER`/`CC_`/`AR_`). API брать из `ANDROID_PLATFORM_LEVEL`
+    (НЕ `CMAKE_SYSTEM_VERSION` — тот дал `1` → `...android1-clang` not found).
+  - **Lifecycle:** `APP_CMD_TERM_WINDOW`+`destroyRequested` → teardown ЗОВЁТСЯ ДВАЖДЫ → `SpriteBatch::
+    shutdown()` не зануляет хэндлы → double-free. Решение: идемпотентный teardown (guard по `ready`).
+    Повторный `INIT_WINDOW` → guard в init + one-time sim-setup (иначе `spawn()` дублирует сущности).
+  - **Плюс vs iOS:** `adb shell input motionevent DOWN/MOVE/UP` инъектит РЕАЛЬНЫЙ тач → можно доказать
+    тач-путь по-настоящему (на iOS-симуляторе simctl не умеет — там scripted). adb-раундтрип ≈ задержка
+    между кадрами (foreground sleep заблокирован).
