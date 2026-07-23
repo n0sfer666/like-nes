@@ -41,7 +41,7 @@ struct DemoDriver {
 int run_demo(const char* dir, int frames) {
     GpuContext gpu;
     if (!gpu.init(nullptr)) { gpu.shutdown(); return 1; }
-    Atlas atlas = build_atlas();
+    Atlas atlas = load_game_atlas(gpu.supports_bc);
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA8Unorm, atlas);
 

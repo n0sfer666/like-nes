@@ -66,15 +66,19 @@ void draw_star(std::vector<uint8_t>& px) {
 
 } // namespace
 
-Atlas build_atlas() {
-    Atlas atlas;
+void set_regions(Atlas& atlas) {
     atlas.w = AW; atlas.h = AH;
-    atlas.px.assign((size_t)AW * AH * 4, 0);
-    draw_ship(atlas.px);
-    draw_star(atlas.px);
     const float iu = 0.5f / AW, iv = 0.5f / AH;
     atlas.ship = {iu, iv, (float)SHIP / AW - iu, (float)SHIP / AH - iv};
     atlas.star = {(float)SHIP / AW + iu, iv, (float)(SHIP + STAR) / AW - iu, (float)STAR / AH - iv};
+}
+
+Atlas build_atlas() {
+    Atlas atlas;
+    set_regions(atlas);
+    atlas.px.assign((size_t)AW * AH * 4, 0);
+    draw_ship(atlas.px);
+    draw_star(atlas.px);
     return atlas;
 }
 

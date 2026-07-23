@@ -53,6 +53,7 @@ bool GpuContext::init(WGPUSurface surface) {
     if (!instance) { std::fprintf(stderr, "instance failed\n"); return false; }
     adapter = request_adapter(instance, surface);
     if (!adapter) { std::fprintf(stderr, "no adapter\n"); shutdown(); return false; }
+    supports_bc = wgpuAdapterHasFeature(adapter, WGPUFeatureName_TextureCompressionBC);
     device = request_device(adapter);
     if (!device) { std::fprintf(stderr, "no device\n"); shutdown(); return false; }
     queue = wgpuDeviceGetQueue(device);

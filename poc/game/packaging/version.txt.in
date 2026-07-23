@@ -1,0 +1,3 @@
+like-nes sidescroller @GAME_VERSION@
+commit @GAME_GIT_HASH@
+target @GAME_TARGET_TRIPLE@

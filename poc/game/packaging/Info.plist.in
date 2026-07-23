@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>CFBundleName</key>              <string>like-nes</string>
+  <key>CFBundleDisplayName</key>       <string>like-nes sidescroller</string>
+  <key>CFBundleIdentifier</key>        <string>com.likenes.sidescroller</string>
+  <key>CFBundleExecutable</key>        <string>game_sidescroller</string>
+  <key>CFBundlePackageType</key>       <string>APPL</string>
+  <key>CFBundleShortVersionString</key><string>@GAME_VERSION@</string>
+  <key>CFBundleVersion</key>           <string>@GAME_GIT_HASH@</string>
+  <key>LSMinimumSystemVersion</key>    <string>11.0</string>
+  <key>NSHighResolutionCapable</key>   <true/>
+</dict>
+</plist>

@@ -8,6 +8,7 @@ struct GpuContext {
     WGPUAdapter adapter = nullptr;
     WGPUDevice device = nullptr;
     WGPUQueue queue = nullptr;
+    bool supports_bc = false; // device включил TextureCompressionBC (baked BC7-шов доступен)
 
     bool init(WGPUSurface surface);
     void shutdown();

@@ -461,15 +461,26 @@ if(IDE_POC)
   else()
     list(APPEND GAME_INPUT_SRC input/source_gamepad_linux.cpp)
   endif()
+  # Шов assetc→билд (спека #8, гейт 2): baked atlas из game.bundle (asset_core + asset_gpu
+  # транскод UASTC→BC7). asset_gpu/basis — POSIX (как asset_render); WIN32 → процедурный
+  # fallback (stub load_game_atlas). assets_path — все ОС (self-contained bundle-резолв).
+  if(WIN32)
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas_stub.cpp)
+  else()
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas.cpp)
+  endif()
   add_executable(game_sidescroller
     game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
     game/batch.cpp game/art.cpp game/sim.cpp game/controls.cpp game/capture.cpp
-    render/gpu.cpp ${GAME_INPUT_SRC})
+    ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
   target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
   target_link_libraries(game_sidescroller PRIVATE
     input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+  if(NOT WIN32)
+    target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu)
+  endif()
   set_source_files_properties(game/capture.cpp PROPERTIES
     COMPILE_OPTIONS "-Wno-deprecated-declarations")   # stb_image_write sprintf
   if(APPLE)
@@ -481,4 +492,34 @@ if(IDE_POC)
   endif()
   target_copy_webgpu_binaries(game_sidescroller)
   reproducible_rpath(game_sidescroller)
+
+  # --- Packaging per-OS (спека #8, гейт 4): самодостаточный бандл + version-stamp (git-hash).
+  # macOS .app (@rpath→Frameworks) / Linux tarball ($ORIGIN, flat) / Windows папка (.exe+DLL).
+  # game.bundle (baked ассеты, гейт 2) кладётся в бандл → игра стартует с бейкнутых, не с source.
+  # Сборка бандла: cmake --install <build> --prefix <out> (см. scripts/package.sh).
+  execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --short HEAD
+    OUTPUT_VARIABLE GAME_GIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+  if(NOT GAME_GIT_HASH)
+    set(GAME_GIT_HASH "unknown")
+  endif()
+  set(GAME_VERSION "0.1.0")
+  set(GAME_TARGET_TRIPLE "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+  configure_file(game/packaging/version.txt.in ${CMAKE_BINARY_DIR}/version.txt @ONLY)
+  set(GAME_BUNDLE_ASSET ${CMAKE_CURRENT_SOURCE_DIR}/game/assets/game.bundle)
+
+  if(APPLE)
+    set_target_properties(game_sidescroller PROPERTIES
+      INSTALL_RPATH "@executable_path;@executable_path/../Frameworks")
+    configure_file(game/packaging/Info.plist.in ${CMAKE_BINARY_DIR}/Info.plist @ONLY)
+    set(_app "like-nes.app/Contents")
+    install(TARGETS game_sidescroller RUNTIME DESTINATION ${_app}/MacOS COMPONENT game)
+    install(FILES ${WGPU_RUNTIME_LIB} DESTINATION ${_app}/Frameworks COMPONENT game)
+    install(FILES ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
+            DESTINATION ${_app}/Resources COMPONENT game)
+    install(FILES ${CMAKE_BINARY_DIR}/Info.plist DESTINATION ${_app} COMPONENT game)
+  else()
+    install(TARGETS game_sidescroller RUNTIME DESTINATION like-nes COMPONENT game)
+    install(FILES ${WGPU_RUNTIME_LIB} ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
+            DESTINATION like-nes COMPONENT game)
+  endif()
 endif()

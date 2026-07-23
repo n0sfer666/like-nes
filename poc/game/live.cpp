@@ -50,7 +50,7 @@ int run_window(int frame_cap) {
     WGPUTextureFormat fmt = configure_surface(surface, gpu.adapter, gpu.device,
                                               (uint32_t)fbw, (uint32_t)fbh);
 
-    Atlas atlas = build_atlas();
+    Atlas atlas = load_game_atlas(gpu.supports_bc);
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, fmt, atlas);
 
