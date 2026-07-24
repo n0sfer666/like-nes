@@ -40,7 +40,7 @@ void spawn(flecs::world& world, GameState& gs) {
     }
 }
 
-void step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt) {
+void step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt, FxSink* fx) {
     if (gs.phase == PH_Play || gs.phase == PH_Boss) {  // корабль двигается только в бою
         world.each([&](flecs::entity e, Transform& t, Velocity& v) {
             if (!e.has<Ship>()) return;
@@ -56,7 +56,7 @@ void step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32
         if (t.x < -WRAP_EDGE) t.x = t.x + WRAP_SPAN;
     });
 
-    combat_step(world, gs, in, dt);
+    combat_step(world, gs, in, dt, fx);
 }
 
 } // namespace game

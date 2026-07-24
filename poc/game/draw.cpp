@@ -7,8 +7,8 @@ namespace game {
 namespace {
 
 void quad(SpriteBatch& b, float x, float y, float w, float h, const Region& r,
-          float cr, float cg, float cb, float ca) {
-    b.push({x, y, w, h, r.u0, r.v0, r.u1, r.v1, cr, cg, cb, ca});
+          float cr, float cg, float cb, float ca, float rot = 0) {
+    b.push({x, y, w, h, r.u0, r.v0, r.u1, r.v1, cr, cg, cb, ca, rot});
 }
 
 const Region* glyph(const Atlas& a, char c) {
@@ -44,15 +44,23 @@ void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas) {
     world.each([&](const Transform& t, const Enemy&) {
         quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 64, 48, atlas.enemy, 1, 1, 1, 1);
     });
+    // Яркие tint>1 → bloom-свечение на desktop (HDR). Mobile-шеллы рендерят в LDR без bloom →
+    // tint клампится (пуля/hostile слегка тонированы, не белые) — осознанное косметич. расхождение
+    // (bloom на mobile — вне #8; S10). draw.cpp общий, desktop-свечение не ломается.
     world.each([&](flecs::entity e, const Transform& t, const Velocity&) {
         if (e.has<Hostile>())
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 26, 10, atlas.hostile, 1, 1, 1, 1);
+            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 26, 10, atlas.hostile,
+                 2.3f, 0.8f, 0.7f, 1);
         else if (e.has<Bullet>())
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 28, 10, atlas.bullet, 1, 1, 1, 1);
+            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 28, 10, atlas.bullet,
+                 1.7f, 2.3f, 2.5f, 1);
     });
-    world.each([&](flecs::entity e, const Transform& t, const Velocity&) {
-        if (e.has<Ship>())
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 112, 76, atlas.ship, 1, 1, 1, 1);
+    world.each([&](flecs::entity e, const Transform& t, const Velocity& v) {
+        if (e.has<Ship>()) {
+            const float tilt = -(float)v.y.to_double() / 340.0f * 0.38f;   // наклон по верт. скорости
+            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 112, 76, atlas.ship,
+                 1, 1, 1, 1, tilt);
+        }
     });
 }
 

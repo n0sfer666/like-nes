@@ -49,22 +49,25 @@ bool exists(const std::string& path) {
 
 } // namespace
 
-std::string resolve_bundle_path() {
+std::string resolve_asset(const char* name) {
     if (const char* env = std::getenv("LIKENES_ASSETS")) {
-        std::string p = std::string(env) + "/game.bundle";
+        std::string p = std::string(env) + "/" + name;
         if (exists(p)) return p;
     }
     const std::string ed = exe_dir();
+    const std::string n = name;
     // Только exe-относительные кандидаты (+ env) → путь не зависит от cwd (детерм. вывод demo).
     const std::string candidates[] = {
-        ed + "/game.bundle",                  // tarball / Windows-папка / .app Contents/MacOS
-        ed + "/../Resources/game.bundle",     // macOS .app
-        ed + "/assets/game.bundle",
-        ed + "/../game/assets/game.bundle",   // dev: exe в build/, source рядом
+        ed + "/" + n,                     // tarball / Windows-папка / .app Contents/MacOS
+        ed + "/../Resources/" + n,        // macOS .app
+        ed + "/assets/" + n,
+        ed + "/../game/assets/" + n,      // dev: exe в build/, source рядом
     };
     for (const std::string& c : candidates)
         if (exists(c)) return c;
     return {};
 }
+
+std::string resolve_bundle_path() { return resolve_asset("game.bundle"); }
 
 } // namespace game

@@ -11,9 +11,10 @@ struct Instance {
     float x, y, w, h;
     float u0, v0, u1, v1;
     float r, g, b, a;
+    float rot = 0;   // S9: поворот квада (наклон корабля, вращение частиц)
 };
 
-constexpr uint32_t MAX_INSTANCES = 512;
+constexpr uint32_t MAX_INSTANCES = 2048;   // S9: + частицы
 
 class SpriteBatch {
 public:
