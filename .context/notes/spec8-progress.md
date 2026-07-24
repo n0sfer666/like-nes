@@ -109,8 +109,14 @@
     но **ubuntu/macos ❌ — предсуществующие баги специй #6/#7:** `ide/perf_test.cpp:28`
     `__has_feature(...)` в одном `#if` ломает GCC (нужен вложенный `#ifdef __has_feature`);
     macOS plugin-seam-гейт `dlopen` на `CMakeFiles/*.dir` (ci.yml `find -name 'plugin_*.*'` без
-    `-type f` цепляет директорию). Билд падает рано → нижележащие гейты не гоняются (возможен каскад).
-    **Полная CI-валидация #1–#7 на этой ветке — отдельная сессия (не S6).**
+    `-type f` цепляет директорию).
+  - **Прогресс CI-hardening (коммиты `dc7e9b3`,`48abb93`): macOS ✅ + Windows ✅ (было 0/3).**
+    Пофикшено 4 бага: YAML-имена, MSVC-guards (Threads+stb-флаги), perf_test `__has_feature` (GCC),
+    plugin-find `-type f`. **ubuntu ❌ остаётся — каскад Linux-only sanitizer-шагов:** Asset ASan
+    падает `ld: cannot find :` — `find -name 'libzstd_static.a'` пусто (реальный файл `libzstd.a`;
+    `libzstd_static` = CMake-таргет, не имя файла). За ним по очереди audio/input/plugin/ide
+    ASan/UBSan/TSan-шаги (ручная компиляция с хардкод-путями) — каждый потенциально свой harness-баг.
+    **Осн. гейты проходят на macOS+Windows; добить ubuntu-санитайзеры — отдельная CI-hardening сессия.**
 - [ ] **S7** Игра: бой (снаряды/враги/коллизии/счёт).
 - [ ] **S8** Игра: босс + мини-сюжет + экран очков.
 - [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
