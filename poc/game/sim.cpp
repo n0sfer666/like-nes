@@ -1,4 +1,5 @@
 #include "sim.hpp"
+#include "combat.hpp"
 
 namespace game {
 namespace {
@@ -19,11 +20,12 @@ uint32_t lcg(uint32_t& s) { s = s * 1664525u + 1013904223u; return s; }
 
 } // namespace
 
-void spawn(flecs::world& world) {
+void spawn(flecs::world& world, GameState& gs) {
     flecs::entity ship = world.entity();
     ship.set<Transform>({fix32::from_int(-300), fix32{}});
     ship.set<Velocity>({fix32{}, fix32{}});
     ship.add<Ship>();
+    ship.set<EntId>({gs.seq++});
 
     uint32_t s = 0x9e3779b9u;
     for (int i = 0; i < STAR_COUNT; ++i) {
@@ -38,7 +40,7 @@ void spawn(flecs::world& world) {
     }
 }
 
-void step(flecs::world& world, const input::InputFrame& in, fix32 dt) {
+void step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt) {
     world.each([&](flecs::entity e, Transform& t, Velocity& v) {
         if (!e.has<Ship>()) return;
         v.x = in.axes[AX_MoveX] * SHIP_SPEED;
@@ -51,6 +53,8 @@ void step(flecs::world& world, const input::InputFrame& in, fix32 dt) {
         t.x = t.x - star.speed * dt;
         if (t.x < -WRAP_EDGE) t.x = t.x + WRAP_SPAN;
     });
+
+    combat_step(world, gs, in, dt);
 }
 
 } // namespace game

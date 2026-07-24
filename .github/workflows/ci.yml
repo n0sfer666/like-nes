@@ -448,3 +448,15 @@ jobs:
           c++ $SAN poc/ide/editor/editor_selftest.cpp poc/ide/editor/property_grid.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
           ./ide_editor_san | tee ide_editor_san.txt
           grep -q "ide-editor-data: PASS" ide_editor_san.txt
+
+      # --- Игра-вертикаль (спека #8, S7) — бой в детерм. sim. Sim-hash боя (fix32/целочисл. →
+      # cross-arch golden, сверяется на всех 3 ОС, как input/plugin/ide) + run-to-run. Headless
+      # (без рендера). Живой бой/HUD — owner-HW (окно), как game demo.
+      - name: Game — combat sim-hash golden (S7, cross-arch) + run-to-run determinism
+        shell: bash
+        run: |
+          BIN=$(find poc/build -maxdepth 2 \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "game_sim_test not built"; exit 1; }
+          "$BIN" | tee game_sim.txt
+          grep -q "0xaef7d0d8bb69ca00" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "game-sim: PASS" game_sim.txt

@@ -24,6 +24,7 @@ struct DemoDriver {
                 input::DeviceKind::Keyboard, 0, code, 0, seq++});
     }
     void drive(input::InputEngine& e, uint32_t t) {
+        if (t == 0) key(e, 32, true);   // Space = огонь (удержание весь демо)
         static const uint16_t K[4] = {68, 65, 87, 83};
         static const uint32_t PAT[8] = {0x1, 0x4, 0x2, 0x8, 0x5, 0x6, 0xA, 0x9};
         const uint32_t want = PAT[(t / 45) % 8];
@@ -55,7 +56,8 @@ int run_demo(const char* dir, int frames) {
     WGPUTextureView view = wgpuTextureCreateView(target, nullptr);
 
     flecs::world world;
-    spawn(world);
+    GameState gs;
+    spawn(world, gs);
     input::ActionMap map = make_map();
     input::InputEngine engine(map);
     DemoDriver driver;
@@ -64,10 +66,11 @@ int run_demo(const char* dir, int frames) {
     for (int t = 0; t < frames; ++t) {
         driver.drive(engine, (uint32_t)t);
         const input::InputFrame& f = engine.begin_tick((uint32_t)t, 0);
-        step(world, f, dt);
+        step(world, gs, f, dt);
 
         batch.begin();
         push_scene(batch, world, atlas);
+        push_hud(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
         WGPURenderPassEncoder pass = begin_clear(enc, view);
         batch.flush(pass);

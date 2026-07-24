@@ -26,7 +26,7 @@ target_include_directories(native_app_glue PUBLIC ${GLUE})
 
 add_library(game SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/native_main.cpp
-  ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp
+  ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp ${POC}/game/combat.cpp
   ${POC}/game/controls.cpp ${POC}/game/draw.cpp
   ${POC}/input/action_map.cpp ${POC}/render/gpu.cpp)
 

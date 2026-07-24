@@ -41,6 +41,7 @@ using namespace game;
     SpriteBatch batch_;
     Atlas atlas_;
     flecs::world world_;
+    game::GameState gs_;
     input::ActionMap map_;
     input::InputEngine* engine_;
     WGPUSurface surface_;
@@ -97,7 +98,7 @@ using namespace game;
     const uint32_t vw = (sa >= wa) ? (uint32_t)(VIEW_H * sa) : VIEW_W;
     const uint32_t vh = (sa >= wa) ? VIEW_H : (uint32_t)(VIEW_W / sa);
     batch_.set_viewport(vw, vh);
-    spawn(world_);
+    spawn(world_, gs_);
     map_ = make_map();
     engine_ = new input::InputEngine(map_);
     engine_->post({input::RawKind::DeviceConnected, input::DeviceKind::Gamepad, 0, 0, 0, seq_++});
@@ -133,7 +134,7 @@ using namespace game;
     }
     const fix32 dt = fix32::from_float(1.0 / 60);
     const input::InputFrame& f = engine_->begin_tick(tick_++, 0);
-    step(world_, f, dt);
+    step(world_, gs_, f, dt);
 
     WGPUSurfaceTexture st = {};
     wgpuSurfaceGetCurrentTexture(surface_, &st);

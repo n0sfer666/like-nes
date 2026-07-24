@@ -19,6 +19,22 @@ struct Velocity { fix32 x, y; };
 struct Ship {};
 struct Star { fix32 speed; fix32 size; uint8_t shade; };
 
+// Боевой слой (S7). Всё — целочисл./fix32 → sim-hash воспроизводим.
+struct Bullet {};
+struct Enemy { int32_t hp; };
+struct EntId { uint32_t seq; };   // монотонный id спавна → канон. порядок для хеша/коллизий
+
+// Синглтон состояния боя (часть sim-состояния; хешируется).
+struct GameState {
+    uint32_t rng = 0x1234567u;    // LCG спавна врагов
+    uint32_t tick = 0;
+    uint32_t seq = 1;             // следующий EntId
+    uint32_t fire_cd = 0;         // тиков до следующего выстрела
+    uint32_t spawn_cd = 0;        // тиков до следующего врага
+    uint32_t score = 0;
+    int32_t lives = 3;
+};
+
 input::ActionMap make_map();
 
 } // namespace game

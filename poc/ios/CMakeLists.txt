@@ -22,7 +22,7 @@ FetchContent_MakeAvailable(flecs)
 
 add_executable(like_nes_ios MACOSX_BUNDLE
   ${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
-  ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp
+  ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp ${POC}/game/combat.cpp
   ${POC}/game/controls.cpp ${POC}/game/draw.cpp
   ${POC}/input/action_map.cpp ${POC}/render/gpu.cpp)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm

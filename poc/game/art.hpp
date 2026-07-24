@@ -12,6 +12,9 @@ struct Atlas {
     uint32_t w = 0, h = 0;
     Region ship;
     Region star;
+    Region bullet;      // S7: снаряд игрока
+    Region enemy;       // S7: враг
+    Region digit[10];   // S7: битмап-шрифт 0–9 для HUD (счёт/жизни)
 };
 
 // Раскладка atlas'а (UV-регионы + w/h) — метаданные, общие для процедурного и бейкнутого пути.
