@@ -131,7 +131,17 @@
   Инварианты целы (determinism/asset goldens). Ревью: 4 находки (1 low sim_hash-hp + 3 taste),
   low+1 fixed, 2 обоснованно skip. **grabli:** пустые flecs-теги (Ship/Bullet) нельзя как `T&` в
   `each` → фильтр `has<>`; старый ship-push ловил ВСЕ Transform+Velocity (пули/враги тоже Velocity!).
-- [ ] **S8** Игра: босс + мини-сюжет + экран очков.
+- [x] **S8** Игра: босс + мини-сюжет + экран очков — **DONE** (коммит `11d36eb`, T4). Фаза-машина
+  (Intro→Play→Boss→Victory/GameOver→рестарт, переходы по action_pressed edge, авто Play→Boss по
+  kills>=10/таймауту) в детерм. sim. Босс (`boss.cpp`): HP=40 + въезд/осцилляция + **ответный огонь**
+  hostile-снарядами; пуля×босс=−HP, hostile×корабль=−жизнь; HP-бар. Текст: шрифт расширен до A–Z
+  (`draw_glyph`), atlas 256→512×256 (+boss/hostile/solid), rebaked `game.bundle` BC7; `push_text`+
+  `push_screen` (intro/victory/gameover, центр. текст). **Проверка T4:** combat-golden
+  `0x32a094e89eacf2f2` (phase=2 достигнута в скрипте, run-to-run + CI cross-arch); demo рендерит
+  intro-экран+бой+босса с HP-баром+hostile-огонь (GIF); live macOS clean exit; iOS пересобран.
+  Ревью: 4 находки (1 med mobile-intro-freeze → авто PH_Play на мобиле; 2 low + 1 taste) — все fixed.
+  **grabli:** phase-гейт движения корабля заморозил бы mobile (нет A_Fire-ввода) → авто-старт Play;
+  создание entity внутри flecs `each` (boss hostile) → выносить спавн после итерации.
 - [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
 - [ ] **S10** Гейт 7 полная игра на mobile (пере-прогон S7–S9 на эму/симуляторе/owner-устройствах + подпись).
 - [ ] **S11** Финализация (ADR Accepted / spec Validated / README #8 / dev-log).
