@@ -485,8 +485,8 @@ if(IDE_POC)
   if(NOT WIN32)
     target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu)
   endif()
-  set_source_files_properties(game/capture.cpp PROPERTIES
-    COMPILE_OPTIONS "-Wno-deprecated-declarations")   # stb_image_write sprintf
+  set_source_files_properties(game/capture.cpp PROPERTIES   # stb_image_write sprintf (не MSVC:
+    COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-deprecated-declarations>")  # D8021)
   if(APPLE)
     set_source_files_properties(input/source_gamepad_macos.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(game_sidescroller PRIVATE
