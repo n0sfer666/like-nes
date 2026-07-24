@@ -55,7 +55,8 @@ int run_window(int frame_cap) {
     batch.init(gpu.device, gpu.queue, fmt, atlas);
 
     flecs::world world;
-    spawn(world);
+    GameState gs;
+    spawn(world, gs);
     input::ActionMap map = make_map();
     input::InputEngine engine(map);
     install_glfw_input(win, engine);
@@ -74,7 +75,7 @@ int run_window(int frame_cap) {
         glfwPollEvents();
         if (have_pad) pad->poll(engine);
         const input::InputFrame& f = engine.begin_tick(t, 0);
-        step(world, f, dt);
+        step(world, gs, f, dt);
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
 
         WGPUSurfaceTexture st = {};
@@ -86,6 +87,7 @@ int run_window(int frame_cap) {
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
         batch.begin();
         push_scene(batch, world, atlas);
+        push_hud(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
         WGPURenderPassEncoder pass = begin_clear(enc, view);
         batch.flush(pass);

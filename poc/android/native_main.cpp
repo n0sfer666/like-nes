@@ -26,6 +26,7 @@ struct App {
     SpriteBatch batch;
     Atlas atlas;
     flecs::world world;
+    game::GameState gs;
     input::ActionMap map;
     std::unique_ptr<input::InputEngine> engine;
     WGPUSurface surface = nullptr;
@@ -78,7 +79,7 @@ void init(App& a, ANativeWindow* win) {
     a.batch.set_viewport(sa >= wa ? (uint32_t)(VIEW_H * sa) : VIEW_W,
                          sa >= wa ? VIEW_H : (uint32_t)(VIEW_W / sa));
     if (!a.sim_ready) {
-        spawn(a.world);
+        spawn(a.world, a.gs);
         a.map = make_map();
         a.engine.reset(new input::InputEngine(a.map));
         a.engine->post({input::RawKind::DeviceConnected, input::DeviceKind::Gamepad, 0, 0, 0, a.seq++});
@@ -99,7 +100,7 @@ void teardown(App& a) {
 void render(App& a) {
     if (!a.ready) return;
     const input::InputFrame& f = a.engine->begin_tick(a.tick++, 0);
-    step(a.world, f, fix32::from_float(1.0 / 60));
+    step(a.world, a.gs, f, fix32::from_float(1.0 / 60));
 
     WGPUSurfaceTexture st = {};
     wgpuSurfaceGetCurrentTexture(a.surface, &st);
