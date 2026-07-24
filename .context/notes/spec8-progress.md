@@ -121,7 +121,16 @@
     **Метод:** ubuntu-санитайзеры воспроизведены локально в Docker (aarch64) — 16/16 pass после
     фиксов, потом подтверждено реальным CI x86_64 (3/3 success). `scripts/xcompile_verify.sh` +
     Docker-репро — durable. См. [[branch-never-ci-validated]].
-- [ ] **S7** Игра: бой (снаряды/враги/коллизии/счёт).
+- [x] **S7** Игра: бой — **DONE** (коммит `4326234`, T4). Боевой слой в детерм. fix32 sim:
+  стрельба игрока (кулдаун), волны врагов (LCG, целочисл. y), AABB-коллизии (raw fix32/int64,
+  канон. порядок seq) пуля×враг=очки / враг×корабль=−жизнь, GameState-синглтон (владелец у
+  вызывающего). Спрайты через #5-шов: atlas 256x256 (+enemy/bullet/битмап-цифры 0-9), rebaked
+  `game.bundle` BC7 (hash `0xb4cd9519a96304f4`). HUD: счёт/жизни цифрами-спрайтами. **Проверка T4:**
+  `game_sim_test` (headless, все ОС) → combat-golden `0xaef7d0d8bb69ca00` + run-to-run YES, CI-гейт
+  на 3 ОС; demo рендерит бой+HUD (GIF); live macOS clean exit; iOS пересобран (mobile-паритет).
+  Инварианты целы (determinism/asset goldens). Ревью: 4 находки (1 low sim_hash-hp + 3 taste),
+  low+1 fixed, 2 обоснованно skip. **grabli:** пустые flecs-теги (Ship/Bullet) нельзя как `T&` в
+  `each` → фильтр `has<>`; старый ship-push ловил ВСЕ Transform+Velocity (пули/враги тоже Velocity!).
 - [ ] **S8** Игра: босс + мини-сюжет + экран очков.
 - [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
 - [ ] **S10** Гейт 7 полная игра на mobile (пере-прогон S7–S9 на эму/симуляторе/owner-устройствах + подпись).
