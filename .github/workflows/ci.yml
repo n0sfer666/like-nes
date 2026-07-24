@@ -148,7 +148,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          ZLIB=$(find poc/build -name 'libzstd_static.a' | head -1)
+          ZLIB=$(find poc/build -name 'libzstd.a' | head -1)
           ZINC=$(find poc/build -path '*zstd-src/lib' -type d | head -1)
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
             -Ipoc/asset -I"$ZINC" \
@@ -363,7 +363,10 @@ jobs:
           grep -q "ipc-seqlock: PASS" ide_seq_san.txt
           c++ $SAN poc/ide/game_child.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
           c++ $SAN poc/ide/play_spawn_test.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
-          ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
+          # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 → ASan не перехватывает
+          # интенциональный SIGSEGV (иначе child умирает от SIGABRT, gate4 ждёт SIGSEGV). Инструмент.
+          # проверки ASan (redzone/UAF) сохраняются — отключается только обработчик hardware-SEGV.
+          ASAN_OPTIONS=handle_segv=0:abort_on_error=0 ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
           grep -q "ide-play-spawn: PASS" ide_play_san.txt
 
       # --- IDE-вертикаль срез 3 (спека #7, гейт 5) — build-loop. POSIX (fork/exec компилятора +
