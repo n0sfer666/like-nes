@@ -1,0 +1,194 @@
+name: release
+
+# Spec #8 Gate 5 — release-оркестрация: тег vX.Y.Z → matrix-сборка → per-OS бандл
+# (upload) + changelog + сгенерированные SteamPipe VDF + gated steamcmd-ступень.
+# macOS в CI НЕ гоняем (owner пакует/проверяет локально через scripts/package.sh);
+# VDF всё равно содержит macos-депот — owner добавит его контент перед реальной заливкой.
+# Реальная Steam-заливка требует appid/секретов → steamcmd-ступень gated (skip без них).
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия-тег (напр. v0.0.1-rc)'
+        required: true
+
+permissions:
+  contents: write   # gh release create
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle:
+    name: bundle (${{ matrix.triple }})
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            triple: linux
+          - os: windows-latest
+            triple: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Экшены запиннуты на commit SHA (правило ci.md + дух S3 SHA-pin); тег в комменте.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"   # dispatch: релиз/тег создаётся на выбранном ref
+          else
+            V="${GITHUB_REF_NAME}"
+          fi
+          case "$V" in v[0-9]*) ;; *) echo "::error::version '$V' != vX.Y.Z[-suffix]"; exit 1 ;; esac
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Linux deps (X11 for GLFW)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xorg-dev
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
+
+      - name: MSVC env (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+
+      - name: Configure + build game_sidescroller
+        shell: bash
+        run: |
+          cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF \
+            -DGAME_VERSION="${{ steps.ver.outputs.version }}"
+          cmake --build poc/build --target game_sidescroller
+
+      - name: Install self-contained bundle (component game)
+        shell: bash
+        run: cmake --install poc/build --component game --prefix stage
+
+      - name: Archive (Linux tar.gz)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          mkdir -p dist
+          tar -C stage -czf "dist/like-nes-${{ steps.ver.outputs.version }}-linux.tar.gz" like-nes
+
+      - name: Archive (Windows zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Compress-Archive -Path stage/like-nes -DestinationPath "dist/like-nes-${{ steps.ver.outputs.version }}-windows.zip"
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: like-nes-${{ matrix.triple }}
+          path: dist/*
+          retention-days: 7
+          if-no-files-found: error
+
+  publish:
+    name: publish (changelog + VDF + gated steam + release)
+    needs: bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      STEAM_APPID: ${{ secrets.STEAM_APPID }}   # job-level → доступно в step if (env-контекст)
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0   # git log с прошлого тега для changelog
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"   # dispatch: релиз/тег создаётся на выбранном ref
+          else
+            V="${GITHUB_REF_NAME}"
+          fi
+          case "$V" in v[0-9]*) ;; *) echo "::error::version '$V' != vX.Y.Z[-suffix]"; exit 1 ;; esac
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          case "$V" in *-*) echo "prerelease=true" ;; *) echo "prerelease=false" ;; esac >> "$GITHUB_OUTPUT"
+
+      - name: Changelog (git log since previous tag)
+        shell: bash
+        run: |
+          PREV=$(git describe --tags --abbrev=0 "${{ steps.ver.outputs.version }}^" 2>/dev/null || true)
+          {
+            echo "## like-nes ${{ steps.ver.outputs.version }}"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Changes since $PREV:"; echo
+              git log --no-merges --pretty='- %s' "$PREV..${{ steps.ver.outputs.version }}"
+            else
+              echo "Initial release."; echo
+              git log --no-merges --pretty='- %s' -n 20
+            fi
+          } > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+
+      - name: Download bundle artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          path: artifacts
+
+      - name: Generate SteamPipe VDF (app_build + per-OS depots)
+        shell: bash
+        env:
+          GAME_VERSION: ${{ steps.ver.outputs.version }}
+          STEAM_APPID: ${{ secrets.STEAM_APPID }}
+          STEAM_DEPOT_LINUX: ${{ secrets.STEAM_DEPOT_LINUX }}
+          STEAM_DEPOT_WINDOWS: ${{ secrets.STEAM_DEPOT_WINDOWS }}
+          STEAM_DEPOT_MACOS: ${{ secrets.STEAM_DEPOT_MACOS }}
+        run: bash poc/scripts/gen_vdf.sh vdf "${{ steps.ver.outputs.version }}"
+
+      # Аплоадим VDF как публичный артефакт ТОЛЬКО с placeholder-депотами (тест). При заданном
+      # STEAM_APPID реальные appid/depot не должны утечь в public-артефакт — VDF потребляет
+      # steamcmd-ступень в этом же ране, публичить его не нужно.
+      - name: Upload VDF artifact (placeholder-only)
+        if: ${{ env.STEAM_APPID == '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: steam-vdf
+          path: vdf/*
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: SteamPipe upload (gated — skip без appid/секретов)
+        env:
+          STEAM_APPID: ${{ secrets.STEAM_APPID }}
+        shell: bash
+        run: |
+          if [ -z "$STEAM_APPID" ]; then
+            echo "::notice::STEAM_APPID секрет не задан → steamcmd-ступень пропущена (VDF сгенерирован, готов к заливке)."
+            exit 0
+          fi
+          echo "Would run: steamcmd +login <user> +run_app_build \$PWD/vdf/app_build.vdf +quit"
+          echo "::warning::реальная заливка не сконфигурирована в этом PoC (steamcmd install/login — release-hardening)."
+
+      - name: Create GitHub release (artifacts + changelog)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          V="${{ steps.ver.outputs.version }}"
+          mapfile -t FILES < <(find artifacts -type f)
+          echo "attaching:"; printf '%s\n' "${FILES[@]}"
+          FLAGS=()
+          [ "${{ steps.ver.outputs.prerelease }}" = "true" ] && FLAGS+=(--prerelease)
+          # Идемпотентность: повторный ран/тег → сносим существующий релиз (тег оставляем).
+          gh release view "$V" >/dev/null 2>&1 && gh release delete "$V" --yes
+          gh release create "$V" "${FILES[@]}" \
+            --title "like-nes $V" \
+            --notes-file RELEASE_NOTES.md "${FLAGS[@]}"
