@@ -139,7 +139,9 @@ if(NOT WIN32)
   add_library(audio_core STATIC
     audio/mixer.cpp audio/decoder.cpp audio/stb_vorbis_impl.c)
   # stb_vorbis.c — сторонний (tautological-compare); глушим точечно на этом TU.
-  set_source_files_properties(audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-Wno-tautological-compare")
+  if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
+    set_source_files_properties(audio/stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-Wno-tautological-compare")
+  endif()
   target_include_directories(audio_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/audio ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR})
@@ -186,7 +188,9 @@ add_library(render_core STATIC
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
 target_link_libraries(render_core PUBLIC webgpu)
 # stb_image_write.h использует sprintf (deprecated на macOS) — сторонний код, глушим точечно.
-set_source_files_properties(render/stb_impl.cpp PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
+if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
+  set_source_files_properties(render/stb_impl.cpp PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
+endif()
 
 add_executable(render_demo render/demo_main.cpp)
 target_link_libraries(render_demo PRIVATE render_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
