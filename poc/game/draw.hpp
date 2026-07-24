@@ -7,7 +7,8 @@
 namespace game {
 
 void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas);
-void push_hud(SpriteBatch& batch, const Atlas& atlas, const GameState& gs);
+void push_hud(SpriteBatch& batch, flecs::world& world, const Atlas& atlas, const GameState& gs);
+void push_screen(SpriteBatch& batch, const Atlas& atlas, const GameState& gs);
 WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view);
 
 } // namespace game

@@ -87,7 +87,8 @@ int run_window(int frame_cap) {
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
         batch.begin();
         push_scene(batch, world, atlas);
-        push_hud(batch, atlas, gs);
+        push_hud(batch, world, atlas, gs);
+        push_screen(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
         WGPURenderPassEncoder pass = begin_clear(enc, view);
         batch.flush(pass);

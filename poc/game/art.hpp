@@ -15,6 +15,10 @@ struct Atlas {
     Region bullet;      // S7: снаряд игрока
     Region enemy;       // S7: враг
     Region digit[10];   // S7: битмап-шрифт 0–9 для HUD (счёт/жизни)
+    Region boss;        // S8: босс
+    Region hostile;     // S8: снаряд босса
+    Region letter[26];  // S8: битмап-шрифт A–Z для сюжета/экранов
+    Region solid;       // S8: сплошной белый блок (HP-бар, оверлеи через tint)
 };
 
 // Раскладка atlas'а (UV-регионы + w/h) — метаданные, общие для процедурного и бейкнутого пути.

@@ -41,13 +41,15 @@ void spawn(flecs::world& world, GameState& gs) {
 }
 
 void step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt) {
-    world.each([&](flecs::entity e, Transform& t, Velocity& v) {
-        if (!e.has<Ship>()) return;
-        v.x = in.axes[AX_MoveX] * SHIP_SPEED;
-        v.y = in.axes[AX_MoveY] * SHIP_SPEED;
-        t.x = clamp(t.x + v.x * dt, -X_LIMIT, X_LIMIT);
-        t.y = clamp(t.y + v.y * dt, -Y_LIMIT, Y_LIMIT);
-    });
+    if (gs.phase == PH_Play || gs.phase == PH_Boss) {  // корабль двигается только в бою
+        world.each([&](flecs::entity e, Transform& t, Velocity& v) {
+            if (!e.has<Ship>()) return;
+            v.x = in.axes[AX_MoveX] * SHIP_SPEED;
+            v.y = in.axes[AX_MoveY] * SHIP_SPEED;
+            t.x = clamp(t.x + v.x * dt, -X_LIMIT, X_LIMIT);
+            t.y = clamp(t.y + v.y * dt, -Y_LIMIT, Y_LIMIT);
+        });
+    }
 
     world.each([&](Transform& t, Star& star) {
         t.x = t.x - star.speed * dt;
