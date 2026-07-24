@@ -110,13 +110,17 @@
     `__has_feature(...)` в одном `#if` ломает GCC (нужен вложенный `#ifdef __has_feature`);
     macOS plugin-seam-гейт `dlopen` на `CMakeFiles/*.dir` (ci.yml `find -name 'plugin_*.*'` без
     `-type f` цепляет директорию).
-  - **Прогресс CI-hardening (коммиты `dc7e9b3`,`48abb93`): macOS ✅ + Windows ✅ (было 0/3).**
-    Пофикшено 4 бага: YAML-имена, MSVC-guards (Threads+stb-флаги), perf_test `__has_feature` (GCC),
-    plugin-find `-type f`. **ubuntu ❌ остаётся — каскад Linux-only sanitizer-шагов:** Asset ASan
-    падает `ld: cannot find :` — `find -name 'libzstd_static.a'` пусто (реальный файл `libzstd.a`;
-    `libzstd_static` = CMake-таргет, не имя файла). За ним по очереди audio/input/plugin/ide
-    ASan/UBSan/TSan-шаги (ручная компиляция с хардкод-путями) — каждый потенциально свой harness-баг.
-    **Осн. гейты проходят на macOS+Windows; добить ubuntu-санитайзеры — отдельная CI-hardening сессия.**
+  - **CI-hardening DONE — ВСЕ 3 ОС ЗЕЛЁНЫЕ ✅** (было 0/3; ci.yml не парсился). Коммиты
+    `dc7e9b3`,`48abb93`,`10d3995`. Пофикшено **7 предсуществующих багов** (ветку не пушили → не
+    ловились): (1) YAML-имена шагов с `: `; (2) `find_package(Threads)` в `if(NOT WIN32)` → Windows
+    configure; (3) GCC-only `-Wno-*` флаги (capture/stb_vorbis/stb_impl) → MSVC D8021 →
+    `if(NOT MSVC)`/gen-expr; (4) `perf_test.cpp` `__has_feature` в одном `#if` → GCC → вложенный
+    `#ifdef`; (5) plugin-find без `-type f` → `dlopen` на `.dir`; (6) `find libzstd_static.a` пусто →
+    реальный `libzstd.a`; (7) IDE Play-spawn ASan: crash-child намеренно SEGV'ит, ASan ловил →
+    SIGABRT вместо SIGSEGV → `ASAN_OPTIONS=handle_segv=0:abort_on_error=0`.
+    **Метод:** ubuntu-санитайзеры воспроизведены локально в Docker (aarch64) — 16/16 pass после
+    фиксов, потом подтверждено реальным CI x86_64 (3/3 success). `scripts/xcompile_verify.sh` +
+    Docker-репро — durable. См. [[branch-never-ci-validated]].
 - [ ] **S7** Игра: бой (снаряды/враги/коллизии/счёт).
 - [ ] **S8** Игра: босс + мини-сюжет + экран очков.
 - [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
