@@ -85,7 +85,28 @@
     корабль+starfield из **бейкнутой** BC7-текстуры (скриншот). Инварианты целы: determinism golden
     `0xa213fe659921c9fb`, asset synthetic `0xf2255dc74fbdb6bc` — не поехали; full `all` build чист.
     Linux tarball/Windows папка — install-правила есть, owner тестит на своих ОС (как S2).
-- [ ] **S6** Гейт 5 release-оркестрация (tag→matrix→артефакты+VDF).
+- [x] **S6** Гейт 5 release-оркестрация — **DONE** (реальный Actions-прогон, T3 end-to-end).
+  - **release.yml** на тег `v*` (+ workflow_dispatch): matrix **Linux+Windows** (macOS НЕ в CI —
+    owner пакует локально; репо public → минуты безлимит, но macOS ×10 экономим) → configure+build
+    game_sidescroller (`-DGAME_VERSION=тег`) → `cmake --install --component game` → архив
+    (tar.gz/zip) → upload-artifact (retention 7d). publish: changelog (git log с прошлого тега) +
+    `gen_vdf.sh` (app_build+depot_{linux,windows,macos}, placeholder appid, SetLive=beta) + gated
+    steamcmd (skip без секретов) + `gh release` (idempotent).
+  - **Проверка (T3):** throwaway-тег `v0.0.1-rc3` → run зелёный (linux+windows+publish success);
+    GitHub prerelease с `like-nes-v0.0.1-rc3-{linux.tar.gz 4.8MB, windows.zip 3.2MB}` + steam-vdf;
+    changelog «Changes since v0.0.1-rc2»; steamcmd skip-notice; VDF placeholder-путь. Локально:
+    actionlint чист, VDF парсится (python vdf), gen_vdf отклоняет инъекцию. Экшены SHA-пиннуты.
+    code-review: 6 находок (1 med/4 low/1 taste, все fixed). Теги rc/rc2 подчищены, rc3 = proof.
+  - **Вскрыто matrix'ем (2 фикса, коммиты `494e2f8`+`fe634f0`):** game_sidescroller НИКОГДА не
+    собирался на Windows в CI (ci.yml repro-шаг `if Linux`). (1) `find_package(Threads)` был в
+    `if(NOT WIN32)` → на Windows `Threads::Threads` не найден (configure-фейл); вынесен на верх.
+    (2) `-Wno-deprecated-declarations` (capture.cpp) → MSVC `D8021`; обёрнут в
+    `$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:...>`.
+  - ⚠️ **Отдельная находка (НЕ трогал по просьбе owner):** `.github/workflows/ci.yml` НЕВАЛИДЕН —
+    имена шагов на строках 232/301 содержат `: ` (`gate #1:`, `gate 2:`) → YAML-парс падает →
+    GitHub роняет весь ci.yml (0s failure). Ветку раньше не пушили → ci.yml на ней никогда не
+    гонялся; dev-log-claim'ы «CI-гейт зелёный» (S3–S5) на этой ветке НЕ подтверждены. Фикс тривиален
+    (закавычить 2 имени) — ждёт решения owner.
 - [ ] **S7** Игра: бой (снаряды/враги/коллизии/счёт).
 - [ ] **S8** Игра: босс + мини-сюжет + экран очков.
 - [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
