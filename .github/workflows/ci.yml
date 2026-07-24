@@ -233,9 +233,9 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          DT=$(find poc/build -maxdepth 2 -name 'plugin_determinism_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
-          W=$(find poc/build -maxdepth 2 -name 'plugin_wind.*' | head -1)
+          DT=$(find poc/build -maxdepth 2 -type f -name 'plugin_determinism_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          W=$(find poc/build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
           [ -n "$DT" ] || { echo "plugin_determinism_test not built"; exit 1; }
           "$DT" "$G" "$W" | tee pd.txt
           grep -q "0x7ad0493f0f2ddf47" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -245,10 +245,10 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ST=$(find poc/build -maxdepth 2 -name 'plugin_seam_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
-          R=$(find poc/build -maxdepth 2 -name 'plugin_rle_codec.*' | head -1)
-          M=$(find poc/build -maxdepth 2 -name 'plugin_multi.*' | head -1)
+          ST=$(find poc/build -maxdepth 2 -type f -name 'plugin_seam_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          R=$(find poc/build -maxdepth 2 -type f -name 'plugin_rle_codec.*' | head -1)
+          M=$(find poc/build -maxdepth 2 -type f -name 'plugin_multi.*' | head -1)
           "$ST" "$G" "$R" "$M" | tee ps.txt
           grep -q "plugin-seam: PASS" ps.txt
 
@@ -256,10 +256,10 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          IT=$(find poc/build -maxdepth 2 -name 'plugin_isolation_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -name 'plugin_gravity.*' | head -1)
-          W=$(find poc/build -maxdepth 2 -name 'plugin_wind.*' | head -1)
-          C=$(find poc/build -maxdepth 2 -name 'plugin_crash.*' | head -1)
+          IT=$(find poc/build -maxdepth 2 -type f -name 'plugin_isolation_test' | head -1)
+          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          W=$(find poc/build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
+          C=$(find poc/build -maxdepth 2 -type f -name 'plugin_crash.*' | head -1)
           "$IT" "$G" "$W" "$C" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 

@@ -24,9 +24,16 @@ volatile uint64_t g_sink = 0;   // материализация hot-loop рез�
 
 // Timing-бюджеты валидны только в оптимизированной сборке без санитайзеров (ASan/UBSan/TSan дают
 // ×2-3 оверхед → флейки). Под санитайзером проверяем только zero-alloc + корректность.
-#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__) || \
-    (defined(__has_feature) && (__has_feature(address_sanitizer) || __has_feature(thread_sanitizer)))
+// __has_feature нельзя звать в одном #if с defined() — GCC токенизирует всю строку и
+// падает на __has_feature(...) (missing binary operator). Вкладываем в #ifdef.
+#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
 #define IDE_PERF_TIMING 0
+#elif defined(__has_feature)
+#  if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
+#    define IDE_PERF_TIMING 0
+#  else
+#    define IDE_PERF_TIMING 1
+#  endif
 #else
 #define IDE_PERF_TIMING 1
 #endif
