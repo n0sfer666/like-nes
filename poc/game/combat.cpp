@@ -48,14 +48,19 @@ void bucket(flecs::world& w, std::vector<Item>& bul, std::vector<Item>& ene, std
     std::sort(hos.begin(), hos.end(), by);
 }
 
+void fxpush(FxSink* fx, int32_t rawx, int32_t rawy, uint8_t k) {
+    if (fx) fx->events.push_back({rawx / 65536.0f, rawy / 65536.0f, k});
+}
+
 // Арена: огонь игрока + [спавн врагов] + движение всех снарядов/врагов + коллизии + despawn.
 void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt,
-           fix32 sx, fix32 sy, bool spawn_enemies) {
+           fix32 sx, fix32 sy, bool spawn_enemies, FxSink* fx) {
     if (gs.fire_cd > 0) gs.fire_cd--;
     if (in.action_held(A_Fire) && gs.fire_cd == 0) {
         world.entity().set<Transform>({sx + MUZZLE, sy}).set<Velocity>({BULLET_VX, fix32{}})
              .add<Bullet>().set<EntId>({gs.seq++});
         gs.fire_cd = FIRE_CD;
+        fxpush(fx, (sx + MUZZLE).raw, sy.raw, FX_Fire);
     }
     if (spawn_enemies) {
         if (gs.spawn_cd > 0) gs.spawn_cd--;
@@ -93,7 +98,7 @@ void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix3
             if (en.dead) continue;
             if (overlap(en.x, en.y, ENEMY_HW, ENEMY_HH, b.x, b.y, BULLET_HW, BULLET_HH)) {
                 en.dead = b.dead = true; gs.score += SCORE_KILL; gs.kills++;
-                gone.push_back(en.e); break;
+                gone.push_back(en.e); fxpush(fx, en.x, en.y, FX_EnemyDie); break;
             }
         }
         if (b.dead || !boss.is_alive()) continue;
@@ -103,7 +108,8 @@ void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix3
             if (bs.hp <= 0) continue;              // уже мёртв в этом тике — без инфляции очков
             bs.hp--; boss.set<Boss>(bs);
             gs.score += SCORE_BOSS_HIT;
-            if (bs.hp <= 0) gone.push_back(boss);
+            fxpush(fx, b.x, b.y, FX_BossHit);
+            if (bs.hp <= 0) { gone.push_back(boss); fxpush(fx, bx, by, FX_BossDie); }
         }
     }
     // враг×корабль, hostile×корабль → −жизнь.
@@ -111,12 +117,14 @@ void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix3
         if (en.dead) continue;
         if (overlap(en.x, en.y, ENEMY_HW, ENEMY_HH, sx.raw, sy.raw, SHIP_HW, SHIP_HH)) {
             en.dead = true; if (gs.lives > 0) gs.lives--; gone.push_back(en.e);
+            fxpush(fx, sx.raw, sy.raw, FX_PlayerHit);
         }
     }
     for (Item& h : hos) {
         if (h.dead) continue;
         if (overlap(h.x, h.y, HOSTILE_HW, HOSTILE_HH, sx.raw, sy.raw, SHIP_HW, SHIP_HH)) {
             h.dead = true; if (gs.lives > 0) gs.lives--; gone.push_back(h.e);
+            fxpush(fx, sx.raw, sy.raw, FX_PlayerHit);
         }
     }
     for (Item& b : bul) if (b.dead) gone.push_back(b.e);
@@ -134,7 +142,8 @@ void clear_combat(flecs::world& world) {
 
 } // namespace
 
-void combat_step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt) {
+void combat_step(flecs::world& world, GameState& gs, const input::InputFrame& in, fix32 dt,
+                 FxSink* fx) {
     gs.tick++;
     fix32 sx{}, sy{};
     world.each([&](flecs::entity e, Transform& t, Velocity&) {
@@ -146,14 +155,14 @@ void combat_step(flecs::world& world, GameState& gs, const input::InputFrame& in
             if (in.action_pressed(A_Fire)) { gs.phase = PH_Play; gs.phase_t = 0; }
             break;
         case PH_Play:
-            arena(world, gs, in, dt, sx, sy, true);
+            arena(world, gs, in, dt, sx, sy, true, fx);
             if (gs.kills >= BOSS_TRIGGER_KILLS || gs.phase_t >= BOSS_TRIGGER_T) {
                 clear_combat(world); boss_spawn(world, gs); gs.phase = PH_Boss; gs.phase_t = 0;
             }
             break;
         case PH_Boss: {
             boss_step(world, gs, dt, sy);
-            arena(world, gs, in, dt, sx, sy, false);
+            arena(world, gs, in, dt, sx, sy, false, fx);
             bool alive = false;
             world.each([&](Boss&) { alive = true; });
             if (!alive) { gs.score += SCORE_BOSS; gs.phase = PH_Victory; gs.phase_t = 0; }

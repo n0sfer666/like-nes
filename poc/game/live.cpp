@@ -7,6 +7,10 @@
 #include <thread>
 
 #include "app.hpp"
+#include "fx.hpp"
+#include "bloom.hpp"
+#include "audio.hpp"
+#include "assets_path.hpp"
 #include "art.hpp"
 #include "batch.hpp"
 #include "draw.hpp"
@@ -52,11 +56,21 @@ int run_window(int frame_cap) {
 
     Atlas atlas = load_game_atlas(gpu.supports_bc);
     SpriteBatch batch;
-    batch.init(gpu.device, gpu.queue, fmt, atlas);
+    batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas);   // → HDR (bloom)
+    Bloom bloom;
+    if (!bloom.init(gpu.device, gpu.queue, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
+        std::fprintf(stderr, "bloom init failed\n");
+        gpu.shutdown(); glfwDestroyWindow(win); glfwTerminate(); return 1;
+    }
 
     flecs::world world;
     GameState gs;
     spawn(world, gs);
+    Fx fx;
+    FxSink sink;
+    GameAudio audio;
+    const bool have_audio = audio.init(resolve_asset("audio.bundle"));
+    std::printf("[game] audio: %s\n", have_audio ? "on (SFX + music)" : "off");
     input::ActionMap map = make_map();
     input::InputEngine engine(map);
     install_glfw_input(win, engine);
@@ -75,7 +89,12 @@ int run_window(int frame_cap) {
         glfwPollEvents();
         if (have_pad) pad->poll(engine);
         const input::InputFrame& f = engine.begin_tick(t, 0);
-        step(world, gs, f, dt);
+        sink.events.clear();
+        step(world, gs, f, dt, &sink);
+        fx.emit(sink);
+        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
+        fx.update(1.0f / 60);
+        audio.on_events(sink);
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
 
         WGPUSurfaceTexture st = {};
@@ -87,13 +106,15 @@ int run_window(int frame_cap) {
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
         batch.begin();
         push_scene(batch, world, atlas);
+        fx.render(batch, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassEncoder pass = begin_clear(enc, view);
+        WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view());   // сцена → HDR
         batch.flush(pass);
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
+        bloom.resolve(enc, view);                                          // bloom → swapchain
         WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
         wgpuQueueSubmit(gpu.queue, 1, &cmd);
         wgpuCommandBufferRelease(cmd);
@@ -103,6 +124,8 @@ int run_window(int frame_cap) {
         wgpuTextureRelease(st.texture);
         if (frame_cap && ++frames >= frame_cap) break;
     }
+    audio.shutdown();
+    bloom.shutdown();
     batch.shutdown();
     wgpuSurfaceRelease(surface);
     gpu.shutdown();

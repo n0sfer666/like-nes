@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "app.hpp"
+#include "fx.hpp"
+#include "bloom.hpp"
 #include "art.hpp"
 #include "batch.hpp"
 #include "capture.hpp"
@@ -44,7 +46,11 @@ int run_demo(const char* dir, int frames) {
     if (!gpu.init(nullptr)) { gpu.shutdown(); return 1; }
     Atlas atlas = load_game_atlas(gpu.supports_bc);
     SpriteBatch batch;
-    batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA8Unorm, atlas);
+    batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas);   // → HDR (bloom)
+    Bloom bloom;
+    if (!bloom.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA8Unorm, VIEW_W, VIEW_H)) {
+        std::fprintf(stderr, "bloom init failed\n"); gpu.shutdown(); return 1;
+    }
 
     WGPUTextureDescriptor td = {};
     td.dimension = WGPUTextureDimension_2D;
@@ -58,6 +64,8 @@ int run_demo(const char* dir, int frames) {
     flecs::world world;
     GameState gs;
     spawn(world, gs);
+    Fx fx;
+    FxSink sink;
     input::ActionMap map = make_map();
     input::InputEngine engine(map);
     DemoDriver driver;
@@ -66,17 +74,23 @@ int run_demo(const char* dir, int frames) {
     for (int t = 0; t < frames; ++t) {
         driver.drive(engine, (uint32_t)t);
         const input::InputFrame& f = engine.begin_tick((uint32_t)t, 0);
-        step(world, gs, f, dt);
+        sink.events.clear();
+        step(world, gs, f, dt, &sink);
+        fx.emit(sink);
+        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
+        fx.update(1.0f / 60);
 
         batch.begin();
         push_scene(batch, world, atlas);
+        fx.render(batch, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassEncoder pass = begin_clear(enc, view);
+        WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view());   // сцена → HDR
         batch.flush(pass);
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);
+        bloom.resolve(enc, view);                                          // bloom → offscreen
         WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
         wgpuQueueSubmit(gpu.queue, 1, &cmd);
         wgpuCommandBufferRelease(cmd);
@@ -91,6 +105,7 @@ int run_demo(const char* dir, int frames) {
     std::printf("[game] demo wrote %d frames to %s\n", frames, dir);
     wgpuTextureViewRelease(view);
     wgpuTextureRelease(target);
+    bloom.shutdown();
     batch.shutdown();
     gpu.shutdown();
     return 0;

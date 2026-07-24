@@ -479,7 +479,7 @@ if(IDE_POC)
   endif()
   add_executable(game_sidescroller
     game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
-    game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/controls.cpp game/capture.cpp
+    game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/fx.cpp game/bloom.cpp game/audio.cpp game/controls.cpp game/capture.cpp
     ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
@@ -488,6 +488,11 @@ if(IDE_POC)
     input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
   if(NOT WIN32)
     target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu)
+    # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
+    # (PUBLIC) → game/audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
+    if(AUDIO_MINIAUDIO)
+      target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
+    endif()
   endif()
   set_source_files_properties(game/capture.cpp PROPERTIES   # stb_image_write sprintf (не MSVC:
     COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-deprecated-declarations>")  # D8021)

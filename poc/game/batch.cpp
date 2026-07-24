@@ -18,6 +18,7 @@ struct VIn {
     @location(4) iuv0: vec2<f32>,
     @location(5) iuv1: vec2<f32>,
     @location(6) itint: vec4<f32>,
+    @location(7) irot: f32,
 };
 struct VOut {
     @builtin(position) pos: vec4<f32>,
@@ -26,7 +27,10 @@ struct VOut {
 };
 
 @vertex fn vs(in: VIn) -> VOut {
-    let world = in.ipos + in.qpos * in.isize;
+    let c = cos(in.irot);
+    let s = sin(in.irot);
+    let rq = vec2<f32>(in.qpos.x * c - in.qpos.y * s, in.qpos.x * s + in.qpos.y * c);
+    let world = in.ipos + rq * in.isize;
     let ndc = world / vp.half_extent;
     var o: VOut;
     o.pos = vec4<f32>(ndc.x, ndc.y, 0.0, 1.0);
@@ -143,17 +147,18 @@ void SpriteBatch::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat tar
     WGPUVertexAttribute qa[2] = {};
     qa[0].format = WGPUVertexFormat_Float32x2; qa[0].offset = 0; qa[0].shaderLocation = 0;
     qa[1].format = WGPUVertexFormat_Float32x2; qa[1].offset = 8; qa[1].shaderLocation = 1;
-    WGPUVertexAttribute ia[5] = {};
+    WGPUVertexAttribute ia[6] = {};
     ia[0].format = WGPUVertexFormat_Float32x2; ia[0].offset = 0;  ia[0].shaderLocation = 2;
     ia[1].format = WGPUVertexFormat_Float32x2; ia[1].offset = 8;  ia[1].shaderLocation = 3;
     ia[2].format = WGPUVertexFormat_Float32x2; ia[2].offset = 16; ia[2].shaderLocation = 4;
     ia[3].format = WGPUVertexFormat_Float32x2; ia[3].offset = 24; ia[3].shaderLocation = 5;
     ia[4].format = WGPUVertexFormat_Float32x4; ia[4].offset = 32; ia[4].shaderLocation = 6;
+    ia[5].format = WGPUVertexFormat_Float32;   ia[5].offset = 48; ia[5].shaderLocation = 7;
     WGPUVertexBufferLayout vbl[2] = {};
     vbl[0].arrayStride = 16; vbl[0].stepMode = WGPUVertexStepMode_Vertex;
     vbl[0].attributeCount = 2; vbl[0].attributes = qa;
     vbl[1].arrayStride = sizeof(Instance); vbl[1].stepMode = WGPUVertexStepMode_Instance;
-    vbl[1].attributeCount = 5; vbl[1].attributes = ia;
+    vbl[1].attributeCount = 6; vbl[1].attributes = ia;
 
     WGPUBlendState blend = {};
     blend.color.operation = WGPUBlendOperation_Add;
