@@ -99,6 +99,7 @@ using namespace game;
     const uint32_t vh = (sa >= wa) ? VIEW_H : (uint32_t)(VIEW_W / sa);
     batch_.set_viewport(vw, vh);
     spawn(world_, gs_);
+    gs_.phase = game::PH_Play;   // mobile: нет A_Fire-ввода → пропускаем intro (S10 добавит огонь)
     map_ = make_map();
     engine_ = new input::InputEngine(map_);
     engine_->post({input::RawKind::DeviceConnected, input::DeviceKind::Gamepad, 0, 0, 0, seq_++});

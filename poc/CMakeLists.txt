@@ -479,7 +479,7 @@ if(IDE_POC)
   endif()
   add_executable(game_sidescroller
     game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
-    game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/controls.cpp game/capture.cpp
+    game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/controls.cpp game/capture.cpp
     ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
@@ -536,7 +536,7 @@ if(IDE_POC)
 
   # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
   # всех ОС. Скриптованный combat-сценарий → детерм. golden-хеш (fix32/целочисл. → cross-arch).
-  add_executable(game_sim_test game/sim_test.cpp game/sim.cpp game/combat.cpp)
+  add_executable(game_sim_test game/sim_test.cpp game/sim.cpp game/combat.cpp game/boss.cpp)
   target_include_directories(game_sim_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/input)
   target_link_libraries(game_sim_test PRIVATE flecs_static Threads::Threads)

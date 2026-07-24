@@ -458,5 +458,5 @@ jobs:
           BIN=$(find poc/build -maxdepth 2 \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "game_sim_test not built"; exit 1; }
           "$BIN" | tee game_sim.txt
-          grep -q "0xaef7d0d8bb69ca00" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "0x32a094e89eacf2f2" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "game-sim: PASS" game_sim.txt

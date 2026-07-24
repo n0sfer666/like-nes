@@ -80,6 +80,7 @@ void init(App& a, ANativeWindow* win) {
                          sa >= wa ? VIEW_H : (uint32_t)(VIEW_W / sa));
     if (!a.sim_ready) {
         spawn(a.world, a.gs);
+        a.gs.phase = game::PH_Play;   // mobile: нет A_Fire-ввода → пропускаем intro (S10)
         a.map = make_map();
         a.engine.reset(new input::InputEngine(a.map));
         a.engine->post({input::RawKind::DeviceConnected, input::DeviceKind::Gamepad, 0, 0, 0, a.seq++});

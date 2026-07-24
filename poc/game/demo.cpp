@@ -24,7 +24,7 @@ struct DemoDriver {
                 input::DeviceKind::Keyboard, 0, code, 0, seq++});
     }
     void drive(input::InputEngine& e, uint32_t t) {
-        if (t == 0) key(e, 32, true);   // Space = огонь (удержание весь демо)
+        if (t == 60) key(e, 32, true);   // Space @t=60: intro виден ~1с, затем Play + авто-огонь
         static const uint16_t K[4] = {68, 65, 87, 83};
         static const uint32_t PAT[8] = {0x1, 0x4, 0x2, 0x8, 0x5, 0x6, 0xA, 0x9};
         const uint32_t want = PAT[(t / 45) % 8];
@@ -70,7 +70,8 @@ int run_demo(const char* dir, int frames) {
 
         batch.begin();
         push_scene(batch, world, atlas);
-        push_hud(batch, atlas, gs);
+        push_hud(batch, world, atlas, gs);
+        push_screen(batch, atlas, gs);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
         WGPURenderPassEncoder pass = begin_clear(enc, view);
         batch.flush(pass);
