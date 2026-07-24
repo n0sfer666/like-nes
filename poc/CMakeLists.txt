@@ -102,9 +102,13 @@ FetchContent_Declare(miniaudio
   SOURCE_SUBDIR do-not-build)
 FetchContent_MakeAvailable(miniaudio)
 
+# Кросс-платформенно: input_core/audio/game линкуют Threads::Threads на всех ОС
+# (на Windows find_package(Threads) даёт no-op imported-target). Раньше был внутри
+# NOT WIN32 → game_sidescroller на Windows не конфигурился (в CI не собирался).
+find_package(Threads REQUIRED)
+
 # POSIX-only (fork/execvp bake-tools, mmap загрузка) — Windows-путь позже, как hotreload.
 if(NOT WIN32)
-  find_package(Threads REQUIRED)
   add_library(asset_core STATIC
     asset/bundle_writer.cpp asset/codec.cpp
     asset/platform_io.cpp asset/bundle_view.cpp asset/asset_manager.cpp)
