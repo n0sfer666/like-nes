@@ -142,7 +142,19 @@
   Ревью: 4 находки (1 med mobile-intro-freeze → авто PH_Play на мобиле; 2 low + 1 taste) — все fixed.
   **grabli:** phase-гейт движения корабля заморозил бы mobile (нет A_Fire-ввода) → авто-старт Play;
   создание entity внутри flecs `each` (boss hostile) → выносить спавн после итерации.
-- [ ] **S9** Игра: частицы + bloom #2 + аудио #3.
+- [x] **S9** Игра: частицы + bloom + аудио — **DONE** (коммит `0523619`, T3). Всё презентационное →
+  детерминизм sim не тронут (combat-golden `0x32a094e89eacf2f2` НЕ изменился). Частицы (`fx.cpp`):
+  взрывы/искры/muzzle/выхлоп-трейлы + наклон корабля (batch Instance+=rot). Ключ: **fx-события —
+  побочный выход** `combat_step(FxSink* fx=nullptr)` → при nullptr (headless) sim идентичен.
+  Bloom (`bloom.cpp`, техника #2): HDR-таргет→bright-pass→blur(half-res)→ACES-tonemap+композит;
+  яркие tint>1 (пули/hostile/частицы) светятся. Аудио (`audio.cpp`, #3, локально): audio.bundle
+  (sfx+music)→Mixer→AudioEngine событийно + музыка-луп + miniaudio-device; pimpl+guard
+  AUDIO_HAVE_MINIAUDIO → CI headless no-op (game не линкует audio). **Проверка T3:** live macOS
+  (bloom+частицы+наклон+"audio: on"+clean exit, owner слышит звук); demo-GIF взрывов/bloom;
+  golden цел; full/audio-off/iOS собираются; determinism+audio_seam goldens целы. Ревью: 4 low
+  (bloom.cpp>200→bloom_shaders.hpp; mobile-tint-clamp документ.; bloom.init()-check; мёртвые поля)
+  — все fixed. **grabli:** визуальные эффекты держать вне sim (побочный fx-канал, не GameState) →
+  golden не двигается; лёгкий `fx_events.hpp` (без webgpu) для combat → headless game_sim_test цел.
 - [ ] **S10** Гейт 7 полная игра на mobile (пере-прогон S7–S9 на эму/симуляторе/owner-устройствах + подпись).
 - [ ] **S11** Финализация (ADR Accepted / spec Validated / README #8 / dev-log).
 
