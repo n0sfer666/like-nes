@@ -1,10 +1,20 @@
 # ADR 0008: Билд/деплой + кросс-компиляция
 
 - **Дата:** 2026-07-23
-- **Статус:** **Proposed** — owner-интервью пройдено (kickoff `notes/spec8-kickoff.md`), три
-  research-развилки закрыты desk-research'ем (см. «Обоснование», источники приведены); глубину по
-  трём точкам owner подтвердил (AskUserQuestion 2026-07-23). Validation gate (walking-skeleton
-  build/deploy-вертикаль, T4) — **открыт**, доказывается PoC (сессии S2–S11, см. спеку #8).
+- **Статус:** **Accepted** (2026-07-25) — validation gate закрыт: walking-skeleton build/deploy-
+  вертикаль PoC (`poc/`, сессии S1–S11, T4) — все **7 гейтов зелёные**, CI 3 ОС зелёный. Owner-интервью
+  пройдено (kickoff `notes/spec8-kickoff.md`), три research-развилки (A тулчейн / B детерм. / C
+  упаковка) закрыты desk-research'ем + доказаны PoC. **Итог гейтов:** (1) воспр. билд P0–P2 +
+  SHA-пин депов — macOS 181 арт. / Linux(Docker) 183 арт. 0 diffs, CI build-twice+cmp; (2) шов
+  assetc→билд — `game.bundle` UASTC→BC7, игра стартует с бейкнутыми; (3) кросс-компиляция — desktop
+  native-matrix (wall=max, не sum), mobile true-cross (iOS `aarch64-apple-ios-sim` / Android
+  `aarch64-linux-android`, wgpu-native из Rust); (4) бандл per-OS — `.app`(@rpath)/tarball(`$ORIGIN`)/
+  папка+DLL, macOS live из чужого cwd; (5) release — tag→matrix→per-OS артефакты+VDF+gated steamcmd
+  (реальный Actions-прогон `v0.0.1-rc3`); (6) игра-образец — sidescroller-shooter (бой/босс/сюжет/
+  частицы/bloom/аудио), live macOS, combat-golden `0x32a094e89eacf2f2`; (7) mobile runnable — полная
+  игра (S7–S9 паритет) на iOS-симуляторе + Android-эму (Pixel 8a, реальный тач), T4. **Follow-up**
+  (осознанно отложено, gated): Steam-заливка (appid), macOS notarization / Windows code-sign, mobile
+  прод-подпись устройств + сторы, P3 cross-machine контейнер, полноценное mobile-аудио.
 - **Контекст:** [спека #8](../specs/2026-07-23-build-deploy.md); наследует
   [ADR 0001](2026-07-18-language-and-core.md) (C++, детерминизм, fixed timestep, fix32-сим,
   пиннутый toolchain-бандл, hot-reload shared-lib), [0002](2026-07-18-render-pipeline.md)
@@ -97,10 +107,11 @@ Desktop-сборка идёт **нативно на каждой ОС** (не tr
 wgpu-native из Rust-исходников; верификация на симуляторе/эмуляторе/owner-устройствах (прод-подпись
 и публикация в сторы — follow-up).
 
-## Условия финализации (validation gate) — открыт, T4
+## Условия финализации (validation gate) — ✅ ЗАКРЫТ (2026-07-25, T4)
 
 Proposed → Accepted при закрытии walking-skeleton build/deploy-вертикали (как render/asset/audio/
-input/plugin/IDE PoC). Гейты (детали — спека #8, тест-матрица):
+input/plugin/IDE PoC). **Все 7 гейтов закрыты** (сессии S1–S11, CI 3 ОС зелёный). Гейты (детали —
+спека #8, тест-матрица):
 
 1. **Воспр. билд** — build-twice на разных путях → байт-идентичный артефакт (per-triple, P0–P2); P3 —
    cross-machine в пиннутом контейнере + SHA-пин депов. CI-`cmp` 3 ОС. *(развилка B)*
