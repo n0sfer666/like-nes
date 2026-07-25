@@ -22,14 +22,15 @@ FetchContent_MakeAvailable(flecs)
 
 add_executable(like_nes_ios MACOSX_BUNDLE
   ${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
+  ${POC}/mobile/mobile_game.cpp
   ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp ${POC}/game/combat.cpp ${POC}/game/boss.cpp
-  ${POC}/game/controls.cpp ${POC}/game/draw.cpp
+  ${POC}/game/controls.cpp ${POC}/game/draw.cpp ${POC}/game/fx.cpp ${POC}/game/bloom.cpp ${POC}/game/audio.cpp
   ${POC}/input/action_map.cpp ${POC}/render/gpu.cpp)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
   PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 
 target_include_directories(like_nes_ios PRIVATE
-  ${POC}/game ${POC}/src ${POC}/input ${POC}/render ${POC}/ios)
+  ${POC}/game ${POC}/mobile ${POC}/src ${POC}/input ${POC}/render)
 target_link_libraries(like_nes_ios PRIVATE wgpu_native flecs_static
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")

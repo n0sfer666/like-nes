@@ -26,12 +26,13 @@ target_include_directories(native_app_glue PUBLIC ${GLUE})
 
 add_library(game SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/native_main.cpp
+  ${POC}/mobile/mobile_game.cpp
   ${POC}/game/art.cpp ${POC}/game/batch.cpp ${POC}/game/sim.cpp ${POC}/game/combat.cpp ${POC}/game/boss.cpp
-  ${POC}/game/controls.cpp ${POC}/game/draw.cpp
+  ${POC}/game/controls.cpp ${POC}/game/draw.cpp ${POC}/game/fx.cpp ${POC}/game/bloom.cpp ${POC}/game/audio.cpp
   ${POC}/input/action_map.cpp ${POC}/render/gpu.cpp)
 
 target_include_directories(game PRIVATE
-  ${POC}/game ${POC}/src ${POC}/input ${POC}/render ${POC}/ios)
+  ${POC}/game ${POC}/mobile ${POC}/src ${POC}/input ${POC}/render)
 target_link_libraries(game PRIVATE
   native_app_glue wgpu_native flecs_static android log)
 target_link_options(game PRIVATE -u ANativeActivity_onCreate)

@@ -155,7 +155,32 @@
   (bloom.cpp>200→bloom_shaders.hpp; mobile-tint-clamp документ.; bloom.init()-check; мёртвые поля)
   — все fixed. **grabli:** визуальные эффекты держать вне sim (побочный fx-канал, не GameState) →
   golden не двигается; лёгкий `fx_events.hpp` (без webgpu) для combat → headless game_sim_test цел.
-- [ ] **S10** Гейт 7 полная игра на mobile (пере-прогон S7–S9 на эму/симуляторе/owner-устройствах + подпись).
+- [x] **S10** Гейт 7 полная игра на mobile — **DONE** (T4, iOS-sim + Android-эму live). Полный
+  desktop-паритет S7–S9 на обоих таргетах. Развилки (owner AskUserQuestion 2026-07-25): полный
+  gameplay-паритет + экранная кнопка-огонь + bloom ON + аудио graceful + T4 обе платформы.
+  - **Общий модуль `poc/mobile/mobile_game.{hpp,cpp}` (DRY):** весь кадр (sim+частицы+HUD+сюжетные
+    экраны+bloom(HDR)+audio+кнопка-огонь+мульти-тач стик/огонь) в ОДНОМ месте; шеллы `ios/view.mm` +
+    `android/native_main.cpp` стали тонкими (только платформенный тач/lifecycle → pointer/cancel/frame).
+    `stick.hpp` перемещён `ios/`→`mobile/` (теперь общий). CMake обоих: +`fx.cpp bloom.cpp audio.cpp`
+    +`mobile_game.cpp`, include `${POC}/mobile`.
+  - **Огонь:** экранная кнопка (правый-низ, круг atlas.star, светится в bloom) → тач `PadButtonDown
+    PadA` через тот же HAL → `A_Fire`. Настоящая фаза-машина (убран авто-PH_Play): intro→play по
+    `action_pressed`. Мульти-тач: левая зона=стик, кнопка=огонь одновременно (iOS multipleTouchEnabled,
+    Android pointerId). `--demo` (iOS-симулятор, simctl без тача) скриптует стик+A_Fire → босс гибнет.
+  - **Bloom:** batch target RGBA16Float→`bloom.resolve`→swapchain (Metal/Vulkan). Fallback LDR при
+    `bloom.init()==false` (use_bloom_ синхронно рулит форматом batch И таргетом кадра).
+  - **Аудио:** `audio.cpp` линкуется БЕЗ `AUDIO_HAVE_MINIAUDIO` → no-op stub (`init()==false`), шов в
+    кадре идентичен desktop-CI-headless. Полноценный miniaudio-девайс + шиппинг audio.bundle на mobile —
+    **follow-up** (как iOS device-подпись; блокер — APK AAssetManager / iOS bundle-resource).
+  - **Проверка T4:** iOS-sim (iPhone 16, `--demo`) — HUD/HP-бар/частицы/bloom/кнопка/GAME OVER-экран
+    (скриншоты). Android-эму (Pixel_8a, **РЕАЛЬНЫЙ adb-тач**) — intro→тап-огонь→play→boss, поток пуль,
+    HP-бар, частицы, bloom (скриншоты). combat-golden `0x32a094e89eacf2f2` НЕ сдвинут (детерминизм цел).
+    Desktop `game_sidescroller`+`game_sim_test` собираются (poc/game/* не менялся). Android debug-APK
+    (apksigner). Ревью code-reviewer: 5 находок (1 med Android ACTION_CANCEL не сбрасывал все указатели
+    → застрявший огонь/движение; 2 low: Down-в-кнопку→стик, init не идемпотентен bloom/batch/audio;
+    2 taste). Все ≥low + 1 taste fixed, пересобрано+re-verify pass.
+  - [ ] **Осталось (отдельно):** iOS на owner-устройствах iPhone/iPad (подпись/provisioning owner сам);
+    полноценное mobile-аудио (miniaudio-девайс + audio.bundle в APK/`.app`); полировка тача/оверлея.
 - [ ] **S11** Финализация (ADR Accepted / spec Validated / README #8 / dev-log).
 
 ## Открытые числа (заполнять по PoC)
@@ -213,3 +238,21 @@
   - **Плюс vs iOS:** `adb shell input motionevent DOWN/MOVE/UP` инъектит РЕАЛЬНЫЙ тач → можно доказать
     тач-путь по-настоящему (на iOS-симуляторе simctl не умеет — там scripted). adb-раундтрип ≈ задержка
     между кадрами (foreground sleep заблокирован).
+- **S10-грабли (полный mobile-паритет):**
+  - **Android `ACTION_CANCEL`** (шторка/звонок/системный жест): pointer-index в action НЕ кодируется →
+    `idx=0`, освобождение по одному id оставляет чужой fire_id_/stick_id_ висящим (застрявший огонь/
+    движение). Фикс: CANCEL → безусловный сброс ВСЕХ активных касаний (`MobileGame::cancel()`), не
+    dispatch-Up по idx. iOS `touchesCancelled` даёт весь set → там ок.
+  - **Кнопка-огонь = круг, а не только «первый палец»:** Down внутри круга при занятом fire_id_ НЕ
+    должен становиться стиком (иначе случайный дрейф-стик в углу). Проверять попадание в круг ДО
+    ветки стика.
+  - **`--demo` держит A_Fire:** `PadButtonDown PadA` раз на t=60 (не отпуская) → down-edge проходит
+    intro→play (`action_pressed`), удержание → непрерывный огонь (`action_held`) → босс гибнет без
+    реальной кнопки (симулятор без тача).
+  - **Идемпотентность init/shutdown mobile-модуля:** Android TERM→INIT_WINDOW зовёт teardown/init
+    повторно; `world_ = flecs::world()` (re-spawn на свежем мире, иначе дубли сущностей) + флаг
+    `inited_` (init самоочищается, shutdown no-op без парного init → нет утечки bloom/batch/audio и
+    double-free; batch_/bloom_.shutdown() не зануляют хэндлы).
+  - **Mobile-аудио честно = stub:** линковать `audio.cpp` без `AUDIO_HAVE_MINIAUDIO` → `init()==false`,
+    шов кадра идентичен CI-headless. Реальный miniaudio-девайс блокирован шиппингом `audio.bundle`
+    (APK → AAssetManager-извлечение; iOS → bundle-resource + NSBundle-резолв) — follow-up, не в S10.
