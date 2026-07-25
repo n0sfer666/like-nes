@@ -1,10 +1,11 @@
 # Спецификация #8: Билд/деплой + кросс-компиляция
 
 - **Дата:** 2026-07-23
-- **Статус:** **Proposed / в работе** — owner-интервью пройдено (kickoff `notes/spec8-kickoff.md`);
-  [ADR 0008](../decisions/2026-07-23-build-deploy.md) **Proposed**; три research-развилки (A тулчейн /
-  B детерм.билд / C упаковка) доказаны desk-research'ем, глубину owner подтвердил. PoC-вертикаль
-  (walking-skeleton, сессии S2–S11) — **открыта, T4**. Ветка `poc/plugin-system`.
+- **Статус:** **Validated** (2026-07-25) — walking-skeleton build/deploy-вертикаль PoC закрыта (T4,
+  все 7 гейтов зелёные, CI 3 ОС зелёный); [ADR 0008](../decisions/2026-07-23-build-deploy.md)
+  **Accepted**. Три research-развилки (A тулчейн / B детерм.билд / C упаковка) доказаны desk-research'ем
+  + PoC. Сессии S1–S11 done (прогресс — `notes/spec8-progress.md`). Реализация — `poc/` (`game/`,
+  `ios/`, `android/`, `mobile/`, `cmake/`, `.github/workflows/`). Ветка `poc/plugin-system`.
 - **Наследует:** [#1](2026-07-18-language-and-core.md) (C++, детерминизм, fix32-сим, пиннутый
   toolchain, hot-reload .so), [#2](2026-07-18-render-pipeline.md) (**wgpu-native prebuilt per-OS
   dylib**), [#3](2026-07-19-audio-subsystem.md) (miniaudio), [#4](2026-07-20-input-system.md)
@@ -81,22 +82,19 @@
 Одна сессия = один гейт = один коммит (verify/review-state перед коммитом). Прогресс —
 `notes/spec8-progress.md`.
 
-- **S1** ✅ Дизайн: spec #8 + ADR 0008 (Proposed) — этот документ.
-- **S2** Скелет игры (payload) + **кросс-платформенный bring-up**: flecs+fix32 fixed-timestep,
-  корабль, ввод #4, спрайт-рендер #2, плейсхолдер-спрайты #5 + **сборка wgpu-native из Rust под
-  mobile**. **T4: запуск + управление на macOS(live) / iOS(симулятор+iPhone+iPad) / Android(Pixel 8a
-  эмулятор); Linux+Windows бандлы — owner тестит на своих машинах.** Внутренне может делиться:
-  S2a desktop(macOS live), S2b mobile bring-up. Я проверяю запуск+управление, дальше owner сам.
-- **S3** Гейт 1 — воспр. билд (P0–P3): флаги + SHA-пин + контейнер, CI build-twice+cmp.
-- **S4** Гейт 3 — кросс-компиляция: native-matrix замер + mobile NDK/iOS build.
-- **S5** Гейт 4+2 — бандл per-OS + шов assetc→билд (dylib+ассеты+version-stamp).
-- **S6** Гейт 5 — release-оркестрация (tag→matrix→артефакты+VDF).
-- **S7** Игра: бой (снаряды, враги, коллизии, счёт HUD). → T3.
-- **S8** Игра: босс + мини-сюжет + экран очков. → T3.
-- **S9** Игра: частицы + bloom #2 + аудио #3. → T3.
-- **S10** Гейт 7 — полная игра на mobile: пере-прогон утолщённой игры (S7–S9) на Android-эмуляторе +
-  iOS-симуляторе/owner-устройствах; packaging/подпись для owner-устройств. (Базовый bring-up — в S2.)
-- **S11** Финализация: ADR Accepted / spec Validated / README #8 Закрыта / dev-log.
+- **S1** ✅ Дизайн: spec #8 + ADR 0008 — этот документ.
+- **S2** ✅ Скелет игры (payload) + кросс-платформенный bring-up (S2a desktop macOS live `c2e8b77`;
+  S2b mobile iOS-симулятор `727be61` + Android-эму `122cf14`, wgpu-native из Rust под оба таргета).
+- **S3** ✅ Гейт 1 — воспр. билд P0–P2 + SHA-пин депов (`1e4c0e7`); P3-контейнер — follow-up.
+- **S4** ✅ Гейт 3 — кросс-компиляция: native-matrix замер (wall=max) + mobile arch-verify.
+- **S5** ✅ Гейт 4+2 — бандл per-OS + шов assetc→билд (dylib+ассеты+version-stamp, macOS live).
+- **S6** ✅ Гейт 5 — release-оркестрация (tag→matrix→артефакты+VDF, реальный Actions-прогон rc3).
+- **S7** ✅ Игра: бой (снаряды, враги, коллизии, счёт HUD) `4326234`.
+- **S8** ✅ Игра: босс + мини-сюжет + экран очков `11d36eb`.
+- **S9** ✅ Игра: частицы + bloom #2 + аудио #3 `0523619`.
+- **S10** ✅ Гейт 7 — полная игра на mobile: пере-прогон S7–S9 на iOS-симуляторе + Android-эму
+  (Pixel 8a, реальный тач), полный desktop-паритет `37e067f`. Live iOS-устройства — owner-подпись.
+- **S11** ✅ Финализация: ADR 0008 Accepted / spec #8 Validated / README #8 Закрыта / dev-log.
 
 ## Границы (осознанные, → follow-up в ADR 0008)
 

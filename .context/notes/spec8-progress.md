@@ -181,7 +181,11 @@
     2 taste). Все ≥low + 1 taste fixed, пересобрано+re-verify pass.
   - [ ] **Осталось (отдельно):** iOS на owner-устройствах iPhone/iPad (подпись/provisioning owner сам);
     полноценное mobile-аудио (miniaudio-девайс + audio.bundle в APK/`.app`); полировка тача/оверлея.
-- [ ] **S11** Финализация (ADR Accepted / spec Validated / README #8 / dev-log).
+- [x] **S11** Финализация — **DONE**. ADR 0008 **Accepted** (2026-07-25, validation gate закрыт, все
+  7 гейтов + CI 3 ОС); spec #8 **Validated** (сессии S1–S11 done); README строка #8 → **Закрыта**;
+  dev-log записан. Спека #8 (build/deploy + кросс-компиляция) полностью закрыта. Follow-up (gated,
+  вне #8): Steam-заливка (appid), macOS notarization / Windows code-sign, mobile прод-подпись устройств
+  + сторы, P3 cross-machine контейнер, полноценное mobile-аудио, live iOS-устройства (owner-подпись).
 
 ## Открытые числа (заполнять по PoC)
 - build-time native-matrix (`max` vs sum) — **S4 done:** single-node macOS 16s; matrix wall=max, не sum.
