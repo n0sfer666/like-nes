@@ -482,7 +482,8 @@ if(IDE_POC)
     game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/fx.cpp game/bloom.cpp game/audio.cpp game/controls.cpp game/capture.cpp
     ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
+    ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
   target_link_libraries(game_sidescroller PRIVATE
     input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
@@ -523,6 +524,8 @@ if(IDE_POC)
   configure_file(game/packaging/version.txt.in ${CMAKE_BINARY_DIR}/version.txt @ONLY)
   set(GAME_BUNDLE_ASSET ${CMAKE_CURRENT_SOURCE_DIR}/game/assets/game.bundle)
 
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/licenses.cmake)
+
   if(APPLE)
     set_target_properties(game_sidescroller PROPERTIES
       INSTALL_RPATH "@executable_path;@executable_path/../Frameworks")
@@ -532,11 +535,13 @@ if(IDE_POC)
     install(FILES ${WGPU_RUNTIME_LIB} DESTINATION ${_app}/Frameworks COMPONENT game)
     install(FILES ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
             DESTINATION ${_app}/Resources COMPONENT game)
+    install(FILES ${LICENSE_FILES} DESTINATION ${_app}/Resources/licenses COMPONENT game)
     install(FILES ${CMAKE_BINARY_DIR}/Info.plist DESTINATION ${_app} COMPONENT game)
   else()
     install(TARGETS game_sidescroller RUNTIME DESTINATION like-nes COMPONENT game)
     install(FILES ${WGPU_RUNTIME_LIB} ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
             DESTINATION like-nes COMPONENT game)
+    install(FILES ${LICENSE_FILES} DESTINATION like-nes/licenses COMPONENT game)
   endif()
 
   # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
