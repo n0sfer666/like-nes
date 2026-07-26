@@ -602,10 +602,31 @@ add_executable(ach_plugin_test
 target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 
 add_library(plugin_ach_fake MODULE plugin/plugins/ach_fake.cpp)
+add_library(plugin_steam MODULE plugin/plugins/steam_backend.cpp)
 # Плагин с заниженной ABI-версией: материал гейта «старый ABI отбит», а не рабочее расширение.
 add_library(plugin_ach_v1 MODULE plugin/plugins/ach_v1.cpp)
-foreach(P plugin_ach_fake plugin_ach_v1)
+foreach(P plugin_ach_fake plugin_steam plugin_ach_v1)
   target_include_directories(${P} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
+
+# Реальный Steamworks не вендорится (спека #9): SDK подключается только явным путём
+# у владельца билда, CI гоняет тот же адаптер против контрактного стаба.
+set(STEAMWORKS_SDK_DIR "" CACHE PATH "Path to a local Steamworks SDK (empty = contract stub)")
+if(STEAMWORKS_SDK_DIR)
+  target_compile_definitions(plugin_steam PRIVATE LIKE_NES_STEAM_SDK)
+  target_include_directories(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/public)
+  if(APPLE)
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/osx/libsteam_api.dylib)
+  elseif(WIN32)
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/win64/steam_api64.lib)
+  else()
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/linux64/libsteam_api.so)
+  endif()
+endif()
+
+if(NOT WIN32)
+  add_executable(ach_steam_test achievements/steam_test.cpp)
+  target_link_libraries(ach_steam_test PRIVATE ach_plugin ${CMAKE_DL_LIBS})
+endif()
