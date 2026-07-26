@@ -17,16 +17,23 @@ cmake -S "$HERE" -B "$BUILD" -G Ninja \
   -DANDROID_ABI="$ABI" -DANDROID_PLATFORM="android-$API"
 cmake --build "$BUILD" -j8
 
-rm -rf "$OUT"; mkdir -p "$OUT/lib/$ABI"
+rm -rf "$OUT"; mkdir -p "$OUT/lib/$ABI" "$OUT/assets/licenses"
 cp "$BUILD/libgame.so" "$OUT/lib/$ABI/"
 cp "$NDK/toolchains/llvm/prebuilt/$HOST_TAG/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" \
    "$OUT/lib/$ABI/"
+
+REPO="$HERE/../.."
+while read -r lic || [ -n "$lic" ]; do
+  [ -n "$lic" ] || continue
+  [ -f "$REPO/$lic" ] || { echo "spec #9: лицензионный файл отсутствует: $REPO/$lic" >&2; exit 1; }
+  cp "$REPO/$lic" "$OUT/assets/licenses/"
+done < "$HERE/../cmake/licenses.manifest"
 
 "$BT/aapt2" link -o "$OUT/base.apk" -I "$ANDROID_JAR" \
   --manifest "$HERE/AndroidManifest.xml" \
   --min-sdk-version "$API" --target-sdk-version 35
 
-( cd "$OUT" && zip -q -r base.apk lib )
+( cd "$OUT" && zip -q -r base.apk lib assets )
 "$BT/zipalign" -f 4 "$OUT/base.apk" "$OUT/like_nes.apk"
 
 KS="$HOME/.android/debug.keystore"

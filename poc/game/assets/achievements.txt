@@ -1,0 +1,13 @@
+# like-nes sample game achievements (spec #10)
+# stat | <key>
+# ach  | <key> | bool|progress | <stat> | <target> | -|hidden | <name> | <description>
+
+stat | stat_kills
+stat | stat_score
+stat | stat_deaths
+
+ach | FIRST_BLOOD | progress | stat_kills |    1 | -      | First Blood  | Destroy your first enemy
+ach | KILLER_25   | progress | stat_kills |   25 | -      | Exterminator | Destroy 25 enemies
+ach | SCORE_1000  | progress | stat_score | 1000 | -      | High Scorer  | Reach 1000 points
+ach | BOSS_DOWN   | bool     |            |      | -      | Boss Down    | Defeat the boss
+ach | FLAWLESS    | bool     |            |      | hidden | Flawless     | Win without losing a life

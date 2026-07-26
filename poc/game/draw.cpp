@@ -1,5 +1,7 @@
 #include "draw.hpp"
 
+#include "license.hpp"
+
 #include <cstdio>
 #include <cstring>
 
@@ -89,6 +91,8 @@ void push_screen(SpriteBatch& batch, const Atlas& atlas, const GameState& gs) {
         push_center(batch, atlas, "SIDESCROLLER", 66, 22, 0.6f, 0.7f, 0.9f);
         push_center(batch, atlas, "DODGE AND SHOOT THE BOSS", -50, 16, 0.8f, 0.8f, 0.85f);
         push_center(batch, atlas, "PRESS FIRE TO START", -110, 20, 1, 0.8f, 0.3f);
+        push_center(batch, atlas, engine::LICENSE_ATTRIBUTION, -168, 11, 0.45f, 0.5f, 0.62f);
+        push_center(batch, atlas, engine::LICENSE_TERMS, -186, 11, 0.38f, 0.42f, 0.54f);
     } else if (gs.phase == PH_Victory) {
         push_center(batch, atlas, "VICTORY", 100, 52, 0.4f, 1, 0.5f);
         push_center(batch, atlas, buf, 20, 26, 1, 1, 1);
@@ -98,6 +102,20 @@ void push_screen(SpriteBatch& batch, const Atlas& atlas, const GameState& gs) {
         push_center(batch, atlas, buf, 20, 26, 1, 1, 1);
         push_center(batch, atlas, "PRESS FIRE TO RESTART", -80, 18, 1, 0.8f, 0.3f);
     }
+}
+
+void push_toast(SpriteBatch& batch, const Atlas& atlas, const char* name, uint32_t left) {
+    if (left == 0) return;
+    char buf[24];
+    int n = 0;
+    for (; n < 23 && name[n] != 0; ++n) {
+        const char c = name[n];
+        buf[n] = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+    }
+    buf[n] = 0;
+    const float k = left > 150 ? 1.7f : 1.0f;   // вспышка на входе → bloom подхватывает
+    push_center(batch, atlas, "ACHIEVEMENT", -HALF_H + 66, 15, k, 0.8f * k, 0.25f * k);
+    push_center(batch, atlas, buf, -HALF_H + 38, 21, k, 0.95f * k, 0.55f * k);
 }
 
 WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view) {

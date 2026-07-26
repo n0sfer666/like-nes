@@ -116,8 +116,8 @@ if(NOT WIN32)
     ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
   target_link_libraries(asset_core PUBLIC libzstd_static Threads::Threads)
 
-  add_executable(assetc asset/assetc_main.cpp)
-  target_link_libraries(assetc PRIVATE asset_core)
+  add_executable(assetc asset/assetc_main.cpp asset/bakers.cpp)
+  target_link_libraries(assetc PRIVATE asset_core ach_core)
 
   # Headless гейт #2 (zero-copy / no per-frame heap). ASan/UBSan-джоб — Phase 6.
   add_executable(asset_test asset/asset_test.cpp)
@@ -473,21 +473,23 @@ if(IDE_POC)
   # транскод UASTC→BC7). asset_gpu/basis — POSIX (как asset_render); WIN32 → процедурный
   # fallback (stub load_game_atlas). assets_path — все ОС (self-contained bundle-резолв).
   if(WIN32)
-    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas_stub.cpp)
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas_stub.cpp game/ach_source_stub.cpp)
   else()
-    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas.cpp)
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas.cpp game/ach_source_bundle.cpp)
   endif()
   add_executable(game_sidescroller
     game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
+    game/achievements.cpp game/backend_host.cpp
     game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/fx.cpp game/bloom.cpp game/audio.cpp game/controls.cpp game/capture.cpp
     ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render)
+    ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/render
+    ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
   target_link_libraries(game_sidescroller PRIVATE
-    input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+    input_core flecs_static webgpu glfw3webgpu glfw ach_plugin Threads::Threads)
   if(NOT WIN32)
-    target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu)
+    target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu ach_bundle)
     # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
     # (PUBLIC) → game/audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
     if(AUDIO_MINIAUDIO)
@@ -523,6 +525,8 @@ if(IDE_POC)
   configure_file(game/packaging/version.txt.in ${CMAKE_BINARY_DIR}/version.txt @ONLY)
   set(GAME_BUNDLE_ASSET ${CMAKE_CURRENT_SOURCE_DIR}/game/assets/game.bundle)
 
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/licenses.cmake)
+
   if(APPLE)
     set_target_properties(game_sidescroller PROPERTIES
       INSTALL_RPATH "@executable_path;@executable_path/../Frameworks")
@@ -532,11 +536,13 @@ if(IDE_POC)
     install(FILES ${WGPU_RUNTIME_LIB} DESTINATION ${_app}/Frameworks COMPONENT game)
     install(FILES ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
             DESTINATION ${_app}/Resources COMPONENT game)
+    install(FILES ${LICENSE_FILES} DESTINATION ${_app}/Resources/licenses COMPONENT game)
     install(FILES ${CMAKE_BINARY_DIR}/Info.plist DESTINATION ${_app} COMPONENT game)
   else()
     install(TARGETS game_sidescroller RUNTIME DESTINATION like-nes COMPONENT game)
     install(FILES ${WGPU_RUNTIME_LIB} ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
             DESTINATION like-nes COMPONENT game)
+    install(FILES ${LICENSE_FILES} DESTINATION like-nes/licenses COMPONENT game)
   endif()
 
   # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
@@ -545,4 +551,94 @@ if(IDE_POC)
   target_include_directories(game_sim_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/input)
   target_link_libraries(game_sim_test PRIVATE flecs_static Threads::Threads)
+endif()
+
+add_library(ach_core STATIC
+  achievements/registry.cpp achievements/tracker.cpp achievements/state.cpp achievements/store.cpp
+  achievements/manifest.cpp achievements/bake.cpp achievements/bake_parse.cpp
+  achievements/delivery.cpp)
+# Каталога достижений нет в путях потребителей: у ach_core и plugin_core совпадают имена
+# registry.hpp/manifest.hpp, и общий -I отдавал бы «ближайший», а не нужный. Все включения
+# извне — с префиксом каталога (`../achievements/...`), внутри каталога работают относительные.
+
+add_executable(achievements_test achievements/achievements_test.cpp)
+target_link_libraries(achievements_test PRIVATE ach_core)
+
+add_executable(ach_state_test achievements/state_test.cpp)
+target_link_libraries(ach_state_test PRIVATE ach_core)
+
+add_executable(ach_crash_test achievements/crash_test.cpp)
+target_link_libraries(ach_crash_test PRIVATE ach_core)
+
+add_executable(ach_manifest_test achievements/manifest_test.cpp)
+target_link_libraries(ach_manifest_test PRIVATE ach_core)
+
+# Шов бейка (спека #10, гейт 4): таблица достижений живёт в бандле #5 и читается
+# из mmap-региона без парсинга. Зависит от asset_core → только POSIX (как и он).
+if(NOT WIN32)
+  add_library(ach_bundle STATIC achievements/bundle_source.cpp)
+  target_link_libraries(ach_bundle PUBLIC ach_core asset_core)
+
+  add_executable(ach_bundle_test achievements/bundle_test.cpp)
+  target_link_libraries(ach_bundle_test PRIVATE ach_bundle)
+endif()
+
+add_executable(ach_delivery_test achievements/delivery_test.cpp)
+target_link_libraries(ach_delivery_test PRIVATE ach_core)
+
+add_executable(ach_delivery_lifecycle_test achievements/delivery_lifecycle_test.cpp)
+target_link_libraries(ach_delivery_lifecycle_test PRIVATE ach_core)
+
+# Плагинный шов (спека #10, гейт 5): бэкенд приезжает плагином на точке расширения #6.
+add_library(ach_plugin STATIC achievements/plugin_backend.cpp)
+# plugin_core — PRIVATE: линк протянется как $<LINK_ONLY:>, а его include-путь наружу не пойдёт.
+# Иначе poc/plugin/sim.hpp затеняет game/sim.hpp у потребителей — та же коллизия, что убрана у ach_core.
+target_link_libraries(ach_plugin PUBLIC ach_core PRIVATE plugin_core)
+
+# backend_host.cpp собирается прямо сюда: порядок разрушения backend→dlclose иначе не покрыт
+# ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это единственный способ его проверить.
+add_executable(ach_plugin_test
+  achievements/plugin_test.cpp achievements/plugin_test_common.cpp
+  achievements/plugin_host_test.cpp game/backend_host.cpp)
+target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
+
+add_library(plugin_ach_fake MODULE plugin/plugins/ach_fake.cpp)
+add_library(plugin_steam MODULE plugin/plugins/steam_backend.cpp)
+# Плагин с заниженной ABI-версией: материал гейта «старый ABI отбит», а не рабочее расширение.
+add_library(plugin_ach_v1 MODULE plugin/plugins/ach_v1.cpp)
+foreach(P plugin_ach_fake plugin_steam plugin_ach_v1)
+  target_include_directories(${P} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  set_target_properties(${P} PROPERTIES PREFIX "")
+endforeach()
+
+# Реальный Steamworks не вендорится (спека #9): SDK подключается только явным путём
+# у владельца билда, CI гоняет тот же адаптер против контрактного стаба.
+set(STEAMWORKS_SDK_DIR "" CACHE PATH "Path to a local Steamworks SDK (empty = contract stub)")
+if(STEAMWORKS_SDK_DIR)
+  target_compile_definitions(plugin_steam PRIVATE LIKE_NES_STEAM_SDK)
+  target_include_directories(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/public)
+  if(APPLE)
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/osx/libsteam_api.dylib)
+  elseif(WIN32)
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/win64/steam_api64.lib)
+  else()
+    target_link_libraries(plugin_steam PRIVATE ${STEAMWORKS_SDK_DIR}/redistributable_bin/linux64/libsteam_api.so)
+  endif()
+endif()
+
+if(NOT WIN32)
+  add_executable(ach_steam_test achievements/steam_test.cpp)
+  target_link_libraries(ach_steam_test PRIVATE ach_plugin ${CMAKE_DL_LIBS})
+
+  # Гейт 7: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
+  # Внутри IDE_POC: игровой sim тянет flecs, доступный только при этой опции (как game_sim_test).
+  if(IDE_POC)
+    add_executable(ach_sim_test
+      game/ach_sim_test.cpp game/achievements.cpp game/backend_host.cpp game/ach_source_bundle.cpp
+      game/sim.cpp game/combat.cpp game/boss.cpp)
+    target_include_directories(ach_sim_test PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/input)
+    target_link_libraries(ach_sim_test PRIVATE ach_bundle ach_plugin flecs_static Threads::Threads)
+  endif()
 endif()
