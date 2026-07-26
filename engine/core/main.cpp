@@ -31,7 +31,7 @@ static WGPUDevice request_device(WGPUAdapter adapter) {
     WGPUDevice out = nullptr;
     WGPUDeviceDescriptor desc = {};
     desc.nextInChain = nullptr;
-    desc.label = "like-nes-poc-device";
+    desc.label = "like-nes-core-smoke-device";
     wgpuAdapterRequestDevice(
         adapter, &desc,
         [](WGPURequestDeviceStatus status, WGPUDevice device, char const* msg, void* ud) {
@@ -136,7 +136,7 @@ int main() {
         glfwGetFramebufferSize(window, &fbw, &fbh);
         WGPUTextureFormat format =
             configure_surface(surface, adapter, device, (uint32_t)fbw, (uint32_t)fbh);
-        std::printf("[poc] webgpu up: fb=%dx%d format=%d\n", fbw, fbh, (int)format);
+        std::printf("[core-smoke] webgpu up: fb=%dx%d format=%d\n", fbw, fbh, (int)format);
     }
 
     while (!glfwWindowShouldClose(window)) {
@@ -169,6 +169,6 @@ cleanup:
     if (instance) wgpuInstanceRelease(instance);
     if (window) glfwDestroyWindow(window);
     glfwTerminate();
-    if (rc == 0) std::printf("[poc] clean exit after %d rendered frames\n", frames);
+    if (rc == 0) std::printf("[core-smoke] clean exit after %d rendered frames\n", frames);
     return rc;
 }

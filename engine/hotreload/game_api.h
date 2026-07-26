@@ -1,5 +1,5 @@
 #pragma once
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 #include <cstdint>
 
 // Host-owned состояние (POD, fixed-point). Живёт в host, НЕ в dylib.

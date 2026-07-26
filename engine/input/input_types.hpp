@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 
 // Типы системы ввода: сырое async-событие ОС (input-поток) и детерм. per-tick InputFrame
 // (то, что читает сим). Всё — POD, детерм. по значению. Оси — fix32 (целочисл. dead-zone).
