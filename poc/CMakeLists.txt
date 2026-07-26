@@ -116,8 +116,8 @@ if(NOT WIN32)
     ${CMAKE_CURRENT_SOURCE_DIR}/asset ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
   target_link_libraries(asset_core PUBLIC libzstd_static Threads::Threads)
 
-  add_executable(assetc asset/assetc_main.cpp)
-  target_link_libraries(assetc PRIVATE asset_core)
+  add_executable(assetc asset/assetc_main.cpp asset/bakers.cpp)
+  target_link_libraries(assetc PRIVATE asset_core ach_core)
 
   # Headless гейт #2 (zero-copy / no per-frame heap). ASan/UBSan-джоб — Phase 6.
   add_executable(asset_test asset/asset_test.cpp)
@@ -553,7 +553,8 @@ if(IDE_POC)
 endif()
 
 add_library(ach_core STATIC
-  achievements/registry.cpp achievements/tracker.cpp achievements/state.cpp achievements/store.cpp)
+  achievements/registry.cpp achievements/tracker.cpp achievements/state.cpp achievements/store.cpp
+  achievements/manifest.cpp achievements/bake.cpp achievements/bake_parse.cpp)
 # Каталога достижений нет в путях потребителей: у ach_core и plugin_core совпадают имена
 # registry.hpp/manifest.hpp, и общий -I отдавал бы «ближайший», а не нужный. Все включения
 # извне — с префиксом каталога (`../achievements/...`), внутри каталога работают относительные.
@@ -566,3 +567,16 @@ target_link_libraries(ach_state_test PRIVATE ach_core)
 
 add_executable(ach_crash_test achievements/crash_test.cpp)
 target_link_libraries(ach_crash_test PRIVATE ach_core)
+
+add_executable(ach_manifest_test achievements/manifest_test.cpp)
+target_link_libraries(ach_manifest_test PRIVATE ach_core)
+
+# Шов бейка (спека #10, гейт 4): таблица достижений живёт в бандле #5 и читается
+# из mmap-региона без парсинга. Зависит от asset_core → только POSIX (как и он).
+if(NOT WIN32)
+  add_library(ach_bundle STATIC achievements/bundle_source.cpp)
+  target_link_libraries(ach_bundle PUBLIC ach_core asset_core)
+
+  add_executable(ach_bundle_test achievements/bundle_test.cpp)
+  target_link_libraries(ach_bundle_test PRIVATE ach_bundle)
+endif()
