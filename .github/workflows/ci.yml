@@ -460,3 +460,147 @@ jobs:
           "$BIN" | tee game_sim.txt
           grep -q "0x32a094e89eacf2f2" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "game-sim: PASS" game_sim.txt
+
+      # --- Достижения (спека #10): ядро — чистый наблюдатель sim. Гейты 1/2 (golden+идемпотентность)
+      # и 4-манифест гоняются на всех 3 ОС (ядро без POSIX-зависимостей); бандл/плагин/Steam/крэш —
+      # POSIX (asset_core mmap, dlopen, fork+kill).
+      - name: "Achievements — unlock-logic golden + idempotency (gates #1/#2, all OS)"
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          AT=$(find poc/build -maxdepth 2 -type f \( -name 'achievements_test' -o -name 'achievements_test.exe' \) | head -1)
+          need "$AT" achievements_test
+          "$AT" | tee ach.txt
+          grep -q "0xe728fef199e87fc9" ach.txt || { echo "ACH GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "PASS" ach.txt
+          MT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_manifest_test' -o -name 'ach_manifest_test.exe' \) | head -1)
+          need "$MT" ach_manifest_test
+          "$MT" | tee achm.txt
+          grep -q "PASS" achm.txt
+          DT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_delivery_test' -o -name 'ach_delivery_test.exe' \) | head -1)
+          need "$DT" ach_delivery_test
+          "$DT" | tee achd.txt
+          grep -q "PASS" achd.txt
+          LT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_delivery_lifecycle_test' -o -name 'ach_delivery_lifecycle_test.exe' \) | head -1)
+          need "$LT" ach_delivery_lifecycle_test
+          "$LT" | tee achl.txt
+          grep -q "PASS" achl.txt
+
+      - name: "Achievements — persistence + crash-during-write (gate #3, POSIX)"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          ST=$(find poc/build -maxdepth 2 -type f -name 'ach_state_test' | head -1)
+          need "$ST" ach_state_test
+          "$ST" | tee achs.txt && grep -q "PASS" achs.txt
+          CT=$(find poc/build -maxdepth 2 -type f -name 'ach_crash_test' | head -1)
+          need "$CT" ach_crash_test
+          "$CT" | tee achc.txt && grep -q "PASS" achc.txt
+
+      - name: "Achievements — assetc bake -> bundle -> runtime (gate #4, POSIX)"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          BT=$(find poc/build -maxdepth 2 -type f -name 'ach_bundle_test' | head -1)
+          need "$BT" ach_bundle_test
+          "$BT" | tee achb.txt && grep -q "PASS" achb.txt
+          "$BT" poc/game/assets/game.bundle | tee achb2.txt
+          grep -q "PASS" achb2.txt
+
+      - name: "Achievements — plugin seam + offline queue + Steam adapter (gates #5/#6, POSIX)"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          PT=$(find poc/build -maxdepth 2 -type f -name 'ach_plugin_test' | head -1)
+          F=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
+          V=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_v1.*' | head -1)
+          need "$PT" ach_plugin_test; need "$F" plugin_ach_fake; need "$V" plugin_ach_v1
+          "$PT" "$F" "$V" | tee achp.txt && grep -q "PASS" achp.txt
+          # Ручки ach_fake читаются на загрузке плагина → одна неисправность на прогон.
+          for KNOB in ACH_FAKE_OFFLINE=2 ACH_FAKE_RETRY=2 ACH_FAKE_FATAL=1 ACH_FAKE_REMOTE=BOSS_DOWN \
+                      ACH_FAKE_REMOTE_LATE=BOSS_DOWN; do
+            env "$KNOB" "$PT" "$F" | tee achp_knob.txt
+            grep -q "PASS" achp_knob.txt
+          done
+          XT=$(find poc/build -maxdepth 2 -type f -name 'ach_steam_test' | head -1)
+          S=$(find poc/build -maxdepth 2 -type f -name 'plugin_steam.*' | head -1)
+          need "$XT" ach_steam_test; need "$S" plugin_steam
+          "$XT" "$S" | tee achx.txt && grep -q "PASS" achx.txt
+          STEAM_STUB_REMOTE=BOSS_DOWN "$XT" "$S" | tee achx_remote.txt && grep -q "PASS" achx_remote.txt
+          STEAM_STUB_INIT_FAIL=1 "$XT" "$S" | tee achx_init.txt && grep -q "PASS" achx_init.txt
+          STEAM_STUB_STORE_FAIL=1 "$XT" "$S" | tee achx_store.txt && grep -q "PASS" achx_store.txt
+
+      - name: "Achievements — sim-hash regression: observer must not touch sim (gate #7, POSIX)"
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          GT=$(find poc/build -maxdepth 2 -type f -name 'ach_sim_test' | head -1)
+          F=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
+          need "$GT" ach_sim_test; need "$F" plugin_ach_fake
+          "$GT" poc/game/assets/game.bundle "$F" | tee achg.txt
+          grep -q "0x32a094e89eacf2f2 (bare) 0x32a094e89eacf2f2 (observer) 0x32a094e89eacf2f2 (plugin)" achg.txt \
+            || { echo "ACH OBSERVER CHANGED SIM HASH on ${{ matrix.os }}"; exit 1; }
+          grep -q "game-achievements: PASS" achg.txt
+
+      - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # -Ipoc/achievements тут не нужен (TU лежат в этом каталоге, кавычечный include их находит)
+          # и вернул бы коллизию registry.hpp/manifest.hpp с -Ipoc/plugin в цепочке achp_san.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/src"
+          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
+            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
+            poc/achievements/bake_parse.cpp poc/achievements/achievements_test.cpp -o ach_san
+          ./ach_san | tee achsan.txt
+          grep -q "0xe728fef199e87fc9" achsan.txt
+          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
+            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
+            poc/achievements/bake_parse.cpp poc/achievements/manifest_test.cpp -o achm_san
+          ./achm_san | tee achmsan.txt
+          grep -q "PASS" achmsan.txt
+          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
+            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/delivery.cpp \
+            poc/achievements/delivery_test.cpp -o achd_san
+          ./achd_san | tee achdsan.txt
+          grep -q "PASS" achdsan.txt
+          ZLIB=$(find poc/build -name 'libzstd.a' | head -1)
+          ZINC=$(find poc/build -path '*zstd-src/lib' -type d | head -1)
+          SINC=$(dirname "$(find poc/build -name 'stb_image.h' | head -1)")
+          c++ $SAN -Ipoc/asset -I"$ZINC" -I"$SINC" \
+            poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
+            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
+            poc/achievements/bake_parse.cpp poc/achievements/bundle_source.cpp \
+            poc/achievements/bundle_test.cpp poc/asset/bundle_writer.cpp poc/asset/codec.cpp \
+            poc/asset/platform_io.cpp poc/asset/bundle_view.cpp poc/asset/asset_manager.cpp \
+            "$ZLIB" -lpthread -o achb_san
+          ./achb_san | tee achbsan.txt
+          grep -q "PASS" achbsan.txt
+          ./achb_san poc/game/assets/game.bundle | tee achbsan2.txt
+          grep -q "PASS" achbsan2.txt
+          # Единственный путь, где Delivery держит ссылку в dlopen-нутый код: UAF после dlclose
+          # ловится только тут, поэтому -DPLUGIN_FORCE_DLCLOSE — без него host.cpp под ASan
+          # библиотеку не размапливает и сценарий не воспроизводится вовсе.
+          c++ $SAN -Ipoc/plugin -shared -fPIC poc/plugin/plugins/ach_fake.cpp -o plugin_ach_fake_san.so
+          c++ $SAN -Ipoc/plugin -shared -fPIC poc/plugin/plugins/ach_v1.cpp -o plugin_ach_v1_san.so
+          c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Ipoc/plugin poc/achievements/registry.cpp \
+            poc/achievements/tracker.cpp poc/achievements/state.cpp poc/achievements/store.cpp \
+            poc/achievements/manifest.cpp poc/achievements/delivery.cpp \
+            poc/achievements/plugin_backend.cpp poc/plugin/registry.cpp poc/plugin/host.cpp \
+            poc/plugin/builtin.cpp poc/plugin/manifest.cpp poc/game/backend_host.cpp \
+            poc/achievements/plugin_test.cpp poc/achievements/plugin_test_common.cpp \
+            poc/achievements/plugin_host_test.cpp \
+            -ldl -o achp_san
+          # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
+          # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»
+          # включением обратно.
+          for KNOBS in "" "ACH_FAKE_OFFLINE=2" "ACH_FAKE_RETRY=2" "ACH_FAKE_FATAL=1" \
+                       "ACH_FAKE_REMOTE=BOSS_DOWN" "ACH_FAKE_REMOTE_LATE=BOSS_DOWN"; do
+            env $KNOBS ASAN_OPTIONS=detect_leaks=0 ./achp_san ./plugin_ach_fake_san.so \
+              ./plugin_ach_v1_san.so | tee achpsan.txt
+            grep -q "PASS" achpsan.txt
+          done
