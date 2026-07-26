@@ -9,6 +9,7 @@
 
 #include "asset_manager.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
 
 // Headless-гейт #2 (спека #5): zero-copy mmap-резидент + async-стрим→декомпрессия в арену,
 // БЕЗ per-frame heap в submit-пути. Гоняется под ASan/UBSan (CI). Не требует GPU.
@@ -38,6 +39,7 @@ int fail(const char* msg) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) return fail("usage: asset_test <bundle> [--selftest]");
     const std::string bundle = argv[1];
     const unsigned delay = (argc >= 3 && std::strcmp(argv[2], "--slow") == 0) ? 3000 : 0;

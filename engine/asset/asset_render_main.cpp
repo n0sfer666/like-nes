@@ -13,6 +13,7 @@
 #include "capture.hpp"
 #include "gpu.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
 #include "transcode.hpp"
 
 // Шов asset→render (спека #5 validation gate): реальный бейкнутый ассет кормит GPU —
@@ -62,6 +63,7 @@ int fail(const char* m) { std::fprintf(stderr, "[asset_render] FAIL: %s\n", m); 
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) return fail("usage: asset_render <bundle> [out.png]");
     const std::string bundle = argv[1];
     const char* out_png = argc >= 3 ? argv[2] : nullptr;

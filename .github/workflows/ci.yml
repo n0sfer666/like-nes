@@ -45,6 +45,38 @@ jobs:
           [ -z "$HITS" ] || { echo "OS #ifdef leaked outside the platform seam:"; echo "$HITS"; exit 1; }
           echo "platform seam: PASS (no OS conditionals outside engine/platform)"
 
+      # Тот же инвариант 2, вторая его половина: узкий argv MSVC перекодирован в системную
+      # ANSI-кодовую страницу, и юникод-аргумент разрушается ДО входа в шов файловой системы.
+      # Единственный легальный источник argv — platform::Args; забыть его в новом main молча
+      # нельзя, греп ловит это до сборки (гейт 8 спеки поймал бы только post factum и только там,
+      # где путь юникодный).
+      - name: Platform — argv only through platform::Args (spec #12 invariant 2)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Исключено то, до чего ANSI-перекодировка argv не доходит: три POSIX-only цели
+          # IPC-вертикали спеки #13 (CMake под Windows их не собирает вовсе) и iOS-хост (свой CRT,
+          # MSVC там нет).
+          EXCLUDE='^(tools/ide/(game_child|build_loop_test|play_spawn_test)\.cpp|platform/ios/app\.mm)$'
+          # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
+          # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
+          FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
+                  --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
+                  --include='*.mm' --include='*.m' \
+                  engine tools example_ugly_game platform | grep -vE "$EXCLUDE" || true)
+          # Пустой список — это сломанный поиск, а не чистое дерево: без этой проверки гейт
+          # проходит вакуумно (переименовали корень — и он «зелёный» навсегда).
+          COUNT=$(printf '%s\n' "$FILES" | grep -c . || true)
+          [ "$COUNT" -ge 15 ] || { echo "argv gate matched only $COUNT main() files — the search itself is broken"; exit 1; }
+          BAD=""
+          # read -r, а не `for f in $(...)`: в дереве уже есть каталог с пробелом в имени.
+          while IFS= read -r f; do
+            [ -n "$f" ] || continue
+            grep -q 'platform::Args' "$f" || BAD="$BAD $f"
+          done <<< "$FILES"
+          [ -z "$BAD" ] || { echo "main() without the UTF-8 argv seam (platform::Args):$BAD"; exit 1; }
+          echo "argv seam: PASS ($COUNT mains, all through platform::Args)"
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
@@ -217,6 +249,7 @@ jobs:
             -Iengine/asset -Iengine/platform -I"$ZINC" \
             engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
             engine/platform/platform_io_posix.cpp engine/asset/bundle_view.cpp \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
             "$ZLIB" -lpthread -o asset_test_san
           ./asset_test_san syn.bundle
 
@@ -350,13 +383,18 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core"
-          c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp -o plugin_manifest_san
+          # Эти сборки собирают дерево вручную, минуя CMake, поэтому исходники швов приходится
+          # перечислять самим — иначе шаг падает на первом же `platform_*.hpp: No such file`.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core -Iengine/platform"
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp"
+          PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
+          PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp $PLAT_FS $PLAT_ARGS -o plugin_manifest_san
           ./plugin_manifest_san engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest
           c++ $SAN -shared -fPIC engine/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
           c++ $SAN -shared -fPIC engine/plugin/plugins/wind.cpp -o plugin_wind_san.so
           c++ $SAN engine/plugin/registry.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp \
-            engine/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
+            engine/plugin/plugin_determinism_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
 
@@ -519,7 +557,8 @@ jobs:
           # build_orchestrator берёт mtime через шов platform_fs (спека #12) → сюда же его TU.
           c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
-            engine/platform/platform_fs_posix.cpp -ldl -o ide_bl_san
+            engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
+            -ldl -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
 
@@ -707,32 +746,36 @@ jobs:
         run: |
           # -Iengine/achievements тут не нужен (TU лежат в этом каталоге, кавычечный include их находит)
           # и вернул бы коллизию registry.hpp/manifest.hpp с -Iengine/plugin в цепочке achp_san.
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core"
+          # Швы перечисляются поимённо по той же причине, что и в plugin-шаге: CMake тут не участвует.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform"
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp"
+          PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
+          PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
-            engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp -o ach_san
+            engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp $PLAT_FS -o ach_san
           ./ach_san | tee achsan.txt
           grep -q "0xe728fef199e87fc9" achsan.txt
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
-            engine/achievements/bake_parse.cpp engine/achievements/manifest_test.cpp -o achm_san
+            engine/achievements/bake_parse.cpp engine/achievements/manifest_test.cpp $PLAT_FS -o achm_san
           ./achm_san | tee achmsan.txt
           grep -q "PASS" achmsan.txt
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
-            engine/achievements/delivery_test.cpp -o achd_san
+            engine/achievements/delivery_test.cpp $PLAT_FS -o achd_san
           ./achd_san | tee achdsan.txt
           grep -q "PASS" achdsan.txt
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
           ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
           SINC=$(dirname "$(find build -type f -name 'stb_image.h' | head -1)")
-          c++ $SAN -Iengine/asset -Iengine/platform -I"$ZINC" -I"$SINC" \
+          c++ $SAN -Iengine/asset -I"$ZINC" -I"$SINC" \
             engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
             engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
             engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp \
-            engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp \
+            engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp $PLAT_FS $PLAT_ARGS \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt
           grep -q "PASS" achbsan.txt
@@ -749,7 +792,7 @@ jobs:
             engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
             engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
-            engine/achievements/plugin_host_test.cpp \
+            engine/achievements/plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san
           # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
           # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»

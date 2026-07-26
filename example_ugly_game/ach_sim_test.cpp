@@ -4,6 +4,7 @@
 
 #include "achievements.hpp"
 #include "combat.hpp"
+#include "platform_args.hpp"
 #include "sim.hpp"
 #include "world.hpp"
 
@@ -51,6 +52,7 @@ uint64_t scripted(int ticks, game::Achievements* ach, game::GameState* out) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     std::printf("game achievements observer\n");
     const std::string bundle = argc > 1 ? argv[1] : "";
     const std::string plugin = argc > 2 ? argv[2] : "";
