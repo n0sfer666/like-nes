@@ -580,3 +580,11 @@ if(NOT WIN32)
   add_executable(ach_bundle_test achievements/bundle_test.cpp)
   target_link_libraries(ach_bundle_test PRIVATE ach_bundle)
 endif()
+
+# Плагин с заниженной ABI-версией: материал гейта «старый ABI отбит», а не рабочее расширение.
+add_library(plugin_ach_v1 MODULE plugin/plugins/ach_v1.cpp)
+foreach(P plugin_ach_v1)
+  target_include_directories(${P} PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
+  set_target_properties(${P} PROPERTIES PREFIX "")
+endforeach()
