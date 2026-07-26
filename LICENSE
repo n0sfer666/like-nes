@@ -1,0 +1,43 @@
+# License
+
+like-nes is free and open source software, dual-licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+  <http://www.apache.org/licenses/LICENSE-2.0>)
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or <http://opensource.org/licenses/MIT>)
+
+at your option.
+
+There are **no royalties, no revenue thresholds, and no commercial-use
+restrictions**. Games and other works built with like-nes belong entirely to
+their authors, whatever they earn, and may be distributed under any terms the
+author chooses — including fully proprietary ones.
+
+Attribution is appreciated but not required by the MIT arm. The Apache-2.0 arm
+requires that you retain the notices described in its section 4; the simplest
+way to satisfy both — for like-nes *and* for everything it links — is to ship
+this file together with `LICENSE-MIT`, `LICENSE-APACHE`,
+[`THIRD-PARTY.md`](THIRD-PARTY.md),
+[`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt),
+[`THIRD-PARTY-NOTICES-RUST.txt`](THIRD-PARTY-NOTICES-RUST.txt) and
+[`THIRD-PARTY-NOTICES-NDK.txt`](THIRD-PARTY-NOTICES-NDK.txt) alongside your
+binary, which the engine's packaging step does for you.
+
+## Third-party components
+
+like-nes links third-party libraries that remain under their own licenses.
+Those licenses are **not** superseded by this file — when you redistribute a
+binary you must satisfy them too. All of them are permissive and compatible
+with both arms above; the full inventory, including which arm of each
+dual-licensed dependency this project elects, is in
+[`THIRD-PARTY.md`](THIRD-PARTY.md), and their verbatim notices are in
+[`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt),
+[`THIRD-PARTY-NOTICES-RUST.txt`](THIRD-PARTY-NOTICES-RUST.txt) and
+[`THIRD-PARTY-NOTICES-NDK.txt`](THIRD-PARTY-NOTICES-NDK.txt).
+
+## Contributions
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in like-nes by you shall be dual-licensed as above, without any
+additional terms or conditions. Contributions are accepted under the Developer
+Certificate of Origin — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
