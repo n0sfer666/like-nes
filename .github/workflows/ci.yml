@@ -486,15 +486,14 @@ jobs:
           "$LT" | tee achl.txt
           grep -q "PASS" achl.txt
 
-      - name: "Achievements — persistence + crash-during-write (gate #3, POSIX)"
-        if: runner.os != 'Windows'
+      - name: "Achievements — persistence + crash-during-write (gate #3; kill-half POSIX-only)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          ST=$(find poc/build -maxdepth 2 -type f -name 'ach_state_test' | head -1)
+          ST=$(find poc/build -maxdepth 2 -type f \( -name 'ach_state_test' -o -name 'ach_state_test.exe' \) | head -1)
           need "$ST" ach_state_test
           "$ST" | tee achs.txt && grep -q "PASS" achs.txt
-          CT=$(find poc/build -maxdepth 2 -type f -name 'ach_crash_test' | head -1)
+          CT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_crash_test' -o -name 'ach_crash_test.exe' \) | head -1)
           need "$CT" ach_crash_test
           "$CT" | tee achc.txt && grep -q "PASS" achc.txt
 
