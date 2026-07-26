@@ -42,7 +42,7 @@ jobs:
       - name: Determinism — golden-hash must match across OS/compilers
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 \( -name 'determinism_test' -o -name 'determinism_test.exe' \) | head -1)
+          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'determinism_test' -o -name 'determinism_test.exe' \) | head -1)
           echo "binary: $BIN"
           "$BIN" | tee out.txt
           grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -196,7 +196,7 @@ jobs:
       - name: Input — determinism golden (gate #1, integer/fix32 → cross-machine) + poll-rate indep + replay
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 \( -name 'input_determinism_test' -o -name 'input_determinism_test.exe' \) | head -1)
+          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'input_determinism_test' -o -name 'input_determinism_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "input_determinism_test not built"; exit 1; }
           "$BIN" | tee id.txt
           grep -q "0x4c6429af58bde01e" id.txt || { echo "INPUT DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -205,13 +205,13 @@ jobs:
       - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + rt-safety (gate #3)
         shell: bash
         run: |
-          AM=$(find poc/build -maxdepth 2 \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
-          RT=$(find poc/build -maxdepth 2 \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
+          AM=$(find poc/build -maxdepth 2 -type f \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
+          RT=$(find poc/build -maxdepth 2 -type f \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
 
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
         run: |
-          RC=$(find poc/build -maxdepth 2 \( -name 'input_race_test' -o -name 'input_race_test.exe' \) | head -1); "$RC"
+          RC=$(find poc/build -maxdepth 2 -type f \( -name 'input_race_test' -o -name 'input_race_test.exe' \) | head -1); "$RC"
 
       - name: Input — ASan/UBSan (gates #1/#3, action-map) + TSan (gate #2 race), Linux
         if: runner.os == 'Linux'
@@ -266,7 +266,7 @@ jobs:
       - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
         shell: bash
         run: |
-          MT=$(find poc/build -maxdepth 2 \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
+          MT=$(find poc/build -maxdepth 2 -type f \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
           [ -n "$MT" ] || { echo "plugin_manifest_test not built"; exit 1; }
           "$MT" poc/plugin/manifests/inspector.manifest poc/plugin/manifests/console.manifest poc/plugin/manifests/bad.manifest | tee pm.txt
           grep -q "plugin-manifest: PASS" pm.txt
@@ -292,7 +292,7 @@ jobs:
       - name: IDE — scene round-trip byte-golden (gate 1, fix32 integer -> cross-OS) + run-to-run
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 \( -name 'scene_roundtrip_test' -o -name 'scene_roundtrip_test.exe' \) | head -1)
+          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'scene_roundtrip_test' -o -name 'scene_roundtrip_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "scene_roundtrip_test not built"; exit 1; }
           "$BIN" | tee ide_rt.txt
           grep -q "0x2de54a36e54e0684" ide_rt.txt || { echo "IDE SCENE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -301,7 +301,7 @@ jobs:
       - name: "IDE — undo/redo command bus (gate 2: do/undo/redo + grouping + redo-truncation)"
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 \( -name 'command_test' -o -name 'command_test.exe' \) | head -1)
+          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'command_test' -o -name 'command_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "command_test not built"; exit 1; }
           "$BIN" | tee ide_cmd.txt
           grep -q "command-undo: PASS" ide_cmd.txt
@@ -455,7 +455,7 @@ jobs:
       - name: Game — combat sim-hash golden (S7, cross-arch) + run-to-run determinism
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
+          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "game_sim_test not built"; exit 1; }
           "$BIN" | tee game_sim.txt
           grep -q "0x32a094e89eacf2f2" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
