@@ -7,12 +7,12 @@
 #include <thread>
 #include <unistd.h>
 
-#include "../asset/asset_manager.hpp"
-#include "../asset/hash.hpp"
-#include "../audio/decoder.hpp"
-#include "../audio/device.hpp"
-#include "../audio/engine.hpp"
-#include "../audio/mixer.hpp"
+#include "../engine/asset/asset_manager.hpp"
+#include "../engine/asset/hash.hpp"
+#include "../engine/audio/decoder.hpp"
+#include "../engine/audio/device.hpp"
+#include "../engine/audio/engine.hpp"
+#include "../engine/audio/mixer.hpp"
 
 namespace game {
 namespace {

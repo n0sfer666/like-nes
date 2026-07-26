@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "../asset/hash.hpp"
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 #include "input_types.hpp"
 
 // Крошечная детерминированная сим для гейтов: интегрирует позицию по осям Move и считает

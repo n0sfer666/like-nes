@@ -5,7 +5,7 @@
 #include <cstring>
 #include <vector>
 
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 #include "asset_manager.hpp"
 #include "hash.hpp"
 
