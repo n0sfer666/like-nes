@@ -551,3 +551,18 @@ if(IDE_POC)
     ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/input)
   target_link_libraries(game_sim_test PRIVATE flecs_static Threads::Threads)
 endif()
+
+add_library(ach_core STATIC
+  achievements/registry.cpp achievements/tracker.cpp achievements/state.cpp achievements/store.cpp)
+# Каталога достижений нет в путях потребителей: у ach_core и plugin_core совпадают имена
+# registry.hpp/manifest.hpp, и общий -I отдавал бы «ближайший», а не нужный. Все включения
+# извне — с префиксом каталога (`../achievements/...`), внутри каталога работают относительные.
+
+add_executable(achievements_test achievements/achievements_test.cpp)
+target_link_libraries(achievements_test PRIVATE ach_core)
+
+add_executable(ach_state_test achievements/state_test.cpp)
+target_link_libraries(ach_state_test PRIVATE ach_core)
+
+add_executable(ach_crash_test achievements/crash_test.cpp)
+target_link_libraries(ach_crash_test PRIVATE ach_core)
