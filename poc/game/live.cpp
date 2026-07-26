@@ -4,8 +4,10 @@
 
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 
+#include "achievements.hpp"
 #include "app.hpp"
 #include "fx.hpp"
 #include "bloom.hpp"
@@ -71,6 +73,13 @@ int run_window(int frame_cap) {
     GameAudio audio;
     const bool have_audio = audio.init(resolve_asset("audio.bundle"));
     std::printf("[game] audio: %s\n", have_audio ? "on (SFX + music)" : "off");
+    Achievements ach;
+    const char* ach_plugin = std::getenv("LIKENES_ACH_PLUGIN");
+    ach.init(resolve_bundle_path(), resolve_save_path("achievements.save"),
+             ach_plugin ? ach_plugin : "");
+    std::printf("[game] achievements: %zu defined, %zu unlocked, backend: %s\n",
+                ach.defined_count(), ach.unlocked_count(), ach.has_backend() ? "plugin" : "local");
+
     input::ActionMap map = make_map();
     input::InputEngine engine(map);
     install_glfw_input(win, engine);
@@ -95,6 +104,9 @@ int run_window(int frame_cap) {
         if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
         fx.update(1.0f / 60);
         audio.on_events(sink);
+        ach.observe(gs);                                 // наблюдатель: sim о нём не знает
+        if ((t % 60) == 0) ach.pump();                   // доставка — вне тика
+        ach.autosave();
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
 
         WGPUSurfaceTexture st = {};
@@ -109,6 +121,7 @@ int run_window(int frame_cap) {
         fx.render(batch, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
+        push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
         WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view());   // сцена → HDR
         batch.flush(pass);
@@ -124,6 +137,8 @@ int run_window(int frame_cap) {
         wgpuTextureRelease(st.texture);
         if (frame_cap && ++frames >= frame_cap) break;
     }
+    ach.pump();
+    ach.save();
     audio.shutdown();
     bloom.shutdown();
     batch.shutdown();
