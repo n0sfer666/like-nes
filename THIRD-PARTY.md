@@ -33,7 +33,7 @@ a public-domain dedication with no attribution duty at all.
 | [webgpu-headers](https://github.com/webgpu-native/webgpu-headers) | vendored in wgpu-native | BSD-3-Clause | WebGPU C API headers |
 | [WebGPU-distribution](https://github.com/eliemichel/WebGPU-distribution) | main-v0.2.0 | MIT | desktop wgpu packaging (#2) |
 | [glfw3webgpu](https://github.com/eliemichel/glfw3webgpu) | v1.2.0 | MIT | GLFW↔WebGPU surface glue (#2) |
-| [stb](https://github.com/nothings/stb) | pinned SHA | MIT **OR** Unlicense | `stb_image` — image decode in assetc (#5); `stb_vorbis` — audio decode (#3, `poc/audio/stb_vorbis_impl.c`); `stb_image_write` — golden screenshots (`poc/render/capture.cpp`) |
+| [stb](https://github.com/nothings/stb) | pinned SHA | MIT **OR** Unlicense | `stb_image` — image decode in assetc (#5); `stb_vorbis` — audio decode (#3, `engine/audio/stb_vorbis_impl.c`); `stb_image_write` — golden screenshots (`engine/render/capture.cpp`) |
 | [Basis Universal](https://github.com/BinomialLLC/basis_universal) | v1.60 | Apache-2.0 | BC7/ETC transcode (#5) — **only `transcoder/` is compiled**; the encoder components, which upstream carries under BSD-3-Clause / MIT / Zlib, are not linked |
 | [Zstandard](https://github.com/facebook/zstd) | v1.5.6 | BSD-3-Clause **OR** GPL-2.0 | asset bundle compression (#5) |
 | [miniaudio](https://github.com/mackron/miniaudio) | 0.11.21 | Unlicense **OR** MIT-0 | audio backend (#3) |
@@ -104,9 +104,9 @@ notices: no reporting, no registration, no revenue disclosure.
 
 ## Verifying this inventory
 
-Most pins live in `poc/CMakeLists.txt`, `poc/mobile/wgpu_native.cmake` and
-`poc/{ios,android}/CMakeLists.txt`; after a configure the corresponding license
-text is on disk under `poc/<build-dir>/_deps/<name>-src/`. Five components do
+Most pins live in `CMakeLists.txt`, `platform/mobile/wgpu_native.cmake` and
+`platform/{ios,android}/CMakeLists.txt`; after a configure the corresponding license
+text is on disk under `<build-dir>/_deps/<name>-src/`. Five components do
 not follow that shape:
 
 - **webgpu-headers** — no separate source tree; the BSD-3-Clause notice is the
@@ -119,11 +119,11 @@ not follow that shape:
   library's own notice comes from `LICENSE.MIT` in the `gfx-rs/wgpu-native`
   repository at the tag recorded in `wgpu-native-git-tag.txt`.
 - **Wasmtime** — not fetched by CMake; it is a manually downloaded SDK under
-  `poc/deps/wasmtime-<version>-<triple>-c-api/` (gitignored, currently
+  `deps/wasmtime-<version>-<triple>-c-api/` (gitignored, currently
   `aarch64-macos` only), with its license at `LICENSE` inside that directory.
 - **Android NDK components** — `android_native_app_glue.c` and
   `libc++_shared.so` come from the NDK install referenced by
-  `poc/android/build_apk.sh`. The notices are
+  `platform/android/build_apk.sh`. The notices are
   `sources/android/native_app_glue/NOTICE` (identical to the header comment of
   `android_native_app_glue.c` at the pinned NDK, but the `NOTICE` file is what
   Apache-2.0 section 4(d) attaches to — check that one when the NDK moves) and
@@ -131,8 +131,8 @@ not follow that shape:
   `THIRD-PARTY-NOTICES-NDK.txt`.
 
 `THIRD-PARTY-NOTICES-RUST.txt` is generated, not hand-written:
-`poc/scripts/gen_rust_notices.py` builds it from the `Cargo.lock` of the pinned
-wgpu-native revision (`poc/<build-dir>/_deps/wgpu_native_src-src/Cargo.lock`, or
+`scripts/gen_rust_notices.py` builds it from the `Cargo.lock` of the pinned
+wgpu-native revision (`<build-dir>/_deps/wgpu_native_src-src/Cargo.lock`, or
 pass another path as its first argument), reading each crate's own license files
 out of `~/.cargo/registry/src/` after `cargo fetch --locked` in that directory.
 Re-running it on an unchanged pin must leave the file byte-identical.
