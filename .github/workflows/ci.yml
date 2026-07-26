@@ -34,15 +34,15 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure
-        run: cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 
-      - name: Build (poc + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
-        run: cmake --build poc/build
+      - name: Build (core_smoke + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
+        run: cmake --build build
 
       - name: Determinism — golden-hash must match across OS/compilers
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'determinism_test' -o -name 'determinism_test.exe' \) | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'determinism_test' -o -name 'determinism_test.exe' \) | head -1)
           echo "binary: $BIN"
           "$BIN" | tee out.txt
           grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -62,7 +62,7 @@ jobs:
           B=/tmp/repro-bbbbbbbbbbbbbbbb
           for D in "$A" "$B"; do
             rm -rf "$D"
-            cmake -S poc -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            cmake -S . -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release \
               -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF
             cmake --build "$D" --target game_sidescroller
           done
@@ -80,7 +80,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ./poc/build/hotreload_host poc/build/game_a.* poc/build/game_b.* poc/build/game_crash.* | tee hr.txt
+          ./build/hotreload_host build/game_a.* build/game_b.* build/game_crash.* | tee hr.txt
           grep -q "hot-reload PoC: PASS" hr.txt
 
       - name: Render smoke (Linux, lavapipe+xvfb) — best-effort
@@ -88,12 +88,12 @@ jobs:
         continue-on-error: true
         env:
           VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
-        run: xvfb-run -a ./poc/build/poc
+        run: xvfb-run -a ./build/core_smoke
 
       - name: Render smoke (macOS, native Metal) — best-effort
         if: runner.os == 'macOS'
         continue-on-error: true
-        run: ./poc/build/poc
+        run: ./build/core_smoke
 
       # Offscreen render-вертикаль (спека #2): headless, без окна. --selftest доказывает
       # воспроизводимость offscreen-пути (epsilon run-to-run) БЕЗ вендор-лока. Побайтовый
@@ -106,7 +106,7 @@ jobs:
           VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'render_golden' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
@@ -115,7 +115,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'render_golden' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
@@ -127,7 +127,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find poc/build -maxdepth 2 -name 'assetc' | head -1)
+          A=$(find build -maxdepth 2 -name 'assetc' | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           "$A" --synthetic syn.bundle | tee syn.txt
           grep -q "0xf2255dc74fbdb6bc" syn.txt || { echo "SYNTH HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -140,20 +140,20 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          T=$(find poc/build -maxdepth 2 -name 'asset_test' | head -1); "$T" syn.bundle
-          D=$(find poc/build -maxdepth 2 -name 'asset_determinism_test' | head -1); "$D" syn.bundle
-          H=$(find poc/build -maxdepth 2 -name 'asset_hot_reload_test' | head -1); "$H" .
+          T=$(find build -maxdepth 2 -name 'asset_test' | head -1); "$T" syn.bundle
+          D=$(find build -maxdepth 2 -name 'asset_determinism_test' | head -1); "$D" syn.bundle
+          H=$(find build -maxdepth 2 -name 'asset_hot_reload_test' | head -1); "$H" .
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          ZLIB=$(find poc/build -name 'libzstd.a' | head -1)
-          ZINC=$(find poc/build -path '*zstd-src/lib' -type d | head -1)
+          ZLIB=$(find build -name 'libzstd.a' | head -1)
+          ZINC=$(find build -path '*zstd-src/lib' -type d | head -1)
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            -Ipoc/asset -I"$ZINC" \
-            poc/asset/asset_test.cpp poc/asset/asset_manager.cpp \
-            poc/asset/platform_io.cpp poc/asset/bundle_view.cpp \
+            -Iengine/asset -I"$ZINC" \
+            engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
+            engine/asset/platform_io.cpp engine/asset/bundle_view.cpp \
             "$ZLIB" -lpthread -o asset_test_san
           ./asset_test_san syn.bundle
 
@@ -165,29 +165,29 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          G=$(find poc/build -maxdepth 2 -name 'audio_golden' | head -1); "$G" | tee ag.txt
+          G=$(find build -maxdepth 2 -name 'audio_golden' | head -1); "$G" | tee ag.txt
           grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          D=$(find poc/build -maxdepth 2 -name 'audio_determinism_test' | head -1); "$D"
-          R=$(find poc/build -maxdepth 2 -name 'audio_rt_test' | head -1); "$R"
+          D=$(find build -maxdepth 2 -name 'audio_determinism_test' | head -1); "$D"
+          R=$(find build -maxdepth 2 -name 'audio_rt_test' | head -1); "$R"
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find poc/build -maxdepth 2 -name 'assetc' | head -1)
-          "$A" --audio poc/audio/assets/src audio.bundle
-          S=$(find poc/build -maxdepth 2 -name 'audio_seam' | head -1); "$S" audio.bundle
+          A=$(find build -maxdepth 2 -name 'assetc' | head -1)
+          "$A" --audio engine/audio/assets/src audio.bundle
+          S=$(find build -maxdepth 2 -name 'audio_seam' | head -1); "$S" audio.bundle
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
         shell: bash
         run: |
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            poc/audio/audio_rt_test.cpp poc/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
+            engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            poc/audio/audio_golden_main.cpp poc/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
+            engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread \
-            poc/audio/audio_determinism_test.cpp poc/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
+            engine/audio/audio_determinism_test.cpp engine/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
 
       # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
       # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет
@@ -196,7 +196,7 @@ jobs:
       - name: Input — determinism golden (gate #1, integer/fix32 → cross-machine) + poll-rate indep + replay
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'input_determinism_test' -o -name 'input_determinism_test.exe' \) | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'input_determinism_test' -o -name 'input_determinism_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "input_determinism_test not built"; exit 1; }
           "$BIN" | tee id.txt
           grep -q "0x4c6429af58bde01e" id.txt || { echo "INPUT DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -205,24 +205,24 @@ jobs:
       - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + rt-safety (gate #3)
         shell: bash
         run: |
-          AM=$(find poc/build -maxdepth 2 -type f \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
-          RT=$(find poc/build -maxdepth 2 -type f \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
+          AM=$(find build -maxdepth 2 -type f \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
+          RT=$(find build -maxdepth 2 -type f \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
 
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
         run: |
-          RC=$(find poc/build -maxdepth 2 -type f \( -name 'input_race_test' -o -name 'input_race_test.exe' \) | head -1); "$RC"
+          RC=$(find build -maxdepth 2 -type f \( -name 'input_race_test' -o -name 'input_race_test.exe' \) | head -1); "$RC"
 
       - name: Input — ASan/UBSan (gates #1/#3, action-map) + TSan (gate #2 race), Linux
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Ipoc -std=gnu++20"
-          c++ $SAN poc/input/action_map.cpp poc/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
-          c++ $SAN poc/input/action_map.cpp poc/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
-          c++ $SAN poc/input/action_map.cpp poc/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
-          c++ -std=gnu++20 -fsanitize=thread -g -O1 -Ipoc -pthread \
-            poc/input/action_map.cpp poc/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -std=gnu++20"
+          c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
+          c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
+          c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine -pthread \
+            engine/input/action_map.cpp engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
 
       # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation на POSIX (сигнал-изоляция —
       # POSIX; Windows SEH — follow-up, там только build-валидация). Manifest-гейт (конфиг-интерфейс
@@ -233,9 +233,9 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          DT=$(find poc/build -maxdepth 2 -type f -name 'plugin_determinism_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          W=$(find poc/build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
+          DT=$(find build -maxdepth 2 -type f -name 'plugin_determinism_test' | head -1)
+          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          W=$(find build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
           [ -n "$DT" ] || { echo "plugin_determinism_test not built"; exit 1; }
           "$DT" "$G" "$W" | tee pd.txt
           grep -q "0x7ad0493f0f2ddf47" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -245,10 +245,10 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          ST=$(find poc/build -maxdepth 2 -type f -name 'plugin_seam_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          R=$(find poc/build -maxdepth 2 -type f -name 'plugin_rle_codec.*' | head -1)
-          M=$(find poc/build -maxdepth 2 -type f -name 'plugin_multi.*' | head -1)
+          ST=$(find build -maxdepth 2 -type f -name 'plugin_seam_test' | head -1)
+          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          R=$(find build -maxdepth 2 -type f -name 'plugin_rle_codec.*' | head -1)
+          M=$(find build -maxdepth 2 -type f -name 'plugin_multi.*' | head -1)
           "$ST" "$G" "$R" "$M" | tee ps.txt
           grep -q "plugin-seam: PASS" ps.txt
 
@@ -256,32 +256,32 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          IT=$(find poc/build -maxdepth 2 -type f -name 'plugin_isolation_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          W=$(find poc/build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
-          C=$(find poc/build -maxdepth 2 -type f -name 'plugin_crash.*' | head -1)
+          IT=$(find build -maxdepth 2 -type f -name 'plugin_isolation_test' | head -1)
+          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
+          W=$(find build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
+          C=$(find build -maxdepth 2 -type f -name 'plugin_crash.*' | head -1)
           "$IT" "$G" "$W" "$C" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 
       - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
         shell: bash
         run: |
-          MT=$(find poc/build -maxdepth 2 -type f \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
+          MT=$(find build -maxdepth 2 -type f \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
           [ -n "$MT" ] || { echo "plugin_manifest_test not built"; exit 1; }
-          "$MT" poc/plugin/manifests/inspector.manifest poc/plugin/manifests/console.manifest poc/plugin/manifests/bad.manifest | tee pm.txt
+          "$MT" engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest | tee pm.txt
           grep -q "plugin-manifest: PASS" pm.txt
 
       - name: Plugin — ASan/UBSan (loader/registry/probe + manifest robustness, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/plugin -Ipoc/src"
-          c++ $SAN poc/plugin/manifest.cpp poc/plugin/plugin_manifest_test.cpp -o plugin_manifest_san
-          ./plugin_manifest_san poc/plugin/manifests/inspector.manifest poc/plugin/manifests/console.manifest poc/plugin/manifests/bad.manifest
-          c++ $SAN -shared -fPIC poc/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
-          c++ $SAN -shared -fPIC poc/plugin/plugins/wind.cpp -o plugin_wind_san.so
-          c++ $SAN poc/plugin/registry.cpp poc/plugin/host.cpp poc/plugin/builtin.cpp poc/plugin/manifest.cpp \
-            poc/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core"
+          c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp -o plugin_manifest_san
+          ./plugin_manifest_san engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest
+          c++ $SAN -shared -fPIC engine/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
+          c++ $SAN -shared -fPIC engine/plugin/plugins/wind.cpp -o plugin_wind_san.so
+          c++ $SAN engine/plugin/registry.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp \
+            engine/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
 
@@ -292,7 +292,7 @@ jobs:
       - name: IDE — scene round-trip byte-golden (gate 1, fix32 integer -> cross-OS) + run-to-run
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'scene_roundtrip_test' -o -name 'scene_roundtrip_test.exe' \) | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'scene_roundtrip_test' -o -name 'scene_roundtrip_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "scene_roundtrip_test not built"; exit 1; }
           "$BIN" | tee ide_rt.txt
           grep -q "0x2de54a36e54e0684" ide_rt.txt || { echo "IDE SCENE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -301,7 +301,7 @@ jobs:
       - name: "IDE — undo/redo command bus (gate 2: do/undo/redo + grouping + redo-truncation)"
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'command_test' -o -name 'command_test.exe' \) | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'command_test' -o -name 'command_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "command_test not built"; exit 1; }
           "$BIN" | tee ide_cmd.txt
           grep -q "command-undo: PASS" ide_cmd.txt
@@ -310,14 +310,14 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
-          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
+          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           [ -n "$FLECSLIB" ] || { echo "libflecs_static.a not found"; exit 1; }
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
-          c++ $SAN poc/ide/scene_roundtrip_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_rt_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
+          c++ $SAN tools/ide/scene_roundtrip_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_rt_san
           ./ide_rt_san | tee ide_rt_san.txt
           grep -q "scene-roundtrip: PASS" ide_rt_san.txt
-          c++ $SAN poc/ide/command_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
+          c++ $SAN tools/ide/command_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
 
@@ -329,7 +329,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'ide_ipc_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'ide_ipc_selftest' | head -1)
           [ -n "$BIN" ] || { echo "ide_ipc_selftest not built"; exit 1; }
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
@@ -338,8 +338,8 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          T=$(find poc/build -maxdepth 2 -name 'play_spawn_test' | head -1)
-          G=$(find poc/build -maxdepth 2 -name 'game_child' | head -1)
+          T=$(find build -maxdepth 2 -name 'play_spawn_test' | head -1)
+          G=$(find build -maxdepth 2 -name 'game_child' | head -1)
           [ -n "$T" ] && [ -n "$G" ] || { echo "IDE IPC binaries not built"; exit 1; }
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
@@ -348,7 +348,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          B=$(find poc/build -maxdepth 2 -name 'ide_ipc_bench' | head -1)
+          B=$(find build -maxdepth 2 -name 'ide_ipc_bench' | head -1)
           [ -n "$B" ] || { echo "ide_ipc_bench not built"; exit 1; }
           "$B" | tee ide_bench.txt
           grep -q "ide-ipc-bench: PASS" ide_bench.txt
@@ -357,12 +357,12 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/ide"
-          c++ $SAN poc/ide/ipc_selftest.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_seq_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide"
+          c++ $SAN tools/ide/ipc_selftest.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_seq_san
           ./ide_seq_san | tee ide_seq_san.txt
           grep -q "ipc-seqlock: PASS" ide_seq_san.txt
-          c++ $SAN poc/ide/game_child.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
-          c++ $SAN poc/ide/play_spawn_test.cpp poc/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
+          c++ $SAN tools/ide/game_child.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
+          c++ $SAN tools/ide/play_spawn_test.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
           # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 → ASan не перехватывает
           # интенциональный SIGSEGV (иначе child умирает от SIGABRT, gate4 ждёт SIGSEGV). Инструмент.
           # проверки ASan (redzone/UAF) сохраняются — отключается только обработчик hardware-SEGV.
@@ -376,7 +376,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'diagnostics_test' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'diagnostics_test' | head -1)
           [ -n "$BIN" ] || { echo "diagnostics_test not built"; exit 1; }
           "$BIN" | tee ide_diag.txt
           grep -q "ide-diagnostics: PASS" ide_diag.txt
@@ -385,7 +385,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'build_loop_test' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'build_loop_test' | head -1)
           [ -n "$BIN" ] || { echo "build_loop_test not built"; exit 1; }
           "$BIN" | tee ide_bl.txt
           grep -q "ide-build-loop: PASS" ide_bl.txt
@@ -394,11 +394,11 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/ide"
-          c++ $SAN poc/ide/compile/diagnostics_test.cpp poc/ide/compile/diagnostics.cpp -o ide_diag_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide"
+          c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp -o ide_diag_san
           ./ide_diag_san | tee ide_diag_san.txt
           grep -q "ide-diagnostics: PASS" ide_diag_san.txt
-          c++ $SAN -DIDE_CXX='"c++"' poc/ide/build_loop_test.cpp poc/ide/compile/diagnostics.cpp poc/ide/compile/build_orchestrator.cpp -ldl -o ide_bl_san
+          c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp tools/ide/compile/build_orchestrator.cpp -ldl -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
 
@@ -409,7 +409,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'perf_test' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'perf_test' | head -1)
           [ -n "$BIN" ] || { echo "perf_test not built"; exit 1; }
           "$BIN" | tee ide_perf.txt
           grep -q "ide-perf: PASS" ide_perf.txt
@@ -418,10 +418,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
-          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
-          c++ $SAN poc/ide/perf_test.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
+          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
+          c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
 
@@ -433,7 +433,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -name 'editor_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -name 'editor_selftest' | head -1)
           [ -n "$BIN" ] || { echo "editor_selftest not built"; exit 1; }
           "$BIN" | tee ide_editor.txt
           grep -q "ide-editor-data: PASS" ide_editor.txt
@@ -442,10 +442,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find poc/build -name 'libflecs_static.a' | head -1)
-          FLECSINC=$(find poc/build -path '*flecs-src/include' -type d | head -1)
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Ipoc/ide -Ipoc/src -I$FLECSINC"
-          c++ $SAN poc/ide/editor/editor_selftest.cpp poc/ide/editor/property_grid.cpp poc/ide/scene.cpp poc/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
+          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
+          c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
           ./ide_editor_san | tee ide_editor_san.txt
           grep -q "ide-editor-data: PASS" ide_editor_san.txt
 
@@ -455,7 +455,7 @@ jobs:
       - name: Game — combat sim-hash golden (S7, cross-arch) + run-to-run determinism
         shell: bash
         run: |
-          BIN=$(find poc/build -maxdepth 2 -type f \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'game_sim_test' -o -name 'game_sim_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "game_sim_test not built"; exit 1; }
           "$BIN" | tee game_sim.txt
           grep -q "0x32a094e89eacf2f2" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -468,20 +468,20 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          AT=$(find poc/build -maxdepth 2 -type f \( -name 'achievements_test' -o -name 'achievements_test.exe' \) | head -1)
+          AT=$(find build -maxdepth 2 -type f \( -name 'achievements_test' -o -name 'achievements_test.exe' \) | head -1)
           need "$AT" achievements_test
           "$AT" | tee ach.txt
           grep -q "0xe728fef199e87fc9" ach.txt || { echo "ACH GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "PASS" ach.txt
-          MT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_manifest_test' -o -name 'ach_manifest_test.exe' \) | head -1)
+          MT=$(find build -maxdepth 2 -type f \( -name 'ach_manifest_test' -o -name 'ach_manifest_test.exe' \) | head -1)
           need "$MT" ach_manifest_test
           "$MT" | tee achm.txt
           grep -q "PASS" achm.txt
-          DT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_delivery_test' -o -name 'ach_delivery_test.exe' \) | head -1)
+          DT=$(find build -maxdepth 2 -type f \( -name 'ach_delivery_test' -o -name 'ach_delivery_test.exe' \) | head -1)
           need "$DT" ach_delivery_test
           "$DT" | tee achd.txt
           grep -q "PASS" achd.txt
-          LT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_delivery_lifecycle_test' -o -name 'ach_delivery_lifecycle_test.exe' \) | head -1)
+          LT=$(find build -maxdepth 2 -type f \( -name 'ach_delivery_lifecycle_test' -o -name 'ach_delivery_lifecycle_test.exe' \) | head -1)
           need "$LT" ach_delivery_lifecycle_test
           "$LT" | tee achl.txt
           grep -q "PASS" achl.txt
@@ -490,10 +490,10 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          ST=$(find poc/build -maxdepth 2 -type f \( -name 'ach_state_test' -o -name 'ach_state_test.exe' \) | head -1)
+          ST=$(find build -maxdepth 2 -type f \( -name 'ach_state_test' -o -name 'ach_state_test.exe' \) | head -1)
           need "$ST" ach_state_test
           "$ST" | tee achs.txt && grep -q "PASS" achs.txt
-          CT=$(find poc/build -maxdepth 2 -type f \( -name 'ach_crash_test' -o -name 'ach_crash_test.exe' \) | head -1)
+          CT=$(find build -maxdepth 2 -type f \( -name 'ach_crash_test' -o -name 'ach_crash_test.exe' \) | head -1)
           need "$CT" ach_crash_test
           "$CT" | tee achc.txt && grep -q "PASS" achc.txt
 
@@ -502,10 +502,10 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          BT=$(find poc/build -maxdepth 2 -type f -name 'ach_bundle_test' | head -1)
+          BT=$(find build -maxdepth 2 -type f -name 'ach_bundle_test' | head -1)
           need "$BT" ach_bundle_test
           "$BT" | tee achb.txt && grep -q "PASS" achb.txt
-          "$BT" poc/game/assets/game.bundle | tee achb2.txt
+          "$BT" example_ugly_game/assets/game.bundle | tee achb2.txt
           grep -q "PASS" achb2.txt
 
       - name: "Achievements — plugin seam + offline queue + Steam adapter (gates #5/#6, POSIX)"
@@ -513,9 +513,9 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          PT=$(find poc/build -maxdepth 2 -type f -name 'ach_plugin_test' | head -1)
-          F=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
-          V=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_v1.*' | head -1)
+          PT=$(find build -maxdepth 2 -type f -name 'ach_plugin_test' | head -1)
+          F=$(find build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
+          V=$(find build -maxdepth 2 -type f -name 'plugin_ach_v1.*' | head -1)
           need "$PT" ach_plugin_test; need "$F" plugin_ach_fake; need "$V" plugin_ach_v1
           "$PT" "$F" "$V" | tee achp.txt && grep -q "PASS" achp.txt
           # Ручки ach_fake читаются на загрузке плагина → одна неисправность на прогон.
@@ -524,8 +524,8 @@ jobs:
             env "$KNOB" "$PT" "$F" | tee achp_knob.txt
             grep -q "PASS" achp_knob.txt
           done
-          XT=$(find poc/build -maxdepth 2 -type f -name 'ach_steam_test' | head -1)
-          S=$(find poc/build -maxdepth 2 -type f -name 'plugin_steam.*' | head -1)
+          XT=$(find build -maxdepth 2 -type f -name 'ach_steam_test' | head -1)
+          S=$(find build -maxdepth 2 -type f -name 'plugin_steam.*' | head -1)
           need "$XT" ach_steam_test; need "$S" plugin_steam
           "$XT" "$S" | tee achx.txt && grep -q "PASS" achx.txt
           STEAM_STUB_REMOTE=BOSS_DOWN "$XT" "$S" | tee achx_remote.txt && grep -q "PASS" achx_remote.txt
@@ -537,10 +537,10 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          GT=$(find poc/build -maxdepth 2 -type f -name 'ach_sim_test' | head -1)
-          F=$(find poc/build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
+          GT=$(find build -maxdepth 2 -type f -name 'ach_sim_test' | head -1)
+          F=$(find build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
           need "$GT" ach_sim_test; need "$F" plugin_ach_fake
-          "$GT" poc/game/assets/game.bundle "$F" | tee achg.txt
+          "$GT" example_ugly_game/assets/game.bundle "$F" | tee achg.txt
           grep -q "0x32a094e89eacf2f2 (bare) 0x32a094e89eacf2f2 (observer) 0x32a094e89eacf2f2 (plugin)" achg.txt \
             || { echo "ACH OBSERVER CHANGED SIM HASH on ${{ matrix.os }}"; exit 1; }
           grep -q "game-achievements: PASS" achg.txt
@@ -549,50 +549,50 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # -Ipoc/achievements тут не нужен (TU лежат в этом каталоге, кавычечный include их находит)
-          # и вернул бы коллизию registry.hpp/manifest.hpp с -Ipoc/plugin в цепочке achp_san.
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Ipoc/src"
-          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
-            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
-            poc/achievements/bake_parse.cpp poc/achievements/achievements_test.cpp -o ach_san
+          # -Iengine/achievements тут не нужен (TU лежат в этом каталоге, кавычечный include их находит)
+          # и вернул бы коллизию registry.hpp/manifest.hpp с -Iengine/plugin в цепочке achp_san.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core"
+          c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
+            engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
+            engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp -o ach_san
           ./ach_san | tee achsan.txt
           grep -q "0xe728fef199e87fc9" achsan.txt
-          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
-            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
-            poc/achievements/bake_parse.cpp poc/achievements/manifest_test.cpp -o achm_san
+          c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
+            engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
+            engine/achievements/bake_parse.cpp engine/achievements/manifest_test.cpp -o achm_san
           ./achm_san | tee achmsan.txt
           grep -q "PASS" achmsan.txt
-          c++ $SAN poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
-            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/delivery.cpp \
-            poc/achievements/delivery_test.cpp -o achd_san
+          c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
+            engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
+            engine/achievements/delivery_test.cpp -o achd_san
           ./achd_san | tee achdsan.txt
           grep -q "PASS" achdsan.txt
-          ZLIB=$(find poc/build -name 'libzstd.a' | head -1)
-          ZINC=$(find poc/build -path '*zstd-src/lib' -type d | head -1)
-          SINC=$(dirname "$(find poc/build -name 'stb_image.h' | head -1)")
-          c++ $SAN -Ipoc/asset -I"$ZINC" -I"$SINC" \
-            poc/achievements/registry.cpp poc/achievements/tracker.cpp poc/achievements/state.cpp \
-            poc/achievements/store.cpp poc/achievements/manifest.cpp poc/achievements/bake.cpp \
-            poc/achievements/bake_parse.cpp poc/achievements/bundle_source.cpp \
-            poc/achievements/bundle_test.cpp poc/asset/bundle_writer.cpp poc/asset/codec.cpp \
-            poc/asset/platform_io.cpp poc/asset/bundle_view.cpp poc/asset/asset_manager.cpp \
+          ZLIB=$(find build -name 'libzstd.a' | head -1)
+          ZINC=$(find build -path '*zstd-src/lib' -type d | head -1)
+          SINC=$(dirname "$(find build -name 'stb_image.h' | head -1)")
+          c++ $SAN -Iengine/asset -I"$ZINC" -I"$SINC" \
+            engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
+            engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
+            engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
+            engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
+            engine/asset/platform_io.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt
           grep -q "PASS" achbsan.txt
-          ./achb_san poc/game/assets/game.bundle | tee achbsan2.txt
+          ./achb_san example_ugly_game/assets/game.bundle | tee achbsan2.txt
           grep -q "PASS" achbsan2.txt
           # Единственный путь, где Delivery держит ссылку в dlopen-нутый код: UAF после dlclose
           # ловится только тут, поэтому -DPLUGIN_FORCE_DLCLOSE — без него host.cpp под ASan
           # библиотеку не размапливает и сценарий не воспроизводится вовсе.
-          c++ $SAN -Ipoc/plugin -shared -fPIC poc/plugin/plugins/ach_fake.cpp -o plugin_ach_fake_san.so
-          c++ $SAN -Ipoc/plugin -shared -fPIC poc/plugin/plugins/ach_v1.cpp -o plugin_ach_v1_san.so
-          c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Ipoc/plugin poc/achievements/registry.cpp \
-            poc/achievements/tracker.cpp poc/achievements/state.cpp poc/achievements/store.cpp \
-            poc/achievements/manifest.cpp poc/achievements/delivery.cpp \
-            poc/achievements/plugin_backend.cpp poc/plugin/registry.cpp poc/plugin/host.cpp \
-            poc/plugin/builtin.cpp poc/plugin/manifest.cpp poc/game/backend_host.cpp \
-            poc/achievements/plugin_test.cpp poc/achievements/plugin_test_common.cpp \
-            poc/achievements/plugin_host_test.cpp \
+          c++ $SAN -Iengine/plugin -shared -fPIC engine/plugin/plugins/ach_fake.cpp -o plugin_ach_fake_san.so
+          c++ $SAN -Iengine/plugin -shared -fPIC engine/plugin/plugins/ach_v1.cpp -o plugin_ach_v1_san.so
+          c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Iengine/plugin engine/achievements/registry.cpp \
+            engine/achievements/tracker.cpp engine/achievements/state.cpp engine/achievements/store.cpp \
+            engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
+            engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
+            engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
+            engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
+            engine/achievements/plugin_host_test.cpp \
             -ldl -o achp_san
           # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
           # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»

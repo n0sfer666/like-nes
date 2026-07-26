@@ -6,11 +6,11 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-POC="$(cd "$HERE/.." && pwd)"
-BUILD="${1:-$POC/build}"
-OUT="${2:-$POC/dist}"
+ROOT="$(cd "$HERE/.." && pwd)"
+BUILD="${1:-$ROOT/build}"
+OUT="${2:-$ROOT/dist}"
 
-cmake -S "$POC" -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+cmake -S "$ROOT" -B "$BUILD" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null
 cmake --build "$BUILD" --target game_sidescroller
 rm -rf "$OUT"

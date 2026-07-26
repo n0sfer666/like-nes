@@ -1,9 +1,9 @@
 import atexit, re, os, hashlib, sys
 from collections import defaultdict
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOCK = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
-    ROOT, 'poc/build-ios/_deps/wgpu_native_src-src/Cargo.lock')
+    ROOT, 'build-ios/_deps/wgpu_native_src-src/Cargo.lock')
 REGROOT = os.path.expanduser('~/.cargo/registry/src')
 OUT = os.path.join(ROOT, 'THIRD-PARTY-NOTICES-RUST.txt')
 
