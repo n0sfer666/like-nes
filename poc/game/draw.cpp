@@ -104,6 +104,20 @@ void push_screen(SpriteBatch& batch, const Atlas& atlas, const GameState& gs) {
     }
 }
 
+void push_toast(SpriteBatch& batch, const Atlas& atlas, const char* name, uint32_t left) {
+    if (left == 0) return;
+    char buf[24];
+    int n = 0;
+    for (; n < 23 && name[n] != 0; ++n) {
+        const char c = name[n];
+        buf[n] = (c >= 'a' && c <= 'z') ? static_cast<char>(c - 'a' + 'A') : c;
+    }
+    buf[n] = 0;
+    const float k = left > 150 ? 1.7f : 1.0f;   // вспышка на входе → bloom подхватывает
+    push_center(batch, atlas, "ACHIEVEMENT", -HALF_H + 66, 15, k, 0.8f * k, 0.25f * k);
+    push_center(batch, atlas, buf, -HALF_H + 38, 21, k, 0.95f * k, 0.55f * k);
+}
+
 WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view) {
     WGPURenderPassColorAttachment a = {};
     a.view = view; a.loadOp = WGPULoadOp_Clear; a.storeOp = WGPUStoreOp_Store;

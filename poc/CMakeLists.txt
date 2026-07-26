@@ -473,12 +473,13 @@ if(IDE_POC)
   # транскод UASTC→BC7). asset_gpu/basis — POSIX (как asset_render); WIN32 → процедурный
   # fallback (stub load_game_atlas). assets_path — все ОС (self-contained bundle-резолв).
   if(WIN32)
-    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas_stub.cpp)
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas_stub.cpp game/ach_source_stub.cpp)
   else()
-    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas.cpp)
+    set(GAME_SEAM_SRC game/assets_path.cpp game/bundle_atlas.cpp game/ach_source_bundle.cpp)
   endif()
   add_executable(game_sidescroller
     game/main.cpp game/live.cpp game/demo.cpp game/draw.cpp
+    game/achievements.cpp game/backend_host.cpp
     game/batch.cpp game/art.cpp game/sim.cpp game/combat.cpp game/boss.cpp game/fx.cpp game/bloom.cpp game/audio.cpp game/controls.cpp game/capture.cpp
     ${GAME_SEAM_SRC} render/gpu.cpp ${GAME_INPUT_SRC})
   target_include_directories(game_sidescroller PRIVATE
@@ -486,9 +487,9 @@ if(IDE_POC)
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
   target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
   target_link_libraries(game_sidescroller PRIVATE
-    input_core flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+    input_core flecs_static webgpu glfw3webgpu glfw ach_plugin Threads::Threads)
   if(NOT WIN32)
-    target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu)
+    target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu ach_bundle)
     # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
     # (PUBLIC) → game/audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
     if(AUDIO_MINIAUDIO)
@@ -629,4 +630,15 @@ endif()
 if(NOT WIN32)
   add_executable(ach_steam_test achievements/steam_test.cpp)
   target_link_libraries(ach_steam_test PRIVATE ach_plugin ${CMAKE_DL_LIBS})
+
+  # Гейт 7: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
+  # Внутри IDE_POC: игровой sim тянет flecs, доступный только при этой опции (как game_sim_test).
+  if(IDE_POC)
+    add_executable(ach_sim_test
+      game/ach_sim_test.cpp game/achievements.cpp game/backend_host.cpp game/ach_source_bundle.cpp
+      game/sim.cpp game/combat.cpp game/boss.cpp)
+    target_include_directories(ach_sim_test PRIVATE
+      ${CMAKE_CURRENT_SOURCE_DIR}/game ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/input)
+    target_link_libraries(ach_sim_test PRIVATE ach_bundle ach_plugin flecs_static Threads::Threads)
+  endif()
 endif()
