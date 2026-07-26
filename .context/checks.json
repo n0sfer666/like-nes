@@ -1,0 +1,3 @@
+{
+  "types": "if [ -f build/CMakeCache.txt ]; then cmake --build build -j; else echo 'build/ не сконфигурирован — сборочная проверка пропущена'; fi"
+}
