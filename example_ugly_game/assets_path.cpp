@@ -170,10 +170,10 @@ std::string resolve_asset(const char* name) {
     const std::string n = name;
     // Только exe-относительные кандидаты (+ env) → путь не зависит от cwd (детерм. вывод demo).
     const std::string candidates[] = {
-        ed + "/" + n,                     // tarball / Windows-папка / .app Contents/MacOS
-        ed + "/../Resources/" + n,        // macOS .app
+        ed + "/" + n,                             // tarball / Windows-папка / .app Contents/MacOS
+        ed + "/../Resources/" + n,                // macOS .app
         ed + "/assets/" + n,
-        ed + "/../game/assets/" + n,      // dev: exe в build/, source рядом
+        ed + "/../example_ugly_game/assets/" + n, // dev: exe в build/, source рядом
     };
     for (const std::string& c : candidates)
         if (exists(c)) return c;

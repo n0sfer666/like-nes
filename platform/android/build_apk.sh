@@ -9,7 +9,7 @@ ABI="arm64-v8a"
 API=24
 BT="$SDK/build-tools/35.0.0"
 ANDROID_JAR="$SDK/platforms/android-35/android.jar"
-BUILD="$HERE/../build-android"
+BUILD="$HERE/../../build-android"
 OUT="$BUILD/apk"
 
 cmake -S "$HERE" -B "$BUILD" -G Ninja \
@@ -27,7 +27,7 @@ while read -r lic || [ -n "$lic" ]; do
   [ -n "$lic" ] || continue
   [ -f "$REPO/$lic" ] || { echo "spec #9: лицензионный файл отсутствует: $REPO/$lic" >&2; exit 1; }
   cp "$REPO/$lic" "$OUT/assets/licenses/"
-done < "$HERE/../cmake/licenses.manifest"
+done < "$REPO/cmake/licenses.manifest"
 
 "$BT/aapt2" link -o "$OUT/base.apk" -I "$ANDROID_JAR" \
   --manifest "$HERE/AndroidManifest.xml" \

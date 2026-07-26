@@ -65,14 +65,14 @@ jobs:
       - name: Configure + build game_sidescroller
         shell: bash
         run: |
-          cmake -S poc -B poc/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF \
             -DGAME_VERSION="${{ steps.ver.outputs.version }}"
-          cmake --build poc/build --target game_sidescroller
+          cmake --build build --target game_sidescroller
 
       - name: Install self-contained bundle (component game)
         shell: bash
-        run: cmake --install poc/build --component game --prefix stage
+        run: cmake --install build --component game --prefix stage
 
       - name: Archive (Linux tar.gz)
         if: runner.os == 'Linux'
@@ -151,7 +151,7 @@ jobs:
           STEAM_DEPOT_LINUX: ${{ secrets.STEAM_DEPOT_LINUX }}
           STEAM_DEPOT_WINDOWS: ${{ secrets.STEAM_DEPOT_WINDOWS }}
           STEAM_DEPOT_MACOS: ${{ secrets.STEAM_DEPOT_MACOS }}
-        run: bash poc/scripts/gen_vdf.sh vdf "${{ steps.ver.outputs.version }}"
+        run: bash scripts/gen_vdf.sh vdf "${{ steps.ver.outputs.version }}"
 
       # Аплоадим VDF как публичный артефакт ТОЛЬКО с placeholder-депотами (тест). При заданном
       # STEAM_APPID реальные appid/depot не должны утечь в public-артефакт — VDF потребляет

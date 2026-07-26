@@ -10,14 +10,14 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-POC="$(cd "$HERE/.." && pwd)"
+ROOT="$(cd "$HERE/.." && pwd)"
 fail() { echo "[xcompile] FAIL: $*" >&2; exit 1; }
 ok() { echo "[xcompile] ok: $*"; }
 
 echo "=== Desktop native-matrix build-time замер (single-node, CI-флаги) ==="
-D="$POC/build-xctime"
+D="$ROOT/build-xctime"
 rm -rf "$D"
-cmake -S "$POC" -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release \
+cmake -S "$ROOT" -B "$D" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null 2>&1
 T0=$(date +%s); cmake --build "$D" >/dev/null 2>&1; T1=$(date +%s)
 NODE=$((T1 - T0))
@@ -27,8 +27,8 @@ echo "  wall-clock = max(t_linux, t_win, t_mac)  — НЕ sum → ~3x эконо
 rm -rf "$D"
 
 echo "=== Mobile true-cross: iOS (aarch64-apple-ios-sim) ==="
-IOSB="$POC/build-ios"
-cmake -S "$POC/ios" -B "$IOSB" -G Ninja \
+IOSB="$ROOT/build-ios"
+cmake -S "$ROOT/platform/ios" -B "$IOSB" -G Ninja \
   -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator \
   -DCMAKE_OSX_ARCHITECTURES=arm64 >/dev/null 2>&1
 cmake --build "$IOSB" >/dev/null 2>&1
@@ -41,8 +41,8 @@ IOSWGPU="$IOSB/_deps/wgpu_native_src-src/target/aarch64-apple-ios-sim/release/li
 ok "iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64"
 
 echo "=== Mobile true-cross: Android (aarch64-linux-android, NDK arm64-v8a) ==="
-bash "$POC/android/build_apk.sh" >/dev/null 2>&1
-ANDSO="$POC/build-android/libgame.so"
+bash "$ROOT/platform/android/build_apk.sh" >/dev/null 2>&1
+ANDSO="$ROOT/build-android/libgame.so"
 [ -f "$ANDSO" ] || fail "Android .so not produced"
 # macOS-хост: readelf нет в base; llvm-readelf из NDK, иначе file (портируемо).
 RE="$(command -v llvm-readelf || true)"
@@ -51,7 +51,7 @@ if [ -n "$RE" ]; then
 else
   file "$ANDSO" | grep -q "ARM aarch64" || fail "Android ELF machine != aarch64"
 fi
-APK="$POC/build-android/apk/like_nes.apk"
+APK="$ROOT/build-android/apk/like_nes.apk"
 # pure-shell case (не `unzip | grep -q`: grep короткозамыкает → unzip SIGPIPE → ложный pipefail).
 APKLIST="$(unzip -l "$APK")"
 case "$APKLIST" in
