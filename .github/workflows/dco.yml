@@ -1,0 +1,72 @@
+name: dco
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  signed-off:
+    name: Signed-off-by on every commit
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Check DCO sign-off
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          DCO_SINCE: d177ef3085fe8a4ab51aa266ac82be0bcc6f4c00
+        run: |
+          set -euo pipefail
+
+          for ref in "$BASE_SHA" "$HEAD_SHA"; do
+            if ! git cat-file -e "$ref^{commit}" 2>/dev/null; then
+              echo "::error::коммит $ref недоступен в клоне — перезапустите job после rebase базовой ветки"
+              exit 1
+            fi
+          done
+
+          if [ -z "$DCO_SINCE" ]; then
+            commits="$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA")"
+          elif git cat-file -e "$DCO_SINCE^{commit}" 2>/dev/null; then
+            commits="$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA" --not "$DCO_SINCE")"
+          else
+            echo "::error::пин DCO_SINCE=$DCO_SINCE недоступен в клоне — почините пин, иначе гейт проверит всю историю"
+            exit 1
+          fi
+
+          if [ -z "$commits" ]; then
+            echo "Нет коммитов, требующих подписи."
+            exit 0
+          fi
+
+          norm() { tr -d '\r' | tr '[:upper:]' '[:lower:]'; }
+
+          fail=0
+          for sha in $commits; do
+            author="$(git show -s --format='%an <%ae>' "$sha" | norm)"
+            committer="$(git show -s --format='%cn <%ce>' "$sha" | norm)"
+            signers="$(git show -s --format='%(trailers:key=Signed-off-by,valueonly,unfold)' "$sha" | norm)"
+            if [ -z "$signers" ]; then
+              echo "::error::$(git show -s --format='%h %s' "$sha") — нет Signed-off-by"
+              fail=1
+            elif ! grep -qxF "$author" <<< "$signers" && ! grep -qxF "$committer" <<< "$signers"; then
+              echo "::error::$(git show -s --format='%h %s' "$sha") — Signed-off-by не совпадает ни с автором, ни с коммиттером"
+              git show -s --format='    автор:     %an <%ae>%n    коммиттер: %cn <%ce>' "$sha"
+              sed 's/^/    подписал:  /' <<< "$signers"
+              fail=1
+            fi
+          done
+
+          if [ "$fail" -ne 0 ]; then
+            echo
+            echo "Подпишите коммиты: git rebase --signoff $BASE_SHA && git push --force-with-lease"
+            echo "См. CONTRIBUTING.md."
+            exit 1
+          fi
+          echo "Все коммиты подписаны."
