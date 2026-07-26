@@ -36,13 +36,19 @@ int main(int argc, char** argv) {
     size_t c_audio = reg.count(EXT_AUDIO_BUS);
     size_t c_ui = reg.count(EXT_UI_PANEL);
 
+    const std::vector<NamedExt>& ui = reg.named<EXT_UI_PANEL>();
+    bool ui_named_ok = !ui.empty() && !ui[0].id.empty() && !ui[0].extra.empty() && ui[0].owner == multi;
+
     std::printf("[plugin-seam] loaded plugins:        %s\n", loaded ? "YES" : "NO");
     std::printf("[plugin-seam] asset-codec RLE0 decode: %s (n=%d)\n", codec_ok ? "OK" : "BAD", n);
     std::printf("[plugin-seam] ext-points: ecs=%zu codec=%zu render=%zu input=%zu audio=%zu ui=%zu\n",
                 c_ecs, c_codec, c_render, c_input, c_audio, c_ui);
+    std::printf("[plugin-seam] ui-panel named slot:   %s (id=%s title=%s owner=%s)\n",
+                ui_named_ok ? "OK" : "BAD", ui.empty() ? "-" : ui[0].id.c_str(),
+                ui.empty() ? "-" : ui[0].extra.c_str(), ui.empty() ? "-" : ui[0].owner.c_str());
 
     bool all_kinds = c_ecs >= 1 && c_codec >= 1 && c_render >= 1 && c_input >= 1 && c_audio >= 1 && c_ui >= 1;
-    bool pass = loaded && codec_ok && all_kinds;
+    bool pass = loaded && codec_ok && all_kinds && ui_named_ok;
     std::printf("plugin-seam: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
 }
