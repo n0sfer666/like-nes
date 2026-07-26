@@ -123,7 +123,7 @@ AchBackendApi g_api = {.self = &g_fake,
 
 PLUGIN_EXPORT_ABI
 
-extern "C" void plugin_main(const HostApi* host) {
+extern "C" PLATFORM_EXPORT void plugin_main(const HostApi* host) {
     // Полный сброс: при повторной загрузке (BackendHost::load второй раз) dlclose мог не размапить
     // библиотеку, и уцелевшее состояние прошлого прогона — дописанный remote, уже открытые
     // ачивки — молча переехало бы в новый.

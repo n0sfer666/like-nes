@@ -15,8 +15,27 @@ target_link_libraries(scene_roundtrip_test PRIVATE scene_core)
 add_executable(command_test command_test.cpp)
 target_link_libraries(command_test PRIVATE scene_core)
 
-# IPC-вертикаль (гейты 3/4/8): Play-процесс + read-only shmem-зеркало + крэш-изоляция + bench.
-# POSIX (shm_open/mmap/fork). Windows — follow-up (код+CI-build, как #6 SEH).
+# Гейт 5 (парсер диагностик), гейт 7 (перф 10k) и data-путь гейта 6 — чистая логика без вызовов
+# ОС. В POSIX-блок ниже они попали только вложенностью; спека #12 (гейт 9) это снимает: гоняются
+# на 3 ОС. Парсер формата MSVC — по-прежнему #13, здесь проверяется формат clang/gcc.
+add_library(diag_core STATIC compile/diagnostics.cpp)
+target_include_directories(diag_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(diagnostics_test compile/diagnostics_test.cpp)
+target_link_libraries(diagnostics_test PRIVATE diag_core)
+
+add_executable(perf_test perf_test.cpp)
+target_link_libraries(perf_test PRIVATE scene_core)
+
+add_library(editor_core STATIC editor/property_grid.cpp)
+target_include_directories(editor_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(editor_core PUBLIC scene_core)
+add_executable(editor_selftest editor/editor_selftest.cpp)
+target_link_libraries(editor_selftest PRIVATE editor_core)
+
+# IPC-вертикаль (гейты 3/4/8) + build-loop (гейт 5): shm_open/mmap/fork + запуск компилятора.
+# Платформенная поверхность здесь своя (shmem, watcher, диагностики MSVC) — это скоуп #13,
+# явно вынесенный из #12; ниже — единственный оставшийся POSIX-блок дерева.
 if(NOT WIN32)
   add_library(ipc_core STATIC ipc/shmem.cpp)
   target_include_directories(ipc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
@@ -40,26 +59,12 @@ if(NOT WIN32)
 
   # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
   # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).
-  add_library(build_core STATIC compile/diagnostics.cpp compile/build_orchestrator.cpp)
+  add_library(build_core STATIC compile/build_orchestrator.cpp)
   target_include_directories(build_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(build_core PUBLIC diag_core platform_core)
   add_executable(build_loop_test build_loop_test.cpp)
-  target_link_libraries(build_loop_test PRIVATE build_core ${CMAKE_DL_LIBS})
+  target_link_libraries(build_loop_test PRIVATE build_core platform_core ${CMAKE_DL_LIBS})
   target_compile_definitions(build_loop_test PRIVATE IDE_CXX="${CMAKE_CXX_COMPILER}")
-
-  add_executable(diagnostics_test compile/diagnostics_test.cpp)
-  target_link_libraries(diagnostics_test PRIVATE build_core)
-
-  # Гейт 7: перф 10k — выделение/property-grid/undo/виртуализация ≤ бюджет + zero per-frame heap.
-  add_executable(perf_test perf_test.cpp)
-  target_link_libraries(perf_test PRIVATE scene_core)
-
-  # Гейт 6 data-путь: property-grid из flecs meta + гизмо/камера transform (headless-гейт).
-  # Live-окно (вьюпорт+инспектор+гизмо) — editor_shell ниже (owner-HW).
-  add_library(editor_core STATIC editor/property_grid.cpp)
-  target_include_directories(editor_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(editor_core PUBLIC scene_core)
-  add_executable(editor_selftest editor/editor_selftest.cpp)
-  target_link_libraries(editor_selftest PRIVATE editor_core)
 
   # Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
   # Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.

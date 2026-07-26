@@ -15,7 +15,7 @@ extern "C" int32_t rle_decode(const uint8_t* in, int32_t n, uint8_t* out, int32_
     return o;
 }
 
-extern "C" void plugin_main(const HostApi* h) {
+extern "C" PLATFORM_EXPORT void plugin_main(const HostApi* h) {
     h->register_asset_codec(h->ctx, "RLE0", rle_decode);
     h->log(h->ctx, "RLE0 codec registered");
 }

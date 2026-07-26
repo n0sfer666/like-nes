@@ -1,6 +1,5 @@
 #include <cstdio>
 #include <cstdlib>
-#include <dlfcn.h>
 #include <string>
 
 #include "../plugin/host.hpp"
@@ -25,35 +24,22 @@ using StatFn = int32_t (*)(const char*);
 using StoresFn = int32_t (*)();
 using GrantFn = void (*)(const char*);
 
-// Второй dlopen того же .so поднимает refcount, и закрыть его обязан тот, кто открыл — на любом
-// пути выхода. Объявляется после PluginHost → закрывается раньше него.
+// Заглушка опрашивается через ТОТ ЖЕ загруженный модуль, что держит хост: открыть путь вторым
+// Module'ом переносимо нельзя — на Windows это отдельная копия со своей статикой, и вызовы,
+// записанные бэкендом, инспектору просто не видны (см. platform_module.hpp).
 struct Stub {
-    void* handle = nullptr;
     AchievedFn achieved = nullptr;
     StatFn stat = nullptr;
     StoresFn stores = nullptr;
     GrantFn grant = nullptr;
-
-    Stub() = default;
-    Stub(const Stub&) = delete;
-    Stub& operator=(const Stub&) = delete;
-    Stub(Stub&& o) noexcept
-        : handle(o.handle), achieved(o.achieved), stat(o.stat), stores(o.stores), grant(o.grant) {
-        o.handle = nullptr;
-    }
-    ~Stub() {
-        if (handle != nullptr) dlclose(handle);
-    }
 };
 
-Stub open_stub(const char* path) {
+Stub open_stub(const PluginHost& host, const char* path) {
     Stub s;
-    s.handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-    if (s.handle == nullptr) return s;
-    s.achieved = reinterpret_cast<AchievedFn>(dlsym(s.handle, "steam_stub_achieved"));
-    s.stat = reinterpret_cast<StatFn>(dlsym(s.handle, "steam_stub_stat"));
-    s.stores = reinterpret_cast<StoresFn>(dlsym(s.handle, "steam_stub_stores"));
-    s.grant = reinterpret_cast<GrantFn>(dlsym(s.handle, "steam_stub_grant"));
+    s.achieved = reinterpret_cast<AchievedFn>(host.symbol(path, "steam_stub_achieved"));
+    s.stat = reinterpret_cast<StatFn>(host.symbol(path, "steam_stub_stat"));
+    s.stores = reinterpret_cast<StoresFn>(host.symbol(path, "steam_stub_stores"));
+    s.grant = reinterpret_cast<GrantFn>(host.symbol(path, "steam_stub_grant"));
     return s;
 }
 
@@ -72,7 +58,7 @@ void run(const char* path) {
     check(api != nullptr, "steam backend registered");
     if (api == nullptr) return;
 
-    const Stub stub = open_stub(path);
+    const Stub stub = open_stub(host, path);
     check(stub.achieved != nullptr && stub.stat != nullptr && stub.stores != nullptr,
           "stub inspection symbols found");
     if (stub.achieved == nullptr || stub.stat == nullptr || stub.stores == nullptr) return;

@@ -11,6 +11,14 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Исходники дерева — UTF-8 без BOM, и комментарии с диагностикой в них по-русски. Без /utf-8 MSVC
+# читает файл в системной ANSI-кодировке: на C4819 он ещё только ругается, но байты, которых в
+# CP-1252 нет вовсе (`Ё`, `А`, `Н` — 0x81/0x8D/0x90), молча подменяются, и строка «изолирован»
+# уезжает в мусор. Спека #12 требует UTF-8 внутри движка — это её выполнение, а не косметика.
+if(MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # Сторонние зависимости (zstd и пр.) объявляют старый cmake_minimum_required (<3.10) → CMake-варнинг
 # «deprecated». Поднимаем эффективную минимальную политику зависимостей до 3.10 (CMake ≥3.31; на старом
 # CMake переменная игнорируется). Нашу планку 3.24 не трогает — это пол для деп-сабпроектов.
@@ -130,6 +138,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(engine/core)
+add_subdirectory(engine/platform)   # платформенный шов — до потребителей (asset/plugin/hotreload)
 add_subdirectory(engine/render)
 add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)

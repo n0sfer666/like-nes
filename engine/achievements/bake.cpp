@@ -1,6 +1,7 @@
 #include "bake.hpp"
 #include "bake_rows.hpp"
 #include "manifest.hpp"
+#include "platform_fs.hpp"
 
 #include <algorithm>
 #include <cstdio>
@@ -79,7 +80,7 @@ bool bake_manifest(const std::string& text, std::vector<uint8_t>& out, BakeError
 }
 
 bool bake_manifest_file(const std::string& path, std::vector<uint8_t>& out, BakeError& err) {
-    std::FILE* f = std::fopen(path.c_str(), "rb");
+    std::FILE* f = platform::open_file(path, "rb");
     if (f == nullptr) {
         err.line = 0;
         err.message = "cannot open " + path;

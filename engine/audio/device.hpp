@@ -11,12 +11,15 @@ using RenderFn = void (*)(void* user, uint32_t frames, int16_t* out);
 class MiniaudioDevice {
 public:
     ~MiniaudioDevice();
-    bool start(RenderFn fn, void* user); // открыть устройство + запустить RT-поток
+    // null_backend: тот же ma_device и тот же RT-поток, но без железа — машинный суррогат
+    // «живого звука» для CI (на раннерах аудиоустройства нет). Сенсорика — на железе владельца.
+    bool start(RenderFn fn, void* user, bool null_backend = false);
     void stop();
     uint32_t sample_rate() const { return rate_; }
 
 private:
-    void* device_ = nullptr; // ma_device*
+    void* device_ = nullptr;  // ma_device*
+    void* context_ = nullptr; // ma_context* (только для null_backend)
     uint32_t rate_ = 0;
 };
 

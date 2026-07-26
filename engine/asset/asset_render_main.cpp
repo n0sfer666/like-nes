@@ -1,7 +1,8 @@
 #include <webgpu/webgpu.h>
 #include <webgpu/wgpu.h>
 
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstdio>
 #include <cstring>
@@ -77,7 +78,7 @@ int main(int argc, char** argv) {
     for (int f = 0; f < 500; ++f) {
         am.sync_point();
         if (am.is_ready(g_vs) && am.is_ready(g_fs) && am.is_ready(g_alb)) break;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
     if (!am.is_ready(g_vs) || !am.is_ready(g_fs) || !am.is_ready(g_alb))
         return fail("assets not ready");

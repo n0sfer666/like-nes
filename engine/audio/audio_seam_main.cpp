@@ -1,6 +1,5 @@
-#include <unistd.h>
-
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -11,6 +10,7 @@
 #include "../asset/asset_manager.hpp"
 #include "../asset/hash.hpp"
 #include "decoder.hpp"
+#include "platform_fs.hpp"
 #include "engine.hpp"
 #include "mixer.hpp"
 #ifdef AUDIO_HAVE_MINIAUDIO
@@ -28,7 +28,7 @@ namespace {
 uint64_t guid_of(const char* n) { return asset::fnv1a(n, std::strlen(n)); }
 
 void write_wav(const char* path, const int16_t* data, uint32_t frames, uint32_t ch, uint32_t rate) {
-    FILE* f = std::fopen(path, "wb");
+    FILE* f = platform::open_file(path, "wb");
     if (!f) return;
     uint32_t bytes = frames * ch * 2, brate = rate * ch * 2, chunk = 36 + bytes;
     uint16_t block = static_cast<uint16_t>(ch * 2), bits = 16, fmt = 1, c16 = static_cast<uint16_t>(ch);
@@ -57,11 +57,31 @@ void render_cb(void* user, uint32_t frames, int16_t* out) {
     static_cast<Mixer*>(user)->mix(frames, out);
 }
 
+// Съём того, что реально ушло бы в железо: RT-поток устройства зовёт этот колбэк, мы
+// микшируем и попутно считаем энергию и кадры. Тишина/недокорм видны без ушей.
+struct Probe {
+    Mixer* mix;
+    std::atomic<uint64_t> energy{0};
+    std::atomic<uint64_t> frames{0};
+};
+
+void probe_cb(void* user, uint32_t frames, int16_t* out) {
+    auto* p = static_cast<Probe*>(user);
+    p->mix->mix(frames, out);
+    uint64_t sum = 0;
+    for (uint32_t i = 0; i < frames * OUT_CHANNELS; ++i) {
+        sum += static_cast<uint64_t>(static_cast<int64_t>(out[i]) * out[i]);
+    }
+    p->energy.fetch_add(sum, std::memory_order_relaxed);
+    p->frames.fetch_add(frames, std::memory_order_relaxed);
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
-    if (argc < 2) return fail("usage: audio_seam <bundle> [--play]");
+    if (argc < 2) return fail("usage: audio_seam <bundle> [--play|--device-selftest]");
     const bool play = argc >= 3 && std::strcmp(argv[2], "--play") == 0;
+    const bool selftest = argc >= 3 && std::strcmp(argv[2], "--device-selftest") == 0;
 
     asset::AssetManager am;
     if (!am.open(argv[1], 8u * 1024 * 1024, /*trusted=*/false)) return fail("open bundle");
@@ -97,16 +117,35 @@ int main(int argc, char** argv) {
         eng.play(gsfx, p, static_cast<uint64_t>(k) * SAMPLES_PER_TICK);
     }
 
-    if (play) {
+    if (play || selftest) {
 #ifdef AUDIO_HAVE_MINIAUDIO
         std::atomic<bool> done{false};
-        std::thread feeder([&] { while (!done.load()) { feed_ring(ring, pmus, feed_pos); usleep(2000); } });
+        std::thread feeder([&] {
+            while (!done.load()) {
+                feed_ring(ring, pmus, feed_pos);
+                std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            }
+        });
+        Probe probe{&mix};
         MiniaudioDevice dev;
-        if (!dev.start(render_cb, &mix)) { done = true; feeder.join(); return fail("device start"); }
-        std::printf("[audio_seam] playing 3s on device @%uHz...\n", dev.sample_rate());
-        usleep(3'000'000);
+        const bool up = selftest ? dev.start(probe_cb, &probe, /*null_backend=*/true)
+                                 : dev.start(render_cb, &mix);
+        if (!up) { done = true; feeder.join(); return fail("device start"); }
+        const uint32_t secs = selftest ? 1 : 3;
+        std::printf("[audio_seam] %s %us on device @%uHz...\n",
+                    selftest ? "null-backend selftest" : "playing", secs, dev.sample_rate());
+        std::this_thread::sleep_for(std::chrono::seconds(secs));
         dev.stop();
         done = true; feeder.join();
+        if (selftest) {
+            const uint64_t frames = probe.frames.load(), energy = probe.energy.load();
+            const uint64_t samples = frames * OUT_CHANNELS;
+            const double rms = samples ? std::sqrt(static_cast<double>(energy) / samples) : 0.0;
+            std::printf("[audio_seam] device callback: frames=%llu rms=%.1f\n",
+                        static_cast<unsigned long long>(frames), rms);
+            if (frames < SAMPLE_RATE / 2) return fail("device callback starved");
+            if (rms < 200.0) return fail("device fed silence");
+        }
 #else
         return fail("built without miniaudio (--play unavailable)");
 #endif
@@ -124,7 +163,7 @@ int main(int argc, char** argv) {
         double rms = out.empty() ? 0.0 : std::sqrt(static_cast<double>(sum) / out.size());
         uint64_t h = asset::fnv1a(out.data(), out.size() * sizeof(int16_t));
         std::printf("[audio_seam] offline 2s -> audio_seam.wav  rms=%.1f  mix_hash=0x%016llx\n",
-                    rms, (unsigned long long)h);
+                    rms, static_cast<unsigned long long>(h));
         if (rms < 200.0) return fail("silent mix (seam broken)");
     }
 

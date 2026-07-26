@@ -10,7 +10,9 @@ permissions:
 jobs:
   build-and-determinism:
     name: build+determinism (${{ matrix.os }})
-    timeout-minutes: 30
+    # 45, а не 30: спека #12 добавила Windows-раннеру второй build-каталог под ASan (clang-cl,
+    # гейт 7) — это ещё один configure с FetchContent и сборка ассет/аудио/плагин-целей.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +28,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools xvfb
 
+      # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
+      # Проверяется грепом, а не обещанием, и до сборки — нарушение видно первым же шагом.
+      # Один раннер: результат от ОС не зависит, дерево одно.
+      - name: Platform — no OS #ifdef outside engine/platform (spec #12 invariant 2)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Расширения фильтрует сам grep: постфильтр по строке пропускал бы .c/.cc/.cxx/.m (а
+          # engine/audio/*_impl.c в дереве есть) и заодно ловил бы содержимое строк, где просто
+          # встречается ".cpp:" — фикстуры парсера диагностик.
+          HITS=$(grep -rnE '_WIN32|_MSC_VER|__APPLE__|__linux__|__unix__' \
+                 --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
+                 --include='*.h' --include='*.hpp' --include='*.mm' --include='*.m' --include='*.inl' \
+                 engine tools example_ugly_game | grep -v '^engine/platform/' || true)
+          [ -z "$HITS" ] || { echo "OS #ifdef leaked outside the platform seam:"; echo "$HITS"; exit 1; }
+          echo "platform seam: PASS (no OS conditionals outside engine/platform)"
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
@@ -36,7 +55,7 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 
-      - name: Build (core_smoke + determinism_test [+ hot-reload on POSIX]) — cross-OS build validation
+      - name: Build (весь набор целей, включая hot-reload и ассет-пайплайн) — cross-OS build validation
         run: cmake --build build
 
       - name: Determinism — golden-hash must match across OS/compilers
@@ -47,6 +66,48 @@ jobs:
           "$BIN" | tee out.txt
           grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "run1==run2: YES" out.txt
+
+      # Шов platform_process (спека #12): CreateProcessW принимает ОДНУ строку, которую дочерний
+      # процесс парсит обратно через CommandLineToArgvW. Ошибка цитирования тихая — аргумент
+      # уезжает в соседний слот. Round-trip прогоняется настоящим парсером ОС.
+      - name: Platform — win32 argv quoting round-trip (CommandLineToArgvW)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          Q=$(find build -maxdepth 2 -type f -name 'win32_cmdline_test.exe' | head -1)
+          [ -n "$Q" ] || { echo "win32_cmdline_test not built"; exit 1; }
+          "$Q" | tee cmdline.txt
+          grep -q "PASS" cmdline.txt
+
+      # Гейт 8 спеки #12: кириллица и пробел в пути — не косметика, а другие API. Узкий fopen на
+      # Windows идёт через ANSI-кодовую страницу и на кириллице открывает не тот файл или ничего,
+      # поэтому весь ввод-вывод уведён в шов platform_io (_wfopen/CreateFileW по UTF-16). Пробел
+      # бьёт по второму шву: CreateProcessW склеивает argv в ОДНУ строку, и непроцитированный
+      # пробел рвёт путь пополам. Прогон из каталога с обоими символами закрывает три поверхности:
+      # assetc пишет бандл (golden обязан совпасть с гейтом #1 — путь не влияет на байты),
+      # asset_test читает его mmap'ом, а ach_crash_test перезапускает СЕБЯ через platform::exe_path
+      # → Child, то есть отдаёт ОС собственный путь с пробелом и кириллицей обратно в argv.
+      - name: Platform — unicode + space in path (bake, mmap, self-respawn; gate #8)
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
+          T=$(find build -maxdepth 2 -type f \( -name 'asset_test' -o -name 'asset_test.exe' \) | head -1)
+          C=$(find build -maxdepth 2 -type f \( -name 'ach_crash_test' -o -name 'ach_crash_test.exe' \) | head -1)
+          need "$A" assetc; need "$T" asset_test; need "$C" ach_crash_test
+          rm -rf "юникод тест-каталог" && mkdir "юникод тест-каталог"
+          cp "$A" "$T" "$C" "юникод тест-каталог/"
+          cd "юникод тест-каталог"
+          ./"$(basename "$A")" --synthetic "синтетика тест.bundle" | tee syn_u.txt
+          grep -q "0xf2255dc74fbdb6bc" syn_u.txt \
+            || { echo "UNICODE PATH CHANGED THE BAKE on ${{ matrix.os }}"; exit 1; }
+          ./"$(basename "$T")" "синтетика тест.bundle" | tee asset_u.txt
+          grep -q "\[asset_test\] PASS" asset_u.txt
+          ./"$(basename "$C")" | tee crash_u.txt
+          # tr -d '\r': CRT MSVC держит stdout в text-режиме и в пайп тоже пишет \r\n, поэтому
+          # якорь конца строки не совпал бы с «PASS\r». Якорь нужен: без него grep поймал бы
+          # «PASS» внутри любой промежуточной строки отчёта.
+          tr -d '\r' < crash_u.txt | grep -qx "PASS"
 
       # Гейт 1 (воспр. билд) — per-triple same-host. Один раннер (ubuntu): cross-OS байт-идентичность =
       # non-goal (ADR 0008), а +2 полных билда × 3 ОС рискуют timeout-minutes:30. macOS проверен локально
@@ -76,11 +137,15 @@ jobs:
           [ "$t" -gt 0 ] || { echo "no artifacts compared — vacuous gate"; exit 1; }
           [ "$d" -eq 0 ] || { echo "REPRO MISMATCH on ${{ matrix.os }}"; exit 1; }
 
-      - name: Hot-reload PoC (POSIX only) — state-in-host + reload + crash isolation
-        if: runner.os != 'Windows'
+      # Загружаемый модуль ищем по КОНКРЕТНЫМ расширениям: на Windows рядом с game_a.dll лежат
+      # game_a.lib/.exp/.pdb, и glob 'game_a.*' затащил бы их в argv.
+      - name: Hot-reload PoC — state-in-host + reload + crash isolation
         shell: bash
         run: |
-          ./build/hotreload_host build/game_a.* build/game_b.* build/game_crash.* | tee hr.txt
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          H=$(find build -maxdepth 2 -type f \( -name 'hotreload_host' -o -name 'hotreload_host.exe' \) | head -1)
+          [ -n "$H" ] || { echo "hotreload_host not built"; exit 1; }
+          "$H" "$(mod game_a)" "$(mod game_b)" "$(mod game_crash)" | tee hr.txt
           grep -q "hot-reload PoC: PASS" hr.txt
 
       - name: Render smoke (Linux, lavapipe+xvfb) — best-effort
@@ -119,15 +184,14 @@ jobs:
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
-      # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех POSIX-ОС ---
+      # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---
       # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
       # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,
       # zstd ПИННУТ v1.5.6 → cross-machine байт-golden) + гейты #2/#3 + hot-reload + ASan.
       - name: Asset — synthetic byte-golden bake (gate #1, cross-OS writer+zstd)
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find build -maxdepth 2 -type f -name 'assetc' | head -1)
+          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           "$A" --synthetic syn.bundle | tee syn.txt
           grep -q "0xf2255dc74fbdb6bc" syn.txt || { echo "SYNTH HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -137,12 +201,11 @@ jobs:
           [ "$a" = "$b" ] || { echo "bake not run-to-run identical"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          T=$(find build -maxdepth 2 -type f -name 'asset_test' | head -1); "$T" syn.bundle
-          D=$(find build -maxdepth 2 -type f -name 'asset_determinism_test' | head -1); "$D" syn.bundle
-          H=$(find build -maxdepth 2 -type f -name 'asset_hot_reload_test' | head -1); "$H" .
+          T=$(find build -maxdepth 2 -type f \( -name 'asset_test' -o -name 'asset_test.exe' \) | head -1); "$T" syn.bundle
+          D=$(find build -maxdepth 2 -type f \( -name 'asset_determinism_test' -o -name 'asset_determinism_test.exe' \) | head -1); "$D" syn.bundle
+          H=$(find build -maxdepth 2 -type f \( -name 'asset_hot_reload_test' -o -name 'asset_hot_reload_test.exe' \) | head -1); "$H" .
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
@@ -151,32 +214,50 @@ jobs:
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
           ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            -Iengine/asset -I"$ZINC" \
+            -Iengine/asset -Iengine/platform -I"$ZINC" \
             engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
-            engine/asset/platform_io.cpp engine/asset/bundle_view.cpp \
+            engine/platform/platform_io_posix.cpp engine/asset/bundle_view.cpp \
             "$ZLIB" -lpthread -o asset_test_san
           ./asset_test_san syn.bundle
 
-      # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех POSIX-ОС ---
+      # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех трёх ОС ---
       # Реальное устройство (miniaudio --play) — локальный pinned-T4 (как perceptual-golden
       # render-PoC). CI гоняет: байт-golden микса (Fix32, целочисл. → cross-machine), детерм.-гейт
       # (тайминг callback не течёт в sim), RT-safety, шов (реальный vorbis-декод stb_vorbis, offline).
       - name: Audio — mix byte-golden (gate #1) + determinism (gate #2) + RT-safety (gate #3)
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          G=$(find build -maxdepth 2 -type f -name 'audio_golden' | head -1); "$G" | tee ag.txt
+          G=$(find build -maxdepth 2 -type f \( -name 'audio_golden' -o -name 'audio_golden.exe' \) | head -1)
+          "$G" | tee ag.txt
           grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          D=$(find build -maxdepth 2 -type f -name 'audio_determinism_test' | head -1); "$D"
-          R=$(find build -maxdepth 2 -type f -name 'audio_rt_test' | head -1); "$R"
+          D=$(find build -maxdepth 2 -type f \( -name 'audio_determinism_test' -o -name 'audio_determinism_test.exe' \) | head -1); "$D"
+          R=$(find build -maxdepth 2 -type f \( -name 'audio_rt_test' -o -name 'audio_rt_test.exe' \) | head -1); "$R"
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find build -maxdepth 2 -type f -name 'assetc' | head -1)
+          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
           "$A" --audio engine/audio/assets/src audio.bundle
-          S=$(find build -maxdepth 2 -type f -name 'audio_seam' | head -1); "$S" audio.bundle
+          S=$(find build -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
+          "$S" audio.bundle
+
+      # Гейт 2 спеки #12 — машинный суррогат «живого звука»: у раннеров аудиоустройства нет,
+      # поэтому берём null-бэкенд miniaudio. Он поднимает НАСТОЯЩИЙ ma_device и его RT-поток,
+      # так что тракт device→callback→mixer→ring проверяется целиком; на Windows это ещё и
+      # доказательство, что WASAPI-ветка компилится и линкуется под MSVC. Что суррогат НЕ
+      # проверяет — само железо; сенсорное подтверждение остаётся follow-up'ом на HW владельца.
+      - name: Audio — device path via miniaudio null backend (gate #2 surrogate)
+        shell: bash
+        run: |
+          # Отдельный каталог, а не переконфигурация общего build: у шага свой набор опций
+          # (-DAUDIO_MINIAUDIO=ON), и подменённый посреди джоба кэш рассинхронизировал бы кэш с
+          # двумя десятками уже собранных бинарей, которые запускают шаги ниже.
+          cmake -S . -B build-audio -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=ON \
+            -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
+          cmake --build build-audio --target audio_seam
+          S=$(find build-audio -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
+          "$S" audio.bundle --device-selftest | tee adev.txt
+          grep -q "\[audio_seam\] PASS" adev.txt
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
@@ -224,43 +305,37 @@ jobs:
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine -pthread \
             engine/input/action_map.cpp engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
 
-      # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation на POSIX (сигнал-изоляция —
-      # POSIX; Windows SEH — follow-up, там только build-валидация). Manifest-гейт (конфиг-интерфейс
-      # = данные) — на ВСЕХ ОС. Native C-ABI загрузка кросс-платформенна (dlopen/LoadLibrary).
+      # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation/manifest на ВСЕХ 3 ОС: спека
+      # #12 увела загрузку и крэш-изоляцию за швы platform_module/platform_guard (dlopen+сигналы
+      # против LoadLibraryExW+SEH), и «Windows SEH — follow-up» здесь больше не действует.
       # Determinism golden (fix32, целочисл.) сверяется cross-arch (macOS ARM ≡ Linux x86_64).
       # WASM-sandbox (gate #5) + live UI-shell — follow-up (тулчейн/owner-HW), как miniaudio --play.
       - name: "Plugin — determinism golden sim-hash (gate #1: order-independent + plugin-effect + cross-arch)"
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          DT=$(find build -maxdepth 2 -type f -name 'plugin_determinism_test' | head -1)
-          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          W=$(find build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          DT=$(find build -maxdepth 2 -type f \( -name 'plugin_determinism_test' -o -name 'plugin_determinism_test.exe' \) | head -1)
           [ -n "$DT" ] || { echo "plugin_determinism_test not built"; exit 1; }
-          "$DT" "$G" "$W" | tee pd.txt
+          "$DT" "$(mod plugin_gravity)" "$(mod plugin_wind)" | tee pd.txt
           grep -q "0x7ad0493f0f2ddf47" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "plugin-determinism: PASS" pd.txt
 
       - name: Plugin — seam (asset-codec decode + all 6 ext-point kinds registered, gate #4)
-        if: runner.os != 'Windows'
         shell: bash
         run: |
-          ST=$(find build -maxdepth 2 -type f -name 'plugin_seam_test' | head -1)
-          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          R=$(find build -maxdepth 2 -type f -name 'plugin_rle_codec.*' | head -1)
-          M=$(find build -maxdepth 2 -type f -name 'plugin_multi.*' | head -1)
-          "$ST" "$G" "$R" "$M" | tee ps.txt
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          ST=$(find build -maxdepth 2 -type f \( -name 'plugin_seam_test' -o -name 'plugin_seam_test.exe' \) | head -1)
+          [ -n "$ST" ] || { echo "plugin_seam_test not built"; exit 1; }
+          "$ST" "$(mod plugin_gravity)" "$(mod plugin_rle_codec)" "$(mod plugin_multi)" | tee ps.txt
           grep -q "plugin-seam: PASS" ps.txt
 
-      - name: Plugin — crash isolation + hot-reload swap (gates #2/#3, POSIX signal isolation)
-        if: runner.os != 'Windows'
+      - name: Plugin — crash isolation + hot-reload swap (gates #2/#3, signal/SEH isolation)
         shell: bash
         run: |
-          IT=$(find build -maxdepth 2 -type f -name 'plugin_isolation_test' | head -1)
-          G=$(find build -maxdepth 2 -type f -name 'plugin_gravity.*' | head -1)
-          W=$(find build -maxdepth 2 -type f -name 'plugin_wind.*' | head -1)
-          C=$(find build -maxdepth 2 -type f -name 'plugin_crash.*' | head -1)
-          "$IT" "$G" "$W" "$C" | tee pi.txt
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          IT=$(find build -maxdepth 2 -type f \( -name 'plugin_isolation_test' -o -name 'plugin_isolation_test.exe' \) | head -1)
+          [ -n "$IT" ] || { echo "plugin_isolation_test not built"; exit 1; }
+          "$IT" "$(mod plugin_gravity)" "$(mod plugin_wind)" "$(mod plugin_crash)" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 
       - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
@@ -284,6 +359,49 @@ jobs:
             engine/plugin/plugin_determinism_test.cpp -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
+
+      # Гейт 7 спеки #12: санитайзеры на Windows. Решение владельца — MSVC основной, санитарит
+      # clang-cl: у него MSVC-ABI (линкуется с тем же деревом), а рантайм ASan идёт вместе с ним.
+      # Отдельный build-каталог, а не флаг поверх основного: инструментировать надо и зависимости
+      # (zstd в ассет-пути), иначе аллокации чужого кода ASan не видит. UBSan сюда не входит —
+      # рантайма UBSan под MSVC-таргет у clang нет; UBSan остаётся на Linux-шагах выше, и это
+      # разница в покрытии, а не отключённый гейт. Сами тесты — те же, что Linux санитарит
+      # отдельными TU: ассет-путь (mmap-вью + zstd), аудио-микс и загрузчик плагинов.
+      - name: Asset/Audio/Plugin — ASan on Windows (clang-cl, gate #7)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Каталог LLVM не зашиваем: он версионируется вместе с образом раннера, и жёсткий путь
+          # превратил бы обновление образа в красный гейт. Ищем сами, добавляя штатное место
+          # установки как последний кандидат.
+          command -v clang-cl >/dev/null || export PATH="/c/Program Files/LLVM/bin:$PATH"
+          command -v clang-cl >/dev/null || { echo "clang-cl not found on the runner"; exit 1; }
+          clang-cl --version
+          RT=$(clang -print-runtime-dir)
+          [ -d "$RT" ] || { echo "clang runtime dir not found: $RT"; exit 1; }
+          # Две разные надобности одного каталога, и обе обязательны. Линковка: -fsanitize=address
+          # доходит только до компилятора, а объекты уносят /DEFAULTLIB:clang_rt.asan_dynamic-*,
+          # которую линкер ищет по %LIB% — не найдёт, будет LNK1104 вместо санитайзера. Запуск:
+          # рантайм ASan здесь DLL, и без неё инструментированный exe не стартует вовсе.
+          export LIB="$(cygpath -w "$RT")${LIB:+;$LIB}"
+          export PATH="$(cygpath -u "$RT"):$PATH"
+          cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
+          cmake --build build-asan --target asset_test asset_determinism_test \
+            audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind
+          find build-asan -maxdepth 2 \( -name '*.exe' -o -name '*.dll' \) | sort
+          S=build-asan
+          "$S/asset_test.exe" syn.bundle
+          "$S/asset_determinism_test.exe" syn.bundle | tee asan_det.txt
+          grep -q "INVARIANT (PASS)" asan_det.txt
+          "$S/audio_golden.exe" | tee asan_audio.txt
+          grep -q "0x2cf5b5597afa3241" asan_audio.txt
+          "$S/audio_rt_test.exe"
+          "$S/plugin_determinism_test.exe" "$S/plugin_gravity.dll" "$S/plugin_wind.dll" | tee asan_plugin.txt
+          grep -q "0x7ad0493f0f2ddf47" asan_plugin.txt
+          grep -q "plugin-determinism: PASS" asan_plugin.txt
 
       # --- IDE-вертикаль (спека #7), срез 1 — фундамент редактора: flecs scene-doc + детерм.
       # round-trip + undo/redo. Гейт 1 golden (fix32 целочисл., текст ASCII → cross-OS байт-golden,
@@ -322,10 +440,11 @@ jobs:
           grep -q "command-undo: PASS" ide_cmd_san.txt
 
       # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. POSIX (shm_open/mmap/fork);
-      # Windows — follow-up (код собирается, но IPC-цели POSIX-only, как #6 SEH). seqlock single-writer/
+      # Windows — скоуп #13 со своей платформенной поверхностью (shmem, watcher), а не «пути нет».
+      # seqlock single-writer/
       # multi-reader; крэш child (граница процессов) не роняет parent-редактор; layout-drift → reject;
       # bench shmem vs socket фиксирует транспорт (ADR 0007 гейт 8).
-      - name: IDE — IPC seqlock self-test (consistent snapshot under contention, POSIX)
+      - name: IDE — IPC seqlock self-test (consistent snapshot under contention; Windows — spec #13)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -334,7 +453,7 @@ jobs:
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
 
-      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4, POSIX)
+      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4; Windows — spec #13)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -344,7 +463,7 @@ jobs:
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
 
-      - name: IDE — IPC transport bench shmem vs socket (gate 8, POSIX)
+      - name: IDE — IPC transport bench shmem vs socket (gate 8; Windows — spec #13)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -372,16 +491,15 @@ jobs:
       # --- IDE-вертикаль срез 3 (спека #7, гейт 5) — build-loop. POSIX (fork/exec компилятора +
       # dlopen hot-reload #1). Диагностик-парсер (click-to-open) — детерм. unit (cross-OS формат).
       # build-loop гоняет реальный компилятор (build-часть гейта); live-панель — owner follow-up.
-      - name: IDE — diagnostics parser (gate 5 click-to-open, POSIX)
-        if: runner.os != 'Windows'
+      - name: IDE — diagnostics parser (gate 5 click-to-open, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'diagnostics_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'diagnostics_test' -o -name 'diagnostics_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "diagnostics_test not built"; exit 1; }
           "$BIN" | tee ide_diag.txt
           grep -q "ide-diagnostics: PASS" ide_diag.txt
 
-      - name: IDE — build-loop watch->build->hot-reload .so (gate 5, POSIX)
+      - name: IDE — build-loop watch->build->hot-reload .so (gate 5; Windows — spec #13)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -394,22 +512,24 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide"
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
           c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp -o ide_diag_san
           ./ide_diag_san | tee ide_diag_san.txt
           grep -q "ide-diagnostics: PASS" ide_diag_san.txt
-          c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp tools/ide/compile/build_orchestrator.cpp -ldl -o ide_bl_san
+          # build_orchestrator берёт mtime через шов platform_fs (спека #12) → сюда же его TU.
+          c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
+            tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
+            engine/platform/platform_fs_posix.cpp -ldl -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
 
       # --- IDE-вертикаль срез 4 (спека #7, гейт 7) — перф 10k. Выделение/property-grid/undo/
       # виртуализация ≤ бюджет + zero per-frame heap (override operator new считает аллокации) +
-      # масштаб-инвариантность (10k vs 50k → O(1)/O(видимого), не O(N)). POSIX (в IDE_POC-блоке).
-      - name: IDE — perf 10k (selection/property-grid/undo/virtualization <= budget, POSIX)
-        if: runner.os != 'Windows'
+      # масштаб-инвариантность (10k vs 50k → O(1)/O(видимого), не O(N)). Гоняется на всех 3 ОС.
+      - name: IDE — perf 10k (selection/property-grid/undo/virtualization <= budget, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'perf_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'perf_test' -o -name 'perf_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "perf_test not built"; exit 1; }
           "$BIN" | tee ide_perf.txt
           grep -q "ide-perf: PASS" ide_perf.txt
@@ -429,11 +549,10 @@ jobs:
       # (генерик, любой компонент) + гизмо/камера transform — headless-гейт (data, что кормит UI).
       # Live-окно (вьюпорт+инспектор+гизмо, editor_shell) — owner-HW (imgui/GL, PLUGIN_UI on), как
       # plugin UI-shell / input_demo. Здесь CI валидирует data-путь + сборку.
-      - name: IDE — editor data-path (property-grid from meta + gizmo/camera, POSIX)
-        if: runner.os != 'Windows'
+      - name: IDE — editor data-path (property-grid from meta + gizmo/camera, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'editor_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'editor_selftest' -o -name 'editor_selftest.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "editor_selftest not built"; exit 1; }
           "$BIN" | tee ide_editor.txt
           grep -q "ide-editor-data: PASS" ide_editor.txt
@@ -461,9 +580,44 @@ jobs:
           grep -q "0x32a094e89eacf2f2" game_sim.txt || { echo "COMBAT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "game-sim: PASS" game_sim.txt
 
+      # Гейт 6 спеки #12 — машинный суррогат «играбельности»: у раннеров нет ни окна, ни геймпада,
+      # поэтому гоняем headless --demo. Он поднимает НАСТОЯЩИЙ тракт игры: адаптер WebGPU (Metal /
+      # lavapipe / DX12-WARP) → baked-атлас из game.bundle → sim+ввод скриптованным драйвером →
+      # спрайт-батч → bloom → readback → PNG. На Windows это ещё и доказательство, что asset_core
+      # (mmap-бандл) и путь ассетов работают в игре, а не только в тестах. Кадры проверяются на
+      # непустоту (пустой PNG сжимается в сотни байт) и на ИЗМЕНЕНИЕ во времени — статичный clear
+      # прошёл бы первую проверку, но не вторую. Чего суррогат НЕ проверяет — ощущение от игры на
+      # живом окне; сенсорное подтверждение остаётся follow-up'ом на железе владельца.
+      - name: Game — headless demo renders animated frames (gate #6 surrogate)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'game_sidescroller' -o -name 'game_sidescroller.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "game_sidescroller not built"; exit 1; }
+          # Linux-раннер без GPU и без дисплея: адаптер даёт lavapipe, дисплей — xvfb, ровно как
+          # у render-шагов выше. Разница в том, что там это best-effort, а здесь жёсткий гейт —
+          # значит окружение обязано быть настроено, а не «повезёт». macOS/Windows берут
+          # системный бэкенд (Metal / DX12-WARP) и обёртки не требуют.
+          RUN=""
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+            RUN="xvfb-run -a"
+          fi
+          rm -rf demo_frames && mkdir -p demo_frames
+          FRAMES=120
+          $RUN "$BIN" --demo demo_frames --frames "$FRAMES" | tee demo.txt
+          grep -q "demo wrote $FRAMES frames" demo.txt
+          N=$(find demo_frames -type f -name 'frame_*.png' | wc -l)
+          [ "$N" -eq "$FRAMES" ] || { echo "expected $FRAMES frames, got $N"; exit 1; }
+          LAST=$(printf 'demo_frames/frame_%04d.png' $((FRAMES - 1)))
+          SZ=$(wc -c < "$LAST")
+          [ "$SZ" -gt 5000 ] || { echo "last frame looks blank ($SZ bytes)"; exit 1; }
+          cmp -s demo_frames/frame_0000.png "$LAST" \
+            && { echo "frames identical — game not animating"; exit 1; }
+          echo "game demo: PASS ($N frames, last $SZ bytes, picture changes)"
+
       # --- Достижения (спека #10): ядро — чистый наблюдатель sim. Гейты 1/2 (golden+идемпотентность)
-      # и 4-манифест гоняются на всех 3 ОС (ядро без POSIX-зависимостей); бандл/плагин/Steam/крэш —
-      # POSIX (asset_core mmap, dlopen, fork+kill).
+      # и 4-манифест, и бандл/плагин/Steam/крэш гоняются на всех 3 ОС: mmap, загрузка модуля и
+      # «породить ребёнка и убить его» ушли за швы platform_io/platform_module/platform_process.
       - name: "Achievements — unlock-logic golden + idempotency (gates #1/#2, all OS)"
         shell: bash
         run: |
@@ -486,7 +640,10 @@ jobs:
           "$LT" | tee achl.txt
           grep -q "PASS" achl.txt
 
-      - name: "Achievements — persistence + crash-during-write (gate #3; kill-half POSIX-only)"
+      # kill-during-write перестал быть POSIX-only (спека #12): fork заменён на шов platform::Child
+      # (перезапуск собственного exe + SIGKILL/TerminateProcess), поэтому половину транзакции
+      # обрывает и Windows-раннер, а не только POSIX.
+      - name: "Achievements — persistence + crash-during-write (gate #3, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
@@ -497,25 +654,24 @@ jobs:
           need "$CT" ach_crash_test
           "$CT" | tee achc.txt && grep -q "PASS" achc.txt
 
-      - name: "Achievements — assetc bake -> bundle -> runtime (gate #4, POSIX)"
-        if: runner.os != 'Windows'
+      - name: "Achievements — assetc bake -> bundle -> runtime (gate #4, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          BT=$(find build -maxdepth 2 -type f -name 'ach_bundle_test' | head -1)
+          BT=$(find build -maxdepth 2 -type f \( -name 'ach_bundle_test' -o -name 'ach_bundle_test.exe' \) | head -1)
           need "$BT" ach_bundle_test
           "$BT" | tee achb.txt && grep -q "PASS" achb.txt
           "$BT" example_ugly_game/assets/game.bundle | tee achb2.txt
           grep -q "PASS" achb2.txt
 
-      - name: "Achievements — plugin seam + offline queue + Steam adapter (gates #5/#6, POSIX)"
-        if: runner.os != 'Windows'
+      - name: "Achievements — plugin seam + offline queue + Steam adapter (gates #5/#6, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          PT=$(find build -maxdepth 2 -type f -name 'ach_plugin_test' | head -1)
-          F=$(find build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
-          V=$(find build -maxdepth 2 -type f -name 'plugin_ach_v1.*' | head -1)
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          PT=$(find build -maxdepth 2 -type f \( -name 'ach_plugin_test' -o -name 'ach_plugin_test.exe' \) | head -1)
+          F=$(mod plugin_ach_fake)
+          V=$(mod plugin_ach_v1)
           need "$PT" ach_plugin_test; need "$F" plugin_ach_fake; need "$V" plugin_ach_v1
           "$PT" "$F" "$V" | tee achp.txt && grep -q "PASS" achp.txt
           # Ручки ach_fake читаются на загрузке плагина → одна неисправность на прогон.
@@ -524,21 +680,21 @@ jobs:
             env "$KNOB" "$PT" "$F" | tee achp_knob.txt
             grep -q "PASS" achp_knob.txt
           done
-          XT=$(find build -maxdepth 2 -type f -name 'ach_steam_test' | head -1)
-          S=$(find build -maxdepth 2 -type f -name 'plugin_steam.*' | head -1)
+          XT=$(find build -maxdepth 2 -type f \( -name 'ach_steam_test' -o -name 'ach_steam_test.exe' \) | head -1)
+          S=$(mod plugin_steam)
           need "$XT" ach_steam_test; need "$S" plugin_steam
           "$XT" "$S" | tee achx.txt && grep -q "PASS" achx.txt
           STEAM_STUB_REMOTE=BOSS_DOWN "$XT" "$S" | tee achx_remote.txt && grep -q "PASS" achx_remote.txt
           STEAM_STUB_INIT_FAIL=1 "$XT" "$S" | tee achx_init.txt && grep -q "PASS" achx_init.txt
           STEAM_STUB_STORE_FAIL=1 "$XT" "$S" | tee achx_store.txt && grep -q "PASS" achx_store.txt
 
-      - name: "Achievements — sim-hash regression: observer must not touch sim (gate #7, POSIX)"
-        if: runner.os != 'Windows'
+      - name: "Achievements — sim-hash regression: observer must not touch sim (gate #7, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          GT=$(find build -maxdepth 2 -type f -name 'ach_sim_test' | head -1)
-          F=$(find build -maxdepth 2 -type f -name 'plugin_ach_fake.*' | head -1)
+          mod() { find build -maxdepth 2 -type f \( -name "$1.so" -o -name "$1.dylib" -o -name "$1.dll" \) | head -1; }
+          GT=$(find build -maxdepth 2 -type f \( -name 'ach_sim_test' -o -name 'ach_sim_test.exe' \) | head -1)
+          F=$(mod plugin_ach_fake)
           need "$GT" ach_sim_test; need "$F" plugin_ach_fake
           "$GT" example_ugly_game/assets/game.bundle "$F" | tee achg.txt
           grep -q "0x32a094e89eacf2f2 (bare) 0x32a094e89eacf2f2 (observer) 0x32a094e89eacf2f2 (plugin)" achg.txt \
@@ -570,12 +726,13 @@ jobs:
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
           ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
           SINC=$(dirname "$(find build -type f -name 'stb_image.h' | head -1)")
-          c++ $SAN -Iengine/asset -I"$ZINC" -I"$SINC" \
+          c++ $SAN -Iengine/asset -Iengine/platform -I"$ZINC" -I"$SINC" \
             engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
             engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
-            engine/asset/platform_io.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp \
+            engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt
           grep -q "PASS" achbsan.txt

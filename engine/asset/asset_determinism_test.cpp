@@ -1,4 +1,5 @@
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstdint>
 #include <cstdio>
@@ -92,7 +93,7 @@ uint64_t run(const std::string& bundle, unsigned io_delay_us, int& ready_seen) {
         int r = 0;
         for (uint64_t g : guids) r += am.is_ready(g) ? 1 : 0;
         if (r == 5) break;
-        usleep(500);
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
     }
     ready_seen = 0;
     for (uint64_t g : guids) ready_seen += am.is_ready(g) ? 1 : 0;

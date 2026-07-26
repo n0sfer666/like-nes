@@ -1,4 +1,5 @@
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstdint>
 #include <cstdio>
@@ -25,7 +26,7 @@ void pump_until_ready(AssetManager& am, const std::vector<uint64_t>& guids, int 
         bool all = true;
         for (uint64_t g : guids) all = all && am.is_ready(g);
         if (all) return;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
 }
 

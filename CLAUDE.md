@@ -1,7 +1,8 @@
 # like-nes — правила репозитория
 
-Контекст проекта: [`.context/`](.context/) (README, stack, architecture, specs, decisions, notes).
-Читать перед началом любой задачи.
+Контекст проекта: [`.context/`](.context/) (README, stack, architecture, conventions, specs,
+decisions, notes). Читать перед началом любой задачи. Стиль кода —
+[`.context/conventions.md`](.context/conventions.md).
 
 ## Ветки
 

@@ -1,12 +1,10 @@
 # --- plugin_core: ExtensionPointRegistry + PluginHost (C-ABI native + WASM-точка) + встроенные
-# sim-системы (спека #6). Загрузчик кросс-платформенный (dlopen/LoadLibrary); сигнал-изоляция —
-# POSIX (Windows SEH — follow-up). Гейты determinism/seam — на всех 3 OS; isolation — POSIX.
+# sim-системы (спека #6). Загрузка модуля и крэш-изоляция — за швами platform_core (#12):
+# dlopen/siglongjmp на POSIX, LoadLibraryExW+копия/SEH на Windows. Гейты determinism/seam/
+# isolation — на всех 3 OS. platform_core PUBLIC: Module — поле PluginHost.
 add_library(plugin_core STATIC registry.cpp host.cpp builtin.cpp manifest.cpp)
 target_include_directories(plugin_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(plugin_core PUBLIC engine_core)
-if(NOT WIN32)
-  target_link_libraries(plugin_core PUBLIC ${CMAKE_DL_LIBS})
-endif()
+target_link_libraries(plugin_core PUBLIC engine_core platform_core)
 
 add_executable(plugin_determinism_test plugin_determinism_test.cpp)
 target_link_libraries(plugin_determinism_test PRIVATE plugin_core)
@@ -32,10 +30,13 @@ add_library(plugin_crash MODULE plugins/crash.cpp)
 add_library(plugin_ach_fake MODULE plugins/ach_fake.cpp)
 add_library(plugin_steam MODULE plugins/steam_backend.cpp)
 add_library(plugin_ach_v1 MODULE plugins/ach_v1.cpp)
-target_compile_options(plugin_crash PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-O0>)
+# Без оптимизации, чтобы намеренный null-deref не соптимизировался — та же форма, что у
+# game_crash в engine/hotreload: на MSVC у -O0 нет аналога с этим написанием, нужен /Od.
+target_compile_options(plugin_crash PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/Od,-O0>)
 foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash
           plugin_ach_fake plugin_steam plugin_ach_v1)
-  target_include_directories(${P} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  # platform_export.h (макрос экспорта) — заголовок шва; объекты platform_core модулю не нужны.
+  target_include_directories(${P} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/platform)
   target_link_libraries(${P} PRIVATE engine_core)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()

@@ -1,4 +1,4 @@
-if(NOT WIN32)
-  add_executable(assetc assetc_main.cpp bakers.cpp)
-  target_link_libraries(assetc PRIVATE asset_core ach_core)
-endif()
+# Гейт 1 спеки #12: пекарь собирается и печёт на всех трёх ОС — запуск кодеков ушёл
+# за platform_process, открытие файлов за platform_fs.
+add_executable(assetc assetc_main.cpp bakers.cpp)
+target_link_libraries(assetc PRIVATE asset_core ach_core)
