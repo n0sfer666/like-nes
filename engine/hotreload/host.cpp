@@ -2,6 +2,7 @@
 
 #include <cstdio>
 
+#include "platform_args.hpp"
 #include "platform_guard.hpp"
 #include "platform_module.hpp"
 
@@ -48,6 +49,7 @@ static bool safe_tick(game_tick_fn fn, GameState* s) {
 }
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 4) {
         std::fprintf(stderr, "usage: host <game_a> <game_b> <game_crash>\n");
         return 2;

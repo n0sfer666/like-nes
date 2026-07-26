@@ -1,5 +1,6 @@
 #include "capture.hpp"
 #include "gpu.hpp"
+#include "platform_args.hpp"
 #include "renderer.hpp"
 #include "scene.hpp"
 #include "sprite.hpp"
@@ -63,6 +64,7 @@ int golden(GpuContext& gpu, const char* path, bool update) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     GpuContext gpu;
     if (!gpu.init(nullptr)) { gpu.shutdown(); return 1; }
 

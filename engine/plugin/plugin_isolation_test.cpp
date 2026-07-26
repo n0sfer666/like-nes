@@ -2,6 +2,7 @@
 #include "runner.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
+#include "platform_args.hpp"
 #include <algorithm>
 #include <cstdio>
 #include <string>
@@ -14,6 +15,7 @@ static void add_builtins(Registry& reg) {
 }
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 4) {
         std::fprintf(stderr, "usage: plugin_isolation_test <gravity.so> <wind.so> <crash.so>\n");
         return 2;

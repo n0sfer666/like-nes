@@ -5,6 +5,7 @@
 
 #include "../plugin/host.hpp"
 #include "delivery.hpp"
+#include "platform_args.hpp"
 #include "plugin_backend.hpp"
 #include "registry.hpp"
 #include "tracker.hpp"
@@ -140,6 +141,7 @@ void test_stale_abi(const char* path) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) {
         std::printf("usage: ach_plugin_test <plugin-path> [stale-abi-plugin]\n");
         return 2;

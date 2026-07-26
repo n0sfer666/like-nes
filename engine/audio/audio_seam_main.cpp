@@ -10,9 +10,10 @@
 #include "../asset/asset_manager.hpp"
 #include "../asset/hash.hpp"
 #include "decoder.hpp"
-#include "platform_fs.hpp"
 #include "engine.hpp"
 #include "mixer.hpp"
+#include "platform_args.hpp"
+#include "platform_fs.hpp"
 #ifdef AUDIO_HAVE_MINIAUDIO
 #include "device.hpp"
 #endif
@@ -79,6 +80,7 @@ void probe_cb(void* user, uint32_t frames, int16_t* out) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) return fail("usage: audio_seam <bundle> [--play|--device-selftest]");
     const bool play = argc >= 3 && std::strcmp(argv[2], "--play") == 0;
     const bool selftest = argc >= 3 && std::strcmp(argv[2], "--device-selftest") == 0;

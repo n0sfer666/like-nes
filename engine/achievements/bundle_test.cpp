@@ -6,6 +6,7 @@
 
 #include "bundle_fixture.hpp"
 #include "bundle_source.hpp"
+#include "platform_args.hpp"
 #include "registry.hpp"
 #include "tracker.hpp"
 
@@ -128,6 +129,7 @@ void test_shipped_bundle(const char* path) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     std::printf("achievements bundle seam\n");
     if (argc > 1) {
         test_shipped_bundle(argv[1]);

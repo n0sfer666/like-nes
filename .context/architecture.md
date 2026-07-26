@@ -48,7 +48,8 @@
    без скрытых heap-аллокаций в кадре. Safety — вручную (ASan/UBSan в CI, нет borrow-checker).
 6. **Платформа входит только через шов `engine/platform/*`** (спека #12, ADR 0012): ввод-вывод
    (`platform_io`, `platform_fs`, `platform_path`), процессы (`platform_process`), модули
-   (`platform_module`), изоляция сбоя (`platform_guard`). Реализацию выбирает CMake парой
+   (`platform_module`), изоляция сбоя (`platform_guard`), аргументы запуска в UTF-8
+   (`platform_args`). Реализацию выбирает CMake парой
    `*_posix.cpp`/`*_win32.cpp`; условной компиляции по ОС вне шва нет — проверяется грепом в CI
    **до** сборки.
 

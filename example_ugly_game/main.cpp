@@ -2,8 +2,10 @@
 #include <cstring>
 
 #include "app.hpp"
+#include "platform_args.hpp"
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     const char* demo_dir = nullptr;
     int frames = 300, cap = 0;
     for (int i = 1; i < argc; ++i) {

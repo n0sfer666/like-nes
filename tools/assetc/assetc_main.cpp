@@ -7,6 +7,7 @@
 #include "bundle_writer.hpp"
 #include "codec.hpp"
 #include "format.hpp"
+#include "platform_args.hpp"
 
 // Headless CLI-бейкер (спека #5): source (png+wgsl+bulk) → детерм. bundle.
 // Один код бейка (CI + IDE-watch поверх). Печатает golden bundle_hash (гейт #1).
@@ -37,6 +38,7 @@ int emit(const char* what, const std::string& path, std::vector<AssetInput> asse
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                              "       assetc --synthetic <out.bundle>  (tools-free, для CI)\n");

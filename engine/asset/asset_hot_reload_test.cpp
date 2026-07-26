@@ -11,6 +11,7 @@
 #include "bundle_writer.hpp"
 #include "codec.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
 #include "platform_fs.hpp"
 
 // Hot-reload roundtrip (спека #5 gate): source change → rebake → runtime свап ассета.
@@ -55,6 +56,7 @@ void pump(AssetManager& am, uint64_t a, uint64_t b) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     const std::string dir = argc >= 2 ? argv[1] : ".";
     const std::string v1 = dir + "/hr_v1.bundle", v2 = dir + "/hr_v2.bundle";
     if (!codec::write_file(v1, make_bundle(0xAA, 0x11))) return fail("write v1");

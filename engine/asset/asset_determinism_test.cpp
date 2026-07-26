@@ -9,6 +9,7 @@
 #include "../core/fixed.hpp"
 #include "asset_manager.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
 
 // Гейт #3 (спека #5): готовность ассета = ДЕТЕРМИНИРОВАННЫЙ gate. Замедленный async-I/O
 // НЕ протекает в sim-hash (инвариант #2/#3 спеки #1). Sim (fix32) крутится параллельно
@@ -103,6 +104,7 @@ uint64_t run(const std::string& bundle, unsigned io_delay_us, int& ready_seen) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) { std::fprintf(stderr, "usage: asset_determinism_test <bundle>\n"); return 2; }
     const std::string bundle = argv[1];
 

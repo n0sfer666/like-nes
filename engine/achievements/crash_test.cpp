@@ -7,6 +7,7 @@
 #include <thread>
 #include <vector>
 
+#include "platform_args.hpp"
 #include "platform_fs.hpp"
 #include "platform_process.hpp"
 
@@ -159,6 +160,7 @@ void test_kill_during_write() {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     // Служебный режим: тест перезапускает сам себя как пишущего ребёнка (fork'а на Windows нет).
     if (argc == 3 && std::string(argv[1]) == "--writer") return run_writer(argv[2]);
 

@@ -13,13 +13,13 @@ if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
 endif()
 
 add_executable(render_demo demo_main.cpp)
-target_link_libraries(render_demo PRIVATE render_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
+target_link_libraries(render_demo PRIVATE render_core platform_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
 target_copy_webgpu_binaries(render_demo)
 reproducible_rpath(render_demo)
 
 # Headless T4-гейт: offscreen epsilon/perceptual golden (без окна, для CI).
 add_executable(render_golden golden_main.cpp)
-target_link_libraries(render_golden PRIVATE render_core webgpu)
+target_link_libraries(render_golden PRIVATE render_core platform_core webgpu)
 target_copy_webgpu_binaries(render_golden)
 reproducible_rpath(render_golden)
 
