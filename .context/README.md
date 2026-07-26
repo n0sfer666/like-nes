@@ -34,8 +34,52 @@ indie-продуктов уровня Hollow Knight. Только движок �
 | 8 | Билд/деплой и кросс-компиляция | **Закрыта** (ADR 0008 Accepted, build/deploy-вертикаль PoC validated T4, все 7 гейтов + CI 3 ОС: воспр. билд P0–P2+SHA-пин (macOS 181 / Linux 183 арт. 0 diffs) / шов assetc→бандл BC7 / кросс-компиляция native-matrix (wall=max) + mobile true-cross (iOS-sim+Android NDK, wgpu-native из Rust) / бандл `.app`+tarball+папка самодостаточны / release tag→matrix→VDF+gated steamcmd (rc3-прогон) / **игра-образец** sidescroller-shooter (бой/босс/сюжет/частицы/bloom/аудио, golden `0x32a094e89eacf2f2`) live macOS / **mobile runnable** — полная игра на iOS-симуляторе+Android-эму (реальный тач). Follow-up gated: Steam-заливка/notarization/mobile-подпись) — [`specs/2026-07-23-build-deploy.md`](specs/2026-07-23-build-deploy.md) · [`decisions/2026-07-23-build-deploy.md`](decisions/2026-07-23-build-deploy.md) |
 | 9 | Лицензирование (free & open source) | **Закрыта** (ADR 0009 Accepted, спека Validated T3, все 4 гейта: **отмена royalty/friendship** → дуальная `MIT OR Apache-2.0` / инвентарь 14 C/C++-компонентов + 138 Rust-крейтов wgpu-native по факту (все permissive, армы дуальных элегированы явно: zstd→BSD-3-Clause) + **дословные нотисы** в `THIRD-PARTY-NOTICES.txt`, сгенерированном `THIRD-PARTY-NOTICES-RUST.txt` и `THIRD-PARTY-NOTICES-NDK.txt` (инвентарь ≠ notice-retention; границы покрытия записаны явно) / DCO в CI на git-трейлерах (автор **или** коммиттер, cutoff `DCO_SINCE`) / 7 файлов лицензий во всех трёх бандлах (desktop/iOS/APK — проверено сборкой каждого) стоковой сборкой + `FATAL_ERROR` при пропаже / атрибуция из `license.hpp` live macOS; sim-golden `0x32a094e89eacf2f2` цел. Follow-up: юр. ревью перед публичным релизом, per-file SPDX) — [`specs/2026-07-25-licensing.md`](specs/2026-07-25-licensing.md) · [`decisions/2026-07-25-licensing.md`](decisions/2026-07-25-licensing.md) |
 | 10 | Система достижений (Steam+) | **Закрыта** (ADR 0010 Accepted, спека Validated T4, все 7 гейтов: детерм. ядро-**наблюдатель** (golden `0xe728fef199e87fc9`) / идемпотентный анлок / крэш-during-write 12/12 валидных снимков / авторинг данными `assetc --game` → zero-parse таблица в бандле #5 + рантайм-`define()`, дубликат id = hard error, 890 бит-флипов отбито / плагинный шов `EXT_ACHIEVEMENT_BACKEND` (**ABI 1 → 2**) + оффлайн-очередь / Steam-адаптер плагином на контракт-стабе `ISteamUserStats` (SDK не вендорится) + реконсиляция union / **регресс #8: `0x32a094e89eacf2f2` bare = observer = observer+плагин**, live macOS с тостом. Follow-up: живой прогон с настоящим SDK (процедура в спеке), Windows-путь бандла, мобильные адаптеры) — [`specs/2026-07-25-achievements.md`](specs/2026-07-25-achievements.md) · [`decisions/2026-07-25-achievements.md`](decisions/2026-07-25-achievements.md) |
-| 11 | Нетворкинг/rollback (опционально, детерминизм уже заложен) | planned |
-| 12 | «Боль 2D-разработчиков» — дополнительные фичи | planned |
+| 11 | Реорганизация репозитория (движок ≠ игра-образец) | **Draft** — [`specs/2026-07-26-repo-layout.md`](specs/2026-07-26-repo-layout.md) |
+| 12 | Windows-паритет ядра движка | **Draft** — [`specs/2026-07-26-windows-core-parity.md`](specs/2026-07-26-windows-core-parity.md) |
+| 13 | Паритет среды разработки на трёх десктопных ОС | **Draft** — [`specs/2026-07-26-desktop-dev-parity.md`](specs/2026-07-26-desktop-dev-parity.md) |
+| 14 | Каркас gameplay-фреймворка + ввод из коробки | **Draft** — [`specs/2026-07-26-framework-input.md`](specs/2026-07-26-framework-input.md) |
+| 15 | Детерминированная 2D-физика — ядро | **Draft** — [`specs/2026-07-26-physics-core.md`](specs/2026-07-26-physics-core.md) |
+| 16 | Движение персонажа и тайлмап-коллизии | **Draft** — [`specs/2026-07-26-character-tilemap.md`](specs/2026-07-26-character-tilemap.md) |
+| 17 | Графика из коробки: спрайты, анимации, камера, частицы | **Draft** — [`specs/2026-07-26-graphics-framework.md`](specs/2026-07-26-graphics-framework.md) |
+| 18 | Материалы и шейдеры | **Draft** — [`specs/2026-07-26-materials-shaders.md`](specs/2026-07-26-materials-shaders.md) |
+| 19 | README и документация en/ru | **Draft** — [`specs/2026-07-26-docs-en-ru.md`](specs/2026-07-26-docs-en-ru.md) |
+| 20 | Релизные инсталляторы и скрипт сборки релизов | **Draft** — [`specs/2026-07-26-release-installers.md`](specs/2026-07-26-release-installers.md) |
+| 21 | Глобальный аудит кодовой базы (2 независимых ревью) | **Draft** — [`specs/2026-07-26-global-audit.md`](specs/2026-07-26-global-audit.md) |
+| 22 | Нетворкинг/rollback (опционально, детерминизм уже заложен) | planned |
+
+> Бывшая строка «Боль 2D-разработчиков — дополнительные фичи» раскрыта спеками **#14–#18**:
+> пресеты ввода и шаблоны контроллеров, физика, платформерный контроллер с окнами прощения,
+> спрайты/анимации/камера/частицы, библиотека шейдерных эффектов.
+
+## Порядок раундов #11–#21 (и почему такой)
+
+```
+#11 реорганизация  ─┬─→ #12 Windows-ядро ──→ #13 паритет среды разработки
+                    │                              │
+                    └──────────────────────────────┴─→ #14 каркас фреймворка + ввод
+                                                          │
+                                    #15 физика-ядро ──→ #16 контроллер + тайлмапы
+                                                          │
+                                    #17 графика ──────→ #18 материалы и шейдеры
+                                                          │
+                                              #19 документация en/ru
+                                                          │
+                                              #20 инсталляторы
+                                                          │
+                                              #21 глобальный аудит
+```
+
+- **#11 первым** — все последующие раунды пишут код в новую раскладку; переезд позже стоил бы
+  переписывания их путей.
+- **#12–#13 до фреймворка** — иначе слой #14–#18 пишется в POSIX-предположениях, и паритет
+  превращается в дорогой retrofit. Сейчас на Windows не собирается ассет-пайплайн, аудио,
+  hot-reload, изоляция плагинов и весь инструментальный слой IDE (15 блоков `if(NOT WIN32)`,
+  24 POSIX-only шага CI).
+- **#15 → #16 и #17 → #18** — жёсткие зависимости внутри пар; сами пары друг от друга не зависят
+  и могут идти в любом порядке.
+- **#19 после фреймворк-серии** — документировать то, что ещё не закрыто гейтами, значит писать
+  документацию дважды.
+- **#21 последним** — аудит до завершения серии проверял бы код, который заведомо будет переписан.
 
 ## Модельная стратегия работы (Claude Code)
 
