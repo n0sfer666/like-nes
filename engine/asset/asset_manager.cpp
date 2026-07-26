@@ -1,6 +1,7 @@
 #include "asset_manager.hpp"
 
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstring>
 #include <zstd.h>
@@ -69,7 +70,7 @@ bool AssetManager::reload(const std::string& new_bundle_path) {
     // ТРАНЗАКЦИОННО: открыть+валидировать НОВЫЙ бандл во временные объекты. При провале —
     // старое состояние (file_/view_/visible_/slots) НЕ трогаем → get() остаётся валидным
     // (никакого munmap до успеха → нет UAF на битом rebake).
-    MappedFile newf;
+    platform::MappedFile newf;
     if (!newf.open(new_bundle_path)) { start_worker(); return false; }
     BundleView newv;
     if (!newv.open(newf.data(), newf.size(), trusted_)) { start_worker(); return false; }
@@ -121,7 +122,7 @@ void AssetManager::worker_loop() {
             jobs_.pop();
         }
         // Инъекция задержки I/O ВНЕ sim-потока (гейт #3).
-        if (io_delay_us_) usleep(io_delay_us_);
+        if (io_delay_us_) std::this_thread::sleep_for(std::chrono::microseconds(io_delay_us_));
         Slot* s = nullptr;
         {
             std::lock_guard<std::mutex> lk(mu_);

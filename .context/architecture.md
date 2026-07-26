@@ -46,6 +46,11 @@
    (SEH на Windows / signal-хендлеры на *nix), сбойная система отключается.
 5. **Аллокации предсказуемы:** горячие пути через арены/пулы/per-frame scratch,
    без скрытых heap-аллокаций в кадре. Safety — вручную (ASan/UBSan в CI, нет borrow-checker).
+6. **Платформа входит только через шов `engine/platform/*`** (спека #12, ADR 0012): ввод-вывод
+   (`platform_io`, `platform_fs`, `platform_path`), процессы (`platform_process`), модули
+   (`platform_module`), изоляция сбоя (`platform_guard`). Реализацию выбирает CMake парой
+   `*_posix.cpp`/`*_win32.cpp`; условной компиляции по ОС вне шва нет — проверяется грепом в CI
+   **до** сборки.
 
 ## Потоки данных (упрощённо)
 

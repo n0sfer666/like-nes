@@ -3,9 +3,9 @@
 #ifdef AUDIO_HAVE_MINIAUDIO
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <thread>
-#include <unistd.h>
 
 #include "../engine/asset/asset_manager.hpp"
 #include "../engine/asset/hash.hpp"
@@ -56,7 +56,7 @@ bool GameAudio::init(const std::string& bundle_path) {
     for (int i = 0; i < 200; ++i) {
         p->am.sync_point();
         if (p->am.is_ready(p->gsfx) && p->am.is_ready(gmus)) break;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
     if (!p->am.is_ready(p->gsfx) || !p->am.is_ready(gmus)) { shutdown(); return false; }
     asset::Loaded ls = p->am.get(p->gsfx), lm = p->am.get(gmus);
@@ -73,7 +73,10 @@ bool GameAudio::init(const std::string& bundle_path) {
 
     if (!p->dev.start(render_cb, &p->mixer)) { shutdown(); return false; }
     p->feeder = std::thread([p] {
-        while (!p->done.load()) { feed_ring(p->ring, p->pmus, p->feed_pos); usleep(3000); }
+        while (!p->done.load()) {
+            feed_ring(p->ring, p->pmus, p->feed_pos);
+            std::this_thread::sleep_for(std::chrono::milliseconds(3));
+        }
     });
     p->live = true;
     return true;

@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <vector>
 
+#include "platform_fs.hpp"
+
 namespace ide::build {
 
 BuildResult run_build(const std::vector<std::string>& argv) {
@@ -56,20 +58,11 @@ BuildResult run_build(const std::vector<std::string>& argv) {
 }
 
 bool file_changed(const std::string& path, int64_t& last_token) {
-    struct stat st;
-    if (stat(path.c_str(), &st) != 0) return false;   // отсутствие/удаление ≠ изменение
-#if defined(__APPLE__)
-    int64_t m = static_cast<int64_t>(st.st_mtimespec.tv_sec) * 1000000000 + st.st_mtimespec.tv_nsec;
-#else
-    int64_t m = static_cast<int64_t>(st.st_mtim.tv_sec) * 1000000000 + st.st_mtim.tv_nsec;
-#endif
-    // Композит mtime+size: детект правки даже при грубой (1с) mtime-гранулярности ФС, если сменился
-    // размер. (Одинаковый размер в ту же секунду — редкий промах; nsec-mtime на APFS/ext4 снимает.)
-    // Микс в uint64 (обёртка определена) → храним как непрозрачный int64-токен.
-    uint64_t mix = static_cast<uint64_t>(m) * 1099511628211ull + static_cast<uint64_t>(st.st_size);
-    int64_t token = static_cast<int64_t>(mix);
-    if (token != last_token) { last_token = token; return true; }
-    return false;
+    int64_t token = 0;
+    if (!platform::file_stamp(path, token)) return false;   // отсутствие/удаление ≠ изменение
+    if (token == last_token) return false;
+    last_token = token;
+    return true;
 }
 
 } // namespace ide::build

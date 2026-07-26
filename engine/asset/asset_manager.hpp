@@ -10,7 +10,7 @@
 
 #include "bundle_view.hpp"
 #include "byte_arena.hpp"
-#include "platform_io.hpp"
+#include "platform_io.hpp" // engine/platform — маппинг бандла за платформенным швом
 
 // Рантайм-загрузчик (спека #5). Гибрид I/O: mmap-резидент zero-copy (Mmap) + async-стрим
 // с декомпрессией в арену (Stream) на worker-потоке (НЕ sim-поток). Готовность ассета =
@@ -38,7 +38,7 @@ public:
     void close();
 
     const BundleView& view() const { return view_; }
-    IoCaps caps() const { return MappedFile::caps(); }
+    platform::IoCaps caps() const { return platform::MappedFile::caps(); }
 
     // request/release — refcount; pin — always-resident. Mmap-ассеты готовы сразу (zero-copy),
     // Stream — ставятся в очередь worker'у. PoC-ограничение: release при refcount→0 НЕ выселяет
@@ -77,7 +77,7 @@ private:
     void worker_loop();
     void do_load(Slot& s);
 
-    MappedFile file_;
+    platform::MappedFile file_;
     BundleView view_;
     ByteArena arena_;
     bool trusted_ = true;
