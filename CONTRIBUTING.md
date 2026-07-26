@@ -69,7 +69,7 @@ in [`CLAUDE.md`](CLAUDE.md).
   ([`THIRD-PARTY-NOTICES.txt`](THIRD-PARTY-NOTICES.txt) and
   [`THIRD-PARTY-NOTICES-NDK.txt`](THIRD-PARTY-NOTICES-NDK.txt) by hand,
   [`THIRD-PARTY-NOTICES-RUST.txt`](THIRD-PARTY-NOTICES-RUST.txt) by running
-  `poc/scripts/gen_rust_notices.py`) in the same PR. Copyleft dependencies
+  `scripts/gen_rust_notices.py`) in the same PR. Copyleft dependencies
   (GPL, LGPL, AGPL) and source-available licenses (BSL, SSPL, Elastic) will not
   be merged — they would impose terms on every game built with the engine.
 
