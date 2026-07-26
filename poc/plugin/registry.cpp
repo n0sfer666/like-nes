@@ -18,7 +18,23 @@ void Registry::add_asset_codec(const std::string& fourcc, AssetDecodeFn fn) {
 }
 
 void Registry::add_named(ExtKind kind, const std::string& id, const std::string& extra, void* fn) {
+    if (!ext_in_range(kind) || ext_has_own_storage(kind)) {
+        std::fprintf(stderr, "[host] ext kind %d is not a named slot, '%s' (owner=%s) rejected\n",
+                     static_cast<int>(kind), id.c_str(), current_owner_.c_str());
+        return;
+    }
     named_[kind].push_back(NamedExt{id, extra, fn, current_owner_});
+}
+
+void Registry::add_backend(const std::string& id, const AchBackendApi* backend) {
+    for (const auto& e : backends_) {
+        if (e.id == id) {
+            std::fprintf(stderr, "[host] duplicate achievement backend '%s' (owner=%s) rejected (already owned by %s)\n",
+                         id.c_str(), current_owner_.c_str(), e.owner.c_str());
+            return;
+        }
+    }
+    backends_.push_back(BackendExt{id, backend, current_owner_});
 }
 
 void Registry::remove_owner(const std::string& owner) {
@@ -29,6 +45,7 @@ void Registry::remove_owner(const std::string& owner) {
     };
     drop(ecs_);
     drop(codecs_);
+    drop(backends_);
     for (auto& v : named_) drop(v);
 }
 
@@ -76,7 +93,8 @@ std::size_t Registry::count(ExtKind kind) const {
     switch (kind) {
         case EXT_ECS_SYSTEM: return ecs_.size();
         case EXT_ASSET_CODEC: return codecs_.size();
-        default: return named_[kind].size();
+        case EXT_ACHIEVEMENT_BACKEND: return backends_.size();
+        default: return ext_in_range(kind) ? named_[kind].size() : 0;
     }
 }
 
@@ -102,6 +120,14 @@ static void thunk_audio(void* ctx, const char* id, OpaqueFn fn) {
 static void thunk_ui(void* ctx, const char* id, const char* title, UiDrawFn fn) {
     self(ctx)->add_named(EXT_UI_PANEL, id, title, reinterpret_cast<void*>(fn));
 }
+static void thunk_ach_backend(void* ctx, const char* id, const AchBackendApi* backend) {
+    if (id == nullptr || backend == nullptr) return;
+    if (backend->unlock == nullptr) {
+        std::fprintf(stderr, "[host] achievement backend '%s' rejected: unlock is mandatory\n", id);
+        return;
+    }
+    self(ctx)->add_backend(id, backend);
+}
 static void thunk_log(void*, const char* msg) {
     std::fprintf(stderr, "[plugin] %s\n", msg);
 }
@@ -116,6 +142,7 @@ HostApi Registry::make_host_api() {
     api.register_input_source = thunk_input;
     api.register_audio_bus = thunk_audio;
     api.register_ui_panel = thunk_ui;
+    api.register_achievement_backend = thunk_ach_backend;
     api.log = thunk_log;
     return api;
 }

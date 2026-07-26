@@ -10,6 +10,12 @@
 #if defined(__SANITIZE_ADDRESS__)
 #  define PLUGIN_ASAN 1
 #endif
+// Под ASan dlclose выключен, чтобы санитайзер мог разрешать символы выгруженных плагинов
+// (крэш-изоляция #6). Сценариям, которые проверяют жизнь ПОСЛЕ выгрузки, нужен настоящий
+// dlclose — они собираются с -DPLUGIN_FORCE_DLCLOSE и платят нечитаемыми стеками.
+#if defined(PLUGIN_FORCE_DLCLOSE) && defined(PLUGIN_ASAN)
+#  undef PLUGIN_ASAN
+#endif
 
 #ifdef _WIN32
 #include <windows.h>

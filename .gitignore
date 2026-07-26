@@ -14,3 +14,4 @@ compile_commands.json
 .cache/
 poc/deps/
 imgui.ini
+.serena/
