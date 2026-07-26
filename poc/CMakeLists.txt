@@ -554,7 +554,8 @@ endif()
 
 add_library(ach_core STATIC
   achievements/registry.cpp achievements/tracker.cpp achievements/state.cpp achievements/store.cpp
-  achievements/manifest.cpp achievements/bake.cpp achievements/bake_parse.cpp)
+  achievements/manifest.cpp achievements/bake.cpp achievements/bake_parse.cpp
+  achievements/delivery.cpp)
 # Каталога достижений нет в путях потребителей: у ach_core и plugin_core совпадают имена
 # registry.hpp/manifest.hpp, и общий -I отдавал бы «ближайший», а не нужный. Все включения
 # извне — с префиксом каталога (`../achievements/...`), внутри каталога работают относительные.
@@ -581,9 +582,29 @@ if(NOT WIN32)
   target_link_libraries(ach_bundle_test PRIVATE ach_bundle)
 endif()
 
+add_executable(ach_delivery_test achievements/delivery_test.cpp)
+target_link_libraries(ach_delivery_test PRIVATE ach_core)
+
+add_executable(ach_delivery_lifecycle_test achievements/delivery_lifecycle_test.cpp)
+target_link_libraries(ach_delivery_lifecycle_test PRIVATE ach_core)
+
+# Плагинный шов (спека #10, гейт 5): бэкенд приезжает плагином на точке расширения #6.
+add_library(ach_plugin STATIC achievements/plugin_backend.cpp)
+# plugin_core — PRIVATE: линк протянется как $<LINK_ONLY:>, а его include-путь наружу не пойдёт.
+# Иначе poc/plugin/sim.hpp затеняет game/sim.hpp у потребителей — та же коллизия, что убрана у ach_core.
+target_link_libraries(ach_plugin PUBLIC ach_core PRIVATE plugin_core)
+
+# backend_host.cpp собирается прямо сюда: порядок разрушения backend→dlclose иначе не покрыт
+# ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это единственный способ его проверить.
+add_executable(ach_plugin_test
+  achievements/plugin_test.cpp achievements/plugin_test_common.cpp
+  achievements/plugin_host_test.cpp game/backend_host.cpp)
+target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
+
+add_library(plugin_ach_fake MODULE plugin/plugins/ach_fake.cpp)
 # Плагин с заниженной ABI-версией: материал гейта «старый ABI отбит», а не рабочее расширение.
 add_library(plugin_ach_v1 MODULE plugin/plugins/ach_v1.cpp)
-foreach(P plugin_ach_v1)
+foreach(P plugin_ach_fake plugin_ach_v1)
   target_include_directories(${P} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/plugin ${CMAKE_CURRENT_SOURCE_DIR}/src)
   set_target_properties(${P} PROPERTIES PREFIX "")
