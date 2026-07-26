@@ -106,7 +106,7 @@ jobs:
           VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'render_golden' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
@@ -115,7 +115,7 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'render_golden' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
@@ -127,7 +127,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find build -maxdepth 2 -name 'assetc' | head -1)
+          A=$(find build -maxdepth 2 -type f -name 'assetc' | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           "$A" --synthetic syn.bundle | tee syn.txt
           grep -q "0xf2255dc74fbdb6bc" syn.txt || { echo "SYNTH HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -140,16 +140,16 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          T=$(find build -maxdepth 2 -name 'asset_test' | head -1); "$T" syn.bundle
-          D=$(find build -maxdepth 2 -name 'asset_determinism_test' | head -1); "$D" syn.bundle
-          H=$(find build -maxdepth 2 -name 'asset_hot_reload_test' | head -1); "$H" .
+          T=$(find build -maxdepth 2 -type f -name 'asset_test' | head -1); "$T" syn.bundle
+          D=$(find build -maxdepth 2 -type f -name 'asset_determinism_test' | head -1); "$D" syn.bundle
+          H=$(find build -maxdepth 2 -type f -name 'asset_hot_reload_test' | head -1); "$H" .
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          ZLIB=$(find build -name 'libzstd.a' | head -1)
-          ZINC=$(find build -path '*zstd-src/lib' -type d | head -1)
+          ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
+          ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
             -Iengine/asset -I"$ZINC" \
             engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
@@ -165,18 +165,18 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          G=$(find build -maxdepth 2 -name 'audio_golden' | head -1); "$G" | tee ag.txt
+          G=$(find build -maxdepth 2 -type f -name 'audio_golden' | head -1); "$G" | tee ag.txt
           grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          D=$(find build -maxdepth 2 -name 'audio_determinism_test' | head -1); "$D"
-          R=$(find build -maxdepth 2 -name 'audio_rt_test' | head -1); "$R"
+          D=$(find build -maxdepth 2 -type f -name 'audio_determinism_test' | head -1); "$D"
+          R=$(find build -maxdepth 2 -type f -name 'audio_rt_test' | head -1); "$R"
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          A=$(find build -maxdepth 2 -name 'assetc' | head -1)
+          A=$(find build -maxdepth 2 -type f -name 'assetc' | head -1)
           "$A" --audio engine/audio/assets/src audio.bundle
-          S=$(find build -maxdepth 2 -name 'audio_seam' | head -1); "$S" audio.bundle
+          S=$(find build -maxdepth 2 -type f -name 'audio_seam' | head -1); "$S" audio.bundle
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
@@ -310,7 +310,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           [ -n "$FLECSLIB" ] || { echo "libflecs_static.a not found"; exit 1; }
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
@@ -329,7 +329,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'ide_ipc_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'ide_ipc_selftest' | head -1)
           [ -n "$BIN" ] || { echo "ide_ipc_selftest not built"; exit 1; }
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
@@ -338,8 +338,8 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          T=$(find build -maxdepth 2 -name 'play_spawn_test' | head -1)
-          G=$(find build -maxdepth 2 -name 'game_child' | head -1)
+          T=$(find build -maxdepth 2 -type f -name 'play_spawn_test' | head -1)
+          G=$(find build -maxdepth 2 -type f -name 'game_child' | head -1)
           [ -n "$T" ] && [ -n "$G" ] || { echo "IDE IPC binaries not built"; exit 1; }
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
@@ -348,7 +348,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          B=$(find build -maxdepth 2 -name 'ide_ipc_bench' | head -1)
+          B=$(find build -maxdepth 2 -type f -name 'ide_ipc_bench' | head -1)
           [ -n "$B" ] || { echo "ide_ipc_bench not built"; exit 1; }
           "$B" | tee ide_bench.txt
           grep -q "ide-ipc-bench: PASS" ide_bench.txt
@@ -376,7 +376,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'diagnostics_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'diagnostics_test' | head -1)
           [ -n "$BIN" ] || { echo "diagnostics_test not built"; exit 1; }
           "$BIN" | tee ide_diag.txt
           grep -q "ide-diagnostics: PASS" ide_diag.txt
@@ -385,7 +385,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'build_loop_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'build_loop_test' | head -1)
           [ -n "$BIN" ] || { echo "build_loop_test not built"; exit 1; }
           "$BIN" | tee ide_bl.txt
           grep -q "ide-build-loop: PASS" ide_bl.txt
@@ -409,7 +409,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'perf_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'perf_test' | head -1)
           [ -n "$BIN" ] || { echo "perf_test not built"; exit 1; }
           "$BIN" | tee ide_perf.txt
           grep -q "ide-perf: PASS" ide_perf.txt
@@ -418,7 +418,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
           c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
@@ -433,7 +433,7 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -name 'editor_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -type f -name 'editor_selftest' | head -1)
           [ -n "$BIN" ] || { echo "editor_selftest not built"; exit 1; }
           "$BIN" | tee ide_editor.txt
           grep -q "ide-editor-data: PASS" ide_editor.txt
@@ -442,7 +442,7 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          FLECSLIB=$(find build -name 'libflecs_static.a' | head -1)
+          FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
           c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
@@ -567,9 +567,9 @@ jobs:
             engine/achievements/delivery_test.cpp -o achd_san
           ./achd_san | tee achdsan.txt
           grep -q "PASS" achdsan.txt
-          ZLIB=$(find build -name 'libzstd.a' | head -1)
-          ZINC=$(find build -path '*zstd-src/lib' -type d | head -1)
-          SINC=$(dirname "$(find build -name 'stb_image.h' | head -1)")
+          ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
+          ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
+          SINC=$(dirname "$(find build -type f -name 'stb_image.h' | head -1)")
           c++ $SAN -Iengine/asset -I"$ZINC" -I"$SINC" \
             engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
