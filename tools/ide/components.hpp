@@ -1,5 +1,5 @@
 #pragma once
-#include "../src/fixed.hpp"
+#include "../../engine/core/fixed.hpp"
 #include <flecs.h>
 #include <cstdint>
 #include <string>

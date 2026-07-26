@@ -1,5 +1,5 @@
 #include "serialize.hpp"
-#include "../asset/hash.hpp"
+#include "../../engine/asset/hash.hpp"
 #include <cstdlib>
 #include <sstream>
 

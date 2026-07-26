@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 
 // Общие типы аудио-подсистемы (спека #3). Внутренний микс — фикс. rate/каналы;
 // команды таймштампятся в sample-time (tick N → sample N*SAMPLES_PER_TICK), НЕ wall-clock,

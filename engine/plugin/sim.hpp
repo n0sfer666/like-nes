@@ -1,5 +1,5 @@
 #pragma once
-#include "../src/fixed.hpp"
+#include "../core/fixed.hpp"
 #include <cstdint>
 
 struct SimWorld {

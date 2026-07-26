@@ -1,4 +1,4 @@
-set(_lic_root ${CMAKE_CURRENT_LIST_DIR}/../..)
+set(_lic_root ${CMAKE_CURRENT_LIST_DIR}/..)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_LIST_DIR}/licenses.manifest)
 file(STRINGS ${CMAKE_CURRENT_LIST_DIR}/licenses.manifest _lic_names)
