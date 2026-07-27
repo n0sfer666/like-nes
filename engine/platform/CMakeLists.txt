@@ -18,12 +18,17 @@ target_link_libraries(platform_env_test PRIVATE platform_core)
 add_executable(platform_shmem_test platform_shmem_test.cpp)
 target_link_libraries(platform_shmem_test PRIVATE platform_core)
 
+# Шов запуска процесса с захватом вывода (спека #13): перезапускает сам себя со служебным
+# режимом, потому отдельной цели-ребёнка не нужно. Тоже вне ветки WIN32 — гоняется на трёх ОС.
+add_executable(platform_process_test platform_process_test.cpp)
+target_link_libraries(platform_process_test PRIVATE platform_core)
+
 if(WIN32)
   target_sources(platform_core PRIVATE
     win32_utf.cpp win32_cmdline.cpp
     platform_io_win32.cpp platform_fs_win32.cpp platform_path_win32.cpp platform_env_win32.cpp
     platform_process_win32.cpp platform_module_win32.cpp platform_guard_win32.cpp
-    platform_args_win32.cpp platform_shmem_win32.cpp)
+    platform_args_win32.cpp platform_shmem_win32.cpp win32_spawn.cpp)
   # CommandLineToArgvW живёт в shell32: его зовёт platform_args_win32.cpp (разбор своей строки
   # запуска) и тест цитирования ниже. PRIVATE у статической библиотеки всё равно доезжает до
   # потребителей линковкой — потому тесту хватает одного platform_core.
