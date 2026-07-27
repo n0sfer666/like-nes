@@ -5,6 +5,7 @@
 #include "../plugin/host.hpp"
 #include "delivery.hpp"
 #include "platform_args.hpp"
+#include "platform_env.hpp"
 #include "plugin_backend.hpp"
 #include "registry.hpp"
 #include "tracker.hpp"
@@ -79,7 +80,7 @@ void run(const char* path) {
     check(stub.stores() >= 1, "StoreStats committed");
 
     del.reconcile();
-    check(tr.unlocked(ach::hash_key("BOSS_DOWN")) == (std::getenv("STEAM_STUB_REMOTE") != nullptr),
+    check(tr.unlocked(ach::hash_key("BOSS_DOWN")) == platform::env_has("STEAM_STUB_REMOTE"),
           "remote unlock adopted only when the service has it");
 
     const uint64_t sent = del.stats().sent;
@@ -135,9 +136,9 @@ int main(int argc, char** argv) {
         return 2;
     }
     std::printf("achievements steam adapter (contract stub)\n");
-    if (std::getenv("STEAM_STUB_STORE_FAIL") != nullptr) {
+    if (platform::env_has("STEAM_STUB_STORE_FAIL")) {
         test_store_retry(argv[1]);
-    } else if (std::getenv("STEAM_STUB_INIT_FAIL") != nullptr) {
+    } else if (platform::env_has("STEAM_STUB_INIT_FAIL")) {
         ::Registry host_reg;
         PluginHost host(host_reg);
         check(host.load_native(argv[1]), "plugin loads without Steam running");

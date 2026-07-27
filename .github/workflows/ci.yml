@@ -116,6 +116,41 @@ jobs:
           [ -z "$BAD" ] || { echo "main() without the UTF-8 argv seam (platform::Args):$BAD"; exit 1; }
           echo "argv seam: PASS ($COUNT mains, all through platform::Args)"
 
+      # Третья половина того же инварианта. std::getenv отдаёт на Windows ANSI-строку, поэтому
+      # `LIKENES_ASSETS=D:\юникод тест-каталог\` приезжает с подменёнными символами, а MSVC вдобавок
+      # помечает его C4996 и толкает к `_dupenv_s` — то есть к #ifdef в переносимом коде.
+      # Единственный легальный источник — platform::env_var; забыть шов в новом TU ловит греп.
+      - name: Platform — env only through the platform_env seam (spec #12 invariant 2)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
+               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
+          ROOTS="engine tools example_ugly_game platform"
+          # Переименованный корень греп бы проглотил (нашлось в остальных — код 0), и гейт стал бы
+          # зелёным для целого поддерева. Существование корней утверждается отдельно.
+          for r in $ROOTS; do
+            [ -d "$r" ] || { echo "env gate: root '$r' does not exist"; exit 1; }
+          done
+          # Запись ищется вместе с чтением: setenv/putenv мимо шва — тот же ANSI-барьер, только
+          # значение портится на входе, а не на выходе. Annex-K-имена в альтернации не для красоты:
+          # под /WX обойти шов через std::getenv на Windows нельзя вовсе (C4996 — ошибка), и
+          # единственный работающий обход — как раз _dupenv_s/getenv_s/_putenv_s, куда MSVC и
+          # предлагает уйти в тексте самой диагностики. Префиксы (_w, secure_) ловятся тем, что
+          # шаблон не якорится по началу слова.
+          # shellcheck disable=SC2086
+          ALL=$(grep -rnE '(get|set|unset|put|dup)env(_s)?[[:space:]]*\(' $EXT $ROOTS || true)
+          # Позитивный контроль: ТОТ ЖЕ шаблон по ТЕМ ЖЕ корням обязан видеть getenv внутри шва —
+          # там он и живёт. Ноль совпадений значит сломанный поиск, а не чистое дерево, поэтому
+          # контроль считается из того же прогона, а не из отдельного поиска по одному файлу.
+          # Исключение — весь шов, включая заголовок: в нём эти имена стоят в описании контракта,
+          # и упоминание вида `_dupenv_s(...)` в комментарии роняло бы гейт на ровном месте.
+          SEAM=$(printf '%s\n' "$ALL" | grep -c '^engine/platform/platform_env' || true)
+          [ "$SEAM" -ge 1 ] || { echo "env gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
+          HITS=$(printf '%s\n' "$ALL" | grep -v '^engine/platform/platform_env' | grep . || true)
+          [ -z "$HITS" ] || { echo "env access outside the seam (platform::env_var/env_put):"; echo "$HITS"; exit 1; }
+          echo "env seam: PASS (getenv/setenv live only in engine/platform/platform_env*)"
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
@@ -146,6 +181,18 @@ jobs:
           "$BIN" | tee out.txt
           grep -q "0xa213fe659921c9fb" out.txt || { echo "GOLDEN HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "run1==run2: YES" out.txt
+
+      # Греп выше доказывает, что окружение читают только через шов, но не что шов читает верно.
+      # Обе реализации возвращают строку, и битое значение неотличимо от «переменная не задана»:
+      # молчаливое расхождение ровно того класса, ради которого раунд и затевался. Тест сам
+      # выставляет ручки — кириллицу и значение длиннее стартового буфера.
+      - name: Platform — env seam round-trip (unicode, resize branch, unset)
+        shell: bash
+        run: |
+          E=$(find build -maxdepth 2 -type f \( -name 'platform_env_test' -o -name 'platform_env_test.exe' \) | head -1)
+          [ -n "$E" ] || { echo "platform_env_test not built on ${{ matrix.os }}"; exit 1; }
+          "$E" | tee env_seam.txt
+          grep -q "platform-env: PASS" env_seam.txt
 
       # Шов platform_process (спека #12): CreateProcessW принимает ОДНУ строку, которую дочерний
       # процесс парсит обратно через CommandLineToArgvW. Ошибка цитирования тихая — аргумент
@@ -430,7 +477,7 @@ jobs:
           # Эти сборки собирают дерево вручную, минуя CMake, поэтому исходники швов приходится
           # перечислять самим — иначе шаг падает на первом же `platform_*.hpp: No such file`.
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core -Iengine/platform"
-          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp"
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
           c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp $PLAT_FS $PLAT_ARGS -o plugin_manifest_san
@@ -606,6 +653,7 @@ jobs:
           c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
             engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
+            engine/platform/platform_env_posix.cpp \
             -ldl -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
@@ -794,7 +842,7 @@ jobs:
           # и вернул бы коллизию registry.hpp/manifest.hpp с -Iengine/plugin в цепочке achp_san.
           # Швы перечисляются поимённо по той же причине, что и в plugin-шаге: CMake тут не участвует.
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform"
-          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp"
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
@@ -830,7 +878,10 @@ jobs:
           # Единственный путь, где Delivery держит ссылку в dlopen-нутый код: UAF после dlclose
           # ловится только тут, поэтому -DPLUGIN_FORCE_DLCLOSE — без него host.cpp под ASan
           # библиотеку не размапливает и сценарий не воспроизводится вовсе.
-          c++ $SAN -Iengine/plugin -shared -fPIC engine/plugin/plugins/ach_fake.cpp -o plugin_ach_fake_san.so
+          # Шов окружения — в саму .so, как это делает CMake: полагаться на экспорт символов из
+          # хоста нельзя, тот собран без -rdynamic.
+          c++ $SAN -Iengine/plugin -shared -fPIC engine/plugin/plugins/ach_fake.cpp \
+            engine/platform/platform_env_posix.cpp -o plugin_ach_fake_san.so
           c++ $SAN -Iengine/plugin -shared -fPIC engine/plugin/plugins/ach_v1.cpp -o plugin_ach_v1_san.so
           c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Iengine/plugin engine/achievements/registry.cpp \
             engine/achievements/tracker.cpp engine/achievements/state.cpp engine/achievements/store.cpp \

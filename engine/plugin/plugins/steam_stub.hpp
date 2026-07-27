@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "platform_env.hpp"
+
 // Фейковый Steamworks: повторяет контракт ISteamUserStats (unlock/stat/store/callback),
 // SDK не вендорится (спека #9 — инвентарь лицензий не трогается). Реальный SDK
 // подключается сборкой с -DLIKE_NES_STEAM_SDK, шов адаптера один и тот же.
@@ -29,10 +31,10 @@ inline State& state() {
 }
 
 inline void split_env(const char* name, std::vector<std::string>& out) {
-    const char* v = std::getenv(name);
-    if (v == nullptr) return;
+    std::string v;
+    if (!platform::env_var(name, v)) return;
     std::string cur;
-    for (const char* p = v;; ++p) {
+    for (const char* p = v.c_str();; ++p) {
         if (*p == ',' || *p == '\0') {
             if (!cur.empty()) out.push_back(cur);
             cur.clear();
@@ -102,9 +104,9 @@ inline ISteamUserStats* SteamUserStats() {
 
 inline bool SteamAPI_Init() {
     steam_stub::State& s = steam_stub::state();
-    if (std::getenv("STEAM_STUB_INIT_FAIL") != nullptr) return false;
-    const char* fail = std::getenv("STEAM_STUB_STORE_FAIL");
-    s.store_fail = fail == nullptr ? 0 : std::atoi(fail);
+    if (platform::env_has("STEAM_STUB_INIT_FAIL")) return false;
+    std::string fail;
+    s.store_fail = platform::env_var("STEAM_STUB_STORE_FAIL", fail) ? std::atoi(fail.c_str()) : 0;
     // Удалённые анлоки — состояние сервиса, а не сессии: досыпать их на каждый Init значило бы
     // размножать ключи при переподключении.
     if (!s.remote_seeded) {

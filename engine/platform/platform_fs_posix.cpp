@@ -1,5 +1,6 @@
 #include "platform_fs.hpp"
 
+#include "platform_env.hpp"
 #include "platform_path.hpp"
 
 #include <fcntl.h>
@@ -123,9 +124,8 @@ bool copy_file(const std::string& src, const std::string& dst) {
 namespace {
 
 std::string env_dir(const char* name, const std::string& suffix) {
-    const char* v = std::getenv(name);
-    if (v == nullptr || *v == '\0') return {};
-    const std::string base(v);
+    std::string base;
+    if (!env_var(name, base) || base.empty()) return {};
     return is_absolute(base) ? base + suffix : std::string{};
 }
 
