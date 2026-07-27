@@ -27,6 +27,12 @@ public:
     uint32_t action_count(uint32_t preset) const;
     uint32_t axis_count(uint32_t preset) const;
     int find_action(uint32_t preset, const char* name) const;
+    const char* action_name(uint32_t preset, uint32_t action) const;
+
+    // Альтернативные источники действия: перебинды адресуют биндинг парой (действие, номер).
+    uint32_t action_binding_count(uint32_t preset, uint32_t action) const;
+    bool action_source(uint32_t preset, uint32_t action, uint32_t which, ::input::Source& out) const;
+
     int find_axis(uint32_t preset, const char* name) const;
 
     // Форма отклика оси и индекс парной оси (NO_PAIR — зона считается по одной оси).

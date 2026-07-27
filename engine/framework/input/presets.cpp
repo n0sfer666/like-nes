@@ -117,6 +117,28 @@ int PresetTable::find_action(uint32_t preset, const char* name) const {
     return -1;
 }
 
+const char* PresetTable::action_name(uint32_t preset, uint32_t action) const {
+    const PresetRow* p = preset_at(preset);
+    if (p == nullptr || action >= p->action_count) return "";
+    return string_at(actions_[p->action_begin + action].name_offset);
+}
+
+uint32_t PresetTable::action_binding_count(uint32_t preset, uint32_t action) const {
+    const PresetRow* p = preset_at(preset);
+    if (p == nullptr || action >= p->action_count) return 0;
+    return actions_[p->action_begin + action].binding_count;
+}
+
+bool PresetTable::action_source(uint32_t preset, uint32_t action, uint32_t which,
+                                ::input::Source& out) const {
+    const PresetRow* p = preset_at(preset);
+    if (p == nullptr || action >= p->action_count) return false;
+    const ActionRow& a = actions_[p->action_begin + action];
+    if (which >= a.binding_count) return false;
+    out = to_source(bindings_[a.binding_begin + which]);
+    return true;
+}
+
 int PresetTable::find_axis(uint32_t preset, const char* name) const {
     const PresetRow* p = preset_at(preset);
     if (p == nullptr || name == nullptr) return -1;
