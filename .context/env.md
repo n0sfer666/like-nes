@@ -21,6 +21,7 @@
 | `STEAM_STUB_INIT_FAIL=1` | Контракт-стаб Steamworks: `SteamAPI_Init()` падает (клиент не запущен). |
 | `STEAM_STUB_STORE_FAIL=N` | Контракт-стаб: первые N `StoreStats()` возвращают false. |
 | `STEAM_STUB_REMOTE=A,B` | Контракт-стаб: ачивки, открытые на сервисе (другая машина). |
+| `LIKE_NES_WATCH=poll` | Наблюдение за каталогом принудительно идёт фолбэк-поллингом вместо нативного бэкенда (inotify / FSEvents / `ReadDirectoryChangesW`). Нужна гейту `platform_watch_test`, чтобы фолбэк не оставался кодом, который никто не выполнял. |
 | `ASAN_OPTIONS=detect_leaks=0` | Обязательна для ASan-гейта UAF-после-dlclose: статика выгруженной библиотеки видна LSan как утечка без символов. |
 
 ## Сборка
@@ -28,6 +29,11 @@
 `STEAMWORKS_SDK_DIR` — не переменная окружения, а CMake-опция: путь к распакованному Steamworks SDK.
 Задан → `plugin_steam` линкуется с настоящим `libsteam_api` (`LIKE_NES_STEAM_SDK`), иначе с
 контракт-стабом. SDK в репозиторий не вендорится.
+
+`LINUX_WAYLAND` — не переменная окружения, а CMake-опция (умолчание `OFF`). `ON` собирает GLFW ещё
+и с Wayland-бэкендом; нужны `wayland-protocols` (даёт `wayland-scanner`), `libwayland-dev`,
+`libxkbcommon-dev`. Без неё бинарь под Wayland-сессией работает клиентом XWayland — см.
+`docs/first-run.md`.
 
 `PLUGIN_FORCE_DLCLOSE` — не переменная окружения, а define компилятора (`-DPLUGIN_FORCE_DLCLOSE`).
 Под ASan `host.cpp` по умолчанию не зовёт `dlclose` (иначе теряются символы), и сценарий
