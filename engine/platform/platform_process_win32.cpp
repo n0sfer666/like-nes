@@ -107,6 +107,33 @@ bool Child::spawn(const std::vector<std::string>& argv) {
     return true;
 }
 
+bool Child::wait(ExitStatus& out) {
+    out = ExitStatus{};   // не оставлять исход прошлого ребёнка в переиспользованной структуре
+    if (raw_ == 0) return false;
+    HANDLE h = reinterpret_cast<HANDLE>(raw_);
+    raw_ = 0;
+    // Конечное ожидание по той же причине, что и в kill_and_wait: упавший процесс на раннере
+    // может неопределённо долго удерживаться WerFault, и INFINITE превратил бы упавший тест в
+    // висящий до таймаута джоб. Не дождались — убиваем и возвращаем false (out остаётся Unknown).
+    const DWORD w = WaitForSingleObject(h, 30000);
+    DWORD code = 0;
+    const bool got = (w == WAIT_OBJECT_0) && GetExitCodeProcess(h, &code) != 0;
+    if (w != WAIT_OBJECT_0) TerminateProcess(h, KILL_CODE);
+    CloseHandle(h);
+    if (!got) return false;
+    out.code = static_cast<int>(code);
+    if (code == KILL_CODE) {
+        out.kind = ExitKind::Killed;
+        return true;
+    }
+    // Необработанное исключение доезжает кодом возврата, равным коду исключения: старшие два
+    // бита NTSTATUS = 0b11 (severity ERROR) — так выглядят ACCESS_VIOLATION (0xC0000005),
+    // ILLEGAL_INSTRUCTION, STACK_OVERFLOW. Обычный exit(N) туда не попадает: CRT возвращает
+    // код из main, и уложиться в этот диапазон он мог бы только намеренно.
+    out.kind = ((code & 0xC0000000u) == 0xC0000000u) ? ExitKind::Crashed : ExitKind::Exited;
+    return true;
+}
+
 bool Child::kill_and_wait() {
     if (raw_ == 0) return false;
     HANDLE h = reinterpret_cast<HANDLE>(raw_);

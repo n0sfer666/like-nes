@@ -95,10 +95,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Исключено то, до чего ANSI-перекодировка argv не доходит: три POSIX-only цели
-          # IPC-вертикали спеки #13 (CMake под Windows их не собирает вовсе) и iOS-хост (свой CRT,
-          # MSVC там нет).
-          EXCLUDE='^(tools/ide/(game_child|build_loop_test|play_spawn_test)\.cpp|platform/ios/app\.mm)$'
+          # Исключено то, до чего ANSI-перекодировка argv не доходит: build_loop_test (пока
+          # POSIX-only, снимается в этом же раунде) и iOS-хост (свой CRT, MSVC там нет).
+          # game_child и play_spawn_test переехали на шов и из списка ушли — теперь их проверяют.
+          EXCLUDE='^(tools/ide/build_loop_test\.cpp|platform/ios/app\.mm)$'
           # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
           # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
           FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
@@ -661,12 +661,11 @@ jobs:
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
 
-      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4; Windows — spec #13)
-        if: runner.os != 'Windows'
+      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4, all OS)
         shell: bash
         run: |
-          T=$(find build -maxdepth 2 -type f -name 'play_spawn_test' | head -1)
-          G=$(find build -maxdepth 2 -type f -name 'game_child' | head -1)
+          T=$(find build -maxdepth 2 -type f \( -name 'play_spawn_test' -o -name 'play_spawn_test.exe' \) | head -1)
+          G=$(find build -maxdepth 2 -type f \( -name 'game_child' -o -name 'game_child.exe' \) | head -1)
           [ -n "$T" ] && [ -n "$G" ] || { echo "IDE IPC binaries not built"; exit 1; }
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
@@ -693,10 +692,14 @@ jobs:
           SEAM="engine/platform/platform_shmem_posix.cpp"
           c++ $SAN tools/ide/game_child.cpp $SEAM \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp -pthread -lrt -o ide_gc_san
-          c++ $SAN tools/ide/play_spawn_test.cpp $SEAM -pthread -lrt -o ide_play_san
-          # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 → ASan не перехватывает
-          # интенциональный SIGSEGV (иначе child умирает от SIGABRT, gate4 ждёт SIGSEGV). Инструмент.
-          # проверки ASan (redzone/UAF) сохраняются — отключается только обработчик hardware-SEGV.
+          c++ $SAN tools/ide/play_spawn_test.cpp $SEAM \
+            engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+            -pthread -lrt -o ide_play_san
+          # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 несущий: с включённым
+          # обработчиком ASan печатает отчёт и завершает процесс ШТАТНЫМ exit(1), а шов честно
+          # читает это как ExitKind::Exited — гейт 4 краснеет на артефакте инструментации.
+          # Инструмент. проверки ASan (redzone/UAF) сохраняются — снимается только обработчик SEGV.
           ASAN_OPTIONS=handle_segv=0:abort_on_error=0 ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
           grep -q "ide-play-spawn: PASS" ide_play_san.txt
 

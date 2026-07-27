@@ -45,17 +45,18 @@ target_link_libraries(ide_ipc_selftest PRIVATE ipc_headers Threads::Threads)
 add_executable(game_child game_child.cpp)
 target_link_libraries(game_child PRIVATE ipc_headers platform_core Threads::Threads)
 
-# Остаток POSIX-поверхности (#13): fork/waitpid в play_spawn_test, pipe/exec в build-loop,
-# watcher. Сокращается коммит за коммитом до полного снятия ветки.
+# Гейты 3/4 + layout-drift: parent запускает game_child (путь → argv[1]). После переезда на
+# platform::Child и platform_shmem POSIX-вызовов здесь не осталось — цель собирается на трёх ОС.
+add_executable(play_spawn_test play_spawn_test.cpp)
+target_link_libraries(play_spawn_test PRIVATE ipc_headers platform_core Threads::Threads)
+
+# Остаток POSIX-поверхности (#13): unix-socket в bench, pipe/exec в build-loop, watcher.
+# Сокращается коммит за коммитом до полного снятия ветки.
 if(NOT WIN32)
   # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007. Вторая половина замера —
   # unix-socket (sys/socket.h), поэтому цель остаётся POSIX-only и после переезда шва shmem.
   add_executable(ide_ipc_bench ipc_bench.cpp)
   target_link_libraries(ide_ipc_bench PRIVATE ipc_headers Threads::Threads)
-
-  # Гейты 3/4 + layout-drift: parent spawn'ит game_child (путь → argv[1]).
-  add_executable(play_spawn_test play_spawn_test.cpp)
-  target_link_libraries(play_spawn_test PRIVATE ipc_headers platform_core Threads::Threads)
 
   # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
   # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).
