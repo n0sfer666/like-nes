@@ -661,6 +661,17 @@ jobs:
           "$BIN" | tee process_seam.txt
           grep -q "platform-process: PASS" process_seam.txt
 
+      # Три РАЗНЫЕ по устройству реализации (inotify / FSEvents / ReadDirectoryChangesW) под одним
+      # опросным API — сверить их между собой можно только прогоном на каждой ОС. Тест гоняет и
+      # нативный бэкенд, и принудительный поллинг: фолбэк иначе не исполнялся бы нигде.
+      - name: Platform — directory watch seam (spec #13 decision 4, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_watch_test' -o -name 'platform_watch_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_watch_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee watch_seam.txt
+          grep -q "platform-watch: PASS" watch_seam.txt
+
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
         run: |
