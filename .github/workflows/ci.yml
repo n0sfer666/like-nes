@@ -532,22 +532,23 @@ jobs:
           # рантаймы плоско в …/lib/windows. Поэтому каталог не берётся со слов компилятора, а
           # ищется по файлу, ради которого нужен: существующий, но пустой каталог дал бы LNK1104
           # страницей ниже вместо внятного отказа здесь.
-          # Имя библиотеки — маской, а не литералом: статический и динамический рантаймы
-          # (`clang_rt.asan-x86_64.lib` / `clang_rt.asan_dynamic-x86_64.lib`) лежат в одном
-          # каталоге, а какой из них припишет к объектам clang-cl, решает модель CRT.
+          # Проверяются ровно те две библиотеки, которые ниже уезжают на линкер: каталог,
+          # где лежит одна из них, но не обе, — не тот каталог.
+          ASAN_LIBS="clang_rt.asan_dynamic-x86_64.lib clang_rt.asan_dynamic_runtime_thunk-x86_64.lib"
           RT=""
           for c in "$(clang -print-runtime-dir)" "$(clang -print-resource-dir)/lib/windows"; do
-            if ls "$c"/clang_rt.asan*x86_64.lib >/dev/null 2>&1; then RT=$c; break; fi
-            echo "no clang_rt.asan*x86_64.lib in $c"
+            missing=""
+            for l in $ASAN_LIBS; do [ -f "$c/$l" ] || missing="$missing $l"; done
+            if [ -z "$missing" ]; then RT=$c; break; fi
+            echo "in $c missing:$missing"
           done
           if [ -z "$RT" ]; then
             echo "clang asan runtime not found"
             ls -R "$(clang -print-resource-dir)/lib" 2>/dev/null | head -50
             exit 1
           fi
-          # Две разные надобности одного каталога, и обе обязательны. Линковка: -fsanitize=address
-          # доходит только до компилятора, а объекты уносят /DEFAULTLIB:clang_rt.asan_dynamic-*,
-          # которую линкер ищет по %LIB% — не найдёт, будет LNK1104 вместо санитайзера. Запуск:
+          # Две разные надобности одного каталога, и обе обязательны. Линковка: линкер ищет
+          # библиотеки рантайма по %LIB% — не найдёт, будет LNK1104 вместо санитайзера. Запуск:
           # рантайм ASan здесь DLL, и без неё инструментированный exe не стартует вовсе.
           # Присваивание отдельно от export: в связке `export X=$(...)` код возврата подстановки
           # теряется, и провал cygpath уехал бы в невнятную ошибку линкера страницей ниже.
@@ -555,6 +556,13 @@ jobs:
           RT_UNIX=$(cygpath -u "$RT")
           export LIB="${RT_WIN}${LIB:+;$LIB}"
           export PATH="${RT_UNIX}:$PATH"
+          # Рантайм называется линкеру явно, потому что линкует CMake через lld-link напрямую,
+          # минуя драйвер clang-cl: `-fsanitize=address` доходит только до компиляции, а объекты
+          # уносят ссылку на `__asan_init` и ничего больше — отсюда `undefined symbol` вместо
+          # LNK1104. `/wholearchive` на thunk обязателен: без него линкер выбросит секции с
+          # перехватчиками как неиспользуемые, и санитайзер промолчит на живом переполнении.
+          # Три переменные, а не одна: плагины — DLL (SHARED), тестовые бинари — EXE.
+          LINK_ASAN="$ASAN_LIBS -wholearchive:clang_rt.asan_dynamic_runtime_thunk-x86_64.lib"
           # Модель CRT задаётся явно, потому что ASan не умеет отладочный рантайм вовсе:
           # `invalid argument '-MDd' not allowed with '-fsanitize=address'`. Умолчание
           # CMAKE_MSVC_RUNTIME_LIBRARY генвыражением подставляет `-MDd` в конфигурации Debug,
@@ -566,6 +574,9 @@ jobs:
             -DCMAKE_TRY_COMPILE_CONFIGURATION=RelWithDebInfo \
             -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
             -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address \
+            -DCMAKE_EXE_LINKER_FLAGS="$LINK_ASAN" \
+            -DCMAKE_SHARED_LINKER_FLAGS="$LINK_ASAN" \
+            -DCMAKE_MODULE_LINKER_FLAGS="$LINK_ASAN" \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
           cmake --build build-asan --target asset_test asset_determinism_test \
             audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind
