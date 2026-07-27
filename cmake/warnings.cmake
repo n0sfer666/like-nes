@@ -34,6 +34,19 @@ set(LIKE_NES_WARN_LEVEL_RE "(^|[^A-Za-z0-9_])[-/]W(all|[0-4])($|[^A-Za-z0-9_])")
 # Сторонний код чужой: править его нельзя (пин на коммит — условие байт-детерминизма бейка),
 # а его варнинги в логе неотличимы от наших. Глушим по факту принадлежности к дереву
 # зависимостей, а не списком имён: список устареет на первой же новой зависимости.
+function(like_nes_strip_warning_level target)
+    get_target_property(opts ${target} COMPILE_OPTIONS)
+    if(opts)
+        list(FILTER opts EXCLUDE REGEX "${LIKE_NES_WARN_LEVEL_RE}")
+        set_property(TARGET ${target} PROPERTY COMPILE_OPTIONS ${opts})
+    endif()
+    get_target_property(flags ${target} COMPILE_FLAGS)
+    if(flags)
+        string(REGEX REPLACE "${LIKE_NES_WARN_LEVEL_RE}" " " flags "${flags}")
+        set_property(TARGET ${target} PROPERTY COMPILE_FLAGS "${flags}")
+    endif()
+endfunction()
+
 function(like_nes_silence_dependencies dir)
     get_property(targets DIRECTORY "${dir}" PROPERTY BUILDSYSTEM_TARGETS)
     foreach(t IN LISTS targets)
@@ -41,16 +54,7 @@ function(like_nes_silence_dependencies dir)
         # У INTERFACE-целей и custom-таргетов нет своей компиляции — set_property на них
         # либо бессмыслен, либо ошибка конфигурации.
         if(NOT type STREQUAL "INTERFACE_LIBRARY" AND NOT type STREQUAL "UTILITY")
-            get_target_property(opts ${t} COMPILE_OPTIONS)
-            if(opts)
-                list(FILTER opts EXCLUDE REGEX "${LIKE_NES_WARN_LEVEL_RE}")
-                set_property(TARGET ${t} PROPERTY COMPILE_OPTIONS ${opts})
-            endif()
-            get_target_property(flags ${t} COMPILE_FLAGS)
-            if(flags)
-                string(REGEX REPLACE "${LIKE_NES_WARN_LEVEL_RE}" " " flags "${flags}")
-                set_property(TARGET ${t} PROPERTY COMPILE_FLAGS "${flags}")
-            endif()
+            like_nes_strip_warning_level(${t})
             set_property(TARGET ${t} APPEND PROPERTY COMPILE_OPTIONS ${LIKE_NES_NO_WARN})
         endif()
     endforeach()
@@ -60,17 +64,30 @@ function(like_nes_silence_dependencies dir)
     endforeach()
 endfunction()
 
-# Вендоренный исходник, который собирает НАША цель: single-header реализации stb и miniaudio,
-# транскодер basisu, imgui. Каталог зависимостей их не покрывает — глушатся точечно на месте
-# объявления цели (свойства исходника действуют только в своём каталоге).
-function(like_nes_vendored_sources)
-    set_source_files_properties(${ARGN} PROPERTIES COMPILE_OPTIONS "${LIKE_NES_NO_WARN}")
-endfunction()
-
+# Цель целиком из стороннего кода. Снимается ровно УРОВЕНЬ; `-Wextra`/`-Werror` (`/WX`) остаются
+# на цели и гасятся тем, что `-w` дописан последним. Держать их снятие отдельной задачей незачем:
+# `D9025` MSVC выдаёт именно на смену уровня, а `/WX` без включённых предупреждений промотировать
+# нечего.
 function(like_nes_vendored_target)
     foreach(t IN LISTS ARGN)
+        like_nes_strip_warning_level(${t})
         set_property(TARGET ${t} APPEND PROPERTY COMPILE_OPTIONS ${LIKE_NES_NO_WARN})
     endforeach()
+endfunction()
+
+# Вендоренный исходник рядом с нашим: single-header реализации stb и miniaudio, imgui. Собирается
+# ОТДЕЛЬНОЙ OBJECT-целью, а не свойством исходника, потому что уровень предупреждений — свойство
+# цели, и снять его с одного файла нечем: `set_source_files_properties(... /w)` кладёт глушилку
+# ПОВЕРХ каталожного `/W4`, а MSVC отвечает на это `D9025 overriding '/W4' with '/w'` — warning
+# драйвера, мимо `/WX`, но прямо в лог, который читает сборочный гейт. Объекты OBJECT-цели
+# попадают в потребителя через target_link_libraries, наши файлы в той же цели остаются строгими.
+function(like_nes_vendored_object name)
+    add_library(${name} OBJECT ${ARGN})
+    # Свойства потребителя OBJECT-цели не достаются: пока файлы лежали внутри статической
+    # библиотеки, PIC приезжал бы вместе с ней. Объект без -fPIC не линкуется в разделяемый
+    # объект вовсе, и всплыло бы это на первом же MODULE-потребителе, а не здесь.
+    set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    like_nes_vendored_target(${name})
 endfunction()
 
 like_nes_silence_dependencies("${CMAKE_CURRENT_SOURCE_DIR}")

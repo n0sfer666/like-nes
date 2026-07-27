@@ -2,11 +2,15 @@
 # audio_core: микшер (Float/Fix32 seam) + декод (stb_vorbis, present в fetched stb). Без
 # устройства/ассетов → deviceless-гейты гоняются в CI на всех трёх ОС (спека #12, гейт 2).
 add_library(audio_core STATIC
-  mixer.cpp decoder.cpp stb_vorbis_impl.c)
-# stb_vorbis.c — сторонний (tautological-compare); глушим точечно на этом TU.
-if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
-  set_source_files_properties(stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-Wno-tautological-compare")
-endif()
+  mixer.cpp decoder.cpp)
+# stb_vorbis.c — сторонний целиком, ни строки нашей: TU глушится по факту происхождения, а не
+# списком диагностик. Список не работал в принципе — `-Wno-tautological-compare` закрывал ровно
+# то, что успел показать clang, а MSVC пришёл со своим C4701 из той же чужой функции; следующий
+# компилятор пришёл бы с третьей. Ветка `if(NOT MSVC)` тут была не про переносимость флага, а про
+# то, что подход требует по флагу на компилятор.
+like_nes_vendored_object(stb_vorbis_vendored stb_vorbis_impl.c)
+target_include_directories(stb_vorbis_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
+target_link_libraries(audio_core PRIVATE stb_vorbis_vendored)
 target_include_directories(audio_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset)
 target_include_directories(audio_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний
@@ -29,8 +33,10 @@ add_executable(audio_seam audio_seam_main.cpp)
 target_link_libraries(audio_seam PRIVATE audio_core asset_core)
 
 if(AUDIO_MINIAUDIO)
-  add_library(audio_device STATIC device.cpp miniaudio_impl.c)
-  like_nes_vendored_sources(miniaudio_impl.c)   # TU целиком — реализация miniaudio
+  add_library(audio_device STATIC device.cpp)
+  like_nes_vendored_object(miniaudio_vendored miniaudio_impl.c)   # TU целиком — реализация miniaudio
+  target_include_directories(miniaudio_vendored SYSTEM PRIVATE ${miniaudio_SOURCE_DIR})
+  target_link_libraries(audio_device PRIVATE miniaudio_vendored)
   target_include_directories(audio_device PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
   # SYSTEM по той же причине, что и у imgui: device.cpp — наш код в одной цели с miniaudio.
   target_include_directories(audio_device SYSTEM PUBLIC ${miniaudio_SOURCE_DIR})

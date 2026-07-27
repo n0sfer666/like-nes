@@ -10,9 +10,11 @@ permissions:
 jobs:
   build-and-determinism:
     name: build+determinism (${{ matrix.os }})
-    # 45, а не 30: спека #12 добавила Windows-раннеру второй build-каталог под ASan (clang-cl,
-    # гейт 7) — это ещё один configure с FetchContent и сборка ассет/аудио/плагин-целей.
-    timeout-minutes: 45
+    # 60, а не 30: у джоба четыре build-каталога (headless `build`, `build-audio`, `build-ui`,
+    # `build-asan` под clang-cl) — каждый со своим configure и своим FetchContent. Самый дорогой
+    # из них `build-ui`: только там собираются glfw и шесть TU imgui, и только там сборочный гейт
+    # видит вендоренные объекты MSVC.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -164,8 +166,10 @@ jobs:
       # Тот же скрипт, что и в pre-commit hook (.context/checks.json): ноль ошибок и ноль
       # предупреждений на всех трёх компиляторах. Локально видно только clang — gcc и MSVC
       # ловятся здесь, и ловятся ошибкой сборки, а не строкой в логе, которую никто не читает.
-      # Набор целей здесь headless (шаг Configure выше) — отсюда LIKE_NES_BUILD_SUBSET; imgui,
-      # miniaudio и wasm собираются своими джобами ниже. Вызов через `bash`, а не по exec-биту:
+      # Набор целей здесь headless (шаг Configure выше) — отсюда LIKE_NES_BUILD_SUBSET; imgui и
+      # miniaudio собираются своими шагами ниже, тоже через этот скрипт, но каждый в своём каталоге
+      # и одной целью. Wasm-гейт требует wasmtime C-API в deps/, которого на раннерах нет: он
+      # остаётся локальным. Вызов через `bash`, а не по exec-биту:
       # git-bash на Windows-раннере exec-бит из индекса не наследует.
       - name: Build (набор целей CI) — cross-OS build validation, zero warnings
         shell: bash
@@ -285,6 +289,19 @@ jobs:
         continue-on-error: true
         run: ./build/core_smoke
 
+      # Единственное место, где imgui вообще собирается в CI, и нужен он ровно ради гейта: шесть
+      # TU imgui вендоренные, а wgpu_imgui.cpp в той же цели — наш и строгий. Пара «чужой объект
+      # рядом с нашим» под MSVC не собиралась никогда, а именно на ней ломался прежний механизм
+      # глушения (D9025). Цель одна: собирать ради этого дерево второй раз на трёх ОС незачем.
+      # Вакуумным шаг не станет: без PLUGIN_UI цели `imgui` не существует, и сборка падает громко.
+      - name: UI — imgui vendored objects build clean (PLUGIN_UI on, zero warnings)
+        shell: bash
+        run: |
+          cmake -S . -B build-ui -G Ninja -DCMAKE_BUILD_TYPE=Release -DPLUGIN_UI=ON \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_WASM=OFF
+          BUILD_DIR=build-ui LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS=imgui \
+            bash scripts/build_check.sh
+
       # Offscreen render-вертикаль (спека #2): headless, без окна. --selftest доказывает
       # воспроизводимость offscreen-пути (epsilon run-to-run) БЕЗ вендор-лока. Побайтовый
       # golden между вендорами недостижим (ADR): committed-golden epsilon-гейт валидируется
@@ -378,7 +395,11 @@ jobs:
           # двумя десятками уже собранных бинарей, которые запускают шаги ниже.
           cmake -S . -B build-audio -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=ON \
             -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
-          cmake --build build-audio --target audio_seam
+          # Через гейт, а не голым `cmake --build`: реализация miniaudio — вендоренный TU, и его
+          # глушение проверяется только на MSVC (D9025 — предупреждение драйвера, мимо /WX).
+          # Собранное голым вызовом уезжало в лог, которого никто не читает.
+          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS=audio_seam \
+            bash scripts/build_check.sh
           S=$(find build-audio -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
           "$S" audio.bundle --device-selftest | tee adev.txt
           grep -q "\[audio_seam\] PASS" adev.txt
