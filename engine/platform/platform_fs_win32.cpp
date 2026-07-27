@@ -5,6 +5,7 @@
 
 #include <windows.h>
 
+#include <cwchar>
 #include <io.h>
 #include <share.h>
 
@@ -68,6 +69,22 @@ bool file_exists(const std::string& path) {
 bool is_dir(const std::string& path) {
     const DWORD a = attrs(path);
     return a != INVALID_FILE_ATTRIBUTES && (a & FILE_ATTRIBUTE_DIRECTORY) != 0;
+}
+
+bool list_dir(const std::string& dir, std::vector<std::string>& out) {
+    out.clear();
+    const std::wstring wide = win32::widen(dir + "\\*");
+    if (wide.empty()) return false;
+    WIN32_FIND_DATAW fd{};
+    const HANDLE h = FindFirstFileW(wide.c_str(), &fd);
+    if (h == INVALID_HANDLE_VALUE) return false;
+    do {
+        const std::string name = win32::narrow(fd.cFileName, wcslen(fd.cFileName));
+        if (name == "." || name == "..") continue;
+        out.push_back(name);
+    } while (FindNextFileW(h, &fd) != 0);
+    FindClose(h);
+    return true;
 }
 
 bool make_dir(const std::string& path) {
