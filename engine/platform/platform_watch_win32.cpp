@@ -29,7 +29,10 @@ struct Watcher::Native {
     std::string root;
     bool recursive = false;
     // DWORD-выравнивание требует сама ФС: невыровненный буфер ReadDirectoryChangesW отвергает.
-    alignas(DWORD) char buf[16 * 1024] = {};
+    // Оно берётся от ТИПА элемента, а не от alignas: спецификатор поверх char-массива внутри
+    // структуры с хендлами заставляет MSVC вставить дырку и сказать про это C4324 — предупреждение
+    // о том, чего мы не просили. Массив DWORD даёт ту же гарантию молча.
+    DWORD buf[16 * 1024 / sizeof(DWORD)] = {};
 
     bool issue() {
         ResetEvent(event);
@@ -123,7 +126,8 @@ bool Watcher::poll(std::vector<std::string>& changed, int timeout_ms) {
         unique.insert(native_->root);
     } else {
         for (DWORD off = 0;;) {
-            const auto* info = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(native_->buf + off);
+            const auto* info = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(
+                reinterpret_cast<const char*>(native_->buf) + off);
             const std::string name =
                 win32::narrow(info->FileName, info->FileNameLength / sizeof(WCHAR));
             if (!name.empty()) {

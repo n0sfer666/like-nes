@@ -38,7 +38,11 @@ struct Watcher::Native {
     bool recursive = false;
     std::map<int, std::string> dirs;   // wd → каталог, чтобы событие получило полный путь
 
-    bool add(const std::string& dir) {
+    // `found` не пустой, когда каталог регистрируется УЖЕ ПО СОБЫТИЮ: между mkdir и нашим
+    // inotify_add_watch есть окно, и файлы, созданные в нём, не дадут события никогда. Поэтому
+    // содержимое только что взятого под наблюдение каталога считается изменившимся — иначе
+    // «создал каталог и сразу файл в нём» теряется целиком, а это ровно то, что делает сборка.
+    bool add(const std::string& dir, std::set<std::string>* found = nullptr) {
         const int wd = inotify_add_watch(fd, dir.c_str(), kMask);
         if (wd < 0) return false;
         dirs[wd] = dir;
@@ -49,7 +53,10 @@ struct Watcher::Native {
             const std::string child = join(dir, name);
             // Отказ на ОДНОМ подкаталоге не рушит наблюдение целиком: у дерева исходников
             // встречаются каталоги без прав, и терять из-за них весь build-loop незачем.
-            if (is_dir(child)) add(child);
+            if (is_dir(child))
+                add(child, found);
+            else if (found)
+                found->insert(child);
         }
         return true;
     }
@@ -122,10 +129,11 @@ bool Watcher::poll(std::vector<std::string>& changed, int timeout_ms) {
             if (it == native_->dirs.end() || e->len == 0) continue;
             const std::string path = join(it->second, e->name);
             if ((e->mask & IN_ISDIR) != 0) {
-                // Новый каталог обязан получить вотч ДО того, как в нём появятся файлы; сами
-                // каталоги в changed не идут — потребителю нужны файлы.
+                // Новый каталог берётся под наблюдение вместе с тем, что уже успело в нём
+                // появиться (гонка mkdir→вотч); сами каталоги в changed не идут — потребителю
+                // нужны файлы.
                 if (native_->recursive && (e->mask & (IN_CREATE | IN_MOVED_TO)) != 0)
-                    native_->add(path);
+                    native_->add(path, &unique);
                 continue;
             }
             unique.insert(path);
