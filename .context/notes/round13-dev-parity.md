@@ -43,5 +43,8 @@
 - [x] 4 MSVC-диагностики (второй парсер за общей `parse_diagnostics`, `VSLANG=1033`)
 - [x] 5 watcher (`platform_watch`: inotify / FSEvents на dispatch-очереди / ReadDirectoryChangesW,
       общий фолбэк-поллинг + `LIKE_NES_WATCH=poll`; попутно `platform::list_dir` в `platform_fs`)
-- [ ] 6 CMake + CI
+- [x] 6 CMake + CI (`build_loop_test` на Watcher+Module, командная строка компилятора шаблоном
+      из CMake; `file_changed` удалён; `editor_shell` вне ветки. Единственный `if(NOT WIN32)` в
+      дереве — `ide_ipc_bench`, и это ПОСТОЯННАЯ граница, решение владельца: замер свою работу
+      сделал в ADR 0007, порт на Winsock повторял бы принятое измерение)
 - [ ] 7 живые гейты + ADR

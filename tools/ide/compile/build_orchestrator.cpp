@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "platform_env.hpp"
-#include "platform_fs.hpp"
 #include "platform_process.hpp"
 
 namespace ide::build {
@@ -28,14 +27,6 @@ BuildResult run_build(const std::vector<std::string>& argv) {
     r.success = (r.exit_code == 0);
     r.diagnostics = parse_diagnostics(r.raw_output);
     return r;
-}
-
-bool file_changed(const std::string& path, int64_t& last_token) {
-    int64_t token = 0;
-    if (!platform::file_stamp(path, token)) return false;   // отсутствие/удаление ≠ изменение
-    if (token == last_token) return false;
-    last_token = token;
-    return true;
 }
 
 } // namespace ide::build

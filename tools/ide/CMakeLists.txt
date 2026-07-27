@@ -59,28 +59,48 @@ add_library(build_core STATIC compile/build_orchestrator.cpp)
 target_include_directories(build_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(build_core PUBLIC diag_core platform_core)
 
-# Остаток POSIX-поверхности (#13): unix-socket в bench, dlopen в build-loop, watcher.
-# Сокращается коммит за коммитом до полного снятия ветки.
+# Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload модуля + панель
+# ошибок. Наблюдение через platform_watch, загрузка через platform_module — POSIX-вызовов в самом
+# тесте не осталось, и цель собирается на трёх ОС.
+#
+# Различие компиляторов вынесено СЮДА строкой, а не в код условной компиляцией: тест подставляет
+# {src}/{obj}/{out} в готовый шаблон и не знает, на какой он ОС. Разделитель — `|`,
+# а не `;`: точка с запятой в CMake это разделитель СПИСКА, и строка разъехалась бы на
+# семь отдельных -D ещё до компилятора. MSVC требует ещё и явного
+# __declspec(dllexport) — без него в DLL нет ни одного символа, и hot-reload читался бы как
+# «сборка прошла, а step пропал».
+if(MSVC)
+  set(IDE_BL_ARGV "${CMAKE_CXX_COMPILER}|/nologo|/EHsc|/LD|{src}|/Fo:{obj}|/Fe:{out}")
+  set(IDE_BL_EXPORT "__declspec(dllexport) ")
+else()
+  set(IDE_BL_ARGV "${CMAKE_CXX_COMPILER}|-shared|-fPIC|-O2|{src}|-o|{out}")
+  set(IDE_BL_EXPORT "")
+endif()
+
+add_executable(build_loop_test build_loop_test.cpp)
+target_link_libraries(build_loop_test PRIVATE build_core platform_core Threads::Threads)
+target_compile_definitions(build_loop_test PRIVATE
+  IDE_BUILD_ARGV="${IDE_BL_ARGV}"
+  IDE_EXPORT="${IDE_BL_EXPORT}"
+  IDE_MODULE_SUFFIX="${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+# Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
+# Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.
+if(TARGET imgui)
+  # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext из
+  # engine/render/gpu.cpp; glfw3webgpu — surface из GLFW-окна.
+  add_executable(editor_shell editor/editor_shell_main.cpp ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
+  target_link_libraries(editor_shell PRIVATE editor_core imgui glfw3webgpu webgpu)
+  target_copy_webgpu_binaries(editor_shell)
+  reproducible_rpath(editor_shell)
+endif()
+
+# Единственная оставшаяся POSIX-цель дерева, и это НЕ временное состояние: вторая половина
+# замера — unix-socket (sys/socket.h), а сам замер свою работу уже сделал — транспорт выбран в
+# ADR 0007 (shmem ~17×). Порт на Winsock повторял бы измерение, вывод которого принят, ради
+# буквы инварианта; сам транспорт (shmem) закрыт швом и гоняется на трёх ОС. Граница названа
+# явно в ADR 0013, а не оставлена дырой.
 if(NOT WIN32)
-  # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007. Вторая половина замера —
-  # unix-socket (sys/socket.h), поэтому цель остаётся POSIX-only и после переезда шва shmem.
   add_executable(ide_ipc_bench ipc_bench.cpp)
   target_link_libraries(ide_ipc_bench PRIVATE ipc_headers Threads::Threads)
-
-  # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
-  # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).
-  add_executable(build_loop_test build_loop_test.cpp)
-  target_link_libraries(build_loop_test PRIVATE build_core platform_core ${CMAKE_DL_LIBS})
-  target_compile_definitions(build_loop_test PRIVATE IDE_CXX="${CMAKE_CXX_COMPILER}")
-
-  # Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
-  # Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.
-  if(TARGET imgui)
-    # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext из
-    # engine/render/gpu.cpp; glfw3webgpu — surface из GLFW-окна.
-    add_executable(editor_shell editor/editor_shell_main.cpp ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
-    target_link_libraries(editor_shell PRIVATE editor_core imgui glfw3webgpu webgpu)
-    target_copy_webgpu_binaries(editor_shell)
-    reproducible_rpath(editor_shell)
-  endif()
 endif()
