@@ -1,6 +1,7 @@
 #include "build_orchestrator.hpp"
 #include <vector>
 
+#include "platform_env.hpp"
 #include "platform_fs.hpp"
 #include "platform_process.hpp"
 
@@ -11,6 +12,12 @@ namespace ide::build {
 BuildResult run_build(const std::vector<std::string>& argv) {
     BuildResult r;
     if (argv.empty()) return r;
+
+    // cl.exe печатает severity на языке системы («ошибка C2065»), и парсер потерял бы КАЖДУЮ
+    // диагностику на нелокализованной под английский Windows — молча, показав пустую панель при
+    // провалившейся сборке. VSLANG=1033 форсирует английский; таблицу локалей вести бессмысленно.
+    // Переменная наследуется ребёнком, поэтому ставится в своём окружении, а не передаётся в шов.
+    platform::env_put("VSLANG", "1033");
 
     platform::ExitStatus st;
     const bool reaped = platform::run_capture(argv, r.raw_output, st);
