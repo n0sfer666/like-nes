@@ -555,7 +555,15 @@ jobs:
           RT_UNIX=$(cygpath -u "$RT")
           export LIB="${RT_WIN}${LIB:+;$LIB}"
           export PATH="${RT_UNIX}:$PATH"
+          # Модель CRT задаётся явно, потому что ASan не умеет отладочный рантайм вовсе:
+          # `invalid argument '-MDd' not allowed with '-fsanitize=address'`. Умолчание
+          # CMAKE_MSVC_RUNTIME_LIBRARY генвыражением подставляет `-MDd` в конфигурации Debug,
+          # а проверка компилятора внутри project() идёт именно в Debug — не в том типе сборки,
+          # что заказан флагом. Поэтому обе ручки: одна снимает `d` с CRT, вторая уводит
+          # проверку из Debug (иначе к ней приезжает ещё и `/RTC1`, тоже несовместимый).
           cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL \
+            -DCMAKE_TRY_COMPILE_CONFIGURATION=RelWithDebInfo \
             -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
             -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
