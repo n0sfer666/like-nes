@@ -74,8 +74,11 @@ int main(int argc, char** argv) {
     check(platform::run_capture({self, "bulk"}, out, st), "a chatty child is reaped, not deadlocked");
     check(st.kind == platform::ExitKind::Exited && st.code == 0, "the chatty child exits cleanly");
     // Последняя строка И stderr-маркер: потеря хвоста — самый вероятный дефект цикла чтения, а
-    // ассерт «вывод непустой» на ней бы не сработал.
-    check(out.find("line " + std::to_string(BULK_LINES - 1) + "\n") != std::string::npos,
+    // ассерт «вывод непустой» на ней бы не сработал. Перевод строки в искомое НЕ входит: stdout
+    // ребёнка текстовый, и на Windows та же `printf` кладёт в канал CRLF — шов отдаёт байты как
+    // есть, а нормализацией занимается разбор диагностик. Номер последней строки уникален, так
+    // что как признак хвоста подстроки без терминатора достаточно.
+    check(out.find("line " + std::to_string(BULK_LINES - 1)) != std::string::npos,
           "the last line of a large output survives");
     check(out.find(ERR_MARK) != std::string::npos, "stderr survives a large stdout too");
 
