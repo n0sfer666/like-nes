@@ -66,6 +66,30 @@ bool Child::spawn(const std::vector<std::string>& argv) {
     return true;
 }
 
+bool Child::wait(ExitStatus& out) {
+    out = ExitStatus{};   // не оставлять исход прошлого ребёнка в переиспользованной структуре
+    if (raw_ == 0) return false;
+    const pid_t pid = static_cast<pid_t>(raw_);
+    raw_ = 0;
+    const int status = reap(pid);
+    if (status < 0) return false;
+    if (WIFEXITED(status)) {
+        out.kind = ExitKind::Exited;
+        out.code = WEXITSTATUS(status);
+        return true;
+    }
+    if (WIFSIGNALED(status)) {
+        const int sig = WTERMSIG(status);
+        out.code = sig;
+        // SIGKILL/SIGTERM сюда приходят от того, кто останавливает игру снаружи; всё прочее —
+        // падение самого процесса. SIGABRT в этом списке потому, что под ASan интенциональный
+        // SIGSEGV перехватывается санитайзером и доезжает как abort() — исход тот же, крэш.
+        out.kind = (sig == SIGKILL || sig == SIGTERM) ? ExitKind::Killed : ExitKind::Crashed;
+        return true;
+    }
+    return false;
+}
+
 bool Child::kill_and_wait() {
     if (raw_ == 0) return false;
     const pid_t pid = static_cast<pid_t>(raw_);
