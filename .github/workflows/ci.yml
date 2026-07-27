@@ -564,9 +564,13 @@ jobs:
           # Три переменные, а не одна: плагины — DLL (SHARED), тестовые бинари — EXE.
           LINK_ASAN="$ASAN_LIBS -wholearchive:clang_rt.asan_dynamic_runtime_thunk-x86_64.lib"
           # CMAKE_CXX_FLAGS не дополняет умолчание, а ЗАМЕНЯЕТ его, поэтому вместе с санитайзером
-          # приходится повторить то, что CMake кладёт туда сам: `/EHsc` (без него `try` в
+          # приходится повторить то, что CMake кладёт туда сам: `EHsc` (без него `try` в
           # manifest.cpp — `error: cannot use 'try' with exceptions disabled`) и пару дефайнов
           # WIN32/_WINDOWS, на которые смотрят системные заголовки.
+          # Форма флагов — через дефис, а не слэш: шелл шага — git-bash, и он превращает аргумент,
+          # начинающийся со слэша, в путь Windows (`/DWIN32` → `C:/Program Files/Git/DWIN32`).
+          # Отказ при этом выглядит как «cannot specify /Fo when compiling multiple source files»,
+          # а не как испорченный флаг. clang-cl понимает обе формы, git-bash — только одну.
           # Модель CRT задаётся явно, потому что ASan не умеет отладочный рантайм вовсе:
           # `invalid argument '-MDd' not allowed with '-fsanitize=address'`. Умолчание
           # CMAKE_MSVC_RUNTIME_LIBRARY генвыражением подставляет `-MDd` в конфигурации Debug,
@@ -577,8 +581,8 @@ jobs:
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL \
             -DCMAKE_TRY_COMPILE_CONFIGURATION=RelWithDebInfo \
             -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
-            -DCMAKE_C_FLAGS="/DWIN32 /D_WINDOWS -fsanitize=address" \
-            -DCMAKE_CXX_FLAGS="/DWIN32 /D_WINDOWS /EHsc -fsanitize=address" \
+            -DCMAKE_C_FLAGS="-DWIN32 -D_WINDOWS -fsanitize=address" \
+            -DCMAKE_CXX_FLAGS="-DWIN32 -D_WINDOWS -EHsc -fsanitize=address" \
             -DCMAKE_EXE_LINKER_FLAGS="$LINK_ASAN" \
             -DCMAKE_SHARED_LINKER_FLAGS="$LINK_ASAN" \
             -DCMAKE_MODULE_LINKER_FLAGS="$LINK_ASAN" \
