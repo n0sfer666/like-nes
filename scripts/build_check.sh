@@ -14,6 +14,10 @@ BUILD_DIR=${BUILD_DIR:-build}
 # imgui/miniaudio/wasm, навсегда делает гейт зелёным по целям, которых он не собирает.
 SUBSET=${LIKE_NES_BUILD_SUBSET:-0}
 FEATURES="AUDIO_MINIAUDIO PLUGIN_UI PLUGIN_WASM"
+# Список целей — для шагов CI, поднимающих ОДНУ опцию в отдельном каталоге (miniaudio, imgui):
+# там интересна ровно её ветка, а собирать ради неё дерево второй раз — двадцать минут на трёх ОС.
+# Умолчание пустое: каталог коммит-гейта собирается целиком, иначе гейт зеленел бы по недостроенному.
+TARGETS=${LIKE_NES_BUILD_TARGETS:-}
 cd "$ROOT" || exit 1
 
 CACHE="$BUILD_DIR/CMakeCache.txt"
@@ -56,7 +60,12 @@ if [ "$(cat "$VERDICT" 2>/dev/null || true)" = "fail" ]; then
     cmake --build "$BUILD_DIR" --target clean >/dev/null 2>&1
 fi
 
-cmake --build "$BUILD_DIR" -j 2>&1 | tee "$LOG"
+BUILD_ARGS=(--build "$BUILD_DIR" -j)
+if [ -n "$TARGETS" ]; then
+    read -ra TARGET_LIST <<< "$TARGETS"
+    BUILD_ARGS+=(--target "${TARGET_LIST[@]}")
+fi
+cmake "${BUILD_ARGS[@]}" 2>&1 | tee "$LOG"
 if [ "${PIPESTATUS[0]}" -ne 0 ]; then
     echo fail > "$VERDICT"
     echo "build-check: FAIL — сборка не прошла"
@@ -74,5 +83,10 @@ if [ -n "$WARNINGS" ]; then
     exit 1
 fi
 
-echo pass > "$VERDICT"
+# Вердикт — про каталог целиком, а таргетный прогон видел лишь часть его целей: записав `pass`,
+# он стёр бы `fail` предыдущего полного прогона, и тот не сделал бы чистую пересборку. Запись
+# `fail` остаётся безусловной: предупреждение в подмножестве — предупреждение и в каталоге.
+if [ -z "$TARGETS" ]; then
+    echo pass > "$VERDICT"
+fi
 echo "build-check: PASS — сборка без ошибок и без предупреждений"
