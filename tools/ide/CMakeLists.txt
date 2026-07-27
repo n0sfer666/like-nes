@@ -33,29 +33,29 @@ target_link_libraries(editor_core PUBLIC scene_core)
 add_executable(editor_selftest editor/editor_selftest.cpp)
 target_link_libraries(editor_selftest PRIVATE editor_core)
 
-# IPC-вертикаль (гейты 3/4/8) + build-loop (гейт 5): shm_open/mmap/fork + запуск компилятора.
-# Платформенная поверхность здесь своя (shmem, watcher, диагностики MSVC) — это скоуп #13,
-# явно вынесенный из #12; ниже — единственный оставшийся POSIX-блок дерева.
+# Заголовки зеркала (mirror/seqlock) — чистые структуры и атомики, без вызовов ОС; разделяемую
+# память под ними даёт шов platform_shmem (спека #13). Отдельной ipc-библиотеки больше нет:
+# после переезда шва в engine/platform в ней остались бы одни заголовки.
+add_library(ipc_headers INTERFACE)
+target_include_directories(ipc_headers INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(ide_ipc_selftest ipc_selftest.cpp)
+target_link_libraries(ide_ipc_selftest PRIVATE ipc_headers Threads::Threads)
+
+add_executable(game_child game_child.cpp)
+target_link_libraries(game_child PRIVATE ipc_headers platform_core Threads::Threads)
+
+# Остаток POSIX-поверхности (#13): fork/waitpid в play_spawn_test, pipe/exec в build-loop,
+# watcher. Сокращается коммит за коммитом до полного снятия ветки.
 if(NOT WIN32)
-  add_library(ipc_core STATIC ipc/shmem.cpp)
-  target_include_directories(ipc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  if(NOT APPLE)
-    target_link_libraries(ipc_core PUBLIC rt)   # shm_open на Linux — в librt
-  endif()
-
-  add_executable(ide_ipc_selftest ipc_selftest.cpp)
-  target_link_libraries(ide_ipc_selftest PRIVATE ipc_core Threads::Threads)
-
-  add_executable(game_child game_child.cpp)
-  target_link_libraries(game_child PRIVATE ipc_core Threads::Threads)
+  # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007. Вторая половина замера —
+  # unix-socket (sys/socket.h), поэтому цель остаётся POSIX-only и после переезда шва shmem.
+  add_executable(ide_ipc_bench ipc_bench.cpp)
+  target_link_libraries(ide_ipc_bench PRIVATE ipc_headers Threads::Threads)
 
   # Гейты 3/4 + layout-drift: parent spawn'ит game_child (путь → argv[1]).
   add_executable(play_spawn_test play_spawn_test.cpp)
-  target_link_libraries(play_spawn_test PRIVATE ipc_core Threads::Threads)
-
-  # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007.
-  add_executable(ide_ipc_bench ipc_bench.cpp)
-  target_link_libraries(ide_ipc_bench PRIVATE ipc_core Threads::Threads)
+  target_link_libraries(play_spawn_test PRIVATE ipc_headers platform_core Threads::Threads)
 
   # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
   # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).

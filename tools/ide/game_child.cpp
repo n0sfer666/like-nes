@@ -1,28 +1,35 @@
 #include "ipc/mirror.hpp"
 #include "ipc/seqlock.hpp"
-#include "ipc/shmem.hpp"
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <thread>
 
+#include "platform_args.hpp"
+#include "platform_shmem.hpp"
+
 // Game-процесс (Play): открывает shmem RW, публикует read-only зеркало sim-состояния каждый тик
 // через seqlock. Режимы: normal (штатная публикация), crash (null-deref после N тиков — крэшит
 // ТОЛЬКО себя, граница процессов изолирует редактор), badlayout (несовместимый layout_version →
 // редактор обязан отвергнуть). argv: <name> <mode> <count>.
+//
+// Сегмент открывается ПО ИМЕНИ из командной строки, а не по унаследованному дескриптору
+// (решение 2 спеки #13): наследование хендлов на Windows — отдельная церемония с
+// bInheritHandles, и путь запуска игры ветвился бы по ОС ровно там, где он должен быть общим.
 using namespace ide::ipc;
 
 int main(int argc, char** argv) {
+    platform::Args args(argc, argv);
     if (argc < 4) return 2;
     std::string name = argv[1];
     std::string mode = argv[2];
     uint32_t count = static_cast<uint32_t>(std::strtoul(argv[3], nullptr, 10));
     if (count > MIRROR_CAPACITY) count = MIRROR_CAPACITY;
 
-    Shmem m;
-    if (!shmem_open(m, name, sizeof(MirrorBuffer), /*create=*/false, /*write_map=*/true)) return 3;
-    auto* buf = static_cast<MirrorBuffer*>(m.addr);
+    platform::SharedMemory m;
+    if (!m.open(name, sizeof(MirrorBuffer), /*create=*/false, /*writable=*/true)) return 3;
+    auto* buf = static_cast<MirrorBuffer*>(m.writable_data());
 
     buf->header.seq.store(0);   // атомик; заголовок-скаляры публикуются ПОД seqlock (см. цикл)
     const uint32_t layout = (mode == "badlayout") ? 999u : MIRROR_LAYOUT_VERSION;
@@ -52,6 +59,6 @@ int main(int argc, char** argv) {
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
-    shmem_close(m);   // child не owner → без unlink
+    m.close();   // child не owner → без unlink
     return 0;
 }

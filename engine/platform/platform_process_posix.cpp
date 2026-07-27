@@ -35,6 +35,8 @@ int reap(pid_t pid) {
 
 } // namespace
 
+uint32_t process_id() { return static_cast<uint32_t>(getpid()); }
+
 bool run_tool(const std::vector<std::string>& argv) {
     if (argv.empty()) return false;
     const pid_t pid = fork_exec(argv);
