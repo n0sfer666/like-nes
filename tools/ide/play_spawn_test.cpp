@@ -1,6 +1,5 @@
 #include "ipc/mirror.hpp"
 #include "ipc/seqlock.hpp"
-#include "ipc/shmem.hpp"
 #include <chrono>
 #include <csignal>
 #include <cstdint>
@@ -10,6 +9,8 @@
 #include <thread>
 #include <unistd.h>
 #include <vector>
+
+#include "platform_shmem.hpp"
 
 // Гейты 3 (Play-spawn + read-only зеркало 10k), 4 (крэш-изоляция), layout-drift (часть гейта 8).
 // Редактор = parent: создаёт shmem (owner, RO-мап), spawn'ит game_child (fork+exec), читает
@@ -60,15 +61,16 @@ int main(int argc, char** argv) {
     if (argc < 2) { std::printf("usage: play_spawn_test <game_child_path>\n"); return 2; }
     const char* child = argv[1];
     const uint32_t N = 10000;
-    const std::string name = "/likenes_ide_" + std::to_string(getpid());
+    // Голый токен без разделителей: декорирование (`/name` против `Local\name`) — дело шва.
+    const std::string name = "likenes_ide_" + std::to_string(getpid());
 
-    shmem_unlink(name);
-    Shmem m;
-    if (!shmem_open(m, name, sizeof(MirrorBuffer), /*create=*/true, /*write_map=*/false)) {
+    platform::SharedMemory::unlink(name);
+    platform::SharedMemory m;
+    if (!m.open(name, sizeof(MirrorBuffer), /*create=*/true, /*writable=*/false)) {
         std::printf("shmem create fail\n");
         return 3;
     }
-    const auto* buf = static_cast<const MirrorBuffer*>(m.addr);
+    const auto* buf = static_cast<const MirrorBuffer*>(m.data());
     std::vector<MirrorEntity> snap(MIRROR_CAPACITY);
     uint32_t cnt = 0;
 
@@ -120,7 +122,7 @@ int main(int argc, char** argv) {
     kill(bpid, SIGKILL);
     waitpid(bpid, nullptr, 0);
 
-    shmem_close(m);   // owner → unlink
+    m.close();   // owner → unlink
 
     bool pass = (failures == 0);
     std::printf("ide-play-spawn: %s\n", pass ? "PASS" : "FAIL");

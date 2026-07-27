@@ -13,12 +13,17 @@ set_target_properties(platform_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_executable(platform_env_test platform_env_test.cpp)
 target_link_libraries(platform_env_test PRIVATE platform_core)
 
+# Шов разделяемой памяти (спека #13) — та же ловушка, что у окружения: обе реализации отдают
+# «получилось», и расхождение молчит до живого прогона. Потому тоже вне ветки WIN32.
+add_executable(platform_shmem_test platform_shmem_test.cpp)
+target_link_libraries(platform_shmem_test PRIVATE platform_core)
+
 if(WIN32)
   target_sources(platform_core PRIVATE
     win32_utf.cpp win32_cmdline.cpp
     platform_io_win32.cpp platform_fs_win32.cpp platform_path_win32.cpp platform_env_win32.cpp
     platform_process_win32.cpp platform_module_win32.cpp platform_guard_win32.cpp
-    platform_args_win32.cpp)
+    platform_args_win32.cpp platform_shmem_win32.cpp)
   # CommandLineToArgvW живёт в shell32: его зовёт platform_args_win32.cpp (разбор своей строки
   # запуска) и тест цитирования ниже. PRIVATE у статической библиотеки всё равно доезжает до
   # потребителей линковкой — потому тесту хватает одного platform_core.
@@ -31,6 +36,11 @@ else()
   target_sources(platform_core PRIVATE
     platform_io_posix.cpp platform_fs_posix.cpp platform_path_posix.cpp platform_env_posix.cpp
     platform_process_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp
-    platform_args_posix.cpp)
+    platform_args_posix.cpp platform_shmem_posix.cpp)
   target_link_libraries(platform_core PRIVATE ${CMAKE_DL_LIBS})
+  # shm_open на Linux живёт в librt (на macOS — в libc). Раньше эту зависимость тянул ipc_core
+  # из tools/ide; после переезда шва в платформу она принадлежит platform_core.
+  if(NOT APPLE)
+    target_link_libraries(platform_core PUBLIC rt)
+  endif()
 endif()

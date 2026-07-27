@@ -637,16 +637,26 @@ jobs:
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
 
-      # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. POSIX (shm_open/mmap/fork);
-      # Windows — скоуп #13 со своей платформенной поверхностью (shmem, watcher), а не «пути нет».
+      # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. Разделяемую память даёт
+      # шов platform_shmem (спека #13, решение 1); fork в play_spawn_test — остаток POSIX-поверхности.
       # seqlock single-writer/
       # multi-reader; крэш child (граница процессов) не роняет parent-редактор; layout-drift → reject;
       # bench shmem vs socket фиксирует транспорт (ADR 0007 гейт 8).
-      - name: IDE — IPC seqlock self-test (consistent snapshot under contention; Windows — spec #13)
-        if: runner.os != 'Windows'
+      #
+      # Гейт 1 спеки #13: сам шов разделяемой памяти. Обе реализации отдают «получилось» одинаково,
+      # поэтому расхождение молчит до прогона — и прогон обязан быть на всех трёх ОС.
+      - name: Platform — shared memory seam (spec #13 gate 1, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'ide_ipc_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_shmem_test' -o -name 'platform_shmem_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_shmem_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee shmem_seam.txt
+          grep -q "platform-shmem: PASS" shmem_seam.txt
+
+      - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'ide_ipc_selftest' -o -name 'ide_ipc_selftest.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "ide_ipc_selftest not built"; exit 1; }
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
@@ -662,7 +672,7 @@ jobs:
           grep -q "ide-play-spawn: PASS" ide_play.txt
 
       - name: IDE — IPC transport bench shmem vs socket (gate 8; Windows — spec #13)
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows'   # unix-socket половина замера — POSIX; шов shmem закрыт выше
         shell: bash
         run: |
           B=$(find build -maxdepth 2 -type f -name 'ide_ipc_bench' | head -1)
@@ -674,12 +684,16 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide"
-          c++ $SAN tools/ide/ipc_selftest.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_seq_san
+          # Шов shmem приезжает исходником (platform_shmem_posix.cpp), а не библиотекой: цель
+          # санитайзерной сборки — инструментировать И шов тоже, а libplatform_core.a собран без -fsanitize.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
+          c++ $SAN tools/ide/ipc_selftest.cpp -pthread -o ide_seq_san   # чистый seqlock, без шва
           ./ide_seq_san | tee ide_seq_san.txt
           grep -q "ipc-seqlock: PASS" ide_seq_san.txt
-          c++ $SAN tools/ide/game_child.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
-          c++ $SAN tools/ide/play_spawn_test.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
+          SEAM="engine/platform/platform_shmem_posix.cpp"
+          c++ $SAN tools/ide/game_child.cpp $SEAM \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp -pthread -lrt -o ide_gc_san
+          c++ $SAN tools/ide/play_spawn_test.cpp $SEAM -pthread -lrt -o ide_play_san
           # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 → ASan не перехватывает
           # интенциональный SIGSEGV (иначе child умирает от SIGABRT, gate4 ждёт SIGSEGV). Инструмент.
           # проверки ASan (redzone/UAF) сохраняются — отключается только обработчик hardware-SEGV.

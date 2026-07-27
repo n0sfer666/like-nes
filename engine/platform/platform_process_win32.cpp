@@ -70,6 +70,8 @@ bool create(const std::vector<std::string>& argv, PROCESS_INFORMATION& pi) {
 
 } // namespace
 
+uint32_t process_id() { return static_cast<uint32_t>(GetCurrentProcessId()); }
+
 bool run_tool(const std::vector<std::string>& argv) {
     if (argv.empty()) return false;
     PROCESS_INFORMATION pi{};
