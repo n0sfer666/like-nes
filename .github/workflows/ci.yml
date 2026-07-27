@@ -527,8 +527,24 @@ jobs:
           command -v clang-cl >/dev/null || export PATH="/c/Program Files/LLVM/bin:$PATH"
           command -v clang-cl >/dev/null || { echo "clang-cl not found on the runner"; exit 1; }
           clang-cl --version
-          RT=$(clang -print-runtime-dir)
-          [ -d "$RT" ] || { echo "clang runtime dir not found: $RT"; exit 1; }
+          # `clang -print-runtime-dir` называет per-target каталог (…/lib/x86_64-pc-windows-msvc),
+          # которого в официальной сборке LLVM для Windows нет: она до сих пор раскладывает
+          # рантаймы плоско в …/lib/windows. Поэтому каталог не берётся со слов компилятора, а
+          # ищется по файлу, ради которого нужен: существующий, но пустой каталог дал бы LNK1104
+          # страницей ниже вместо внятного отказа здесь.
+          # Имя библиотеки — маской, а не литералом: статический и динамический рантаймы
+          # (`clang_rt.asan-x86_64.lib` / `clang_rt.asan_dynamic-x86_64.lib`) лежат в одном
+          # каталоге, а какой из них припишет к объектам clang-cl, решает модель CRT.
+          RT=""
+          for c in "$(clang -print-runtime-dir)" "$(clang -print-resource-dir)/lib/windows"; do
+            if ls "$c"/clang_rt.asan*x86_64.lib >/dev/null 2>&1; then RT=$c; break; fi
+            echo "no clang_rt.asan*x86_64.lib in $c"
+          done
+          if [ -z "$RT" ]; then
+            echo "clang asan runtime not found"
+            ls -R "$(clang -print-resource-dir)/lib" 2>/dev/null | head -50
+            exit 1
+          fi
           # Две разные надобности одного каталога, и обе обязательны. Линковка: -fsanitize=address
           # доходит только до компилятора, а объекты уносят /DEFAULTLIB:clang_rt.asan_dynamic-*,
           # которую линкер ищет по %LIB% — не найдёт, будет LNK1104 вместо санитайзера. Запуск:
