@@ -17,3 +17,9 @@ target_link_libraries(framework_pad_test PRIVATE framework_input platform_core)
 
 add_executable(framework_rebind_test framework_rebind_test.cpp)
 target_link_libraries(framework_rebind_test PRIVATE framework_input platform_core)
+
+add_executable(framework_rt_test framework_rt_test.cpp)
+target_link_libraries(framework_rt_test PRIVATE framework_input platform_core)
+
+add_executable(framework_golden_test framework_golden_test.cpp)
+target_link_libraries(framework_golden_test PRIVATE framework_input platform_core)
