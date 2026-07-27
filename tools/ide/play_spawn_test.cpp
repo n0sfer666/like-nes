@@ -1,33 +1,31 @@
 #include "ipc/mirror.hpp"
 #include "ipc/seqlock.hpp"
-#include "ipc/shmem.hpp"
 #include <chrono>
-#include <csignal>
 #include <cstdint>
 #include <cstdio>
 #include <string>
-#include <sys/wait.h>
 #include <thread>
-#include <unistd.h>
 #include <vector>
 
+#include "platform_args.hpp"
+#include "platform_process.hpp"
+#include "platform_shmem.hpp"
+
 // Гейты 3 (Play-spawn + read-only зеркало 10k), 4 (крэш-изоляция), layout-drift (часть гейта 8).
-// Редактор = parent: создаёт shmem (owner, RO-мап), spawn'ит game_child (fork+exec), читает
-// консистентный снапшот через seqlock. Крэш child не трогает parent. Layout-drift → reject.
+// Редактор = parent: создаёт сегмент (owner, RO-мап), запускает game_child через platform::Child,
+// читает консистентный снапшот через seqlock. Крэш child не трогает parent. Layout-drift → reject.
+//
+// fork+exec здесь больше нет (спека #13): ребёнок всегда отдельный процесс по argv, а исход
+// «упал» против «остановлен» отдаёт шов (ExitKind) — на Windows разбирать сигналы было бы нечем.
 using namespace ide::ipc;
 
 namespace {
 int failures = 0;
 void check(bool c, const char* w) { if (!c) { std::printf("  FAIL: %s\n", w); ++failures; } }
 
-pid_t spawn(const char* child_path, const std::string& name, const char* mode, uint32_t count) {
-    pid_t pid = fork();
-    if (pid == 0) {
-        std::string cs = std::to_string(count);
-        execl(child_path, child_path, name.c_str(), mode, cs.c_str(), static_cast<char*>(nullptr));
-        _exit(127);
-    }
-    return pid;
+bool spawn(platform::Child& child, const std::string& child_path, const std::string& name,
+           const char* mode, uint32_t count) {
+    return child.spawn({child_path, name, mode, std::to_string(count)});
 }
 
 enum class ReadResult { NotReady, LayoutDrift, Ok };
@@ -57,23 +55,26 @@ ReadResult read_mirror(const MirrorBuffer* buf, std::vector<MirrorEntity>& out, 
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args args(argc, argv);
     if (argc < 2) { std::printf("usage: play_spawn_test <game_child_path>\n"); return 2; }
-    const char* child = argv[1];
+    const std::string child = argv[1];
     const uint32_t N = 10000;
-    const std::string name = "/likenes_ide_" + std::to_string(getpid());
+    // Голый токен без разделителей: декорирование (`/name` против `Local\name`) — дело шва.
+    const std::string name = "likenes_ide_" + std::to_string(platform::process_id());
 
-    shmem_unlink(name);
-    Shmem m;
-    if (!shmem_open(m, name, sizeof(MirrorBuffer), /*create=*/true, /*write_map=*/false)) {
+    platform::SharedMemory::unlink(name);
+    platform::SharedMemory m;
+    if (!m.open(name, sizeof(MirrorBuffer), /*create=*/true, /*writable=*/false)) {
         std::printf("shmem create fail\n");
         return 3;
     }
-    const auto* buf = static_cast<const MirrorBuffer*>(m.addr);
+    const auto* buf = static_cast<const MirrorBuffer*>(m.data());
     std::vector<MirrorEntity> snap(MIRROR_CAPACITY);
     uint32_t cnt = 0;
 
     // --- Гейт 3: spawn normal + read зеркало 10k ---
-    pid_t pid = spawn(child, name, "normal", N);
+    platform::Child normal;
+    check(spawn(normal, child, name, "normal", N), "gate3: editor spawns the game process");
     bool got = false;
     for (int i = 0; i < 3000 && !got; ++i) {
         got = (read_mirror(buf, snap, cnt) == ReadResult::Ok);
@@ -90,26 +91,33 @@ int main(int argc, char** argv) {
     for (uint32_t i = 1; got && i < cnt; ++i)
         if (snap[i].gen != g0) { gen_ok = false; break; }
     check(gen_ok, "gate3: snapshot internally consistent (single generation)");
-    kill(pid, SIGKILL);
-    waitpid(pid, nullptr, 0);
+    // Останов игры редактором — штатный исход, и шов обязан отличать его от падения.
+    check(normal.kill_and_wait(), "gate3: editor stops the running game (killed, not exited)");
+    // Ребёнок пожат ровно один раз: повторный останов обязан вернуть false, а не «убить» заново
+    // случайный процесс с тем же pid. Заодно это доказывает, что сироты не осталось.
+    check(!normal.kill_and_wait(), "gate3: the stopped child is reaped exactly once");
 
-    // --- Гейт 4: spawn crash → child умирает от сигнала, parent жив ---
-    pid_t cpid = spawn(child, name, "crash", N);
-    int cst = 0;
-    waitpid(cpid, &cst, 0);
-    check(WIFSIGNALED(cst), "gate4: crashed child terminated by signal");
-    // Обычная сборка → SIGSEGV (null-deref). Под ASan sanitizer перехватывает SEGV и завершает
-    // через abort() → SIGABRT (артефакт инструментации, как ASan×dlclose в #6). Оба доказывают
-    // «child крэшнул, parent жив» (граница процессов).
-    bool crash_sig = WIFSIGNALED(cst) && (WTERMSIG(cst) == SIGSEGV || WTERMSIG(cst) == SIGABRT);
-    check(crash_sig, "gate4: child died from crash signal (SEGV, or ABRT under ASan)");
+    // --- Гейт 4: spawn crash → child падает сам, parent жив ---
+    platform::Child crasher;
+    check(spawn(crasher, child, name, "crash", N), "gate4: crash-mode child spawned");
+    platform::ExitStatus st;
+    check(crasher.wait(st), "gate4: editor collects the child's exit status");
+    // Обычная сборка → нарушение доступа (null-deref): SIGSEGV на POSIX, код исключения на
+    // Windows — оба исхода шов сводит к одному ExitKind::Crashed, в этом и смысл гейта.
+    // Санитайзерный прогон гоняется с ASAN_OPTIONS=handle_segv=0 (см. шаг ASan в ci.yml): иначе
+    // ASan перехватил бы интенциональный SEGV и вышел штатным exit(1) — артефакт инструментации,
+    // неотличимый от чистого выхода.
+    if (st.kind != platform::ExitKind::Crashed)
+        std::printf("  (exit kind=%d code=%d)\n", static_cast<int>(st.kind), st.code);
+    check(st.kind == platform::ExitKind::Crashed, "gate4: child died from a crash, not a clean exit");
     read_mirror(buf, snap, cnt);   // parent жив: чтение устаревшего зеркала не роняет редактор
     check(true, "gate4: parent survived child crash + read stale mirror");
 
     // --- Layout-drift (часть гейта 8): child пишет несовместимый layout → parent отвергает ---
     // NB: после гейта 4 в зеркале валидный stale-снапшот от crash-child (layout=1). Ждём, пока
     // badlayout-child перезапишет заголовок (layout=999) → reader обязан вернуть LayoutDrift.
-    pid_t bpid = spawn(child, name, "badlayout", N);
+    platform::Child bad;
+    check(spawn(bad, child, name, "badlayout", N), "layout-drift: mismatched child spawned");
     ReadResult r = ReadResult::NotReady;
     for (int i = 0; i < 3000; ++i) {
         r = read_mirror(buf, snap, cnt);
@@ -117,10 +125,9 @@ int main(int argc, char** argv) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     check(r == ReadResult::LayoutDrift, "layout-drift: reader rejects mismatched snapshot (no garbage read)");
-    kill(bpid, SIGKILL);
-    waitpid(bpid, nullptr, 0);
+    check(bad.kill_and_wait(), "layout-drift: mismatched child stopped");
 
-    shmem_close(m);   // owner → unlink
+    m.close();   // owner → unlink
 
     bool pass = (failures == 0);
     std::printf("ide-play-spawn: %s\n", pass ? "PASS" : "FAIL");

@@ -19,7 +19,4 @@ struct BuildResult {
 // объединённый stdout+stderr, парсит диагностики. POSIX (fork/exec/pipe).
 BuildResult run_build(const std::vector<std::string>& argv);
 
-// Poll-watcher: true, если файл изменился с last_token (композит mtime+size; обновляет last_token).
-bool file_changed(const std::string& path, int64_t& last_token);
-
 } // namespace ide::build

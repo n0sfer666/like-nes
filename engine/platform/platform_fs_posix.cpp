@@ -3,6 +3,7 @@
 #include "platform_env.hpp"
 #include "platform_path.hpp"
 
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -66,6 +67,19 @@ bool file_exists(const std::string& path) {
 bool is_dir(const std::string& path) {
     struct stat st{};
     return ::stat(path.c_str(), &st) == 0 && S_ISDIR(st.st_mode);
+}
+
+bool list_dir(const std::string& dir, std::vector<std::string>& out) {
+    out.clear();
+    DIR* d = ::opendir(dir.c_str());
+    if (!d) return false;
+    while (const dirent* e = ::readdir(d)) {
+        const std::string name = e->d_name;
+        if (name == "." || name == "..") continue;
+        out.push_back(name);
+    }
+    ::closedir(d);
+    return true;
 }
 
 bool make_dir(const std::string& path) {

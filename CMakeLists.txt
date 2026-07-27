@@ -33,6 +33,7 @@ option(INPUT_NATIVE "Build native input demo (GLFW + platform gamepad backend)" 
 option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW + WebGPU)" ON)
 option(PLUGIN_WASM "Build WASM-sandbox gate (wasmtime C-API from deps/)" ON)
 option(IDE_POC "Build IDE editor foundation (flecs scene-doc + round-trip + undo)" ON)
+option(LINUX_WAYLAND "Build GLFW with the Wayland backend too (needs wayland-scanner, libwayland-dev, libxkbcommon-dev)" OFF)
 
 include(FetchContent)
 
@@ -40,8 +41,11 @@ include(FetchContent)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-# X11-only: избегаем зависимости от wayland-scanner на Linux-CI (рендер в CI — xvfb/X11).
-set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+# По умолчанию X11-only: wayland-scanner и libwayland-dev на раннере не стоят, а рендер в CI —
+# xvfb/X11. Wayland включается ЯВНО (`-DLINUX_WAYLAND=ON`), и без этого гейт 6 спеки #13 проверить
+# нечем: под Wayland-сессией собранный без него GLFW живёт клиентом XWayland, то есть отвечает на
+# вопрос про X11 второй раз. Системные зависимости — docs/first-run.md.
+set(GLFW_BUILD_WAYLAND ${LINUX_WAYLAND} CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw
   GIT_REPOSITORY https://github.com/glfw/glfw
   GIT_TAG a74efa0d5628b74adc0426af4c5710e287fa7c2c  # 3.4

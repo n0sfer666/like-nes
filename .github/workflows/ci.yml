@@ -95,10 +95,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Исключено то, до чего ANSI-перекодировка argv не доходит: три POSIX-only цели
-          # IPC-вертикали спеки #13 (CMake под Windows их не собирает вовсе) и iOS-хост (свой CRT,
-          # MSVC там нет).
-          EXCLUDE='^(tools/ide/(game_child|build_loop_test|play_spawn_test)\.cpp|platform/ios/app\.mm)$'
+          # Исключён только iOS-хост: свой CRT, MSVC там нет, и ANSI-перекодировка argv до него
+          # не доходит. game_child, play_spawn_test и build_loop_test переехали на швы и из
+          # списка ушли — теперь их проверяют.
+          EXCLUDE='^(platform/ios/app\.mm)$'
           # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
           # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
           FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
@@ -637,31 +637,62 @@ jobs:
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
 
-      # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. POSIX (shm_open/mmap/fork);
-      # Windows — скоуп #13 со своей платформенной поверхностью (shmem, watcher), а не «пути нет».
+      # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. Разделяемую память даёт
+      # шов platform_shmem (спека #13, решение 1); fork в play_spawn_test — остаток POSIX-поверхности.
       # seqlock single-writer/
       # multi-reader; крэш child (граница процессов) не роняет parent-редактор; layout-drift → reject;
       # bench shmem vs socket фиксирует транспорт (ADR 0007 гейт 8).
-      - name: IDE — IPC seqlock self-test (consistent snapshot under contention; Windows — spec #13)
-        if: runner.os != 'Windows'
+      #
+      # Гейт 1 спеки #13: сам шов разделяемой памяти. Обе реализации отдают «получилось» одинаково,
+      # поэтому расхождение молчит до прогона — и прогон обязан быть на всех трёх ОС.
+      - name: Platform — shared memory seam (spec #13 gate 1, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'ide_ipc_selftest' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_shmem_test' -o -name 'platform_shmem_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_shmem_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee shmem_seam.txt
+          grep -q "platform-shmem: PASS" shmem_seam.txt
+
+      - name: Platform — process capture seam (spec #13, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_process_test' -o -name 'platform_process_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_process_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee process_seam.txt
+          grep -q "platform-process: PASS" process_seam.txt
+
+      # Три РАЗНЫЕ по устройству реализации (inotify / FSEvents / ReadDirectoryChangesW) под одним
+      # опросным API — сверить их между собой можно только прогоном на каждой ОС. Тест гоняет и
+      # нативный бэкенд, и принудительный поллинг: фолбэк иначе не исполнялся бы нигде.
+      - name: Platform — directory watch seam (spec #13 decision 4, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_watch_test' -o -name 'platform_watch_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_watch_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee watch_seam.txt
+          grep -q "platform-watch: PASS" watch_seam.txt
+
+      - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'ide_ipc_selftest' -o -name 'ide_ipc_selftest.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "ide_ipc_selftest not built"; exit 1; }
           "$BIN" | tee ide_seq.txt
           grep -q "ipc-seqlock: PASS" ide_seq.txt
 
-      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4; Windows — spec #13)
-        if: runner.os != 'Windows'
+      - name: IDE — Play spawn + read-only mirror 10k + crash isolation + layout-drift (gates 3/4, all OS)
         shell: bash
         run: |
-          T=$(find build -maxdepth 2 -type f -name 'play_spawn_test' | head -1)
-          G=$(find build -maxdepth 2 -type f -name 'game_child' | head -1)
+          T=$(find build -maxdepth 2 -type f \( -name 'play_spawn_test' -o -name 'play_spawn_test.exe' \) | head -1)
+          G=$(find build -maxdepth 2 -type f \( -name 'game_child' -o -name 'game_child.exe' \) | head -1)
           [ -n "$T" ] && [ -n "$G" ] || { echo "IDE IPC binaries not built"; exit 1; }
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
 
-      - name: IDE — IPC transport bench shmem vs socket (gate 8; Windows — spec #13)
+      # Единственное платформенное исключение среди гейтов IDE, и оно постоянное: вторая половина
+      # замера — unix-socket, а вывод замера уже принят (ADR 0007, shmem ~17×). Сам транспорт
+      # закрыт швом platform_shmem и проверяется на трёх ОС шагом выше.
+      - name: IDE — IPC transport bench shmem vs socket (gate 8, POSIX by design)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -674,15 +705,23 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide"
-          c++ $SAN tools/ide/ipc_selftest.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_seq_san
+          # Шов shmem приезжает исходником (platform_shmem_posix.cpp), а не библиотекой: цель
+          # санитайзерной сборки — инструментировать И шов тоже, а libplatform_core.a собран без -fsanitize.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
+          c++ $SAN tools/ide/ipc_selftest.cpp -pthread -o ide_seq_san   # чистый seqlock, без шва
           ./ide_seq_san | tee ide_seq_san.txt
           grep -q "ipc-seqlock: PASS" ide_seq_san.txt
-          c++ $SAN tools/ide/game_child.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_gc_san
-          c++ $SAN tools/ide/play_spawn_test.cpp tools/ide/ipc/shmem.cpp -pthread -lrt -o ide_play_san
-          # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 → ASan не перехватывает
-          # интенциональный SIGSEGV (иначе child умирает от SIGABRT, gate4 ждёт SIGSEGV). Инструмент.
-          # проверки ASan (redzone/UAF) сохраняются — отключается только обработчик hardware-SEGV.
+          SEAM="engine/platform/platform_shmem_posix.cpp"
+          c++ $SAN tools/ide/game_child.cpp $SEAM \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp -pthread -lrt -o ide_gc_san
+          c++ $SAN tools/ide/play_spawn_test.cpp $SEAM \
+            engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+            -pthread -lrt -o ide_play_san
+          # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 несущий: с включённым
+          # обработчиком ASan печатает отчёт и завершает процесс ШТАТНЫМ exit(1), а шов честно
+          # читает это как ExitKind::Exited — гейт 4 краснеет на артефакте инструментации.
+          # Инструмент. проверки ASan (redzone/UAF) сохраняются — снимается только обработчик SEGV.
           ASAN_OPTIONS=handle_segv=0:abort_on_error=0 ./ide_play_san ./ide_gc_san | tee ide_play_san.txt
           grep -q "ide-play-spawn: PASS" ide_play_san.txt
 
@@ -697,11 +736,14 @@ jobs:
           "$BIN" | tee ide_diag.txt
           grep -q "ide-diagnostics: PASS" ide_diag.txt
 
-      - name: IDE — build-loop watch->build->hot-reload .so (gate 5; Windows — spec #13)
-        if: runner.os != 'Windows'
+      # Гейт 5 спеки #7 на трёх ОС (спека #13): watch через platform_watch, загрузка через
+      # platform_module, командная строка компилятора — шаблоном из CMake. На Windows это ещё и
+      # ЖИВОЙ прогон MSVC-диагностик (решение 3): панель ошибок наполняет настоящий cl.exe, а не
+      # фикстура парсера.
+      - name: IDE — build-loop watch->build->hot-reload module (gate 5, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'build_loop_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'build_loop_test' -o -name 'build_loop_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "build_loop_test not built"; exit 1; }
           "$BIN" | tee ide_bl.txt
           grep -q "ide-build-loop: PASS" ide_bl.txt
@@ -711,15 +753,25 @@ jobs:
         shell: bash
         run: |
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
-          c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp -o ide_diag_san
+          # Парсеров два (gnu и msvc, решение 3 спеки #13), диспетчер зовёт оба — без их TU
+          # санитайзерная сборка не слинкуется.
+          c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp \
+            tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp -o ide_diag_san
           ./ide_diag_san | tee ide_diag_san.txt
           grep -q "ide-diagnostics: PASS" ide_diag_san.txt
-          # build_orchestrator берёт mtime через шов platform_fs (спека #12) → сюда же его TU.
-          c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
+          # Санитайзерная сборка собирается из TU напрямую, поэтому шаблон командной строки и
+          # суффикс модуля задаются здесь так же, как их задаёт CMake обычной цели.
+          BL="-DIDE_BUILD_ARGV='\"c++|-shared|-fPIC|-O2|{src}|-o|{out}\"' -DIDE_EXPORT='\"\"' -DIDE_MODULE_SUFFIX='\".so\"'"
+          # Тест ходит в ФС и грузит модуль через швы platform_fs/platform_module/platform_watch —
+          # их TU сюда же; диспетчер диагностик разбирает вывод компилятора.
+          eval c++ $SAN $BL tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
+            tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
             engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
-            engine/platform/platform_env_posix.cpp \
-            -ldl -o ide_bl_san
+            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_module_posix.cpp engine/platform/platform_watch_linux.cpp \
+            engine/platform/platform_watch_poll.cpp \
+            -ldl -lpthread -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
 
