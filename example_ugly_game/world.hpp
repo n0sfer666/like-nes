@@ -44,6 +44,4 @@ struct GameState {
     uint32_t kills = 0;           // убито врагов (→ порог спавна босса)
 };
 
-input::ActionMap make_map();
-
 } // namespace game

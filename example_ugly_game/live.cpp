@@ -19,6 +19,7 @@
 #include "platform_env.hpp"
 #include "sim.hpp"
 #include "source.hpp"
+#include "input_setup.hpp"
 #include "world.hpp"
 
 namespace game {
@@ -80,8 +81,9 @@ int run_window(int frame_cap) {
     std::printf("[game] achievements: %zu defined, %zu unlocked, backend: %s\n",
                 ach.defined_count(), ach.unlocked_count(), ach.has_backend() ? "plugin" : "local");
 
-    input::ActionMap map = make_map();
-    input::InputEngine engine(map);
+    Controls controls;
+    if (!load_controls(controls)) { std::fprintf(stderr, "controls unavailable\n"); return 1; }
+    input::InputEngine engine(controls.map);
     install_glfw_input(win, engine);
     input::GamepadSource* pad = input::make_gamepad_source();
     bool have_pad = pad && pad->init();
