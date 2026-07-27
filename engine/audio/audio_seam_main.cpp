@@ -54,6 +54,8 @@ void feed_ring(SampleRing& ring, const DecodedPcm& mus, uint32_t& pos) {
 
 int fail(const char* m) { std::fprintf(stderr, "[audio_seam] FAIL: %s\n", m); return 1; }
 
+#ifdef AUDIO_HAVE_MINIAUDIO
+
 void render_cb(void* user, uint32_t frames, int16_t* out) {
     static_cast<Mixer*>(user)->mix(frames, out);
 }
@@ -76,6 +78,8 @@ void probe_cb(void* user, uint32_t frames, int16_t* out) {
     p->energy.fetch_add(sum, std::memory_order_relaxed);
     p->frames.fetch_add(frames, std::memory_order_relaxed);
 }
+
+#endif // AUDIO_HAVE_MINIAUDIO
 
 } // namespace
 

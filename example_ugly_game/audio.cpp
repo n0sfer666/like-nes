@@ -116,10 +116,12 @@ void GameAudio::shutdown() {
 
 namespace game {
 struct GameAudio::Impl {};
-GameAudio::~GameAudio() {}
+GameAudio::~GameAudio() { shutdown(); }
 bool GameAudio::init(const std::string&) { return false; }
 void GameAudio::on_events(const FxSink&) {}
-void GameAudio::shutdown() {}
+// impl_ здесь всегда nullptr — но освобождение симметрично живой ветке, а не «поле, которого
+// в этой сборке будто нет»: иначе -Wunused-private-field справедливо ругается на заголовок.
+void GameAudio::shutdown() { delete impl_; impl_ = nullptr; }
 } // namespace game
 
 #endif

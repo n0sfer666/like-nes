@@ -30,9 +30,10 @@ add_library(plugin_crash MODULE plugins/crash.cpp)
 add_library(plugin_ach_fake MODULE plugins/ach_fake.cpp)
 add_library(plugin_steam MODULE plugins/steam_backend.cpp)
 add_library(plugin_ach_v1 MODULE plugins/ach_v1.cpp)
-# Без оптимизации, чтобы намеренный null-deref не соптимизировался — та же форма, что у
-# game_crash в engine/hotreload: на MSVC у -O0 нет аналога с этим написанием, нужен /Od.
-target_compile_options(plugin_crash PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/Od,-O0>)
+# plugin_crash оптимизируется как все: намеренный сбой записан через volatile (запись —
+# наблюдаемый эффект, компилятор обязан её выпустить). Прежнее /Od поверх релизного /O2 давало
+# на MSVC предупреждение драйвера D9025, а сборочный гейт предупреждений не терпит. Что фикстура
+# действительно падает, проверяет гейт 4 на трёх ОС, а не наша вера в флаг.
 foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash
           plugin_ach_fake plugin_steam plugin_ach_v1)
   # platform_export.h (макрос экспорта) — заголовок шва; объекты platform_core модулю не нужны.
