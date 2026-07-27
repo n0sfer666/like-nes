@@ -95,10 +95,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # Исключено то, до чего ANSI-перекодировка argv не доходит: build_loop_test (пока
-          # POSIX-only, снимается в этом же раунде) и iOS-хост (свой CRT, MSVC там нет).
-          # game_child и play_spawn_test переехали на шов и из списка ушли — теперь их проверяют.
-          EXCLUDE='^(tools/ide/build_loop_test\.cpp|platform/ios/app\.mm)$'
+          # Исключён только iOS-хост: свой CRT, MSVC там нет, и ANSI-перекодировка argv до него
+          # не доходит. game_child, play_spawn_test и build_loop_test переехали на швы и из
+          # списка ушли — теперь их проверяют.
+          EXCLUDE='^(platform/ios/app\.mm)$'
           # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
           # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
           FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
@@ -689,8 +689,11 @@ jobs:
           "$T" "$G" | tee ide_play.txt
           grep -q "ide-play-spawn: PASS" ide_play.txt
 
-      - name: IDE — IPC transport bench shmem vs socket (gate 8; Windows — spec #13)
-        if: runner.os != 'Windows'   # unix-socket половина замера — POSIX; шов shmem закрыт выше
+      # Единственное платформенное исключение среди гейтов IDE, и оно постоянное: вторая половина
+      # замера — unix-socket, а вывод замера уже принят (ADR 0007, shmem ~17×). Сам транспорт
+      # закрыт швом platform_shmem и проверяется на трёх ОС шагом выше.
+      - name: IDE — IPC transport bench shmem vs socket (gate 8, POSIX by design)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           B=$(find build -maxdepth 2 -type f -name 'ide_ipc_bench' | head -1)
@@ -733,11 +736,14 @@ jobs:
           "$BIN" | tee ide_diag.txt
           grep -q "ide-diagnostics: PASS" ide_diag.txt
 
-      - name: IDE — build-loop watch->build->hot-reload .so (gate 5; Windows — spec #13)
-        if: runner.os != 'Windows'
+      # Гейт 5 спеки #7 на трёх ОС (спека #13): watch через platform_watch, загрузка через
+      # platform_module, командная строка компилятора — шаблоном из CMake. На Windows это ещё и
+      # ЖИВОЙ прогон MSVC-диагностик (решение 3): панель ошибок наполняет настоящий cl.exe, а не
+      # фикстура парсера.
+      - name: IDE — build-loop watch->build->hot-reload module (gate 5, all OS)
         shell: bash
         run: |
-          BIN=$(find build -maxdepth 2 -type f -name 'build_loop_test' | head -1)
+          BIN=$(find build -maxdepth 2 -type f \( -name 'build_loop_test' -o -name 'build_loop_test.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "build_loop_test not built"; exit 1; }
           "$BIN" | tee ide_bl.txt
           grep -q "ide-build-loop: PASS" ide_bl.txt
@@ -747,15 +753,25 @@ jobs:
         shell: bash
         run: |
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
-          c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp -o ide_diag_san
+          # Парсеров два (gnu и msvc, решение 3 спеки #13), диспетчер зовёт оба — без их TU
+          # санитайзерная сборка не слинкуется.
+          c++ $SAN tools/ide/compile/diagnostics_test.cpp tools/ide/compile/diagnostics.cpp \
+            tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp -o ide_diag_san
           ./ide_diag_san | tee ide_diag_san.txt
           grep -q "ide-diagnostics: PASS" ide_diag_san.txt
-          # build_orchestrator берёт mtime через шов platform_fs (спека #12) → сюда же его TU.
-          c++ $SAN -DIDE_CXX='"c++"' tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
+          # Санитайзерная сборка собирается из TU напрямую, поэтому шаблон командной строки и
+          # суффикс модуля задаются здесь так же, как их задаёт CMake обычной цели.
+          BL="-DIDE_BUILD_ARGV='\"c++|-shared|-fPIC|-O2|{src}|-o|{out}\"' -DIDE_EXPORT='\"\"' -DIDE_MODULE_SUFFIX='\".so\"'"
+          # Тест ходит в ФС и грузит модуль через швы platform_fs/platform_module/platform_watch —
+          # их TU сюда же; диспетчер диагностик разбирает вывод компилятора.
+          eval c++ $SAN $BL tools/ide/build_loop_test.cpp tools/ide/compile/diagnostics.cpp \
+            tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
             engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
-            engine/platform/platform_env_posix.cpp \
-            -ldl -o ide_bl_san
+            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_module_posix.cpp engine/platform/platform_watch_linux.cpp \
+            engine/platform/platform_watch_poll.cpp \
+            -ldl -lpthread -o ide_bl_san
           ./ide_bl_san | tee ide_bl_san.txt
           grep -q "ide-build-loop: PASS" ide_bl_san.txt
 
