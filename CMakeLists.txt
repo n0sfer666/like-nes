@@ -151,6 +151,7 @@ add_subdirectory(engine/render)
 add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
+add_subdirectory(engine/framework) # слой поверх подсистем — после них, зависимость только вниз
 add_subdirectory(engine/plugin)
 add_subdirectory(engine/achievements)
 add_subdirectory(engine/hotreload)
