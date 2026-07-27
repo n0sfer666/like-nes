@@ -3,6 +3,7 @@
 #include <cstddef>
 
 #include "action_map.hpp"
+#include "pad_profile.hpp"
 #include "preset_format.hpp"
 #include "stick.hpp"
 
@@ -32,6 +33,10 @@ public:
     StickShape axis_shape(uint32_t preset, uint32_t axis) const;
     uint32_t axis_pair(uint32_t preset, uint32_t axis) const;
 
+    // Профиль подключённого пада из таблицы: VID/PID первичны, при нулях решает имя. Ничего не
+    // подошло — generic Xbox-раскладка МОЛЧА: неизвестный пад обязан играть из коробки.
+    PadProfile profile_for(const ::input::PadInfo& info) const;
+
     // Заливка пресета в карту действий: действия и оси получают индексы в порядке объявления.
     bool bind(uint32_t preset, ::input::ActionMap& map, int context = 0) const;
 
@@ -47,6 +52,7 @@ private:
     const ActionRow* actions_ = nullptr;
     const AxisRow* axes_ = nullptr;
     const BindingRow* bindings_ = nullptr;
+    const PadRow* pads_ = nullptr;
     const char* strings_ = nullptr;
     uint32_t strings_size_ = 0;
 };

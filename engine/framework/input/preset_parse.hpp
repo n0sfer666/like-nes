@@ -31,6 +31,7 @@ struct PresetStrings {
 
 struct PresetBuild {
     std::vector<PresetRow> presets;
+    std::vector<PadRow> pads;
     std::vector<ActionRow> actions;
     std::vector<AxisRow> axes;
     std::vector<BindingRow> bindings;
@@ -44,5 +45,9 @@ std::vector<std::string> preset_split(const std::string& line);
 bool preset_parse_line(PresetBuild& b, const std::vector<std::string>& fields, int line,
                        PresetBakeError& err);
 bool preset_close(PresetBuild& b, PresetBakeError& err, int line);
+bool preset_parse_pad(PresetBuild& b, const std::vector<std::string>& fields, int line,
+                      PresetBakeError& err);
+bool preset_fail(PresetBakeError& err, int line, const std::string& message);
+bool preset_parse_fix(const std::string& s, fix32& out);
 
 } // namespace framework::input

@@ -2,6 +2,7 @@
 #include "codes.hpp"
 #include <windows.h>
 #include <Xinput.h>
+#include <cstring>
 
 // Windows native gamepad: XInput (Xbox-класс + вибрация). Диффим против кэша → эмитим изменения.
 // Скелет: собирается в CI; live-валидация — follow-up (нет Windows-HW у owner в этом заходе).
@@ -48,6 +49,28 @@ public:
     }
 
     const char* backend_name() const override { return "XInput (Windows)"; }
+
+    // XInput не сообщает VID/PID вовсе — только класс устройства. Имя собирается из него, и
+    // это честный максимум: настоящие VID/PID на Windows живут в Raw Input, отдельном канале,
+    // сопоставление слотов которого с XInput само по себе источник ошибок.
+    PadInfo pad_info(int slot) const override {
+        PadInfo info;
+        if (slot < 0 || slot >= 4) return info;
+        XINPUT_CAPABILITIES caps{};
+        if (XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) return info;
+        const char* kind = "XInput gamepad";
+        switch (caps.SubType) {
+        case XINPUT_DEVSUBTYPE_WHEEL:       kind = "XInput wheel"; break;
+        case XINPUT_DEVSUBTYPE_ARCADE_STICK: kind = "XInput arcade stick"; break;
+        case XINPUT_DEVSUBTYPE_FLIGHT_STICK: kind = "XInput flight stick"; break;
+        case XINPUT_DEVSUBTYPE_DANCE_PAD:   kind = "XInput dance pad"; break;
+        case XINPUT_DEVSUBTYPE_GUITAR:      kind = "XInput guitar"; break;
+        case XINPUT_DEVSUBTYPE_DRUM_KIT:    kind = "XInput drum kit"; break;
+        default: break;
+        }
+        std::strncpy(info.name, kind, sizeof(info.name) - 1);
+        return info;
+    }
 
 private:
     void emit_btn(InputEngine& e, int slot, int code, bool pressed) {

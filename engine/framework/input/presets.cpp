@@ -36,7 +36,9 @@ bool PresetTable::open(const void* data, std::size_t size) {
     actions_ = view<ActionRow>(base, h->actions_offset, h->action_count, size);
     axes_ = view<AxisRow>(base, h->axes_offset, h->axis_count, size);
     bindings_ = view<BindingRow>(base, h->bindings_offset, h->binding_count, size);
-    if (presets_ == nullptr || actions_ == nullptr || axes_ == nullptr || bindings_ == nullptr)
+    pads_ = view<PadRow>(base, h->pads_offset, h->pad_count, size);
+    if (presets_ == nullptr || actions_ == nullptr || axes_ == nullptr || bindings_ == nullptr ||
+        pads_ == nullptr)
         return false;
     if (h->strings_offset >= h->total_size) return false;
 
@@ -143,6 +145,50 @@ uint32_t PresetTable::axis_pair(uint32_t preset, uint32_t axis) const {
     const int row = first_row_of_axis(*p, axis);
     if (row < 0) return NO_PAIR;
     return axes_[p->axis_begin + static_cast<uint32_t>(row)].pair_axis;
+}
+
+namespace {
+
+bool contains_ci(const char* hay, const char* needle) {
+    if (hay == nullptr || needle == nullptr || *needle == '\0') return false;
+    for (const char* h = hay; *h != '\0'; ++h) {
+        const char* a = h;
+        const char* b = needle;
+        while (*a != '\0' && *b != '\0') {
+            const char ca = (*a >= 'A' && *a <= 'Z') ? static_cast<char>(*a - 'A' + 'a') : *a;
+            const char cb = (*b >= 'A' && *b <= 'Z') ? static_cast<char>(*b - 'A' + 'a') : *b;
+            if (ca != cb) break;
+            ++a;
+            ++b;
+        }
+        if (*b == '\0') return true;
+    }
+    return false;
+}
+
+} // namespace
+
+PadProfile PresetTable::profile_for(const ::input::PadInfo& info) const {
+    PadProfile p;
+    if (header_ == nullptr) return p;
+    const PadRow* hit = nullptr;
+    if (info.vid != 0)
+        for (uint32_t i = 0; i < header_->pad_count && hit == nullptr; ++i)
+            if (pads_[i].vid == info.vid && (pads_[i].pid == 0 || pads_[i].pid == info.pid))
+                hit = pads_ + i;
+    // Имя — не запасной путь «на всякий случай», а единственный канал на двух ОС из трёх.
+    for (uint32_t i = 0; i < header_->pad_count && hit == nullptr; ++i)
+        if (pads_[i].match_offset != 0 && contains_ci(info.name, string_at(pads_[i].match_offset)))
+            hit = pads_ + i;
+    if (hit == nullptr) return p;
+
+    p.name = string_at(hit->name_offset);
+    p.labels = static_cast<PadLabels>(hit->labels <= 2 ? hit->labels : 0u);
+    p.stick.deadzone = fix32::from_raw(hit->deadzone_raw);
+    p.stick.outer = fix32::from_raw(hit->outer_raw);
+    p.stick.curve_exp = hit->curve_exp;
+    p.trigger_threshold = fix32::from_raw(hit->trigger_raw);
+    return p;
 }
 
 bool PresetTable::bind(uint32_t preset, ::input::ActionMap& map, int context) const {
