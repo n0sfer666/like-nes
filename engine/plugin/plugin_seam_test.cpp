@@ -1,12 +1,14 @@
 #include "registry.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
+#include "platform_args.hpp"
 #include <cstdio>
 #include <cstdint>
 #include <string>
 #include <vector>
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 4) {
         std::fprintf(stderr, "usage: plugin_seam_test <gravity.so> <rle_codec.so> <multi.so>\n");
         return 2;

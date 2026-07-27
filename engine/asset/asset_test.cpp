@@ -1,4 +1,5 @@
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstdint>
 #include <cstdio>
@@ -8,6 +9,7 @@
 
 #include "asset_manager.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
 
 // Headless-гейт #2 (спека #5): zero-copy mmap-резидент + async-стрим→декомпрессия в арену,
 // БЕЗ per-frame heap в submit-пути. Гоняется под ASan/UBSan (CI). Не требует GPU.
@@ -25,7 +27,7 @@ void pump_until_ready(AssetManager& am, const std::vector<uint64_t>& guids, int 
         bool all = true;
         for (uint64_t g : guids) all = all && am.is_ready(g);
         if (all) return;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
 }
 
@@ -37,6 +39,7 @@ int fail(const char* msg) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) return fail("usage: asset_test <bundle> [--selftest]");
     const std::string bundle = argv[1];
     const unsigned delay = (argc >= 3 && std::strcmp(argv[2], "--slow") == 0) ? 3000 : 0;

@@ -1,0 +1,6 @@
+# Windows-раннер GitHub держит core.autocrlf=true, а шелл там — git-bash. Скрипт, выехавший из
+# checkout с CRLF, умирает на собственном шебанге (`#!/usr/bin/env bash\r`) — отказ читается как
+# «bash: no such file or directory» и стоит полного круга CI. Нормализация только для текстовых
+# гейт-скриптов: бандлы и бейкнутые ассеты обязаны остаться байт-в-байт (детерминизм golden).
+*.sh text eol=lf
+*.py text eol=lf

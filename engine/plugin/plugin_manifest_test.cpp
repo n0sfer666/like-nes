@@ -1,8 +1,10 @@
 #include "manifest.hpp"
+#include "platform_args.hpp"
 #include <cstdio>
 #include <string>
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: plugin_manifest_test <inspector.manifest> <console.manifest>\n");
         return 2;

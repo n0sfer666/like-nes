@@ -1,6 +1,5 @@
-#include <unistd.h>
-
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <thread>
@@ -68,7 +67,7 @@ uint64_t run(unsigned delay_us) {
         std::vector<int16_t> buf(256 * OUT_CHANNELS);
         while (!done.load(std::memory_order_acquire)) {
             mix.mix(256, buf.data()); // консюмер SPSC; тайминг варьируется
-            if (delay_us) usleep(delay_us);
+            if (delay_us) std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
         }
     });
 

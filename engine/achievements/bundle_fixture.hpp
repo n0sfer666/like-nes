@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bake.hpp"
+#include "platform_fs.hpp"
 #include "bundle_writer.hpp"
 #include "hash.hpp"
 
@@ -50,7 +51,7 @@ bool write_bundle_file(const std::string& path, const std::vector<uint8_t>& tabl
     }
 
     const std::vector<uint8_t> bytes = asset::write_bundle(std::move(assets));
-    std::FILE* f = std::fopen(path.c_str(), "wb");
+    std::FILE* f = platform::open_file(path, "wb");
     if (f == nullptr) return false;
     const bool ok = std::fwrite(bytes.data(), 1, bytes.size(), f) == bytes.size();
     return std::fclose(f) == 0 && ok;

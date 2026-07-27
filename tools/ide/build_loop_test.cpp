@@ -1,4 +1,5 @@
 #include "compile/build_orchestrator.hpp"
+#include "platform_fs.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -17,7 +18,7 @@ int failures = 0;
 void check(bool c, const char* w) { if (!c) { std::printf("  FAIL: %s\n", w); ++failures; } }
 
 void write_file(const std::string& path, const std::string& content) {
-    FILE* f = std::fopen(path.c_str(), "wb");
+    FILE* f = platform::open_file(path, "wb");
     if (f) { std::fwrite(content.data(), 1, content.size(), f); std::fclose(f); }
 }
 

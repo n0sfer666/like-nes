@@ -1,9 +1,10 @@
-#include "../plugin_api.h"
-
 #include <cstdio>
 #include <cstdlib>
 #include <string>
 #include <vector>
+
+#include "../plugin_api.h"
+#include "platform_env.hpp"
 
 // Фейковый бэкенд достижений: повторяет контракт Steamworks (unlock/stat/commit/callback)
 // без SDK. Управляется переменными окружения — CI гоняет шов, не трогая Steam.
@@ -28,13 +29,13 @@ struct Fake {
 Fake g_fake;
 
 int env_int(const char* name) {
-    const char* v = std::getenv(name);
-    return v == nullptr ? 0 : std::atoi(v);
+    std::string v;
+    return platform::env_var(name, v) ? std::atoi(v.c_str()) : 0;
 }
 
-void split_remote(const char* v) {
+void split_remote(const std::string& v) {
     std::string cur;
-    for (const char* p = v; ; ++p) {
+    for (const char* p = v.c_str(); ; ++p) {
         if (*p == ',' || *p == '\0') {
             if (!cur.empty()) g_fake.remote.push_back(cur);
             cur.clear();
@@ -123,7 +124,7 @@ AchBackendApi g_api = {.self = &g_fake,
 
 PLUGIN_EXPORT_ABI
 
-extern "C" void plugin_main(const HostApi* host) {
+extern "C" PLATFORM_EXPORT void plugin_main(const HostApi* host) {
     // Полный сброс: при повторной загрузке (BackendHost::load второй раз) dlclose мог не размапить
     // библиотеку, и уцелевшее состояние прошлого прогона — дописанный remote, уже открытые
     // ачивки — молча переехало бы в новый.
@@ -131,10 +132,9 @@ extern "C" void plugin_main(const HostApi* host) {
     g_fake.offline = env_int("ACH_FAKE_OFFLINE");
     g_fake.retry = env_int("ACH_FAKE_RETRY");
     g_fake.fatal = env_int("ACH_FAKE_FATAL") != 0;
-    const char* remote = std::getenv("ACH_FAKE_REMOTE");
-    if (remote != nullptr) split_remote(remote);
-    const char* late = std::getenv("ACH_FAKE_REMOTE_LATE");
-    if (late != nullptr) g_fake.late = late;
+    std::string remote;
+    if (platform::env_var("ACH_FAKE_REMOTE", remote)) split_remote(remote);
+    platform::env_var("ACH_FAKE_REMOTE_LATE", g_fake.late);
     host->register_achievement_backend(host->ctx, "fake", &g_api);
     host->log(host->ctx, "ach-fake backend registered");
 }

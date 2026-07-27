@@ -5,6 +5,8 @@
 
 #include "../plugin/host.hpp"
 #include "delivery.hpp"
+#include "platform_args.hpp"
+#include "platform_env.hpp"
 #include "plugin_backend.hpp"
 #include "registry.hpp"
 #include "tracker.hpp"
@@ -62,8 +64,8 @@ void test_seam(const char* path) {
 }
 
 int env_int(const char* name) {
-    const char* v = std::getenv(name);
-    return v == nullptr ? 0 : std::atoi(v);
+    std::string v;
+    return platform::env_var(name, v) ? std::atoi(v.c_str()) : 0;
 }
 
 // Ручки ach_fake читаются плагином на загрузке, поэтому сценарий задаётся окружением процесса:
@@ -82,8 +84,9 @@ void test_knobs(const char* path) {
     const int offline = env_int("ACH_FAKE_OFFLINE");
     const int retry = env_int("ACH_FAKE_RETRY");
     const bool fatal = env_int("ACH_FAKE_FATAL") != 0;
-    const char* remote = std::getenv("ACH_FAKE_REMOTE");
-    const char* late = std::getenv("ACH_FAKE_REMOTE_LATE");
+    std::string remote, late;
+    const bool have_remote = platform::env_var("ACH_FAKE_REMOTE", remote);
+    const bool have_late = platform::env_var("ACH_FAKE_REMOTE_LATE", late);
 
     tr.add_stat(ach::hash_key("stat_kills"), 10);
     for (int i = 0; i <= offline + retry; ++i) del.pump();
@@ -99,7 +102,7 @@ void test_knobs(const char* path) {
     check(tr.unlocked(ach::hash_key("KILLER_10")), "local progress survives any backend fault");
 
     del.reconcile();
-    if (remote != nullptr && !fatal) {
+    if (have_remote && !fatal) {
         check(del.stats().reconciled == 1, "remote unlock adopted through the C ABI");
         check(tr.unlocked(ach::hash_key("BOSS_DOWN")), "adopted unlock is local now");
     }
@@ -109,9 +112,9 @@ void test_knobs(const char* path) {
     const uint64_t reconciled = del.stats().reconciled;
     const uint64_t sent = del.stats().sent;
     del.reconcile();
-    if (late != nullptr && !fatal) {
+    if (have_late && !fatal) {
         check(del.stats().reconciled == reconciled + 1, "late remote unlock adopted");
-        check(tr.unlocked(ach::hash_key(late)), "late unlock is local now");
+        check(tr.unlocked(ach::hash_key(late.c_str())), "late unlock is local now");
     } else {
         check(del.stats().reconciled == reconciled, "repeated poll adopts nothing new");
     }
@@ -124,9 +127,9 @@ void test_knobs(const char* path) {
 }
 
 bool any_knob() {
-    return std::getenv("ACH_FAKE_OFFLINE") != nullptr || std::getenv("ACH_FAKE_RETRY") != nullptr ||
-           std::getenv("ACH_FAKE_FATAL") != nullptr || std::getenv("ACH_FAKE_REMOTE") != nullptr ||
-           std::getenv("ACH_FAKE_REMOTE_LATE") != nullptr;
+    return platform::env_has("ACH_FAKE_OFFLINE") || platform::env_has("ACH_FAKE_RETRY") ||
+           platform::env_has("ACH_FAKE_FATAL") || platform::env_has("ACH_FAKE_REMOTE") ||
+           platform::env_has("ACH_FAKE_REMOTE_LATE");
 }
 
 // Гейт ABI: плагин, сообщающий PLUGIN_API_VERSION-1, обязан быть отбит ДО plugin_main.
@@ -140,6 +143,7 @@ void test_stale_abi(const char* path) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 2) {
         std::printf("usage: ach_plugin_test <plugin-path> [stale-abi-plugin]\n");
         return 2;

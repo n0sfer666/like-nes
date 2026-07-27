@@ -4,6 +4,7 @@
 
 #include "capture.hpp"
 #include "gpu.hpp"
+#include "platform_args.hpp"
 #include "renderer.hpp"
 #include "scene.hpp"
 #include "sprite.hpp"
@@ -105,6 +106,7 @@ int run_window() {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     for (int i = 1; i + 1 < argc; ++i)
         if (std::strcmp(argv[i], "--dump") == 0) return run_dump(argv[i + 1]);
     return run_window();

@@ -2,6 +2,7 @@
 #include "runner.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
+#include "platform_args.hpp"
 #include <cstdio>
 #include <string>
 #include <vector>
@@ -27,6 +28,7 @@ static uint64_t run_with(const std::vector<std::string>& paths, int ticks, bool*
 }
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: plugin_determinism_test <gravity.so> <wind.so>\n");
         return 2;

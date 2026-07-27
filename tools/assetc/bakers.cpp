@@ -5,6 +5,7 @@
 
 #include "../../engine/achievements/bake.hpp"
 #include "format.hpp"
+#include "platform_fs.hpp"
 #include "hash.hpp"
 
 namespace asset::bakers {
@@ -18,16 +19,7 @@ uint32_t bc7_size(uint32_t w, uint32_t h) {
 }
 
 bool read_file(const std::string& path, std::vector<uint8_t>& out) {
-    FILE* f = std::fopen(path.c_str(), "rb");
-    if (!f) return false;
-    std::fseek(f, 0, SEEK_END);
-    long n = std::ftell(f);
-    std::fseek(f, 0, SEEK_SET);
-    if (n < 0) { std::fclose(f); return false; }
-    out.resize(static_cast<size_t>(n));
-    size_t rd = std::fread(out.data(), 1, static_cast<size_t>(n), f);
-    std::fclose(f);
-    return rd == static_cast<size_t>(n);
+    return platform::read_bytes(path, out);
 }
 
 // Синтетический ассет (raw payload детерм. паттерна) — без внешних кодеков.

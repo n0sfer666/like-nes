@@ -1,15 +1,15 @@
 #include "state.hpp"
 #include "store.hpp"
 
+#include <chrono>
 #include <cstdio>
 #include <string>
+#include <thread>
 #include <vector>
 
-#ifndef _WIN32
-#include <csignal>
-#include <sys/wait.h>
-#include <unistd.h>
-#endif
+#include "platform_args.hpp"
+#include "platform_fs.hpp"
+#include "platform_process.hpp"
 
 namespace {
 
@@ -30,8 +30,8 @@ void fill(ach::Snapshot& snap, uint64_t generation) {
 }
 
 void test_overwrite_is_complete() {
-    std::remove(SAVE_PATH);
-    std::remove(ach::temp_path_for(SAVE_PATH).c_str());
+    platform::remove_file(SAVE_PATH);
+    platform::remove_file(ach::temp_path_for(SAVE_PATH));
     ach::Snapshot big;
     ach::Snapshot small;
     fill(big, 0xa5a5a5a5a5a5a5a5ull);
@@ -46,7 +46,7 @@ void test_overwrite_is_complete() {
     check(ach::write_atomic(SAVE_PATH, bytes_big.data(), bytes_big.size()), "write long image");
     check(ach::read_file(SAVE_PATH, got) && got == bytes_big, "long image landed");
 
-    std::FILE* stale = std::fopen(ach::temp_path_for(SAVE_PATH).c_str(), "wb");
+    std::FILE* stale = platform::open_file(ach::temp_path_for(SAVE_PATH), "wb");
     check(stale != nullptr, "seed stale temp");
     if (stale != nullptr) {
         check(std::fwrite(bytes_big.data(), 1, bytes_big.size(), stale) == bytes_big.size(),
@@ -58,25 +58,58 @@ void test_overwrite_is_complete() {
     check(ach::read_file(SAVE_PATH, got) && got == bytes_small,
           "short image fully replaced the long one");
 
-    std::FILE* leftover = std::fopen(ach::temp_path_for(SAVE_PATH).c_str(), "rb");
-    check(leftover == nullptr, "temp gone after successful write");
-    if (leftover != nullptr) std::fclose(leftover);
+    check(!platform::file_exists(ach::temp_path_for(SAVE_PATH)), "temp gone after successful write");
 }
 
-void test_kill_during_write() {
-#ifdef _WIN32
-    std::printf("  skip kill-during-write (POSIX only)\n");
-#else
-    std::remove(SAVE_PATH);
-    std::remove(ach::temp_path_for(SAVE_PATH).c_str());
+// Два образа одинаковой длины и разного содержимого: половинчатая запись видна как «ни тот,
+// ни другой», а не как «стало короче». Обязаны совпадать у родителя и у ребёнка.
+void make_images(std::vector<uint8_t>& bytes_even, std::vector<uint8_t>& bytes_odd) {
     ach::Snapshot even;
     ach::Snapshot odd;
     fill(even, 0xa5a5a5a5a5a5a5a5ull);
     fill(odd, 0x5a5a5a5a5a5a5a5aull);
-    std::vector<uint8_t> bytes_even;
-    std::vector<uint8_t> bytes_odd;
     ach::encode(even, bytes_even);
     ach::encode(odd, bytes_odd);
+}
+
+std::string ready_path_for(const std::string& save_path) { return save_path + ".ready"; }
+
+// Ребёнок: бесконечно перезаписывает сейв двумя образами. Его убьют на середине.
+int run_writer(const char* save_path) {
+    std::vector<uint8_t> bytes_even;
+    std::vector<uint8_t> bytes_odd;
+    make_images(bytes_even, bytes_odd);
+    // Флаг «вошёл в цикл» — точка отсчёта для родителя. Без него пауза мерилась бы от спавна, а
+    // он стоит десятки миллисекунд (антивирусный фильтр на Windows), и весь разброс раундов
+    // уходил бы в старт процесса вместо фаз транзакции.
+    std::FILE* ready = platform::open_file(ready_path_for(save_path), "wb");
+    if (ready != nullptr) std::fclose(ready);
+    for (;;) {
+        ach::write_atomic(save_path, bytes_odd.data(), bytes_odd.size());
+        ach::write_atomic(save_path, bytes_even.data(), bytes_even.size());
+    }
+}
+
+// true = ребёнок дошёл до цикла записи. Ждём активно: интерес представляют микропаузы после
+// готовности, а не собственная латентность старта процесса.
+bool wait_ready(const std::string& save_path) {
+    const std::string flag = ready_path_for(save_path);
+    for (int i = 0; i < 2000; ++i) {
+        if (platform::file_exists(flag)) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+    }
+    return false;
+}
+
+void test_kill_during_write() {
+    const std::string self = platform::exe_path();
+    if (self.empty()) { check(false, "own exe path resolved"); return; }
+
+    platform::remove_file(SAVE_PATH);
+    platform::remove_file(ach::temp_path_for(SAVE_PATH));
+    std::vector<uint8_t> bytes_even;
+    std::vector<uint8_t> bytes_odd;
+    make_images(bytes_even, bytes_odd);
     check(bytes_even.size() == bytes_odd.size(), "images are the same size");
     check(bytes_even != bytes_odd, "images differ");
     check(ach::write_atomic(SAVE_PATH, bytes_even.data(), bytes_even.size()), "seed snapshot");
@@ -84,29 +117,23 @@ void test_kill_during_write() {
     int intact = 0;
     int mid_write = 0;
     int replaced = 0;
+    const std::string ready = ready_path_for(SAVE_PATH);
     for (int round = 0; round < 12; ++round) {
-        const pid_t pid = fork();
-        if (pid == 0) {
-            for (;;) {
-                ach::write_atomic(SAVE_PATH, bytes_odd.data(), bytes_odd.size());
-                ach::write_atomic(SAVE_PATH, bytes_even.data(), bytes_even.size());
-            }
-            _exit(0);
-        }
-        check(pid > 0, "fork");
-        if (pid <= 0) return;
-        usleep(200 + round * 350);
-        kill(pid, SIGKILL);
-        int status = 0;
-        waitpid(pid, &status, 0);
-        check(WIFSIGNALED(status) != 0 && WTERMSIG(status) == SIGKILL, "child killed mid-write");
+        platform::remove_file(ready);
+        platform::Child writer;
+        check(writer.spawn({self, "--writer", SAVE_PATH}), "spawn writer child");
+        if (!writer.alive()) return;
+        if (!wait_ready(SAVE_PATH)) { check(false, "writer child reached its loop"); return; }
+        // Пауза растёт от раунда к раунду: убийство должно попадать в разные точки транзакции —
+        // и до temp, и между temp и rename. Иначе гейт проверяет одну-единственную фазу. Отсчёт —
+        // от флага готовности, поэтому шкала микросекундная: старт процесса из неё исключён.
+        std::this_thread::sleep_for(std::chrono::microseconds(200 + round * 350));
+        check(writer.kill_and_wait(), "child killed mid-write");
 
         const std::string tmp = ach::temp_path_for(SAVE_PATH);
-        std::FILE* leftover = std::fopen(tmp.c_str(), "rb");
-        if (leftover != nullptr) {
+        if (platform::file_exists(tmp)) {
             ++mid_write;
-            std::fclose(leftover);
-            std::remove(tmp.c_str());
+            platform::remove_file(tmp);
         }
 
         std::vector<uint8_t> got;
@@ -128,17 +155,21 @@ void test_kill_during_write() {
     std::printf("  kill-during-write: %d/12 intact, %d replaced, %d killed between temp and rename\n",
                 intact, replaced, mid_write);
     check(mid_write > 0, "kill actually landed mid-write at least once");
-#endif
 }
 
 } // namespace
 
-int main() {
+int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
+    // Служебный режим: тест перезапускает сам себя как пишущего ребёнка (fork'а на Windows нет).
+    if (argc == 3 && std::string(argv[1]) == "--writer") return run_writer(argv[2]);
+
     std::printf("achievements crash-during-write\n");
     test_overwrite_is_complete();
     test_kill_during_write();
-    std::remove(SAVE_PATH);
-    std::remove(ach::temp_path_for(SAVE_PATH).c_str());
+    platform::remove_file(SAVE_PATH);
+    platform::remove_file(ach::temp_path_for(SAVE_PATH));
+    platform::remove_file(ready_path_for(SAVE_PATH));
     std::printf(failures == 0 ? "PASS\n" : "FAIL\n");
     return failures == 0 ? 0 : 1;
 }

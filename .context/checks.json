@@ -1,0 +1,4 @@
+{
+  "types": "bash scripts/build_check.sh",
+  "lint": "python3 scripts/ci_lint.py"
+}

@@ -8,7 +8,7 @@ extern "C" void wind_sys(SimWorld* w) {
     for (int i = 0; i < SimWorld::N; ++i) w->vx[i] = w->vx[i] + wind * dt;
 }
 
-extern "C" void plugin_main(const HostApi* h) {
+extern "C" PLATFORM_EXPORT void plugin_main(const HostApi* h) {
     h->register_ecs_system(h->ctx, "wind", nullptr, 0, wind_sys);
     h->log(h->ctx, "wind registered");
 }
