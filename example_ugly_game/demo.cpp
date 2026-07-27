@@ -15,6 +15,7 @@
 #include "engine.hpp"
 #include "gpu.hpp"
 #include "sim.hpp"
+#include "input_setup.hpp"
 #include "world.hpp"
 
 namespace game {
@@ -74,8 +75,9 @@ int run_demo(const char* dir, int frames) {
     spawn(world, gs);
     Fx fx;
     FxSink sink;
-    input::ActionMap map = make_map();
-    input::InputEngine engine(map);
+    Controls controls;
+    if (!load_controls(controls)) { std::fprintf(stderr, "controls unavailable\n"); return 1; }
+    input::InputEngine engine(controls.map);
     DemoDriver driver;
     Achievements ach;
     ach.init(resolve_bundle_path(), "", "");
