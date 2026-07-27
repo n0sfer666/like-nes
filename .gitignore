@@ -13,6 +13,7 @@ vdf/
 *.dll
 *.so
 compile_commands.json
+__pycache__/
 .cache/
 deps/
 imgui.ini

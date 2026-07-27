@@ -28,6 +28,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools xvfb
 
+      # Гейт 6 требует настоящий WebGPU-адаптер, а на Linux-раннере его даёт единственный
+      # программный драйвер — lavapipe. Раньше путь к его ICD был прошит строкой в трёх местах:
+      # промахнись имя файла — загрузчик Vulkan не находит НИ ОДНОГО драйвера и молча отдаёт
+      # пустой список адаптеров, а движок сообщает «no suitable adapter» — ошибка окружения,
+      # неотличимая от ошибки кода. Поэтому ICD ищется, проверяется через vulkaninfo и кладётся
+      # в окружение job'а один раз: дальше его наследуют все шаги.
+      - name: Vulkan ICD (Linux) — resolve lavapipe and prove the loader sees it
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          ls -la /usr/share/vulkan/icd.d/ || true
+          ICD=$(ls /usr/share/vulkan/icd.d/lvp_icd*.json 2>/dev/null | head -1)
+          [ -n "$ICD" ] || { echo "lavapipe ICD is not installed"; exit 1; }
+          echo "VK_ICD_FILENAMES=$ICD" >> "$GITHUB_ENV"
+          VK_ICD_FILENAMES="$ICD" vulkaninfo --summary > vk.txt 2>&1 || true
+          head -40 vk.txt
+          grep -qi 'llvmpipe\|lavapipe' vk.txt || {
+            echo "--- full vulkaninfo output ---"; cat vk.txt
+            echo "lavapipe is installed but invisible to the Vulkan loader"; exit 1; }
+          echo "vulkan: PASS (lavapipe via $ICD)"
+
+      # Линтер workflow держится в CI по той же причине, по которой написан: правило, которое
+      # локально забыли запустить, не защищает ни от чего. Проверка статическая — хватает одной ОС.
+      # --selftest отдельным вызовом, чтобы в логе был виден список правил, а не только вердикт.
+      - name: Workflow lint — портируемость шагов, вакуумные гейты
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 scripts/ci_lint.py --selftest
+          python3 scripts/ci_lint.py
+
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
       # Проверяется грепом, а не обещанием, и до сборки — нарушение видно первым же шагом.
       # Один раннер: результат от ОС не зависит, дерево одно.
@@ -38,10 +69,18 @@ jobs:
           # Расширения фильтрует сам grep: постфильтр по строке пропускал бы .c/.cc/.cxx/.m (а
           # engine/audio/*_impl.c в дереве есть) и заодно ловил бы содержимое строк, где просто
           # встречается ".cpp:" — фикстуры парсера диагностик.
-          HITS=$(grep -rnE '_WIN32|_MSC_VER|__APPLE__|__linux__|__unix__' \
-                 --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
-                 --include='*.h' --include='*.hpp' --include='*.mm' --include='*.m' --include='*.inl' \
-                 engine tools example_ugly_game | grep -v '^engine/platform/' || true)
+          PATTERN='_WIN32|_MSC_VER|__APPLE__|__linux__|__unix__'
+          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
+               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
+          # Позитивный контроль: внутри шва условная компиляция обязана быть. Ноль совпадений
+          # здесь значит, что сломан сам поиск (промах регулярки, переименованный корень), —
+          # без этой проверки гейт после такой поломки зелёный навсегда.
+          # shellcheck disable=SC2086
+          SEAM=$(grep -rnE "$PATTERN" $EXT engine/platform | wc -l)
+          [ "$SEAM" -ge 3 ] || { echo "ifdef gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
+          # shellcheck disable=SC2086
+          HITS=$(grep -rnE "$PATTERN" $EXT engine tools example_ugly_game \
+                 | grep -v '^engine/platform/' || true)
           [ -z "$HITS" ] || { echo "OS #ifdef leaked outside the platform seam:"; echo "$HITS"; exit 1; }
           echo "platform seam: PASS (no OS conditionals outside engine/platform)"
 
@@ -87,8 +126,17 @@ jobs:
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 
-      - name: Build (весь набор целей, включая hot-reload и ассет-пайплайн) — cross-OS build validation
-        run: cmake --build build
+      # Тот же скрипт, что и в pre-commit hook (.context/checks.json): ноль ошибок и ноль
+      # предупреждений на всех трёх компиляторах. Локально видно только clang — gcc и MSVC
+      # ловятся здесь, и ловятся ошибкой сборки, а не строкой в логе, которую никто не читает.
+      # Набор целей здесь headless (шаг Configure выше) — отсюда LIKE_NES_BUILD_SUBSET; imgui,
+      # miniaudio и wasm собираются своими джобами ниже. Вызов через `bash`, а не по exec-биту:
+      # git-bash на Windows-раннере exec-бит из индекса не наследует.
+      - name: Build (набор целей CI) — cross-OS build validation, zero warnings
+        shell: bash
+        env:
+          LIKE_NES_BUILD_SUBSET: "1"
+        run: bash scripts/build_check.sh
 
       - name: Determinism — golden-hash must match across OS/compilers
         shell: bash
@@ -183,8 +231,6 @@ jobs:
       - name: Render smoke (Linux, lavapipe+xvfb) — best-effort
         if: runner.os == 'Linux'
         continue-on-error: true
-        env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         run: xvfb-run -a ./build/core_smoke
 
       - name: Render smoke (macOS, native Metal) — best-effort
@@ -199,8 +245,6 @@ jobs:
       - name: Render vertical selftest (Linux, lavapipe) — best-effort
         if: runner.os == 'Linux'
         continue-on-error: true
-        env:
-          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
         shell: bash
         run: |
           BIN=$(find build -maxdepth 2 -type f -name 'render_golden' | head -1)
@@ -228,9 +272,9 @@ jobs:
           "$A" --synthetic syn.bundle | tee syn.txt
           grep -q "0xf2255dc74fbdb6bc" syn.txt || { echo "SYNTH HASH MISMATCH on ${{ matrix.os }}"; exit 1; }
           "$A" --synthetic syn2.bundle >/dev/null
-          a=$(shasum -a256 syn.bundle | awk '{print $1}')
-          b=$(shasum -a256 syn2.bundle | awk '{print $1}')
-          [ "$a" = "$b" ] || { echo "bake not run-to-run identical"; exit 1; }
+          # cmp, а не хеш: git-bash на Windows-раннере не несёт ни shasum, ни md5sum, а сверяем мы
+          # байтовое равенство двух локальных файлов — хеш тут лишний посредник.
+          cmp -s syn.bundle syn2.bundle || { echo "bake not run-to-run identical"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
@@ -421,8 +465,12 @@ jobs:
           # доходит только до компилятора, а объекты уносят /DEFAULTLIB:clang_rt.asan_dynamic-*,
           # которую линкер ищет по %LIB% — не найдёт, будет LNK1104 вместо санитайзера. Запуск:
           # рантайм ASan здесь DLL, и без неё инструментированный exe не стартует вовсе.
-          export LIB="$(cygpath -w "$RT")${LIB:+;$LIB}"
-          export PATH="$(cygpath -u "$RT"):$PATH"
+          # Присваивание отдельно от export: в связке `export X=$(...)` код возврата подстановки
+          # теряется, и провал cygpath уехал бы в невнятную ошибку линкера страницей ниже.
+          RT_WIN=$(cygpath -w "$RT")
+          RT_UNIX=$(cygpath -u "$RT")
+          export LIB="${RT_WIN}${LIB:+;$LIB}"
+          export PATH="${RT_UNIX}:$PATH"
           cmake -S . -B build-asan -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
             -DCMAKE_C_FLAGS=-fsanitize=address -DCMAKE_CXX_FLAGS=-fsanitize=address \
@@ -632,13 +680,11 @@ jobs:
         run: |
           BIN=$(find build -maxdepth 2 -type f \( -name 'game_sidescroller' -o -name 'game_sidescroller.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "game_sidescroller not built"; exit 1; }
-          # Linux-раннер без GPU и без дисплея: адаптер даёт lavapipe, дисплей — xvfb, ровно как
-          # у render-шагов выше. Разница в том, что там это best-effort, а здесь жёсткий гейт —
-          # значит окружение обязано быть настроено, а не «повезёт». macOS/Windows берут
-          # системный бэкенд (Metal / DX12-WARP) и обёртки не требуют.
+          # Linux-раннер без GPU и без дисплея: адаптер даёт lavapipe (VK_ICD_FILENAMES выставлен
+          # шагом «Vulkan ICD» и уже проверен на видимость), дисплей — xvfb. macOS/Windows берут
+          # системный бэкенд (Metal / DX12-WARP) и обёрток не требуют.
           RUN=""
           if [ "$RUNNER_OS" = "Linux" ]; then
-            export VK_ICD_FILENAMES=/usr/share/vulkan/icd.d/lvp_icd.x86_64.json
             RUN="xvfb-run -a"
           fi
           rm -rf demo_frames && mkdir -p demo_frames

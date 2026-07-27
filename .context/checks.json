@@ -1,3 +1,4 @@
 {
-  "types": "if [ -f build/CMakeCache.txt ]; then cmake --build build -j; else echo 'build/ не сконфигурирован — сборочная проверка пропущена'; fi"
+  "types": "bash scripts/build_check.sh",
+  "lint": "python3 scripts/ci_lint.py"
 }

@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Сборочный гейт: ноль ошибок И ноль предупреждений. Аналог тайпчекера в strict-режиме —
+# без зелёного прогона коммит запрещён (см. CLAUDE.md, «Сборочный гейт»).
+#
+# Почему не хватает одного `cmake --build`: -Werror ловит предупреждения КОМПИЛЯТОРА, но мимо
+# него проходят драйвер (MSVC D9xxx: «/O2 переопределён /Od»), линкер и сам CMake. Поэтому
+# гейт двойной — код возврата сборки И чистота её лога.
+set -uo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+BUILD_DIR=${BUILD_DIR:-build}
+# Урезанный набор опций разрешён только тому, кто заявил его явно (шаг Configure в CI, headless-
+# этап preflight). Умолчание — полный набор: иначе каталог, однажды сконфигурированный без
+# imgui/miniaudio/wasm, навсегда делает гейт зелёным по целям, которых он не собирает.
+SUBSET=${LIKE_NES_BUILD_SUBSET:-0}
+FEATURES="AUDIO_MINIAUDIO PLUGIN_UI PLUGIN_WASM"
+cd "$ROOT" || exit 1
+
+CACHE="$BUILD_DIR/CMakeCache.txt"
+if [ ! -f "$CACHE" ]; then
+    echo "build-check: конфигурирую $BUILD_DIR (первый прогон)"
+    cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release || exit 1
+else
+    RESTORE=()
+    # Иначе гейт молча пройдёт по объектам, собранным без -Werror: ninja пересоберёт их
+    # сам, увидев изменившуюся командную строку.
+    grep -q '^LIKE_NES_WERROR:BOOL=OFF' "$CACHE" && RESTORE+=(-DLIKE_NES_WERROR=ON)
+    if [ "$SUBSET" != "1" ]; then
+        for opt in $FEATURES; do
+            grep -q "^$opt:BOOL=OFF" "$CACHE" && RESTORE+=("-D$opt=ON")
+        done
+    fi
+    if [ ${#RESTORE[@]} -gt 0 ]; then
+        echo "build-check: восстанавливаю набор опций в $BUILD_DIR: ${RESTORE[*]}"
+        cmake -S . -B "$BUILD_DIR" "${RESTORE[@]}" >/dev/null || exit 1
+    fi
+fi
+
+# Позитивный контроль на сам гейт: записи в кеше нет вовсе, если warnings.cmake перестал
+# подключаться (переезд include, ранний return). Греп на «=OFF» такую пропажу не видит, и гейт
+# собирал бы на уровне предупреждений по умолчанию — зелёный навсегда.
+if ! grep -q '^LIKE_NES_WERROR:BOOL=ON' "$CACHE"; then
+    echo "build-check: FAIL — в кеше нет LIKE_NES_WERROR=ON: строгие флаги не подключены"
+    exit 1
+fi
+
+LOG=$(mktemp)
+trap 'rm -f "$LOG"' EXIT
+VERDICT="$BUILD_DIR/.build_check_verdict"
+
+# Предупреждение драйвера или линкера не роняет цель — её объект остаётся свежим, и при
+# следующем прогоне ninja эту цель не трогает: лог чист не потому, что чист код. Правки в
+# СОСЕДНЕЙ цели этого не лечат, поэтому после провала пересобираем начисто.
+if [ "$(cat "$VERDICT" 2>/dev/null || true)" = "fail" ]; then
+    echo "build-check: прошлый прогон нашёл предупреждения — пересобираю начисто"
+    cmake --build "$BUILD_DIR" --target clean >/dev/null 2>&1
+fi
+
+cmake --build "$BUILD_DIR" -j 2>&1 | tee "$LOG"
+if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    echo fail > "$VERDICT"
+    echo "build-check: FAIL — сборка не прошла"
+    exit 1
+fi
+
+# Шаблон привязан к формам диагностик, а не к слову: в дереве есть cmake/warnings.cmake, и
+# грепом по «warning» гейт красил бы сам себя.
+WARNINGS=$(grep -inE ': warning[ :]|warning [CD][0-9]{4}|cmake warning|предупреждение [CD][0-9]{4}' \
+    "$LOG" || true)
+if [ -n "$WARNINGS" ]; then
+    echo "$WARNINGS"
+    echo fail > "$VERDICT"
+    echo "build-check: FAIL — в логе сборки есть предупреждения"
+    exit 1
+fi
+
+echo pass > "$VERDICT"
+echo "build-check: PASS — сборка без ошибок и без предупреждений"
