@@ -1,0 +1,17 @@
+# Раскладка игры-образца. Порядок строк задаёт индексы: move_x = ось 0, move_y = ось 1,
+# fire = действие 0 — ровно то, что раньше было прошито в controls.cpp.
+preset | default
+
+action | fire   | key:space | mouse:left | pad:south
+
+axis   | move_x | key:d | key:a
+axis   | move_x | key:right | key:left
+axis   | move_x | padaxis:lx | -
+axis   | move_y | key:w | key:s
+axis   | move_y | key:up | key:down
+axis   | move_y | padaxis:-ly | -
+
+# Мёртвая зона нужна только стику: у клавиш значение и так ±1, а зона на паре осей — круговая,
+# поэтому move_x и move_y объявлены парой.
+shape  | move_x | 0.18 | 1.0 | 1 | move_y
+shape  | move_y | 0.18 | 1.0 | 1 | move_x
