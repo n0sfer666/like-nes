@@ -3,10 +3,12 @@
 Правило, которое не падает на поломке, не проверяет ничего — и молчит ровно так же, как правило
 исправное. Поэтому самопроверка гоняется перед КАЖДЫМ разбором файлов, а не по запросу.
 """
-from ci_lint_fixtures import CASES as RUNNER_CASES, QUIET
+from ci_lint_fixtures import CASES as RUNNER_CASES, QUIET as RUNNER_QUIET
 from ci_lint_fixtures_gates import CASES as GATE_CASES
+from ci_lint_fixtures_args import CASES as ARG_CASES, QUIET as ARG_QUIET
 
-CASES = RUNNER_CASES + GATE_CASES
+CASES = RUNNER_CASES + GATE_CASES + ARG_CASES
+QUIET = RUNNER_QUIET + ARG_QUIET
 
 
 def selftest(lint, verbose=True):

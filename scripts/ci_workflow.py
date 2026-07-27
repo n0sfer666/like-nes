@@ -12,9 +12,9 @@ BLOCK_MARKERS = {"", "|", ">", "|-", ">-", "|+", ">+"}
 
 
 class Step:
-    def __init__(self, path, line, name, os_set, attrs_lines, job_attrs, script):
+    def __init__(self, path, line, name, os_set, attrs_lines, job_attrs, job_shell, script):
         self.path, self.line, self.name, self.os_set = path, line, name, os_set
-        self.attrs_lines, self.job_attrs = attrs_lines, job_attrs
+        self.attrs_lines, self.job_attrs, self.job_shell = attrs_lines, job_attrs, job_shell
         self.script = script  # [(номер строки, текст, ОС этой строки)]
         self._by_line = {n: t for n, t in attrs_lines}
         self._by_line.update({n: t for n, t, _ in script})
@@ -53,6 +53,21 @@ def _job_os(block):
         if prefix in runs_on:
             return {name}
     return set(OS_ALL)
+
+
+def _default_shell(block, indent):
+    """`defaults: run: shell:` — шелл, унаследованный шагами без собственного `shell:`. Живёт на
+    два уровня глубже своего ключа, поэтому плоские маски атрибутов его не видят вовсе."""
+    at = next((i for i, l in enumerate(block) if re.match(rf"^ {{{indent}}}defaults:\s*$", l)), None)
+    if at is None:
+        return None
+    for line in block[at + 1:]:
+        if line.strip() and not line.startswith(" " * (indent + 1)):
+            break
+        found = re.match(r"\s+shell:\s*['\"]?(\S+)", line)
+        if found:
+            return found.group(1)
+    return None
 
 
 def _shell_os(line, parent):
@@ -118,10 +133,12 @@ def parse(path, text):
     jobs_at = next((i for i, l in enumerate(lines) if l.startswith("jobs:")), len(lines))
     starts = [i for i, l in enumerate(lines)
               if i > jobs_at and re.match(r"^  [A-Za-z0-9_-]+:\s*$", l)] + [len(lines)]
+    top_shell = _default_shell(lines[:jobs_at], 0)
     steps = []
     for job_start, job_end in zip(starts, starts[1:]):
         block = lines[job_start:job_end]
         job_os, job_attrs = _job_os(block), "\n".join(l for l in block if re.match(r"^ {4}[a-z]", l))
+        job_shell = _default_shell(block, 4) or top_shell
         marks = [i for i, l in enumerate(block) if l.startswith("      - ")] + [len(block)]
         for number, (a, b) in enumerate(zip(marks, marks[1:]), start=1):
             body = block[a:b]
@@ -132,6 +149,6 @@ def parse(path, text):
             named = re.search(r"name:\s*\"?([^\"\n]+)", body[0]) or re.search(r"uses:\s*(\S+)", attrs)
             steps.append(Step(path, job_start + a + 1,
                               named.group(1).strip() if named else f"шаг {number}",
-                              frozenset(os_set), attrs_lines, job_attrs,
+                              frozenset(os_set), attrs_lines, job_attrs, job_shell,
                               _script_os(script, os_set)))
     return steps

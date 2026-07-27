@@ -1,54 +1,12 @@
 """Правила линтера workflow: каждое снято с уже случившейся красной сборки, а не придумано.
 
-Общий принцип всех четырёх: находка описывает КЛАСС отказа, который на локальной машине не
-воспроизводится вовсе, а в CI стоит круга по 20+ минут на трёх ОС.
+Общий принцип: находка описывает КЛАСС отказа, который на локальной машине не воспроизводится
+вовсе, а в CI стоит круга по 20+ минут на трёх ОС.
 """
 import re
 
-# Инструмент -> ОС, на которых он есть у раннера GitHub. Windows означает git-bash: это НЕ POSIX,
-# в нём нет ни perl-скриптов вроде shasum, ни половины GNU-специфичных флагов. Сомнение всегда
-# трактуется как «нет»: пропущенный вызов стоит красного прогона, лишняя находка — одной строки.
-TOOLS = {
-    "shasum": {"Linux", "macOS"},
-    "md5sum": {"Linux"},
-    "sha256sum": {"Linux"},
-    "nproc": {"Linux"},
-    "timeout": {"Linux"},
-    "ldd": {"Linux"},
-    "readelf": {"Linux"},
-    "objdump": {"Linux"},
-    "ldconfig": {"Linux"},
-    "strace": {"Linux"},
-    "setsid": {"Linux"},
-    "apt-get": {"Linux"},
-    "sudo": {"Linux"},
-    "dpkg": {"Linux"},
-    "xvfb-run": {"Linux"},
-    "vulkaninfo": {"Linux"},
-    "otool": {"macOS"},
-    "install_name_tool": {"macOS"},
-    "codesign": {"macOS"},
-    "sw_vers": {"macOS"},
-    "lipo": {"macOS"},
-    "plutil": {"macOS"},
-    "hdiutil": {"macOS"},
-    "dtruss": {"macOS"},
-}
-# Не отсутствие команды, а расхождение диалектов: одноимённая утилита ведёт себя иначе.
-DIALECTS = {
-    "sed-i": (r"sed +-i +(?!\.)", "sed -i без суффикса", {"Linux", "Windows"}),
-    "grep-P": (r"grep +-[a-zA-Z]*P\b", "grep -P", {"Linux", "Windows"}),
-    "stat-c": (r"stat +-c\b", "stat -c", {"Linux", "Windows"}),
-}
-SYSTEM_PATHS = re.compile(r"(?<![\w/])(?:/usr/|/etc/|/opt/|/Library/|/Applications/|/System/)\S*")
-# Проба существования — только то, что действительно спрашивает файловую систему. Идиома
-# `… || { echo; exit 1; }` пробой НЕ считается: это обработчик ошибки, он есть почти в каждом шаге
-# и, будучи признан проверкой, выключал бы правило на всём файле.
-PROBE = re.compile(r"\bls\b|\bfind\b|\[\[?\s+-[efdrx]\s|test +-[efdrx] ")
-SEGMENT = re.compile(r"&&|\|\||;|\|")
-SEARCH = re.compile(r"\bgrep\b|\brg\b")
-ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=\$\(")
-COUNTER = re.compile(r"wc\s+-l|grep\s+-[a-zA-Z]*c\b")
+from ci_lint_patterns import (ASSIGN, COUNTER, DIALECTS, MSVC_FLAG, PROBE, SEARCH, SEGMENT,
+                              SYSTEM_PATHS, TOKEN, TOOLS)
 
 
 class Finding:
@@ -161,5 +119,32 @@ def rule_vacuous_gate(step):
                   f"что поиск вообще работает: опечатка в пути даёт вечно зелёный гейт")
 
 
+def rule_arg_mangling(step):
+    """Только `bash`/`sh` на Windows: подмену делает MSYS-рантайм git-bash, а в `pwsh` и `cmd` флаг
+    доезжает как написан. Шелл берётся из шага, а при отсутствии — из `defaults.run.shell` job или
+    workflow: иначе перевод файла на job-level defaults бесшумно выключил бы правило целиком.
+
+    Осознанный пропуск: шаг `uses:`. Значения его `with:` исполняет чужой композит, объявляющий
+    шелл у себя, — предполагать git-bash за него значит ругаться на флаг, который никакой MSYS
+    не увидит."""
+    if "Windows" not in step.os_set or re.search(r"^\s*-?\s*uses:", step.attrs, re.M):
+        return
+    declared = re.search(r"^\s+shell:\s*['\"]?(\S+)", step.attrs, re.M)
+    shell = declared.group(1) if declared else step.job_shell
+    if not shell or not re.match(r"(bash|sh)\b", shell):
+        return
+    for lineno, text, os_set in _lines(step):
+        if "Windows" not in os_set or step.suppressed("arg-mangling", lineno):
+            continue
+        code = _code(text)
+        for match in MSVC_FLAG.finditer(code):
+            # Цитируется токен целиком, а не совпадение: `/permissive-` и `/Fdfoo.pdb` регекс
+            # обрывает, и человек пошёл бы грепать по строке, которой в файле нет.
+            yield Finding(step.path, lineno, "arg-mangling",
+                          f"`{TOKEN.match(code, match.start()).group(0)}` в шаге «{step.name}»: "
+                          f"git-bash превратит аргумент со слэша в путь Windows — та же опция "
+                          f"пишется через дефис")
+
+
 RULES = (rule_unparsed, rule_portability, rule_gate_downgrade,
-         rule_env_assumption, rule_vacuous_gate)
+         rule_env_assumption, rule_vacuous_gate, rule_arg_mangling)
