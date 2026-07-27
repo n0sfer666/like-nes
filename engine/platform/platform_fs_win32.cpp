@@ -1,10 +1,12 @@
 #include "platform_fs.hpp"
 
+#include "platform_env.hpp"
 #include "platform_path.hpp"
 
 #include <windows.h>
 
 #include <io.h>
+#include <share.h>
 
 #include <vector>
 
@@ -50,7 +52,12 @@ std::FILE* open_file(const std::string& utf8_path, const char* mode) {
     const std::wstring wpath = win32::widen(utf8_path);
     const std::wstring wmode = win32::widen(mode);
     if (wpath.empty() || wmode.empty()) return nullptr;
-    return _wfopen(wpath.c_str(), wmode.c_str());
+    // _wfopen помечен небезопасным (C4996), но замена на _wfopen_s меняет ПОВЕДЕНИЕ: файлы,
+    // открытые им, не разделяются (dwShareMode=0), и открытие падает с ERROR_SHARING_VIOLATION,
+    // если на файл жив хоть один хендл — например, секция MappedFile этого же процесса. Выглядело
+    // бы это как «бандл пропал». _wfsopen задаёт режим доступа явно и совпадает с _wfopen
+    // байт-в-байт по семантике: _SH_DENYNO — то, что _wfopen ставит по умолчанию.
+    return _wfsopen(wpath.c_str(), wmode.c_str(), _SH_DENYNO);
 }
 
 bool file_exists(const std::string& path) {
@@ -99,18 +106,11 @@ bool copy_file(const std::string& src, const std::string& dst) {
     return CopyFileW(wsrc.c_str(), wdst.c_str(), /*bFailIfExists=*/FALSE) != 0;
 }
 
-// getenv() здесь не годится: он отдаёт ANSI-строку, и %APPDATA% профиля `C:\Users\Пётр\`
+// Через шов, а не через узкий CRT: тот отдаёт ANSI-строку, и %APPDATA% профиля `C:\Users\Пётр\`
 // вернулся бы с подменёнными символами — сейв уехал бы мимо каталога либо не создался вовсе.
 std::string user_data_dir(const std::string& app_name) {
-    std::vector<wchar_t> buf(MAX_PATH);
-    DWORD n = GetEnvironmentVariableW(L"APPDATA", buf.data(), static_cast<DWORD>(buf.size()));
-    if (n == 0) return {};
-    if (n >= buf.size()) { // n здесь — требуемый размер С нулём
-        buf.resize(n);
-        n = GetEnvironmentVariableW(L"APPDATA", buf.data(), static_cast<DWORD>(buf.size()));
-        if (n == 0 || n >= buf.size()) return {};
-    }
-    const std::string base = win32::narrow(buf.data(), n);
+    std::string base;
+    if (!env_var("APPDATA", base)) return {};
     return is_absolute(base) ? base + "/" + app_name : std::string{};
 }
 

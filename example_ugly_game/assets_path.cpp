@@ -1,8 +1,8 @@
 #include "assets_path.hpp"
 
 #include <cstdio>
-#include <cstdlib>
 
+#include "platform_env.hpp"
 #include "platform_fs.hpp"
 
 // Политика игры поверх платформенного шва (#12): ГДЕ искать ассеты и куда класть сейв.
@@ -11,17 +11,17 @@ namespace game {
 namespace {
 
 std::string save_dir() {
-    if (const char* env = std::getenv("LIKENES_SAVE_DIR")) {
-        if (*env != '\0') return env;
-    }
+    std::string env;
+    if (platform::env_var("LIKENES_SAVE_DIR", env) && !env.empty()) return env;
     return platform::user_data_dir("like-nes");
 }
 
 } // namespace
 
 std::string resolve_asset(const char* name) {
-    if (const char* env = std::getenv("LIKENES_ASSETS")) {
-        std::string p = std::string(env) + "/" + name;
+    std::string env;
+    if (platform::env_var("LIKENES_ASSETS", env)) {
+        const std::string p = env + "/" + name;
         if (platform::file_exists(p)) return p;
     }
     const std::string ed = platform::exe_dir();

@@ -36,9 +36,11 @@ add_library(plugin_ach_v1 MODULE plugins/ach_v1.cpp)
 # действительно падает, проверяет гейт 4 на трёх ОС, а не наша вера в флаг.
 foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash
           plugin_ach_fake plugin_steam plugin_ach_v1)
-  # platform_export.h (макрос экспорта) — заголовок шва; объекты platform_core модулю не нужны.
+  # platform_core, а не только его заголовки: фикстуры читают свои ручки через platform::env_var
+  # (getenv отдаёт на Windows ANSI-строку и помечен небезопасным). Статическая библиотека —
+  # неиспользованные объекты в модуль не попадают, поэтому плагинам без окружения это ничего не стоит.
   target_include_directories(${P} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/platform)
-  target_link_libraries(${P} PRIVATE engine_core)
+  target_link_libraries(${P} PRIVATE engine_core platform_core)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
 
