@@ -7,10 +7,7 @@ add_library(render_core STATIC
   stb_impl.cpp)
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
 target_link_libraries(render_core PUBLIC webgpu)
-# stb_image_write.h использует sprintf (deprecated на macOS) — сторонний код, глушим точечно.
-if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
-  set_source_files_properties(stb_impl.cpp PROPERTIES COMPILE_OPTIONS "-Wno-deprecated-declarations")
-endif()
+like_nes_vendored_sources(stb_impl.cpp)   # TU целиком — реализация stb, ни строки нашей
 
 add_executable(render_demo demo_main.cpp)
 target_link_libraries(render_demo PRIVATE render_core platform_core webgpu glfw3webgpu)   # glfw — транзитивно (без дубля)
@@ -26,19 +23,21 @@ reproducible_rpath(render_golden)
 # Ядро ImGui + glfw + WebGPU-бэкенд + общая оконная обвязка (wgpu_imgui). Оба shell'а
 # (plugin + editor) рендерят через WebGPU — без deprecated OpenGL. OFF в headless CI.
 if(PLUGIN_UI)
-  add_library(imgui STATIC
+  set(IMGUI_VENDORED
     ${imgui_SOURCE_DIR}/imgui.cpp
     ${imgui_SOURCE_DIR}/imgui_draw.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
-    ${imgui_SOURCE_DIR}/backends/imgui_impl_wgpu.cpp
-    wgpu_imgui.cpp)
-  target_include_directories(imgui PUBLIC
-    ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends ${CMAKE_CURRENT_SOURCE_DIR})
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_wgpu.cpp)
+  add_library(imgui STATIC ${IMGUI_VENDORED} wgpu_imgui.cpp)
+  target_include_directories(imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  # SYSTEM: заголовки imgui чужие, а wgpu_imgui.cpp в этой же цели — наш и строгий. Без SYSTEM
+  # диагностика из чужого заголовка вменяется нам и валит гейт при любом бампе зависимости.
+  target_include_directories(imgui SYSTEM PUBLIC
+    ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
   target_link_libraries(imgui PUBLIC glfw webgpu)
   target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
-  # Варнинг memset(non-trivial) в imgui_impl_glfw.cpp — код самого imgui (не наш); глушим точечно.
-  target_compile_options(imgui PRIVATE
-    $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-nontrivial-memcall>)
+  # Сам imgui — сторонний; наша в цели только обвязка wgpu_imgui.cpp, она остаётся строгой.
+  like_nes_vendored_sources(${IMGUI_VENDORED})
 endif()

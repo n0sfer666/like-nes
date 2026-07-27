@@ -3,8 +3,10 @@
 add_library(asset_core STATIC
   bundle_writer.cpp codec.cpp
   bundle_view.cpp asset_manager.cpp)
-target_include_directories(asset_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR} ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
+target_include_directories(asset_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# stb и zstd — сторонние: SYSTEM, иначе строгий уровень варнингов вменяет нам их заголовки
+# (реализация stb_image тянет три десятка неиспользуемых функций в codec.cpp).
+target_include_directories(asset_core SYSTEM PUBLIC ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
 # platform_core — PUBLIC: MappedFile стоит полем AssetManager, заголовок нужен потребителям.
 target_link_libraries(asset_core PUBLIC platform_core libzstd_static Threads::Threads)
 
@@ -26,10 +28,7 @@ target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
 add_library(basis_transcoder STATIC ${basisu_SOURCE_DIR}/transcoder/basisu_transcoder.cpp)
 target_include_directories(basis_transcoder SYSTEM PUBLIC ${basisu_SOURCE_DIR}/transcoder)
 target_compile_definitions(basis_transcoder PUBLIC BASISD_SUPPORT_KTX2=1 BASISD_SUPPORT_KTX2_ZSTD=0)
-# basisu-транскодер — сторонний: memset/memcpy non-trivial + GCC-only -Wclass-memaccess pragma
-# (clang: unknown-warning-option). Глушим точечно на сторонних TU.
-target_compile_options(basis_transcoder PRIVATE
-  $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-nontrivial-memcall -Wno-unknown-warning-option>)
+like_nes_vendored_target(basis_transcoder)   # цель целиком — один сторонний TU
 
 add_library(asset_gpu STATIC transcode.cpp)
 target_link_libraries(asset_gpu PUBLIC basis_transcoder)

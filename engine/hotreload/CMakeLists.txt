@@ -1,10 +1,9 @@
 # Hot-reload PoC. Загрузка модуля и крэш-изоляция ушли за швы platform_core (спека #12):
 # dlopen/siglongjmp на POSIX, LoadLibraryExW+копия/SEH на Windows → гейт на всех 3 ОС.
-# game_crash без оптимизации, чтобы null-deref не соптимизировался.
+# game_crash оптимизируется как все: сбой записан через volatile — см. engine/plugin.
 add_library(game_a MODULE game_a.cpp)
 add_library(game_b MODULE game_b.cpp)
 add_library(game_crash MODULE game_crash.cpp)
-target_compile_options(game_crash PRIVATE $<IF:$<CXX_COMPILER_ID:MSVC>,/Od,-O0>)
 foreach(M game_a game_b game_crash)
   # Нужен только platform_export.h (макрос экспорта), объекты шва модулю ни к чему.
   target_include_directories(${M} PRIVATE ${CMAKE_SOURCE_DIR}/engine/platform)

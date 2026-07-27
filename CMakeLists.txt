@@ -134,6 +134,10 @@ endif()
 # (на Windows find_package(Threads) даёт no-op imported-target).
 find_package(Threads REQUIRED)
 
+# Строгие варнинги — строго между зависимостями и нашим кодом: выше по файлу их уже не достать,
+# ниже — они обязательны. Порядок здесь несущий, а не косметический.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/warnings.cmake)
+
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 

@@ -8,7 +8,8 @@ if(NOT MSVC)  # GCC/Clang-only флаг; MSVC → D8021
   set_source_files_properties(stb_vorbis_impl.c PROPERTIES COMPILE_OPTIONS "-Wno-tautological-compare")
 endif()
 target_include_directories(audio_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset ${stb_SOURCE_DIR})
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset)
+target_include_directories(audio_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний
 target_link_libraries(audio_core PUBLIC engine_core Threads::Threads)
 
 # Гейт #1 (байт-golden хеш микса, Fix32 над детерм. PCM). CI на всех ОС.
@@ -29,8 +30,10 @@ target_link_libraries(audio_seam PRIVATE audio_core asset_core)
 
 if(AUDIO_MINIAUDIO)
   add_library(audio_device STATIC device.cpp miniaudio_impl.c)
-  target_include_directories(audio_device PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR} ${miniaudio_SOURCE_DIR})
+  like_nes_vendored_sources(miniaudio_impl.c)   # TU целиком — реализация miniaudio
+  target_include_directories(audio_device PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  # SYSTEM по той же причине, что и у imgui: device.cpp — наш код в одной цели с miniaudio.
+  target_include_directories(audio_device SYSTEM PUBLIC ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device PUBLIC engine_core)
   target_compile_definitions(audio_device PUBLIC AUDIO_HAVE_MINIAUDIO)
   if(APPLE)
