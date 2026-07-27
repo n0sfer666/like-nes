@@ -653,6 +653,14 @@ jobs:
           "$BIN" | tee shmem_seam.txt
           grep -q "platform-shmem: PASS" shmem_seam.txt
 
+      - name: Platform — process capture seam (spec #13, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'platform_process_test' -o -name 'platform_process_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "platform_process_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee process_seam.txt
+          grep -q "platform-process: PASS" process_seam.txt
+
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
         run: |

@@ -50,7 +50,14 @@ target_link_libraries(game_child PRIVATE ipc_headers platform_core Threads::Thre
 add_executable(play_spawn_test play_spawn_test.cpp)
 target_link_libraries(play_spawn_test PRIVATE ipc_headers platform_core Threads::Threads)
 
-# Остаток POSIX-поверхности (#13): unix-socket в bench, pipe/exec в build-loop, watcher.
+# Оркестратор сборки после переезда на platform::run_capture своих fork/pipe не имеет — цель
+# уехала из POSIX-ветки, чтобы MSVC проверял её на всех трёх ОС. Внутри остался только сам
+# гейт 5: hot-reload там всё ещё dlopen напрямую.
+add_library(build_core STATIC compile/build_orchestrator.cpp)
+target_include_directories(build_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(build_core PUBLIC diag_core platform_core)
+
+# Остаток POSIX-поверхности (#13): unix-socket в bench, dlopen в build-loop, watcher.
 # Сокращается коммит за коммитом до полного снятия ветки.
 if(NOT WIN32)
   # Гейт 8: замер shmem vs socket @10k → выбор транспорта в ADR 0007. Вторая половина замера —
@@ -60,9 +67,6 @@ if(NOT WIN32)
 
   # Гейт 5: build-loop — watch .cpp → build (реальный компилятор) → hot-reload .so + панель ошибок.
   # Переиспользует dlopen (hot-reload #1). Компилятор → argv[1] (CI: ${CMAKE_CXX_COMPILER}).
-  add_library(build_core STATIC compile/build_orchestrator.cpp)
-  target_include_directories(build_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(build_core PUBLIC diag_core platform_core)
   add_executable(build_loop_test build_loop_test.cpp)
   target_link_libraries(build_loop_test PRIVATE build_core platform_core ${CMAKE_DL_LIBS})
   target_compile_definitions(build_loop_test PRIVATE IDE_CXX="${CMAKE_CXX_COMPILER}")
