@@ -45,11 +45,13 @@ bool bake_presets(const std::string& text, std::vector<uint8_t>& out, PresetBake
     h.action_count = static_cast<uint32_t>(b.actions.size());
     h.axis_count = static_cast<uint32_t>(b.axes.size());
     h.binding_count = static_cast<uint32_t>(b.bindings.size());
+    h.pad_count = static_cast<uint32_t>(b.pads.size());
     h.presets_offset = sizeof(PresetHeader);
     h.actions_offset = h.presets_offset + static_cast<uint32_t>(b.presets.size() * sizeof(PresetRow));
     h.axes_offset = h.actions_offset + static_cast<uint32_t>(b.actions.size() * sizeof(ActionRow));
     h.bindings_offset = h.axes_offset + static_cast<uint32_t>(b.axes.size() * sizeof(AxisRow));
-    h.strings_offset = h.bindings_offset + static_cast<uint32_t>(b.bindings.size() * sizeof(BindingRow));
+    h.pads_offset = h.bindings_offset + static_cast<uint32_t>(b.bindings.size() * sizeof(BindingRow));
+    h.strings_offset = h.pads_offset + static_cast<uint32_t>(b.pads.size() * sizeof(PadRow));
     h.total_size = h.strings_offset + static_cast<uint32_t>(b.blob.data.size());
 
     out.clear();
@@ -60,6 +62,7 @@ bool bake_presets(const std::string& text, std::vector<uint8_t>& out, PresetBake
     append(out, b.actions);
     append(out, b.axes);
     append(out, b.bindings);
+    append(out, b.pads);
     out.insert(out.end(), b.blob.data.begin(), b.blob.data.end());
     return true;
 }

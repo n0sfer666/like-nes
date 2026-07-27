@@ -1,5 +1,6 @@
 #include "source.hpp"
 #include "codes.hpp"
+#include <cstring>
 #import <GameController/GameController.h>
 #import <CoreHaptics/CoreHaptics.h>
 
@@ -35,6 +36,7 @@ public:
                 cache_[slot].active = true; cache_[slot].id = (uintptr_t)(__bridge void*)ctl;
                 e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, (uint8_t)slot, 0, 0, seq_++});
                 pads_[slot] = ctl;
+                fill_info(slot, ctl);
             }
             emit_buttons(e, slot, gp);
             emit_axes(e, slot, gp);
@@ -42,7 +44,7 @@ public:
         for (int s = 0; s < MAX_DEVICES; ++s)
             if (cache_[s].active && !seen[s]) {
                 e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, (uint8_t)s, 0, 0, seq_++});
-                cache_[s] = PadCache{}; pads_[s] = nil;
+                cache_[s] = PadCache{}; pads_[s] = nil; info_[s] = PadInfo{};
             }
     }
 
@@ -54,7 +56,27 @@ public:
 
     const char* backend_name() const override { return "GameController.framework (macOS)"; }
 
+    // GameController.framework не отдаёт VID/PID вовсе: производителя видно только именем.
+    // Профиль ищется по нему, поэтому имя берётся у vendorName, а не у productCategory —
+    // категория одинакова у всех extended-падов и различать их не может.
+    PadInfo pad_info(int slot) const override {
+        if (slot < 0 || slot >= MAX_DEVICES) return {};
+        return info_[slot];
+    }
+
 private:
+    void fill_info(int slot, GCController* ctl) {
+        info_[slot] = PadInfo{};
+        NSString* n = ctl.vendorName;
+        if (n) {
+            const char* utf8 = [n UTF8String];
+            if (utf8) {
+                std::strncpy(info_[slot].name, utf8, sizeof(info_[slot].name) - 1);
+                info_[slot].name[sizeof(info_[slot].name) - 1] = '\0';
+            }
+        }
+    }
+
     int slot_for(GCController* ctl) {
         for (int s = 0; s < MAX_DEVICES; ++s) if (cache_[s].active && cache_[s].id == (uintptr_t)(__bridge void*)ctl) return s;
         for (int s = 0; s < MAX_DEVICES; ++s) if (!cache_[s].active) return s;
@@ -118,6 +140,7 @@ private:
     }
 
     PadCache cache_[MAX_DEVICES];
+    PadInfo info_[MAX_DEVICES];
     GCController* pads_[MAX_DEVICES] = {};
     uint64_t seq_ = 1'000'000; // отдельный диапазон seq от kbd/mouse
 };

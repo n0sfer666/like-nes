@@ -15,3 +15,11 @@ axis   | move_y | padaxis:-ly | -
 # поэтому move_x и move_y объявлены парой.
 shape  | move_x | 0.18 | 1.0 | 1 | move_y
 shape  | move_y | 0.18 | 1.0 | 1 | move_x
+
+# Профили падов — данные: добавление модели не требует релиза движка. Коды кнопок у всех трёх
+# бэкендов уже позиционные, поэтому профиль задаёт надписи (для подсказок) и форму отклика.
+# vid | pid | подстрока имени | надписи | мёртвая зона | порог триггера
+pad | Microsoft Xbox      | 0x045e | - | Xbox      | xbox        | 0.18 | 0.12
+pad | Sony DualSense      | 0x054c | 0x0ce6 | DualSense | playstation | 0.10 | 0.10
+pad | Sony DualShock 4    | 0x054c | 0x09cc | DUALSHOCK | playstation | 0.12 | 0.10
+pad | Nintendo Switch Pro | 0x057e | - | Nintendo  | nintendo    | 0.15 | 0.12

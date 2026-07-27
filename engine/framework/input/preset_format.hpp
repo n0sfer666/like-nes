@@ -19,14 +19,16 @@ struct PresetHeader {
     uint32_t action_count;    // суммарно по всем пресетам
     uint32_t axis_count;
     uint32_t binding_count;
+    uint32_t pad_count;
     uint32_t presets_offset;
     uint32_t actions_offset;
     uint32_t axes_offset;
     uint32_t bindings_offset;
+    uint32_t pads_offset;
     uint32_t strings_offset;
     uint32_t total_size;
 };
-static_assert(sizeof(PresetHeader) == 48, "PresetHeader layout pinned (zero-parse ABI)");
+static_assert(sizeof(PresetHeader) == 56, "PresetHeader layout pinned (zero-parse ABI)");
 
 // Действия и оси лежат непрерывными диапазонами: пресет — это пара срезов, а не список
 // указателей, поэтому таблица переносится побайтово и не требует релокаций.
@@ -68,5 +70,22 @@ struct AxisRow {
     uint32_t pair_axis;   // индекс парной оси внутри пресета (радиальная зона) либо NO_PAIR
 };
 static_assert(sizeof(AxisRow) == 52, "AxisRow layout pinned (zero-parse ABI)");
+
+// Профиль геймпада — тоже данные (решение 4 спеки #14): добавление модели не требует релиза
+// движка. vid == 0 значит «сопоставлять по имени»: XInput и GameController.framework VID/PID
+// не отдают вовсе, и на двух ОС из трёх имя — единственный канал.
+struct PadRow {
+    uint32_t name_offset;
+    uint32_t match_offset;   // подстрока имени устройства (регистр не важен)
+    uint32_t vid;            // 0 — не сопоставлять по VID/PID
+    uint32_t pid;            // 0 — весь вендор
+    uint32_t labels;         // PadLabels: набор надписей на кнопках (коды уже позиционные)
+    int32_t deadzone_raw;
+    int32_t outer_raw;
+    uint32_t curve_exp;
+    int32_t trigger_raw;
+    uint32_t reserved;
+};
+static_assert(sizeof(PadRow) == 40, "PadRow layout pinned (zero-parse ABI)");
 
 } // namespace framework::input
