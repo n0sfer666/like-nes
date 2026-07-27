@@ -17,8 +17,10 @@ target_link_libraries(command_test PRIVATE scene_core)
 
 # Гейт 5 (парсер диагностик), гейт 7 (перф 10k) и data-путь гейта 6 — чистая логика без вызовов
 # ОС. В POSIX-блок ниже они попали только вложенностью; спека #12 (гейт 9) это снимает: гоняются
-# на 3 ОС. Парсер формата MSVC — по-прежнему #13, здесь проверяется формат clang/gcc.
-add_library(diag_core STATIC compile/diagnostics.cpp)
+# на 3 ОС. Формата теперь два (clang/gcc и MSVC, решение 3 спеки #13) — по единице трансляции на
+# каждый, диспетчер строк в diagnostics.cpp.
+add_library(diag_core STATIC
+  compile/diagnostics.cpp compile/diagnostics_gnu.cpp compile/diagnostics_msvc.cpp)
 target_include_directories(diag_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 add_executable(diagnostics_test compile/diagnostics_test.cpp)

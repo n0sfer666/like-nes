@@ -1,37 +1,29 @@
 #include "diagnostics.hpp"
-#include <cstdlib>
+#include "diagnostics_line.hpp"
+
 #include <sstream>
 
 namespace ide::build {
+
+// Формат не выбирается по ОС и не задаётся флагом: на Windows живут оба (clang-cl печатает
+// msvc-формат, а mingw-сборка того же дерева — gnu), и вывод одной сборки бывает смешанным,
+// когда линкер и компилятор разные. Поэтому на каждой строке пробуются оба парсера.
+//
+// Порядок значим: gnu-парсер ищет ": error: " и на msvc-строке `a.cpp(1,2): error C2065: msg`
+// не срабатывает (там между severity и двоеточием стоит код), а вот msvc-парсер на gnu-строке с
+// путём вида `a(1).cpp:2:3: error: msg` сработал бы. Первым идёт более требовательный.
 namespace {
 
-// Ищет " <sev>: " и возвращает индекс начала маркера + длину, если это error/warning/note.
-bool find_severity(const std::string& s, size_t& pos, std::string& sev) {
-    static const char* kinds[] = {"error", "warning", "note"};
-    for (const char* k : kinds) {
-        std::string marker = std::string(": ") + k + ": ";
-        size_t p = s.find(marker);
-        if (p != std::string::npos) { pos = p; sev = k; return true; }
-    }
-    return false;
-}
-
-// prefix = "path:line:col" → распарсить с правого конца (путь может содержать ':' редко, но
-// line/col — последние два числовых поля).
-bool parse_prefix(const std::string& prefix, std::string& file, int& line, int& col) {
-    size_t c2 = prefix.rfind(':');
-    if (c2 == std::string::npos || c2 == 0) return false;
-    size_t c1 = prefix.rfind(':', c2 - 1);
-    if (c1 == std::string::npos) return false;
-    std::string col_s = prefix.substr(c2 + 1);
-    std::string line_s = prefix.substr(c1 + 1, c2 - c1 - 1);
-    if (col_s.empty() || line_s.empty()) return false;
-    for (char ch : col_s) if (ch < '0' || ch > '9') return false;
-    for (char ch : line_s) if (ch < '0' || ch > '9') return false;
-    file = prefix.substr(0, c1);
-    line = std::atoi(line_s.c_str());
-    col = std::atoi(col_s.c_str());
-    return !file.empty();
+// Срезает то, что печатает не компилятор: отступы и префикс проекта msbuild (`1>`, `12>`).
+// Оставленный на месте, он уехал бы в d.file первым же substr — и click-to-open промахнулся бы
+// по пути «1>C:\src\a.cpp», которого не существует.
+std::string strip_prefix(const std::string& line) {
+    size_t i = 0;
+    while (i < line.size() && (line[i] == ' ' || line[i] == '\t')) ++i;
+    size_t d = i;
+    while (d < line.size() && line[d] >= '0' && line[d] <= '9') ++d;
+    if (d > i && d < line.size() && line[d] == '>') i = d + 1;
+    return line.substr(i);
 }
 
 } // namespace
@@ -39,18 +31,12 @@ bool parse_prefix(const std::string& prefix, std::string& file, int& line, int& 
 std::vector<Diagnostic> parse_diagnostics(const std::string& compiler_output) {
     std::vector<Diagnostic> out;
     std::istringstream in(compiler_output);
-    std::string line;
-    while (std::getline(in, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        size_t pos = 0;
-        std::string sev;
-        if (!find_severity(line, pos, sev)) continue;
-        std::string prefix = line.substr(0, pos);
+    std::string raw;
+    while (std::getline(in, raw)) {
+        if (!raw.empty() && raw.back() == '\r') raw.pop_back();   // CRLF из вывода cl.exe
+        const std::string line = strip_prefix(raw);
         Diagnostic d;
-        if (!parse_prefix(prefix, d.file, d.line, d.col)) continue;
-        d.severity = sev;
-        d.message = line.substr(pos + sev.size() + 4);  // ": " + sev + ": "
-        out.push_back(std::move(d));
+        if (parse_gnu_line(line, d) || parse_msvc_line(line, d)) out.push_back(std::move(d));
     }
     return out;
 }

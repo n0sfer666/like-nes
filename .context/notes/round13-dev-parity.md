@@ -36,9 +36,10 @@
 
 ## Прогресс
 
-- [ ] 1 shmem
-- [ ] 2 Child::wait
-- [ ] 3 run_capture
+- [x] 1 shmem (`ipc_core` не обёрткой, а удалён: после переезда шва в нём остались одни заголовки)
+- [x] 2 Child::wait (+ `process_id`; `play_spawn_test` без fork → уехал из POSIX-ветки)
+- [x] 3 run_capture (наследование хендлов на Windows ограничено списком → `win32_spawn.cpp`;
+      `build_core` уехал из POSIX-ветки, `build_loop_test` остался — там прямой `dlopen`)
 - [ ] 4 MSVC-диагностики
 - [ ] 5 watcher
 - [ ] 6 CMake + CI
