@@ -40,7 +40,8 @@
 - [x] 2 Child::wait (+ `process_id`; `play_spawn_test` без fork → уехал из POSIX-ветки)
 - [x] 3 run_capture (наследование хендлов на Windows ограничено списком → `win32_spawn.cpp`;
       `build_core` уехал из POSIX-ветки, `build_loop_test` остался — там прямой `dlopen`)
-- [ ] 4 MSVC-диагностики
-- [ ] 5 watcher
+- [x] 4 MSVC-диагностики (второй парсер за общей `parse_diagnostics`, `VSLANG=1033`)
+- [x] 5 watcher (`platform_watch`: inotify / FSEvents на dispatch-очереди / ReadDirectoryChangesW,
+      общий фолбэк-поллинг + `LIKE_NES_WATCH=poll`; попутно `platform::list_dir` в `platform_fs`)
 - [ ] 6 CMake + CI
 - [ ] 7 живые гейты + ADR
