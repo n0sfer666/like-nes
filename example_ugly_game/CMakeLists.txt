@@ -22,13 +22,8 @@ else()
   list(APPEND GAME_INPUT_SRC ${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_linux.cpp)
 endif()
 # Шов assetc→билд (спека #8, гейт 2): baked atlas из game.bundle (asset_core + asset_gpu
-# транскод UASTC→BC7). asset_gpu/basis — POSIX (как asset_render); WIN32 → процедурный
-# fallback (stub load_game_atlas). assets_path — все ОС (self-contained bundle-резолв).
-if(WIN32)
-  set(GAME_SEAM_SRC assets_path.cpp bundle_atlas_stub.cpp ach_source_stub.cpp)
-else()
-  set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
-endif()
+# транскод UASTC→BC7). Заглушки под Windows сняты вместе с POSIX-only'ем asset_core (спека #12).
+set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
@@ -38,14 +33,18 @@ target_include_directories(game_sidescroller PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
 target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(game_sidescroller PRIVATE
-  engine_core input_core flecs_static webgpu glfw3webgpu glfw ach_plugin Threads::Threads)
-if(NOT WIN32)
-  target_link_libraries(game_sidescroller PRIVATE asset_core asset_gpu ach_bundle)
-  # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
-  # (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
-  if(AUDIO_MINIAUDIO)
-    target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
-  endif()
+  engine_core input_core flecs_static webgpu glfw3webgpu glfw ach_plugin
+  Threads::Threads)
+# asset_core (и через него platform_core) приходит транзитивно из ach_bundle. Явным его тут не
+# держим: CMake дедуплицирует ПРЯМОЙ список, но транзитивное замыкание дописывает ПОСЛЕ него, и
+# библиотека, названная обоими способами, попадает на линкер-строку дважды — ld на macOS отвечает
+# `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
+# начале строки, и в хвосте замыкания.
+target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
+# Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
+# (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
+if(AUDIO_MINIAUDIO)
+  target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
 endif()
 set_source_files_properties(capture.cpp PROPERTIES   # stb_image_write sprintf (не MSVC:
   COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-deprecated-declarations>")  # D8021)
@@ -105,11 +104,9 @@ target_include_directories(game_sim_test PRIVATE
 target_link_libraries(game_sim_test PRIVATE engine_core flecs_static Threads::Threads)
 
 # Гейт 7 спеки #10: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
-if(NOT WIN32)
-  add_executable(ach_sim_test
-    ach_sim_test.cpp achievements.cpp backend_host.cpp ach_source_bundle.cpp
-    sim.cpp combat.cpp boss.cpp)
-  target_include_directories(ach_sim_test PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
-  target_link_libraries(ach_sim_test PRIVATE engine_core ach_bundle ach_plugin flecs_static Threads::Threads)
-endif()
+add_executable(ach_sim_test
+  ach_sim_test.cpp achievements.cpp backend_host.cpp ach_source_bundle.cpp
+  sim.cpp combat.cpp boss.cpp)
+target_include_directories(ach_sim_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
+target_link_libraries(ach_sim_test PRIVATE engine_core ach_bundle ach_plugin flecs_static Threads::Threads)

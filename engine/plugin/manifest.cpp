@@ -1,6 +1,7 @@
 #include "manifest.hpp"
-#include <fstream>
 #include <sstream>
+
+#include "platform_fs.hpp"
 
 const char* dock_name(DockSlot s) {
     switch (s) {
@@ -39,8 +40,9 @@ static DockSlot parse_dock(const std::string& v) {
 
 Manifest parse_manifest(const std::string& path) {
     Manifest m;
-    std::ifstream in(path);
-    if (!in) { m.error = "cannot open " + path; return m; }
+    std::string text;
+    if (!platform::read_text(path, text)) { m.error = "cannot open " + path; return m; }
+    std::istringstream in(text);
 
     std::string line;
     while (std::getline(in, line)) {

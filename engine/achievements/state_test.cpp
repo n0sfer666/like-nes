@@ -1,3 +1,4 @@
+#include "platform_fs.hpp"
 #include "registry.hpp"
 #include "state.hpp"
 #include "store.hpp"
@@ -141,7 +142,7 @@ void test_stale_temp() {
     a.add_stat(ach::hash_key("stat_kills"), 11);
     check(store.save(a), "save before crash");
 
-    std::FILE* junk = std::fopen(store.temp_path().c_str(), "wb");
+    std::FILE* junk = platform::open_file(store.temp_path(), "wb");
     check(junk != nullptr, "stale temp created");
     if (junk) {
         std::fwrite("GARBAGE", 1, 7, junk);

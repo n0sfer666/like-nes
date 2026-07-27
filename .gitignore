@@ -13,6 +13,7 @@ vdf/
 *.dll
 *.so
 compile_commands.json
+__pycache__/
 .cache/
 deps/
 imgui.ini
@@ -25,6 +26,9 @@ imgui.ini
 audio_seam.wav
 *.save
 *.save.tmp
+*.save.ready
+demo_frames/
+юникод тест-каталог/
 /*.txt
 !/CMakeLists.txt
 !/THIRD-PARTY-NOTICES*.txt

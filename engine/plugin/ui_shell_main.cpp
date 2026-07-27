@@ -5,6 +5,7 @@
 #include "imgui_internal.h"
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_wgpu.h"
+#include "platform_args.hpp"
 #include <GLFW/glfw3.h>
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu.h>
@@ -53,6 +54,7 @@ static void draw_panel(PanelRT& p) {
 }
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     std::vector<PanelRT> panels;
     for (int i = 1; i < argc; ++i) {
         Manifest m = parse_manifest(argv[i]);

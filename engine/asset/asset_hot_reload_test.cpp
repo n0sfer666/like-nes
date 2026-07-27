@@ -1,4 +1,5 @@
-#include <unistd.h>
+#include <chrono>
+#include <thread>
 
 #include <cstdint>
 #include <cstdio>
@@ -10,6 +11,8 @@
 #include "bundle_writer.hpp"
 #include "codec.hpp"
 #include "hash.hpp"
+#include "platform_args.hpp"
+#include "platform_fs.hpp"
 
 // Hot-reload roundtrip (спека #5 gate): source change → rebake → runtime свап ассета.
 // Стабильный guid переживает пересборку; refcount'ы держатся; содержимое обновляется.
@@ -46,13 +49,14 @@ void pump(AssetManager& am, uint64_t a, uint64_t b) {
     for (int i = 0; i < 500; ++i) {
         am.sync_point();
         if (am.is_ready(a) && am.is_ready(b)) return;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
 }
 
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     const std::string dir = argc >= 2 ? argv[1] : ".";
     const std::string v1 = dir + "/hr_v1.bundle", v2 = dir + "/hr_v2.bundle";
     if (!codec::write_file(v1, make_bundle(0xAA, 0x11))) return fail("write v1");
@@ -93,8 +97,36 @@ int main(int argc, char** argv) {
     if (!sh3.data || sh3.data[0] != 0xBB) return fail("shader lost after failed reload (UAF)");
     if (!bk3.data || bk3.data[0] != 0x22) return fail("bulk lost after failed reload (UAF)");
 
+    // --- Пересборка бандла под живым хостом (спека #12, гейт 5). Порядок шагов здесь не
+    // стилистический, а единственный переносимый: пока у бандла жива секция, Windows не даёт ни
+    // усечь его, ни переименовать поверх (ERROR_USER_MAPPED_FILE; FILE_SHARE_DELETE про хендлы, а
+    // не про секции). Значит рецепт — снять отображение, подменить рядом лежащим файлом, открыть
+    // заново; процесс при этом не останавливается, state хоста живёт. Переставят шаги местами —
+    // падает здесь, а не у разработчика на Windows при первом же ребейке.
+    const std::string live = dir + "/hr_live.bundle", live_tmp = live + ".tmp";
+    if (!codec::write_file(live, make_bundle(0xAA, 0x11))) return fail("write live v1");
+
+    AssetManager lam;
+    if (!lam.open(live, 1u << 20, /*trusted=*/false)) return fail("open live");
+    lam.request(g_sh); lam.request(g_bk);
+    pump(lam, g_sh, g_bk);
+    Loaded live1 = lam.get(g_sh);
+    if (!live1.data || !live1.zero_copy || live1.data[0] != 0xAA) return fail("live v1 content");
+
+    if (!codec::write_file(live_tmp, make_bundle(0xBB, 0x22))) return fail("write rebake temp");
+    lam.close();
+    if (!platform::replace_file(live_tmp, live)) return fail("rebake over unmapped bundle");
+
+    if (!lam.open(live, 1u << 20, /*trusted=*/false)) return fail("reopen after rebake");
+    lam.request(g_sh); lam.request(g_bk);
+    pump(lam, g_sh, g_bk);
+    Loaded live2 = lam.get(g_sh);
+    if (!live2.data || live2.data[0] != 0xBB) return fail("rebaked content not picked up");
+    lam.close();
+
     std::printf("[hot-reload] PASS roundtrip: shader %02x→%02x zero-copy, bulk %02x→%02x zstd; "
-                "guid стабилен, содержимое обновлено; битый reload → old state жив\n",
+                "guid стабилен, содержимое обновлено; битый reload → old state жив; "
+                "пересборка бандла (unmap→replace→open) видна хосту без остановки\n",
                 0xAA, 0xBB, 0x11, 0x22);
     am.close();
     return 0;

@@ -3,6 +3,7 @@
 #include "builtin.hpp"
 #include "host.hpp"
 #include "sim.hpp"
+#include "platform_args.hpp"
 #include <cstdio>
 #include <string>
 
@@ -15,6 +16,7 @@ static const char* CAP_WAT =
     " (func (export \"go\") (call $s)))";
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: plugin_wasm_test <gravity.wat> <wind.so>\n");
         return 2;

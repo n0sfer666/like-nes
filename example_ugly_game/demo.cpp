@@ -45,7 +45,13 @@ struct DemoDriver {
 
 int run_demo(const char* dir, int frames) {
     GpuContext gpu;
-    if (!gpu.init(nullptr)) { gpu.shutdown(); return 1; }
+    if (!gpu.init(nullptr)) {
+        // Шаг CI «Game — headless demo» — жёсткий гейт на трёх ОС, и молчаливый выход из него
+        // неотличим от «игра не анимируется». Причина отказа должна быть в логе раннера.
+        std::fprintf(stderr, "demo: no WebGPU adapter/device on this machine\n");
+        gpu.shutdown();
+        return 1;
+    }
     Atlas atlas = load_game_atlas(gpu.supports_bc);
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas);   // → HDR (bloom)

@@ -1,57 +1,61 @@
 #include "game_api.h"
 
-#include <dlfcn.h>
-#include <csetjmp>
-#include <csignal>
 #include <cstdio>
-#include <cstring>
+
+#include "platform_args.hpp"
+#include "platform_guard.hpp"
+#include "platform_module.hpp"
 
 typedef void (*game_tick_fn)(GameState*);
 
-static sigjmp_buf g_jmp;
-
-// Крэш в gameplay ловится сигнал-хендлером и возвращает управление в host через siglongjmp
-// (эквивалент catch_unwind из ADR, *nix-путь; на Windows это будет SEH).
-static void crash_handler(int sig) { siglongjmp(g_jmp, sig); }
-
+// Крэш в gameplay изолируется швом platform_guard: siglongjmp на POSIX, SEH на Windows —
+// эквивалент catch_unwind из ADR.
 struct Lib {
-    void* handle = nullptr;
+    platform::Module mod;
     game_tick_fn tick = nullptr;
 };
 
 static Lib load(const char* path) {
     Lib lib;
-    lib.handle = dlopen(path, RTLD_NOW | RTLD_LOCAL);
-    if (!lib.handle) { std::fprintf(stderr, "dlopen failed: %s\n", dlerror()); return lib; }
-    lib.tick = reinterpret_cast<game_tick_fn>(dlsym(lib.handle, "game_tick"));
-    if (!lib.tick) std::fprintf(stderr, "dlsym failed: %s\n", dlerror());
+    if (!lib.mod.open(path)) {
+        std::fprintf(stderr, "load failed: %s\n", platform::Module::last_error());
+        return lib;
+    }
+    lib.tick = reinterpret_cast<game_tick_fn>(lib.mod.symbol("game_tick"));
+    if (!lib.tick) std::fprintf(stderr, "symbol failed: %s\n", platform::Module::last_error());
     return lib;
 }
 
 static void unload(Lib& lib) {
-    if (lib.handle) dlclose(lib.handle);
-    lib.handle = nullptr;
+    lib.mod.close();
     lib.tick = nullptr;
 }
 
+namespace {
+struct Tick {
+    game_tick_fn fn;
+    GameState* state;
+};
+void run_tick(void* p) {
+    auto* t = static_cast<Tick*>(p);
+    t->fn(t->state);
+}
+} // namespace
+
 // Возврат: true = отработало, false = пойман крэш (host выжил).
 static bool safe_tick(game_tick_fn fn, GameState* s) {
-    if (sigsetjmp(g_jmp, 1) == 0) { fn(s); return true; }
-    return false;
+    Tick t{fn, s};
+    return platform::guarded_call(run_tick, &t);
 }
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
     if (argc < 4) {
-        std::fprintf(stderr, "usage: host <game_a.dylib> <game_b.dylib> <game_crash.dylib>\n");
+        std::fprintf(stderr, "usage: host <game_a> <game_b> <game_crash>\n");
         return 2;
     }
 
-    struct sigaction sa;
-    std::memset(&sa, 0, sizeof(sa));
-    sa.sa_handler = crash_handler;
-    sigemptyset(&sa.sa_mask);
-    sigaction(SIGSEGV, &sa, nullptr);
-    sigaction(SIGBUS, &sa, nullptr);
+    platform::install_crash_isolation();
 
     GameState state{}; // host-owned — переживает все reload
 

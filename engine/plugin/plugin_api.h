@@ -1,4 +1,5 @@
 #pragma once
+#include "platform_export.h"
 #include "sim.hpp"
 #include <cstdint>
 
@@ -74,4 +75,4 @@ typedef int32_t (*PluginAbiFn)(void);
 #endif
 
 #define PLUGIN_EXPORT_ABI \
-    extern "C" int32_t plugin_abi_version(void) { return PLUGIN_API_VERSION; }
+    extern "C" PLATFORM_EXPORT int32_t plugin_abi_version(void) { return PLUGIN_API_VERSION; }

@@ -109,7 +109,8 @@ private:
         dirent* de;
         while ((de = readdir(dir))) {
             if (strncmp(de->d_name, "event", 5) != 0) continue;
-            char path[64]; snprintf(path, sizeof(path), "/dev/input/%s", de->d_name);
+            char path[sizeof("/dev/input/") + sizeof(de->d_name)];
+            snprintf(path, sizeof(path), "/dev/input/%s", de->d_name);
             if (opened_.count(path)) continue;
             int fd = open(path, O_RDONLY | O_NONBLOCK);
             if (fd < 0) continue;

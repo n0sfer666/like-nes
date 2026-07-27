@@ -1,9 +1,10 @@
 #include "wasm_host.hpp"
 #include <wasmtime.h>
 #include <cstring>
-#include <fstream>
 #include <sstream>
 #include <vector>
+
+#include "platform_fs.hpp"
 
 static std::string take_error(wasmtime_error_t* e, wasm_trap_t* t) {
     wasm_byte_vec_t msg;
@@ -14,10 +15,7 @@ static std::string take_error(wasmtime_error_t* e, wasm_trap_t* t) {
 }
 
 static bool read_file(const std::string& path, std::string& out) {
-    std::ifstream in(path);
-    if (!in) return false;
-    std::stringstream ss; ss << in.rdbuf(); out = ss.str();
-    return true;
+    return platform::read_text(path, out);
 }
 
 struct WasmGravity::Impl {

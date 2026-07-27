@@ -1,8 +1,9 @@
 #include "art.hpp"
 
+#include <chrono>
 #include <cstdio>
 #include <cstring>
-#include <unistd.h>
+#include <thread>
 
 #include "asset_manager.hpp"
 #include "assets_path.hpp"
@@ -26,7 +27,7 @@ Atlas load_baked_atlas(const char* bundle_path) {
     for (int f = 0; f < 500; ++f) {
         am.sync_point();
         if (am.is_ready(g)) break;
-        usleep(200);
+        std::this_thread::sleep_for(std::chrono::microseconds(200));
     }
     if (!am.is_ready(g)) { am.close(); return atlas; }
 

@@ -98,7 +98,7 @@ AchBackendApi g_api = {.self = &g_steam,
 
 PLUGIN_EXPORT_ABI
 
-extern "C" void plugin_main(const HostApi* host) {
+extern "C" PLATFORM_EXPORT void plugin_main(const HostApi* host) {
     host->register_achievement_backend(host->ctx, "steam", &g_api);
 #ifdef LIKE_NES_STEAM_SDK
     host->log(host->ctx, "steam backend registered (real Steamworks SDK)");
@@ -108,25 +108,25 @@ extern "C" void plugin_main(const HostApi* host) {
 }
 
 #ifndef LIKE_NES_STEAM_SDK
-extern "C" int32_t steam_stub_achieved(const char* key) {
+extern "C" PLATFORM_EXPORT int32_t steam_stub_achieved(const char* key) {
     for (const std::string& a : steam_stub::state().achieved) {
         if (a == key) return 1;
     }
     return 0;
 }
 
-extern "C" int32_t steam_stub_stat(const char* key) {
+extern "C" PLATFORM_EXPORT int32_t steam_stub_stat(const char* key) {
     for (const auto& kv : steam_stub::state().stats) {
         if (kv.first == key) return kv.second;
     }
     return -1;
 }
 
-extern "C" int32_t steam_stub_stores() { return steam_stub::state().stores; }
+extern "C" PLATFORM_EXPORT int32_t steam_stub_stores() { return steam_stub::state().stores; }
 
 // Выдать ачивку со стороны сервиса посреди сессии — оверлей, вторая машина. Без этого сверку
 // нечем отличить от однократного опроса на старте.
-extern "C" void steam_stub_grant(const char* key) {
+extern "C" PLATFORM_EXPORT void steam_stub_grant(const char* key) {
     steam_stub::State& s = steam_stub::state();
     for (const std::string& a : s.achieved) {
         if (a == key) return;
