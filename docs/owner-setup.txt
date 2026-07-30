@@ -2,11 +2,15 @@ like-nes — прогон проверки на чистой машине
 Шпаргалка для владельца. Подробности по гейтам — docs/owner-verification.md,
 общая установка — docs/first-run.md.
 
+Все команды ниже прогнаны на macOS: вывод, который в них обещан, — настоящий,
+а не предполагаемый.
+
 ===========================================================================
-WINDOWS (чистая система)
+1. ЧТО ПОСТАВИТЬ
 ===========================================================================
 
-Поставить:
+--- WINDOWS (чистая система) ---------------------------------------------
+
   1. Visual Studio 2022 (Community) или Build Tools 2022
      — workload "Desktop development with C++"
      — он же приносит cmake и ninja
@@ -18,27 +22,11 @@ WINDOWS (чистая система)
      она открывает магазин и ничего не исполняет.
   4. Драйвер видеокарты от вендора (DX12). Обычно уже стоит.
 
-Собрать и прогнать — ТОЛЬКО из "Developer Command Prompt for VS"
-(в обычном cmd/PowerShell нет cl.exe, из Git Bash нет окружения vcvars):
+  Всё дальше — ТОЛЬКО из "Developer Command Prompt for VS": в обычном
+  cmd/PowerShell нет cl.exe, а в Git Bash нет окружения vcvars.
 
-  git clone https://github.com/n0sfer666/like-nes.git
-  cd like-nes
-  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-  cmake --build build
-  "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
+--- ARCH LINUX (чистая система) ------------------------------------------
 
-Отчёт: build\owner-report-<os>.txt — прислать его.
-
-Дальше руками (docs/owner-verification.md, разделы 2 и 3):
-  build\editor_shell.exe
-  build\game_sidescroller.exe
-  build\framework_input_probe.exe example_ugly_game\assets\input.txt
-
-===========================================================================
-ARCH LINUX (чистая система)
-===========================================================================
-
-Поставить:
   sudo pacman -S --needed base-devel cmake ninja git python \
       libx11 libxrandr libxinerama libxcursor libxi \
       vulkan-icd-loader vulkan-tools mesa
@@ -49,21 +37,130 @@ ARCH LINUX (чистая система)
       nvidia-utils       # NVIDIA
       vulkan-swrast      # программный lavapipe, если железа/драйвера нет
 
-  Только если будешь проверять нативный Wayland (гейт 6, вторая сессия):
+  Звук (без него игра честно скажет "audio: off" и поедет дальше):
+      sudo pacman -S --needed pipewire pipewire-pulse alsa-lib
+
+  Только для нативного Wayland (гейт 6, вторая сессия):
       sudo pacman -S --needed wayland wayland-protocols libxkbcommon
 
-Собрать и прогнать:
+--- MACOS (справочно, уже пройдено) --------------------------------------
+
+  xcode-select --install
+  brew install cmake ninja
+
+===========================================================================
+2. СБОРКА И АВТОМАТИЧЕСКИЙ ПРОГОН
+===========================================================================
 
   git clone https://github.com/n0sfer666/like-nes.git
   cd like-nes
   cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
   cmake --build build
+
+Linux / macOS:
   bash scripts/owner_check.sh
 
-Отчёт: build/owner-report-linux.txt — прислать его.
+Windows (из Developer Command Prompt):
+  "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 
-Гейт 6 требует ДВЕ сборки и ДВЕ сессии, потому что GLFW по умолчанию
-собран только под X11 и под Wayland-сессией работает клиентом XWayland:
+Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
+Прислать его целиком.
+
+===========================================================================
+3. РУЧНАЯ ПРОВЕРКА — ИГРА
+===========================================================================
+
+Дальше пути в стиле Linux/macOS. На Windows: слэши обратные, бинарь с .exe,
+переменные через отдельный `set VAR=значение` перед запуском.
+
+--- A. Просто поиграть ----------------------------------------------------
+
+  ./build/game_sidescroller
+
+  Стартовые строки должны быть примерно такие (это уже проверка — каждая
+  говорит, что подсистема поднялась):
+
+    [game] assets: baked bundle .../game.bundle (BC7 512x256)
+    [game] audio: on (SFX + music)
+    [game] achievements: 5 defined, 0 unlocked, backend: local
+    [game] WASD/arrows/LStick = move · gamepad: <бэкенд> · Esc = quit
+
+  Управление: WASD или стрелки — движение, пробел или ЛКМ — огонь,
+  геймпад: левый стик — движение, южная кнопка (A/X) — огонь. Esc — выход.
+
+  На что смотреть, играя 3–5 минут:
+    - враги стреляют и умирают, счёт растёт, босс появляется;
+    - звук: выстрелы, взрывы, музыка — без заикания и хрипа;
+    - тост достижения выезжает после первого убитого врага (First Blood);
+    - кадр не рвётся, картинка не мерцает;
+    - Esc закрывает окно и печатает "[game] window clean exit"
+      (не "крестиком" — крестик тоже должен работать, проверь оба).
+
+  Если жалуется на ассеты — LIKENES_ASSETS=<путь к example_ugly_game/assets>.
+
+--- B. Достижения переживают перезапуск -----------------------------------
+
+  LIKENES_SAVE_DIR=./saves-probe ./build/game_sidescroller
+     → поиграть до тоста First Blood, выйти
+  LIKENES_SAVE_DIR=./saves-probe ./build/game_sidescroller
+     → строка старта теперь говорит "N unlocked", N > 0
+
+  Windows:
+     set LIKENES_SAVE_DIR=%CD%\saves-probe
+     build\game_sidescroller.exe
+
+  В каталоге ./saves-probe должен лежать achievements.save.
+  Каталог временный — после проверки удаляй.
+
+--- C. Достижения без сети (опционально, но дёшево) -----------------------
+
+  Фейковый бэкенд умеет притворяться, что сети нет первые N запусков
+  подключения: прогресс копится локально и досылается позже.
+
+  Linux/macOS:
+    LIKENES_SAVE_DIR=./saves-probe \
+    LIKENES_ACH_PLUGIN=build/plugin_ach_fake.so \
+    ACH_FAKE_OFFLINE=2 ./build/game_sidescroller
+
+  Windows:
+    set LIKENES_ACH_PLUGIN=build\plugin_ach_fake.dll
+    set ACH_FAKE_OFFLINE=2
+    build\game_sidescroller.exe
+
+  Строка старта должна сказать "backend: plugin", а игра — работать так же.
+
+--- D. Офскрин-рендер: демо-режим -----------------------------------------
+
+  ./build/game_sidescroller --demo ./demo-out --frames 300
+
+  Окна не открывает, пишет frame_0000.png … frame_0299.png и печатает
+  "[game] demo wrote 300 frames to ...". Открой пару кадров глазами:
+  это путь рендера в текстуру, которого живая игра не показывает.
+
+--- E. Звук на живом железе (в CI не существует) --------------------------
+
+  Во время игры воткни/выдерни наушники, переключи устройство вывода в ОС.
+  Ожидание: звук либо продолжается на новом устройстве, либо честно
+  замолкает — но игра не падает и не зависает.
+
+--- F. Бейк ассетов байт-в-байт -------------------------------------------
+
+  ./build/assetc --game example_ugly_game/assets ./rebake.bundle
+
+  Должен напечатать:
+    [assetc] bundle_hash = 0xa67f56b681aed040
+
+  Это тот же хеш, что на macOS. Отличается — значит бейк не детерминирован
+  между ОС, и это находка (пришли строку целиком).
+
+===========================================================================
+4. РУЧНАЯ ПРОВЕРКА — ГЕЙТЫ РАУНДОВ #13 и #14
+===========================================================================
+
+--- G. Редактор, X11 и Wayland (гейт 6, только Linux) ---------------------
+
+GLFW по умолчанию собран только под X11, под Wayland-сессией такой бинарь
+работает клиентом XWayland — поэтому сборки две и сессии две.
 
   cmake -S . -B build-way -G Ninja -DCMAKE_BUILD_TYPE=Release -DLINUX_WAYLAND=ON
   cmake --build build-way --target editor_shell
@@ -73,34 +170,59 @@ ARCH LINUX (чистая система)
   echo $XDG_SESSION_TYPE   # должно печатать wayland
   ./build-way/editor_shell
 
-Скриншот каждой сессии (gate6-x11.png, gate6-wayland.png).
+В каждой сессии: вьюпорт рисует, клик в Hierarchy выделяет объект, гизмо его
+двигает, числа в Inspector едут следом, Undo возвращает назад.
+Скриншот каждой сессии: gate6-x11.png, gate6-wayland.png.
 
-Дальше руками (docs/owner-verification.md, разделы 2 и 3):
-  ./build/game_sidescroller
+Чёрный вьюпорт → vulkaninfo --summary | head: нет устройства — это драйвер,
+а не редактор.
+
+--- H. Правка кода → пересборка → изменение видно (гейт 8) ----------------
+
+  1. ./build/editor_shell — убедиться, что рисует
+  2. ./build/game_sidescroller — посмотреть на фон
+  3. в example_ugly_game/draw.cpp заменить
+       a.clearValue = WGPUColor{0.02, 0.02, 0.07, 1.0}
+     на
+       a.clearValue = WGPUColor{0.25, 0.02, 0.05, 1.0}
+     (рендер-сторона: sim-хеш не двигается, а глазом видно)
+  4. cmake --build build --target game_sidescroller
+  5. ./build/game_sidescroller — фон стал тёмно-красным
+  6. git checkout example_ugly_game/draw.cpp  ← вернуть обязательно
+
+Числа "best / median" из раздела про цикл в отчёте owner_check — тоже часть
+этого гейта, они нужны фактом для Linux и Windows.
+
+--- I. Живой ввод: пад (гейт 8 спеки #14) ---------------------------------
+
+  cmake --build build --target framework_input_probe
   ./build/framework_input_probe example_ugly_game/assets/input.txt
 
-Пад: если /dev/input/js* и event* не видны без sudo — добавить себя в
-группу input (sudo usermod -aG input $USER) и перелогиниться.
-Строка "input dev" в отчёте показывает, что скрипт увидел.
+  1. Воткнуть пад НА ХОДУ → строка
+     pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'
+     Профиль должен соответствовать устройству; 'generic' у неизвестной
+     модели — это работающий фолбэк, а не провал.
+  2. Стик → move=(…) едет, в покое ровно (+0.00,+0.00). Южная кнопка и
+     пробел → fire:# у обоих.
+  3. Клавиша 1 → перебинд 'fire' → нажать клавишу, уже занятую другим
+     действием → probe откажет и назовёт владельца → F заберёт силой.
+  4. S — сохранить, Esc — выйти, запустить снова: первая строка
+     "overlay loaded … N edit(s)". Потом X и S — вернуть чистый пресет.
+  5. Выдернуть пад на ходу → "pad 0 DISCONNECTED -> ... 'generic'",
+     клавиатура продолжает играть, ничего не залипает.
+  6. ./build/game_sidescroller с падом — корабль летит по стику.
+
+Linux, если пад не виден: sudo usermod -aG input $USER и перелогиниться.
+Строка "input dev" в отчёте owner_check показывает, что увидел скрипт.
 
 ===========================================================================
-MACOS (справочно — уже пройдено)
-===========================================================================
-
-  xcode-select --install
-  brew install cmake ninja
-  git clone https://github.com/n0sfer666/like-nes.git
-  cd like-nes
-  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
-  cmake --build build
-  bash scripts/owner_check.sh
-
-===========================================================================
-ЧТО ПРИСЛАТЬ НАЗАД
+5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================
 
   - build/owner-report-<os>.txt с каждой машины
   - gate6-x11.png и gate6-wayland.png (Linux)
-  - вывод probe: строки CONNECTED, конфликт перебинда, "overlay loaded",
+  - вывод probe: CONNECTED, конфликт перебинда, "overlay loaded",
     DISCONNECTED
-  - числа "best / median" из раздела про цикл правка→сборка→hot-reload
+  - числа "best / median" (цикл правка→сборка→hot-reload)
+  - строку bundle_hash из пункта F
+  - словами: что в игре ощущалось не так — звук, ввод, частота кадров
