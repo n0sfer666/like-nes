@@ -79,6 +79,8 @@ Missing system packages are meant to surface as a named error, not as a link fai
 
 ## Related
 
+- [`owner-verification.md`](owner-verification.md) — the gates a CI runner cannot close (real GPU
+  session, real gamepad) and `scripts/owner_check.sh`, which closes their automated half.
 - `CONTRIBUTING.md` — branches, DCO sign-off, what to run before a PR.
 - `.context/checks.md` — the checks CI and the pre-commit hook run.
 - `.context/env.md` — environment variables the runtime and the gates understand.

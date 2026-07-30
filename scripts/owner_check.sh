@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# Прогон на машине разработчика: всё, что раннер GitHub проверить не может — реальный GPU-драйвер,
+# реальная десктоп-сессия (X11/Wayland), реальный MSVC, реальное железо ввода.
+#
+# Скрипт закрывает АВТОМАТИЗИРУЕМУЮ половину: паспорт машины, сборочный гейт, прогон всех тестов
+# дерева и замер цикла правка→сборка→hot-reload (гейт 8 спеки #13 требует записать его как факт
+# для Linux и Windows). Ручная половина — скриншоты, гизмо, пад — в docs/owner-verification.md.
+#
+# Запуск (Windows: из Developer Command Prompt, шелл — git-bash):
+#   bash scripts/owner_check.sh
+set -uo pipefail
+
+ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$ROOT" || exit 1
+
+BUILD_DIR=${BUILD_DIR:-build}
+OS_TAG=$(uname -s | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+REPORT="$ROOT/$BUILD_DIR/owner-report-$OS_TAG.txt"
+mkdir -p "$BUILD_DIR"
+: > "$REPORT"
+
+say() { printf '%s\n' "$*" | tee -a "$REPORT"; }
+head_() { printf '\n=== %s\n' "$*" | tee -a "$REPORT"; }
+have() { command -v "$1" >/dev/null 2>&1; }
+
+head_ "Паспорт машины"
+say "date        : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+say "os          : $(uname -s -r -m)"
+say "commit      : $(git rev-parse HEAD 2>/dev/null || echo '?') ($(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
+say "cmake       : $(cmake --version 2>/dev/null | head -1)"
+say "ninja       : $(ninja --version 2>/dev/null || echo 'нет')"
+# Компилятор спрашивается у CMake, а не угадывается: на Windows его выбирает vcvars, и версия
+# из PATH сказала бы про git-bash, а не про тот cl.exe, которым собрано дерево.
+say "compiler    : $(grep -m1 'CMAKE_CXX_COMPILER:' "$BUILD_DIR/CMakeCache.txt" 2>/dev/null | cut -d= -f2- || echo 'каталог сборки ещё не сконфигурирован')"
+say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' DISPLAY='${DISPLAY:-}'"
+if have vulkaninfo; then
+    say "vulkan      : $(vulkaninfo --summary 2>/dev/null | grep -m1 -i 'deviceName' || echo 'нет устройств')"
+elif [ "$OS_TAG" = "linux" ]; then
+    say "vulkan      : vulkaninfo не установлен (apt-get install vulkan-tools) — гейт 6 без него слеп"
+fi
+if [ "$OS_TAG" = "linux" ]; then
+    PADS=$(ls /dev/input/js* /dev/input/event* 2>/dev/null | tr '\n' ' ')
+    say "input dev   : ${PADS:-нет узлов /dev/input (пад не подключён или нет прав)}"
+fi
+
+STAGES_FAILED=()
+stage() {
+    local title=$1; shift
+    head_ "$title"
+    if "$@" >>"$REPORT" 2>&1; then
+        say "--- OK: $title"
+    else
+        say "--- ПРОВАЛ: $title (подробности выше в $REPORT)"
+        STAGES_FAILED+=("$title")
+    fi
+}
+
+stage "Сборочный гейт (ноль ошибок, ноль предупреждений)" bash scripts/build_check.sh
+stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
+stage "Линтер workflow" python3 scripts/ci_lint.py
+
+# Тесты берутся ИЗ КАТАЛОГА СБОРКИ, а не списком в скрипте: список разошёлся бы с деревом молча,
+# и пропавшая цель читалась бы как «всё зелёное».
+head_ "Тесты дерева"
+PASSED=0; FAILED_TESTS=(); SKIPPED=()
+for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
+    [ -x "$t" ] || continue
+    name=$(basename "$t")
+    # Пропуск НАЗЫВАЕТСЯ вслух — молчаливый читался бы как «всё прогнано». Две причины, и обе
+    # про вход, а не про результат: интерактивные цели и тесты, которым нужны пути к плагинам,
+    # бандлам и дочерним процессам. Последние CI зовёт с аргументами на всех трёх ОС — повторять
+    # их вызовы здесь значило бы завести второй список путей, расходящийся с рабочим молча.
+    case "$name" in
+        *_probe*|*_bench*|input_demo*)
+            SKIPPED+=("$name — интерактивный / замер"); continue;;
+        ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|play_spawn_test|plugin_*)
+            SKIPPED+=("$name — нужны пути к плагинам/бандлам, вызов живёт в ci.yml"); continue;;
+    esac
+    if out=$("$t" 2>&1); then
+        PASSED=$((PASSED + 1))
+        printf '  PASS %s\n' "$name" | tee -a "$REPORT"
+    else
+        FAILED_TESTS+=("$name")
+        printf '  FAIL %s\n' "$name" | tee -a "$REPORT"
+        printf '%s\n' "$out" | tail -20 >>"$REPORT"
+    fi
+done
+say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}"
+for s in "${SKIPPED[@]:-}"; do [ -n "$s" ] && say "  SKIP $s"; done
+for f in "${FAILED_TESTS[@]:-}"; do [ -n "$f" ] && say "  FAIL $f"; done
+
+# Замер цикла правка→сборка→hot-reload. Гейт 8 спеки #13 требует записать его фактом для Linux и
+# Windows: в CI число измеряет буферизацию логов раннера, а не сборку.
+head_ "Цикл правка→сборка→hot-reload (build_loop_test, 3 прогона)"
+LOOP_BIN="$BUILD_DIR/build_loop_test"
+[ -x "$LOOP_BIN" ] || LOOP_BIN="$BUILD_DIR/build_loop_test.exe"
+if [ -x "$LOOP_BIN" ]; then
+    python3 - "$LOOP_BIN" <<'PY' | tee -a "$REPORT"
+import subprocess, sys, time
+binary = sys.argv[1]
+times = []
+for i in range(3):
+    t0 = time.perf_counter()
+    r = subprocess.run([binary], capture_output=True, text=True)
+    dt = time.perf_counter() - t0
+    times.append(dt)
+    print("  run %d: %.2f s (%s)" % (i + 1, dt, "PASS" if r.returncode == 0 else "FAIL"))
+    if r.returncode != 0:
+        print(r.stdout[-800:])
+print("  best: %.2f s, median: %.2f s" % (min(times), sorted(times)[1]))
+PY
+else
+    say "  build_loop_test не собран — цель живёт под IDE_POC=ON"
+fi
+
+head_ "Ручная половина"
+say "Осталось глазами и руками — docs/owner-verification.md:"
+say "  #13 гейт 6 — редактор под X11 И под Wayland (-DLINUX_WAYLAND=ON), скриншот каждой сессии"
+say "  #13 гейт 8 — сквозной сценарий: правка кода игры → hot-reload → изменение видно"
+say "  #14 гейт 8 — framework_input_probe: паспорт пада, профиль, перебинд, отключение на ходу"
+
+printf '\n' | tee -a "$REPORT"
+if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ]; then
+    say "owner-check: PASS — автоматизируемая половина зелёная на этой машине"
+    say "отчёт: $REPORT"
+    exit 0
+fi
+say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}"
+say "отчёт: $REPORT"
+exit 1
