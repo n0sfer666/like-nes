@@ -129,6 +129,15 @@ drives the native pad backend (XInput / evdev / GameController). Everything it k
    stick, fire works on the south button. The game reads the same preset from the bundle — this is
    the "sample game on presets" half of the gate.
 
+## Beyond the gates
+
+The three gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+also exercise things no gate covers — playing the sample game long enough to hear the audio, the
+achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
+mid-frame, and `assetc` reproducing `bundle_hash = 0xa67f56b681aed040` byte for byte on another OS.
+Those scenarios, with the exact commands per platform, are sections A–F of
+[`owner-setup.txt`](owner-setup.txt).
+
 ## What to send back
 
 - `build/owner-report-<os>.txt` from each machine.
