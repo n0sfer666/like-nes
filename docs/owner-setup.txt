@@ -1,0 +1,106 @@
+like-nes — прогон проверки на чистой машине
+Шпаргалка для владельца. Подробности по гейтам — docs/owner-verification.md,
+общая установка — docs/first-run.md.
+
+===========================================================================
+WINDOWS (чистая система)
+===========================================================================
+
+Поставить:
+  1. Visual Studio 2022 (Community) или Build Tools 2022
+     — workload "Desktop development with C++"
+     — он же приносит cmake и ninja
+     https://visualstudio.microsoft.com/downloads/
+  2. Git for Windows (нужен и сам git, и его bash)
+     https://git-scm.com/download/win
+  3. Python 3 с python.org (галочка "Add python.exe to PATH")
+     ВАЖНО: python3 из Microsoft Store не годится — это заглушка,
+     она открывает магазин и ничего не исполняет.
+  4. Драйвер видеокарты от вендора (DX12). Обычно уже стоит.
+
+Собрать и прогнать — ТОЛЬКО из "Developer Command Prompt for VS"
+(в обычном cmd/PowerShell нет cl.exe, из Git Bash нет окружения vcvars):
+
+  git clone https://github.com/n0sfer666/like-nes.git
+  cd like-nes
+  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+  cmake --build build
+  "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
+
+Отчёт: build\owner-report-<os>.txt — прислать его.
+
+Дальше руками (docs/owner-verification.md, разделы 2 и 3):
+  build\editor_shell.exe
+  build\game_sidescroller.exe
+  build\framework_input_probe.exe example_ugly_game\assets\input.txt
+
+===========================================================================
+ARCH LINUX (чистая система)
+===========================================================================
+
+Поставить:
+  sudo pacman -S --needed base-devel cmake ninja git python \
+      libx11 libxrandr libxinerama libxcursor libxi \
+      vulkan-icd-loader vulkan-tools mesa
+
+  Драйвер Vulkan под своё железо (один из):
+      vulkan-radeon      # AMD
+      vulkan-intel       # Intel
+      nvidia-utils       # NVIDIA
+      vulkan-swrast      # программный lavapipe, если железа/драйвера нет
+
+  Только если будешь проверять нативный Wayland (гейт 6, вторая сессия):
+      sudo pacman -S --needed wayland wayland-protocols libxkbcommon
+
+Собрать и прогнать:
+
+  git clone https://github.com/n0sfer666/like-nes.git
+  cd like-nes
+  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+  cmake --build build
+  bash scripts/owner_check.sh
+
+Отчёт: build/owner-report-linux.txt — прислать его.
+
+Гейт 6 требует ДВЕ сборки и ДВЕ сессии, потому что GLFW по умолчанию
+собран только под X11 и под Wayland-сессией работает клиентом XWayland:
+
+  cmake -S . -B build-way -G Ninja -DCMAKE_BUILD_TYPE=Release -DLINUX_WAYLAND=ON
+  cmake --build build-way --target editor_shell
+
+  echo $XDG_SESSION_TYPE   # должно печатать x11
+  ./build/editor_shell
+  echo $XDG_SESSION_TYPE   # должно печатать wayland
+  ./build-way/editor_shell
+
+Скриншот каждой сессии (gate6-x11.png, gate6-wayland.png).
+
+Дальше руками (docs/owner-verification.md, разделы 2 и 3):
+  ./build/game_sidescroller
+  ./build/framework_input_probe example_ugly_game/assets/input.txt
+
+Пад: если /dev/input/js* и event* не видны без sudo — добавить себя в
+группу input (sudo usermod -aG input $USER) и перелогиниться.
+Строка "input dev" в отчёте показывает, что скрипт увидел.
+
+===========================================================================
+MACOS (справочно — уже пройдено)
+===========================================================================
+
+  xcode-select --install
+  brew install cmake ninja
+  git clone https://github.com/n0sfer666/like-nes.git
+  cd like-nes
+  cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+  cmake --build build
+  bash scripts/owner_check.sh
+
+===========================================================================
+ЧТО ПРИСЛАТЬ НАЗАД
+===========================================================================
+
+  - build/owner-report-<os>.txt с каждой машины
+  - gate6-x11.png и gate6-wayland.png (Linux)
+  - вывод probe: строки CONNECTED, конфликт перебинда, "overlay loaded",
+    DISCONNECTED
+  - числа "best / median" из раздела про цикл правка→сборка→hot-reload

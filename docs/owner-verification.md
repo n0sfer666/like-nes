@@ -10,7 +10,8 @@ session, a real GPU driver, a real gamepad.
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows |
 
 Machine setup (packages, compiler, Developer Command Prompt on Windows) is
-[`first-run.md`](first-run.md) — do that first.
+[`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
+thing as a copy-paste sheet for a freshly installed Windows or Arch box.
 
 ## 0. The automated half
 
