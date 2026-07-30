@@ -6,8 +6,10 @@
 # дерева и замер цикла правка→сборка→hot-reload (гейт 8 спеки #13 требует записать его как факт
 # для Linux и Windows). Ручная половина — скриншоты, гизмо, пад — в docs/owner-verification.md.
 #
-# Запуск (Windows: из Developer Command Prompt, шелл — git-bash):
+# Запуск:
 #   bash scripts/owner_check.sh
+# Windows — из Developer Command Prompt for VS (там cl.exe), шеллом git-bash:
+#   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -23,11 +25,20 @@ say() { printf '%s\n' "$*" | tee -a "$REPORT"; }
 head_() { printf '\n=== %s\n' "$*" | tee -a "$REPORT"; }
 have() { command -v "$1" >/dev/null 2>&1; }
 
+# Интерпретатор ищется прогоном, а не наличием в PATH: на Windows `python3` — это чаще всего
+# заглушка Microsoft Store, которая открывает магазин и выходит ненулём, а настоящий питон зовётся
+# `python` или `py`. Проверка `-c` отличает одно от другого.
+PY=""
+for cand in python3 python py; do
+    if have "$cand" && "$cand" -c 'import sys' >/dev/null 2>&1; then PY=$cand; break; fi
+done
+
 head_ "Паспорт машины"
 say "date        : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 say "os          : $(uname -s -r -m)"
 say "commit      : $(git rev-parse HEAD 2>/dev/null || echo '?') ($(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo '?'))"
 say "cmake       : $(cmake --version 2>/dev/null | head -1)"
+say "python      : ${PY:-НЕ НАЙДЕН}$([ -n "$PY" ] && printf ' (%s)' "$("$PY" --version 2>&1)")"
 say "ninja       : $(ninja --version 2>/dev/null || echo 'нет')"
 # Компилятор спрашивается у CMake, а не угадывается: на Windows его выбирает vcvars, и версия
 # из PATH сказала бы про git-bash, а не про тот cl.exe, которым собрано дерево.
@@ -56,8 +67,14 @@ stage() {
 }
 
 stage "Сборочный гейт (ноль ошибок, ноль предупреждений)" bash scripts/build_check.sh
-stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
-stage "Линтер workflow" python3 scripts/ci_lint.py
+if [ -n "$PY" ]; then
+    stage "Линтер workflow — самопроверка правил" "$PY" scripts/ci_lint.py --selftest
+    stage "Линтер workflow" "$PY" scripts/ci_lint.py
+else
+    head_ "Линтер workflow"
+    say "--- ПРОВАЛ: питона нет (Windows: установить python.org и перезапустить шелл) — гейт не прогнан"
+    STAGES_FAILED+=("Линтер workflow")
+fi
 
 # Тесты берутся ИЗ КАТАЛОГА СБОРКИ, а не списком в скрипте: список разошёлся бы с деревом молча,
 # и пропавшая цель читалась бы как «всё зелёное».
@@ -94,8 +111,8 @@ for f in "${FAILED_TESTS[@]:-}"; do [ -n "$f" ] && say "  FAIL $f"; done
 head_ "Цикл правка→сборка→hot-reload (build_loop_test, 3 прогона)"
 LOOP_BIN="$BUILD_DIR/build_loop_test"
 [ -x "$LOOP_BIN" ] || LOOP_BIN="$BUILD_DIR/build_loop_test.exe"
-if [ -x "$LOOP_BIN" ]; then
-    python3 - "$LOOP_BIN" <<'PY' | tee -a "$REPORT"
+if [ -x "$LOOP_BIN" ] && [ -n "$PY" ]; then
+    "$PY" - "$LOOP_BIN" <<'PY' | tee -a "$REPORT"
 import subprocess, sys, time
 binary = sys.argv[1]
 times = []
@@ -109,6 +126,8 @@ for i in range(3):
         print(r.stdout[-800:])
 print("  best: %.2f s, median: %.2f s" % (min(times), sorted(times)[1]))
 PY
+elif [ -z "$PY" ]; then
+    say "  замер пропущен: питона нет — число для гейта 8 спеки #13 не снято"
 else
     say "  build_loop_test не собран — цель живёт под IDE_POC=ON"
 fi

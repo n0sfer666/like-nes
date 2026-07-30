@@ -18,6 +18,25 @@ Machine setup (packages, compiler, Developer Command Prompt on Windows) is
 bash scripts/owner_check.sh
 ```
 
+**On Windows the shell is the whole question.** The script needs two things at once: `cl.exe`,
+which only a *Developer Command Prompt for VS* puts on `PATH`, and a POSIX shell, which `cmd` is
+not. Git for Windows ships one, so call it from inside the Developer Command Prompt — it inherits
+the vcvars environment:
+
+```bat
+cd path\to\like-nes
+"C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
+```
+
+Starting from Git Bash instead does *not* work: that shell never ran `vcvars64.bat`, CMake finds no
+compiler, and the build gate fails for a reason that has nothing to do with this machine.
+
+Python is the other Windows trap: `python3` there is usually the Microsoft Store stub, which opens
+the store and exits without running anything. The script tries `python3`, `python` and `py` and
+takes the first that actually executes — the passport line prints which one, or `НЕ НАЙДЕН`, and a
+missing interpreter fails the linter stage loudly instead of skipping it. Install Python from
+python.org and reopen the shell if you see that.
+
 It writes `build/owner-report-<os>.txt`: machine passport (OS, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
@@ -75,8 +94,9 @@ this machine. What is left is the human end of the chain — an edit you make re
 7. Note the numbers `owner_check.sh` printed for the loop (`best` / `median`) — spec #13 asks for
    them as a fact per OS, and they go into `first-run.md`.
 
-Windows: run every command from a *Developer Command Prompt for VS*, and run the scripts with
-`bash scripts/...` — the git-bash shell does not inherit the exec bit from the index.
+Windows: run every command from a *Developer Command Prompt for VS*, and start the scripts through
+git-bash as in section 0 — the exec bit does not survive the index there, so the interpreter is
+always named explicitly.
 
 ## 3. Gate 8 of #14 — live input (Linux and Windows)
 
