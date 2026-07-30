@@ -27,13 +27,19 @@ if(INPUT_NATIVE)
   else()
     set(INPUT_GAMEPAD_SRC source_gamepad_linux.cpp)
   endif()
-  add_executable(input_demo input_demo_main.cpp source_glfw.cpp ${INPUT_GAMEPAD_SRC})
-  target_link_libraries(input_demo PRIVATE input_core glfw)
+  # Бэкенды отдельной библиотекой, а не списком исходников у каждого потребителя: probe слоя
+  # фреймворка (спека #14) берёт ровно тот же нативный ввод, и второй список платформенных
+  # ветвлений разошёлся бы с этим при первой же правке.
+  add_library(input_native STATIC source_glfw.cpp ${INPUT_GAMEPAD_SRC})
+  target_link_libraries(input_native PUBLIC input_core glfw)
   if(APPLE)
     # ARC для .mm: без него createEngine/createPlayer (autoreleased) повисают → UAF + утечки.
     set_source_files_properties(source_gamepad_macos.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-    target_link_libraries(input_demo PRIVATE "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+    target_link_libraries(input_native PUBLIC "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
   elseif(WIN32)
-    target_link_libraries(input_demo PRIVATE Xinput9_1_0)
+    target_link_libraries(input_native PUBLIC Xinput9_1_0)
   endif()
+
+  add_executable(input_demo input_demo_main.cpp)
+  target_link_libraries(input_demo PRIVATE input_native)
 endif()
