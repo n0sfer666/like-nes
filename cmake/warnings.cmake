@@ -9,7 +9,12 @@
 option(LIKE_NES_WERROR "Compiler warnings in our own code are build errors" ON)
 
 if(MSVC)
-    set(LIKE_NES_WARN_FLAGS /W4)
+    # /external:W0 — уровень 0 для заголовков, помеченных системными (ниже, like_nes_vendored_headers).
+    # /external:templates- обязателен в паре с ним: по умолчанию MSVC ПОКАЗЫВАЕТ диагностику из
+    # чужого шаблона, если инстанцирование пришло из нашего TU, а именно так она и приходит —
+    # flecs весь на шаблонах, и component.hpp отдаёт C4127 «условное выражение является
+    # константой» с цепочкой инстанцирования, начинающейся в нашем scene.cpp.
+    set(LIKE_NES_WARN_FLAGS /W4 /external:W0 /external:templates-)
     set(LIKE_NES_WARN_ERROR /WX)
     set(LIKE_NES_NO_WARN /w)
 else()
@@ -47,10 +52,27 @@ function(like_nes_strip_warning_level target)
     endif()
 endfunction()
 
+# Снять уровень с ЦЕЛИ зависимости мало: её заголовки компилируются в НАШЕЙ цели, с нашим /W4, и
+# чужая диагностика приезжает как ошибка сборки нашего файла. Так дерево и встало на flecs: он
+# header-only для потребителя, и C4127 из component.hpp падал на tools/ide/scene.cpp. Пометка
+# системными переводит их на -isystem (/external:I у MSVC), после чего уровень к ним не
+# применяется. Правится общим свойством, а не списком путей: список устареет на первой же
+# зависимости, добавленной кем-то другим.
+function(like_nes_vendored_headers target)
+    get_target_property(inc ${target} INTERFACE_INCLUDE_DIRECTORIES)
+    if(inc)
+        set_property(TARGET ${target} APPEND PROPERTY INTERFACE_SYSTEM_INCLUDE_DIRECTORIES ${inc})
+    endif()
+endfunction()
+
 function(like_nes_silence_dependencies dir)
     get_property(targets DIRECTORY "${dir}" PROPERTY BUILDSYSTEM_TARGETS)
     foreach(t IN LISTS targets)
         get_target_property(type ${t} TYPE)
+        # Заголовки есть и у INTERFACE-целей — они как раз ничего, кроме заголовков, и не отдают.
+        if(NOT type STREQUAL "UTILITY")
+            like_nes_vendored_headers(${t})
+        endif()
         # У INTERFACE-целей и custom-таргетов нет своей компиляции — set_property на них
         # либо бессмыслен, либо ошибка конфигурации.
         if(NOT type STREQUAL "INTERFACE_LIBRARY" AND NOT type STREQUAL "UTILITY")

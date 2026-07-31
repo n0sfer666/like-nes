@@ -8,6 +8,7 @@
 
 #include "engine.hpp"
 #include "pad_registry.hpp"
+#include "platform_args.hpp"
 #include "platform_env.hpp"
 #include "platform_fs.hpp"
 #include "preset_bake.hpp"
@@ -77,6 +78,7 @@ bool edge(GLFWwindow* win, int key, bool& prev) {
 } // namespace
 
 int main(int argc, char** argv) {
+    platform::Args args(argc, argv);
     std::string manifest = FALLBACK_MANIFEST;
     if (argc > 1 && !platform::read_text(argv[1], manifest)) {
         std::fprintf(stderr, "[probe] cannot read manifest '%s'\n", argv[1]);
