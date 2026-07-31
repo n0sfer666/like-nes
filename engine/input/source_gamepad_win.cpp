@@ -1,5 +1,8 @@
 #include "source.hpp"
 #include "codes.hpp"
+// windows.h объявляет min/max макросами, и std::min ниже разбирается как обращение к макросу:
+// `error C2589: '(': illegal token on right side of '::'`. Определение обязано стоять до include.
+#define NOMINMAX
 #include <windows.h>
 #include <Xinput.h>
 #include <algorithm>
