@@ -14,7 +14,14 @@ if(MSVC)
     # чужого шаблона, если инстанцирование пришло из нашего TU, а именно так она и приходит —
     # flecs весь на шаблонах, и component.hpp отдаёт C4127 «условное выражение является
     # константой» с цепочкой инстанцирования, начинающейся в нашем scene.cpp.
-    set(LIKE_NES_WARN_FLAGS /W4 /external:W0 /external:templates-)
+    # `/external:templates-` — только настоящему cl.exe. clang-cl (им собран ASan-гейт Windows) флаг
+    # не реализует и под `-Werror` валит сборку на `argument unused during compilation`; ему он и не
+    # нужен: clang не показывает диагностику из системных заголовков, включая инстанцирование
+    # шаблона из нашего TU. `MSVC` истинен для обоих, различает их только COMPILER_ID.
+    set(LIKE_NES_WARN_FLAGS /W4 /external:W0)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+        list(APPEND LIKE_NES_WARN_FLAGS /external:templates-)
+    endif()
     set(LIKE_NES_WARN_ERROR /WX)
     set(LIKE_NES_NO_WARN /w)
 else()
