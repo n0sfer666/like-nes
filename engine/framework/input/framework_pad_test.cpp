@@ -34,7 +34,9 @@ pad | Nintendo Switch Pro | 0x057e | -      | Nintendo  | nintendo    | 0.15 | 0
     ::input::PadInfo i;
     i.vid = vid;
     i.pid = pid;
-    std::strncpy(i.name, name, sizeof(i.name) - 1);
+    // Не strncpy: MSVC под /W4 /WX делает из C4996 «may be unsafe» ошибку сборки.
+    const size_t n = std::strlen(name) < sizeof(i.name) - 1 ? std::strlen(name) : sizeof(i.name) - 1;
+    std::memcpy(i.name, name, n);
     return i;
 }
 
