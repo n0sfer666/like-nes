@@ -2,6 +2,7 @@
 #include "codes.hpp"
 #include <windows.h>
 #include <Xinput.h>
+#include <algorithm>
 #include <cstring>
 
 // Windows native gamepad: XInput (Xbox-класс + вибрация). Диффим против кэша → эмитим изменения.
@@ -68,7 +69,11 @@ public:
         case XINPUT_DEVSUBTYPE_DRUM_KIT:    kind = "XInput drum kit"; break;
         default: break;
         }
-        std::strncpy(info.name, kind, sizeof(info.name) - 1);
+        // Не strncpy: MSVC помечает всё семейство str*cpy как C4996 «may be unsafe», и под /W4 /WX
+        // это ошибка сборки. Глушить её через _CRT_SECURE_NO_WARNINGS значило бы снять диагностику
+        // со всего TU разом. Длина считается явно, терминатор уже на месте — name[64] = {}.
+        const size_t n = std::min(std::strlen(kind), sizeof(info.name) - 1);
+        std::memcpy(info.name, kind, n);
         return info;
     }
 
