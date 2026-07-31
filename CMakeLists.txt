@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.24)
 project(like_nes LANGUAGES C CXX)
 
+# Дерево 64-битное, и это не предпочтение: предсобранный wgpu-native выбирает каталог рантайма по
+# процессору ХОСТА, а не по разрядности цели, поэтому 32-битный тулчейн получает x86_64-библиотеку
+# и разъезжается с ней на линковке. До линковки он успевает наврать другое: uint64_t → size_t в
+# render/capture.cpp под /W4 становится C4244, и причиной выглядит наш код. На Windows такой
+# тулчейн выбирается сам собой — «Developer Command Prompt» и «Developer PowerShell» по умолчанию
+# 32-битные; нужен «x64 Native Tools Command Prompt for VS».
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR
+        "like-nes собирается только под 64 бита, а этот тулчейн 32-битный "
+        "(${CMAKE_CXX_COMPILER}).\n"
+        "Windows: открой «x64 Native Tools Command Prompt for VS», удали каталог build "
+        "и сконфигурируй заново — кеш помнит компилятор.")
+endif()
+
 # Objective-C/C++ нужны только на Apple (Metal-слой); на MSVC/gcc их нет.
 if(APPLE)
     enable_language(OBJC)

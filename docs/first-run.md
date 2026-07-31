@@ -25,9 +25,12 @@ as an XWayland client. To exercise the native Wayland backend, add `libwayland-d
 `libxkbcommon-dev` and `wayland-protocols` (which brings `wayland-scanner`), then configure with
 `-DLINUX_WAYLAND=ON`.
 
-On Windows, run the commands below from a *Developer Command Prompt for VS* (or a shell where
-`vcvars64.bat` has been sourced): plain `cmd`/PowerShell has no `cl.exe` on `PATH`, and CMake will
-fall back to whatever compiler it finds — or none.
+On Windows, run the commands below from an *x64 Native Tools Command Prompt for VS* (or a shell
+where `vcvars64.bat` has been sourced): plain `cmd`/PowerShell has no `cl.exe` on `PATH`, and CMake
+will fall back to whatever compiler it finds — or none. The name matters past `cl.exe` being
+present: the unqualified *Developer Command Prompt* and *Developer PowerShell* set up the 32-bit
+toolchain, and configure refuses it — the tree is 64-bit only, because the prebuilt wgpu-native
+picks its runtime directory by host CPU and hands a 32-bit build the x86_64 library.
 
 ## Build
 
@@ -75,7 +78,10 @@ Missing system packages are meant to surface as a named error, not as a link fai
 - No Vulkan driver on Linux → the renderer reports that no adapter was found. Check with
   `vulkaninfo | head`; on a headless box `mesa-vulkan-drivers` (lavapipe) is enough to get pixels.
 - No X11 development headers → GLFW fails at *configure* time, naming the missing package.
-- `cl.exe` not found on Windows → the shell is not a Developer Command Prompt (see above).
+- `cl.exe` not found on Windows → the shell is not a developer prompt (see above).
+- `like-nes собирается только под 64 бита` on Windows → it is a developer prompt, but the 32-bit
+  one; reopen as *x64 Native Tools* and delete the build directory, whose cache remembers the
+  compiler.
 
 ## Related
 

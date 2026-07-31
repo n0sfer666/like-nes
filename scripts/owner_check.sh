@@ -8,7 +8,7 @@
 #
 # Запуск:
 #   bash scripts/owner_check.sh
-# Windows — из Developer Command Prompt for VS (там cl.exe), шеллом git-bash:
+# Windows — из x64 Native Tools Command Prompt for VS (там 64-битный cl.exe), шеллом git-bash:
 #   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 set -uo pipefail
 
@@ -43,6 +43,12 @@ say "ninja       : $(ninja --version 2>/dev/null || echo 'нет')"
 # Компилятор спрашивается у CMake, а не угадывается: на Windows его выбирает vcvars, и версия
 # из PATH сказала бы про git-bash, а не про тот cl.exe, которым собрано дерево.
 say "compiler    : $(grep -m1 'CMAKE_CXX_COMPILER:' "$BUILD_DIR/CMakeCache.txt" 2>/dev/null | cut -d= -f2- || echo 'каталог сборки ещё не сконфигурирован')"
+# Разрядность — по той же причине, но из другого файла: CMAKE_SIZEOF_VOID_P не кешируется, CMake
+# выводит его при каждом конфигурировании из размера указателя компилятора. 32-битный тулчейн на
+# Windows выбирается сам собой (обычный Developer Command Prompt), а проявляется как C4244 в нашем
+# render/capture.cpp — то есть виноватым выглядит движок.
+PTR=$(grep -h 'CMAKE_CXX_SIZEOF_DATA_PTR "' "$BUILD_DIR"/CMakeFiles/*/CMakeCXXCompiler.cmake 2>/dev/null | head -1 | tr -dc '0-9')
+say "pointer     : ${PTR:-?} байт$([ "$PTR" = "4" ] && printf ' — 32-битный тулчейн, нужен x64 Native Tools Command Prompt for VS')"
 say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' DISPLAY='${DISPLAY:-}'"
 if have vulkaninfo; then
     say "vulkan      : $(vulkaninfo --summary 2>/dev/null | grep -m1 -i 'deviceName' || echo 'нет устройств')"
@@ -60,7 +66,7 @@ case "$OS_TAG" in
         # видит только неудачную линковку пробника и про SDK в этом сообщении не говорит ничего.
         say "windows sdk : rc=$(command -v rc || echo 'НЕ НАЙДЕН') mt=$(command -v mt || echo 'НЕ НАЙДЕН')"
         if ! have rc || ! have mt; then
-            say "              ^ либо шелл запущен не из Developer Command Prompt, либо в VS"
+            say "              ^ либо шелл запущен не из developer-консоли VS, либо в VS"
             say "                Installer не отмечен компонент Windows 11 SDK"
         fi
         ;;
