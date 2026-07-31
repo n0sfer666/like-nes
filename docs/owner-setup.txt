@@ -11,9 +11,11 @@ like-nes — прогон проверки на чистой машине
 
 --- WINDOWS (чистая система) ---------------------------------------------
 
-  1. Visual Studio 2022 (Community) или Build Tools 2022
-     — workload "Desktop development with C++"
-     — он же приносит cmake и ninja
+  1. Visual Studio (Community) или Build Tools, 2022 и новее
+     — workload "Desktop development with C++" (приносит cmake и ninja)
+     — ПРОВЕРИТЬ во вкладке "Individual components", что отмечен
+       "Windows 11 SDK" (10.0.2xxxx). Без него нет rc.exe и mt.exe,
+       и сборка падает сообщением, которое про SDK молчит — см. раздел 6.
      https://visualstudio.microsoft.com/downloads/
   2. Git for Windows (нужен и сам git, и его bash)
      https://git-scm.com/download/win
@@ -65,6 +67,11 @@ Windows (из Developer Command Prompt):
 
 Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
 Прислать его целиком.
+
+Windows: не открывать проект как папку в самой Visual Studio. Её CMake-
+интеграция кладёт сборку в out\build\x64-Debug, а гейты ждут каталог build
+в корне (иначе — BUILD_DIR=out\build\x64-Debug перед вызовом скрипта) и
+конфигурацию Release. Командная строка выше — единственный проверенный путь.
 
 ===========================================================================
 3. РУЧНАЯ ПРОВЕРКА — ИГРА
@@ -226,3 +233,48 @@ Linux, если пад не виден: sudo usermod -aG input $USER и пере
   - числа "best / median" (цикл правка→сборка→hot-reload)
   - строку bundle_hash из пункта F
   - словами: что в игре ощущалось не так — звук, ввод, частота кадров
+
+===========================================================================
+6. ЕСЛИ ЧТО-ТО ПОШЛО НЕ ТАК
+===========================================================================
+
+--- "The C compiler ... is not able to compile a simple test program" -----
+
+Смотреть НЕ на первую строку, а на конец вывода. Если там
+
+    --mt=CMAKE_MT-NOTFOUND
+    RC Pass 1: command "rc /fo ..." failed ... no such file or directory
+
+то компилятор ни при чём: rc.exe и mt.exe приносит Windows SDK, отдельный
+компонент. Лечение:
+
+  1. Visual Studio Installer → Modify → Individual components →
+     отметить "Windows 11 SDK" → Modify.
+  2. Удалить каталог сборки целиком (out\build\x64-Debug или build):
+     в нём застрял кеш с CMAKE_MT-NOTFOUND, он переживёт установку SDK.
+  3. В Developer Command Prompt проверить: where rc и where mt должны
+     печатать пути внутри C:\Program Files (x86)\Windows Kits\10\bin\...
+  4. Конфигурировать заново.
+
+Строка "windows sdk :" в паспорте owner_check.sh показывает это же —
+но она видна только после того, как сборка уже прошла, поэтому проверка
+через where быстрее.
+
+--- "cl.exe not found" / CMake берёт не тот компилятор -------------------
+
+Шелл запущен не из Developer Command Prompt for VS. Обычный cmd,
+PowerShell и Git Bash окружения vcvars не имеют.
+
+--- Игра не находит ассеты -----------------------------------------------
+
+  LIKENES_ASSETS=<путь к example_ugly_game/assets>
+  (Windows: set LIKENES_ASSETS=...)
+
+--- Пад не виден на Linux ------------------------------------------------
+
+  sudo usermod -aG input $USER   и перелогиниться.
+
+--- Нет звука на Linux ---------------------------------------------------
+
+Игра скажет "audio: off" и поедет дальше. Нужен pipewire/pipewire-pulse
+(раздел 1). Проверить: pactl info
