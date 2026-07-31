@@ -9,6 +9,7 @@ rem установку VS, vcvars64.bat даёт заведомо 64-битны�
 rem
 rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Python
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
+rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
 rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash
 rem   scripts\win-dev.bat game    запустить собранную игру
 rem   scripts\win-dev.bat shell   отдать cmd с готовым x64-окружением
@@ -26,11 +27,12 @@ set "PF86=%ProgramFiles(x86)%"
 if /i "%ACTION%"=="setup" goto do_setup
 if /i "%ACTION%"=="clean" goto do_clean
 if /i "%ACTION%"=="build" goto need_vs
+if /i "%ACTION%"=="warn"  goto need_vs
 if /i "%ACTION%"=="check" goto need_vs
 if /i "%ACTION%"=="game"  goto need_vs
 if /i "%ACTION%"=="shell" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|check^|game^|shell^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|game^|shell^|clean]
 exit /b 2
 
 :do_setup
@@ -99,6 +101,7 @@ if /i "%ACTION%"=="shell" (
 )
 if /i "%ACTION%"=="game" goto do_game
 if /i "%ACTION%"=="check" goto do_check
+if /i "%ACTION%"=="warn" goto do_warn
 
 :do_build
 rem Каталог сборки помнит компилятор: после неудачного захода из 32-битного шелла повторное
@@ -118,6 +121,22 @@ cmake --build build
 if errorlevel 1 exit /b 1
 echo.
 echo Build OK. Next: scripts\win-dev.bat check   ^(gates^)   or   scripts\win-dev.bat game
+exit /b 0
+
+:do_warn
+rem Со строгим гейтом сборка встаёт на ПЕРВОМ предупреждении, и каждое следующее стоит отдельного
+rem круга «собрал - прислал лог - жди фикс». LIKE_NES_WERROR=OFF существует ровно для этого: пройти
+rem дерево целиком и выписать весь список разом. Строгость возвращается тут же, чтобы каталог не
+rem остался мягким и не сделал следующий build зелёным по кривой причине.
+echo Building with warnings NOT fatal - collecting the full list ...
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIKE_NES_WERROR=OFF >nul
+if errorlevel 1 exit /b 1
+cmake --build build > build\warnings.txt 2>&1
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIKE_NES_WERROR=ON >nul
+echo.
+findstr /r /c:"warning [CD][0-9]" build\warnings.txt
+echo.
+echo Full log: build\warnings.txt  ^(send this file^)
 exit /b 0
 
 :do_game
