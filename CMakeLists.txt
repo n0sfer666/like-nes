@@ -146,6 +146,17 @@ if(IDE_POC)
     GIT_TAG fb55f3c25660425cfe1bc4cf5e6bff8b3f18a9b8  # v4.1.6
     GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(flecs)
+  # flecs header-only для потребителя, и `component.hpp:169` содержит `if (is_empty<T>::value && …)` —
+  # для cl.exe это C4127 «условное выражение является константой». Диагностика ЧУЖАЯ, но приезжает
+  # как ошибка сборки НАШЕГО файла: инстанцирование шаблона начинается в scene.cpp/serialize.cpp, и
+  # ни `/external:I` (заголовок помечен системным), ни `/external:templates-` её не снимают —
+  # проверено на MSVC 14.44, флаги в командной строке, ошибка на месте. Поэтому подавление едет
+  # INTERFACE-свойством самой зависимости: тот, кто линкует flecs, получает его автоматически, а
+  # список потребителей не приходится вести руками. Правит только C4127 и только на MSVC — остальная
+  # строгость нашего кода в этих целях остаётся.
+  if(MSVC)
+    target_compile_options(flecs_static INTERFACE /wd4127)
+  endif()
 endif()
 
 # Кросс-платформенно: input_core/audio/game линкуют Threads::Threads на всех ОС
