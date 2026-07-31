@@ -25,6 +25,11 @@ as an XWayland client. To exercise the native Wayland backend, add `libwayland-d
 `libxkbcommon-dev` and `wayland-protocols` (which brings `wayland-scanner`), then configure with
 `-DLINUX_WAYLAND=ON`.
 
+On Windows the short path is [`scripts/win-dev.bat`](../scripts/win-dev.bat), which works from any
+shell: `win-dev.bat setup` installs the toolchain through winget (Build Tools rather than the IDE —
+same compiler, a quarter of the disk), `win-dev.bat build` locates the installation with `vswhere`,
+sources `vcvars64.bat` and builds. The rest of this section is that done by hand.
+
 On Windows, run the commands below from an *x64 Native Tools Command Prompt for VS* (or a shell
 where `vcvars64.bat` has been sourced): plain `cmd`/PowerShell has no `cl.exe` on `PATH`, and CMake
 will fall back to whatever compiler it finds — or none. The name matters past `cl.exe` being

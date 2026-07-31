@@ -19,6 +19,10 @@ thing as a copy-paste sheet for a freshly installed Windows or Arch box.
 bash scripts/owner_check.sh
 ```
 
+On Windows, `scripts\win-dev.bat check` does the whole thing from any shell — it sets up the x64
+environment itself and hands the script to git-bash. The paragraph below is what it automates, and
+why it exists.
+
 **On Windows the shell is the whole question.** The script needs two things at once: `cl.exe`,
 which only a developer prompt puts on `PATH`, and a POSIX shell, which `cmd` is not. Of the
 developer prompts take the one named *x64 Native Tools Command Prompt for VS*: the plain *Developer

@@ -9,9 +9,28 @@ like-nes — прогон проверки на чистой машине
 1. ЧТО ПОСТАВИТЬ
 ===========================================================================
 
---- WINDOWS (чистая система) ---------------------------------------------
+--- WINDOWS: короткий путь -----------------------------------------------
 
-  1. Visual Studio (Community) или Build Tools, 2022 и новее
+  Из ЛЮБОГО шелла (обычный PowerShell годится), в корне репозитория:
+
+      scripts\win-dev.bat setup     поставить всё через winget
+      scripts\win-dev.bat build     сконфигурировать и собрать
+      scripts\win-dev.bat check     прогнать owner_check.sh
+      scripts\win-dev.bat game      запустить игру
+
+  Скрипт сам находит установку VS через vswhere и поднимает vcvars64 —
+  правильный ярлык в меню Пуск искать больше не нужно. После setup шелл
+  надо ОТКРЫТЬ ЗАНОВО: PATH меняется только для новых процессов.
+  Ещё есть `shell` (отдаёт cmd с готовым x64-окружением) и `clean`
+  (удаляет каталог build — он помнит компилятор).
+
+  Единственное, чего winget не ставит: драйвер видеокарты от вендора
+  (DX12). Обычно уже стоит.
+
+--- WINDOWS: то же руками ------------------------------------------------
+
+  1. Visual Studio Build Tools 2022+ — компилятор без IDE, ~5 ГБ против
+     20+ у Community. Полная IDE ничего к сборке не добавляет.
      — workload "Desktop development with C++" (приносит cmake и ninja)
      — ПРОВЕРИТЬ во вкладке "Individual components", что отмечен
        "Windows 11 SDK" (10.0.2xxxx). Без него нет rc.exe и mt.exe,
@@ -22,7 +41,6 @@ like-nes — прогон проверки на чистой машине
   3. Python 3 с python.org (галочка "Add python.exe to PATH")
      ВАЖНО: python3 из Microsoft Store не годится — это заглушка,
      она открывает магазин и ничего не исполняет.
-  4. Драйвер видеокарты от вендора (DX12). Обычно уже стоит.
 
   Всё дальше — ТОЛЬКО из "x64 Native Tools Command Prompt for VS":
   в обычном cmd/PowerShell нет cl.exe, а в Git Bash нет окружения vcvars.
@@ -30,6 +48,11 @@ like-nes — прогон проверки на чистой машине
   "Developer PowerShell": те по умолчанию дают 32-битный компилятор, а
   дерево 64-битное — конфигурирование остановится на этом с явной
   ошибкой. В меню Пуск ярлык лежит рядом, в папке Visual Studio 2022.
+  Разрядность видно по путям: нужен bin\Hostx64\x64\cl.exe.
+
+  Важно: 32-битный шелл — НЕ признак того, что чего-то не хватает.
+  Компонент "MSVC — x64/x86 build tools" кладёт оба хоста сразу,
+  доустанавливать нечего, вопрос только в том, какой ярлык открыт.
 
 --- ARCH LINUX (чистая система) ------------------------------------------
 
@@ -66,7 +89,11 @@ like-nes — прогон проверки на чистой машине
 Linux / macOS:
   bash scripts/owner_check.sh
 
-Windows (из x64 Native Tools Command Prompt):
+Windows — короткий путь, из любого шелла:
+  scripts\win-dev.bat build
+  scripts\win-dev.bat check
+
+Windows — руками, из x64 Native Tools Command Prompt:
   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 
 Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
@@ -266,7 +293,13 @@ Linux, если пад не виден: sudo usermod -aG input $USER и пере
 
 --- "like-nes собирается только под 64 бита" -----------------------------
 
-Шелл 32-битный. "Developer Command Prompt for VS" и "Developer PowerShell"
+Шелл 32-битный — доустанавливать в VS Installer нечего, x64-компилятор
+уже лежит рядом (bin\Hostx64\x64\cl.exe). Самое короткое лечение:
+
+    scripts\win-dev.bat clean
+    scripts\win-dev.bat build
+
+Дальше — то же самое руками. "Developer Command Prompt for VS" и "Developer PowerShell"
 дают по умолчанию x86-тулчейн (в путях видно bin\Hostx86\x86\cl.exe), а
 предсобранный wgpu-native всё равно подставляет x86_64-библиотеку. Лечение:
 закрыть шелл, открыть "x64 Native Tools Command Prompt for VS", удалить
