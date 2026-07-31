@@ -53,6 +53,18 @@ if [ "$OS_TAG" = "linux" ]; then
     PADS=$(ls /dev/input/js* /dev/input/event* 2>/dev/null | tr '\n' ' ')
     say "input dev   : ${PADS:-нет узлов /dev/input (пад не подключён или нет прав)}"
 fi
+case "$OS_TAG" in
+    mingw*|msys*|cygwin*)
+        # rc.exe и mt.exe приносит Windows SDK — отдельный компонент, а в PATH их кладёт vcvars.
+        # Пропажа любого из двух выглядит как «cl.exe не может собрать простую программу»: CMake
+        # видит только неудачную линковку пробника и про SDK в этом сообщении не говорит ничего.
+        say "windows sdk : rc=$(command -v rc || echo 'НЕ НАЙДЕН') mt=$(command -v mt || echo 'НЕ НАЙДЕН')"
+        if ! have rc || ! have mt; then
+            say "              ^ либо шелл запущен не из Developer Command Prompt, либо в VS"
+            say "                Installer не отмечен компонент Windows 11 SDK"
+        fi
+        ;;
+esac
 
 STAGES_FAILED=()
 stage() {
