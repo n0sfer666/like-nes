@@ -24,8 +24,12 @@ like-nes — прогон проверки на чистой машине
      она открывает магазин и ничего не исполняет.
   4. Драйвер видеокарты от вендора (DX12). Обычно уже стоит.
 
-  Всё дальше — ТОЛЬКО из "Developer Command Prompt for VS": в обычном
-  cmd/PowerShell нет cl.exe, а в Git Bash нет окружения vcvars.
+  Всё дальше — ТОЛЬКО из "x64 Native Tools Command Prompt for VS":
+  в обычном cmd/PowerShell нет cl.exe, а в Git Bash нет окружения vcvars.
+  Именно x64 Native, а не просто "Developer Command Prompt for VS" и не
+  "Developer PowerShell": те по умолчанию дают 32-битный компилятор, а
+  дерево 64-битное — конфигурирование остановится на этом с явной
+  ошибкой. В меню Пуск ярлык лежит рядом, в папке Visual Studio 2022.
 
 --- ARCH LINUX (чистая система) ------------------------------------------
 
@@ -62,7 +66,7 @@ like-nes — прогон проверки на чистой машине
 Linux / macOS:
   bash scripts/owner_check.sh
 
-Windows (из Developer Command Prompt):
+Windows (из x64 Native Tools Command Prompt):
   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 
 Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
@@ -252,17 +256,29 @@ Linux, если пад не виден: sudo usermod -aG input $USER и пере
      отметить "Windows 11 SDK" → Modify.
   2. Удалить каталог сборки целиком (out\build\x64-Debug или build):
      в нём застрял кеш с CMAKE_MT-NOTFOUND, он переживёт установку SDK.
-  3. В Developer Command Prompt проверить: where rc и where mt должны
-     печатать пути внутри C:\Program Files (x86)\Windows Kits\10\bin\...
+  3. В x64 Native Tools Command Prompt проверить: where rc и where mt
+     должны печатать пути внутри C:\Program Files (x86)\Windows Kits\10\bin\
   4. Конфигурировать заново.
 
 Строка "windows sdk :" в паспорте owner_check.sh показывает это же —
 но она видна только после того, как сборка уже прошла, поэтому проверка
 через where быстрее.
 
+--- "like-nes собирается только под 64 бита" -----------------------------
+
+Шелл 32-битный. "Developer Command Prompt for VS" и "Developer PowerShell"
+дают по умолчанию x86-тулчейн (в путях видно bin\Hostx86\x86\cl.exe), а
+предсобранный wgpu-native всё равно подставляет x86_64-библиотеку. Лечение:
+закрыть шелл, открыть "x64 Native Tools Command Prompt for VS", удалить
+каталог build (кеш помнит компилятор) и сконфигурировать заново.
+
+Если гейта не было и сборка дошла до кода — она падает по-другому:
+capture.cpp даёт "C4244: преобразование uint64_t в size_t" под /W4 /WX.
+Причина та же, наш код тут ни при чём.
+
 --- "cl.exe not found" / CMake берёт не тот компилятор -------------------
 
-Шелл запущен не из Developer Command Prompt for VS. Обычный cmd,
+Шелл запущен не из x64 Native Tools Command Prompt for VS. Обычный cmd,
 PowerShell и Git Bash окружения vcvars не имеют.
 
 --- Игра не находит ассеты -----------------------------------------------

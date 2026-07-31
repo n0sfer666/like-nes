@@ -9,7 +9,7 @@ session, a real GPU driver, a real gamepad.
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows |
 
-Machine setup (packages, compiler, Developer Command Prompt on Windows) is
+Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
 thing as a copy-paste sheet for a freshly installed Windows or Arch box.
 
@@ -20,9 +20,12 @@ bash scripts/owner_check.sh
 ```
 
 **On Windows the shell is the whole question.** The script needs two things at once: `cl.exe`,
-which only a *Developer Command Prompt for VS* puts on `PATH`, and a POSIX shell, which `cmd` is
-not. Git for Windows ships one, so call it from inside the Developer Command Prompt — it inherits
-the vcvars environment:
+which only a developer prompt puts on `PATH`, and a POSIX shell, which `cmd` is not. Of the
+developer prompts take the one named *x64 Native Tools Command Prompt for VS*: the plain *Developer
+Command Prompt* and *Developer PowerShell* default to the 32-bit toolchain (`bin\Hostx86\x86\cl.exe`
+in the paths), and this tree is 64-bit only — configure stops on a guard in the root
+`CMakeLists.txt` saying so. Git for Windows ships the POSIX shell, so call it from inside that
+prompt — it inherits the vcvars environment:
 
 ```bat
 cd path\to\like-nes
@@ -95,7 +98,7 @@ this machine. What is left is the human end of the chain — an edit you make re
 7. Note the numbers `owner_check.sh` printed for the loop (`best` / `median`) — spec #13 asks for
    them as a fact per OS, and they go into `first-run.md`.
 
-Windows: run every command from a *Developer Command Prompt for VS*, and start the scripts through
+Windows: run every command from an *x64 Native Tools Command Prompt for VS*, and start the scripts through
 git-bash as in section 0 — the exec bit does not survive the index there, so the interpreter is
 always named explicitly.
 
