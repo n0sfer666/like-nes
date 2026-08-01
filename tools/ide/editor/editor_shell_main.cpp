@@ -1,5 +1,6 @@
 #include "editor_ui.hpp"
 #include "editor_gate6.hpp"
+#include "platform_args.hpp"
 #include "gpu.hpp"
 #include "wgpu_imgui.hpp"
 #include "backends/imgui_impl_glfw.h"
@@ -20,6 +21,8 @@ using namespace ide;
 using namespace ide::editor;
 
 int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);   // путь снимка гейта приходит аргументом — шов обязателен
+
     bool gate6 = false;
     const char* gate6_png = "gate6.png";
     for (int i = 1; i < argc; ++i) {
