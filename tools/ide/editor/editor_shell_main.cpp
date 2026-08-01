@@ -1,4 +1,5 @@
 #include "editor_ui.hpp"
+#include "editor_gate6.hpp"
 #include "gpu.hpp"
 #include "wgpu_imgui.hpp"
 #include "backends/imgui_impl_glfw.h"
@@ -7,14 +8,26 @@
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu.h>
 #include <cstdio>
+#include <string>
 
 // Live editor-shell (спека #7, гейт 6): ImGui docking (#6) UI из editor_ui.hpp + рендер-бэкенд
 // WebGPU (wgpu-native, как render #2 — НЕ deprecated OpenGL); оконная обвязка = render/wgpu_imgui.
 // Owner-HW (окно). Состояние — ЛОКАЛИ main, НЕ глобалы (flecs::world в static-init → SIGSEGV).
+//
+// `--gate6 [out.png]` — тот же процесс, то же окно и тот же surface, но сценарий гейта прогоняется
+// сам и возвращает код возврата: владельцу остаётся то, чего процесс о себе знать не может.
 using namespace ide;
 using namespace ide::editor;
 
-int main() {
+int main(int argc, char** argv) {
+    bool gate6 = false;
+    const char* gate6_png = "gate6.png";
+    for (int i = 1; i < argc; ++i) {
+        if (std::string(argv[i]) != "--gate6") continue;
+        gate6 = true;
+        if (i + 1 < argc && argv[i + 1][0] != '-') gate6_png = argv[++i];
+    }
+
     EditorState st;   // flecs-мир создаётся ЗДЕСЬ (не в static-init)
     seed(st);
 
@@ -43,22 +56,27 @@ int main() {
     info.RenderTargetFormat = fmt;
     ImGui_ImplWGPU_Init(&info);
 
+    int rc = 0;
     bool built = false;
-    while (!glfwWindowShouldClose(win)) {
-        glfwPollEvents();
-        int w = 0, h = 0;
-        glfwGetFramebufferSize(win, &w, &h);
-        if (w > 0 && h > 0 && (w != fbw || h != fbh)) {   // resize → реконфиг surface
-            fbw = w; fbh = h;
-            wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
-        }
+    if (gate6) {
+        rc = run_gate6(st, win, gpu, surface, fmt, gate6_png);
+    } else {
+        while (!glfwWindowShouldClose(win)) {
+            glfwPollEvents();
+            int w = 0, h = 0;
+            glfwGetFramebufferSize(win, &w, &h);
+            if (w > 0 && h > 0 && (w != fbw || h != fbh)) {   // resize → реконфиг surface
+                fbw = w; fbh = h;
+                wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+            }
 
-        ImGui_ImplWGPU_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        draw_ui(st, built);
-        ImGui::Render();
-        wgpu_imgui::present(gpu, surface, WGPUColor{0.08, 0.09, 0.11, 1.0});
+            ImGui_ImplWGPU_NewFrame();
+            ImGui_ImplGlfw_NewFrame();
+            ImGui::NewFrame();
+            draw_ui(st, built);
+            ImGui::Render();
+            wgpu_imgui::present(gpu, surface, WGPUColor{0.08, 0.09, 0.11, 1.0});
+        }
     }
 
     ImGui_ImplWGPU_Shutdown();
@@ -68,5 +86,5 @@ int main() {
     gpu.shutdown();
     glfwDestroyWindow(win);
     glfwTerminate();
-    return 0;
+    return rc;
 }
