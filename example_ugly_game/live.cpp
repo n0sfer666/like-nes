@@ -94,6 +94,7 @@ int run_window(int frame_cap) {
     const auto period = std::chrono::microseconds(16667);
     auto next = std::chrono::steady_clock::now();
     int frames = 0;
+    bool surface_warned = false;
     for (uint32_t t = 0; !glfwWindowShouldClose(win); ++t) {
         next += period;
         std::this_thread::sleep_until(next);
@@ -115,6 +116,18 @@ int run_window(int frame_cap) {
         wgpuSurfaceGetCurrentTexture(surface, &st);
         if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
             if (st.texture) wgpuTextureRelease(st.texture);
+            // Молчаливый continue означал бесконечный чёрный кадр: Outdated поверхность сама не
+            // чинится, её надо переконфигурировать, а не ждать. Размер берём тот же — окно
+            // нерастяжимое, и bloom-таргеты созданы под него.
+            if (st.status == WGPUSurfaceGetCurrentTextureStatus_Outdated ||
+                st.status == WGPUSurfaceGetCurrentTextureStatus_Lost) {
+                configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+            }
+            if (!surface_warned) {
+                std::fprintf(stderr, "[game] surface texture status %u — кадр пропущен\n",
+                             (unsigned)st.status);
+                surface_warned = true;
+            }
             continue;
         }
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);

@@ -45,6 +45,20 @@ WGPUDevice request_device(WGPUAdapter adapter) {
     return out;
 }
 
+const char* backend_name(WGPUBackendType t) {
+    switch (t) {
+    case WGPUBackendType_D3D11:    return "D3D11";
+    case WGPUBackendType_D3D12:    return "D3D12";
+    case WGPUBackendType_Metal:    return "Metal";
+    case WGPUBackendType_Vulkan:   return "Vulkan";
+    case WGPUBackendType_OpenGL:   return "OpenGL";
+    case WGPUBackendType_OpenGLES: return "OpenGLES";
+    case WGPUBackendType_WebGPU:   return "WebGPU";
+    case WGPUBackendType_Null:     return "Null";
+    default:                       return "?";
+    }
+}
+
 } // namespace
 
 bool GpuContext::init(WGPUSurface surface) {
@@ -56,6 +70,19 @@ bool GpuContext::init(WGPUSurface surface) {
     supports_bc = wgpuAdapterHasFeature(adapter, WGPUFeatureName_TextureCompressionBC);
     device = request_device(adapter);
     if (!device) { std::fprintf(stderr, "no device\n"); shutdown(); return false; }
+    // Без этого коллбэка валидационные ошибки WebGPU не выводятся НИКУДА: пайплайн не создался,
+    // отрисовки нет, окно чёрное, а причина не названа. Именно так «чёрный экран со звуком»
+    // выглядел на Windows, пока шов молчал.
+    wgpuDeviceSetUncapturedErrorCallback(
+        device,
+        [](WGPUErrorType type, char const* msg, void*) {
+            std::fprintf(stderr, "[wgpu] error %u: %s\n", (unsigned)type, msg ? msg : "?");
+        },
+        nullptr);
+    WGPUAdapterProperties props = {};
+    wgpuAdapterGetProperties(adapter, &props);
+    std::printf("[gpu] %s | %s | BC: %s\n", props.name ? props.name : "?",
+                backend_name(props.backendType), supports_bc ? "yes" : "no");
     queue = wgpuDeviceGetQueue(device);
     if (!queue) { shutdown(); return false; }
     return true;
