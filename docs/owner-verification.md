@@ -86,17 +86,31 @@ Fedora/Nobara `wayland-protocols-devel`, `wayland-devel`, `libxkbcommon-devel`. 
 *configure* on the hunt for `wayland-scanner`, before a single file is compiled: that is the
 package talking, not the tree.
 
-Run each binary from the matching session (`echo $XDG_SESSION_TYPE` must print `x11` / `wayland`):
+Run each binary from the matching session, in the self-test mode — same process, same window, same
+surface, but the scenario runs itself and reports:
 
 ```sh
-echo "$XDG_SESSION_TYPE"; ./build/editor_shell        # from an X11 session
-echo "$XDG_SESSION_TYPE"; ./build-way/editor_shell    # from a Wayland session
+./build/editor_shell     --gate6 gate6-x11.png        # from an X11 session
+./build-way/editor_shell --gate6 gate6-wayland.png    # from a Wayland session
 ```
 
-In each: the Viewport panel renders, clicking an entity in Hierarchy selects it, dragging the gizmo
-moves it, the Inspector numbers follow, Undo puts it back. Screenshot each session — the screenshot
-is the gate's evidence, so keep the session type visible (terminal in frame, or note it in the
-filename: `gate6-x11.png`, `gate6-wayland.png`).
+Each run prints a session passport (`XDG_SESSION_TYPE`, the platform GLFW actually drives the window
+with, `DISPLAY`/`WAYLAND_DISPLAY`, the adapter), drives select → gizmo hit-test → edit → Inspector →
+Undo through the editor's own commands, pushes 150 frames through this session's swapchain, dumps a
+PNG of the live frame and exits `0` only if every check passed. **Send the stdout and the PNG** —
+that is the gate's evidence, and the passport is what makes the two runs distinguishable.
+
+The mode fails on its own if the Wayland half is not actually Wayland: a default build under a
+Wayland session is an XWayland client, the window opens, frames flow, and nothing about Wayland has
+been proven. It says so and names the build to make instead of printing a green line about an
+untested protocol.
+
+What the process cannot know about itself, and only you can confirm:
+
+- the window is **visible on screen** (a compositor can render an offscreen frame just fine),
+- dragging the gizmo with a **real mouse** moves the object, and the Inspector numbers follow.
+
+Screenshot each session with the window on screen; keep the session type visible (terminal in frame).
 
 **Getting an X11 session on a Wayland-first distro.** Nobara, and any recent Fedora, logs you into
 Wayland by default, so the X11 half of this gate needs a session you have to pick by hand: log out
@@ -115,21 +129,33 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 
 The editor has no Play/Build buttons yet: spawning and the build loop are their own targets
 (`play_spawn_test`, `build_loop_test`), and the mechanism is what `owner_check.sh` already timed on
-this machine. What is left is the human end of the chain — an edit you make reaching pixels you see.
+this machine. What is left is the chain end to end — an edit reaching pixels — and that whole chain
+is one command:
 
-1. Clone into a **fresh directory** (the gate covers a clean machine, not your working tree) and
-   build per [`first-run.md`](first-run.md).
-2. Open the editor, confirm it draws: `./build/editor_shell` (Windows: `build\editor_shell.exe`).
-3. Run the sample game and look at it: `./build/game_sidescroller`.
-4. Edit one visible constant — the clear colour in `example_ugly_game/draw.cpp`:
-   `a.clearValue = WGPUColor{0.02, 0.02, 0.07, 1.0}` → `{0.25, 0.02, 0.05, 1.0}`.
-   It is render-side on purpose: the sim hash must stay `0x32a094e89eacf2f2`, and a gameplay
-   constant would move it.
-5. `cmake --build build --target game_sidescroller` and run it again — the background is now dark
-   red. That is the change being visible.
-6. `git checkout example_ugly_game/draw.cpp` — the edit is a probe, not a commit.
-7. Note the numbers `owner_check.sh` printed for the loop (`best` / `median`) — spec #13 asks for
-   them as a fact per OS, and they go into `first-run.md`.
+```sh
+bash scripts/gate8_e2e.sh
+```
+
+It clones this repository into `build/gate8/clone`, builds it from scratch, renders frames, patches
+the clear colour in `example_ugly_game/draw.cpp` (`{0.02, 0.02, 0.07}` → `{0.25, 0.02, 0.05}`),
+rebuilds, renders again, and then **measures** the two frames instead of asking you to look: the
+mean red channel has to rise and to outrun green and blue, because "the frame changed" would also
+be true of any render jitter. The sim hash has to stay `0x32a094e89eacf2f2` in the same run — the
+constant is render-side on purpose, and a gate that only proved visibility would pass a broken
+gameplay build too.
+
+The patch lives inside the clone, so your working tree is never touched and there is no revert step
+to forget. The clone is deleted at the end (`GATE8_KEEP=1` keeps it); the report, both frames and
+the build logs stay in `build/gate8/`. **Send `build/gate8/gate8-report-<os>.txt`** — it carries the
+cloned commit, the two colour readings and the verdict.
+
+The first build downloads the dependencies, so this needs network and takes as long as a cold build
+on this machine (`GATE8_FRAMES` shortens the render, not the build). If the clone builds the editor,
+the report says so and prints the `--gate6` command for it — that is section 1, run from the fresh
+clone.
+
+One number is still yours to record: `owner_check.sh` prints the edit→build→hot-reload loop timing
+(`best` / `median`), and spec #13 asks for it as a fact per OS. It goes into `first-run.md`.
 
 Windows: run every command from an *x64 Native Tools Command Prompt for VS*, and start the scripts through
 git-bash as in section 0 — the exec bit does not survive the index there, so the interpreter is
