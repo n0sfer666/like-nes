@@ -6,6 +6,9 @@ build needs beyond a compiler is fetched by CMake (`FetchContent`) — the lists
 
 ## What you need per OS
 
+Package names below are Debian/Ubuntu; the Fedora/Nobara equivalents are the second one-liner under
+the table.
+
 | | macOS | Linux (Ubuntu/Debian LTS) | Windows |
 |---|---|---|---|
 | Compiler | Xcode Command Line Tools (`xcode-select --install`) | `build-essential` (gcc) or `clang` | Visual Studio 2022+ with the *Desktop development with C++* workload |
@@ -20,10 +23,26 @@ One line for Ubuntu:
 sudo apt-get install -y build-essential cmake ninja-build git xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools
 ```
 
+One line for Fedora — and for Nobara, which is Fedora underneath, so nothing here is special-cased
+for it:
+
+```sh
+sudo dnf install -y gcc-c++ cmake ninja-build git python3 \
+    libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel libxkbcommon-devel \
+    vulkan-loader vulkan-tools mesa-vulkan-drivers
+```
+
+Fedora has no `xorg-dev` meta-package, hence the spelled-out X11 `-devel` list; `mesa-vulkan-drivers`
+there already contains radv, anv **and** lavapipe, so no per-vendor package is needed. If GLFW ever
+asks for more than the list above, `sudo dnf builddep glfw` (needs `dnf-plugins-core`) installs
+exactly what Fedora builds GLFW with. On Nobara, upgrade the system with `nobara-sync cli` rather
+than `dnf upgrade` — it substitutes some Fedora packages with its own and a plain upgrade reverts
+them; installing individual packages with `dnf` is fine.
+
 **Wayland is opt-in.** GLFW is built X11-only by default, so on a Wayland session the editor runs
 as an XWayland client. To exercise the native Wayland backend, add `libwayland-dev`,
-`libxkbcommon-dev` and `wayland-protocols` (which brings `wayland-scanner`), then configure with
-`-DLINUX_WAYLAND=ON`.
+`libxkbcommon-dev` and `wayland-protocols` (which brings `wayland-scanner`) — on Fedora that is
+`wayland-devel` and `wayland-protocols-devel` — then configure with `-DLINUX_WAYLAND=ON`.
 
 On Windows the short path is [`scripts/win-dev.bat`](../scripts/win-dev.bat), which works from any
 shell: `win-dev.bat setup` installs the toolchain through winget (Build Tools rather than the IDE —

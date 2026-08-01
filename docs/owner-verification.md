@@ -11,7 +11,7 @@ session, a real GPU driver, a real gamepad.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
-thing as a copy-paste sheet for a freshly installed Windows or Arch box.
+thing as a copy-paste sheet for a freshly installed Windows, Fedora/Nobara or Arch box.
 
 ## 0. The automated half
 
@@ -45,13 +45,29 @@ takes the first that actually executes — the passport line prints which one, o
 missing interpreter fails the linter stage loudly instead of skipping it. Install Python from
 python.org and reopen the shell if you see that.
 
-It writes `build/owner-report-<os>.txt`: machine passport (OS, compiler CMake actually used,
+It writes `build/owner-report-<os>.txt`: machine passport (OS, distro, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
 plugins or bundles are skipped by name and say so — CI runs those with arguments on all three OS.
 
 Green means only that this machine agrees with the runners. The three gates below are what the
 runners never saw.
+
+**A red build gate here is a finding, not a chore.** The runners are `ubuntu-latest`, and a rolling
+desktop distro — Nobara/Fedora especially — carries a newer GCC than they do. New GCC releases add
+diagnostics, this tree builds with `-Wall -Wextra -Werror`, and a warning nobody on CI can see stops
+the build here. That is exactly the value of running the gate on a second Linux: send the compiler
+line and the diagnostic instead of silencing it. To collect **all** of them in one pass rather than
+the first one:
+
+```sh
+cmake -S . -B build-warn -G Ninja -DCMAKE_BUILD_TYPE=Release -DLIKE_NES_WERROR=OFF
+cmake --build build-warn 2>&1 | grep -n 'warning:'
+```
+
+Use a separate build directory, as above. A tree configured with `LIKE_NES_WERROR=OFF` would keep
+the gate green by not enforcing anything, so `build_check.sh` puts the flag back to `ON` and
+rebuilds when it finds it off — pointing it at `build-warn` costs you that rebuild for nothing.
 
 ## 1. Gate 6 — X11 and Wayland (Linux)
 
@@ -65,7 +81,10 @@ cmake --build build     --target editor_shell
 cmake --build build-way --target editor_shell
 ```
 
-`-DLINUX_WAYLAND=ON` needs `wayland-protocols`, `libwayland-dev`, `libxkbcommon-dev`.
+`-DLINUX_WAYLAND=ON` needs `wayland-protocols`, `libwayland-dev`, `libxkbcommon-dev` — on
+Fedora/Nobara `wayland-protocols-devel`, `wayland-devel`, `libxkbcommon-devel`. Missing them stops
+*configure* on the hunt for `wayland-scanner`, before a single file is compiled: that is the
+package talking, not the tree.
 
 Run each binary from the matching session (`echo $XDG_SESSION_TYPE` must print `x11` / `wayland`):
 
@@ -79,8 +98,18 @@ moves it, the Inspector numbers follow, Undo puts it back. Screenshot each sessi
 is the gate's evidence, so keep the session type visible (terminal in frame, or note it in the
 filename: `gate6-x11.png`, `gate6-wayland.png`).
 
+**Getting an X11 session on a Wayland-first distro.** Nobara, and any recent Fedora, logs you into
+Wayland by default, so the X11 half of this gate needs a session you have to pick by hand: log out
+(not reboot), and on the login screen choose the session — the gear next to the *Sign in* button in
+GNOME, the list in the bottom-left corner in KDE. `echo $XDG_SESSION_TYPE` after logging in is the
+proof. If no X11 entry is offered, install one: `sudo dnf install gnome-session-xsession` (GNOME) or
+`plasma-workspace-x11` (KDE). Recent Fedora releases dropped the GNOME-on-X11 session outright — if
+neither package exists, any X11 session will do, because the gate is about our binary under X11 and
+not about a particular desktop: `sudo dnf install i3` (or `openbox`) adds an entry to the same list.
+
 If the viewport stays black: `vulkaninfo --summary | head` — no device means the driver, not the
-editor (`mesa-vulkan-drivers` gets you lavapipe).
+editor (`mesa-vulkan-drivers` gets you lavapipe; on Fedora that one package already carries radv,
+anv and lavapipe together, so there is no per-vendor package to hunt for).
 
 ## 2. Gate 8 of #13 — the end-to-end loop (Linux and Windows)
 
@@ -115,6 +144,16 @@ cmake --build build --target framework_input_probe
 
 The probe opens a small window (keyboard and mouse arrive through it — it must have focus) and
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
+
+Two Linux-side traps before you start, both of which make a working pad look like a broken backend:
+
+- **Permissions.** The evdev backend reads `/dev/input/event*`; a desktop session normally gets
+  them through logind's `uaccess`, but a pad seen by `ls /dev/input` and not by the probe means
+  exactly that seam. `sudo usermod -aG input $USER`, then log out and back in.
+- **Steam.** On a gaming distro (Nobara ships Steam) a running Steam with Steam Input on
+  re-presents the pad as a *virtual* Xbox 360 controller and hides the real one. The passport line
+  then names the wrong device through no fault of ours. Quit Steam completely for this gate — the
+  point is what the OS reports about the physical pad.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
