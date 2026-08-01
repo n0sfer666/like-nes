@@ -50,10 +50,23 @@ say "compiler    : $(grep -m1 'CMAKE_CXX_COMPILER:' "$BUILD_DIR/CMakeCache.txt" 
 PTR=$(grep -h 'CMAKE_CXX_SIZEOF_DATA_PTR "' "$BUILD_DIR"/CMakeFiles/*/CMakeCXXCompiler.cmake 2>/dev/null | head -1 | tr -dc '0-9')
 say "pointer     : ${PTR:-?} байт$([ "$PTR" = "4" ] && printf ' — 32-битный тулчейн, нужен x64 Native Tools Command Prompt for VS')"
 say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' DISPLAY='${DISPLAY:-}'"
+# Дистрибутив — не украшение отчёта: имена пакетов и умолчания сессии у Fedora/Nobara, Arch и
+# Debian разные, и «гейт 6 не воспроизвёлся» читается только вместе с тем, где он гонялся.
+if [ "$OS_TAG" = "linux" ] && [ -r /etc/os-release ]; then
+    say "distro      : $(. /etc/os-release; printf '%s' "${PRETTY_NAME:-${NAME:-?}}")"
+fi
+# Подсказку по установке даём той командой, которая на этой машине есть: совет про apt-get на
+# Fedora выглядит как «мануал писали не для меня» и тратит время владельца на перевод.
+install_cmd() {
+    if have dnf; then printf 'sudo dnf install'
+    elif have pacman; then printf 'sudo pacman -S'
+    elif have apt-get; then printf 'sudo apt-get install'
+    else printf 'поставить пакет'; fi
+}
 if have vulkaninfo; then
     say "vulkan      : $(vulkaninfo --summary 2>/dev/null | grep -m1 -i 'deviceName' || echo 'нет устройств')"
 elif [ "$OS_TAG" = "linux" ]; then
-    say "vulkan      : vulkaninfo не установлен (apt-get install vulkan-tools) — гейт 6 без него слеп"
+    say "vulkan      : vulkaninfo не установлен ($(install_cmd) vulkan-tools) — гейт 6 без него слеп"
 fi
 if [ "$OS_TAG" = "linux" ]; then
     PADS=$(ls /dev/input/js* /dev/input/event* 2>/dev/null | tr '\n' ' ')

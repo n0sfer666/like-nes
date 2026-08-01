@@ -72,6 +72,37 @@ like-nes — прогон проверки на чистой машине
   Только для нативного Wayland (гейт 6, вторая сессия):
       sudo pacman -S --needed wayland wayland-protocols libxkbcommon
 
+--- FEDORA / NOBARA (чистая система) --------------------------------------
+
+  Nobara — это Fedora с преднастроенными репозиториями и драйверами, так что
+  всё ниже — обычные пакеты Fedora.
+
+  sudo dnf install -y gcc-c++ cmake ninja-build git python3 \
+      libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel \
+      libXi-devel libxkbcommon-devel \
+      vulkan-loader vulkan-tools mesa-vulkan-drivers
+
+  mesa-vulkan-drivers несёт сразу radv (AMD), anv (Intel) и lavapipe
+  (программный) — отдельный пакет под свою карту, как в Arch, ставить не
+  надо. NVIDIA: на Nobara проприетарный драйвер уже стоит из коробки, на
+  чистой Fedora — akmod-nvidia из RPM Fusion.
+
+  Только для нативного Wayland (гейт 6, вторая сессия):
+      sudo dnf install -y wayland-devel wayland-protocols-devel
+
+  Звук: pipewire в Nobara/Fedora уже стоит и настроен, ставить нечего.
+
+  ВАЖНО, специфика Nobara: систему обновлять СВОИМ обновлятором
+  (`nobara-sync cli` или приложение "Update System"), а не `dnf upgrade` —
+  Nobara подменяет часть пакетов Fedora своими, и обычный upgrade их
+  откатывает. Установка отдельных пакетов через dnf (команды выше) —
+  штатная, upgrade — нет.
+
+  Если чего-то не хватило (список выше — то, что нужно нашему дереву,
+  а GLFW со временем может попросить больше):
+      sudo dnf install -y dnf-plugins-core
+      sudo dnf builddep glfw     # ровно то, чем собирают GLFW в Fedora
+
 --- MACOS (справочно, уже пройдено) --------------------------------------
 
   xcode-select --install
@@ -214,6 +245,25 @@ GLFW по умолчанию собран только под X11, под Waylan
 
 Чёрный вьюпорт → vulkaninfo --summary | head: нет устройства — это драйвер,
 а не редактор.
+
+Nobara (и любая современная Fedora) логинит в Wayland по умолчанию, так что
+х11-половина гейта требует отдельной сессии. Порядок:
+
+  1. Выйти из сессии (не перезагрузка — logout).
+  2. На экране входа выбрать сессию: в GNOME это шестерёнка рядом с кнопкой
+     "Войти", в KDE — список слева внизу. Нужен пункт со словом X11.
+  3. Залогиниться и проверить: echo $XDG_SESSION_TYPE → x11
+
+  Пункта с X11 в списке нет — сессию надо доставить:
+      GNOME:  sudo dnf install gnome-session-xsession
+      KDE:    sudo dnf install plasma-workspace-x11
+  Пакета нет в репозитории (в свежих Fedora сессию GNOME под X11 вырезали) —
+  подойдёт ЛЮБОЙ X11-сеанс, гейт проверяет наш бинарь под X11, а не рабочий
+  стол: sudo dnf install i3 (или openbox) даст пункт в списке сессий.
+
+Отдельная ловушка Wayland-сборки: без wayland-protocols-devel конфигурирование
+падает на поиске wayland-scanner ещё до компиляции — это не наша ошибка, а
+недостающий пакет.
 
 --- H. Правка кода → пересборка → изменение видно (гейт 8) ----------------
 
