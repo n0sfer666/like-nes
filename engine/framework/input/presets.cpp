@@ -96,9 +96,16 @@ bool PresetTable::row_is_first(const PresetRow& p, uint32_t row) const {
 }
 
 uint32_t PresetTable::logical_axis(const PresetRow& p, uint32_t row) const {
+    // Индекс оси — порядковый номер её ИМЕНИ, а не номер строки среди первых. У оси строк
+    // несколько (клавиши, стрелки, стик — альтернативные источники одного направления), и
+    // непервая строка обязана попасть в тот же индекс, что и первая: считать её началом
+    // следующей оси значит увести стрелки и стик в чужой слот InputFrame.
+    const char* name = string_at(axes_[p.axis_begin + row].name_offset);
     uint32_t logical = 0;
-    for (uint32_t i = 0; i < row; ++i)
+    for (uint32_t i = 0; i < row; ++i) {
+        if (std::strcmp(string_at(axes_[p.axis_begin + i].name_offset), name) == 0) break;
         if (row_is_first(p, i)) ++logical;
+    }
     return logical;
 }
 

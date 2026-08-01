@@ -968,7 +968,7 @@ jobs:
           done
           # Гейт 1: эталон разрешения ввода через пресет. Хеш целочисленный, поэтому обязан
           # совпасть на трёх ОС — расхождение здесь и есть та регрессия, ради которой гейт заведён.
-          grep -q "preset-input-hash = 0x23d71ef8855fa5c1" fw_framework_golden_test.txt \
+          grep -q "preset-input-hash = 0x416969081dcf230d" fw_framework_golden_test.txt \
             || { echo "PRESET INPUT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется
