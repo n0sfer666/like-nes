@@ -29,13 +29,16 @@ for it:
 ```sh
 sudo dnf install -y gcc-c++ cmake ninja-build git python3 \
     libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel libXi-devel libxkbcommon-devel \
-    vulkan-loader vulkan-tools mesa-vulkan-drivers
+    mesa-libGL-devel vulkan-loader vulkan-tools mesa-vulkan-drivers
 ```
 
 Fedora has no `xorg-dev` meta-package, hence the spelled-out X11 `-devel` list; `mesa-vulkan-drivers`
-there already contains radv, anv **and** lavapipe, so no per-vendor package is needed. If GLFW ever
-asks for more than the list above, `sudo dnf builddep glfw` (needs `dnf-plugins-core`) installs
-exactly what Fedora builds GLFW with. On Nobara, upgrade the system with `nobara-sync cli` rather
+there already contains radv, anv **and** lavapipe, so no per-vendor package is needed.
+`mesa-libGL-devel` is in that list even though nothing here draws with OpenGL: `glfw3.h` includes
+`GL/gl.h` on X11 regardless of `GLFW_CLIENT_API`, and on Debian `xorg-dev` drags the header in as a
+dependency, which is why the Ubuntu line never had to name it. Missing it fails the build of the
+`glfw3webgpu` dependency, not of our code. If GLFW ever asks for more than the list above,
+`sudo dnf builddep glfw` (needs `dnf-plugins-core`) installs exactly what Fedora builds GLFW with. On Nobara, upgrade the system with `nobara-sync cli` rather
 than `dnf upgrade` — it substitutes some Fedora packages with its own and a plain upgrade reverts
 them; installing individual packages with `dnf` is fine.
 
@@ -102,6 +105,10 @@ Missing system packages are meant to surface as a named error, not as a link fai
 - No Vulkan driver on Linux → the renderer reports that no adapter was found. Check with
   `vulkaninfo | head`; on a headless box `mesa-vulkan-drivers` (lavapipe) is enough to get pixels.
 - No X11 development headers → GLFW fails at *configure* time, naming the missing package.
+- `fatal error: GL/gl.h` while building the `glfw3webgpu` dependency → `mesa-libGL-devel` on
+  Fedora/Nobara. `glfw3.h` includes that header on X11 whatever the client API is; Debian's
+  `xorg-dev` supplies it as a dependency, Fedora has no such meta-package. No reconfigure needed
+  after installing — just build again.
 - `cl.exe` not found on Windows → the shell is not a developer prompt (see above).
 - `like-nes собирается только под 64 бита` on Windows → it is a developer prompt, but the 32-bit
   one; reopen as *x64 Native Tools* and delete the build directory, whose cache remembers the
