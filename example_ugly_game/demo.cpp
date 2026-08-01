@@ -14,6 +14,7 @@
 #include "draw.hpp"
 #include "engine.hpp"
 #include "gpu.hpp"
+#include "gpu_env.hpp"
 #include "sim.hpp"
 #include "input_setup.hpp"
 #include "world.hpp"
@@ -46,6 +47,7 @@ struct DemoDriver {
 
 int run_demo(const char* dir, int frames) {
     GpuContext gpu;
+    apply_gpu_env(gpu);
     if (!gpu.init(nullptr)) {
         // Шаг CI «Game — headless demo» — жёсткий гейт на трёх ОС, и молчаливый выход из него
         // неотличим от «игра не анимируется». Причина отказа должна быть в логе раннера.
