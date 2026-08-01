@@ -58,7 +58,10 @@ static uint64_t single_thread(uint32_t T) {
     return h;
 }
 
-static void spin(uint32_t n) { volatile uint32_t x = 0; for (uint32_t i = 0; i < n; ++i) x += i; }
+// `(void)x` — не украшение: GCC 16 распространил -Wunused-but-set-variable на volatile, а под
+// -Werror это валит сборку. Читать x обязано что-то, иначе диагностика права; сам volatile нужен,
+// чтобы цикл дожил до рантайма и задержка была настоящей.
+static void spin(uint32_t n) { volatile uint32_t x = 0; for (uint32_t i = 0; i < n; ++i) x += i; (void)x; }
 
 static uint64_t threaded(uint32_t T) {
     ActionMap m = make_map();
