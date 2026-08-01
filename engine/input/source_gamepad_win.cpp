@@ -38,8 +38,10 @@ public:
             if (!ok) continue;
             const XINPUT_GAMEPAD& g = st.Gamepad;
             for (const Btn& b : kBtns) emit_btn(e, i, b.code, (g.wButtons & b.mask) != 0);
-            emit_axis(e, i, c::LX, g.sThumbLX / 32768.0f); emit_axis(e, i, c::LY, g.sThumbLY / 32768.0f);
-            emit_axis(e, i, c::RX, g.sThumbRX / 32768.0f); emit_axis(e, i, c::RY, g.sThumbRY / 32768.0f);
+            // Y инвертируется: у XInput +Y это ВВЕРХ, у нашего контракта (codes.hpp) — вниз.
+            // Без минуса стик уезжает вертикально наоборот ровно на одной этой платформе.
+            emit_axis(e, i, c::LX, g.sThumbLX / 32768.0f); emit_axis(e, i, c::LY, -g.sThumbLY / 32768.0f);
+            emit_axis(e, i, c::RX, g.sThumbRX / 32768.0f); emit_axis(e, i, c::RY, -g.sThumbRY / 32768.0f);
             emit_axis(e, i, c::LT, g.bLeftTrigger / 255.0f); emit_axis(e, i, c::RT, g.bRightTrigger / 255.0f);
         }
     }

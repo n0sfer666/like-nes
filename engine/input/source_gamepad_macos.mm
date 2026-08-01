@@ -111,10 +111,12 @@ private:
     }
 
     void emit_axes(InputEngine& e, int slot, GCExtendedGamepad* gp) {
+        // Y инвертируется: у GameController +Y это ВВЕРХ, у нашего контракта (codes.hpp) — вниз.
+        // Без минуса стик уезжает вертикально наоборот ровно на одной этой платформе.
         emit_axis(e, slot, c::LX, gp.leftThumbstick.xAxis.value);
-        emit_axis(e, slot, c::LY, gp.leftThumbstick.yAxis.value);
+        emit_axis(e, slot, c::LY, -gp.leftThumbstick.yAxis.value);
         emit_axis(e, slot, c::RX, gp.rightThumbstick.xAxis.value);
-        emit_axis(e, slot, c::RY, gp.rightThumbstick.yAxis.value);
+        emit_axis(e, slot, c::RY, -gp.rightThumbstick.yAxis.value);
         emit_axis(e, slot, c::LT, gp.leftTrigger.value);
         emit_axis(e, slot, c::RT, gp.rightTrigger.value);
     }

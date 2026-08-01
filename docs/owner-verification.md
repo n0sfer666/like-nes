@@ -162,6 +162,12 @@ Two Linux-side traps before you start, both of which make a working pad look lik
 2. **Live resolution.** Push the left stick: `move=(…)` follows it and rests at exactly
    `(+0.00,+0.00)` when centred (that is the deadzone). Press the south button and space — `fire:#`
    lights for both.
+   **Name the directions out loud, one axis at a time** — right must read `x > 0`, and **up must
+   read `y > 0`**. This is not pedantry: the three backends disagree on the sign of the raw Y axis
+   (evdev grows downwards, XInput and GameController upwards), so an inverted stick is a
+   *per-platform* defect that a pad tested on one OS cannot reveal. The engine's contract is in
+   `engine/input/codes.hpp` — +X right, +Y **down** for the raw axis — and the preset flips it once
+   with `padaxis:-ly`, which is why `move` reads up as positive.
 3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press a key already used by another
    action. The probe refuses and names the owner. Press `F` to take it anyway, and confirm the
    printed binding table shows the previous owner losing that slot.
