@@ -39,6 +39,10 @@ build_config() {
 stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
 stage "Линтер workflow — .github/workflows" python3 scripts/ci_lint.py
 
+# Тот же скрипт, что и шаг CI. Статический гейт, знание о нарушении полностью доступно локально —
+# узнавать про него из красного раннера значило платить двадцать минут за находку на полсекунды.
+stage "Платформенный шов (инвариант 2 спеки #12)" bash scripts/seam_check.sh
+
 if command -v actionlint >/dev/null; then
     # severity=warning: SC2086 (несплитящиеся "$VAR") в этом файле осознан — им собирается
     # командная строка, — а вот warning и выше означает реальный дефект скрипта.
@@ -54,7 +58,7 @@ if command -v shellcheck >/dev/null; then
     # шаг выглядит сломанным ДЕРЕВОМ, а не сломанным скриптом.
     stage "shellcheck скриптов гейтов" \
         shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
-                   scripts/owner_check.sh scripts/gate8_e2e.sh
+                   scripts/owner_check.sh scripts/gate8_e2e.sh scripts/seam_check.sh
 else
     skip "shellcheck" "не установлен (brew install shellcheck)"
 fi

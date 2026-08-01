@@ -62,29 +62,13 @@ jobs:
           python3 scripts/ci_lint.py
 
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
-      # Проверяется грепом, а не обещанием, и до сборки — нарушение видно первым же шагом.
+      # Тело гейта — в scripts/seam_check.sh: тот же скрипт гоняет preflight, поэтому нарушение
+      # видно до push, а не через двадцать минут на трёх ОС.
       # Один раннер: результат от ОС не зависит, дерево одно.
       - name: Platform — no OS #ifdef outside engine/platform (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          # Расширения фильтрует сам grep: постфильтр по строке пропускал бы .c/.cc/.cxx/.m (а
-          # engine/audio/*_impl.c в дереве есть) и заодно ловил бы содержимое строк, где просто
-          # встречается ".cpp:" — фикстуры парсера диагностик.
-          PATTERN='_WIN32|_MSC_VER|__APPLE__|__linux__|__unix__'
-          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
-               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
-          # Позитивный контроль: внутри шва условная компиляция обязана быть. Ноль совпадений
-          # здесь значит, что сломан сам поиск (промах регулярки, переименованный корень), —
-          # без этой проверки гейт после такой поломки зелёный навсегда.
-          # shellcheck disable=SC2086
-          SEAM=$(grep -rnE "$PATTERN" $EXT engine/platform | wc -l)
-          [ "$SEAM" -ge 3 ] || { echo "ifdef gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
-          # shellcheck disable=SC2086
-          HITS=$(grep -rnE "$PATTERN" $EXT engine tools example_ugly_game \
-                 | grep -v '^engine/platform/' || true)
-          [ -z "$HITS" ] || { echo "OS #ifdef leaked outside the platform seam:"; echo "$HITS"; exit 1; }
-          echo "platform seam: PASS (no OS conditionals outside engine/platform)"
+        run: bash scripts/seam_check.sh
 
       # Тот же инвариант 2, вторая его половина: узкий argv MSVC перекодирован в системную
       # ANSI-кодовую страницу, и юникод-аргумент разрушается ДО входа в шов файловой системы.
