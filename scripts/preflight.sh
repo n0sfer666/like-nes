@@ -65,18 +65,32 @@ stage "Сборка полного набора опций (imgui, miniaudio, wa
 # Диагностики компиляторов не совпадают: -Wformat-truncation есть у gcc и нет у clang, и именно
 # он поймал усечение snprintf, которое трижды прошло локальную сборку. Если gcc в системе есть —
 # третья конфигурация закрывает этот класс до CI.
-GXX=$(command -v g++-15 || command -v g++-14 || true)
+# Перебор от старших версий: новый gcc приносит НОВЫЕ диагностики, а именно они и валят сборку
+# на роллинг-дистрибутиве владельца, пока раннеры ubuntu-latest молчат. Список без верхней
+# границы смысла не имеет — дописывать по мере выхода.
+GXX=""
+for v in 18 17 16 15 14; do
+    GXX=$(command -v "g++-$v") && break
+    GXX=""
+done
 gcc_build() {
-    # Подмена только в basename: каталог с `g++` в имени иначе давал бы несуществующий CC и
-    # невнятный отказ конфигурации вместо честного «gcc не найден».
+    # Подменяется ТОЛЬКО CXX: наш код весь C++, а вендоренный C и так собирается с погашенными
+    # предупреждениями — брать под gcc ещё и его значит чинить чужие сборки без выигрыша.
     local base=${GXX##*/}
     CXX="$GXX" CC="${GXX%/*}/${base/g++/gcc}" build_config build-gcc \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 }
-if [ -n "$GXX" ] && ! "$GXX" --version 2>/dev/null | grep -qi clang; then
+if [ "$(uname -s)" = "Darwin" ]; then
+    # Homebrew-gcc на macOS это дерево не собирает В ПРИНЦИПЕ, и дело не в наших предупреждениях:
+    # у него нет ObjC ARC (`-fobjc-arc` для source_gamepad_macos.mm — unrecognized option), а
+    # заголовки Apple SDK написаны на блоках (`^`), которых gcc не знает — platform_watch_macos.cpp
+    # умирает внутри CoreServices. Гнать этап значило бы красить preflight в красный чужой
+    # несовместимостью. Класс gcc-диагностик закрывается на Linux — CI и машина владельца.
+    skip "Сборка gcc" "на macOS gcc не собирает .mm и заголовки Apple SDK — класс закрывается на Linux"
+elif [ -n "$GXX" ] && ! "$GXX" --version 2>/dev/null | grep -qi clang; then
     stage "Сборка gcc (диагностики, которых нет у clang)" gcc_build
 else
-    skip "Сборка gcc" "gcc не найден (brew install gcc) — класс -Wformat-truncation остаётся за CI"
+    skip "Сборка gcc" "gcc не найден ($(command -v dnf >/dev/null && echo 'sudo dnf install gcc-c++' || echo 'apt-get install g++')) — класс -Wformat-truncation остаётся за CI"
 fi
 
 printf '\n'
