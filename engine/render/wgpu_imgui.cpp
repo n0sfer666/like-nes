@@ -17,14 +17,7 @@ WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d, 
     return fmt;
 }
 
-bool present(const GpuContext& gpu, WGPUSurface surface, WGPUColor clear) {
-    WGPUSurfaceTexture stex = {};
-    wgpuSurfaceGetCurrentTexture(surface, &stex);
-    if (stex.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-        if (stex.texture) wgpuTextureRelease(stex.texture);
-        return false;
-    }
-    WGPUTextureView view = wgpuTextureCreateView(stex.texture, nullptr);
+void draw_into(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear) {
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
     WGPURenderPassColorAttachment color = {};
     color.view = view; color.loadOp = WGPULoadOp_Clear; color.storeOp = WGPUStoreOp_Store;
@@ -39,6 +32,17 @@ bool present(const GpuContext& gpu, WGPUSurface surface, WGPUColor clear) {
     wgpuQueueSubmit(gpu.queue, 1, &cmd);
     wgpuCommandBufferRelease(cmd);
     wgpuCommandEncoderRelease(enc);
+}
+
+bool present(const GpuContext& gpu, WGPUSurface surface, WGPUColor clear) {
+    WGPUSurfaceTexture stex = {};
+    wgpuSurfaceGetCurrentTexture(surface, &stex);
+    if (stex.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
+        if (stex.texture) wgpuTextureRelease(stex.texture);
+        return false;
+    }
+    WGPUTextureView view = wgpuTextureCreateView(stex.texture, nullptr);
+    draw_into(gpu, view, clear);
     wgpuSurfacePresent(surface);
     wgpuTextureViewRelease(view);
     wgpuTextureRelease(stex.texture);

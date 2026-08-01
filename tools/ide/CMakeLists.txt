@@ -87,10 +87,12 @@ target_compile_definitions(build_loop_test PRIVATE
 # Live editor-shell (гейт 6): вьюпорт+гизмо+инспектор+иерархия в ImGui docking (#6). Owner-HW.
 # Собирается когда доступен imgui-таргет (PLUGIN_UI on); в headless CI PLUGIN_UI=OFF → пропуск.
 if(TARGET imgui)
-  # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext из
-  # engine/render/gpu.cpp; glfw3webgpu — surface из GLFW-окна.
-  add_executable(editor_shell editor/editor_shell_main.cpp ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
-  target_link_libraries(editor_shell PRIVATE editor_core imgui glfw3webgpu webgpu)
+  # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext и
+  # capture (снимок кадра для --gate6) — из render_core; glfw3webgpu — surface из GLFW-окна.
+  # platform_core нужен режиму гейта: паспорт сессии читает окружение через platform::env_var.
+  add_executable(editor_shell
+    editor/editor_shell_main.cpp editor/editor_gate6.cpp editor/editor_gate6_session.cpp)
+  target_link_libraries(editor_shell PRIVATE editor_core imgui render_core platform_core glfw3webgpu webgpu)
   target_copy_webgpu_binaries(editor_shell)
   reproducible_rpath(editor_shell)
 endif()
