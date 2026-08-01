@@ -27,7 +27,7 @@ add_executable(diagnostics_test compile/diagnostics_test.cpp)
 target_link_libraries(diagnostics_test PRIVATE diag_core)
 
 add_executable(perf_test perf_test.cpp)
-target_link_libraries(perf_test PRIVATE scene_core)
+target_link_libraries(perf_test PRIVATE scene_core platform_core)   # шов: PLATFORM_NOINLINE
 
 add_library(editor_core STATIC editor/property_grid.cpp)
 target_include_directories(editor_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

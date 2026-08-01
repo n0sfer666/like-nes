@@ -7,6 +7,7 @@
 
 #include "engine.hpp"
 #include "mixer.hpp"
+#include "platform_noinline.hpp"
 
 // Гейт #3 (спека #3): audio-callback RT-safe — НЕТ heap-аллокаций/локов/I/O в mix()-пути
 // (декод и регистрация источников — вне callback). Глобальный operator new считает аллокации,
@@ -17,29 +18,19 @@ bool g_in_cb = false;
 long g_allocs = 0;
 } // namespace
 
-// RT_NOINLINE обязателен, а не косметика. Заинлайнив наш operator delete туда, где видна
-// аллокация, GCC 16 видит пару «__builtin_operator_new → free» и валит сборку по
-// -Werror=mismatched-new-delete: про то, что free тут и есть тело замещающего delete, он уже
-// забыл. Запрет инлайна оставляет p параметром неизвестного происхождения — сравнивать не с чем.
-// Тот же класс ложных срабатываний GCC чинит у себя ровно так же. На Mach-O не воспроизводится
-// (замещаемые операторы там и без того не инлайнятся), поэтому ловится только на Linux.
-#if defined(_MSC_VER)
-#define RT_NOINLINE __declspec(noinline)
-#else
-#define RT_NOINLINE __attribute__((noinline))
-#endif
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
 
-RT_NOINLINE void* operator new(std::size_t n) {
+PLATFORM_NOINLINE void* operator new(std::size_t n) {
     if (g_in_cb) ++g_allocs;
     void* p = std::malloc(n ? n : 1);
     if (!p) throw std::bad_alloc();
     return p;
 }
-RT_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
-RT_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-RT_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
 
 using namespace audio;
 

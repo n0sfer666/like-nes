@@ -9,6 +9,7 @@
 #include "presets.hpp"
 #include "schedule.hpp"
 #include "stick.hpp"
+#include "platform_noinline.hpp"
 
 // Гейт 7 спеки #14: тик слоя фреймворка не ходит в кучу. Аллокации живут на старте — бейк,
 // открытие таблицы, построение расписания; всё, что повторяется каждый кадр, обязано укладываться
@@ -19,25 +20,19 @@ bool g_in_hot = false;
 long g_allocs = 0;
 } // namespace
 
-// RT_NOINLINE — см. engine/audio/audio_rt_test.cpp: заинлайненный replacement-delete GCC 16
-// принимает за free() чужой аллокации и валит сборку по -Werror=mismatched-new-delete.
-#if defined(_MSC_VER)
-#define RT_NOINLINE __declspec(noinline)
-#else
-#define RT_NOINLINE __attribute__((noinline))
-#endif
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
 
-RT_NOINLINE void* operator new(std::size_t n) {
+PLATFORM_NOINLINE void* operator new(std::size_t n) {
     if (g_in_hot) ++g_allocs;
     void* p = std::malloc(n ? n : 1);
     if (p == nullptr) throw std::bad_alloc();
     return p;
 }
-RT_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
-RT_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-RT_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
 
 namespace {
 

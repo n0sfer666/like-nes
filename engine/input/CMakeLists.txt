@@ -12,7 +12,7 @@ add_executable(input_race_test input_race_test.cpp)
 target_link_libraries(input_race_test PRIVATE input_core)
 
 add_executable(input_rt_test input_rt_test.cpp)
-target_link_libraries(input_rt_test PRIVATE input_core)
+target_link_libraries(input_rt_test PRIVATE input_core platform_core)   # шов: PLATFORM_NOINLINE
 
 add_executable(input_actionmap_test input_actionmap_test.cpp)
 target_link_libraries(input_actionmap_test PRIVATE input_core)
