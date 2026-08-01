@@ -30,6 +30,11 @@ int main(int argc, char** argv) {
     platform::SharedMemory m;
     if (!m.open(name, sizeof(MirrorBuffer), /*create=*/false, /*writable=*/true)) return 3;
     auto* buf = static_cast<MirrorBuffer*>(m.writable_data());
+    // Успешный open() ещё не обещает writable_data(): аксессор по контракту отдаёт nullptr на
+    // read-only маппинге, и открытие сегмента, который владелец сделал RO, прошло бы проверку
+    // выше и упало бы разыменованием нуля прямо здесь. Режим `crash` роняет процесс НАМЕРЕННО и
+    // в заданный тик — незапланированный краш на первой же строке выглядел бы точно так же.
+    if (buf == nullptr) return 4;
 
     buf->header.seq.store(0);   // атомик; заголовок-скаляры публикуются ПОД seqlock (см. цикл)
     const uint32_t layout = (mode == "badlayout") ? 999u : MIRROR_LAYOUT_VERSION;
