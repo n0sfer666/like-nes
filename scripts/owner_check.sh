@@ -64,7 +64,12 @@ install_cmd() {
     else printf 'поставить пакет'; fi
 }
 if have vulkaninfo; then
-    say "vulkan      : $(vulkaninfo --summary 2>/dev/null | grep -m1 -i 'deviceName' || echo 'нет устройств')"
+    # Не `… | grep -m1 … || echo 'нет устройств'`: grep уходит по первому совпадению, vulkaninfo
+    # получает SIGPIPE, и под `pipefail` успешный конвейер отдаёт ненулевой код — ветка `||`
+    # срабатывала ВМЕСТЕ с найденным именем, дописывая «нет устройств» к живому устройству.
+    # Отдельная переменная снимает вопрос: пусто и есть «не нашли».
+    VK=$(vulkaninfo --summary 2>/dev/null | grep -m1 -i 'deviceName' | sed 's/^[[:space:]]*//')
+    say "vulkan      : ${VK:-нет устройств}"
 elif [ "$OS_TAG" = "linux" ]; then
     say "vulkan      : vulkaninfo не установлен ($(install_cmd) vulkan-tools) — гейт 6 без него слеп"
 fi
