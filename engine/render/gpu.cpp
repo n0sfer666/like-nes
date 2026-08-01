@@ -1,14 +1,30 @@
 #include "gpu.hpp"
 
+#include <webgpu/wgpu.h>
+
 #include <cstdio>
 
 namespace {
 
-WGPUAdapter request_adapter(WGPUInstance instance, WGPUSurface surface) {
+WGPUInstanceBackendFlags backend_flag(WGPUBackendType t) {
+    switch (t) {
+    case WGPUBackendType_Vulkan: return WGPUInstanceBackend_Vulkan;
+    case WGPUBackendType_D3D12:  return WGPUInstanceBackend_DX12;
+    case WGPUBackendType_D3D11:  return WGPUInstanceBackend_DX11;
+    case WGPUBackendType_Metal:  return WGPUInstanceBackend_Metal;
+    case WGPUBackendType_OpenGL: return WGPUInstanceBackend_GL;
+    default:                     return WGPUInstanceBackend_All;
+    }
+}
+
+WGPUAdapter request_adapter(WGPUInstance instance, WGPUSurface surface, WGPUPowerPreference power) {
     WGPUAdapter out = nullptr;
     WGPURequestAdapterOptions opts = {};
     opts.compatibleSurface = surface;
-    opts.powerPreference = WGPUPowerPreference_HighPerformance;
+    opts.powerPreference = power;
+    // backendType здесь НЕ ставим намеренно: wgpu-native его игнорирует и печатает в лог
+    // «WGPURequestAdapterOptions.backendType is unsupported». Отбор бэкенда живёт на инстансе,
+    // см. create_instance — здесь он выглядел бы рабочим и молча ничего не делал.
     opts.backendType = WGPUBackendType_Undefined;
     opts.forceFallbackAdapter = false;
     wgpuInstanceRequestAdapter(
@@ -61,12 +77,29 @@ const char* backend_name(WGPUBackendType t) {
 
 } // namespace
 
+WGPUInstance GpuContext::create_instance() const {
+    if (backend == WGPUBackendType_Undefined) return wgpuCreateInstance(nullptr);
+    WGPUInstanceExtras extras = {};
+    extras.chain.sType = static_cast<WGPUSType>(WGPUSType_InstanceExtras);
+    extras.backends = backend_flag(backend);
+    WGPUInstanceDescriptor desc = {};
+    desc.nextInChain = &extras.chain;
+    return wgpuCreateInstance(&desc);
+}
+
 bool GpuContext::init(WGPUSurface surface) {
     // instance может быть уже создан вызывающим (оконный путь: surface нужен до adapter).
-    if (!instance) instance = wgpuCreateInstance(nullptr);
+    if (!instance) instance = create_instance();
     if (!instance) { std::fprintf(stderr, "instance failed\n"); return false; }
-    adapter = request_adapter(instance, surface);
-    if (!adapter) { std::fprintf(stderr, "no adapter\n"); shutdown(); return false; }
+    adapter = request_adapter(instance, surface, power);
+    if (!adapter) {
+        std::fprintf(stderr, "no adapter (%s)\n",
+                     backend == WGPUBackendType_Undefined
+                         ? "выбор бэкенда был за wgpu"
+                         : "запрошен конкретный бэкенд — на этой машине его нет");
+        shutdown();
+        return false;
+    }
     supports_bc = wgpuAdapterHasFeature(adapter, WGPUFeatureName_TextureCompressionBC);
     device = request_device(adapter);
     if (!device) { std::fprintf(stderr, "no device\n"); shutdown(); return false; }

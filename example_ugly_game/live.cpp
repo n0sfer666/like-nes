@@ -16,6 +16,7 @@
 #include "batch.hpp"
 #include "draw.hpp"
 #include "gpu.hpp"
+#include "gpu_env.hpp"
 #include "platform_env.hpp"
 #include "sim.hpp"
 #include "source.hpp"
@@ -49,7 +50,8 @@ int run_window(int frame_cap) {
     if (!win) { glfwTerminate(); return 1; }
 
     GpuContext gpu;
-    gpu.instance = wgpuCreateInstance(nullptr);
+    apply_gpu_env(gpu);
+    gpu.instance = gpu.create_instance();
     WGPUSurface surface = glfwGetWGPUSurface(gpu.instance, win);
     if (!gpu.init(surface)) { gpu.shutdown(); glfwDestroyWindow(win); glfwTerminate(); return 1; }
     int fbw = 0, fbh = 0;

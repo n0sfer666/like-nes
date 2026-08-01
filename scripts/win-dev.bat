@@ -11,7 +11,8 @@ rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Pyth
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
 rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
 rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash
-rem   scripts\win-dev.bat game    запустить собранную игру
+rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
+rem   scripts\win-dev.bat demo    отрисовать 60 кадров в PNG мимо окна (чёрный экран: кто виноват)
 rem   scripts\win-dev.bat shell   отдать cmd с готовым x64-окружением
 rem   scripts\win-dev.bat clean   удалить каталог build (кеш помнит компилятор)
 setlocal EnableExtensions
@@ -35,9 +36,10 @@ if /i "%ACTION%"=="build" goto need_vs
 if /i "%ACTION%"=="warn"  goto need_vs
 if /i "%ACTION%"=="check" goto need_vs
 if /i "%ACTION%"=="game"  goto need_vs
+if /i "%ACTION%"=="demo"  goto need_vs
 if /i "%ACTION%"=="shell" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|warn^|check^|game^|shell^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|game^|demo^|shell^|clean]
 exit /b 2
 
 :do_setup
@@ -105,6 +107,7 @@ if /i "%ACTION%"=="shell" (
     exit /b 0
 )
 if /i "%ACTION%"=="game" goto do_game
+if /i "%ACTION%"=="demo" goto do_demo
 if /i "%ACTION%"=="check" goto do_check
 if /i "%ACTION%"=="warn" goto do_warn
 
@@ -149,8 +152,33 @@ if not exist build\game_sidescroller.exe (
     echo build\game_sidescroller.exe missing - run: scripts\win-dev.bat build
     exit /b 1
 )
+rem Второй аргумент — ручка выбора адаптера из engine/render/gpu.cpp. На гибридном ноутбуке кадры
+rem могут рисоваться на дискретной карте, а окном владеть интегрированная: изнутри процесса всё
+rem успешно, на экране чёрное. Здесь только проброс: `game d3d12` меняет бэкенд, `game low` -
+rem адаптер на интегрированный. Переменные ставятся строками верхнего уровня, а не внутри
+rem if-блока: в блоке %VAR% разворачивается при разборе, то есть до присваивания.
+if /i "%~2"=="low" set "LIKENES_GPU_POWER=low"
+if /i "%~2"=="high" set "LIKENES_GPU_POWER=high"
+if not "%~2"=="" if /i not "%~2"=="low" if /i not "%~2"=="high" set "LIKENES_GPU_BACKEND=%~2"
+if not "%~2"=="" echo Adapter: LIKENES_GPU_BACKEND=%LIKENES_GPU_BACKEND% LIKENES_GPU_POWER=%LIKENES_GPU_POWER%
 build\game_sidescroller.exe
 exit /b %errorlevel%
+
+:do_demo
+rem Тот же кадр тем же пайплайном, но в файл вместо окна: окна и поверхности в этом пути нет вовсе.
+rem Кадры на месте, а окно чёрное - сломана презентация (драйвер/композиция), а не отрисовка;
+rem кадры чёрные - виноват движок, и искать надо в нём.
+if not exist build\game_sidescroller.exe (
+    echo build\game_sidescroller.exe missing - run: scripts\win-dev.bat build
+    exit /b 1
+)
+if exist build\demo rmdir /s /q build\demo
+mkdir build\demo
+build\game_sidescroller.exe --demo build\demo --frames 60
+if errorlevel 1 exit /b 1
+echo.
+echo Frames: build\demo\frame_0059.png ^(and 59 more^) - open a late one and look.
+exit /b 0
 
 :do_check
 rem Гейты писаны на POSIX-шелле, и его на Windows приносит Git. Путь ищется по установкам, а не
