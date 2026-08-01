@@ -62,13 +62,14 @@ jobs:
           python3 scripts/ci_lint.py
 
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
-      # Тело гейта — в scripts/seam_check.sh: тот же скрипт гоняет preflight, поэтому нарушение
-      # видно до push, а не через двадцать минут на трёх ОС.
+      # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
+      # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
+      # Шаги остаются раздельными, чтобы в логе было названо, какой именно инвариант сломан.
       # Один раннер: результат от ОС не зависит, дерево одно.
       - name: Platform — no OS #ifdef outside engine/platform (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: bash scripts/seam_check.sh
+        run: bash scripts/tree_invariants.sh seam
 
       # Тот же инвариант 2, вторая его половина: узкий argv MSVC перекодирован в системную
       # ANSI-кодовую страницу, и юникод-аргумент разрушается ДО входа в шов файловой системы.
@@ -78,29 +79,7 @@ jobs:
       - name: Platform — argv only through platform::Args (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          # Исключён только iOS-хост: свой CRT, MSVC там нет, и ANSI-перекодировка argv до него
-          # не доходит. game_child, play_spawn_test и build_loop_test переехали на швы и из
-          # списка ушли — теперь их проверяют.
-          EXCLUDE='^(platform/ios/app\.mm)$'
-          # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
-          # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
-          FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
-                  --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
-                  --include='*.mm' --include='*.m' \
-                  engine tools example_ugly_game platform | grep -vE "$EXCLUDE" || true)
-          # Пустой список — это сломанный поиск, а не чистое дерево: без этой проверки гейт
-          # проходит вакуумно (переименовали корень — и он «зелёный» навсегда).
-          COUNT=$(printf '%s\n' "$FILES" | grep -c . || true)
-          [ "$COUNT" -ge 15 ] || { echo "argv gate matched only $COUNT main() files — the search itself is broken"; exit 1; }
-          BAD=""
-          # read -r, а не `for f in $(...)`: в дереве уже есть каталог с пробелом в имени.
-          while IFS= read -r f; do
-            [ -n "$f" ] || continue
-            grep -q 'platform::Args' "$f" || BAD="$BAD $f"
-          done <<< "$FILES"
-          [ -z "$BAD" ] || { echo "main() without the UTF-8 argv seam (platform::Args):$BAD"; exit 1; }
-          echo "argv seam: PASS ($COUNT mains, all through platform::Args)"
+        run: bash scripts/tree_invariants.sh argv
 
       # Третья половина того же инварианта. std::getenv отдаёт на Windows ANSI-строку, поэтому
       # `LIKENES_ASSETS=D:\юникод тест-каталог\` приезжает с подменёнными символами, а MSVC вдобавок
@@ -109,33 +88,7 @@ jobs:
       - name: Platform — env only through the platform_env seam (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
-               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
-          ROOTS="engine tools example_ugly_game platform"
-          # Переименованный корень греп бы проглотил (нашлось в остальных — код 0), и гейт стал бы
-          # зелёным для целого поддерева. Существование корней утверждается отдельно.
-          for r in $ROOTS; do
-            [ -d "$r" ] || { echo "env gate: root '$r' does not exist"; exit 1; }
-          done
-          # Запись ищется вместе с чтением: setenv/putenv мимо шва — тот же ANSI-барьер, только
-          # значение портится на входе, а не на выходе. Annex-K-имена в альтернации не для красоты:
-          # под /WX обойти шов через std::getenv на Windows нельзя вовсе (C4996 — ошибка), и
-          # единственный работающий обход — как раз _dupenv_s/getenv_s/_putenv_s, куда MSVC и
-          # предлагает уйти в тексте самой диагностики. Префиксы (_w, secure_) ловятся тем, что
-          # шаблон не якорится по началу слова.
-          # shellcheck disable=SC2086
-          ALL=$(grep -rnE '(get|set|unset|put|dup)env(_s)?[[:space:]]*\(' $EXT $ROOTS || true)
-          # Позитивный контроль: ТОТ ЖЕ шаблон по ТЕМ ЖЕ корням обязан видеть getenv внутри шва —
-          # там он и живёт. Ноль совпадений значит сломанный поиск, а не чистое дерево, поэтому
-          # контроль считается из того же прогона, а не из отдельного поиска по одному файлу.
-          # Исключение — весь шов, включая заголовок: в нём эти имена стоят в описании контракта,
-          # и упоминание вида `_dupenv_s(...)` в комментарии роняло бы гейт на ровном месте.
-          SEAM=$(printf '%s\n' "$ALL" | grep -c '^engine/platform/platform_env' || true)
-          [ "$SEAM" -ge 1 ] || { echo "env gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
-          HITS=$(printf '%s\n' "$ALL" | grep -v '^engine/platform/platform_env' | grep . || true)
-          [ -z "$HITS" ] || { echo "env access outside the seam (platform::env_var/env_put):"; echo "$HITS"; exit 1; }
-          echo "env seam: PASS (getenv/setenv live only in engine/platform/platform_env*)"
+        run: bash scripts/tree_invariants.sh env
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -962,19 +915,7 @@ jobs:
       - name: "Framework — subsystems do not depend on the layer (invariant 1, Linux)"
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          DIRS="engine/render engine/audio engine/input engine/asset engine/plugin"
-          # Доказательство, что поиск работает: цели линкуются в каждом из этих каталогов.
-          grep -rn "target_link_libraries" $DIRS >/dev/null \
-            || { echo "search found no link edges at all — the gate is vacuous"; exit 1; }
-          # Ловим ребро к слою: имя цели (framework_core / framework_input) и включение его
-          # заголовков. Слово "framework" целиком не годится — им зовутся системные фреймворки
-          # macOS ("-framework CoreAudio") и GameController.framework в комментариях.
-          if grep -rnE "framework_(core|input)|include .*framework/" $DIRS; then
-            echo "a subsystem depends on the framework layer — direction broken"
-            exit 1
-          fi
-          echo "framework dependency direction: PASS"
+        run: bash scripts/tree_invariants.sh deps
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'
