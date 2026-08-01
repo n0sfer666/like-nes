@@ -85,8 +85,10 @@ if [ "$(uname -s)" = "Darwin" ]; then
     # у него нет ObjC ARC (`-fobjc-arc` для source_gamepad_macos.mm — unrecognized option), а
     # заголовки Apple SDK написаны на блоках (`^`), которых gcc не знает — platform_watch_macos.cpp
     # умирает внутри CoreServices. Гнать этап значило бы красить preflight в красный чужой
-    # несовместимостью. Класс gcc-диагностик закрывается на Linux — CI и машина владельца.
-    skip "Сборка gcc" "на macOS gcc не собирает .mm и заголовки Apple SDK — класс закрывается на Linux"
+    # несовместимостью. Несобираемость при этом локальна — три файла из ста семидесяти, — поэтому
+    # большую часть класса всё же можно закрыть тут: scripts/tu_sweep.py компилирует TU по одному
+    # и падение одного не скрывает диагностики остальных. Linux-only TU (evdev, X11) остаются за CI.
+    skip "Сборка gcc" "на macOS gcc не собирает .mm и Apple SDK — переносимые TU закрывает scripts/tu_sweep.py, Linux-only остаются за CI"
 elif [ -n "$GXX" ] && ! "$GXX" --version 2>/dev/null | grep -qi clang; then
     stage "Сборка gcc (диагностики, которых нет у clang)" gcc_build
 else
