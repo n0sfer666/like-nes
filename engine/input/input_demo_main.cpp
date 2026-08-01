@@ -26,7 +26,9 @@ static ActionMap make_map() {
     m.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
     m.bind_axis(AX_MoveX, {SourceKind::PadAxis, c::LX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
     m.bind_axis(AX_MoveY, {SourceKind::Key, c::W, 1}, {SourceKind::Key, c::S, 1}, fix32{}, 0);
-    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
+    // sign -1: клавиша W выше даёт +MoveY (вверх), а сырая LY по контракту codes.hpp растёт ВНИЗ —
+    // без инверсии пад и клавиатура в одном и том же демо ехали бы в разные стороны.
+    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, -1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
     // Мышь/трекпад: scale 1/32 → дельта видна пропорционально (не мгновенный clamp до ±1). 2D-aim.
     m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 32));
     m.bind_axis(AX_AimX, {SourceKind::PadAxis, c::RX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
