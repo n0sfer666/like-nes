@@ -79,8 +79,14 @@ like-nes — прогон проверки на чистой машине
 
   sudo dnf install -y gcc-c++ cmake ninja-build git python3 \
       libX11-devel libXrandr-devel libXinerama-devel libXcursor-devel \
-      libXi-devel libxkbcommon-devel \
+      libXi-devel libxkbcommon-devel mesa-libGL-devel \
       vulkan-loader vulkan-tools mesa-vulkan-drivers
+
+  mesa-libGL-devel в списке не по ошибке: GL/gl.h тянет сам glfw3.h под X11,
+  независимо от того, что мы рисуем не через OpenGL. На Debian заголовок
+  приезжает зависимостью xorg-dev, поэтому в строке для Ubuntu его не видно.
+  Без него сборка падает на зависимости glfw3webgpu:
+      fatal error: GL/gl.h: No such file or directory
 
   mesa-vulkan-drivers несёт сразу radv (AMD), anv (Intel) и lavapipe
   (программный) — отдельный пакет под свою карту, как в Arch, ставить не
@@ -369,9 +375,34 @@ PowerShell и Git Bash окружения vcvars не имеют.
   LIKENES_ASSETS=<путь к example_ugly_game/assets>
   (Windows: set LIKENES_ASSETS=...)
 
+--- "fatal error: GL/gl.h: No such file or directory" (Fedora/Nobara) -----
+
+Падает не наш код, а зависимость glfw3webgpu: заголовок тянет сам glfw3.h
+под X11. На Debian он приезжает внутри xorg-dev, у Fedora метапакета нет.
+
+  sudo dnf install -y mesa-libGL-devel
+
+Переконфигурировать не нужно — повторить cmake --build build.
+
+--- "Could not resolve host: github.com" при первом конфигурировании ------
+
+Это DNS, а не дерево: первое конфигурирование качает зависимости. Часто
+случается сразу после обновления системы, которое перезапустило резолвер.
+
+  getent hosts github.com        должен напечатать IP
+  resolvectl status | head -20   пусто → sudo systemctl restart systemd-resolved
+
+Затем убрать stamp провалившейся загрузки и повторить конфигурирование
+(каталог build целиком сносить не надо, скачанное останется):
+
+  rm -rf build/_deps/<имя>-subbuild build/_deps/<имя>-src
+
 --- Пад не виден на Linux ------------------------------------------------
 
   sudo usermod -aG input $USER   и перелогиниться.
+
+Ещё вероятнее на игровом дистрибутиве: запущенный Steam со Steam Input
+подменяет реальный пад виртуальным Xbox 360. На время гейта закрыть Steam.
 
 --- Нет звука на Linux ---------------------------------------------------
 
