@@ -49,9 +49,12 @@ else
 fi
 
 if command -v shellcheck >/dev/null; then
-    # Сами гейты — тоже скрипты, и ошибка в них тихо превращает проверку в декорацию.
+    # Сами гейты — тоже скрипты, и ошибка в них тихо превращает проверку в декорацию. Скрипты
+    # владельца здесь по той же причине и с добавкой: их гоняют на чужой машине, где сломанный
+    # шаг выглядит сломанным ДЕРЕВОМ, а не сломанным скриптом.
     stage "shellcheck скриптов гейтов" \
-        shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh
+        shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
+                   scripts/owner_check.sh scripts/gate8_e2e.sh
 else
     skip "shellcheck" "не установлен (brew install shellcheck)"
 fi
