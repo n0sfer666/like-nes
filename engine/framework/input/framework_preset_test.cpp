@@ -153,6 +153,24 @@ int main(int argc, char** argv) {
     check(f.axes[AX_X] == fix32::from_int(-1), "the negative key drives the axis to -1");
     check(f.axes[AX_Y] == fix32{}, "an untouched axis stays at zero");
 
+    // Регрессия: НЕпервая строка оси обязана попасть в тот же слот, что и первая. Индекс считался
+    // по числу первых строк ПЕРЕД этой, то есть по номеру строки, — и `key:right` с `padaxis:lx`
+    // уезжали в move_y. Наружу это вышло геймпадом: «вверх» получалось наклоном стика вправо,
+    // «вниз» — влево, а вертикаль стика не делала ничего. Клавиши WASD (первые строки обеих осей)
+    // при этом работали, поэтому проверка клавиатурой ничего не показывала.
+    ::input::DeviceState arrows;
+    arrows.keys[262 >> 6] |= (1ull << (262 & 63));   // key:right — вторая строка move_x
+    f = map.resolve(arrows, 0, 4, 0);
+    check(f.axes[AX_X] == fix32::from_int(1), "an alternative key row drives its own axis");
+    check(f.axes[AX_Y] == fix32{}, "an alternative key row does not leak into the next axis");
+
+    ::input::DeviceState stick;
+    stick.pad_connected[0] = true;
+    stick.pad_axes[0][c::LX] = fix32::from_int(1);    // padaxis:lx — третья строка move_x
+    f = map.resolve(stick, 0, 5, 0);
+    check(f.axes[AX_X] == fix32::from_int(1), "the stick row drives its own axis");
+    check(f.axes[AX_Y] == fix32{}, "the stick does not leak into the next axis");
+
     // Ошибки манифеста называют строку: без номера строки диагностика бейка бесполезна ровно
     // тогда, когда нужна.
     std::vector<uint8_t> ignored;
