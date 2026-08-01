@@ -24,6 +24,11 @@ rem Скобка в самом ИМЕНИ переменной закрывае�
 rem `if (...)` или списка `for`. Разворачиваем один раз здесь, на верхнем уровне.
 set "PF86=%ProgramFiles(x86)%"
 
+rem Диагностики cl.exe — на языке установки, и в русской они приезжают в OEM-кодировке: лог
+rem нечитаем глазами и мимо любого grep по «warning». VSLANG=1033 переводит компилятор на
+rem английский; ровно это же делает CI, и парсер диагностик в tools/ide рассчитан на него.
+set "VSLANG=1033"
+
 if /i "%ACTION%"=="setup" goto do_setup
 if /i "%ACTION%"=="clean" goto do_clean
 if /i "%ACTION%"=="build" goto need_vs

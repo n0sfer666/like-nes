@@ -93,7 +93,8 @@ inline void viewport_panel(EditorState& st) {
             const Position* p = st.scene.get(gid).try_get<Position>();
             if (!p) continue;
             float sx, sy;
-            world_to_screen(st.cam, p->x.to_double(), p->y.to_double(), sx, sy);
+            world_to_screen(st.cam, static_cast<float>(p->x.to_double()),
+                            static_cast<float>(p->y.to_double()), sx, sy);
             ImVec2 c(p0.x + sx, p0.y + sy);
             bool selp = (gid == st.sel);
             dl->AddCircleFilled(c, 4.0f, selp ? IM_COL32(255, 200, 60, 255) : IM_COL32(120, 160, 220, 255));
