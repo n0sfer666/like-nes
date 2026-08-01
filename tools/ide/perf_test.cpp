@@ -1,5 +1,6 @@
 #include "command.hpp"
 #include "scene.hpp"
+#include "platform_noinline.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -81,25 +82,19 @@ int grid_read(flecs::entity e, char* buf, size_t cap) {
 
 } // namespace
 
-// RT_NOINLINE — см. engine/audio/audio_rt_test.cpp: заинлайненный replacement-delete GCC 16
-// принимает за free() чужой аллокации и валит сборку по -Werror=mismatched-new-delete.
-#if defined(_MSC_VER)
-#define RT_NOINLINE __declspec(noinline)
-#else
-#define RT_NOINLINE __attribute__((noinline))
-#endif
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
 
-RT_NOINLINE void* operator new(size_t n) {
+PLATFORM_NOINLINE void* operator new(size_t n) {
     if (g_count) g_allocs.fetch_add(1, std::memory_order_relaxed);
     void* p = std::malloc(n ? n : 1);
     if (!p) throw std::bad_alloc();
     return p;
 }
-RT_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete(void* p, size_t) noexcept { std::free(p); }
-RT_NOINLINE void* operator new[](size_t n) { return ::operator new(n); }
-RT_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
-RT_NOINLINE void operator delete[](void* p, size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void* operator new[](size_t n) { return ::operator new(n); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, size_t) noexcept { std::free(p); }
 
 int main() {
     const uint32_t N = 10000;

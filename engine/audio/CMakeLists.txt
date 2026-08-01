@@ -26,7 +26,7 @@ target_link_libraries(audio_determinism_test PRIVATE audio_core)
 
 # Гейт #3 (RT-safe callback: no-alloc/lock-free). ASan/UBSan-джоб. CI на всех ОС.
 add_executable(audio_rt_test audio_rt_test.cpp)
-target_link_libraries(audio_rt_test PRIVATE audio_core)
+target_link_libraries(audio_rt_test PRIVATE audio_core platform_core)   # шов: PLATFORM_NOINLINE
 
 # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
 add_executable(audio_seam audio_seam_main.cpp)
