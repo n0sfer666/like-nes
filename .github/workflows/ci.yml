@@ -345,7 +345,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+          # -Iengine/platform: проба берёт оттуда PLATFORM_NOINLINE — условная компиляция живёт
+          # только за швом. Шаг зовёт компилятор напрямую, мимо CMake, поэтому include-пути
+          # целей сюда не приезжают: их приходится повторять руками.
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine/platform \
             engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
             engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
@@ -380,7 +383,8 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -std=gnu++20"
+          # -Iengine/platform: rt-проба берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -Iengine/platform -std=gnu++20"
           c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
@@ -729,7 +733,8 @@ jobs:
         run: |
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
+          # -Iengine/platform: perf_test берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/platform -I$FLECSINC"
           c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
