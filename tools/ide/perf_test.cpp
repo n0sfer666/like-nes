@@ -1,5 +1,6 @@
 #include "command.hpp"
 #include "scene.hpp"
+#include "platform_noinline.hpp"
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -81,17 +82,19 @@ int grid_read(flecs::entity e, char* buf, size_t cap) {
 
 } // namespace
 
-void* operator new(size_t n) {
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
+
+PLATFORM_NOINLINE void* operator new(size_t n) {
     if (g_count) g_allocs.fetch_add(1, std::memory_order_relaxed);
     void* p = std::malloc(n ? n : 1);
     if (!p) throw std::bad_alloc();
     return p;
 }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete(void* p, size_t) noexcept { std::free(p); }
-void* operator new[](size_t n) { return ::operator new(n); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete[](void* p, size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void* operator new[](size_t n) { return ::operator new(n); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, size_t) noexcept { std::free(p); }
 
 int main() {
     const uint32_t N = 10000;

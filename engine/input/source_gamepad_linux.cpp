@@ -39,7 +39,7 @@ int map_abs(int code, int& is_axis) { // возвращает наш axis-код
     }
 }
 
-struct Dev { int fd = -1; int slot = -1; input_absinfo abs[ABS_CNT]; };
+struct Dev { int fd = -1; int slot = -1; input_absinfo abs[ABS_CNT]; PadInfo info; };
 
 class LinuxGamepadSource : public GamepadSource {
 public:
@@ -80,6 +80,14 @@ public:
 
     const char* backend_name() const override { return "evdev (Linux)"; }
 
+    // evdev — единственный из трёх бэкендов, отдающий настоящие VID/PID: EVIOCGID приходит
+    // прямо из дескриптора устройства, без разбора HID-репорта.
+    PadInfo pad_info(int slot) const override {
+        for (const Dev& d : devs_)
+            if (d.slot == slot && d.fd >= 0) return d.info;
+        return {};
+    }
+
 private:
     void handle_abs(InputEngine& e, Dev& d, const input_event& ev) {
         if (ev.code == ABS_HAT0X) { emit_dpad(e, d.slot, c::DpLeft, ev.value < 0); emit_dpad(e, d.slot, c::DpRight, ev.value > 0); return; }
@@ -119,6 +127,9 @@ private:
             if (slot < 0) { close(fd); continue; }
             Dev d; d.fd = fd; d.slot = slot;
             for (int a = 0; a < ABS_CNT; ++a) ioctl(fd, EVIOCGABS(a), &d.abs[a]);
+            input_id id{};
+            if (ioctl(fd, EVIOCGID, &id) >= 0) { d.info.vid = id.vendor; d.info.pid = id.product; }
+            if (ioctl(fd, EVIOCGNAME(sizeof(d.info.name) - 1), d.info.name) < 0) d.info.name[0] = '\0';
             devs_.push_back(d); opened_.insert(path); paths_[slot] = path;
             e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, (uint8_t)slot, 0, 0, seq_++});
         }

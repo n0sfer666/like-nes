@@ -68,7 +68,7 @@ void test_determinism() {
     for (std::size_t i = 0; i < a.size() && i < b.size(); ++i) {
         check(a[i].id == b[i].id && a[i].tick == b[i].tick, "run-to-run event order");
     }
-    if (GOLDEN != 0) check(ha == GOLDEN, "golden hash");
+    if constexpr (GOLDEN != 0) check(ha == GOLDEN, "golden hash");
 
     std::vector<ach::Event> c;
     check(scripted(true, &c) == ha, "insertion-order independence");

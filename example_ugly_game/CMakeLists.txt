@@ -27,13 +27,14 @@ set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
-  batch.cpp art.cpp sim.cpp combat.cpp boss.cpp fx.cpp bloom.cpp audio.cpp controls.cpp capture.cpp
+  batch.cpp art.cpp sim.cpp combat.cpp boss.cpp fx.cpp bloom.cpp audio.cpp input_setup.cpp capture.cpp
+  gpu_env.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
 target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(game_sidescroller PRIVATE
-  engine_core input_core flecs_static webgpu glfw3webgpu glfw ach_plugin
+  engine_core framework_input flecs_static webgpu glfw3webgpu glfw ach_plugin
   Threads::Threads)
 # asset_core (и через него platform_core) приходит транзитивно из ach_bundle. Явным его тут не
 # держим: CMake дедуплицирует ПРЯМОЙ список, но транзитивное замыкание дописывает ПОСЛЕ него, и

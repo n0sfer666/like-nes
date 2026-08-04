@@ -62,29 +62,14 @@ jobs:
           python3 scripts/ci_lint.py
 
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
-      # Проверяется грепом, а не обещанием, и до сборки — нарушение видно первым же шагом.
+      # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
+      # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
+      # Шаги остаются раздельными, чтобы в логе было названо, какой именно инвариант сломан.
       # Один раннер: результат от ОС не зависит, дерево одно.
       - name: Platform — no OS #ifdef outside engine/platform (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          # Расширения фильтрует сам grep: постфильтр по строке пропускал бы .c/.cc/.cxx/.m (а
-          # engine/audio/*_impl.c в дереве есть) и заодно ловил бы содержимое строк, где просто
-          # встречается ".cpp:" — фикстуры парсера диагностик.
-          PATTERN='_WIN32|_MSC_VER|__APPLE__|__linux__|__unix__'
-          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
-               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
-          # Позитивный контроль: внутри шва условная компиляция обязана быть. Ноль совпадений
-          # здесь значит, что сломан сам поиск (промах регулярки, переименованный корень), —
-          # без этой проверки гейт после такой поломки зелёный навсегда.
-          # shellcheck disable=SC2086
-          SEAM=$(grep -rnE "$PATTERN" $EXT engine/platform | wc -l)
-          [ "$SEAM" -ge 3 ] || { echo "ifdef gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
-          # shellcheck disable=SC2086
-          HITS=$(grep -rnE "$PATTERN" $EXT engine tools example_ugly_game \
-                 | grep -v '^engine/platform/' || true)
-          [ -z "$HITS" ] || { echo "OS #ifdef leaked outside the platform seam:"; echo "$HITS"; exit 1; }
-          echo "platform seam: PASS (no OS conditionals outside engine/platform)"
+        run: bash scripts/tree_invariants.sh seam
 
       # Тот же инвариант 2, вторая его половина: узкий argv MSVC перекодирован в системную
       # ANSI-кодовую страницу, и юникод-аргумент разрушается ДО входа в шов файловой системы.
@@ -94,29 +79,7 @@ jobs:
       - name: Platform — argv only through platform::Args (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          # Исключён только iOS-хост: свой CRT, MSVC там нет, и ANSI-перекодировка argv до него
-          # не доходит. game_child, play_spawn_test и build_loop_test переехали на швы и из
-          # списка ушли — теперь их проверяют.
-          EXCLUDE='^(platform/ios/app\.mm)$'
-          # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления
-          # дрейфует, а гейт на промахе регулярки молча начал бы пропускать.
-          FILES=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
-                  --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
-                  --include='*.mm' --include='*.m' \
-                  engine tools example_ugly_game platform | grep -vE "$EXCLUDE" || true)
-          # Пустой список — это сломанный поиск, а не чистое дерево: без этой проверки гейт
-          # проходит вакуумно (переименовали корень — и он «зелёный» навсегда).
-          COUNT=$(printf '%s\n' "$FILES" | grep -c . || true)
-          [ "$COUNT" -ge 15 ] || { echo "argv gate matched only $COUNT main() files — the search itself is broken"; exit 1; }
-          BAD=""
-          # read -r, а не `for f in $(...)`: в дереве уже есть каталог с пробелом в имени.
-          while IFS= read -r f; do
-            [ -n "$f" ] || continue
-            grep -q 'platform::Args' "$f" || BAD="$BAD $f"
-          done <<< "$FILES"
-          [ -z "$BAD" ] || { echo "main() without the UTF-8 argv seam (platform::Args):$BAD"; exit 1; }
-          echo "argv seam: PASS ($COUNT mains, all through platform::Args)"
+        run: bash scripts/tree_invariants.sh argv
 
       # Третья половина того же инварианта. std::getenv отдаёт на Windows ANSI-строку, поэтому
       # `LIKENES_ASSETS=D:\юникод тест-каталог\` приезжает с подменёнными символами, а MSVC вдобавок
@@ -125,33 +88,7 @@ jobs:
       - name: Platform — env only through the platform_env seam (spec #12 invariant 2)
         if: runner.os == 'Linux'
         shell: bash
-        run: |
-          EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
-               --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
-          ROOTS="engine tools example_ugly_game platform"
-          # Переименованный корень греп бы проглотил (нашлось в остальных — код 0), и гейт стал бы
-          # зелёным для целого поддерева. Существование корней утверждается отдельно.
-          for r in $ROOTS; do
-            [ -d "$r" ] || { echo "env gate: root '$r' does not exist"; exit 1; }
-          done
-          # Запись ищется вместе с чтением: setenv/putenv мимо шва — тот же ANSI-барьер, только
-          # значение портится на входе, а не на выходе. Annex-K-имена в альтернации не для красоты:
-          # под /WX обойти шов через std::getenv на Windows нельзя вовсе (C4996 — ошибка), и
-          # единственный работающий обход — как раз _dupenv_s/getenv_s/_putenv_s, куда MSVC и
-          # предлагает уйти в тексте самой диагностики. Префиксы (_w, secure_) ловятся тем, что
-          # шаблон не якорится по началу слова.
-          # shellcheck disable=SC2086
-          ALL=$(grep -rnE '(get|set|unset|put|dup)env(_s)?[[:space:]]*\(' $EXT $ROOTS || true)
-          # Позитивный контроль: ТОТ ЖЕ шаблон по ТЕМ ЖЕ корням обязан видеть getenv внутри шва —
-          # там он и живёт. Ноль совпадений значит сломанный поиск, а не чистое дерево, поэтому
-          # контроль считается из того же прогона, а не из отдельного поиска по одному файлу.
-          # Исключение — весь шов, включая заголовок: в нём эти имена стоят в описании контракта,
-          # и упоминание вида `_dupenv_s(...)` в комментарии роняло бы гейт на ровном месте.
-          SEAM=$(printf '%s\n' "$ALL" | grep -c '^engine/platform/platform_env' || true)
-          [ "$SEAM" -ge 1 ] || { echo "env gate: search itself is broken (seam hits: $SEAM)"; exit 1; }
-          HITS=$(printf '%s\n' "$ALL" | grep -v '^engine/platform/platform_env' | grep . || true)
-          [ -z "$HITS" ] || { echo "env access outside the seam (platform::env_var/env_put):"; echo "$HITS"; exit 1; }
-          echo "env seam: PASS (getenv/setenv live only in engine/platform/platform_env*)"
+        run: bash scripts/tree_invariants.sh env
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -408,7 +345,10 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+          # -Iengine/platform: проба берёт оттуда PLATFORM_NOINLINE — условная компиляция живёт
+          # только за швом. Шаг зовёт компилятор напрямую, мимо CMake, поэтому include-пути
+          # целей сюда не приезжают: их приходится повторять руками.
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine/platform \
             engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
             engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
@@ -443,7 +383,8 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -std=gnu++20"
+          # -Iengine/platform: rt-проба берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -Iengine/platform -std=gnu++20"
           c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
@@ -792,7 +733,8 @@ jobs:
         run: |
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
+          # -Iengine/platform: perf_test берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/platform -I$FLECSINC"
           c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
@@ -950,6 +892,35 @@ jobs:
           grep -q "0x32a094e89eacf2f2 (bare) 0x32a094e89eacf2f2 (observer) 0x32a094e89eacf2f2 (plugin)" achg.txt \
             || { echo "ACH OBSERVER CHANGED SIM HASH on ${{ matrix.os }}"; exit 1; }
           grep -q "game-achievements: PASS" achg.txt
+
+      # --- Фреймворк (спека #14): гейты 1-7. Тесты чистые (без GPU и окна), поэтому гоняются на
+      # всех трёх ОС: раскладка zero-parse таблицы, целочисленная форма стика и ноль аллокаций в
+      # тике — ровно те инварианты, которые ломаются молча при смене компилятора и разрядности.
+      - name: "Framework — schedule/stick/presets/pads/rebinds + zero-alloc tick (gates 1-7, all OS)"
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          for T in framework_schedule_test framework_stick_test framework_preset_test \
+                   framework_pad_test framework_rebind_test framework_golden_test \
+                   framework_rt_test; do
+            B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+            need "$B" "$T"
+            "$B" | tee "fw_$T.txt"
+            grep -q ": PASS" "fw_$T.txt" || { echo "$T FAILED on ${{ matrix.os }}"; exit 1; }
+          done
+          # Гейт 1: эталон разрешения ввода через пресет. Хеш целочисленный, поэтому обязан
+          # совпасть на трёх ОС — расхождение здесь и есть та регрессия, ради которой гейт заведён.
+          grep -q "preset-input-hash = 0x416969081dcf230d" fw_framework_golden_test.txt \
+            || { echo "PRESET INPUT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+
+      # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется
+      # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только
+      # циклом в CMake через полгода. Сначала доказываем, что поиск вообще ищет, — иначе опечатка
+      # в пути дала бы вечно зелёный гейт.
+      - name: "Framework — subsystems do not depend on the layer (invariant 1, Linux)"
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/tree_invariants.sh deps
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'

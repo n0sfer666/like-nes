@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "../../engine/achievements/bake.hpp"
+#include "../../engine/framework/input/preset_bake.hpp"
 #include "format.hpp"
 #include "platform_fs.hpp"
 #include "hash.hpp"
@@ -111,6 +112,27 @@ bool achievements(const std::string& src, std::vector<AssetInput>& out) {
     }
     AssetInput a;
     a.guid = guid_of("achievements");
+    a.type = AssetType::Raw;
+    a.codec = Codec::Raw;
+    a.residency = Residency::Mmap;
+    a.uncompressed_size = static_cast<uint32_t>(table.size());
+    a.payload = std::move(table);
+    out.push_back(std::move(a));
+    return true;
+}
+
+// Пресеты ввода (спека #14): текстовый манифест → zero-parse таблица в бандле, как достижения.
+// Раскладка — данные, поэтому правка биндинга не требует пересборки игры.
+bool input_presets(const std::string& src, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    framework::input::PresetBakeError err;
+    if (!framework::input::bake_presets_file(src, table, err)) {
+        std::fprintf(stderr, "[assetc] input %s: line %d: %s\n", src.c_str(), err.line,
+                     err.message.c_str());
+        return false;
+    }
+    AssetInput a;
+    a.guid = guid_of("input");
     a.type = AssetType::Raw;
     a.codec = Codec::Raw;
     a.residency = Residency::Mmap;

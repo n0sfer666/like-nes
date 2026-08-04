@@ -1,6 +1,20 @@
 cmake_minimum_required(VERSION 3.24)
 project(like_nes LANGUAGES C CXX)
 
+# Дерево 64-битное, и это не предпочтение: предсобранный wgpu-native выбирает каталог рантайма по
+# процессору ХОСТА, а не по разрядности цели, поэтому 32-битный тулчейн получает x86_64-библиотеку
+# и разъезжается с ней на линковке. До линковки он успевает наврать другое: uint64_t → size_t в
+# render/capture.cpp под /W4 становится C4244, и причиной выглядит наш код. На Windows такой
+# тулчейн выбирается сам собой — «Developer Command Prompt» и «Developer PowerShell» по умолчанию
+# 32-битные; нужен «x64 Native Tools Command Prompt for VS».
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR
+        "like-nes собирается только под 64 бита, а этот тулчейн 32-битный "
+        "(${CMAKE_CXX_COMPILER}).\n"
+        "Windows: открой «x64 Native Tools Command Prompt for VS», удали каталог build "
+        "и сконфигурируй заново — кеш помнит компилятор.")
+endif()
+
 # Objective-C/C++ нужны только на Apple (Metal-слой); на MSVC/gcc их нет.
 if(APPLE)
     enable_language(OBJC)
@@ -132,6 +146,19 @@ if(IDE_POC)
     GIT_TAG fb55f3c25660425cfe1bc4cf5e6bff8b3f18a9b8  # v4.1.6
     GIT_SHALLOW TRUE)
   FetchContent_MakeAvailable(flecs)
+  # flecs header-only для потребителя, и `component.hpp:169` содержит `if (is_empty<T>::value && …)` —
+  # для cl.exe это C4127 «условное выражение является константой». Диагностика ЧУЖАЯ, но приезжает
+  # как ошибка сборки НАШЕГО файла: инстанцирование шаблона начинается в scene.cpp/serialize.cpp, и
+  # ни `/external:I` (заголовок помечен системным), ни `/external:templates-` её не снимают на
+  # MSVC 14.44 (VS 2022 17.14) — флаги в командной строке, ошибка на месте. На 14.51 (VS 18,
+  # windows-latest) те же флаги её снимают, поэтому CI зелёный, а машина владельца красная:
+  # проверять этот класс поломок раннером нельзя вовсе. Поэтому подавление едет
+  # INTERFACE-свойством самой зависимости: тот, кто линкует flecs, получает его автоматически, а
+  # список потребителей не приходится вести руками. Правит только C4127 и только на MSVC — остальная
+  # строгость нашего кода в этих целях остаётся.
+  if(MSVC)
+    target_compile_options(flecs_static INTERFACE /wd4127)
+  endif()
 endif()
 
 # Кросс-платформенно: input_core/audio/game линкуют Threads::Threads на всех ОС
@@ -151,6 +178,7 @@ add_subdirectory(engine/render)
 add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
+add_subdirectory(engine/framework) # слой поверх подсистем — после них, зависимость только вниз
 add_subdirectory(engine/plugin)
 add_subdirectory(engine/achievements)
 add_subdirectory(engine/hotreload)
