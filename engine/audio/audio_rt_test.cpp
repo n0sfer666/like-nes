@@ -7,6 +7,7 @@
 
 #include "engine.hpp"
 #include "mixer.hpp"
+#include "platform_noinline.hpp"
 
 // Гейт #3 (спека #3): audio-callback RT-safe — НЕТ heap-аллокаций/локов/I/O в mix()-пути
 // (декод и регистрация источников — вне callback). Глобальный operator new считает аллокации,
@@ -17,17 +18,19 @@ bool g_in_cb = false;
 long g_allocs = 0;
 } // namespace
 
-void* operator new(std::size_t n) {
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
+
+PLATFORM_NOINLINE void* operator new(std::size_t n) {
     if (g_in_cb) ++g_allocs;
     void* p = std::malloc(n ? n : 1);
     if (!p) throw std::bad_alloc();
     return p;
 }
-void* operator new[](std::size_t n) { return operator new(n); }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
 
 using namespace audio;
 

@@ -14,6 +14,7 @@ bool shader(const codec::Tools& t, const std::string& src, const char* name, con
             uint32_t stage, std::vector<AssetInput>& out);
 bool audio(const std::string& src, const char* name, bool loop, std::vector<AssetInput>& out);
 bool achievements(const std::string& src, std::vector<AssetInput>& out);
+bool input_presets(const std::string& src, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
 

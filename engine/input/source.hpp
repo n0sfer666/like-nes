@@ -8,6 +8,16 @@ struct GLFWwindow;
 
 namespace input {
 
+// Паспорт подключённого пада: по нему слой фреймворка выбирает профиль раскладки. vid/pid = 0
+// значит «платформа их не отдаёт» — это НЕ ошибка: XInput сообщает только класс устройства,
+// GameController.framework — только имя производителя. Поэтому поле name обязательное, а
+// сопоставление профиля обязано уметь работать по нему одному.
+struct PadInfo {
+    uint16_t vid = 0;
+    uint16_t pid = 0;
+    char name[64] = {};
+};
+
 class GamepadSource {
 public:
     virtual ~GamepadSource() = default;
@@ -15,6 +25,10 @@ public:
     virtual void poll(InputEngine& e) = 0;                      // эмит button/axis/connect/disconnect
     virtual void set_rumble(int slot, float low, float high, int ms) = 0;
     virtual const char* backend_name() const = 0;
+
+    // Паспорт слота. Дефолт пустой: бэкенд, который его не заполняет, честно говорит «не знаю»,
+    // и профиль уходит в generic вместо выдуманной раскладки.
+    virtual PadInfo pad_info(int slot) const { (void)slot; return {}; }
 };
 
 // Фабрика native-бэкенда для текущей ОС (nullptr-safe заглушка, если платформа не собрана).

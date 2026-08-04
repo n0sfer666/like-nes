@@ -14,7 +14,9 @@
 #include "draw.hpp"
 #include "engine.hpp"
 #include "gpu.hpp"
+#include "gpu_env.hpp"
 #include "sim.hpp"
+#include "input_setup.hpp"
 #include "world.hpp"
 
 namespace game {
@@ -45,6 +47,7 @@ struct DemoDriver {
 
 int run_demo(const char* dir, int frames) {
     GpuContext gpu;
+    apply_gpu_env(gpu);
     if (!gpu.init(nullptr)) {
         // Шаг CI «Game — headless demo» — жёсткий гейт на трёх ОС, и молчаливый выход из него
         // неотличим от «игра не анимируется». Причина отказа должна быть в логе раннера.
@@ -74,8 +77,9 @@ int run_demo(const char* dir, int frames) {
     spawn(world, gs);
     Fx fx;
     FxSink sink;
-    input::ActionMap map = make_map();
-    input::InputEngine engine(map);
+    Controls controls;
+    if (!load_controls(controls)) { std::fprintf(stderr, "controls unavailable\n"); return 1; }
+    input::InputEngine engine(controls.map);
     DemoDriver driver;
     Achievements ach;
     ach.init(resolve_bundle_path(), "", "");

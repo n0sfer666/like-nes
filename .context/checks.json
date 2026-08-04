@@ -1,4 +1,4 @@
 {
   "types": "bash scripts/build_check.sh",
-  "lint": "python3 scripts/ci_lint.py"
+  "lint": "python3 scripts/ci_lint.py && bash scripts/tree_invariants.sh"
 }

@@ -6,18 +6,20 @@
 #include "codes.hpp"
 #include "engine.hpp"
 #include "sim.hpp"
+#include "platform_noinline.hpp"
 
 // Гейт #3 (спека #4): горячий путь дренажа+коалесценции @tick — БЕЗ heap-аллокаций (пулы/
 // фикс. очередь преаллоцированы). Плюс устойчивость: hot-unplug / потеря фокуса → force-release
 // (нет залипшей кнопки); unmapped/OOB устройство → fallback, не crash. Гоняется под ASan/UBSan.
 
 namespace { bool g_in_hot = false; long g_allocs = 0; }
-void* operator new(std::size_t n) { if (g_in_hot) ++g_allocs; void* p = std::malloc(n ? n : 1); if (!p) throw std::bad_alloc(); return p; }
-void* operator new[](std::size_t n) { return operator new(n); }
-void operator delete(void* p) noexcept { std::free(p); }
-void operator delete[](void* p) noexcept { std::free(p); }
-void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
+// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
+PLATFORM_NOINLINE void* operator new(std::size_t n) { if (g_in_hot) ++g_allocs; void* p = std::malloc(n ? n : 1); if (!p) throw std::bad_alloc(); return p; }
+PLATFORM_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
+PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
+PLATFORM_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
 
 using namespace input;
 namespace c = input::code;

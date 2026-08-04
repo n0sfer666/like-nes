@@ -16,9 +16,11 @@
 #include "batch.hpp"
 #include "draw.hpp"
 #include "gpu.hpp"
+#include "gpu_env.hpp"
 #include "platform_env.hpp"
 #include "sim.hpp"
 #include "source.hpp"
+#include "input_setup.hpp"
 #include "world.hpp"
 
 namespace game {
@@ -48,7 +50,8 @@ int run_window(int frame_cap) {
     if (!win) { glfwTerminate(); return 1; }
 
     GpuContext gpu;
-    gpu.instance = wgpuCreateInstance(nullptr);
+    apply_gpu_env(gpu);
+    gpu.instance = gpu.create_instance();
     WGPUSurface surface = glfwGetWGPUSurface(gpu.instance, win);
     if (!gpu.init(surface)) { gpu.shutdown(); glfwDestroyWindow(win); glfwTerminate(); return 1; }
     int fbw = 0, fbh = 0;
@@ -80,8 +83,9 @@ int run_window(int frame_cap) {
     std::printf("[game] achievements: %zu defined, %zu unlocked, backend: %s\n",
                 ach.defined_count(), ach.unlocked_count(), ach.has_backend() ? "plugin" : "local");
 
-    input::ActionMap map = make_map();
-    input::InputEngine engine(map);
+    Controls controls;
+    if (!load_controls(controls)) { std::fprintf(stderr, "controls unavailable\n"); return 1; }
+    input::InputEngine engine(controls.map);
     install_glfw_input(win, engine);
     input::GamepadSource* pad = input::make_gamepad_source();
     bool have_pad = pad && pad->init();
@@ -92,6 +96,7 @@ int run_window(int frame_cap) {
     const auto period = std::chrono::microseconds(16667);
     auto next = std::chrono::steady_clock::now();
     int frames = 0;
+    bool surface_warned = false;
     for (uint32_t t = 0; !glfwWindowShouldClose(win); ++t) {
         next += period;
         std::this_thread::sleep_until(next);
@@ -113,6 +118,18 @@ int run_window(int frame_cap) {
         wgpuSurfaceGetCurrentTexture(surface, &st);
         if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
             if (st.texture) wgpuTextureRelease(st.texture);
+            // Молчаливый continue означал бесконечный чёрный кадр: Outdated поверхность сама не
+            // чинится, её надо переконфигурировать, а не ждать. Размер берём тот же — окно
+            // нерастяжимое, и bloom-таргеты созданы под него.
+            if (st.status == WGPUSurfaceGetCurrentTextureStatus_Outdated ||
+                st.status == WGPUSurfaceGetCurrentTextureStatus_Lost) {
+                configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+            }
+            if (!surface_warned) {
+                std::fprintf(stderr, "[game] surface texture status %u — кадр пропущен\n",
+                             (unsigned)st.status);
+                surface_warned = true;
+            }
             continue;
         }
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);

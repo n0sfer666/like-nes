@@ -1,7 +1,12 @@
 #include "source.hpp"
 #include "codes.hpp"
+// windows.h объявляет min/max макросами, и std::min ниже разбирается как обращение к макросу:
+// `error C2589: '(': illegal token on right side of '::'`. Определение обязано стоять до include.
+#define NOMINMAX
 #include <windows.h>
 #include <Xinput.h>
+#include <algorithm>
+#include <cstring>
 
 // Windows native gamepad: XInput (Xbox-класс + вибрация). Диффим против кэша → эмитим изменения.
 // Скелет: собирается в CI; live-валидация — follow-up (нет Windows-HW у owner в этом заходе).
@@ -33,8 +38,10 @@ public:
             if (!ok) continue;
             const XINPUT_GAMEPAD& g = st.Gamepad;
             for (const Btn& b : kBtns) emit_btn(e, i, b.code, (g.wButtons & b.mask) != 0);
-            emit_axis(e, i, c::LX, g.sThumbLX / 32768.0f); emit_axis(e, i, c::LY, g.sThumbLY / 32768.0f);
-            emit_axis(e, i, c::RX, g.sThumbRX / 32768.0f); emit_axis(e, i, c::RY, g.sThumbRY / 32768.0f);
+            // Y инвертируется: у XInput +Y это ВВЕРХ, у нашего контракта (codes.hpp) — вниз.
+            // Без минуса стик уезжает вертикально наоборот ровно на одной этой платформе.
+            emit_axis(e, i, c::LX, g.sThumbLX / 32768.0f); emit_axis(e, i, c::LY, -g.sThumbLY / 32768.0f);
+            emit_axis(e, i, c::RX, g.sThumbRX / 32768.0f); emit_axis(e, i, c::RY, -g.sThumbRY / 32768.0f);
             emit_axis(e, i, c::LT, g.bLeftTrigger / 255.0f); emit_axis(e, i, c::RT, g.bRightTrigger / 255.0f);
         }
     }
@@ -48,6 +55,32 @@ public:
     }
 
     const char* backend_name() const override { return "XInput (Windows)"; }
+
+    // XInput не сообщает VID/PID вовсе — только класс устройства. Имя собирается из него, и
+    // это честный максимум: настоящие VID/PID на Windows живут в Raw Input, отдельном канале,
+    // сопоставление слотов которого с XInput само по себе источник ошибок.
+    PadInfo pad_info(int slot) const override {
+        PadInfo info;
+        if (slot < 0 || slot >= 4) return info;
+        XINPUT_CAPABILITIES caps{};
+        if (XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) return info;
+        const char* kind = "XInput gamepad";
+        switch (caps.SubType) {
+        case XINPUT_DEVSUBTYPE_WHEEL:       kind = "XInput wheel"; break;
+        case XINPUT_DEVSUBTYPE_ARCADE_STICK: kind = "XInput arcade stick"; break;
+        case XINPUT_DEVSUBTYPE_FLIGHT_STICK: kind = "XInput flight stick"; break;
+        case XINPUT_DEVSUBTYPE_DANCE_PAD:   kind = "XInput dance pad"; break;
+        case XINPUT_DEVSUBTYPE_GUITAR:      kind = "XInput guitar"; break;
+        case XINPUT_DEVSUBTYPE_DRUM_KIT:    kind = "XInput drum kit"; break;
+        default: break;
+        }
+        // Не strncpy: MSVC помечает всё семейство str*cpy как C4996 «may be unsafe», и под /W4 /WX
+        // это ошибка сборки. Глушить её через _CRT_SECURE_NO_WARNINGS значило бы снять диагностику
+        // со всего TU разом. Длина считается явно, терминатор уже на месте — name[64] = {}.
+        const size_t n = std::min(std::strlen(kind), sizeof(info.name) - 1);
+        std::memcpy(info.name, kind, n);
+        return info;
+    }
 
 private:
     void emit_btn(InputEngine& e, int slot, int code, bool pressed) {

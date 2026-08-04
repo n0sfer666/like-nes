@@ -1,0 +1,25 @@
+# Раскладка игры-образца. Порядок строк задаёт индексы: move_x = ось 0, move_y = ось 1,
+# fire = действие 0 — ровно то, что раньше было прошито в controls.cpp.
+preset | default
+
+action | fire   | key:space | mouse:left | pad:south
+
+axis   | move_x | key:d | key:a
+axis   | move_x | key:right | key:left
+axis   | move_x | padaxis:lx | -
+axis   | move_y | key:w | key:s
+axis   | move_y | key:up | key:down
+axis   | move_y | padaxis:-ly | -
+
+# Мёртвая зона нужна только стику: у клавиш значение и так ±1, а зона на паре осей — круговая,
+# поэтому move_x и move_y объявлены парой.
+shape  | move_x | 0.18 | 1.0 | 1 | move_y
+shape  | move_y | 0.18 | 1.0 | 1 | move_x
+
+# Профили падов — данные: добавление модели не требует релиза движка. Коды кнопок у всех трёх
+# бэкендов уже позиционные, поэтому профиль задаёт надписи (для подсказок) и форму отклика.
+# vid | pid | подстрока имени | надписи | мёртвая зона | порог триггера
+pad | Microsoft Xbox      | 0x045e | - | Xbox      | xbox        | 0.18 | 0.12
+pad | Sony DualSense      | 0x054c | 0x0ce6 | DualSense | playstation | 0.10 | 0.10
+pad | Sony DualShock 4    | 0x054c | 0x09cc | DUALSHOCK | playstation | 0.12 | 0.10
+pad | Nintendo Switch Pro | 0x057e | - | Nintendo  | nintendo    | 0.15 | 0.12
