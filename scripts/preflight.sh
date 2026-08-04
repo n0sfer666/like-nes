@@ -36,6 +36,52 @@ build_config() {
     BUILD_DIR="$dir" LIKE_NES_BUILD_SUBSET=1 bash scripts/build_check.sh
 }
 
+# Единственный job CI, который живёт не в ci.yml (.github/workflows/dco.yml). Он срабатывает
+# только на pull_request, поэтому коммит без `-s` лежит в ветке незамеченным до самого раунда и
+# всплывает поверх всей проделанной работы. Чинится он ровно одним способом — rebase + force-push,
+# то есть переписыванием ВСЕХ SHA ветки, после чего протухают ссылки на коммиты в ADR, теле PR и
+# dev-log. Полсекунды здесь против переписанной истории там.
+dco_signoff() {
+    local base_ref=main
+    git rev-parse --verify -q origin/main >/dev/null && base_ref=origin/main
+    local base
+    base=$(git merge-base "$base_ref" HEAD 2>/dev/null) || {
+        echo "база $base_ref недоступна — проверять подпись не от чего"
+        return 1
+    }
+    local shas
+    shas=$(git rev-list --no-merges "$base"..HEAD)
+    if [ -z "$shas" ]; then
+        echo "поверх $base_ref нет коммитов — подписывать нечего"
+        return 0
+    fi
+    # Автор ИЛИ коммиттер — тот же критерий, что у job'а: локально строже значило бы отбивать то,
+    # что CI пропускает, и расхождение пришлось бы разбирать на раннере.
+    local fail=0 n=0 sha author committer signers
+    for sha in $shas; do
+        n=$((n + 1))
+        author=$(git show -s --format='%an <%ae>' "$sha" | tr '[:upper:]' '[:lower:]')
+        committer=$(git show -s --format='%cn <%ce>' "$sha" | tr '[:upper:]' '[:lower:]')
+        signers=$(git show -s --format='%(trailers:key=Signed-off-by,valueonly,unfold)' "$sha" |
+            tr -d '\r' | tr '[:upper:]' '[:lower:]')
+        if [ -z "$signers" ]; then
+            printf '  %s — нет Signed-off-by\n' "$(git show -s --format='%h %s' "$sha")"
+            fail=1
+        elif ! grep -qxF "$author" <<<"$signers" && ! grep -qxF "$committer" <<<"$signers"; then
+            printf '  %s — подпись не совпадает ни с автором, ни с коммиттером\n' \
+                "$(git show -s --format='%h %s' "$sha")"
+            fail=1
+        fi
+    done
+    if [ "$fail" -ne 0 ]; then
+        printf 'Починка: git rebase --signoff %s && git push --force-with-lease\n' "$base"
+        return 1
+    fi
+    printf 'подписаны все %d коммит(ов) поверх %s\n' "$n" "$base_ref"
+}
+
+stage "Подпись DCO на коммитах ветки" dco_signoff
+
 stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
 stage "Линтер workflow — .github/workflows" python3 scripts/ci_lint.py
 
