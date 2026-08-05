@@ -157,9 +157,11 @@ clone.
 One number is still yours to record: `owner_check.sh` prints the edit→build→hot-reload loop timing
 (`best` / `median`), and spec #13 asks for it as a fact per OS. It goes into `first-run.md`.
 
-Windows: run every command from an *x64 Native Tools Command Prompt for VS*, and start the scripts through
-git-bash as in section 0 — the exec bit does not survive the index there, so the interpreter is
-always named explicitly.
+Windows: `scripts\win-dev.bat gate8` runs it from any shell — same wrapper as `check`, and for the
+same reason. This gate needs vcvars and a POSIX shell *at once*: it clones the tree and builds the
+clone from scratch, so starting from Git Bash alone stops at "no compiler". By hand it is an *x64
+Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" scripts/gate8_e2e.sh`
+— the exec bit does not survive the index there, so the interpreter is always named explicitly.
 
 ## 3. Gate 8 of #14 — live input (Linux and Windows)
 

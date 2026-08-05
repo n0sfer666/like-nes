@@ -11,6 +11,7 @@ rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Pyth
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
 rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
 rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash
+rem   scripts\win-dev.bat gate8   scripts/gate8_e2e.sh тем же шеллом (сквозной гейт 8 спеки #13)
 rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
 rem   scripts\win-dev.bat demo    отрисовать 60 кадров в PNG мимо окна (чёрный экран: кто виноват)
 rem   scripts\win-dev.bat shell   отдать cmd с готовым x64-окружением
@@ -35,11 +36,12 @@ if /i "%ACTION%"=="clean" goto do_clean
 if /i "%ACTION%"=="build" goto need_vs
 if /i "%ACTION%"=="warn"  goto need_vs
 if /i "%ACTION%"=="check" goto need_vs
+if /i "%ACTION%"=="gate8" goto need_vs
 if /i "%ACTION%"=="game"  goto need_vs
 if /i "%ACTION%"=="demo"  goto need_vs
 if /i "%ACTION%"=="shell" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|warn^|check^|game^|demo^|shell^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|gate8^|game^|demo^|shell^|clean]
 exit /b 2
 
 :do_setup
@@ -109,6 +111,7 @@ if /i "%ACTION%"=="shell" (
 if /i "%ACTION%"=="game" goto do_game
 if /i "%ACTION%"=="demo" goto do_demo
 if /i "%ACTION%"=="check" goto do_check
+if /i "%ACTION%"=="gate8" goto do_gate8
 if /i "%ACTION%"=="warn" goto do_warn
 
 :do_build
@@ -181,6 +184,17 @@ echo Frames: build\demo\frame_0059.png ^(and 59 more^) - open a late one and loo
 exit /b 0
 
 :do_check
+set "GATE=scripts/owner_check.sh"
+goto run_gate
+
+rem Сквозной гейт клонирует дерево и собирает клон с нуля, то есть ему нужны РАЗОМ vcvars (cl.exe в
+rem PATH) и POSIX-шелл - ровно та же пара, что и owner_check.sh, поэтому запуск общий. Из самого
+rem Git Bash он не поднимется: тот шелл не видел vcvars64.bat, и клон встанет на поиске компилятора.
+:do_gate8
+set "GATE=scripts/gate8_e2e.sh"
+goto run_gate
+
+:run_gate
 rem Гейты писаны на POSIX-шелле, и его на Windows приносит Git. Путь ищется по установкам, а не
 rem через where bash: там первым нашёлся бы bash из WSL - другая машина с другой файловой системой.
 set "GITBASH="
@@ -194,5 +208,5 @@ if not defined GITBASH (
     echo Run: scripts\win-dev.bat setup
     exit /b 1
 )
-"%GITBASH%" scripts/owner_check.sh
+"%GITBASH%" %GATE%
 exit /b %errorlevel%
