@@ -22,6 +22,14 @@ def lint(path, text):
 
 def main(argv):
     from ci_lint_selftest import selftest
+    # Кодировка задаётся явно с обоих концов, потому что на Windows locale-дефолт — cp1251, а не
+    # UTF-8, и оба конца ломались по-разному: чтение workflow падало `UnicodeDecodeError` на первом
+    # же не-ASCII байте (гейт не отработал вовсе), а вывод в перенаправленный отчёт уезжал в
+    # cp1251 и читался кракозябрами. Ни то, ни другое не воспроизводится ни на одном раннере CI:
+    # там локаль UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     if "--selftest" in argv:
         return selftest(lint)
     # Самопроверка перед каждым прогоном: сломанное правило молчит ровно так же, как чистый
@@ -37,7 +45,8 @@ def main(argv):
         # проект без CI, и «0 находок» тут значит «ничего не проверено».
         print(f"ci-lint: FAIL — в {workflows} не найдено ни одного workflow")
         return 1
-    findings = [f for p in files for f in lint(p.relative_to(root).as_posix(), p.read_text())]
+    findings = [f for p in files
+                for f in lint(p.relative_to(root).as_posix(), p.read_text(encoding="utf-8"))]
     for finding in findings:
         print(finding)
     print(f"ci-lint: {'FAIL' if findings else 'PASS'} — "
