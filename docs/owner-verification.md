@@ -71,6 +71,10 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 
 ## 1. Gate 6 — X11 and Wayland (Linux)
 
+> **Closed 2026-08-05** on Nobara 44 (Intel UHD 620 / Vulkan): Wayland under GNOME and X11 under i3,
+> one run each, both PASS. Kept as the procedure — it is what a new machine or a change to the
+> windowing path has to be re-run against.
+
 On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
 first run comes back FAIL on the passport line alone. That case is walked through step by step in
 [`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
