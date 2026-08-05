@@ -71,6 +71,10 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 
 ## 1. Gate 6 — X11 and Wayland (Linux)
 
+On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
+first run comes back FAIL on the passport line alone. That case is walked through step by step in
+[`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
+
 GLFW is X11-only by default, so under a Wayland session the default build runs as an XWayland
 client — that answers the X11 question a second time, not the Wayland one. Build **two** trees:
 
