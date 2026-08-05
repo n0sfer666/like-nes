@@ -95,6 +95,19 @@ FetchContent_MakeAvailable(glfw3webgpu)
 if(LINUX_WAYLAND)
   target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WAYLAND)
 endif()
+# Публичные макросы — НАШИ и объявляются ЗДЕСЬ, потому что выбор бэкенда окна это выбор ОС, а он по
+# инварианту 1 спеки #12 живёт в сборке, не в исходнике: `#if defined(__linux__)` в коде редактора
+# гейт `tree_invariants.sh seam` отбивает — и правильно. Потребителю нужно знать, под какую сессию
+# собран каталог, чтобы назвать расхождение словами. Чужое `_GLFW_WAYLAND` для этого не годится:
+# оно приватное намеренно (внутренний макрос glfw), публиковать его значило бы включить внутренние
+# ветки glfw в нашем коде.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(LINUX_WAYLAND)
+    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_WAYLAND)
+  else()
+    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_X11)
+  endif()
+endif()
 
 # --- stb (PNG read/write для golden-image) ---
 # Репозиторий без CMakeLists — MakeAvailable только выкачивает исходники (stb_SOURCE_DIR).

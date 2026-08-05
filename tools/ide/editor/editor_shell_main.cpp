@@ -35,6 +35,42 @@ int main(int argc, char** argv) {
     seed(st);
 
     if (!glfwInit()) { std::fprintf(stderr, "[editor] glfwInit failed\n"); return 1; }
+
+    // Бэкенд окна glue создания поверхности выбирает на КОМПИЛЯЦИИ, а GLFW платформу — В РАНТАЙМЕ,
+    // поэтому каталог сборки годен ровно для своей сессии. Расхождение до сих пор убивало процесс
+    // ВНУТРИ wgpu и без слова о причине: X11-бинарь под Wayland — паникой «Display pointer is not
+    // set», Wayland-бинарь под X11 — сегфолтом. Гейт 6 требует двух деревьев и гоняется руками, так
+    // что перепутать каталог — норма, а не небрежность; здесь промах называет сам себя и говорит,
+    // чем запускать. Проверка стоит ДО окна: создавать его незачем, ответ уже известен.
+    //
+    // Ветвление идёт по НАШИМ макросам из CMakeLists, а не по встроенному имени ОС: выбор ОС держит
+    // сборка (инвариант 1 спеки #12), и вне Linux ни один из двух не определён — блока просто нет.
+#if defined(LIKE_NES_GLFW_WAYLAND) || defined(LIKE_NES_GLFW_X11)
+#  if defined(LIKE_NES_GLFW_WAYLAND)
+    const int built_platform = GLFW_PLATFORM_WAYLAND;
+    const char* built_for = "wayland";
+    const char* right_binary = "build/editor_shell (каталог без -DLINUX_WAYLAND=ON)";
+#  else
+    const int built_platform = GLFW_PLATFORM_X11;
+    const char* built_for = "x11";
+    const char* right_binary = "build-way/editor_shell (каталог с -DLINUX_WAYLAND=ON)";
+#  endif
+    const int live_platform = glfwGetPlatform();
+    if (live_platform != built_platform) {
+        // Третьей платформы тут не ждём, но и молча звать её x11 нельзя: сообщение читают вместо
+        // отладчика, и «x11» вместо null увело бы читателя не туда.
+        const char* live_for = live_platform == GLFW_PLATFORM_WAYLAND ? "wayland"
+                             : live_platform == GLFW_PLATFORM_X11     ? "x11"
+                                                                      : "не x11 и не wayland";
+        std::fprintf(stderr,
+            "[editor] каталог сборки не для этой сессии: бинарь собран под %s,\n"
+            "         а GLFW поднял платформу %s. Запускать надо %s.\n",
+            built_for, live_for, right_binary);
+        glfwTerminate();
+        return 1;
+    }
+#endif
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);   // WebGPU-surface, без GL-контекста
     GLFWwindow* win = glfwCreateWindow(1400, 900, "like-nes IDE editor (WebGPU)", nullptr, nullptr);
     if (!win) { glfwTerminate(); return 1; }
