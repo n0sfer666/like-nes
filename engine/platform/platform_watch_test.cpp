@@ -64,7 +64,7 @@ void run_case(const std::string& root, platform::WatchBackend expected) {
     platform::Watcher w;
     check(w.watch_dir(dir, /*recursive=*/true), "watch_dir succeeds");
     std::printf("  backend: %s%s%s\n", backend_name(w.backend()),
-                w.error().empty() ? "" : " — ", w.error().c_str());
+                w.error().empty() ? "" : " - ", w.error().c_str());
     check(w.backend() == expected, "backend is the requested one");
 
     // 1) Создание файла.

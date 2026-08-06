@@ -90,6 +90,15 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh env
 
+      # Рантайм-вывод — чистый ASCII. Консоль Windows не UTF-8, и русская строка из процесса
+      # приезжает владельцу как «bye тАФ overlay in memory»: дефект четыре раза находился глазами
+      # в отчёте о ручном гейте, то есть после самого дорогого круга в проекте. Комментарии это
+      # не трогает — правило разбирает литералы, а не строки файла.
+      - name: Platform — runtime output stays ASCII (Windows console is not UTF-8)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/tree_invariants.sh ascii
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 

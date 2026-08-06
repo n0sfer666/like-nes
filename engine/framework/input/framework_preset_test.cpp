@@ -24,7 +24,7 @@ void check(bool ok, const char* what) {
 }
 
 const char* MANIFEST = R"(
-# раскладка по умолчанию
+# default layout
 preset | default
 action | jump   | key:space | pad:south
 action | fire   | mouse:left | trigger:rt
@@ -181,7 +181,7 @@ int main(int argc, char** argv) {
     check(!bake_presets("preset | p\naxis | x | key:d | key:a\nshape | x | 0.1 | 1.0 | 1 | y\n",
                         ignored, err) && err.line > 0,
           "a shape pairing an undeclared axis is refused");
-    check(!bake_presets("# только комментарий\n", ignored, err), "an empty manifest is refused");
+    check(!bake_presets("# comment only\n", ignored, err), "an empty manifest is refused");
     check(!bake_presets("preset | p\naction | jump | key:space\naction | jump | pad:south\n",
                         ignored, err) && err.line == 3,
           "a second row for the same action is refused: its bindings must be contiguous");

@@ -66,7 +66,7 @@ using namespace game;
     if (!game_.init(gpu_, surface_, w, h, "")) { NSLog(@"[game] game init failed"); return; }
     game_.set_demo([NSProcessInfo.processInfo.arguments containsObject:@"--demo"]);
     started_ = true;
-    NSLog(@"[game] iOS shell up: %ux%u — left = stick, bottom-right = fire", w, h);
+    NSLog(@"[game] iOS shell up: %ux%u - left = stick, bottom-right = fire", w, h);
 
     link_ = [CADisplayLink displayLinkWithTarget:[WeakProxy with:self] selector:@selector(frame)];
     [link_ addToRunLoop:NSRunLoop.mainRunLoop forMode:NSDefaultRunLoopMode];

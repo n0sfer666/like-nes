@@ -12,7 +12,7 @@ namespace audio {
 // Очередь POD-команд. Cap — степень двойки.
 template <typename T, size_t Cap>
 class SpscQueue {
-    static_assert((Cap & (Cap - 1)) == 0, "Cap должен быть степенью двойки");
+    static_assert((Cap & (Cap - 1)) == 0, "Cap must be a power of two");
 
 public:
     bool push(const T& v) { // только продюсер

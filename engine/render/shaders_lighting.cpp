@@ -4,6 +4,7 @@
 // Текстово включается И в deferred (fullscreen), И в forward (per-object) — второй
 // потребитель доказывает шов абстракции lighting-technique (insert-later != rewrite).
 std::string lighting_module_wgsl() {
+    // ascii: allow комментарии внутри исходника шейдера
     return R"WGSL(
 struct LightsU {
     header: vec4f,       // x=count, y=aspect, z=ambient

@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
         std::fprintf(stderr, "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
-                             "       assetc --synthetic <out.bundle>  (tools-free, для CI)\n");
+                             "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n");
         return 2;
     }
     // Tools-free синтетический бейк (CI): writer+zstd, без tint/basisu.
