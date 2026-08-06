@@ -190,15 +190,24 @@ in place silently) and runs it from the tree root whatever shell you started in.
 The probe opens a small window (keyboard and mouse arrive through it — it must have focus) and
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
 
-Two Linux-side traps before you start, both of which make a working pad look like a broken backend:
+Three traps before you start, all of which make a working pad look like a broken backend. The
+probe's first line — `cold-start scan: …` — tells the two halves apart: it says out loud whether the
+backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
+event" stop looking alike.
 
-- **Permissions.** The evdev backend reads `/dev/input/event*`; a desktop session normally gets
-  them through logind's `uaccess`, but a pad seen by `ls /dev/input` and not by the probe means
+- **Permissions (Linux).** The evdev backend reads `/dev/input/event*`; a desktop session normally
+  gets them through logind's `uaccess`, but a pad seen by `ls /dev/input` and not by the probe means
   exactly that seam. `sudo usermod -aG input $USER`, then log out and back in.
-- **Steam.** On a gaming distro (Nobara ships Steam) a running Steam with Steam Input on
+- **Steam (both).** On a gaming distro (Nobara ships Steam) a running Steam with Steam Input on
   re-presents the pad as a *virtual* Xbox 360 controller and hides the real one. The passport line
   then names the wrong device through no fault of ours. Quit Steam completely for this gate — the
   point is what the OS reports about the physical pad.
+- **Xbox Game Bar (Windows).** Confirmed on the owner's machine, 2026-08-06: a pad plugged in since
+  boot was invisible to XInput for the whole session and became visible the moment the cable was
+  re-seated. Nothing on our side polls too rarely to catch it — every slot is polled every frame, so
+  a lost connect event would heal by itself on the next one; XInput simply reported no device.
+  Settings → Gaming → Xbox Game Bar → Off (and quit Steam), or re-plug the pad after the probe
+  starts.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
