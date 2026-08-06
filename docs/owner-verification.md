@@ -181,6 +181,12 @@ cmake --build build --target framework_input_probe
 ./build/framework_input_probe example_ugly_game/assets/input.txt
 ```
 
+Run it from the repo root: the manifest path is relative, and `input.txt` is the *source* preset —
+the probe bakes it in-process, so there is no separate bake step. On Windows use
+`scripts\win-dev.bat probe`: `cmake` is not on PATH there until vcvars has run, which is the same
+reason `check` and `gate8` have wrappers. It rebuilds that one target (a pull leaves the old binary
+in place silently) and runs it from the tree root whatever shell you started in.
+
 The probe opens a small window (keyboard and mouse arrive through it — it must have focus) and
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
 
