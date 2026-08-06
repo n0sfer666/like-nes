@@ -135,6 +135,9 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 
 ## 2. Gate 8 of #13 — the end-to-end loop (Linux and Windows)
 
+> **Closed 2026-08-05/06** on commit `0e4294c`: Linux (Nobara 44, GCC) and Windows (MSVC 14.44),
+> both PASS, dR=+89.705 against a +4 threshold, sim-golden intact. Kept as the procedure.
+
 The editor has no Play/Build buttons yet: spawning and the build loop are their own targets
 (`play_spawn_test`, `build_loop_test`), and the mechanism is what `owner_check.sh` already timed on
 this machine. What is left is the chain end to end — an edit reaching pixels — and that whole chain
