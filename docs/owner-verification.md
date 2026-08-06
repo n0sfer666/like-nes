@@ -178,11 +178,15 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 
 ```sh
 cmake --build build --target framework_input_probe
-./build/framework_input_probe example_ugly_game/assets/input.txt
+./build/framework_input_probe engine/framework/input/probe_input.txt
 ```
 
-Run it from the repo root: the manifest path is relative, and `input.txt` is the *source* preset —
-the probe bakes it in-process, so there is no separate bake step. On Windows use
+Run it from the repo root: the manifest path is relative, and the manifest is the *source* preset —
+the probe bakes it in-process, so there is no separate bake step. It is the probe's own preset, not
+the game's: the game has exactly one action (`fire`), and `find_conflict` skips the action being
+rebound, so step 3 below is unprovable on the game's manifest — it always looks passed. The game
+manifest could not simply grow a second action either: a golden `bundle_hash` is pinned on it. On
+Windows use
 `scripts\win-dev.bat probe`: `cmake` is not on PATH there until vcvars has run, which is the same
 reason `check` and `gate8` have wrappers. It rebuilds that one target (a pull leaves the old binary
 in place silently) and runs it from the tree root whatever shell you started in.
@@ -222,9 +226,11 @@ event" stop looking alike.
    *per-platform* defect that a pad tested on one OS cannot reveal. The engine's contract is in
    `engine/input/codes.hpp` — +X right, +Y **down** for the raw axis — and the preset flips it once
    with `padaxis:-ly`, which is why `move` reads up as positive.
-3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press a key already used by another
-   action. The probe refuses and names the owner. Press `F` to take it anyway, and confirm the
-   printed binding table shows the previous owner losing that slot.
+3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press `J` (or `K`) — both belong to
+   `jump`, the second action this manifest exists for. The probe refuses and names the owner. Press
+   `F` to take it anyway, and confirm the printed binding table shows `jump` losing that slot.
+   Pressing a *free* key here is the failure mode this step keeps walking into: the probe stays
+   silent, which looks exactly like a pass and proves nothing.
 4. **Persistence.** Press `S`, `Esc`, then start the probe again: the first line must say
    `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
    `S` to go back to the clean preset.
