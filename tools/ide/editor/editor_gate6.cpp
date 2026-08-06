@@ -37,7 +37,7 @@ bool frame_has_content(const std::vector<uint8_t>& px) {
 void shoot(const GpuContext& gpu, WGPUTextureFormat fmt, GLFWwindow* win, const char* path) {
     int w = 0, h = 0;
     glfwGetFramebufferSize(win, &w, &h);
-    if (w <= 0 || h <= 0) { check(false, "кадр снят в PNG (нулевой фреймбуфер)"); return; }
+    if (w <= 0 || h <= 0) { check(false, "frame captured to PNG (zero-sized framebuffer)"); return; }
 
     // Тот же draw-data, что уходит в окно, но в собственную текстуру: swapchain-текстуру читать
     // нельзя (она без CopySrc), а формат обязан совпадать с тем, которым инициализирован
@@ -60,10 +60,10 @@ void shoot(const GpuContext& gpu, WGPUTextureFormat fmt, GLFWwindow* win, const 
     if (fmt == WGPUTextureFormat_BGRA8Unorm || fmt == WGPUTextureFormat_BGRA8UnormSrgb)
         for (size_t i = 0; i + 2 < px.size(); i += 4) std::swap(px[i], px[i + 2]);
 
-    check(frame_has_content(px), "вьюпорт нарисовал кадр (не однотонная заливка)");
+    check(frame_has_content(px), "viewport drew a frame (not a flat fill)");
     check(!px.empty() && capture::write_png(path, px, static_cast<uint32_t>(w), static_cast<uint32_t>(h)),
-          "кадр снят в PNG");
-    std::printf("  скриншот  : %s (%dx%d)\n", path, w, h);
+          "frame captured to PNG");
+    std::printf("  screenshot: %s (%dx%d)\n", path, w, h);
 }
 
 bool grid_shows(EditorState& st, uint64_t gid, int32_t raw_x) {
@@ -78,14 +78,14 @@ bool grid_shows(EditorState& st, uint64_t gid, int32_t raw_x) {
 int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurface surface,
               WGPUTextureFormat fmt, const char* out_png) {
     failures = 0;
-    std::printf("\n=== гейт 6 (спека #13): живой прогон редактора\n");
+    std::printf("\n=== gate 6 (spec #13): live editor run\n");
     if (!report_session(probe_session())) ++failures;
     WGPUAdapterProperties props = {};
     wgpuAdapterGetProperties(gpu.adapter, &props);
     std::printf("  adapter   : %s\n\n", props.name ? props.name : "?");
 
     const Position* sel = st.scene.get(st.sel).try_get<Position>();
-    if (!sel) { std::printf("  FAIL сцена без выбранной сущности — сценарий невозможен\n"); return 1; }
+    if (!sel) { std::printf("  FAIL scene has no selected entity - the scenario is impossible\n"); return 1; }
     const uint64_t gid = st.sel;
     const Position before = *sel;
 
@@ -94,9 +94,9 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
     Gizmo g;
     world_to_screen(st.cam, static_cast<float>(before.x.to_double()),
                     static_cast<float>(before.y.to_double()), g.sx, g.sy);
-    check(gizmo_hit(g, g.sx + g.len * 0.5f, g.sy) == GizmoPart::AxisX, "гизмо: ось X ловится там, где нарисована");
-    check(gizmo_hit(g, g.sx, g.sy - g.len * 0.5f) == GizmoPart::AxisY, "гизмо: ось Y ловится там, где нарисована");
-    check(gizmo_hit(g, g.sx + 4 * g.len, g.sy + 4 * g.len) == GizmoPart::None, "гизмо: мимо осей — промах");
+    check(gizmo_hit(g, g.sx + g.len * 0.5f, g.sy) == GizmoPart::AxisX, "gizmo: axis X hit-tests where it is drawn");
+    check(gizmo_hit(g, g.sx, g.sy - g.len * 0.5f) == GizmoPart::AxisY, "gizmo: axis Y hit-tests where it is drawn");
+    check(gizmo_hit(g, g.sx + 4 * g.len, g.sy + 4 * g.len) == GizmoPart::None, "gizmo: away from the axes - a miss");
 
     Position dragged{}, undone{};
     size_t depth_after_drag = 0;
@@ -127,15 +127,15 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
         else if (wgpu_imgui::present(gpu, surface, kClear)) ++presented;
     }
 
-    check(presented > kFrames / 2, "кадры уходят в swapchain этой сессии");
-    check(dragged.x.raw != before.x.raw, "гизмо-драг сдвинул сущность");
-    check(depth_after_drag == 1, "драг = одна транзакция undo, а не пятьдесят");
-    check(grid_followed, "инспектор показывает новое значение (property-grid из meta)");
-    check(undone.x.raw == before.x.raw && undone.y.raw == before.y.raw, "Undo вернул позицию");
+    check(presented > kFrames / 2, "frames reach the swapchain of this session");
+    check(dragged.x.raw != before.x.raw, "gizmo drag moved the entity");
+    check(depth_after_drag == 1, "drag = one undo transaction, not fifty");
+    check(grid_followed, "inspector shows the new value (property grid from meta)");
+    check(undone.x.raw == before.x.raw && undone.y.raw == before.y.raw, "undo restored the position");
 
-    std::printf("\n=== гейт 6: %s (провалов: %d)\n", failures ? "FAIL" : "PASS", failures);
-    std::printf("Остаётся глазами: окно ВИДНО на экране, и гизмо слушается настоящей мыши —\n"
-                "процесс о себе этого знать не может. Скриншот и эту выдачу приложить к гейту.\n");
+    std::printf("\n=== gate 6: %s (failures: %d)\n", failures ? "FAIL" : "PASS", failures);
+    std::printf("Left to the eye: the window IS visible on screen, and the gizmo obeys a real mouse -\n"
+                "        the process cannot know that about itself. Attach the screenshot and this output.\n");
     return failures ? 1 : 0;
 }
 

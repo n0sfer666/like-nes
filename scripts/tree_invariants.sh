@@ -110,17 +110,28 @@ inv_deps() {
     echo "framework dependency direction: PASS"
 }
 
+# --- Рантайм-вывод — чистый ASCII (консоль Windows не UTF-8) -----------------------------------
+inv_ascii() {
+    # Единственный инвариант семейства, который грепом не доказывается: отличить литерал от
+    # комментария построчной регуляркой нельзя, а комментарии в дереве русские по стилю. Разбор
+    # живёт в отдельном скрипте, и позитивный контроль там свой — число прочитанных литералов.
+    python3 scripts/ascii_output_check.py --selftest >/dev/null \
+        || fail "ascii-check: самопроверка правил не прошла (запусти её отдельно)"
+    python3 scripts/ascii_output_check.py || exit 1
+}
+
 case "${1:-all}" in
     seam) inv_seam ;;
     argv) inv_argv ;;
     env)  inv_env ;;
     deps) inv_deps ;;
+    ascii) inv_ascii ;;
     all)
         # Ни одна проверка не обрывает остальные: прогон обязан выдать все находки разом — то же
         # основание, что у этапов preflight.sh.
         rc=0
-        for i in seam argv env deps; do ( "inv_$i" ) || rc=1; done
+        for i in seam argv env deps ascii; do ( "inv_$i" ) || rc=1; done
         exit $rc
         ;;
-    *) fail "usage: tree_invariants.sh [seam|argv|env|deps|all]" ;;
+    *) fail "usage: tree_invariants.sh [seam|argv|env|deps|ascii|all]" ;;
 esac

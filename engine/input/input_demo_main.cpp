@@ -63,10 +63,10 @@ int main() {
     install_glfw_input(win, engine);
     GamepadSource* pad = make_gamepad_source();
     bool have_pad_backend = pad && pad->init();
-    printf("input PoC — kbd/mouse: GLFW window | gamepad: %s\n",
+    printf("input PoC - kbd/mouse: GLFW window | gamepad: %s\n",
            have_pad_backend ? pad->backend_name() : "none");
     printf("bindings: Space/PadA=Jump  LMB/PadB=Fire  WASD/LStick=Move  Mouse/RStick=Aim  R/Jump=rumble\n");
-    printf("mouse CAPTURED (курсор скрыт, aim=трекпад/мышь). M=освободить/захватить, Esc=выход\n");
+    printf("mouse CAPTURED (cursor hidden, aim = trackpad/mouse). M = release/grab, Esc = quit\n");
 
     bool prev_pad[MAX_DEVICES] = {};
     uint64_t held_prev = 0, dropped_prev = 0;

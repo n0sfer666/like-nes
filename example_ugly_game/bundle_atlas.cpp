@@ -45,7 +45,7 @@ Atlas load_baked_atlas(const char* bundle_path) {
 
 Atlas load_game_atlas(bool device_supports_bc) {
     if (!device_supports_bc) {
-        std::fprintf(stderr, "[game] assets: device lacks BC → procedural atlas (no baked BC7)\n");
+        std::fprintf(stderr, "[game] assets: device lacks BC -> procedural atlas (no baked BC7)\n");
         return build_atlas();
     }
     const std::string bp = resolve_bundle_path();
@@ -55,10 +55,10 @@ Atlas load_game_atlas(bool device_supports_bc) {
             std::printf("[game] assets: baked bundle %s (BC7 %ux%u)\n", bp.c_str(), a.w, a.h);
             return a;
         }
-        std::fprintf(stderr, "[game] assets: bundle %s unreadable → procedural fallback\n",
+        std::fprintf(stderr, "[game] assets: bundle %s unreadable -> procedural fallback\n",
                      bp.c_str());
     } else {
-        std::fprintf(stderr, "[game] assets: no game.bundle found → procedural fallback\n");
+        std::fprintf(stderr, "[game] assets: no game.bundle found -> procedural fallback\n");
     }
     return build_atlas();
 }

@@ -8,7 +8,7 @@ namespace input {
 
 template <int N>
 class InputBuffer {
-    static_assert((N & (N - 1)) == 0, "N — степень двойки");
+    static_assert((N & (N - 1)) == 0, "N must be a power of two");
 
 public:
     void push(const InputFrame& f) { buf_[head_ & (N - 1)] = f; ++head_; }

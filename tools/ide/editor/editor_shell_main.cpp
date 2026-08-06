@@ -49,11 +49,11 @@ int main(int argc, char** argv) {
 #  if defined(LIKE_NES_GLFW_WAYLAND)
     const int built_platform = GLFW_PLATFORM_WAYLAND;
     const char* built_for = "wayland";
-    const char* right_binary = "build/editor_shell (каталог без -DLINUX_WAYLAND=ON)";
+    const char* right_binary = "build/editor_shell (the directory without -DLINUX_WAYLAND=ON)";
 #  else
     const int built_platform = GLFW_PLATFORM_X11;
     const char* built_for = "x11";
-    const char* right_binary = "build-way/editor_shell (каталог с -DLINUX_WAYLAND=ON)";
+    const char* right_binary = "build-way/editor_shell (the directory with -DLINUX_WAYLAND=ON)";
 #  endif
     const int live_platform = glfwGetPlatform();
     if (live_platform != built_platform) {
@@ -61,10 +61,10 @@ int main(int argc, char** argv) {
         // отладчика, и «x11» вместо null увело бы читателя не туда.
         const char* live_for = live_platform == GLFW_PLATFORM_WAYLAND ? "wayland"
                              : live_platform == GLFW_PLATFORM_X11     ? "x11"
-                                                                      : "не x11 и не wayland";
+                                                                      : "neither x11 nor wayland";
         std::fprintf(stderr,
-            "[editor] каталог сборки не для этой сессии: бинарь собран под %s,\n"
-            "         а GLFW поднял платформу %s. Запускать надо %s.\n",
+            "[editor] this build directory is not for this session: the binary is built for %s,\n"
+            "         but GLFW brought up platform %s. Run %s instead.\n",
             built_for, live_for, right_binary);
         glfwTerminate();
         return 1;

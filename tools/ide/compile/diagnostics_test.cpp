@@ -77,6 +77,7 @@ int main() {
     check(parse_diagnostics("a.cpp(1): error\n").empty(), "a truncated line yields nothing, not garbage");
     // Локализованный cl.exe (VSLANG не выставлен) — известная слепая зона: русский severity парсер
     // не знает и знать не должен, потому run_build форсирует VSLANG=1033.
+    // ascii: allow фикстура локализованного вывода cl.exe
     check(parse_diagnostics("a.cpp(1,2): ошибка C2065: foo\n").empty(),
           "a localized severity is not guessed at");
 
