@@ -167,7 +167,9 @@ if errorlevel 1 exit /b 1
 rem Путь к манифесту пресетов ОТНОСИТЕЛЬНЫЙ, а рабочий каталог здесь — корень дерева (cd в шапке),
 rem поэтому проба не зависит от того, из какой папки её позвали. 2-й аргумент — свой манифест.
 set "MANIFEST=%~2"
-if "%MANIFEST%"=="" set "MANIFEST=example_ugly_game\assets\input.txt"
+rem По умолчанию раскладка ПРОБЫ, а не игры: у игры одно действие, и конфликт биндинга на ней
+rem непроверяем в принципе (см. шапку probe_input.txt).
+if "%MANIFEST%"=="" set "MANIFEST=engine\framework\input\probe_input.txt"
 if not exist "%MANIFEST%" (
     echo manifest "%MANIFEST%" not found
     exit /b 1
