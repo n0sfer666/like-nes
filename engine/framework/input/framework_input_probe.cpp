@@ -145,6 +145,8 @@ int main(int argc, char** argv) {
         if (have_pad) pad->poll(engine);
         const ::input::InputFrame& f = engine.begin_tick(t, 0);
         report_pads(engine, pad, reg, table, pad_prev);
+        // Первый тик уже содержит итог первого опроса — здесь он и называется вслух.
+        if (t == 0) report_cold_start(engine, pad);
 
         if (session.active() && !session.captured()) {
             const std::vector<::input::RawEvent>& log = engine.event_log();
