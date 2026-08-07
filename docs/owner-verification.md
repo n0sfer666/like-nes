@@ -176,6 +176,19 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 
 ## 3. Gate 8 of #14 — live input (Linux and Windows)
 
+> **Closed 2026-08-07** on Linux (Nobara 44, evdev, pad passport `vid=045e pid=0b12`) and Windows
+> (MSVC, XInput, `vid=045e pid=02ff`): both resolved the Xbox profile, all four stick directions
+> reported `yes` with the contract's signs over the full `[-1.00,+1.00]` range, the rebind conflict
+> was refused by name (`source already bound to 'jump' slot 0`) and taken by `F`, the overlay
+> survived a restart, hotplug printed DISCONNECTED/CONNECTED without a stall, and the sample game
+> was played to the boss on the pad on both OSes. Kept as the procedure.
+>
+> Two findings the live run produced, both fixed here: the witness first judged deflection by the
+> *resolved* axis, which the keyboard also writes to, and an idle XInput pad rests at `raw
+> lx=-0.01`, which an exact compare against zero read as "the preset ate the stick". The mouse is
+> live as a *button* only — the sample layout binds `mouse:left → fire` and no `mouseaxis:` row,
+> so a trackpad moves nothing there by composition of the manifest, not by a defect.
+
 ```sh
 cmake --build build --target framework_input_probe
 ./build/framework_input_probe engine/framework/input/probe_input.txt
