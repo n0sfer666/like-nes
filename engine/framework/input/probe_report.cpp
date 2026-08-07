@@ -20,8 +20,12 @@ void report_bindings(const PresetTable& table, uint32_t preset, const RebindStor
         }
         std::printf("\n");
     }
-    std::printf("[probe] keys: 1..%u rebind action - Tab alt slot - Enter/F apply - C cancel - "
-                "S save - X reset all - Esc quit\n",
+    // Enter и F названы РАЗНЫМ: они и делают разное. «Enter/F apply» читалось как «две клавиши,
+    // одно действие», и владелец жал F — то есть форс, — из-за чего перебинд в занятый источник
+    // молча забирал слот, ни разу не показав отказ. Шаг гейта про конфликт при этом выглядел
+    // пройденным.
+    std::printf("[probe] keys: 1..%u rebind action - Tab alt slot - Enter apply (refuses on "
+                "conflict) - F force - C cancel - S save - X reset all - Esc quit\n",
                 table.action_count(preset));
 }
 
