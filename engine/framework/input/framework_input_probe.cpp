@@ -13,6 +13,7 @@
 #include "platform_fs.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
+#include "probe_axis_report.hpp"
 #include "probe_report.hpp"
 #include "rebind_session.hpp"
 #include "rebind_store.hpp"
@@ -129,6 +130,7 @@ int main(int argc, char** argv) {
     report_bindings(table, preset, store);
 
     PadRegistry reg;
+    AxisWitness axes;
     RebindSession session;
     RebindConflict conflict;
     bool pad_prev[::input::MAX_DEVICES] = {};
@@ -147,13 +149,16 @@ int main(int argc, char** argv) {
         report_pads(engine, pad, reg, table, pad_prev);
         // Первый тик уже содержит итог первого опроса — здесь он и называется вслух.
         if (t == 0) report_cold_start(engine, pad);
+        // Свидетель осей смотрит КАЖДЫЙ тик, а не раз в тридцать, как строка состояния: отклонение
+        // стика длится доли секунды, и выборка каждый тридцатый кадр его штатно пропускает.
+        axes.observe(engine.device(), f);
 
         if (session.active() && !session.captured()) {
             const std::vector<::input::RawEvent>& log = engine.event_log();
             for (; log_seen < log.size() && !session.captured(); ++log_seen)
                 if (session.feed(log[log_seen]))
-                    std::printf("\n[probe] captured %s for '%s' slot %u - Enter/F applies, C "
-                                "cancels\n",
+                    std::printf("\n[probe] captured %s for '%s' slot %u - Enter applies (refuses "
+                                "on conflict), F forces, C cancels\n",
                                 source_name(session.candidate()).c_str(),
                                 table.action_name(preset, static_cast<uint32_t>(session.action())),
                                 session.which());
@@ -208,6 +213,7 @@ int main(int argc, char** argv) {
         if ((t % 30) == 0) report_status(table, preset, f, reg, t);
     }
 
+    axes.report();
     std::printf("\n[probe] bye - overlay %s\n",
                 store.empty() ? "empty" : "in memory (S saves it, X clears it)");
     glfwDestroyWindow(win);
