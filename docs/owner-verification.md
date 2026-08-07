@@ -231,9 +231,12 @@ event" stop looking alike.
    one, so nothing has to be remembered while testing.
    The `move=` figures in the live status line **cannot be sent**: that line is redrawn over itself
    with `\r`, so a pasted log keeps only its last frame. The per-direction lines and the exit report
-   exist because of exactly that — they are the evidence that survives copy-paste, and they say out
-   loud which of the two failures happened when the stick reads dead: the backend delivered no value
-   at all, or it delivered one and the preset resolved none of it.
+   exist because of exactly that — they are the evidence that survives copy-paste. The verdict per
+   direction is one of four: `yes`, `NO` (never pushed that far), `EATEN` (the stick arrived and the
+   preset resolved nothing — binding or deadzone) and `INVERTED` (it resolved with the sign opposite
+   to the contract, which is the per-platform defect this step hunts). Note that `move` is fed by
+   the keyboard too, so it moving on its own proves nothing about the pad — only the `raw stick`
+   figures do, and the report keeps them apart for that reason.
 3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press `J` (or `K`) — both belong to
    `jump`, the second action this manifest exists for. Now press **Enter**: the probe must refuse
    and name `jump` as the owner. *Then* press `F` to take it anyway, and confirm the printed binding
