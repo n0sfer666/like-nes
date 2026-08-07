@@ -217,29 +217,50 @@ event" stop looking alike.
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
    device: an Xbox pad must not come up as `generic`. A pad that is genuinely unlisted *should*
    say `generic` — that is the fallback working, not a failure. Send this line as-is.
-2. **Live resolution.** Push the left stick: `move=(…)` follows it and rests at exactly
-   `(+0.00,+0.00)` when centred (that is the deadzone). Press the south button and space — `fire:#`
-   lights for both.
-   **Name the directions out loud, one axis at a time** — right must read `x > 0`, and **up must
-   read `y > 0`**. This is not pedantry: the three backends disagree on the sign of the raw Y axis
-   (evdev grows downwards, XInput and GameController upwards), so an inverted stick is a
-   *per-platform* defect that a pad tested on one OS cannot reveal. The engine's contract is in
-   `engine/input/codes.hpp` — +X right, +Y **down** for the raw axis — and the preset flips it once
-   with `padaxis:-ly`, which is why `move` reads up as positive.
+2. **Live resolution.** Push the left stick fully in all four directions, one at a time, and hold
+   each for a moment: the probe prints one `stick right/left/up/down: raw … -> move=(…)` line per
+   direction the first time it sees it, and on exit an `axis report` block with the extremes of the
+   whole session. Then let the stick centre — `move=(…)` must rest at exactly `(+0.00,+0.00)` (that
+   is the deadzone). Press the south button and space — `fire:#` lights for both.
+   The signs are the point: right must read `x > 0`, and **up must read `y > 0`**. This is not
+   pedantry — the three backends disagree on the sign of the raw Y axis (evdev grows downwards,
+   XInput and GameController upwards), so an inverted stick is a *per-platform* defect that a pad
+   tested on one OS cannot reveal. The engine's contract is in `engine/input/codes.hpp` — +X right,
+   +Y **down** for the raw axis — and the preset flips it once with `padaxis:-ly`, which is why
+   `move` reads up as positive. Each printed line carries the expected sign next to the measured
+   one, so nothing has to be remembered while testing.
+   The `move=` figures in the live status line **cannot be sent**: that line is redrawn over itself
+   with `\r`, so a pasted log keeps only its last frame. The per-direction lines and the exit report
+   exist because of exactly that — they are the evidence that survives copy-paste, and they say out
+   loud which of the two failures happened when the stick reads dead: the backend delivered no value
+   at all, or it delivered one and the preset resolved none of it.
 3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press `J` (or `K`) — both belong to
-   `jump`, the second action this manifest exists for. The probe refuses and names the owner. Press
-   `F` to take it anyway, and confirm the printed binding table shows `jump` losing that slot.
-   Pressing a *free* key here is the failure mode this step keeps walking into: the probe stays
-   silent, which looks exactly like a pass and proves nothing.
+   `jump`, the second action this manifest exists for. Now press **Enter**: the probe must refuse
+   and name `jump` as the owner. *Then* press `F` to take it anyway, and confirm the printed binding
+   table shows `jump` losing that slot. Two ways this step silently proves nothing: pressing a
+   *free* key (the probe accepts it without a word, which looks exactly like a pass), and pressing
+   `F` straight away — `F` is the force, it never asks, and the refusal this step is about never
+   appears.
 4. **Persistence.** Press `S`, `Esc`, then start the probe again: the first line must say
    `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
    `S` to go back to the clean preset.
 5. **Unplug mid-session.** Yank the cable / turn the pad off while the probe runs: it prints
    `pad 0 DISCONNECTED -> profile falls back to 'generic'`, keyboard control keeps working, nothing
    sticks held. Plug it back in — the CONNECTED line comes again.
-6. **The real game.** `./build/game_sidescroller` with the pad connected: the ship flies on the
-   stick, fire works on the south button. The game reads the same preset from the bundle — this is
-   the "sample game on presets" half of the gate.
+6. **The real game.** The game is a separate target, and step 3 above built only the probe, so it
+   has to be asked for by name — `./build/game_sidescroller: No such file` means it was never built,
+   not that it is missing from the tree:
+
+   ```sh
+   cmake --build build --target game_sidescroller
+   ./build/game_sidescroller
+   ```
+
+   (Windows: `scripts\win-dev.bat game`.) With the pad connected the ship flies on the stick and
+   fire works on the south button. The game reads the same preset from the bundle — this is the
+   "sample game on presets" half of the gate. If the stick moves nothing here but did move `move=`
+   in the probe, say so: the two read the same axes through different preset tables, and that split
+   is the whole diagnosis.
 
 ## Beyond the gates
 
