@@ -182,10 +182,16 @@ build\framework_input_probe.exe "%MANIFEST%"
 exit /b %errorlevel%
 
 :do_game
-if not exist build\game_sidescroller.exe (
-    echo build\game_sidescroller.exe missing - run: scripts\win-dev.bat build
+rem Досбирается ОДНА цель, по той же причине, что и у `probe`: после `probe` (он собирает только
+rem пробу) игры в каталоге может не быть вовсе, и отсылка к полной сборке стоила бы десяток минут
+rem ради одного бинаря. Владелец на гейте 8 упёрся ровно в это: `game_sidescroller - отсутствует`
+rem читалось как «цели нет в дереве».
+if not exist build\CMakeCache.txt (
+    echo build\ is not configured - run: scripts\win-dev.bat build
     exit /b 1
 )
+cmake --build build --target game_sidescroller
+if errorlevel 1 exit /b 1
 rem Второй аргумент — ручка выбора адаптера из engine/render/gpu.cpp. На гибридном ноутбуке кадры
 rem могут рисоваться на дискретной карте, а окном владеть интегрированная: изнутри процесса всё
 rem успешно, на экране чёрное. Здесь только проброс: `game d3d12` меняет бэкенд, `game low` -
