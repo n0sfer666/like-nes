@@ -48,6 +48,23 @@ int failures = 0;
 void check(bool c, const char* w) { if (!c) { std::printf("  FAIL: %s\n", w); ++failures; } }
 void check_time(bool c, const char* w) { if (IDE_PERF_TIMING) check(c, w); }
 
+// Раннер — общая виртуалка, её планировщик отбирает слайс прямо посреди замера. Одиночный прогон
+// отличить кражу от регрессии не может в принципе, повтор — может: preemption бьёт по ОДНОМУ
+// прогону, регрессия по всем трём. Минимум измеряет способность машины, а не её загруженность в
+// конкретную секунду. Бюджеты при этом НЕ трогаются: прогон 31255611521 упал на macOS с
+// undo=21.52us/оп при бюджете 15, тогда как здоровые прогоны той же ревизии дают 0.35 (macOS),
+// 0.31 (Linux), 0.43 (Windows) — выброс в шестьдесят раз, а не «macOS медленнее». Поднять бюджет
+// под такое значило бы ослепнуть к настоящему O(N)-регрессу, видимому сейчас с 40-кратным запасом.
+template <class Body>
+double best_of_three(Body&& body) {
+    double best = body();
+    for (int rep = 1; rep < 3; ++rep) {
+        const double us = body();
+        if (us < best) best = us;
+    }
+    return best;
+}
+
 void populate(Scene& s, uint32_t n, std::vector<uint64_t>& flat) {
     flat.clear();
     flat.reserve(n);
@@ -109,13 +126,16 @@ int main() {
     // --- Bench A: выделение (скан сцены → преаллок. буфер) ≤ бюджет + zero C++-alloc ---
     double sel_us = 0;
     {
-        g_allocs.store(0); g_count = true;
-        auto t = Clock::now();
-        selection.clear();
-        for (const auto& [guid, e] : s.entities())
-            if (e.try_get<Velocity>()) selection.push_back(guid);
-        sel_us = us_since(t);
-        g_count = false;
+        sel_us = best_of_three([&] {
+            g_allocs.store(0); g_count = true;
+            auto t = Clock::now();
+            selection.clear();
+            for (const auto& [guid, e] : s.entities())
+                if (e.try_get<Velocity>()) selection.push_back(guid);
+            const double us = us_since(t);
+            g_count = false;
+            return us;
+        });
         check(g_allocs.load() == 0, "selection scan: zero per-frame C++ heap alloc");
         check(selection.size() == N / 2, "selection collected expected count");
         check_time(sel_us < 1500.0, "selection over 10k <= 1.5ms budget");
@@ -125,14 +145,17 @@ int main() {
     double grid_us = 0;
     {
         flecs::entity sel = s.get(selection[0]);
-        g_allocs.store(0); g_count = true;
-        auto t = Clock::now();
-        uint64_t acc = 0;
-        for (int frame = 0; frame < 1000; ++frame)
-            acc += static_cast<uint64_t>(grid_read(sel, grid, sizeof(grid))) + static_cast<unsigned char>(grid[0]);
-        grid_us = us_since(t) / 1000.0;
-        g_count = false;
-        g_sink += acc;
+        grid_us = best_of_three([&] {
+            g_allocs.store(0); g_count = true;
+            auto t = Clock::now();
+            uint64_t acc = 0;
+            for (int frame = 0; frame < 1000; ++frame)
+                acc += static_cast<uint64_t>(grid_read(sel, grid, sizeof(grid))) + static_cast<unsigned char>(grid[0]);
+            const double us = us_since(t) / 1000.0;
+            g_count = false;
+            g_sink += acc;
+            return us;
+        });
         check(g_allocs.load() == 0, "property-grid read: zero per-frame C++ heap alloc");
         check_time(grid_us < 5.0, "property-grid read <= 5us/frame budget");
     }
@@ -141,14 +164,17 @@ int main() {
     double virt_us = 0;
     {
         const size_t K = 64, off = 5000;
-        g_allocs.store(0); g_count = true;
-        auto t = Clock::now();
-        uint64_t sink = 0;
-        for (int frame = 0; frame < 1000; ++frame)
-            for (size_t i = off; i < off + K && i < flat.size(); ++i) sink += flat[i];
-        virt_us = us_since(t) / 1000.0;
-        g_count = false;
-        g_sink += sink;   // защита от DCE: результат наблюдаем
+        virt_us = best_of_three([&] {
+            g_allocs.store(0); g_count = true;
+            auto t = Clock::now();
+            uint64_t sink = 0;
+            for (int frame = 0; frame < 1000; ++frame)
+                for (size_t i = off; i < off + K && i < flat.size(); ++i) sink += flat[i];
+            const double us = us_since(t) / 1000.0;
+            g_count = false;
+            g_sink += sink;   // защита от DCE: результат наблюдаем
+            return us;
+        });
         check(g_allocs.load() == 0, "virtualized list window: zero per-frame C++ heap alloc");
         check_time(virt_us < 2.0, "virtualized window (K=64) <= 2us/frame budget");
     }
@@ -157,14 +183,16 @@ int main() {
     double undo_us = 0;
     {
         CommandBus bus(s);
-        auto t = Clock::now();
-        const int ops = 1000;
-        for (int i = 0; i < ops; ++i) {
-            bus.set_component<Position>(selection[i % selection.size()],
-                                        {fix32::from_int(i), fix32()});
-            bus.undo();
-        }
-        undo_us = us_since(t) / ops;
+        undo_us = best_of_three([&] {
+            auto t = Clock::now();
+            const int ops = 1000;
+            for (int i = 0; i < ops; ++i) {
+                bus.set_component<Position>(selection[i % selection.size()],
+                                            {fix32::from_int(i), fix32()});
+                bus.undo();
+            }
+            return us_since(t) / ops;
+        });
         check_time(undo_us < 15.0, "undo op on 10k scene <= 15us budget");
     }
 
@@ -175,21 +203,26 @@ int main() {
         populate(s2, 50000, flat2);
         flecs::entity sel2 = s2.get(1000);   // i=0 → чётный → есть Position и Velocity (как sel)
 
-        auto t = Clock::now();
-        uint64_t acc = 0;
-        for (int frame = 0; frame < 1000; ++frame)
-            acc += static_cast<uint64_t>(grid_read(sel2, grid, sizeof(grid))) + static_cast<unsigned char>(grid[0]);
-        double grid50 = us_since(t) / 1000.0;
-        g_sink += acc;
+        double grid50 = best_of_three([&] {
+            auto t = Clock::now();
+            uint64_t acc = 0;
+            for (int frame = 0; frame < 1000; ++frame)
+                acc += static_cast<uint64_t>(grid_read(sel2, grid, sizeof(grid))) + static_cast<unsigned char>(grid[0]);
+            const double us = us_since(t) / 1000.0;
+            g_sink += acc;
+            return us;
+        });
         check_time(grid50 < grid_us * 4.0 + 0.5, "property-grid O(1) in scene size (50k <= 4x 10k)");
 
         CommandBus bus2(s2);
-        t = Clock::now();
-        for (int i = 0; i < 1000; ++i) {
-            bus2.set_component<Position>(1000 + static_cast<uint64_t>((i % 40000) * 2), {fix32::from_int(i), fix32()});
-            bus2.undo();
-        }
-        double undo50 = us_since(t) / 1000.0;
+        double undo50 = best_of_three([&] {
+            auto t = Clock::now();
+            for (int i = 0; i < 1000; ++i) {
+                bus2.set_component<Position>(1000 + static_cast<uint64_t>((i % 40000) * 2), {fix32::from_int(i), fix32()});
+                bus2.undo();
+            }
+            return us_since(t) / 1000.0;
+        });
         check_time(undo50 < undo_us * 4.0 + 1.0, "undo O(1) in scene size (50k <= 4x 10k)");
     }
 
