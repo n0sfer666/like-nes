@@ -18,12 +18,17 @@ FEATURES="AUDIO_MINIAUDIO PLUGIN_UI PLUGIN_WASM"
 # там интересна ровно её ветка, а собирать ради неё дерево второй раз — двадцать минут на трёх ОС.
 # Умолчание пустое: каталог коммит-гейта собирается целиком, иначе гейт зеленел бы по недостроенному.
 TARGETS=${LIKE_NES_BUILD_TARGETS:-}
+# Конфигурация сборки. Умолчание Release, потому что коммит-гейт про неё и договаривались; Debug
+# заявляется явно — его гоняет шаг CI, сверяющий голден физики на -O0 (инвариант 1 спеки #15
+# требует совпадения в Debug И Release, а расхождение между уровнями оптимизации в целочисленной
+# арифметике означает UB, а не «погрешность»).
+BUILD_TYPE=${LIKE_NES_BUILD_TYPE:-Release}
 cd "$ROOT" || exit 1
 
 CACHE="$BUILD_DIR/CMakeCache.txt"
 if [ ! -f "$CACHE" ]; then
-    echo "build-check: конфигурирую $BUILD_DIR (первый прогон)"
-    cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release || exit 1
+    echo "build-check: конфигурирую $BUILD_DIR ($BUILD_TYPE, первый прогон)"
+    cmake -S . -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE="$BUILD_TYPE" || exit 1
 else
     RESTORE=()
     # Иначе гейт молча пройдёт по объектам, собранным без -Werror: ninja пересоберёт их
@@ -46,6 +51,15 @@ fi
 if ! grep -q '^LIKE_NES_WERROR:BOOL=ON' "$CACHE"; then
     echo "build-check: FAIL — в кеше нет LIKE_NES_WERROR=ON: строгие флаги не подключены"
     exit 1
+fi
+
+# Каталог, однажды сконфигурированный не той конфигурацией, молча остаётся ею навсегда: ветка выше
+# трогает кеш, только когда его нет. Гейт, который договаривались считать релизным, проверял бы -O0
+# и не сказал бы об этом ни строкой — ровно тот класс молчания, из-за которого набор опций
+# восстанавливается принудительно. Расхождение чинится на месте, а не сообщением «переконфигурируй».
+if ! grep -q "^CMAKE_BUILD_TYPE:STRING=$BUILD_TYPE\$" "$CACHE"; then
+    echo "build-check: $BUILD_DIR сконфигурирован не как $BUILD_TYPE — переконфигурирую"
+    cmake -S . -B "$BUILD_DIR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" >/dev/null || exit 1
 fi
 
 LOG=$(mktemp)
