@@ -97,18 +97,24 @@ public:
         PadInfo info;
         if (slot < 0 || slot >= 4) return info;
         XINPUT_CAPABILITIES caps{};
+        bool have_caps = false;
         const CapsExFn ex_fn = caps_ex_fn();
         if (ex_fn != nullptr) {
             XInputCapabilitiesEx ex{};
-            if (ex_fn(1, static_cast<DWORD>(slot), 0, &ex) != ERROR_SUCCESS) return info;
-            info.vid = ex.vid;
-            info.pid = ex.pid;
-            caps = ex.caps;
-            // Фолбэк ниже не дублируется: класс уже получен, а VID/PID нулями означают ровно то же,
-            // что и до этой правки — матчинг уйдёт на подстроку имени.
-        } else if (XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) {
-            return info;
+            if (ex_fn(1, static_cast<DWORD>(slot), 0, &ex) == ERROR_SUCCESS) {
+                info.vid = ex.vid;
+                info.pid = ex.pid;
+                caps = ex.caps;
+                have_caps = true;
+            }
         }
+        // Ordinal 108 недокументирован, поэтому у него ДВА способа подвести: не разрешиться и
+        // разрешиться в функцию с иной семантикой. Первый откат был написан только на первый, и
+        // отказ разрешившегося вызова отдавал пустой паспорт — то есть подключённый пад терял и
+        // имя, и класс, которые до появления VID/PID у него были. Пусто теперь только когда
+        // провалились ОБА: документированный XInputGetCapabilities даёт класс, по которому профиль
+        // ищется подстрокой имени, как искался раньше.
+        if (!have_caps && XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) return info;
         const char* kind = "XInput gamepad";
         switch (caps.SubType) {
         case XINPUT_DEVSUBTYPE_WHEEL:       kind = "XInput wheel"; break;
