@@ -92,7 +92,10 @@ FetchContent_MakeAvailable(glfw3webgpu)
 # «Display pointer is not set» — уже внутри создания поверхности, без единого слова про причину.
 # Пробрасываем свой же выбор: каталог, собранный с LINUX_WAYLAND=ON, и поверхность создаёт
 # Wayland-ную. Выбор остаётся ОДИН на каталог сборки — ровно поэтому гейт 6 требует двух деревьев.
-if(LINUX_WAYLAND)
+# Под `Linux`, а не голым `if(LINUX_WAYLAND)`: у самой glfw опция `GLFW_BUILD_WAYLAND` вне Linux
+# игнорируется ею же, а у glue такой защиты нет — `-DLINUX_WAYLAND=ON` на macOS увёл бы его в
+# Wayland-ветку создания поверхности поверх Cocoa.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND LINUX_WAYLAND)
   target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WAYLAND)
 endif()
 # Публичные макросы — НАШИ и объявляются ЗДЕСЬ, потому что выбор бэкенда окна это выбор ОС, а он по
