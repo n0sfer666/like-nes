@@ -100,11 +100,22 @@ inv_deps() {
     # shellcheck disable=SC2086
     grep -rn "target_link_libraries" $dirs >/dev/null \
         || fail "search found no link edges at all — the gate is vacuous"
-    # Ловим ребро к слою: имя цели (framework_core / framework_input) и включение его заголовков.
-    # Слово "framework" целиком не годится — им зовутся системные фреймворки macOS
+    # Имена целей слоя берутся ИЗ ДЕРЕВА, а не из литерала: список, вписанный руками, отстаёт от
+    # первого же нового модуля, и гейт молча пропускает ребро к нему — так и случилось, когда
+    # появился framework_physics. Каталог = модуль = имя цели, это правило слоя (#14).
+    local mods=""
+    for d in engine/framework/*/; do
+        [ -d "$d" ] || continue
+        mods="$mods|$(basename "$d")"
+    done
+    mods="${mods#|}"
+    [ -n "$mods" ] && echo "$mods" | grep -q "core" \
+        || fail "framework layer has no modules — the gate is vacuous"
+    # Ловим ребро к слою: имя цели (framework_core / framework_input / ...) и включение его
+    # заголовков. Слово "framework" целиком не годится — им зовутся системные фреймворки macOS
     # ("-framework CoreAudio") и GameController.framework в комментариях.
     # shellcheck disable=SC2086
-    if grep -rnE "framework_(core|input)|include .*framework/" $dirs; then
+    if grep -rnE "framework_($mods)|include .*framework/" $dirs; then
         fail "a subsystem depends on the framework layer — direction broken"
     fi
     echo "framework dependency direction: PASS"

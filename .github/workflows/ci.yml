@@ -948,6 +948,55 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh deps
 
+      # --- Физика (спека #15), вертикаль 1: гейты 1, 2 и 6. Тесты чистые — ни GPU, ни окна, ни
+      # железа, — поэтому гоняются на всех трёх ОС. Смысл именно в трёх: состояние считается на
+      # fix32, и хеш обязан совпасть побайтно на x86 и на ARM. Разойдётся — это и есть та
+      # регрессия, ради которой гейт заведён, а не «погрешность».
+      - name: "Physics — state golden, order independence, declared range, zero-alloc step (gates 1/2/6, all OS)"
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          # Диапазонный гейт в том же списке и намеренно: golden закрепляет ОДНУ сцену из середины
+          # диапазона и ровно поэтому пропустил насыщение импульса под тяжёлым телом. Границы
+          # заявленных входов проверяются отдельно от удобной середины.
+          for T in framework_physics_test framework_physics_order_test framework_physics_range_test \
+                   framework_physics_rt_test; do
+            B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+            need "$B" "$T"
+            "$B" | tee "phys_$T.txt"
+            grep -q ": PASS" "phys_$T.txt" || { echo "$T FAILED on ${{ matrix.os }}"; exit 1; }
+          done
+          # Гейт 1 отдельной строкой, а не общим PASS: сам тест сверяет эталон изнутри, но в логе
+          # CI обязано быть видно ЗНАЧЕНИЕ, иначе расследование расхождения начинается с пересборки.
+          grep -q "physics-state-hash = 0x3977752decf95c28" phys_framework_physics_test.txt \
+            || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+
+      - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # Гейт 7 спеки #15. Основная сборка идёт с -O3, эта — с -O1: знаковое переполнение в
+          # промежуточном произведении Q32.32 — UB, то есть право компилятора выкинуть проверку,
+          # и на разных уровнях оптимизации оно проявляется по-разному. Один уровень доказывал бы
+          # только про себя.
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform -Iengine/framework/core -Iengine/framework/physics"
+          LIB="engine/framework/core/fixmath.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
+          PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
+          c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
+          ./phys_san | tee physsan.txt
+          # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
+          # но и досчитать до того же состояния.
+          grep -q "physics-state-hash = 0x3977752decf95c28" physsan.txt
+          c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
+          ./phys_order_san | tee physordersan.txt
+          grep -q ": PASS" physordersan.txt
+          # Границы диапазона — самое ценное для санитайзеров место во всём модуле: там, где
+          # арифметика Q16.16 подходит к насыщению вплотную, знаковое переполнение промежуточного
+          # произведения и есть тот UB, ради которого этот шаг существует.
+          c++ $SAN $LIB engine/framework/physics/framework_physics_range_test.cpp $PLAT -o phys_range_san
+          ./phys_range_san | tee physrangesan.txt
+          grep -q ": PASS" physrangesan.txt
+
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'
         shell: bash
