@@ -1,39 +1,17 @@
 #include <cstdio>
-#include <cstdlib>
-#include <new>
 #include <vector>
 
 #include "codes.hpp"
+#include "framework_alloc_probe.hpp"
 #include "pad_registry.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
 #include "schedule.hpp"
 #include "stick.hpp"
-#include "platform_noinline.hpp"
 
 // Гейт 7 спеки #14: тик слоя фреймворка не ходит в кучу. Аллокации живут на старте — бейк,
 // открытие таблицы, построение расписания; всё, что повторяется каждый кадр, обязано укладываться
-// в уже выделенное. Проверяется тем же приёмом, что горячий путь ввода (#4): глобальный
-// operator new считает вызовы внутри отмеченного региона.
-namespace {
-bool g_in_hot = false;
-long g_allocs = 0;
-} // namespace
-
-// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
-
-PLATFORM_NOINLINE void* operator new(std::size_t n) {
-    if (g_in_hot) ++g_allocs;
-    void* p = std::malloc(n ? n : 1);
-    if (p == nullptr) throw std::bad_alloc();
-    return p;
-}
-PLATFORM_NOINLINE void* operator new[](std::size_t n) { return operator new(n); }
-PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
-PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
-PLATFORM_NOINLINE void operator delete(void* p, std::size_t) noexcept { std::free(p); }
-PLATFORM_NOINLINE void operator delete[](void* p, std::size_t) noexcept { std::free(p); }
-
+// в уже выделенное. Счётчик — общий с гейтом 6 спеки #15, одной реализацией.
 namespace {
 
 const char* MANIFEST = R"(
@@ -102,7 +80,7 @@ int main() {
     uint64_t prev = 0;
 
     // --- Горячий регион: разрешение действий, форма стика, профиль слота ---
-    g_in_hot = true;
+    framework::probe::in_hot = true;
     for (uint32_t t = 1; t <= 5000; ++t) {
         state.pad_axes[0][c::LX] = fix32::from_raw(static_cast<int32_t>(t) * 13);
         state.pad_axes[0][c::LY] = fix32::from_raw(static_cast<int32_t>(t) * 7);
@@ -116,11 +94,11 @@ int main() {
         sched.run(tick);
         reg.profile(0);
     }
-    g_in_hot = false;
+    framework::probe::in_hot = false;
 
-    const bool pass = (g_allocs == 0) && g_ticked == 5000 && sink.raw != 0x7fffffff;
-    if (g_allocs != 0)
-        std::printf("  FAIL: %ld heap allocations in the framework tick\n", g_allocs);
+    const bool pass = (framework::probe::allocs == 0) && g_ticked == 5000 && sink.raw != 0x7fffffff;
+    if (framework::probe::allocs != 0)
+        std::printf("  FAIL: %ld heap allocations in the framework tick\n", framework::probe::allocs);
     std::printf("framework-rt: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
 }
