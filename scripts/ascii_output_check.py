@@ -24,7 +24,6 @@ import argparse
 import pathlib
 import re
 import sys
-import tempfile
 
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
 ROOTS = ("engine", "tools", "example_ugly_game", "platform")
@@ -138,47 +137,19 @@ def tree_files(root):
     return out
 
 
-FIXTURES = [
-    ("плохо: русский в литерале", 'void f() { puts("привет"); }', 1),
-    ("хорошо: русский в // комментарии", '// привет\nvoid f() { puts("hi"); }', 0),
-    ("хорошо: русский в /* */ комментарии", '/* привет\n   ещё */ void f() { puts("hi"); }', 0),
-    ("хорошо: подавление с причиной", 'puts("привет"); // ascii: allow фикстура проверяет юникод', 0),
-    ("плохо: подавление без причины", 'puts("привет"); // ascii: allow ага', 1),
-    ("хорошо: подавление на предыдущей строке",
-     '// ascii: allow фикстура проверяет юникодный путь\nputs("привет");', 0),
-    ("плохо: экранированная кавычка не сбивает разбор", 'puts("a\\"b"); puts("привет");', 1),
-    ("хорошо: апостроф как разделитель разрядов", "uint64_t x = 1'000'000; // ок\n", 0),
-    ("плохо: литерал после разделителя разрядов", "uint64_t x = 1'000'000;\nputs(\"привет\");", 1),
-    ("хорошо: символьный литерал с экранированием", "char c = '\\''; puts(\"hi\");", 0),
-    ("хорошо: широкий символьный литерал с кавычкой", "out += L'\"';\nputs(\"hi\");", 0),
-    ("плохо: юникод после широкого символьного литерала", "out += L'\"';\nputs(\"привет\");", 1),
-    ("плохо: raw-строка с юникодом", 'auto s = R"(привет)";', 1),
-    ("хорошо: юникод только в имени файла-комментарии", '#include "codes.hpp" // привет', 0),
-]
-
-
-def selftest():
-    """Сломанное правило молчит ровно так же, как чистое дерево. Отсюда фикстуры: каждая
-    называет ОЖИДАЕМОЕ число находок, и правило, переставшее срабатывать, валит прогон."""
-    bad = 0
-    with tempfile.TemporaryDirectory() as tmp:
-        for i, (name, body, want) in enumerate(FIXTURES):
-            p = pathlib.Path(tmp) / f"case{i}.cpp"
-            p.write_text(body, encoding="utf-8")
-            got = len(scan([p])[0])
-            ok = got == want
-            bad += 0 if ok else 1
-            print(f"  [{'PASS' if ok else 'FAIL'}] {name}" + ("" if ok else f" — ждали {want}, нашли {got}"))
-    print(f"ascii-check selftest: {'PASS' if not bad else 'FAIL'} — {len(FIXTURES)} кейсов, провалов: {bad}")
-    return 1 if bad else 0
-
-
 def main():
+    # Тот же приём, что в ci_lint.py: вывод здесь русский, с «—» и «≥», а locale-дефолт Windows —
+    # cp1251. Перенаправь вердикт в файл на машине владельца — и вместо него приедет трейсбек
+    # UnicodeEncodeError. Ни на одном раннере CI это не воспроизводится: там локаль UTF-8.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     if args.selftest:
-        return selftest()
+        from ascii_output_check_selftest import selftest
+        return selftest(scan)
 
     root = pathlib.Path(__file__).resolve().parent.parent
     files = tree_files(root)
