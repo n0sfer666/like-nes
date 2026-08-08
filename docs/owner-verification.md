@@ -1,13 +1,18 @@
 # Owner verification: the gates a runner cannot close
 
-Three gates are still open, and all three need a machine a CI runner is not: a real desktop
-session, a real GPU driver, a real gamepad.
+All three gates below are **closed** — each section carries the run that closed it, with the
+evidence. They stay here as the procedure, because each one needs a machine a CI runner is not: a
+real desktop session, a real GPU driver, a real gamepad. A gate is re-run when a commit touches
+what it covers; the right-hand column names that surface.
 
-| Gate | Spec | Where |
-|---|---|---|
-| Linux X11 **and** Wayland — editor renders, gizmo moves an object | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 6 | Linux |
-| End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows |
-| Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows |
+| Gate | Spec | Where | Closed | Re-run when a commit touches |
+|---|---|---|---|---|
+| Linux X11 **and** Wayland — editor renders, gizmo moves an object | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 6 | Linux | 2026-08-05 | window backend, surface glue, `LINUX_WAYLAND` |
+| End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
+| Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
+
+That column is the whole point of keeping the procedure: a closed gate protects nothing if the code
+under it moves and nobody re-runs it.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
