@@ -71,6 +71,14 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 
 ## 1. Gate 6 — X11 and Wayland (Linux)
 
+> **Closed 2026-08-05** on Nobara 44 (Intel UHD 620 / Vulkan): Wayland under GNOME and X11 under i3,
+> one run each, both PASS. Kept as the procedure — it is what a new machine or a change to the
+> windowing path has to be re-run against.
+
+On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
+first run comes back FAIL on the passport line alone. That case is walked through step by step in
+[`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
+
 GLFW is X11-only by default, so under a Wayland session the default build runs as an XWayland
 client — that answers the X11 question a second time, not the Wayland one. Build **two** trees:
 
@@ -127,6 +135,9 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 
 ## 2. Gate 8 of #13 — the end-to-end loop (Linux and Windows)
 
+> **Closed 2026-08-05/06** on commit `0e4294c`: Linux (Nobara 44, GCC) and Windows (MSVC 14.44),
+> both PASS, dR=+89.705 against a +4 threshold, sim-golden intact. Kept as the procedure.
+
 The editor has no Play/Build buttons yet: spawning and the build loop are their own targets
 (`play_spawn_test`, `build_loop_test`), and the mechanism is what `owner_check.sh` already timed on
 this machine. What is left is the chain end to end — an edit reaching pixels — and that whole chain
@@ -157,55 +168,115 @@ clone.
 One number is still yours to record: `owner_check.sh` prints the edit→build→hot-reload loop timing
 (`best` / `median`), and spec #13 asks for it as a fact per OS. It goes into `first-run.md`.
 
-Windows: run every command from an *x64 Native Tools Command Prompt for VS*, and start the scripts through
-git-bash as in section 0 — the exec bit does not survive the index there, so the interpreter is
-always named explicitly.
+Windows: `scripts\win-dev.bat gate8` runs it from any shell — same wrapper as `check`, and for the
+same reason. This gate needs vcvars and a POSIX shell *at once*: it clones the tree and builds the
+clone from scratch, so starting from Git Bash alone stops at "no compiler". By hand it is an *x64
+Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" scripts/gate8_e2e.sh`
+— the exec bit does not survive the index there, so the interpreter is always named explicitly.
 
 ## 3. Gate 8 of #14 — live input (Linux and Windows)
 
+> **Closed 2026-08-07** on Linux (Nobara 44, evdev, pad passport `vid=045e pid=0b12`) and Windows
+> (MSVC, XInput, `vid=045e pid=02ff`): both resolved the Xbox profile, all four stick directions
+> reported `yes` with the contract's signs over the full `[-1.00,+1.00]` range, the rebind conflict
+> was refused by name (`source already bound to 'jump' slot 0`) and taken by `F`, the overlay
+> survived a restart, hotplug printed DISCONNECTED/CONNECTED without a stall, and the sample game
+> was played to the boss on the pad on both OSes. Kept as the procedure.
+>
+> Two findings the live run produced, both fixed here: the witness first judged deflection by the
+> *resolved* axis, which the keyboard also writes to, and an idle XInput pad rests at `raw
+> lx=-0.01`, which an exact compare against zero read as "the preset ate the stick". The mouse is
+> live as a *button* only — the sample layout binds `mouse:left → fire` and no `mouseaxis:` row,
+> so a trackpad moves nothing there by composition of the manifest, not by a defect.
+
 ```sh
 cmake --build build --target framework_input_probe
-./build/framework_input_probe example_ugly_game/assets/input.txt
+./build/framework_input_probe engine/framework/input/probe_input.txt
 ```
+
+Run it from the repo root: the manifest path is relative, and the manifest is the *source* preset —
+the probe bakes it in-process, so there is no separate bake step. It is the probe's own preset, not
+the game's: the game has exactly one action (`fire`), and `find_conflict` skips the action being
+rebound, so step 3 below is unprovable on the game's manifest — it always looks passed. The game
+manifest could not simply grow a second action either: a golden `bundle_hash` is pinned on it. On
+Windows use
+`scripts\win-dev.bat probe`: `cmake` is not on PATH there until vcvars has run, which is the same
+reason `check` and `gate8` have wrappers. It rebuilds that one target (a pull leaves the old binary
+in place silently) and runs it from the tree root whatever shell you started in.
 
 The probe opens a small window (keyboard and mouse arrive through it — it must have focus) and
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
 
-Two Linux-side traps before you start, both of which make a working pad look like a broken backend:
+Three traps before you start, all of which make a working pad look like a broken backend. The
+probe's first line — `cold-start scan: …` — tells the two halves apart: it says out loud whether the
+backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
+event" stop looking alike.
 
-- **Permissions.** The evdev backend reads `/dev/input/event*`; a desktop session normally gets
-  them through logind's `uaccess`, but a pad seen by `ls /dev/input` and not by the probe means
+- **Permissions (Linux).** The evdev backend reads `/dev/input/event*`; a desktop session normally
+  gets them through logind's `uaccess`, but a pad seen by `ls /dev/input` and not by the probe means
   exactly that seam. `sudo usermod -aG input $USER`, then log out and back in.
-- **Steam.** On a gaming distro (Nobara ships Steam) a running Steam with Steam Input on
+- **Steam (both).** On a gaming distro (Nobara ships Steam) a running Steam with Steam Input on
   re-presents the pad as a *virtual* Xbox 360 controller and hides the real one. The passport line
   then names the wrong device through no fault of ours. Quit Steam completely for this gate — the
   point is what the OS reports about the physical pad.
+- **Xbox Game Bar (Windows).** Confirmed on the owner's machine, 2026-08-06: a pad plugged in since
+  boot was invisible to XInput for the whole session and became visible the moment the cable was
+  re-seated. Nothing on our side polls too rarely to catch it — every slot is polled every frame, so
+  a lost connect event would heal by itself on the next one; XInput simply reported no device.
+  Settings → Gaming → Xbox Game Bar → Off (and quit Steam), or re-plug the pad after the probe
+  starts.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
    device: an Xbox pad must not come up as `generic`. A pad that is genuinely unlisted *should*
    say `generic` — that is the fallback working, not a failure. Send this line as-is.
-2. **Live resolution.** Push the left stick: `move=(…)` follows it and rests at exactly
-   `(+0.00,+0.00)` when centred (that is the deadzone). Press the south button and space — `fire:#`
-   lights for both.
-   **Name the directions out loud, one axis at a time** — right must read `x > 0`, and **up must
-   read `y > 0`**. This is not pedantry: the three backends disagree on the sign of the raw Y axis
-   (evdev grows downwards, XInput and GameController upwards), so an inverted stick is a
-   *per-platform* defect that a pad tested on one OS cannot reveal. The engine's contract is in
-   `engine/input/codes.hpp` — +X right, +Y **down** for the raw axis — and the preset flips it once
-   with `padaxis:-ly`, which is why `move` reads up as positive.
-3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press a key already used by another
-   action. The probe refuses and names the owner. Press `F` to take it anyway, and confirm the
-   printed binding table shows the previous owner losing that slot.
+2. **Live resolution.** Push the left stick fully in all four directions, one at a time, and hold
+   each for a moment: the probe prints one `stick right/left/up/down: raw … -> move=(…)` line per
+   direction the first time it sees it, and on exit an `axis report` block with the extremes of the
+   whole session. Then let the stick centre — `move=(…)` must rest at exactly `(+0.00,+0.00)` (that
+   is the deadzone). Press the south button and space — `fire:#` lights for both.
+   The signs are the point: right must read `x > 0`, and **up must read `y > 0`**. This is not
+   pedantry — the three backends disagree on the sign of the raw Y axis (evdev grows downwards,
+   XInput and GameController upwards), so an inverted stick is a *per-platform* defect that a pad
+   tested on one OS cannot reveal. The engine's contract is in `engine/input/codes.hpp` — +X right,
+   +Y **down** for the raw axis — and the preset flips it once with `padaxis:-ly`, which is why
+   `move` reads up as positive. Each printed line carries the expected sign next to the measured
+   one, so nothing has to be remembered while testing.
+   The `move=` figures in the live status line **cannot be sent**: that line is redrawn over itself
+   with `\r`, so a pasted log keeps only its last frame. The per-direction lines and the exit report
+   exist because of exactly that — they are the evidence that survives copy-paste. The verdict per
+   direction is one of four: `yes`, `NO` (never pushed that far), `EATEN` (the stick arrived and the
+   preset resolved nothing — binding or deadzone) and `INVERTED` (it resolved with the sign opposite
+   to the contract, which is the per-platform defect this step hunts). Note that `move` is fed by
+   the keyboard too, so it moving on its own proves nothing about the pad — only the `raw stick`
+   figures do, and the report keeps them apart for that reason.
+3. **Rebind with a conflict.** Press `1` to rebind `fire`, then press `J` (or `K`) — both belong to
+   `jump`, the second action this manifest exists for. Now press **Enter**: the probe must refuse
+   and name `jump` as the owner. *Then* press `F` to take it anyway, and confirm the printed binding
+   table shows `jump` losing that slot. Two ways this step silently proves nothing: pressing a
+   *free* key (the probe accepts it without a word, which looks exactly like a pass), and pressing
+   `F` straight away — `F` is the force, it never asks, and the refusal this step is about never
+   appears.
 4. **Persistence.** Press `S`, `Esc`, then start the probe again: the first line must say
    `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
    `S` to go back to the clean preset.
 5. **Unplug mid-session.** Yank the cable / turn the pad off while the probe runs: it prints
    `pad 0 DISCONNECTED -> profile falls back to 'generic'`, keyboard control keeps working, nothing
    sticks held. Plug it back in — the CONNECTED line comes again.
-6. **The real game.** `./build/game_sidescroller` with the pad connected: the ship flies on the
-   stick, fire works on the south button. The game reads the same preset from the bundle — this is
-   the "sample game on presets" half of the gate.
+6. **The real game.** The game is a separate target, and step 3 above built only the probe, so it
+   has to be asked for by name — `./build/game_sidescroller: No such file` means it was never built,
+   not that it is missing from the tree:
+
+   ```sh
+   cmake --build build --target game_sidescroller
+   ./build/game_sidescroller
+   ```
+
+   (Windows: `scripts\win-dev.bat game`.) With the pad connected the ship flies on the stick and
+   fire works on the south button. The game reads the same preset from the bundle — this is the
+   "sample game on presets" half of the gate. If the stick moves nothing here but did move `move=`
+   in the probe, say so: the two read the same axes through different preset tables, and that split
+   is the whole diagnosis.
 
 ## Beyond the gates
 

@@ -46,7 +46,7 @@ int run_window(int frame_cap) {
     if (!glfwInit()) { std::fprintf(stderr, "glfwInit failed\n"); return 1; }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-    GLFWwindow* win = glfwCreateWindow(VIEW_W, VIEW_H, "like-nes — sidescroller (S2a)", nullptr, nullptr);
+    GLFWwindow* win = glfwCreateWindow(VIEW_W, VIEW_H, "like-nes - sidescroller (S2a)", nullptr, nullptr);
     if (!win) { glfwTerminate(); return 1; }
 
     GpuContext gpu;
@@ -89,7 +89,7 @@ int run_window(int frame_cap) {
     install_glfw_input(win, engine);
     input::GamepadSource* pad = input::make_gamepad_source();
     bool have_pad = pad && pad->init();
-    std::printf("[game] WASD/arrows/LStick = move · gamepad: %s · Esc = quit\n",
+    std::printf("[game] WASD/arrows/LStick = move | gamepad: %s | Esc = quit\n",
                 have_pad ? pad->backend_name() : "none");
 
     const fix32 dt = fix32::from_float(1.0 / 60);
@@ -126,7 +126,7 @@ int run_window(int frame_cap) {
                 configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
             }
             if (!surface_warned) {
-                std::fprintf(stderr, "[game] surface texture status %u — кадр пропущен\n",
+                std::fprintf(stderr, "[game] surface texture status %u - frame skipped\n",
                              (unsigned)st.status);
                 surface_warned = true;
             }

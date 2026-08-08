@@ -8,6 +8,7 @@
 #include "codec.hpp"
 #include "format.hpp"
 #include "platform_args.hpp"
+#include "verify_game.hpp"
 
 // Headless CLI-бейкер (спека #5): source (png+wgsl+bulk) → детерм. bundle.
 // Один код бейка (CI + IDE-watch поверх). Печатает golden bundle_hash (гейт #1).
@@ -40,9 +41,20 @@ int emit(const char* what, const std::string& path, std::vector<AssetInput> asse
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
     if (argc < 3) {
-        std::fprintf(stderr, "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
-                             "       assetc --synthetic <out.bundle>  (tools-free, для CI)\n");
+        std::fprintf(stderr,
+                     "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
+                     "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
+                     "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n");
         return 2;
+    }
+    // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
+    // `--game` без tint/basisu нельзя, а сверить tool-free секции можно везде.
+    if (std::strcmp(argv[1], "--verify-game") == 0) {
+        if (argc < 4) {
+            std::fprintf(stderr, "usage: assetc --verify-game <src-dir> <bundle>\n");
+            return 2;
+        }
+        return verify_game_bundle(argv[2], argv[3]) ? 0 : 1;
     }
     // Tools-free синтетический бейк (CI): writer+zstd, без tint/basisu.
     if (std::strcmp(argv[1], "--synthetic") == 0) {

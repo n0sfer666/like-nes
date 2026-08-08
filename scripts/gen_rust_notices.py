@@ -179,4 +179,4 @@ os.replace(TMP, OUT)
 print('crates', len(pkgs), 'unique texts', len(texts), 'no-file', len(nofile))
 if unverified:
     print('unverified (asserted, manifest not read):', ' '.join(sorted(unverified)))
-print('lines', sum(1 for _ in open(OUT)))
+print('lines', sum(1 for _ in open(OUT, encoding='utf-8')))

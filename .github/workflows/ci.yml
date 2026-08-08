@@ -90,6 +90,15 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh env
 
+      # Рантайм-вывод — чистый ASCII. Консоль Windows не UTF-8, и русская строка из процесса
+      # приезжает владельцу как «bye тАФ overlay in memory»: дефект четыре раза находился глазами
+      # в отчёте о ручном гейте, то есть после самого дорогого круга в проекте. Комментарии это
+      # не трогает — правило разбирает литералы, а не строки файла.
+      - name: Platform — runtime output stays ASCII (Windows console is not UTF-8)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/tree_invariants.sh ascii
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
@@ -276,6 +285,23 @@ jobs:
           # cmp, а не хеш: git-bash на Windows-раннере не несёт ни shasum, ни md5sum, а сверяем мы
           # байтовое равенство двух локальных файлов — хеш тут лишний посредник.
           cmp -s syn.bundle syn2.bundle || { echo "bake not run-to-run identical"; exit 1; }
+
+      # Бандл игры закоммичен готовым, и перепечь его целиком на раннере нечем: текстурная секция
+      # тянет tint и basisu, которых тут нет. Сверяются секции, что пекутся чистыми парсерами —
+      # правка input.txt или achievements.txt без перепекания иначе доезжает молча, а на бандле
+      # стоят и игра-образец, и sim-golden. Гейт несёт собственный позитивный контроль: испорченная
+      # копия таблицы обязана быть отбита тем же сравнением, иначе он зелен вакуумно.
+      - name: Asset — committed game.bundle matches its sources (tool-free sections, all OS)
+        shell: bash
+        run: |
+          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
+          [ -n "$A" ] || { echo "assetc not built"; exit 1; }
+          "$A" --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle | tee vg.txt
+          # Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из списка
+          # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
+          # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
+          # с числом: список секций растёт осознанно, вместе с этой строкой.
+          grep -q "verify: PASS - 2 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash

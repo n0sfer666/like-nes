@@ -20,8 +20,12 @@ void report_bindings(const PresetTable& table, uint32_t preset, const RebindStor
         }
         std::printf("\n");
     }
-    std::printf("[probe] keys: 1..%u rebind action - Tab alt slot - Enter/F apply - C cancel - "
-                "S save - X reset all - Esc quit\n",
+    // Enter и F названы РАЗНЫМ: они и делают разное. «Enter/F apply» читалось как «две клавиши,
+    // одно действие», и владелец жал F — то есть форс, — из-за чего перебинд в занятый источник
+    // молча забирал слот, ни разу не показав отказ. Шаг гейта про конфликт при этом выглядел
+    // пройденным.
+    std::printf("[probe] keys: 1..%u rebind action - Tab alt slot - Enter apply (refuses on "
+                "conflict) - F force - C cancel - S save - X reset all - Esc quit\n",
                 table.action_count(preset));
 }
 
@@ -45,6 +49,26 @@ void report_pads(::input::InputEngine& engine, ::input::GamepadSource* pad, PadR
                     reg.profile(s).stick.deadzone.to_double(),
                     reg.profile(s).trigger_threshold.to_double());
     }
+}
+
+void report_cold_start(::input::InputEngine& engine, const ::input::GamepadSource* pad) {
+    int seen = 0;
+    for (int s = 0; s < ::input::MAX_DEVICES; ++s)
+        seen += engine.device().pad_connected[s] ? 1 : 0;
+    if (seen > 0) {
+        std::printf("[probe] cold-start scan: %d pad(s) already connected - see the lines above\n",
+                    seen);
+        return;
+    }
+    // Текст английский намеренно: консоль Windows не UTF-8, и русский из этого потока приезжает
+    // кракозябрами (тот же дефект, что был у отчёта owner_check.sh).
+    std::printf("[probe] cold-start scan: backend '%s' reports NO pad on any of %d slots.\n"
+                "        If one IS plugged in, the OS is not handing it over - the engine polls\n"
+                "        every slot every frame, so it will show up by itself the moment the OS\n"
+                "        reports it. Windows: Game Bar and Steam Input both take pads for\n"
+                "        themselves (quit Steam; Settings -> Gaming -> Xbox Game Bar -> Off).\n"
+                "        Linux: /dev/input/event* permissions (group 'input'), and Steam again.\n",
+                pad != nullptr ? pad->backend_name() : "none", ::input::MAX_DEVICES);
 }
 
 void report_status(const PresetTable& table, uint32_t preset, const ::input::InputFrame& frame,

@@ -124,9 +124,9 @@ int main(int argc, char** argv) {
     if (!live2.data || live2.data[0] != 0xBB) return fail("rebaked content not picked up");
     lam.close();
 
-    std::printf("[hot-reload] PASS roundtrip: shader %02x→%02x zero-copy, bulk %02x→%02x zstd; "
-                "guid стабилен, содержимое обновлено; битый reload → old state жив; "
-                "пересборка бандла (unmap→replace→open) видна хосту без остановки\n",
+    std::printf("[hot-reload] PASS roundtrip: shader %02x->%02x zero-copy, bulk %02x->%02x zstd; "
+                "guid stable, contents updated; corrupt reload -> old state alive; "
+                "bundle rebuild (unmap->replace->open) stays visible to the host\n",
                 0xAA, 0xBB, 0x11, 0x22);
     am.close();
     return 0;

@@ -90,7 +90,7 @@ int main(int argc, char** argv) {
 
     // KTX2 (staged в арене) → BC7 транскод.
     std::vector<uint8_t> bc7; uint32_t tw = 0, th = 0;
-    if (!ktx2_to_bc7(alb.data, alb.size, bc7, tw, th)) return fail("ktx2→bc7 transcode");
+    if (!ktx2_to_bc7(alb.data, alb.size, bc7, tw, th)) return fail("ktx2->bc7 transcode");
 
     WGPUShaderModule vsm = spirv_module(gpu.device, vs);
     WGPUShaderModule fsm = spirv_module(gpu.device, fs);
@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
     rpd.multisample.count = 1; rpd.multisample.mask = 0xFFFFFFFF;
     rpd.fragment = &frag;
     WGPURenderPipeline pipe = wgpuDeviceCreateRenderPipeline(gpu.device, &rpd);
-    if (!pipe) return fail("render pipeline (SPIR-V→pipeline)");
+    if (!pipe) return fail("render pipeline (SPIR-V->pipeline)");
 
     // Offscreen RGBA8 → рендер quad → readback.
     WGPUTextureDescriptor otd = {};
@@ -174,7 +174,7 @@ int main(int argc, char** argv) {
         if (rgba[p] > 40 || rgba[p + 1] > 40 || rgba[p + 2] > 40) ++lit;
     const double frac = static_cast<double>(lit) / (W * H);
     if (out_png) capture::write_png(out_png, rgba, W, H);
-    std::printf("[asset_render] PASS seam: SPIR-V→pipeline + BC7 tex %ux%u, lit_frac=%.3f%s%s\n",
+    std::printf("[asset_render] PASS seam: SPIR-V->pipeline + BC7 tex %ux%u, lit_frac=%.3f%s%s\n",
                 tw, th, frac, out_png ? " png=" : "", out_png ? out_png : "");
 
     wgpuRenderPassEncoderRelease(pass); wgpuCommandBufferRelease(cmd);

@@ -88,7 +88,7 @@ stage "Линтер workflow — .github/workflows" python3 scripts/ci_lint.py
 # Те же скрипты, что и шаги CI. Гейты статические, знание о нарушении полностью доступно
 # локально — узнавать про него из красного раннера значило платить двадцать минут за находку
 # на полсекунды.
-stage "Статические инварианты дерева (швы + направление зависимостей)" \
+stage "Статические инварианты дерева (швы, зависимости, ASCII-вывод)" \
     bash scripts/tree_invariants.sh
 
 if command -v actionlint >/dev/null; then
@@ -117,6 +117,27 @@ fi
 stage "Сборка headless (набор целей CI)" build_config build-ci \
     -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 stage "Сборка полного набора опций (imgui, miniaudio, wasm, IDE)" build_config build-full
+
+# После сборки, потому что сверяет её продуктом. `game.bundle` лежит в git готовым, и перепечь его
+# ЦЕЛИКОМ негде, кроме машины владельца: текстурная секция тянет tint и basisu. Секции, что пекутся
+# чистыми парсерами, сверяются везде — без этого правка input.txt или achievements.txt без
+# перепекания доезжает молча, а на бандле стоят и игра-образец, и sim-golden.
+# Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из списка SECTIONS,
+# бинарь честно напечатает меньшее число и вернёт ноль. Ассертится строка вместе с числом — тот же
+# критерий, что в шаге CI, чтобы локально и на раннере отбивалось одно и то же.
+verify_game_bundle() {
+    local out
+    out=$(build-ci/assetc --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle) || {
+        printf '%s\n' "$out"
+        return 1
+    }
+    printf '%s\n' "$out"
+    case $out in
+        *"verify: PASS - 2 tool-free section(s)"*) return 0 ;;
+        *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
+    esac
+}
+stage "Бандл игры сверен с исходниками (tool-free секции)" verify_game_bundle
 
 # Диагностики компиляторов не совпадают: -Wformat-truncation есть у gcc и нет у clang, и именно
 # он поймал усечение snprintf, которое трижды прошло локальную сборку. Если gcc в системе есть —

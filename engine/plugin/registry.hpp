@@ -65,7 +65,7 @@ public:
     template <ExtKind K>
     const std::vector<NamedExt>& named() const {
         static_assert(ext_in_range(K) && !ext_has_own_storage(K),
-                      "у этого вида расширений собственное хранилище");
+                      "this extension kind has storage of its own");
         return named_[K];
     }
     const std::vector<BackendExt>& backends() const { return backends_; }

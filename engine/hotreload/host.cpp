@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
     Lib b = load(argv[2]);
     if (!b.tick) return 1;
     for (int i = 0; i < 3; ++i) safe_tick(b.tick, &state);
-    std::printf("[host] after reload->B x3: x=%d ticks=%d (state сохранён, поведение сменилось)\n",
+    std::printf("[host] after reload->B x3: x=%d ticks=%d (state kept, behaviour changed)\n",
                 state.x.to_int(), state.ticks);
     unload(b);
 
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
     if (!c.tick) return 1;
     bool ok = safe_tick(c.tick, &state);
     std::printf("[host] crash tick:         %s (ticks=%d)\n",
-                ok ? "OK" : "ПОЙМАН/изолирован", state.ticks);
+                ok ? "OK" : "CAUGHT/isolated", state.ticks);
     unload(c);
 
     std::printf("[host] SURVIVED:           x=%d ticks=%d\n", state.x.to_int(), state.ticks);
