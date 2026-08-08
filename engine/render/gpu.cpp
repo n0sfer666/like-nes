@@ -95,8 +95,8 @@ bool GpuContext::init(WGPUSurface surface) {
     if (!adapter) {
         std::fprintf(stderr, "no adapter (%s)\n",
                      backend == WGPUBackendType_Undefined
-                         ? "выбор бэкенда был за wgpu"
-                         : "запрошен конкретный бэкенд — на этой машине его нет");
+                         ? "backend choice was left to wgpu"
+                         : "a specific backend was requested - this machine has none");
         shutdown();
         return false;
     }

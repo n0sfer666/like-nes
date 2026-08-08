@@ -18,8 +18,8 @@ void apply_gpu_env(GpuContext& gpu) {
         // Молча игнорировать нельзя: опечатка в имени бэкенда неотличима от «эта ручка не
         // помогла», и диагностический прогон даёт ложный отрицательный ответ.
         else
-            std::fprintf(stderr, "[gpu] LIKENES_GPU_BACKEND=%s не распознан — выбор оставлен "
-                                 "за wgpu (vulkan|d3d12|d3d11|metal|gl)\n", v.c_str());
+            std::fprintf(stderr, "[gpu] LIKENES_GPU_BACKEND=%s not recognised - the choice is left "
+                                 "to wgpu (vulkan|d3d12|d3d11|metal|gl)\n", v.c_str());
     }
     if (platform::env_var("LIKENES_GPU_POWER", v) && (v == "low" || v == "integrated"))
         gpu.power = WGPUPowerPreference_LowPower;

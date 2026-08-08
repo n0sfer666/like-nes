@@ -11,6 +11,8 @@ rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Pyth
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
 rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
 rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash
+rem   scripts\win-dev.bat gate8   scripts/gate8_e2e.sh тем же шеллом (сквозной гейт 8 спеки #13)
+rem   scripts\win-dev.bat probe   framework_input_probe с живым падом (гейт 8 спеки #14)
 rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
 rem   scripts\win-dev.bat demo    отрисовать 60 кадров в PNG мимо окна (чёрный экран: кто виноват)
 rem   scripts\win-dev.bat shell   отдать cmd с готовым x64-окружением
@@ -35,11 +37,13 @@ if /i "%ACTION%"=="clean" goto do_clean
 if /i "%ACTION%"=="build" goto need_vs
 if /i "%ACTION%"=="warn"  goto need_vs
 if /i "%ACTION%"=="check" goto need_vs
+if /i "%ACTION%"=="gate8" goto need_vs
+if /i "%ACTION%"=="probe" goto need_vs
 if /i "%ACTION%"=="game"  goto need_vs
 if /i "%ACTION%"=="demo"  goto need_vs
 if /i "%ACTION%"=="shell" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|warn^|check^|game^|demo^|shell^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|gate8^|probe^|game^|demo^|shell^|clean]
 exit /b 2
 
 :do_setup
@@ -106,9 +110,11 @@ if /i "%ACTION%"=="shell" (
     cmd /k
     exit /b 0
 )
+if /i "%ACTION%"=="probe" goto do_probe
 if /i "%ACTION%"=="game" goto do_game
 if /i "%ACTION%"=="demo" goto do_demo
 if /i "%ACTION%"=="check" goto do_check
+if /i "%ACTION%"=="gate8" goto do_gate8
 if /i "%ACTION%"=="warn" goto do_warn
 
 :do_build
@@ -147,11 +153,45 @@ echo.
 echo Full log: build\warnings.txt  ^(send this file^)
 exit /b 0
 
-:do_game
-if not exist build\game_sidescroller.exe (
-    echo build\game_sidescroller.exe missing - run: scripts\win-dev.bat build
+:do_probe
+rem Гейт 8 спеки #14 — живой пад: цель есть только при INPUT_NATIVE (по умолчанию ON), и здесь
+rem досбирается ОДНА она, а не дерево целиком: после pull бинарь протухает молча, а полная сборка
+rem ради одной пробы стоит десяток минут. Каталог не конфигурируется — это дело `build`, и он же
+rem ловит 32-битный кеш; отсюда только проверка, что конфигурирование уже было.
+if not exist build\CMakeCache.txt (
+    echo build\ is not configured - run: scripts\win-dev.bat build
     exit /b 1
 )
+cmake --build build --target framework_input_probe
+if errorlevel 1 exit /b 1
+rem Путь к манифесту пресетов ОТНОСИТЕЛЬНЫЙ, а рабочий каталог здесь — корень дерева (cd в шапке),
+rem поэтому проба не зависит от того, из какой папки её позвали. 2-й аргумент — свой манифест.
+set "MANIFEST=%~2"
+rem По умолчанию раскладка ПРОБЫ, а не игры: у игры одно действие, и конфликт биндинга на ней
+rem непроверяем в принципе (см. шапку probe_input.txt).
+if "%MANIFEST%"=="" set "MANIFEST=engine\framework\input\probe_input.txt"
+if not exist "%MANIFEST%" (
+    echo manifest "%MANIFEST%" not found
+    exit /b 1
+)
+rem Вывод этого файла — английский намеренно: консоль Windows не UTF-8, и русский из .bat приезжает
+rem кракозябрами (тот же дефект, что был у отчёта owner_check.sh).
+echo.
+echo Plug the pad in WHILE the probe runs - the CONNECTED line is half of the gate.
+build\framework_input_probe.exe "%MANIFEST%"
+exit /b %errorlevel%
+
+:do_game
+rem Досбирается ОДНА цель, по той же причине, что и у `probe`: после `probe` (он собирает только
+rem пробу) игры в каталоге может не быть вовсе, и отсылка к полной сборке стоила бы десяток минут
+rem ради одного бинаря. Владелец на гейте 8 упёрся ровно в это: `game_sidescroller - отсутствует`
+rem читалось как «цели нет в дереве».
+if not exist build\CMakeCache.txt (
+    echo build\ is not configured - run: scripts\win-dev.bat build
+    exit /b 1
+)
+cmake --build build --target game_sidescroller
+if errorlevel 1 exit /b 1
 rem Второй аргумент — ручка выбора адаптера из engine/render/gpu.cpp. На гибридном ноутбуке кадры
 rem могут рисоваться на дискретной карте, а окном владеть интегрированная: изнутри процесса всё
 rem успешно, на экране чёрное. Здесь только проброс: `game d3d12` меняет бэкенд, `game low` -
@@ -181,6 +221,17 @@ echo Frames: build\demo\frame_0059.png ^(and 59 more^) - open a late one and loo
 exit /b 0
 
 :do_check
+set "GATE=scripts/owner_check.sh"
+goto run_gate
+
+rem Сквозной гейт клонирует дерево и собирает клон с нуля, то есть ему нужны РАЗОМ vcvars (cl.exe в
+rem PATH) и POSIX-шелл - ровно та же пара, что и owner_check.sh, поэтому запуск общий. Из самого
+rem Git Bash он не поднимется: тот шелл не видел vcvars64.bat, и клон встанет на поиске компилятора.
+:do_gate8
+set "GATE=scripts/gate8_e2e.sh"
+goto run_gate
+
+:run_gate
 rem Гейты писаны на POSIX-шелле, и его на Windows приносит Git. Путь ищется по установкам, а не
 rem через where bash: там первым нашёлся бы bash из WSL - другая машина с другой файловой системой.
 set "GITBASH="
@@ -194,5 +245,5 @@ if not defined GITBASH (
     echo Run: scripts\win-dev.bat setup
     exit /b 1
 )
-"%GITBASH%" scripts/owner_check.sh
+"%GITBASH%" %GATE%
 exit /b %errorlevel%

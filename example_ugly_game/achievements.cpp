@@ -70,7 +70,7 @@ void Achievements::init(const std::string& bundle_path, const std::string& save_
         return;
     }
     if (!impl_->source.open(impl_->reg, bundle_path)) {
-        std::fprintf(stderr, "[game] achievements: %s → none\n", impl_->source.reason());
+        std::fprintf(stderr, "[game] achievements: %s -> none\n", impl_->source.reason());
     }
     if (!impl_->reg.entries().empty()) {
         check_key(impl_->reg.find_stat(STAT_KILLS) != nullptr, "stat_kills");
@@ -88,7 +88,7 @@ void Achievements::init(const std::string& bundle_path, const std::string& save_
         impl_->store.reset(new ach::LocalStore(save_path));
         ach::DecodeResult why = ach::DecodeResult::Ok;
         if (!impl_->store->load(*impl_->tracker, &why) && why != ach::DecodeResult::Missing) {
-            std::fprintf(stderr, "[game] achievements: snapshot rejected (%s) → starting empty\n",
+            std::fprintf(stderr, "[game] achievements: snapshot rejected (%s) -> starting empty\n",
                          ach::decode_reason(why));
         }
         const std::size_t kept = impl_->tracker->carried_count();

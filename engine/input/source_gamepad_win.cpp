@@ -9,7 +9,8 @@
 #include <cstring>
 
 // Windows native gamepad: XInput (Xbox-класс + вибрация). Диффим против кэша → эмитим изменения.
-// Скелет: собирается в CI; live-валидация — follow-up (нет Windows-HW у owner в этом заходе).
+// Прогнан на живом железе (гейт 8 спеки #14): кнопки, оси и подключение работают, паспорт устройства
+// приезжал нулями — отсюда XInputGetCapabilitiesEx ниже.
 namespace input {
 namespace c = input::code;
 
@@ -24,6 +25,38 @@ const Btn kBtns[] = {
     {XINPUT_GAMEPAD_DPAD_UP, c::DpUp}, {XINPUT_GAMEPAD_DPAD_DOWN, c::DpDown},
     {XINPUT_GAMEPAD_DPAD_LEFT, c::DpLeft}, {XINPUT_GAMEPAD_DPAD_RIGHT, c::DpRight},
 };
+
+// Паспорт устройства (VID/PID) документированный XInput не отдаёт ВОВСЕ — XINPUT_CAPABILITIES знает
+// только класс. Профиль пада выбирается по паспорту, поэтому без него любой пад на Windows приезжал
+// как 'generic', тогда как на Linux тот же самый экземпляр evdev отдаёт как 045e:0b12 и профиль
+// находится. Настоящие VID/PID есть у XInputGetCapabilitiesEx, но xinput1_4.dll экспортирует её
+// БЕЗ ИМЕНИ, только по ordinal 108 — слинковать такое нечем, берётся через GetProcAddress. Тем же
+// путём ходят SDL и GLFW: единственная альтернатива это сопоставление слотов XInput с устройствами
+// Raw Input, а оно само по себе источник ошибок (соответствие ниоткуда не следует).
+struct XInputCapabilitiesEx {
+    XINPUT_CAPABILITIES caps;
+    WORD vid;
+    WORD pid;
+    WORD product_version;
+    DWORD unknown;
+};
+using CapsExFn = DWORD(WINAPI*)(DWORD, DWORD, DWORD, XInputCapabilitiesEx*);
+
+// Динамически берётся ТОЛЬКО она: горячий XInputGetState остаётся статически слинкованным с
+// Xinput9_1_0, который есть на любой Windows. Перевести на указатели и его значило бы поставить
+// КАЖДЫЙ кадр в зависимость от успеха LoadLibrary ради поля, которое читается один раз на
+// подключение. Индекс слота — понятие системное, а не принадлежащее DLL, поэтому две версии
+// библиотеки в одном процессе говорят об одном и том же устройстве.
+CapsExFn caps_ex_fn() {
+    // Разрешение однократное, и неудача кэшируется так же, как успех: на системе без 1_4 (или с
+    // запрещённой загрузкой) иначе каждое подключение пада заново дёргало бы LoadLibrary.
+    static const CapsExFn fn = []() -> CapsExFn {
+        HMODULE dll = LoadLibraryW(L"xinput1_4.dll");
+        if (dll == nullptr) return nullptr;
+        return reinterpret_cast<CapsExFn>(GetProcAddress(dll, MAKEINTRESOURCEA(108)));
+    }();
+    return fn;
+}
 
 class WinGamepadSource : public GamepadSource {
 public:
@@ -56,14 +89,32 @@ public:
 
     const char* backend_name() const override { return "XInput (Windows)"; }
 
-    // XInput не сообщает VID/PID вовсе — только класс устройства. Имя собирается из него, и
-    // это честный максимум: настоящие VID/PID на Windows живут в Raw Input, отдельном канале,
-    // сопоставление слотов которого с XInput само по себе источник ошибок.
+    // Паспорт: VID/PID через ordinal 108, класс — из тех же capabilities. Имя остаётся производным
+    // от КЛАССА, а не выдумывается по вендору: на Windows профиль теперь находится по VID, и врать
+    // именем («Xbox Controller») больше незачем — оно и было бы неправдой для всякого не-Xbox пада,
+    // который драйвер показывает через XInput.
     PadInfo pad_info(int slot) const override {
         PadInfo info;
         if (slot < 0 || slot >= 4) return info;
         XINPUT_CAPABILITIES caps{};
-        if (XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) return info;
+        bool have_caps = false;
+        const CapsExFn ex_fn = caps_ex_fn();
+        if (ex_fn != nullptr) {
+            XInputCapabilitiesEx ex{};
+            if (ex_fn(1, static_cast<DWORD>(slot), 0, &ex) == ERROR_SUCCESS) {
+                info.vid = ex.vid;
+                info.pid = ex.pid;
+                caps = ex.caps;
+                have_caps = true;
+            }
+        }
+        // Ordinal 108 недокументирован, поэтому у него ДВА способа подвести: не разрешиться и
+        // разрешиться в функцию с иной семантикой. Первый откат был написан только на первый, и
+        // отказ разрешившегося вызова отдавал пустой паспорт — то есть подключённый пад терял и
+        // имя, и класс, которые до появления VID/PID у него были. Пусто теперь только когда
+        // провалились ОБА: документированный XInputGetCapabilities даёт класс, по которому профиль
+        // ищется подстрокой имени, как искался раньше.
+        if (!have_caps && XInputGetCapabilities(slot, 0, &caps) != ERROR_SUCCESS) return info;
         const char* kind = "XInput gamepad";
         switch (caps.SubType) {
         case XINPUT_DEVSUBTYPE_WHEEL:       kind = "XInput wheel"; break;

@@ -13,6 +13,7 @@
 #include "platform_fs.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
+#include "probe_axis_report.hpp"
 #include "probe_report.hpp"
 #include "rebind_session.hpp"
 #include "rebind_store.hpp"
@@ -102,10 +103,10 @@ int main(int argc, char** argv) {
     std::string stored_preset;
     const std::string path = save_path();
     if (store.load(path, stored_preset) && stored_preset == table.preset_name(preset))
-        std::printf("[probe] overlay loaded from %s: %zu edit(s) — the restart half of gate 4\n",
+        std::printf("[probe] overlay loaded from %s: %zu edit(s) - the restart half of gate 4\n",
                     path.c_str(), store.items().size());
     else
-        std::printf("[probe] no overlay for preset '%s' at %s — clean preset\n",
+        std::printf("[probe] no overlay for preset '%s' at %s - clean preset\n",
                     table.preset_name(preset), path.c_str());
 
     ::input::ActionMap map;
@@ -129,6 +130,7 @@ int main(int argc, char** argv) {
     report_bindings(table, preset, store);
 
     PadRegistry reg;
+    AxisWitness axes;
     RebindSession session;
     RebindConflict conflict;
     bool pad_prev[::input::MAX_DEVICES] = {};
@@ -145,13 +147,18 @@ int main(int argc, char** argv) {
         if (have_pad) pad->poll(engine);
         const ::input::InputFrame& f = engine.begin_tick(t, 0);
         report_pads(engine, pad, reg, table, pad_prev);
+        // Первый тик уже содержит итог первого опроса — здесь он и называется вслух.
+        if (t == 0) report_cold_start(engine, pad);
+        // Свидетель осей смотрит КАЖДЫЙ тик, а не раз в тридцать, как строка состояния: отклонение
+        // стика длится доли секунды, и выборка каждый тридцатый кадр его штатно пропускает.
+        axes.observe(engine.device(), f);
 
         if (session.active() && !session.captured()) {
             const std::vector<::input::RawEvent>& log = engine.event_log();
             for (; log_seen < log.size() && !session.captured(); ++log_seen)
                 if (session.feed(log[log_seen]))
-                    std::printf("\n[probe] captured %s for '%s' slot %u — Enter/F applies, C "
-                                "cancels\n",
+                    std::printf("\n[probe] captured %s for '%s' slot %u - Enter applies (refuses "
+                                "on conflict), F forces, C cancels\n",
                                 source_name(session.candidate()).c_str(),
                                 table.action_name(preset, static_cast<uint32_t>(session.action())),
                                 session.which());
@@ -166,7 +173,7 @@ int main(int argc, char** argv) {
                     engine.set_event_logging(false);
                     report_bindings(table, preset, store);
                 } else if (conflict.action >= 0) {
-                    std::printf("\n[probe] source already bound to '%s' slot %u — F takes it, C "
+                    std::printf("\n[probe] source already bound to '%s' slot %u - F takes it, C "
                                 "cancels\n",
                                 table.action_name(preset, static_cast<uint32_t>(conflict.action)),
                                 conflict.which);
@@ -206,7 +213,8 @@ int main(int argc, char** argv) {
         if ((t % 30) == 0) report_status(table, preset, f, reg, t);
     }
 
-    std::printf("\n[probe] bye — overlay %s\n",
+    axes.report();
+    std::printf("\n[probe] bye - overlay %s\n",
                 store.empty() ? "empty" : "in memory (S saves it, X clears it)");
     glfwDestroyWindow(win);
     glfwTerminate();

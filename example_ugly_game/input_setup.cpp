@@ -41,7 +41,7 @@ bool read_preset_asset(const std::string& bundle_path, std::vector<uint8_t>& out
 bool load_controls(Controls& out) {
     const std::string bundle = resolve_bundle_path();
     if (bundle.empty() || !read_preset_asset(bundle, out.blob)) {
-        std::fprintf(stderr, "[game] controls: no input preset in bundle → no controls\n");
+        std::fprintf(stderr, "[game] controls: no input preset in bundle -> no controls\n");
         return false;
     }
     if (!out.table.open(out.blob.data(), out.blob.size())) {

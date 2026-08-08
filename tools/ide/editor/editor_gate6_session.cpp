@@ -44,8 +44,8 @@ bool report_session(const SessionPassport& s) {
     // и под Wayland-сессией бинарь живёт клиентом XWayland: окно открывается, кадры идут, всё
     // «работает» — и про Wayland не сказано ничего. Отличить это глазами нельзя, поэтому гейт
     // валится здесь, а не печатает зелёную строку про непроверенный протокол.
-    std::printf("\n  FAIL: сессия Wayland, но окном управляет X11 — это XWayland, а не Wayland.\n"
-                "        Половина гейта под Wayland НЕ проверена. Нужен отдельный бинарь:\n"
+    std::printf("\n  FAIL: Wayland session, but the window is driven by X11 - that is XWayland, not Wayland.\n"
+                "        The Wayland half of the gate is NOT checked. A separate binary is needed:\n"
                 "        cmake -S . -B build-way -G Ninja -DCMAKE_BUILD_TYPE=Release -DLINUX_WAYLAND=ON\n"
                 "        cmake --build build-way --target editor_shell\n");
     return false;

@@ -27,6 +27,7 @@ target_link_libraries(framework_golden_test PRIVATE framework_input platform_cor
 # Живой probe гейта 8: реальный пад и реальная клавиатура, поэтому только там, где собран
 # нативный ввод (INPUT_NATIVE). В headless CI цели нет — её нечем кормить.
 if(INPUT_NATIVE)
-  add_executable(framework_input_probe framework_input_probe.cpp probe_report.cpp)
+  add_executable(framework_input_probe framework_input_probe.cpp probe_report.cpp
+                 probe_axis_report.cpp)
   target_link_libraries(framework_input_probe PRIVATE framework_input input_native platform_core)
 endif()

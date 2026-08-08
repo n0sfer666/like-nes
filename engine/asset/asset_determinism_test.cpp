@@ -114,9 +114,9 @@ int main(int argc, char** argv) {
 
     std::printf("[asset-determinism] sim-hash fast=0x%016llx slow=0x%016llx\n",
                 (unsigned long long)h_fast, (unsigned long long)h_slow);
-    std::printf("[asset-determinism] streamed fast=%d/5 slow=%d/5 (стриминг не no-op)\n",
+    std::printf("[asset-determinism] streamed fast=%d/5 slow=%d/5 (streaming is not a no-op)\n",
                 r_fast, r_slow);
     const bool ok = (h_fast == h_slow) && r_fast == 5 && r_slow == 5;
-    std::printf("[asset-determinism] I/O-timing → sim-hash: %s\n", ok ? "INVARIANT (PASS)" : "FAIL");
+    std::printf("[asset-determinism] I/O-timing -> sim-hash: %s\n", ok ? "INVARIANT (PASS)" : "FAIL");
     return ok ? 0 : 1;
 }

@@ -85,6 +85,32 @@ FetchContent_Declare(glfw3webgpu
   GIT_TAG 39a80205998c6cbf803e18e750d964c23a47ef39  # v1.2.0
 )
 FetchContent_MakeAvailable(glfw3webgpu)
+# Бэкенд ОКНА этот glue выбирает на этапе компиляции, а `_GLFW_X11`/`_GLFW_WAYLAND` у самой glfw
+# объявлены PRIVATE — до потребителя они не доходят, и на Linux ветка всегда бралась X11-ная
+# (`#else` в его цепочке). GLFW при этом выбирает платформу В РАНТАЙМЕ, поэтому под Wayland-сессией
+# бинарь спрашивал X11-дисплей у Wayland-платформы, получал NULL и умирал паникой wgpu
+# «Display pointer is not set» — уже внутри создания поверхности, без единого слова про причину.
+# Пробрасываем свой же выбор: каталог, собранный с LINUX_WAYLAND=ON, и поверхность создаёт
+# Wayland-ную. Выбор остаётся ОДИН на каталог сборки — ровно поэтому гейт 6 требует двух деревьев.
+# Под `Linux`, а не голым `if(LINUX_WAYLAND)`: у самой glfw опция `GLFW_BUILD_WAYLAND` вне Linux
+# игнорируется ею же, а у glue такой защиты нет — `-DLINUX_WAYLAND=ON` на macOS увёл бы его в
+# Wayland-ветку создания поверхности поверх Cocoa.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND LINUX_WAYLAND)
+  target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WAYLAND)
+endif()
+# Публичные макросы — НАШИ и объявляются ЗДЕСЬ, потому что выбор бэкенда окна это выбор ОС, а он по
+# инварианту 1 спеки #12 живёт в сборке, не в исходнике: `#if defined(__linux__)` в коде редактора
+# гейт `tree_invariants.sh seam` отбивает — и правильно. Потребителю нужно знать, под какую сессию
+# собран каталог, чтобы назвать расхождение словами. Чужое `_GLFW_WAYLAND` для этого не годится:
+# оно приватное намеренно (внутренний макрос glfw), публиковать его значило бы включить внутренние
+# ветки glfw в нашем коде.
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  if(LINUX_WAYLAND)
+    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_WAYLAND)
+  else()
+    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_X11)
+  endif()
+endif()
 
 # --- stb (PNG read/write для golden-image) ---
 # Репозиторий без CMakeLists — MakeAvailable только выкачивает исходники (stb_SOURCE_DIR).

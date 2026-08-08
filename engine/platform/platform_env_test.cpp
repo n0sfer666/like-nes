@@ -31,6 +31,7 @@ int main() {
 
     // Кириллица — то, ради чего шов и заведён: узкий getenv отдаёт значение в ANSI-кодовой
     // странице, и путь профиля `C:\Users\Пётр\` приезжает с подменёнными символами.
+    // ascii: allow юникод здесь и есть предмет проверки
     const std::string unicode = "D:/юникод тест-каталог/game.bundle";
     check(platform::env_put(KEY, unicode.c_str()), "setting a unicode value");
     check(platform::env_var(KEY, out) && out == unicode, "unicode value survives the round-trip");
