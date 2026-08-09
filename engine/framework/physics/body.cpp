@@ -46,6 +46,9 @@ Body make_body(const BodyDesc& d) {
     b.angular_damping = clamp_fix(d.angular_damping, fix32{}, MAX_DAMPING);
     b.material.restitution = clamp_fix(d.material.restitution, fix32{}, MAX_RESTITUTION);
     b.material.friction = clamp_fix(d.material.friction, fix32{}, MAX_FRICTION);
+    b.layer = d.layer;
+    b.mask = d.mask;
+    b.trigger = d.trigger;
 
     // Статика и кинематика неотличимы для решателя: обе имеют нулевую обратную массу, то есть не
     // получают импульса. Разница между ними — в интеграции, а не здесь.
