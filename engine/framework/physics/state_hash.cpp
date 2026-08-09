@@ -2,23 +2,9 @@
 
 #include <algorithm>
 
+#include "hash_mix.hpp"
+
 namespace framework::physics {
-namespace {
-
-constexpr uint64_t FNV_OFFSET = 0xcbf29ce484222325ULL;
-constexpr uint64_t FNV_PRIME = 0x100000001b3ULL;
-
-void mix(uint64_t& h, uint32_t v) {
-    // Байтами, а не целым словом: смешивание четырёх байт по одному не зависит от порядка байт в
-    // машине, а `h ^= v` — зависело бы. Хеш сверяется между x86 и ARM, и на ARM он обязан совпасть
-    // не потому, что обе платформы little-endian сегодня, а потому, что вопрос здесь не задаётся.
-    for (int i = 0; i < 4; ++i) {
-        h ^= static_cast<uint64_t>((v >> (i * 8)) & 0xffu);
-        h *= FNV_PRIME;
-    }
-}
-
-} // namespace
 
 uint64_t state_hash(const std::vector<Body>& bodies, std::vector<uint32_t>& scratch) {
     scratch.clear();
