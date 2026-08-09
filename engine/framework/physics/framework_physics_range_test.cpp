@@ -11,6 +11,9 @@
 // массой 243 и тяжелее ПРОВАЛИВАЛОСЬ сквозь статику, при том что кламп массы сам же объявлял
 // легальным весь диапазон до 4096. Golden при этом оставался зелёным: сцена аккуратно обходила
 // отказ. Здесь проверяются ГРАНИЦЫ того, что модуль о себе объявил, а не удобная середина.
+//
+// Проверяются ПРОГОНАМИ: тело роняется и смотрится, где оно остановилось. Клампы, приводящие вход
+// в диапазон, живут отдельной целью (`framework_physics_clamp_test`) — там нет ни одного шага мира.
 namespace {
 
 int fails = 0;
@@ -37,15 +40,15 @@ fix32 dt() { return fix32::from_int(1) / fix32::from_int(60); }
 struct Case {
     fix32 mass = fix32::from_int(4);
     Shape shape = box(BOX_HALF, BOX_HALF);
-    fix32 half_y = BOX_HALF;
     fix32 speed;                            // стартовая скорость по Y
+    fix32 angle;                            // стартовый поворот, в оборотах
     fix32 floor_half_y = FLOOR_HALF_Y;
     fix32 gravity_y = DEFAULT_GRAVITY_Y;
 };
 
-// Пол-статика и одно падающее на него тело. Возвращает НИЗ тела после прогона: именно он говорит,
-// удержал ли решатель контакт, — позиция центра о толщине тела ничего не знает.
-fix32 drop(const Case& c) {
+// Пол-статика и одно падающее на него тело. Возвращает ТЕЛО целиком: низ AABB отвечает на вопрос про
+// контакт, угол — на вопрос про вращение, и оба вопроса задаются одному и тому же прогону.
+Body drop(const Case& c) {
     World w(8);
     w.set_gravity({fix32{}, c.gravity_y});
 
@@ -61,12 +64,17 @@ fix32 drop(const Case& c) {
     b.shape = c.shape;
     b.position = {fix32{}, fix32{}};
     b.velocity = {fix32{}, c.speed};
+    b.angle = c.angle;
     b.mass = c.mass;
     w.add(b);
 
     for (uint32_t i = 0; i < 240; ++i) w.step(dt());
-    return w.bodies()[1].position.y + c.half_y;
+    return w.bodies()[1];
 }
+
+// Низ берётся из AABB, а не из полувысоты формы: полувысоты у формы больше нет, а у повёрнутой её и
+// не было бы. С +Y вниз низ — это `max.y`.
+fix32 drop_bottom(const Case& c) { return bounds(drop(c)).max.y; }
 
 // Тело лежит на полу, если его низ у верхней грани: глубже — решатель не удержал контакт, выше —
 // зависло в воздухе. Допуск в 3 юнита покрывает разрешённое проникновение (CONTACT_SLOP) и
@@ -83,7 +91,7 @@ void test_mass_range() {
     for (fix32 m : masses) {
         Case c;
         c.mass = m;
-        const fix32 bottom = drop(c);
+        const fix32 bottom = drop_bottom(c);
         if (!rests(bottom)) {
             std::printf("  mass %d -> bottom %d (floor top %d)\n", m.to_int(), bottom.to_int(),
                         (FLOOR_Y - FLOOR_HALF_Y).to_int());
@@ -106,7 +114,7 @@ void test_speed_range() {
     Case ok;
     ok.speed = safe - fix32::from_int(64);
     ok.gravity_y = fix32{};
-    check(rests(drop(ok)), "below the documented window the body stops at the floor");
+    check(rests(drop_bottom(ok)), "below the documented window the body stops at the floor");
 
     // Контроль на ТОЙ ЖЕ геометрии: проверка обязана уметь увидеть проскок, иначе «остановился»
     // подписывалось бы и под прогоном, который ничего не наблюдает. Выше окна ось наименьшего
@@ -114,35 +122,40 @@ void test_speed_range() {
     // обнаружение спека #15 выносит за скоуп явно.
     Case fast = ok;
     fast.speed = MAX_SPEED;
-    check(!rests(drop(fast)), "control: above it the body goes through, and the check sees that");
+    check(!rests(drop_bottom(fast)),
+          "control: above it the body goes through, and the check sees that");
 }
 
-void test_clamps() {
-    BodyDesc d;
-    d.material = {fix32::from_int(5), fix32::from_int(-3)};
-    d.shape = box(fix32::from_int(-5), fix32::from_int(30000));
-    const Body b = make_body(d);
-    // Упругость выше единицы разгоняла бы тело от каждого удара; отрицательное трение выворачивает
-    // границы конуса Кулона и превращает предел в постоянный импульс из ниоткуда.
-    check(b.material.restitution == MAX_RESTITUTION, "restitution above one is clamped");
-    check(b.material.friction == fix32{}, "negative friction is clamped to zero");
-    check(b.shape.half.x == fix32{}, "negative half-extent is clamped to zero");
-    check(b.shape.half.y == MAX_SHAPE_HALF, "oversized half-extent is clamped to the ceiling");
-}
-
-void test_vector_contracts() {
-    // Потолок скорости — потолок и тогда, когда длина вектора НАСЫЩАЕТСЯ. Прежняя схема делила на
-    // насыщенную длину и возвращала (2048, 2048), то есть модуль 2896 при потолке 2048.
-    const Vec2 huge = {fix32::from_raw(INT32_MAX), fix32::from_raw(INT32_MAX)};
-    check(!(MAX_SPEED < length(clamp_speed(huge, MAX_SPEED))), "the speed ceiling holds at saturation");
-
-    // Нормаль остаётся единичной на самом коротком ненулевом векторе: деление на округлённую вниз
-    // длину давало здесь модуль 1.41, а его ошибка входит в импульс дважды.
-    constexpr fix32 TOL = fix32::from_float(1.004);
-    Vec2 n;
-    normalize({fix32::from_raw(1), fix32::from_raw(1)}, n);
-    const fix32 len = length(n);
-    check(!(TOL < len) && fix32::from_float(0.996) < len, "the normal stays unit on a raw-unit vector");
+// Вращение — вторая половина того же вопроса о диапазоне масс, и молчала она по той же причине, что
+// и первая: наблюдения не было. Решатель хранил ОБРАТНЫЙ момент инерции, а обратная величина в
+// Q16.16 упирается в младший разряд снизу: у коробки 32x32 он равнялся raw 383 при массе 1, единице
+// при 256 и РОВНО НУЛЮ при 384 — тяжелее этого тело переставало вращаться совсем, тихо и глубоко
+// внутри диапазона, объявленного законным. Гейт 1 этого не видел: его сцена вращения не наблюдает.
+void test_rotation_range() {
+    constexpr fix32 START = turns_from_degrees(15);
+    const fix32 masses[] = {fix32::from_int(1), fix32::from_int(383), fix32::from_int(384),
+                            fix32::from_int(1024), MAX_MASS};
+    for (fix32 m : masses) {
+        Case c;
+        c.mass = m;
+        c.angle = START;
+        // Наклонённая коробка, упав на пол, обязана завалиться на грань: контакт приходит в угол, и
+        // плечо от центра масс до него создаёт момент. Порог в 0.01 оборота (3.6 градуса) — заметно
+        // меньше ожидаемых 15 и заметно больше дрожания в покое.
+        const Body settled = drop(c);
+        const fix32 turned = abs_fix(settled.angle - START);
+        const fix32 bottom = bounds(settled).max.y;
+        if (!(fix32::from_float(0.01) < turned) || !rests(bottom)) {
+            std::printf("  mass %d -> turned %d/1000 of a turn, bottom %d (floor top %d)\n",
+                        m.to_int(), (turned * fix32::from_int(1000)).to_int(), bottom.to_int(),
+                        (FLOOR_Y - FLOOR_HALF_Y).to_int());
+        }
+        check(fix32::from_float(0.01) < turned, "a body of any declared mass still rotates");
+        // Поворот сам по себе ещё не поведение: тело, провалившееся сквозь пол, крутится по дороге
+        // вниз свободно и утверждение выше проходит с запасом. Вопрос «завалилось на грань» имеет
+        // смысл только вместе с «и осталось на полу», поэтому оба стоят на ОДНОМ прогоне.
+        check(rests(bottom), "and it does so while staying on the floor");
+    }
 }
 
 } // namespace
@@ -152,8 +165,7 @@ int main(int argc, char** argv) {
     std::printf("framework physics range gate\n");
     test_mass_range();
     test_speed_range();
-    test_clamps();
-    test_vector_contracts();
+    test_rotation_range();
     std::printf("framework-physics-range: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

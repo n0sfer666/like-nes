@@ -2,7 +2,6 @@
 #include <vector>
 
 #include "framework_physics_scene.hpp"
-#include "narrowphase.hpp"
 #include "platform_args.hpp"
 
 // Гейт 1 спеки #15: состояние физики после фиксированного числа шагов даёт один и тот же хеш на
@@ -12,7 +11,9 @@
 // провалилось сквозь пол одинаково на всех трёх, скажет «зелено». Поэтому рядом с ним —
 // наблюдаемые утверждения о поведении, каждое из которых падает на своей поломке: тела над полом
 // (иначе туннелирование), стопка успокоилась (иначе накачка энергии решателем), трение съело
-// горизонтальный ход (иначе касательный импульс не работает), формы сталкиваются по геометрии.
+// горизонтальный ход (иначе касательный импульс не работает), тела повернулись (иначе момент
+// считается и молча выбрасывается). Геометрия узкой фазы проверяется отдельной целью
+// (`framework_physics_shape_test`) — она про верность манифольда, а не про сходимость сцены.
 namespace {
 
 int fails = 0;
@@ -34,45 +35,6 @@ const Body* find(const World& w, uint32_t key) {
     return nullptr;
 }
 
-void test_shapes() {
-    BodyDesc a;
-    a.key = 1;
-    a.shape = circle(fix32::from_int(10));
-    a.position = {fix32{}, fix32{}};
-    BodyDesc b = a;
-    b.key = 2;
-    b.position = {fix32::from_int(15), fix32{}};
-
-    Contact c;
-    check(collide(make_body(a), make_body(b), c), "circle-circle overlap detected");
-    check(c.penetration == fix32::from_int(5), "circle-circle penetration = 5");
-    check(c.normal == Vec2{fix32::from_int(1), fix32{}}, "circle-circle normal points a->b");
-
-    b.position = {fix32::from_int(21), fix32{}};
-    check(!collide(make_body(a), make_body(b), c), "circle-circle apart -> no contact");
-
-    // Совпавшие центры — вырожденный вход, у которого обязан быть ОПРЕДЕЛЁННЫЙ ответ: без него
-    // два тела в одной точке разъезжаются как придётся, и golden гуляет от запуска к запуску.
-    b.position = a.position;
-    check(collide(make_body(a), make_body(b), c), "coincident centres still collide");
-    check(c.normal == Vec2{fix32{}, fix32::from_int(-1)}, "coincident centres -> fixed normal");
-
-    BodyDesc plate;
-    plate.key = 3;
-    plate.type = BodyType::Static;
-    plate.shape = box(fix32::from_int(50), fix32::from_int(10));
-    plate.position = {fix32{}, fix32::from_int(15)};
-    check(collide(make_body(a), make_body(plate), c), "circle-box overlap detected");
-    check(c.normal == Vec2{fix32{}, fix32::from_int(1)}, "circle-box normal points down to plate");
-
-    // Коробка против круга обязана дать ЗЕРКАЛЬНУЮ нормаль той же величины: это не косметика,
-    // а проверка того, что перестановка тел проходит через ту же геометрию, а не через вторую
-    // реализацию, которая однажды разойдётся с первой на округлении.
-    Contact flipped;
-    check(collide(make_body(plate), make_body(a), flipped), "box-circle overlap detected");
-    check(flipped.normal == -c.normal, "box-circle normal is mirrored");
-    check(flipped.penetration == c.penetration, "box-circle penetration matches");
-}
 
 void test_rest() {
     World w(fixture::CAPACITY);
@@ -84,20 +46,32 @@ void test_rest() {
     const fix32 floor_top = fix32::from_int(192);
     const fix32 quiet = fix32::from_int(2);
     fix32 lowest_bottom = -WORLD_HALF;
+    bool anyone_turned = false;
     for (const Body& b : w.bodies()) {
         if (b.type != BodyType::Dynamic) continue;
-        const fix32 half_h = b.shape.kind == ShapeKind::Circle ? b.shape.radius : b.shape.half.y;
+        // Низ тела берётся из AABB, а не из полувысоты формы: у повёрнутого тела полувысоты нет
+        // вовсе, а у капсулы и многоугольника её не было никогда. С +Y вниз низ — это `max.y`.
+        const fix32 bottom = bounds(b).max.y;
         // Низ тела не ушёл заметно ниже верха пола: провал глубже допуска — это туннелирование
         // или решатель, не удержавший контакт, и то и другое обязано быть красным.
-        check(b.position.y + half_h < floor_top + fix32::from_int(2), "body rests on the floor");
+        check(bottom < floor_top + fix32::from_int(2), "body rests on the floor");
         check(abs_fix(b.velocity.y) < quiet, "vertical motion settled");
         check(abs_fix(b.position.x) < fix32::from_int(248), "body stayed between the walls");
         // Упало, а не зависло: стартовые высоты сцены отрицательные, пол — на +200. Без этой
         // строки «покоится» одинаково подписывалось бы под телом, застывшим в воздухе, — а
         // застывшее тело и есть самый частый вид сломанной интеграции.
         check(fix32::from_int(0) < b.position.y, "body actually fell toward the floor");
-        lowest_bottom = max_fix(lowest_bottom, b.position.y + half_h);
+        // Угол приведён к периоду. Проверяется на КАЖДОМ теле, потому что уехавший за период угол
+        // — это не косметика: он входит в хеш, и тело, провернувшееся на оборот больше, хешируется
+        // иначе при том же положении на экране.
+        check(!(b.angle < fix32{}) && b.angle < fix32::from_int(1), "angle stays inside one turn");
+        check(abs_fix(b.angular_velocity) < quiet, "spin settled");
+        if (b.angle.raw != 0) anyone_turned = true;
+        lowest_bottom = max_fix(lowest_bottom, bottom);
     }
+    // Хоть кто-то повернулся. Без этой строки вся вертикаль 2 проходила бы при решателе, который
+    // считает момент и молча выбрасывает его: тела легли бы на пол ровно так же.
+    check(anyone_turned, "rotation actually happened");
     // И хотя бы одно из них лежит НА полу, а не в стопке над ним: иначе вся куча могла зависнуть
     // на первом же контакте и всё равно пройти проверки выше.
     check(floor_top - fix32::from_int(2) < lowest_bottom, "the stack reaches the floor");
@@ -125,7 +99,7 @@ void test_static_immobile() {
 // сквозь пол, выглядит ровно так же убедительно. Меняется только вместе с осознанной сменой
 // физики — числа итераций, порядка решения, формул. Разошёлся сам по себе — это находка, а не
 // повод перезаписать константу.
-constexpr uint64_t GOLDEN = 0x3977752decf95c28ULL;
+constexpr uint64_t GOLDEN = 0xad1ec96e2dbbcc32ULL;
 
 void test_golden() {
     World w(fixture::CAPACITY);
@@ -143,7 +117,6 @@ void test_golden() {
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
     std::printf("framework physics gate\n");
-    test_shapes();
     test_rest();
     test_static_immobile();
     test_golden();
