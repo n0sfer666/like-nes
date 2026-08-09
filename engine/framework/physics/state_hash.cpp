@@ -37,6 +37,13 @@ uint64_t state_hash(const std::vector<Body>& bodies, std::vector<uint32_t>& scra
         mix(h, static_cast<uint32_t>(b.position.y.raw));
         mix(h, static_cast<uint32_t>(b.velocity.x.raw));
         mix(h, static_cast<uint32_t>(b.velocity.y.raw));
+        // Угол и угловая скорость — такое же состояние, как позиция и скорость. Не включить их
+        // значило бы получить гейт, который не отличает лежащий ящик от стоящего на ребре и молча
+        // пропускает любое расхождение вращения между платформами. `rot` при этом НЕ хешируется: он
+        // функция угла, и хешировать вычислимое — это ловить не расхождение состояния, а
+        // расхождение таблицы синуса, для которого есть собственный гейт.
+        mix(h, static_cast<uint32_t>(b.angle.raw));
+        mix(h, static_cast<uint32_t>(b.angular_velocity.raw));
     }
     return h;
 }
