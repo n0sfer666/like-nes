@@ -926,9 +926,14 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          # framework_trig_test здесь, а не в физическом шаге: таблица синуса живёт в
+          # framework/core и не знает о телах. Но гоняется она на трёх ОС по той же причине, что и
+          # хеш физики, — это ЦЕЛОЧИСЛЕННАЯ замена libm, и вся её ценность в том, что x86 и ARM
+          # дают один бит. Разойдись она — физический голден покажет расхождение, но не назовёт
+          # причину.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
                    framework_pad_test framework_rebind_test framework_golden_test \
-                   framework_rt_test; do
+                   framework_trig_test framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "fw_$T.txt"
@@ -959,8 +964,9 @@ jobs:
           # Диапазонный гейт в том же списке и намеренно: golden закрепляет ОДНУ сцену из середины
           # диапазона и ровно поэтому пропустил насыщение импульса под тяжёлым телом. Границы
           # заявленных входов проверяются отдельно от удобной середины.
-          for T in framework_physics_test framework_physics_order_test framework_physics_range_test \
-                   framework_physics_rt_test; do
+          for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
+                   framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
+                   framework_physics_terms_test framework_physics_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "phys_$T.txt"
@@ -968,7 +974,7 @@ jobs:
           done
           # Гейт 1 отдельной строкой, а не общим PASS: сам тест сверяет эталон изнутри, но в логе
           # CI обязано быть видно ЗНАЧЕНИЕ, иначе расследование расхождения начинается с пересборки.
-          grep -q "physics-state-hash = 0x3977752decf95c28" phys_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xad1ec96e2dbbcc32" phys_framework_physics_test.txt \
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #15 требует совпадения в Debug И Release, а до сих пор всё дерево
@@ -982,17 +988,19 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_order_test framework_physics_range_test framework_physics_rt_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_trig_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
-          # все шаги выше. Целей ровно четыре — дерево Debug'ом собирать незачем, вопрос шага
-          # только про физику.
+          # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
+          # собирать незачем. Таблица синуса среди них потому, что вращение считается ею: её
+          # собственное расхождение между уровнями оптимизации обязана назвать она, а не голден сцены.
           cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           bash scripts/build_check.sh
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          for T in framework_physics_test framework_physics_order_test framework_physics_range_test \
-                   framework_physics_rt_test; do
+          for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
+                   framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
+                   framework_physics_terms_test framework_physics_rt_test framework_trig_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1000,7 +1008,7 @@ jobs:
           done
           # Тот же литерал, что у Release-шага выше, и это весь смысл шага: сверять Debug-прогон с
           # самим собой значило бы проверять, что -O0 воспроизводим, а не что он согласен с -O3.
-          grep -q "physics-state-hash = 0x3977752decf95c28" dbg_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xad1ec96e2dbbcc32" dbg_framework_physics_test.txt \
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
@@ -1012,13 +1020,13 @@ jobs:
           # и на разных уровнях оптимизации оно проявляется по-разному. Один уровень доказывал бы
           # только про себя.
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform -Iengine/framework/core -Iengine/framework/physics"
-          LIB="engine/framework/core/fixmath.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
+          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/gap.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
           PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
           ./phys_san | tee physsan.txt
           # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
           # но и досчитать до того же состояния.
-          grep -q "physics-state-hash = 0x3977752decf95c28" physsan.txt
+          grep -q "physics-state-hash = 0xad1ec96e2dbbcc32" physsan.txt
           c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
           ./phys_order_san | tee physordersan.txt
           grep -q ": PASS" physordersan.txt
@@ -1028,6 +1036,29 @@ jobs:
           c++ $SAN $LIB engine/framework/physics/framework_physics_range_test.cpp $PLAT -o phys_range_san
           ./phys_range_san | tee physrangesan.txt
           grep -q ": PASS" physrangesan.txt
+          # Клампы — вторая половина того же вопроса и с вертикали 2 более ценная, чем прогоны:
+          # именно здесь вход подводится к самому потолку (вершина 30000 при MAX_SHAPE_HALF, угловая
+          # скорость у предела, вектор из INT32_MAX в обеих координатах), то есть произведения
+          # считаются там, где промежуточный Q32.32 ближе всего к переполнению.
+          c++ $SAN $LIB engine/framework/physics/framework_physics_clamp_test.cpp $PLAT -o phys_clamp_san
+          ./phys_clamp_san | tee physclampsan.txt
+          grep -q ": PASS" physclampsan.txt
+          # Узкая фаза: SAT и отсечение — единственное место модуля, где произведения идут по
+          # ПОВЁРНУТЫМ координатам, то есть через таблицу синуса, а не по осям мира. Целей три, по
+          # числу её путей: под санитайзером они выполняют РАЗНЫЙ код (расстояние до ядра, отсечение
+          # граней, перебор вершин), и прогнать один из них значило бы оставить два без проверки.
+          for T in point sat gap; do
+            c++ $SAN $LIB "engine/framework/physics/framework_physics_${T}_test.cpp" $PLAT -o "phys_${T}_san"
+            "./phys_${T}_san" | tee "phys${T}san.txt"
+            grep -q ": PASS" "phys${T}san.txt"
+          done
+          # Коэффициенты оси считаются в Q16.32 — вдвое длиннее всего остального в модуле, и оба
+          # произведения там подведены к границе int64 намеренно (запас вдвое, не на порядок).
+          # `__int128` на MSVC нет, поэтому границу держит рассуждение в комментарии, а проверяет её
+          # только этот шаг: знаковое переполнение int64 — то же UB, что и в Q32.32 выше.
+          c++ $SAN $LIB engine/framework/physics/framework_physics_terms_test.cpp $PLAT -o phys_terms_san
+          ./phys_terms_san | tee phystermssan.txt
+          grep -q ": PASS" phystermssan.txt
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'

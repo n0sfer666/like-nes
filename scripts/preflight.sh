@@ -120,16 +120,17 @@ stage "Сборка полного набора опций (imgui, miniaudio, wa
 
 # Инвариант 1 спеки #15: голден обязан совпасть в Debug и Release. Расхождение между уровнями
 # оптимизации в целочисленной арифметике — это UB, а не «погрешность», и локально оно проверяемо
-# целиком: ни раннера, ни железа тут не нужно. Целей ровно четыре — дерево Debug'ом собирать
-# незачем, вопрос этапа только про физику.
-PHYS_TARGETS="framework_physics_test framework_physics_order_test framework_physics_range_test framework_physics_rt_test"
+# целиком: ни раннера, ни железа тут не нужно. Список — только цели, лежащие на пути СОСТОЯНИЯ:
+# дерево Debug'ом собирать незачем. Таблица синуса в нём потому, что вращение считается ею, и её
+# собственное расхождение между уровнями оптимизации обязано быть названо ею, а не голденом сцены.
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_trig_test"
 physics_debug_golden() {
     cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
     BUILD_DIR=build-debug LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TYPE=Debug \
-        LIKE_NES_BUILD_TARGETS="$PHYS_TARGETS" bash scripts/build_check.sh || return 1
+        LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
     local t bin out rc=0 golden=""
-    for t in $PHYS_TARGETS; do
+    for t in $STATE_TARGETS; do
         bin=$(find build-debug -maxdepth 2 -type f -name "$t" | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
         out=$("$bin") || rc=1
@@ -140,7 +141,7 @@ physics_debug_golden() {
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
     # -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
-    if [ "$golden" != "physics-state-hash = 0x3977752decf95c28" ]; then
+    if [ "$golden" != "physics-state-hash = 0xad1ec96e2dbbcc32" ]; then
         echo "Debug разошёлся с Release по голдену физики: '$golden'"
         rc=1
     fi
