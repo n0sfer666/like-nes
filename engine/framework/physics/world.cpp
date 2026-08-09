@@ -1,5 +1,6 @@
 #include "world.hpp"
 
+#include "event_hash.hpp"
 #include "narrowphase.hpp"
 #include "solver.hpp"
 #include "state_hash.hpp"
@@ -24,9 +25,17 @@ World::World(uint32_t capacity) {
     bodies_.reserve(capacity);
     pairs_.reserve(pairs);
     manifolds_.reserve(pairs);
+    triggers_.reserve(pairs);
     cache_.reserve(pairs);
+    // Событий за кадр может быть больше, чем касаний: пара, распавшаяся в этом кадре, даёт `end`,
+    // хотя в текущих списках её уже нет. Потолок — касания этого кадра плюс касания прошлого, то есть
+    // удвоенный бюджет пар; резервируется он, а не бюджет, чтобы кадр массового расцепления не стоил
+    // аллокации ровно тогда, когда её труднее всего заметить.
+    events_.reserve(pairs * 2);
+    tracker_.reserve(pairs);
     scratch_.reserve(capacity);
     broad_.reserve(capacity);
+    event_hash_ = event_hash_seed();
 }
 
 BodyId World::add(const BodyDesc& d) {
@@ -50,6 +59,7 @@ void World::step(fix32 dt) {
     broad_.build(bodies_, pairs_);
 
     manifolds_.clear();
+    triggers_.clear();
     for (const Pair& p : pairs_) {
         Manifold m;
         if (!collide(bodies_[p.a], bodies_[p.b], m)) continue;
@@ -57,6 +67,12 @@ void World::step(fix32 dt) {
         m.b = p.b;
         m.key_a = p.key_a;
         m.key_b = p.key_b;
+        // Триггер уходит в свой список ДО тёплого старта: манифольд ему строится полный — игре нужны
+        // и нормаль, и глубина, — но импульса у него не будет никогда, и накапливать нечего.
+        if (bodies_[p.a].trigger || bodies_[p.b].trigger) {
+            triggers_.push_back(m);
+            continue;
+        }
         // Накопленное прошлого кадра вводится ДО решателя и до подготовки: подготовка переводит его
         // в новую шкалу, а решатель начинает с него первую итерацию.
         cache_.carry(m);
@@ -66,6 +82,17 @@ void World::step(fix32 dt) {
     // переставляет, — значит порядок манифольдов тоже задан ключами. Сортировать второй раз незачем,
     // и это единственная причина, по которой фильтр здесь идёт подряд, а не как попало. На том же
     // порядке стоит двоичный поиск в кеше.
+
+    // События собираются ЗДЕСЬ, до решателя и до интеграции, — и это не свобода расстановки.
+    // Полезная нагрузка события состоит из нормали, глубины и ТОЧКИ, а точка хранится плечом от
+    // центра тела: сложить плечо, посчитанное узкой фазой, с позицией, которую тело получит ПОСЛЕ
+    // интеграции, значит отнести точку касания на пройденный за кадр путь. На 600 юнитах в секунду
+    // это десять пикселей — точка уезжает вглубь зоны, мимо грани, о которую ударили.
+    // Доставка при этом остаётся послешаговой: `events()` игра читает, когда `step` уже вернулся, —
+    // решатель гоняет контакты восемь раз, и реакция игры из середины сдвинула бы мир под
+    // оставшимися итерациями.
+    tracker_.update(bodies_, manifolds_, triggers_, events_);
+    event_hash_ = mix_events(event_hash_, events_);
 
     solve_velocity(bodies_, manifolds_);
 

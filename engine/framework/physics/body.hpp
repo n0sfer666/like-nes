@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#include "filter.hpp"
 #include "mass.hpp"
 #include "shape.hpp"
 
@@ -43,6 +44,14 @@ struct BodyDesc {
     fix32 linear_damping;
     fix32 angular_damping;
     Material material;
+    LayerMask layer = LAYER_DEFAULT;
+    LayerMask mask = MASK_ALL;
+    // Триггер участвует в поиске контактов наравне со всеми и НЕ участвует в их разрешении: зона
+    // урона обязана знать точку и нормаль касания (искры рисуются там, где задело), но не смеет
+    // толкать игрока. Флагом на теле, а не отдельным списком: тело меняет роль по ходу игры —
+    // закрытая дверь становится проходом, — и переезд между списками означал бы, что индекс тела
+    // перестал быть стабильным, а на его стабильности стоит `BodyId`.
+    bool trigger = false;
 };
 
 struct Body {
@@ -82,6 +91,12 @@ struct Body {
     fix32 linear_damping;
     fix32 angular_damping;
     Material material;
+    // Фильтр и роль копируются с дескриптора без правки: у слоя нет незаконных значений. Маска,
+    // равная нулю, означает «ни с кем» — это законное намерение (выключенный коллайдер), а не
+    // ошибка, которую надо чинить приведением. Тело с нулевой маской просто не даёт пар.
+    LayerMask layer = LAYER_DEFAULT;
+    LayerMask mask = MASK_ALL;
+    bool trigger = false;
 };
 
 // Диапазон масс. Обратная масса живёт в Q16.16, где 1/4096 — это raw 16: ещё не ноль, но уже

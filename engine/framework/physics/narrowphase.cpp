@@ -65,6 +65,15 @@ bool segments_apart(const WorldShape& a, const WorldShape& b) {
 
 } // namespace
 
+bool collide_shapes(const WorldShape& wa, Vec2 center_a, const WorldShape& wb, Vec2 center_b,
+                    Manifold& out) {
+    out.count = 0;
+    if (wa.count == 1) return collide_point_core(wa, center_a, wb, center_b, true, out);
+    if (wb.count == 1) return collide_point_core(wb, center_b, wa, center_a, false, out);
+    if (wa.count == 2 && wb.count == 2 && segments_apart(wa, wb)) return false;
+    return collide_sat(wa, center_a, wb, center_b, out);
+}
+
 bool collide(const Body& a, const Body& b, Manifold& out) {
     // Разворот формы в мировые оси делается здесь, по паре, а не один раз по телу. Цена названа:
     // тело, попавшее в N пар, разворачивается N раз. Кеш на тело — это ещё 264 байта на тело в
@@ -73,12 +82,7 @@ bool collide(const Body& a, const Body& b, Manifold& out) {
     WorldShape wb;
     to_world(a.shape, a.position, a.rot, wa);
     to_world(b.shape, b.position, b.rot, wb);
-    out.count = 0;
-
-    if (wa.count == 1) return collide_point_core(wa, a.position, wb, b.position, true, out);
-    if (wb.count == 1) return collide_point_core(wb, b.position, wa, a.position, false, out);
-    if (wa.count == 2 && wb.count == 2 && segments_apart(wa, wb)) return false;
-    return collide_sat(wa, a.position, wb, b.position, out);
+    return collide_shapes(wa, a.position, wb, b.position, out);
 }
 
 } // namespace framework::physics
