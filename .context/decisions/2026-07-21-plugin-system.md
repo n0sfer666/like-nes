@@ -55,8 +55,8 @@ marketplace; чистый WASM — платит маршалингом на ка
 Proposed → Accepted: walking-skeleton plugin-вертикаль (T4) закрыла главные риски (реализация
 `poc/plugin/`, детали — «Результат PoC» в спеке #6):
 
-1. **Детерминизм — ✅** golden sim-hash воспроизводим; sim-плагин реально влияет (H_with=`0x7ad0493f0f2ddf47`
-   ≠ H_without=`0x7263e404db89bcaf` → ловит регресс); H_with НЕ зависит от порядка загрузки (топосорт по
+1. **Детерминизм — ✅** golden sim-hash воспроизводим; sim-плагин реально влияет (H_with=`0x7d9a6e60cbed4156`
+   ≠ H_without=`0xdbae50183b3357ad` → ловит регресс); H_with НЕ зависит от порядка загрузки (топосорт по
    зависимостям + tie-break по id, НЕ dlopen); native ≡ WASM (тот же hash); cross-arch (macOS ARM ≡
    Linux x86_64 CI). ASan/UBSan-чисто.
 2. **Изоляция — ✅** native-крэш (null-deref) пойман на probe-активации (сигнал-изоляция, флаг `armed`

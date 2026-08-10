@@ -429,7 +429,7 @@ jobs:
           DT=$(find build -maxdepth 2 -type f \( -name 'plugin_determinism_test' -o -name 'plugin_determinism_test.exe' \) | head -1)
           [ -n "$DT" ] || { echo "plugin_determinism_test not built"; exit 1; }
           "$DT" "$(mod plugin_gravity)" "$(mod plugin_wind)" | tee pd.txt
-          grep -q "0x7ad0493f0f2ddf47" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "0x7d9a6e60cbed4156" pd.txt || { echo "PLUGIN DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "plugin-determinism: PASS" pd.txt
 
       - name: Plugin — seam (asset-codec decode + all 6 ext-point kinds registered, gate #4)
@@ -565,7 +565,7 @@ jobs:
           grep -q "0x2cf5b5597afa3241" asan_audio.txt
           "$S/audio_rt_test.exe"
           "$S/plugin_determinism_test.exe" "$S/plugin_gravity.dll" "$S/plugin_wind.dll" | tee asan_plugin.txt
-          grep -q "0x7ad0493f0f2ddf47" asan_plugin.txt
+          grep -q "0x7d9a6e60cbed4156" asan_plugin.txt
           grep -q "plugin-determinism: PASS" asan_plugin.txt
 
       # --- IDE-вертикаль (спека #7), срез 1 — фундамент редактора: flecs scene-doc + детерм.

@@ -101,10 +101,14 @@
 
 Реализация `poc/plugin/` (walking-skeleton). Статус гейтов:
 
-- **Гейт 1 (детерминизм) — ✅ ЗЕЛЁНЫЙ.** `plugin_determinism_test`: H_with=`0x7ad0493f0f2ddf47`,
-  H_without=`0x7263e404db89bcaf` → плагин реально влияет (ловит регресс); H_with **не зависит от
+- **Гейт 1 (детерминизм) — ✅ ЗЕЛЁНЫЙ.** `plugin_determinism_test`: H_with=`0x7d9a6e60cbed4156`,
+  H_without=`0xdbae50183b3357ad` → плагин реально влияет (ловит регресс); H_with **не зависит от
   порядка загрузки** (топосорт по зависимостям + tie-break по id, не по dlopen); run-to-run стабилен;
   golden совпал Debug≡Release и cross-arch (macOS ARM ≡ Linux x86_64 в CI). ASan+UBSan-чисто.
+  Обе величины перепиннуты в раунде #15 — **со старых** `0x7ad0493f0f2ddf47` / `0x7263e404db89bcaf`
+  — сменой округления `fix32::operator*` с «к минус бесконечности» на «к нулю»; причина, замер и
+  разбор — в спеке #11, гейт 2. Сдвиг доказан инъекцией: со старой строкой обе величины
+  возвращаются в бит.
 - **Гейты 2+3 (изоляция + hot-reload) — ✅ ЗЕЛЁНЫЕ.** `plugin_isolation_test`: native-крэш (null-deref)
   пойман на probe-активации (сигнал-изоляция, флаг `armed` скоупит перехват) → плагин disabled, host
   и остальные плагины живы; повторный probe после reload снова ловит (armed re-arm); host-owned state
@@ -119,7 +123,7 @@
   owner-HW (macOS 2026-07-21):** окно отрисовалось, панели видны (как input_demo / miniaudio --play).
 - **Гейт 5 (WASM-sandbox) — ✅ ЗЕЛЁНЫЙ (local pinned-T4).** `plugin_wasm_test` (wasmtime C-API v26,
   guest = WAT `gravity.wat` на i32 fix32, загрузка через `wasmtime_wat2wasm` — без wasm-ld):
-  **native≡WASM** WASM golden = `0x7ad0493f0f2ddf47` = native (бит-в-бит fix32 через ABI-границу);
+  **native≡WASM** WASM golden = `0x7d9a6e60cbed4156` = native (бит-в-бит fix32 через ABI-границу);
   **escape OOB** linear-memory → wasmtime trap, host жив; **escape** вызов незаявленного host-import →
   link rejected (capability-контроль). UBSan-чисто (ASan несовместим с guard-page SIGSEGV wasmtime).
 
