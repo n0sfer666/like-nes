@@ -45,8 +45,9 @@ void solve_friction(Body& a, Body& b, const Manifold& m, ManifoldPoint& p) {
 
 } // namespace
 
-void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt) {
+uint64_t solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt) {
     prepare_contacts(bodies, manifolds, dt);
+    uint64_t projections = 0;
     for (uint32_t it = 0; it < VELOCITY_ITERATIONS; ++it) {
         for (Manifold& m : manifolds) {
             Body& a = bodies[m.a];
@@ -71,6 +72,7 @@ void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds,
                 // на неё, никуда не пойдёт, а доли равны нулю. Ветка здесь дешевле, чем восемь
                 // итераций умножений на ноль.
                 if (!(p.normal.k.raw > 0)) continue;
+                ++projections;
                 // Нормаль решается ПЕРЕД трением в каждой итерации: предел конуса берётся из
                 // накопленного нормального, и обратный порядок дал бы трение по значению прошлой
                 // итерации — на первой из них по нулю, то есть без трения вовсе.
@@ -84,12 +86,14 @@ void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds,
         b.velocity = clamp_speed(b.velocity, MAX_SPEED);
         b.angular_velocity = clamp_fix(b.angular_velocity, -b.max_angular, b.max_angular);
     }
+    return projections;
 }
 
 // Коэффициенты берутся из `prepare_contacts`, то есть из `solve_velocity`, — а он по контракту шага
 // идёт раньше. Позиционная коррекция, вызванная в одиночку, увидит нулевые доли и честно ничего не
 // сдвинет: это лучше, чем считать их второй раз и получить второй источник округления.
-void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& manifolds) {
+uint64_t solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& manifolds) {
+    uint64_t projections = 0;
     for (uint32_t it = 0; it < POSITION_ITERATIONS; ++it) {
         for (const Manifold& m : manifolds) {
             for (uint8_t i = 0; i < m.count; ++i) {
@@ -98,6 +102,7 @@ void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& mani
                 // глубина отрицательна, избыток над допуском тем более, — выталкивать не из чего.
                 const fix32 excess = max_fix(p.penetration - CONTACT_SLOP, fix32{});
                 if (!(excess.raw > 0)) continue;
+                ++projections;
                 // Доля от избытка, а не деление на сумму обратных масс: то частное упирается в
                 // потолок Q16.16 ровно так же, как импульс, и выталкивало утонувшее тяжёлое тело
                 // втрое медленнее обещанного (замер: 8.0 юнита вместо 19.9997 при массе 4096).
@@ -119,6 +124,7 @@ void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& mani
             }
         }
     }
+    return projections;
 }
 
 } // namespace framework::physics

@@ -5,6 +5,7 @@
 #include "broadphase.hpp"
 #include "cache.hpp"
 #include "contact.hpp"
+#include "counters.hpp"
 #include "events.hpp"
 #include "island.hpp"
 #include "rest.hpp"
@@ -111,7 +112,7 @@ public:
     // один и тот же код сам с собой и не отличим от мира, у которого она работает. Утверждение
     // «спало N кадров» этой дыры не закрывает: оно про то, что тела ЗАМЕРЗЛИ, а сон — про то, что
     // на замерших сэкономили. Заглуши `recall` в `return false` — замирание останется прежним.
-    uint32_t recalled_pairs() const { return recalled_; }
+    uint32_t recalled_pairs() const { return static_cast<uint32_t>(counters_.recalled); }
     // Тело спит, когда оно замерло И экономия разрешена. Разделение видно наружу намеренно: игре
     // важно «стоит ли ящик» (`at_rest`), профилю — «сэкономили ли мы на нём узкую фазу».
     bool sleeping(BodyId id) const { return sleep_enabled_ && rest_.frozen(id.index); }
@@ -128,6 +129,12 @@ public:
     uint32_t trigger_count() const { return static_cast<uint32_t>(triggers_.size()); }
 
     void step(fix32 dt);
+
+    // Работа, которую стоил ПОСЛЕДНИЙ шаг, — гейт 8 спеки #15, обоснование величин в `counters.hpp`.
+    // Наружу выведено по той же причине, что и `recalled_pairs()`: гейт, меряющий цену шага по
+    // стенным часам, на раннере CI флейкует, а по этим величинам утверждается точно и одинаково на
+    // трёх ОС.
+    const WorkCounters& counters() const { return counters_; }
 
     // События последнего шага, по возрастанию ключа пары. Буфер живёт до СЛЕДУЮЩЕГО шага и им же
     // затирается: копию, пережившую шаг, никто не обязан поддерживать в осмысленном виде — ключи в
@@ -165,12 +172,12 @@ private:
     Islands islands_;
     RestTracker rest_;
     bool sleep_enabled_ = true;
-    uint32_t recalled_ = 0;
     ManifoldCache cache_;
     ContactTracker tracker_;
     std::vector<ContactEvent> events_;
     uint64_t event_hash_ = 0;
     mutable std::vector<uint32_t> scratch_;
+    WorkCounters counters_;
     Vec2 gravity_ = {fix32{}, DEFAULT_GRAVITY_Y};
 };
 

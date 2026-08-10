@@ -99,3 +99,9 @@ target_link_libraries(framework_physics_band_test PRIVATE framework_physics plat
 # такого не увидеть, он сверяет прогон, в котором обстановку никто не менял.
 add_executable(framework_physics_wake_test framework_physics_wake_test.cpp)
 target_link_libraries(framework_physics_wake_test PRIVATE framework_physics platform_core)
+
+# Гейт 8 спеки #15: цена шага на целевом числе тел. Отдельная цель, потому что мерит она не то же,
+# что все остальные: те спрашивают «верно ли», эта — «сколько стоит». Утверждает счётчики работы,
+# время печатает — обоснование этого разделения в самом файле и в `counters.hpp`.
+add_executable(framework_physics_perf_test framework_physics_perf_test.cpp)
+target_link_libraries(framework_physics_perf_test PRIVATE framework_physics platform_core)
