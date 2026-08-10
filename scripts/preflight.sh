@@ -160,7 +160,7 @@ stage "Голден физики совпадает в Debug (инвариант
 # ошибка, а не пропуск: «не собрано» и «сошлось» обязаны отличаться в выводе, иначе первая же
 # опечатка в имени цели делает этап вечно зелёным.
 core_goldens() {
-    local rc=0 tmp
+    local rc=0 tmp grav wind
     check_hash() { # имя-цели ожидаемый-хеш [аргументы]
         local bin name="$1" want="$2" out rc
         shift 2
@@ -178,7 +178,11 @@ core_goldens() {
             return 0
         fi
         echo "  $name НЕ ЗАКРЫТ (код возврата $rc, ожидался $want):"
-        printf '%s\n' "$out" | grep -iE 'hash|golden|fail' | sed 's/^/    /'
+        # Шестнадцатеричный литерал в фильтре наравне со словами: `plugin_determinism_test` печатает
+        # своё число строкой `H_with = 0x…`, где нет ни `hash`, ни `golden`, — и на нём диагностика
+        # выходила ПУСТОЙ. Красный этап, не назвавший фактическое значение, заставляет лезть в лог
+        # руками ровно тогда, когда он и должен был избавить от этого.
+        printf '%s\n' "$out" | grep -iE 'hash|golden|fail|0x[0-9a-f]{8}' | sed 's/^/    /'
         return 1
     }
     check_hash determinism_test 0x6c4b121dbb47d13b || rc=1
@@ -196,14 +200,28 @@ core_goldens() {
         rc=1
     }
     rm -rf "$tmp"
-    # Восьмой — плагинный (`0x7ad0493f0f2ddf47`) — остаётся за CI: `plugin_wasm_test` принимает
-    # аргументами `.wat` и `.so` и требует wasmtime C-API из `deps/`, которого на этой машине нет.
-    # Названо вслух намеренно: «семь из восьми» и «восемь из восьми» обязаны различаться в логе.
-    echo "  plugin (0x7ad0493f0f2ddf47) — только в CI: нужен wasmtime C-API из deps/"
+    # Восьмой голден даёт `plugin_determinism_test`, и он собирается ЗДЕСЬ. Прежняя редакция путала
+    # его с `plugin_wasm_test` — той цели действительно нужен wasmtime C-API из `deps/`, но она
+    # утверждает не голден, а РАВЕНСТВО native и WASM на нём же. Из-за подмены восьмой голден не
+    # проверялся локально вовсе, и перепин `fix32::operator*` в раунде #15 доехал незамеченным до
+    # CI, где покраснел разом на трёх ОС. Цена ошибки ровно та, ради которой этап и заводился.
+    grav=$(find build-full -maxdepth 2 -type f \
+        \( -name 'plugin_gravity.so' -o -name 'plugin_gravity.dylib' \) | head -1)
+    wind=$(find build-full -maxdepth 2 -type f \
+        \( -name 'plugin_wind.so' -o -name 'plugin_wind.dylib' \) | head -1)
+    if [ -n "$grav" ] && [ -n "$wind" ]; then
+        check_hash plugin_determinism_test 0x7d9a6e60cbed4156 "$grav" "$wind" || rc=1
+    else
+        echo "  plugin_gravity/plugin_wind не собраны"
+        rc=1
+    fi
+    # А вот это остаётся за CI, и названо вслух намеренно: «восемь голденов целы» и «native сошёлся
+    # с WASM» — разные утверждения, и второе локально не проверяется.
+    echo "  native==WASM (plugin_wasm_test) — только в CI: нужен wasmtime C-API из deps/"
     return $rc
 }
 PWD_ROOT=$PWD
-stage "8 голденов ядра целы (гейт 2 спеки #11, семь из восьми локально)" core_goldens
+stage "8 голденов ядра целы (гейт 2 спеки #11, все восемь локально)" core_goldens
 
 # После сборки, потому что сверяет её продуктом. `game.bundle` лежит в git готовым, и перепечь его
 # ЦЕЛИКОМ негде, кроме машины владельца: текстурная секция тянет tint и basisu. Секции, что пекутся
