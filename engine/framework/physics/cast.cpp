@@ -22,10 +22,14 @@ void translate(const WorldShape& s, Vec2 d, WorldShape& out) {
 // когда вершина одной формы залезла внутрь другой, а два скрещенных прямоугольника («плюс») дают
 // пересечение БЕЗ единой вершины внутри — все вершины снаружи, расстояние положительное. Свип на
 // такой раскладке считал бы себя свободным, стоя внутри стены.
+//
+// Поле — НУЛЕВОЕ: спекулятивное принадлежит шагу, который смотрит на кадр вперёд, а свип отвечает на
+// вопрос о геометрии сейчас. С полем стрела, начатая в 1/16 юнита от стены, возвращала бы долю пути
+// ноль, то есть «уже внутри», и продвижение вообще не считалось бы.
 bool overlapped_at_start(const WorldShape& moving, Vec2 center, const WorldShape& target,
                          Vec2 target_center, CastHit& out) {
     Manifold m;
-    if (!collide_shapes(moving, center, target, target_center, m)) return false;
+    if (!collide_shapes(moving, center, target, target_center, fix32{}, m)) return false;
     out.fraction = fix32{};
     // Нормаль манифольда идёт из `moving` в `target`; наружу из препятствия — обратная. Точка берётся
     // первая: у пересечения в начале пути «где именно коснулись» смысла уже не имеет, а какая-то

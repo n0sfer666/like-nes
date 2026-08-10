@@ -15,6 +15,9 @@
 // расходящийся golden-хеш — невидимый.
 namespace framework::physics {
 
+// Число ЧЁТНОЕ, и это условие, а не совпадение: точки манифольда обходятся попеременно вперёд и
+// назад (`solver.cpp`), и только при чётном числе итераций каждая из них одинаково часто оказывается
+// первой. Нечётное вернуло бы систематический момент, ради снятия которого обход и заведён.
 constexpr uint32_t VELOCITY_ITERATIONS = 8;
 
 // Позиционная коррекция — по-прежнему один проход. Постоянный манифольд появился, но глубина
@@ -23,7 +26,9 @@ constexpr uint32_t VELOCITY_ITERATIONS = 8;
 // глубины повторно — то есть тихо умножил бы `POSITION_CORRECTION` на число итераций.
 constexpr uint32_t POSITION_ITERATIONS = 1;
 
-void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds);
+// `dt` — тот же шаг, которым мир интегрирует, и передаётся он ради спекулятивной цели: зазор
+// контакта переводится в разрешённую скорость сближения только делением на шаг (`prepare.cpp`).
+void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt);
 void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& manifolds);
 
 } // namespace framework::physics

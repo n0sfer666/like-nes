@@ -1,6 +1,8 @@
 #include <cstdio>
+#include <vector>
 
 #include "platform_args.hpp"
+#include "query.hpp"
 #include "world.hpp"
 
 // Слои, маски и тела-триггеры. Правило здесь — ОТБРАСЫВАЮЩЕЕ, и проверяется оно только парами
@@ -42,6 +44,17 @@ struct Scene {
         w.add(b);
     }
 };
+
+// Сколько раз запрос видит ЗОНУ на месте первого тела: форма и место берутся у самого тела, чтобы
+// два ответа сверялись на ОДНОЙ раскладке. Считается ключ — себя тело находит тоже.
+size_t zones_at(const Scene& s) {
+    QueryFilter f{.mask = MASK_ALL, .include_triggers = true};
+    std::vector<Overlap> hits;
+    overlap_shape(s.w, s.a.shape, s.w.bodies()[0].position, fix32{}, f, hits);
+    size_t n = 0;
+    for (const Overlap& o : hits) n += o.key == s.b.key ? 1u : 0u;
+    return n;
+}
 
 void test_layers() {
     {
@@ -121,6 +134,23 @@ void test_triggers() {
         check(e.normal == Vec2{fix32::from_int(1), fix32{}}, "event normal points a->b");
         check(abs_fix(e.penetration - fix32::from_int(4)) < fix32::from_float(0.05),
               "event penetration = 4");
+        check(zones_at(s) == 1, "and `overlap` names the same zone the event does");
+    }
+    {
+        // Зона и `overlap` отвечают на ОДИН вопрос — «кто здесь сейчас», — и обязаны отвечать
+        // одинаково. Тело стоит в 1/32 юнита ОТ зоны: внутри спекулятивной полосы шага, снаружи
+        // геометрии. Полоса нужна решателю, чтобы затормозить тело до поверхности, а зона не тормозит
+        // ничего — потому и считается НУЛЕВЫМ полем. Иначе `begin` приходил бы телу, ещё не вошедшему
+        // в зону, с отрицательной глубиной, пока запрос на той же раскладке отвечает «никого».
+        Scene s;
+        s.b.trigger = true;
+        s.b.type = BodyType::Static;
+        s.b.position = {fix32::from_int(16) + fix32::from_float(1.0 / 32.0), fix32{}};
+        s.build();
+        s.w.step(fix32::from_float(1.0 / 60.0));
+        check(s.w.trigger_count() == 0, "a body inside the speculative band has not entered the zone");
+        check(s.w.events().empty(), "so the zone reports no begin for it");
+        check(zones_at(s) == 0, "and the query agrees there is nobody in it");
     }
     {
         // Тот же кадр без флага: контакт обязан появиться, тело — сдвинуться. Пара доказывает, что

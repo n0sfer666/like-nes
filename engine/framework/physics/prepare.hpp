@@ -15,6 +15,9 @@ namespace framework::physics {
 // Ожидает, что накопленные импульсы и `k` предыдущего кадра уже перенесены в точки (`ManifoldCache`):
 // пересчёт накопленного делается ОТНОШЕНИЕМ старого и нового `k`, поэтому старое значение читается
 // отсюда, из поля, которое эта же функция затем перезапишет.
-void prepare_contacts(std::vector<Body>& bodies, std::vector<Manifold>& manifolds);
+//
+// `dt` нужен ровно спекулятивной цели: зазор переводится в разрешённую скорость сближения делением
+// на шаг, и другого способа сказать «пройди оставшееся расстояние и ни юнита больше» нет.
+void prepare_contacts(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt);
 
 } // namespace framework::physics
