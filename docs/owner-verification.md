@@ -298,10 +298,12 @@ event" stop looking alike.
 > **Open.** Measured so far only on the machine this was written on: Apple M3 Pro, macOS 26.5.2,
 > Apple clang 21.0.0, Release. Worst scene 2.25 ms mean per frame at 500 dynamic bodies.
 
-CI **asserts** this target on all three OS, in Release and in Debug. Whether it is green there is a
-separate statement, and it is not made here until a run says so: this branch has never been through
-CI, and "CI is green" written ahead of the run is exactly how #12 spent six red runs in a row. What
-CI asserts is the **work counters**, not the time. That split is deliberate and explained in
+CI **asserts** this target on all three OS, in Release and in Debug, and as of run
+[31393763850](https://github.com/n0sfer666/like-nes/actions/runs/31393763850) it is green there —
+the counters came back identical to the unit on ubuntu, macos and windows runners, in both
+configurations. That is a separate statement from the assertion, and it stays unwritten until a run
+says so: "CI is green" put down ahead of the run is exactly how #12 spent six red runs in a row.
+What CI asserts is the **work counters**, not the time. That split is deliberate and explained in
 `counters.hpp`: the counters are integer, deterministic and must be identical on all three OS to the
 unit, while the wall clock on a shared GitHub runner wanders by a factor. A red step saying "the
 frame took 3.1 ms instead of 2" would be switched off within a week, and the whole gate with it.
