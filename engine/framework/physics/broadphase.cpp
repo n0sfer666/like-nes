@@ -43,7 +43,7 @@ void Broadphase::reserve(uint32_t capacity) {
     bounds_.reserve(capacity);
 }
 
-void Broadphase::build(const std::vector<Body>& bodies, std::vector<Pair>& out) {
+uint64_t Broadphase::build(const std::vector<Body>& bodies, std::vector<Pair>& out) {
     const uint32_t n = static_cast<uint32_t>(bodies.size());
     order_.clear();
     bounds_.clear();
@@ -63,6 +63,11 @@ void Broadphase::build(const std::vector<Body>& bodies, std::vector<Pair>& out) 
     });
 
     out.clear();
+    // Кандидат засчитывается ПОСЛЕ проверки на выход из полосы и до всех прочих отсечений. Считать
+    // до неё значило бы считать один лишний проход на каждое тело — то самое сравнение, которым
+    // цикл и обрывается; считать после фильтров получилось бы число принятых пар, которое у нас уже
+    // есть. Мерится ровно работа, которую сделала широкая фаза сверх выдачи.
+    uint64_t candidates = 0;
     for (uint32_t i = 0; i < n; ++i) {
         const uint32_t bi = order_[i];
         const fix32 sweep_end = bounds_[bi].max.x;
@@ -71,6 +76,7 @@ void Broadphase::build(const std::vector<Body>& bodies, std::vector<Pair>& out) 
             // Список отсортирован по левому краю, поэтому первое же тело, начинающееся правее
             // правого края текущего, закрывает и всех, кто за ним, — в этом весь выигрыш SAP.
             if (sweep_end < bounds_[bj].min.x) break;
+            ++candidates;
             // Фильтр слоёв — первым из трёх отсечений: он не читает ни AABB, ни тип, и снимает пару
             // двумя операциями «и». Правило целиком и обоснование двустороннего согласия — в
             // `filter.hpp`; здесь оно применяется к телам, а не к парам, и это не случайность:
@@ -96,6 +102,7 @@ void Broadphase::build(const std::vector<Body>& bodies, std::vector<Pair>& out) 
         if (l.key_a != r.key_a) return l.key_a < r.key_a;
         return l.key_b < r.key_b;
     });
+    return candidates;
 }
 
 } // namespace framework::physics

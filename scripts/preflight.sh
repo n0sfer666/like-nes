@@ -123,7 +123,16 @@ stage "Сборка полного набора опций (imgui, miniaudio, wa
 # целиком: ни раннера, ни железа тут не нужно. Список — только цели, лежащие на пути СОСТОЯНИЯ:
 # дерево Debug'ом собирать незачем. Таблица синуса в нём потому, что вращение считается ею, и её
 # собственное расхождение между уровнями оптимизации обязано быть названо ею, а не голденом сцены.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_trig_test"
+#
+# `framework_physics_perf_test` в списке потому, что его эталон счётчиков — такой же голден: он
+# сверяет ЧИСЛО работы, а не хеш состояния. Отдельного литерала ему не нужно — эталон внутри
+# бинаря, и Debug валится тем же сравнением, что Release. Этап от него дороже секунд на тридцать:
+# сцена кучи на -O0 стоит порядка 28 мс на кадр против 2.3 на -O3.
+#
+# Список ОБЯЗАН совпадать с `LIKE_NES_BUILD_TARGETS` Debug-шага в `.github/workflows/ci.yml`: он
+# собран руками в двух местах, и разъехавшись, тихо оставляет цель без Debug-прогона на той стороне,
+# где её забыли.
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_trig_test"
 physics_debug_golden() {
     cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1

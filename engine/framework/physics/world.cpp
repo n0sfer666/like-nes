@@ -55,12 +55,18 @@ void World::step(fix32 dt) {
     // читает пары, а ожившее тело обязано получить своё ускорение В ЭТОМ ЖЕ кадре: отложи тяготение
     // до следующего, и оно потеряло бы кадр свободного падения. Состоянию перестановка безразлична —
     // AABB считается по позиции и повороту, а тяготение меняет скорость.
-    broad_.build(bodies_, pairs_);
+    // Счётчики обнуляются ЗДЕСЬ, в начале шага, а не по месту первого использования: величина
+    // «работа последнего шага» обязана начинаться с нуля целиком, иначе счётчик, чью ветку шаг не
+    // прошёл, донёс бы число предыдущего кадра — и гейт прочитал бы его как работу этого.
+    counters_.reset();
+    counters_.broad_candidates = broad_.build(bodies_, pairs_);
+    counters_.pairs = pairs_.size();
     rest_.wake_touched(bodies_, pairs_, islands_);
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(bodies_.size()); ++i) {
         Body& b = bodies_[i];
         if (b.type != BodyType::Dynamic || rest_.frozen(i)) continue;
+        ++counters_.active_bodies;
         b.velocity = clamp_speed((b.velocity + gravity_ * dt) * damping_factor(b.linear_damping, dt),
                                  MAX_SPEED);
         b.angular_velocity = clamp_fix(b.angular_velocity * damping_factor(b.angular_damping, dt),
@@ -74,7 +80,6 @@ void World::step(fix32 dt) {
     manifolds_.clear();
     triggers_.clear();
     resting_.clear();
-    recalled_ = 0;
     for (const Pair& p : pairs_) {
         // Пара, обе стороны которой неподвижны, решателю не отдаётся: двигать в ней нечего. Статика
         // неподвижна по типу, замершее тело — по правилу покоя; отличать их здесь незачем. А вот
@@ -93,10 +98,11 @@ void World::step(fix32 dt) {
             // есть геометрия ДО вчерашней позиционной коррекции, — и путь ниже считает её заново
             // ровно так же, как это сделал бы прогон без сна.
             if (sleep_enabled_ && cache_.recall(p.key_a, p.key_b, m)) {
-                ++recalled_;
+                ++counters_.recalled;
                 resting_.push_back(m);
                 continue;
             }
+            ++counters_.narrow_checks;
             if (!collide(bodies_[p.a], bodies_[p.b], SPECULATIVE_MARGIN, m)) continue;
             m.a = p.a;
             m.b = p.b;
@@ -114,6 +120,7 @@ void World::step(fix32 dt) {
         // раскладке отвечал бы «никого»: два ответа на один вопрос, оба правдоподобные.
         const bool trigger = bodies_[p.a].trigger || bodies_[p.b].trigger;
         Manifold m;
+        ++counters_.narrow_checks;
         if (!collide(bodies_[p.a], bodies_[p.b], trigger ? fix32{} : SPECULATIVE_MARGIN, m)) continue;
         m.a = p.a;
         m.b = p.b;
@@ -146,7 +153,7 @@ void World::step(fix32 dt) {
     tracker_.update(bodies_, manifolds_, resting_, triggers_, events_);
     event_hash_ = mix_events(event_hash_, events_);
 
-    solve_velocity(bodies_, manifolds_, dt);
+    counters_.velocity_projections = solve_velocity(bodies_, manifolds_, dt);
 
     for (uint32_t i = 0; i < static_cast<uint32_t>(bodies_.size()); ++i) {
         Body& b = bodies_[i];
@@ -155,7 +162,7 @@ void World::step(fix32 dt) {
         if (b.angular_velocity.raw != 0) set_angle(b, b.angle + b.angular_velocity * dt);
     }
 
-    solve_position(bodies_, manifolds_);
+    counters_.position_projections = solve_position(bodies_, manifolds_);
 
     // Кламп границ мира — последним и для всех подвижных: и интеграция, и позиционная коррекция
     // двигают тело, и вылет за диапазон Q16.16 обернулся бы не «улетел далеко», а насыщением, то

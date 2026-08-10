@@ -28,7 +28,13 @@ constexpr uint32_t POSITION_ITERATIONS = 1;
 
 // `dt` — тот же шаг, которым мир интегрирует, и передаётся он ради спекулятивной цели: зазор
 // контакта переводится в разрешённую скорость сближения только делением на шаг (`prepare.cpp`).
-void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt);
-void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& manifolds);
+//
+// Обе функции возвращают число ПРИМЕНЁННЫХ проекций — гейт 8 спеки #15. Именно применённых:
+// точку с нулевой эффективной обратной массой скоростной решатель пропускает, а позиционный
+// пропускает точку без избытка проникновения над допуском, — то есть произведение «манифольды на
+// точки на итерации» назвало бы работу, которой никто не делал, и на замершей сцене показало бы
+// полную загрузку там, где решатель не тронул ни одной точки.
+uint64_t solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt);
+uint64_t solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& manifolds);
 
 } // namespace framework::physics
