@@ -47,11 +47,13 @@ fix32 sqrt_fix(fix32 v) {
 }
 
 fix32 dot(Vec2 a, Vec2 b) {
-    return fix32::from_raw(fix32::sat(sum_products(a.x.raw, b.x.raw, a.y.raw, b.y.raw) >> fix32::SHIFT));
+    return fix32::from_raw(
+        fix32::sat(fix32::shift_down(sum_products(a.x.raw, b.x.raw, a.y.raw, b.y.raw))));
 }
 
 fix32 cross(Vec2 a, Vec2 b) {
-    return fix32::from_raw(fix32::sat(diff_products(a.x.raw, b.y.raw, a.y.raw, b.x.raw) >> fix32::SHIFT));
+    return fix32::from_raw(
+        fix32::sat(fix32::shift_down(diff_products(a.x.raw, b.y.raw, a.y.raw, b.x.raw))));
 }
 
 fix32 length(Vec2 v) {

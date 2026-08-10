@@ -123,7 +123,7 @@ stage "Сборка полного набора опций (imgui, miniaudio, wa
 # целиком: ни раннера, ни железа тут не нужно. Список — только цели, лежащие на пути СОСТОЯНИЯ:
 # дерево Debug'ом собирать незачем. Таблица синуса в нём потому, что вращение считается ею, и её
 # собственное расхождение между уровнями оптимизации обязано быть названо ею, а не голденом сцены.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_trig_test"
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_trig_test"
 physics_debug_golden() {
     cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
@@ -141,13 +141,69 @@ physics_debug_golden() {
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
     # -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
-    if [ "$golden" != "physics-state-hash = 0xad1ec96e2dbbcc32" ]; then
+    if [ "$golden" != "physics-state-hash = 0xbeb8e8bee1bba145" ]; then
         echo "Debug разошёлся с Release по голдену физики: '$golden'"
         rc=1
     fi
     return $rc
 }
 stage "Голден физики совпадает в Debug (инвариант 1 спеки #15)" physics_debug_golden
+
+# Восемь голденов гейта 2 спеки #11 — ЦЕЛИКОМ, а не только физика. Этап заведён по конкретному
+# промаху: правка округления в `fix32::operator*` (ядро, `engine/core/fixed.hpp`) сдвинула голден
+# ядра И голден ввода, а локально не сработало ничего — физический голден-то сошёлся. Красное на
+# трёх ОС за правку в общей арифметике — самый дорогой круг из тех, что этот файл существует, чтобы
+# закрывать, и удивительным он был ровно потому, что арифметику правят не в той подсистеме, где
+# краснеет.
+#
+# Хеш каждого проверяемого сверяется ЛИТЕРАЛОМ, тем же, что стоит в шаге CI. Отсутствие бинаря —
+# ошибка, а не пропуск: «не собрано» и «сошлось» обязаны отличаться в выводе, иначе первая же
+# опечатка в имени цели делает этап вечно зелёным.
+core_goldens() {
+    local rc=0 tmp
+    check_hash() { # имя-цели ожидаемый-хеш [аргументы]
+        local bin name="$1" want="$2" out rc
+        shift 2
+        bin=$(find build-full -maxdepth 2 -type f -name "$name" | head -1)
+        if [ -z "$bin" ]; then echo "$name не собран"; return 1; fi
+        out=$("$bin" "$@" 2>&1)
+        rc=$?
+        # Статус спрашивается НАРАВНЕ с хешем, и вторым его не назовёшь. Голден печатается раньше
+        # остальных утверждений бинаря, поэтому прогон, упавший на любом из них, всё равно оставляет
+        # в выводе нужную строку: грепом одним этап читал бы «хеш сошёлся» как «тест прошёл», а это
+        # разные утверждения. Прогон при этом ОДИН — второй ради диагностики мог бы напечатать не то,
+        # что было отбито.
+        if [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -q "$want"; then
+            echo "  $name = $want"
+            return 0
+        fi
+        echo "  $name НЕ ЗАКРЫТ (код возврата $rc, ожидался $want):"
+        printf '%s\n' "$out" | grep -iE 'hash|golden|fail' | sed 's/^/    /'
+        return 1
+    }
+    check_hash determinism_test 0x6c4b121dbb47d13b || rc=1
+    check_hash input_determinism_test 0xcc26a1897a326f6f || rc=1
+    check_hash audio_golden 0x2cf5b5597afa3241 || rc=1
+    check_hash scene_roundtrip_test 0x2de54a36e54e0684 || rc=1
+    check_hash achievements_test 0xe728fef199e87fc9 || rc=1
+    check_hash game_sim_test 0x32a094e89eacf2f2 || rc=1
+    # Пекарь пишет бандл в текущий каталог, поэтому зовётся из временного: рабочее дерево обязано
+    # остаться чистым — гейт 4 спеки #11 требует, чтобы локальный прогон не порождал `git status`.
+    tmp=$(mktemp -d) || return 1
+    ( cd "$tmp" && "$PWD_ROOT/build-full/assetc" --synthetic syn.bundle 2>&1 ) |
+        grep -q 0xf2255dc74fbdb6bc && echo "  assetc --synthetic = 0xf2255dc74fbdb6bc" || {
+        echo "  assetc --synthetic РАЗОШЁЛСЯ с 0xf2255dc74fbdb6bc"
+        rc=1
+    }
+    rm -rf "$tmp"
+    # Восьмой — плагинный (`0x7ad0493f0f2ddf47`) — остаётся за CI: `plugin_wasm_test` принимает
+    # аргументами `.wat` и `.so` и требует wasmtime C-API из `deps/`, которого на этой машине нет.
+    # Названо вслух намеренно: «семь из восьми» и «восемь из восьми» обязаны различаться в логе.
+    echo "  plugin (0x7ad0493f0f2ddf47) — только в CI: нужен wasmtime C-API из deps/"
+    return $rc
+}
+PWD_ROOT=$PWD
+stage "8 голденов ядра целы (гейт 2 спеки #11, семь из восьми локально)" core_goldens
 
 # После сборки, потому что сверяет её продуктом. `game.bundle` лежит в git готовым, и перепечь его
 # ЦЕЛИКОМ негде, кроме машины владельца: текстурная секция тянет tint и basisu. Секции, что пекутся

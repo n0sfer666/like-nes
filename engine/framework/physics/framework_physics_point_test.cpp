@@ -33,18 +33,18 @@ void test_point_core() {
     b.position = {fix32::from_int(15), fix32{}};
 
     Manifold m;
-    check(collide(make_body(a), make_body(b), m), "circle-circle overlap detected");
+    check(collide(make_body(a), make_body(b), SPECULATIVE_MARGIN, m), "circle-circle overlap detected");
     check(m.count == 1, "circle-circle gives a single point");
     check(m.points[0].penetration == fix32::from_int(5), "circle-circle penetration = 5");
     check(m.normal == Vec2{fix32::from_int(1), fix32{}}, "circle-circle normal points a->b");
 
     b.position = {fix32::from_int(21), fix32{}};
-    check(!collide(make_body(a), make_body(b), m), "circle-circle apart -> no contact");
+    check(!collide(make_body(a), make_body(b), SPECULATIVE_MARGIN, m), "circle-circle apart -> no contact");
 
     // Совпавшие центры — вырожденный вход, у которого обязан быть ОПРЕДЕЛЁННЫЙ ответ: без него
     // два тела в одной точке разъезжаются как придётся, и golden гуляет от запуска к запуску.
     b.position = a.position;
-    check(collide(make_body(a), make_body(b), m), "coincident centres still collide");
+    check(collide(make_body(a), make_body(b), SPECULATIVE_MARGIN, m), "coincident centres still collide");
     check(m.normal == Vec2{fix32{}, fix32::from_int(1)}, "coincident centres -> fixed normal");
 
     BodyDesc plate;
@@ -52,14 +52,14 @@ void test_point_core() {
     plate.type = BodyType::Static;
     plate.shape = box(fix32::from_int(50), fix32::from_int(10));
     plate.position = {fix32{}, fix32::from_int(15)};
-    check(collide(make_body(a), make_body(plate), m), "circle-box overlap detected");
+    check(collide(make_body(a), make_body(plate), SPECULATIVE_MARGIN, m), "circle-box overlap detected");
     check(m.normal == Vec2{fix32{}, fix32::from_int(1)}, "circle-box normal points down to plate");
 
     // Коробка против круга обязана дать ЗЕРКАЛЬНУЮ нормаль той же величины: это не косметика,
     // а проверка того, что перестановка тел проходит через ту же геометрию, а не через вторую
     // реализацию, которая однажды разойдётся с первой на округлении.
     Manifold flipped;
-    check(collide(make_body(plate), make_body(a), flipped), "box-circle overlap detected");
+    check(collide(make_body(plate), make_body(a), SPECULATIVE_MARGIN, flipped), "box-circle overlap detected");
     check(flipped.normal == -m.normal, "box-circle normal is mirrored");
     check(flipped.count == m.count && flipped.points[0].penetration == m.points[0].penetration,
           "box-circle penetration matches");

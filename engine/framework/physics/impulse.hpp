@@ -12,7 +12,7 @@ namespace framework::physics {
 // доля ограничена по построению, а частное 1/k доходит до тысяч и насыщается задолго до того, как
 // контакт разрешён (см. комментарий к `ManifoldPoint::normal_impulse`).
 inline fix32 share_of(int64_t lambda, fix32 share) {
-    return fix32::from_raw(fix32::sat((lambda * share.raw) >> fix32::SHIFT));
+    return fix32::from_raw(fix32::sat(fix32::shift_down(lambda * share.raw)));
 }
 
 // Скорость ТОЧКИ тела, а не тела: у вращающегося тела они разные, и вся вертикаль 2 про эту разницу.

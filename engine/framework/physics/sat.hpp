@@ -14,7 +14,10 @@ namespace framework::physics {
 
 // Центры масс передаются отдельно от форм: плечи в манифольде отсчитываются от них, а `WorldShape`
 // — это уже развёрнутая геометрия, в которой центр не отличим от любой другой точки.
-bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b,
+//
+// `margin` — спекулятивное поле: зазор, до которого пара всё ещё считается контактом (обоснование —
+// `units.hpp`). Ноль означает точный контракт «только на перекрытии», и именно его берут запросы.
+bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b, fix32 margin,
                  Manifold& out);
 
 } // namespace framework::physics

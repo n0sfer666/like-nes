@@ -7,13 +7,14 @@ namespace framework::physics {
 namespace {
 
 bool collide_point_core(const WorldShape& pt, Vec2 center_pt, const WorldShape& core,
-                        Vec2 center_core, bool point_is_a, Manifold& out) {
+                        Vec2 center_core, bool point_is_a, fix32 margin, Manifold& out) {
     const Nearest n = nearest_on_core(pt.points[0], core);
     const fix32 separation = n.dist - pt.radius - core.radius;
-    if (separation.raw > 0) return false;
+    if (margin < separation) return false;
 
     // Точка контакта — СЕРЕДИНА между поверхностями: ядра отстоят от них на свои радиусы, и взять
     // поверхность одной из форм значило бы сместить плечо на половину проникновения в её сторону.
+    // На спекулятивной ветке знак меняется, а правило нет: та же формула даёт середину ЗАЗОРА.
     const Vec2 point = n.point + n.dir * (core.radius + fix32::from_raw(separation.raw / 2));
 
     // `dir` смотрит из ядра-опоры в точечное ядро. Нормаль манифольда нужна из `a` в `b` — значит
@@ -47,34 +48,34 @@ fix32 support(const WorldShape& s, Vec2 axis, bool maximum) {
 // форма имеет площадь. У двух ПАРАЛЛЕЛЬНЫХ отрезков её нет ни у одной, и два коллинеарных отрезка,
 // разнесённых вдоль общей прямой, ни одной нормалью не разделяются — SAT объявил бы их
 // пересекающимися. Ось вдоль отрезка закрывает ровно этот пробел.
-bool separated_along(const WorldShape& a, const WorldShape& b, Vec2 axis) {
+bool separated_along(const WorldShape& a, const WorldShape& b, Vec2 axis, fix32 margin) {
     // Из двух зазоров (b правее a и a правее b) положительным может быть только один, поэтому
     // берётся МАКСИМУМ: минимум всегда отрицателен, и проверка через него не отбила бы ничего.
     const fix32 gap = max_fix(support(b, axis, false) - support(a, axis, true),
                               support(a, axis, false) - support(b, axis, true));
-    return a.radius + b.radius < gap;
+    return a.radius + b.radius + margin < gap;
 }
 
-bool segments_apart(const WorldShape& a, const WorldShape& b) {
+bool segments_apart(const WorldShape& a, const WorldShape& b, fix32 margin) {
     Vec2 axis;
-    if (normalize(a.points[1] - a.points[0], axis).raw != 0 && separated_along(a, b, axis)) {
+    if (normalize(a.points[1] - a.points[0], axis).raw != 0 && separated_along(a, b, axis, margin)) {
         return true;
     }
-    return normalize(b.points[1] - b.points[0], axis).raw != 0 && separated_along(a, b, axis);
+    return normalize(b.points[1] - b.points[0], axis).raw != 0 && separated_along(a, b, axis, margin);
 }
 
 } // namespace
 
 bool collide_shapes(const WorldShape& wa, Vec2 center_a, const WorldShape& wb, Vec2 center_b,
-                    Manifold& out) {
+                    fix32 margin, Manifold& out) {
     out.count = 0;
-    if (wa.count == 1) return collide_point_core(wa, center_a, wb, center_b, true, out);
-    if (wb.count == 1) return collide_point_core(wb, center_b, wa, center_a, false, out);
-    if (wa.count == 2 && wb.count == 2 && segments_apart(wa, wb)) return false;
-    return collide_sat(wa, center_a, wb, center_b, out);
+    if (wa.count == 1) return collide_point_core(wa, center_a, wb, center_b, true, margin, out);
+    if (wb.count == 1) return collide_point_core(wb, center_b, wa, center_a, false, margin, out);
+    if (wa.count == 2 && wb.count == 2 && segments_apart(wa, wb, margin)) return false;
+    return collide_sat(wa, center_a, wb, center_b, margin, out);
 }
 
-bool collide(const Body& a, const Body& b, Manifold& out) {
+bool collide(const Body& a, const Body& b, fix32 margin, Manifold& out) {
     // Разворот формы в мировые оси делается здесь, по паре, а не один раз по телу. Цена названа:
     // тело, попавшее в N пар, разворачивается N раз. Кеш на тело — это ещё 264 байта на тело в
     // горячем проходе, и выбирать между ними надо замером (вертикаль 3), а не на глаз.
@@ -82,7 +83,7 @@ bool collide(const Body& a, const Body& b, Manifold& out) {
     WorldShape wb;
     to_world(a.shape, a.position, a.rot, wa);
     to_world(b.shape, b.position, b.rot, wb);
-    return collide_shapes(wa, a.position, wb, b.position, out);
+    return collide_shapes(wa, a.position, wb, b.position, margin, out);
 }
 
 } // namespace framework::physics

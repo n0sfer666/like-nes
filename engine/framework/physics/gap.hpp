@@ -28,7 +28,10 @@ namespace framework::physics {
 // (`sat.cpp`, `axis_contact`). Единственная пара, где такого доказательства нет, — два ОТРЕЗКА (все
 // четыре нормали перпендикулярны общей прямой), но ей оно и не нужно: пара отрезков либо расходится,
 // и перебор вершин на ней точен, либо скрещивается, и тогда отсечение выдаёт точку само.
+//
+// `margin` — то же спекулятивное поле, что и у остальных путей (`units.hpp`): контакт принимается,
+// пока зазор поверхностей не шире него.
 bool collide_core_gap(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b,
-                      Manifold& out);
+                      fix32 margin, Manifold& out);
 
 } // namespace framework::physics
