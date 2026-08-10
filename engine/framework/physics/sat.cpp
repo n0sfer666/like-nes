@@ -84,7 +84,7 @@ constexpr uint32_t feature_id(bool flip, uint8_t ref, uint8_t inc, uint8_t slot)
 // отсечение»: пустой выход означает, что отвечать должен другой путь, и различать эти два ответа
 // обязан вызывающий.
 bool clip_faces(const WorldShape& ref, uint8_t ref_index, const WorldShape& inc, bool flip,
-                Vec2 center_a, Vec2 center_b, Manifold& out) {
+                Vec2 center_a, Vec2 center_b, fix32 margin, Manifold& out) {
     const Vec2 ref_normal = ref.normals[ref_index];
     const Vec2 ref_start = ref.points[ref_index];
     const Vec2 ref_end = ref.points[(ref_index + 1) % ref.count];
@@ -116,9 +116,12 @@ bool clip_faces(const WorldShape& ref, uint8_t ref_index, const WorldShape& inc,
     out.count = 0;
     for (uint8_t i = 0; i < count; ++i) {
         const fix32 separation = dot(ref_normal, kept[i] - ref_start) - ref.radius - inc.radius;
-        // Точка, попавшая в боковые плоскости, но не в саму грань, — не контакт: грань конечна не
-        // только вдоль, но и поперёк.
-        if (separation.raw > 0) continue;
+        // Точка, попавшая в боковые плоскости, но ушедшая от грани дальше спекулятивного поля, — не
+        // контакт: грань конечна не только вдоль, но и поперёк. Отбор ПОТОЧЕЧНЫЙ, и это важнее, чем
+        // кажется: у наклонённого ящика ближний угол уже в поле, а дальний ещё в нескольких юнитах,
+        // и общий отбор по манифольду выдал бы вторую точку с зазором, который решатель принял бы за
+        // разрешённое сближение на этом углу.
+        if (margin < separation) continue;
 
         // Точка контакта — СЕРЕДИНА между поверхностями, а не точка на одной из них. Ядро отстоит
         // от поверхности на радиус, и взять поверхность падающей формы значило бы сместить плечо на
@@ -172,16 +175,19 @@ bool axis_contact(const WorldShape& ref, uint8_t ref_index, const WorldShape& in
 
 } // namespace
 
-bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b,
+bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b, fix32 margin,
                  Manifold& out) {
     // Форма без ребра сюда попасть не должна: у неё нет ни одной оси для перебора, и `deepest_face`
     // вернул бы начальное значение, то есть «глубочайшее пересечение» из ничего.
     if (a.count < 2 || b.count < 2) return false;
 
+    // Ось с зазором ШИРЕ поля разделяет формы окончательно — по теореме о разделяющей оси этого
+    // достаточно, и дальше считать нечего. Внутри поля ось разделяет их лишь пока: контакт там
+    // спекулятивный, и весь смысл поля в том, чтобы отдать его решателю ДО перекрытия.
     const FaceQuery qa = deepest_face(a, b);
-    if (qa.separation.raw > 0) return false;
+    if (margin < qa.separation) return false;
     const FaceQuery qb = deepest_face(b, a);
-    if (qb.separation.raw > 0) return false;
+    if (margin < qb.separation) return false;
 
     // Пересеклись ли САМИ ЯДРА, без скруглений. Ответ точен ровно там, где перебор нормалей ПОЛОН:
     // у пары выпуклых форм разделяющая ось, если она есть, — нормаль чьей-то грани, и множество
@@ -208,7 +214,7 @@ bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 c
         ref_index = qb.index;
     }
 
-    if (clip_faces(*ref, ref_index, *inc, flip, center_a, center_b, out)) return true;
+    if (clip_faces(*ref, ref_index, *inc, flip, center_a, center_b, margin, out)) return true;
 
     // Ни одной точки при УЖЕ ДОКАЗАННОМ пересечении (обе опорные грани дали неположительный зазор)
     // означает не «контакта нет», а «отсечение его не выразило». Вернуть здесь false значило бы
@@ -221,7 +227,7 @@ bool collide_sat(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 c
     if (cores_meet) {
         return axis_contact(*ref, ref_index, *inc, ref_sep, flip, center_a, center_b, out);
     }
-    return collide_core_gap(a, center_a, b, center_b, out);
+    return collide_core_gap(a, center_a, b, center_b, margin, out);
 }
 
 } // namespace framework::physics
