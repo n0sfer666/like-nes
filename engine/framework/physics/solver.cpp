@@ -7,6 +7,10 @@
 namespace framework::physics {
 namespace {
 
+// Цель контакта сидит в `p.bias` и на спекулятивной точке ПОЛОЖИТЕЛЬНА (`prepare.cpp`): решатель
+// гонит скорость сближения к `-bias`, то есть разрешает пройти оставшийся зазор и ни юнита больше.
+// Отдельной ветки «а не спекулятивная ли эта точка» здесь нет намеренно — знак поля выражает ровно
+// это, и контакт с зазором сам собой не даёт импульса, пока к нему не приблизились быстрее нужного.
 void solve_normal(Body& a, Body& b, const Manifold& m, ManifoldPoint& p) {
     const fix32 vn = dot(relative_velocity(a, b, p), m.normal);
     // Клампится НАКОПЛЕННАЯ сумма, а не добавка: контакт умеет только отталкивать, но отдельная
@@ -41,13 +45,27 @@ void solve_friction(Body& a, Body& b, const Manifold& m, ManifoldPoint& p) {
 
 } // namespace
 
-void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds) {
-    prepare_contacts(bodies, manifolds);
+void solve_velocity(std::vector<Body>& bodies, std::vector<Manifold>& manifolds, fix32 dt) {
+    prepare_contacts(bodies, manifolds, dt);
     for (uint32_t it = 0; it < VELOCITY_ITERATIONS; ++it) {
         for (Manifold& m : manifolds) {
             Body& a = bodies[m.a];
             Body& b = bodies[m.b];
-            for (uint8_t i = 0; i < m.count; ++i) {
+            // Точки манифольда обходятся ПОПЕРЕМЕННО: чётная итерация вперёд, нечётная назад. Это не
+            // микрооптимизация сходимости, а снятие систематического перекоса. Гаусс—Зейдель решает
+            // точки ПО ОЧЕРЕДИ, и первая всегда получает импульс по нескорректированной скорости —
+            // на грани об грань это момент, каждый кадр одного и того же знака. Он не гасится, а
+            // накапливается: башня из шести ящиков уезжала вбок на 2.53 юнита.
+            //
+            // Что причина именно в порядке, а не в геометрии, показано зеркалом: обход в обратную
+            // сторону дал ту же башню, уехавшую на те же 2.53 юнита в ДРУГУЮ сторону (x = -86958
+            // против +87521, углы со сменённым знаком). Попеременный обход оставляет 0.035 юнита.
+            //
+            // Баланс держится на чётности `VELOCITY_ITERATIONS`: при восьми итерациях каждая точка
+            // четыре раза первая и четыре последняя. Нечётное число вернуло бы перекос, вчетверо
+            // слабее прежнего, — поэтому число итераций часть контракта (см. заголовок).
+            for (uint8_t k = 0; k < m.count; ++k) {
+                const uint8_t i = (it & 1u) != 0 ? static_cast<uint8_t>(m.count - 1 - k) : k;
                 ManifoldPoint& p = m.points[i];
                 // Нулевая эффективная обратная масса — пара, где неподвижны оба: импульс, делённый
                 // на неё, никуда не пойдёт, а доли равны нулю. Ветка здесь дешевле, чем восемь
@@ -76,6 +94,8 @@ void solve_position(std::vector<Body>& bodies, const std::vector<Manifold>& mani
         for (const Manifold& m : manifolds) {
             for (uint8_t i = 0; i < m.count; ++i) {
                 const ManifoldPoint& p = m.points[i];
+                // Спекулятивная точка отсеивается этим же выражением и без отдельной ветки: у неё
+                // глубина отрицательна, избыток над допуском тем более, — выталкивать не из чего.
                 const fix32 excess = max_fix(p.penetration - CONTACT_SLOP, fix32{});
                 if (!(excess.raw > 0)) continue;
                 // Доля от избытка, а не деление на сумму обратных масс: то частное упирается в

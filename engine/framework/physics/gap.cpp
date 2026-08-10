@@ -7,7 +7,7 @@
 namespace framework::physics {
 
 bool collide_core_gap(const WorldShape& a, Vec2 center_a, const WorldShape& b, Vec2 center_b,
-                      Manifold& out) {
+                      fix32 margin, Manifold& out) {
     // Перебор вершин живёт в `distance.cpp`: тем же вопросом отвечает свип формы (`cast.cpp`), и
     // вторая его реализация разошлась бы с этой на округлении. Предусловие «ядра не пересекаются»
     // держит вызывающий — обоснование целиком в заголовке.
@@ -18,7 +18,7 @@ bool collide_core_gap(const WorldShape& a, Vec2 center_a, const WorldShape& b, V
     // проникновение значит оставить пару перекрытой ещё на кадр, завысить — потратить лишнюю
     // итерацию решателя.
     const fix32 separation = best.dist - a.radius - b.radius;
-    if (separation.raw > 0) return false;
+    if (margin < separation) return false;
 
     // Точка контакта — СЕРЕДИНА между поверхностями, тем же правилом, что у SAT и у точечного ядра:
     // взять поверхность одной из форм значило бы сместить плечо на половину проникновения в её

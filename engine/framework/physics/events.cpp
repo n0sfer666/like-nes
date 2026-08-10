@@ -54,10 +54,12 @@ void ContactTracker::reserve(size_t pairs) {
 }
 
 void ContactTracker::update(const std::vector<Body>& bodies, const std::vector<Manifold>& contacts,
+                            const std::vector<Manifold>& resting,
                             const std::vector<Manifold>& triggers,
                             std::vector<ContactEvent>& out) {
     current_.clear();
     for (const Manifold& m : contacts) current_.push_back(to_event(bodies, m, false));
+    for (const Manifold& m : resting) current_.push_back(to_event(bodies, m, false));
     for (const Manifold& m : triggers) current_.push_back(to_event(bodies, m, true));
     // Каждый список упорядочен сам по себе, но их СКЛЕЙКА — нет, и сортировка здесь не подстраховка,
     // а восстановление того самого порядка по ключу, ради которого пары и упорядочены. Ключ пары

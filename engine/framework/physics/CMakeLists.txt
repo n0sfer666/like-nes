@@ -3,8 +3,8 @@
 # слое не знают, и инвариант 1 спеки #14 проверяет это грепом по этой самой строке линковки.
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
-  gap.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp sat.cpp shape.cpp solver.cpp
-  state_hash.cpp world.cpp)
+  gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp rest.cpp sat.cpp
+  shape.cpp solver.cpp state_hash.cpp world.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
 
@@ -74,3 +74,28 @@ target_link_libraries(framework_physics_filter_test PRIVATE framework_physics pl
 # событийный сверяется собственным утверждением, а оно одинаково на всех трёх.
 add_executable(framework_physics_event_test framework_physics_event_test.cpp)
 target_link_libraries(framework_physics_event_test PRIVATE framework_physics platform_core)
+
+# Гейт 3 спеки #15: башня стоит. Отдельная цель, потому что вопрос у неё не про значение, а про
+# ОТСУТСТВИЕ дрейфа за длинный прогон: сломанный тёплый старт даёт не другое число, а стопку, которая
+# расползается тем заметнее, чем дольше смотришь. В общей цели такое читалось бы как «сцена такая».
+add_executable(framework_physics_stack_test framework_physics_stack_test.cpp)
+target_link_libraries(framework_physics_stack_test PRIVATE framework_physics platform_core)
+
+# Гейт 5 спеки #15: сон не влияет на результат. Отдельная цель, потому что сверяются ДВА прогона
+# одной сцены, и упасть она может по причине, которой нет ни у одной другой: экономия, изменившая
+# результат, — это не «неверное число», а расхождение двух миров, которые обязаны совпадать.
+add_executable(framework_physics_sleep_test framework_physics_sleep_test.cpp)
+target_link_libraries(framework_physics_sleep_test PRIVATE framework_physics platform_core)
+
+# Спекулятивная полоса: одно число, продетое сквозь ВСЕ три пути узкой фазы и через два разных входа
+# (шаг с полем, запросы с нулём). Отдельная цель, потому что сломанное сравнение с полем даёт не
+# неверную геометрию, а пропавшую опору — в сцене это неотличимо от «ящик просто падает».
+add_executable(framework_physics_band_test framework_physics_band_test.cpp)
+target_link_libraries(framework_physics_band_test PRIVATE framework_physics platform_core)
+
+# Три двери пробуждения замершего острова: тяготение, сдвинутая статика, неконстантная ручка тела.
+# Отдельная цель, потому что её отказ выглядит не отказом: незакрытая дверь не даёт ни исключения, ни
+# расхождения хеша — она даёт ящик, висящий в воздухе там, где из-под него убрали пол. Голдену сцены
+# такого не увидеть, он сверяет прогон, в котором обстановку никто не менял.
+add_executable(framework_physics_wake_test framework_physics_wake_test.cpp)
+target_link_libraries(framework_physics_wake_test PRIVATE framework_physics platform_core)

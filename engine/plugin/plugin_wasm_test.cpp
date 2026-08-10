@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     const std::string wat = argv[1];
     const std::string wind = argv[2];
     const int TICKS = 3000;
-    const uint64_t GOLDEN = 0x7ad0493f0f2ddf47ull;
+    const uint64_t GOLDEN = 0x7d9a6e60cbed4156ull;
 
     Registry reg;
     PluginHost host(reg);
