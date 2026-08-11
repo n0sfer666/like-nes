@@ -223,8 +223,8 @@ The probe opens a small window (keyboard and mouse arrive through it — it must
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
 
 Three traps before you start, all of which make a working pad look like a broken backend. The
-probe's first line — `cold-start scan: …` — tells the two halves apart: it says out loud whether the
-backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
+probe's `cold-start scan: …` line — printed on the first tick, right after the bindings — tells the
+two halves apart: it says out loud whether the backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
 event" stop looking alike.
 
 - **Permissions (Linux).** The evdev backend reads `/dev/input/event*`; a desktop session normally
@@ -245,7 +245,14 @@ event" stop looking alike.
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
    device: an Xbox pad must not come up as `generic`. A pad that is genuinely unlisted *should*
    say `generic` — that is the fallback working, not a failure. Send this line as-is.
-2. **Live resolution.** Push the left stick fully in all four directions, one at a time, and hold
+2. **Live resolution.** The first line of the run names which axes are being judged:
+   `move axes resolved by name: move_x=0 move_y=1 (order comes from the manifest)`. Those indices
+   are *data*: moving an `axis` row in the manifest renumbers them. The probe looks both axes up by
+   name instead of assuming 0 and 1, and a preset that declares neither — or declares more axes than
+   the frame holds — says so and exits rather than judging some other axis under the name `move_x`.
+   Send this line too: without it a swapped pair reads exactly like a backend that inverted the
+   stick.
+   Then push the left stick fully in all four directions, one at a time, and hold
    each for a moment: the probe prints one `stick right/left/up/down: raw … -> move=(…)` line per
    direction the first time it sees it, and on exit an `axis report` block with the extremes of the
    whole session. Then let the stick centre — `move=(…)` must rest at exactly `(+0.00,+0.00)` (that
@@ -272,8 +279,8 @@ event" stop looking alike.
    *free* key (the probe accepts it without a word, which looks exactly like a pass), and pressing
    `F` straight away — `F` is the force, it never asks, and the refusal this step is about never
    appears.
-4. **Persistence.** Press `S`, `Esc`, then start the probe again: the first line must say
-   `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
+4. **Persistence.** Press `S`, `Esc`, then start the probe again: the line right after the resolved
+   move axes must say `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
    `S` to go back to the clean preset.
 5. **Unplug mid-session.** Yank the cable / turn the pad off while the probe runs: it prints
    `pad 0 DISCONNECTED -> profile falls back to 'generic'`, keyboard control keeps working, nothing
