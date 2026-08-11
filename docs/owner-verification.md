@@ -1,18 +1,20 @@
 # Owner verification: the gates a runner cannot close
 
-All three gates below are **closed** — each section carries the run that closed it, with the
-evidence. They stay here as the procedure, because each one needs a machine a CI runner is not: a
-real desktop session, a real GPU driver, a real gamepad. A gate is re-run when a commit touches
-what it covers; the right-hand column names that surface.
+Three of the four gates below are **closed** — each of those carries the run that closed it, with
+the evidence; the fourth is **open**. They stay here as the procedure, because each one needs a
+machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
+re-run when a commit touches what it covers; the right-hand column names that surface.
 
 | Gate | Spec | Where | Closed | Re-run when a commit touches |
 |---|---|---|---|---|
 | Linux X11 **and** Wayland — editor renders, gizmo moves an object | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 6 | Linux | 2026-08-05 | window backend, surface glue, `LINUX_WAYLAND` |
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
+| Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | **open** | `engine/framework/physics`, load scenes, solver iterations |
 
-That column is the whole point of keeping the procedure: a closed gate protects nothing if the code
-under it moves and nobody re-runs it.
+Only the first three are closed; the fourth is open and is the one gate here whose answer a runner
+could *print* but not *judge*. That column is the whole point of keeping the procedure: a closed gate
+protects nothing if the code under it moves and nobody re-runs it.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
@@ -55,7 +57,7 @@ session type, Vulkan device, input nodes), the build gate, the workflow linter, 
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
 plugins or bundles are skipped by name and say so — CI runs those with arguments on all three OS.
 
-Green means only that this machine agrees with the runners. The three gates below are what the
+Green means only that this machine agrees with the runners. The four gates below are what the
 runners never saw.
 
 **A red build gate here is a finding, not a chore.** The runners are `ubuntu-latest`, and a rolling
@@ -221,8 +223,8 @@ The probe opens a small window (keyboard and mouse arrive through it — it must
 drives the native pad backend (XInput / evdev / GameController). Everything it knows it prints.
 
 Three traps before you start, all of which make a working pad look like a broken backend. The
-probe's first line — `cold-start scan: …` — tells the two halves apart: it says out loud whether the
-backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
+probe's `cold-start scan: …` line — printed on the first tick, right after the bindings — tells the
+two halves apart: it says out loud whether the backend reported any pad on the very first poll, so "the OS never handed it over" and "we lost the
 event" stop looking alike.
 
 - **Permissions (Linux).** The evdev backend reads `/dev/input/event*`; a desktop session normally
@@ -243,7 +245,14 @@ event" stop looking alike.
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
    device: an Xbox pad must not come up as `generic`. A pad that is genuinely unlisted *should*
    say `generic` — that is the fallback working, not a failure. Send this line as-is.
-2. **Live resolution.** Push the left stick fully in all four directions, one at a time, and hold
+2. **Live resolution.** The first line of the run names which axes are being judged:
+   `move axes resolved by name: move_x=0 move_y=1 (order comes from the manifest)`. Those indices
+   are *data*: moving an `axis` row in the manifest renumbers them. The probe looks both axes up by
+   name instead of assuming 0 and 1, and a preset that declares neither — or declares more axes than
+   the frame holds — says so and exits rather than judging some other axis under the name `move_x`.
+   Send this line too: without it a swapped pair reads exactly like a backend that inverted the
+   stick.
+   Then push the left stick fully in all four directions, one at a time, and hold
    each for a moment: the probe prints one `stick right/left/up/down: raw … -> move=(…)` line per
    direction the first time it sees it, and on exit an `axis report` block with the extremes of the
    whole session. Then let the stick centre — `move=(…)` must rest at exactly `(+0.00,+0.00)` (that
@@ -270,8 +279,8 @@ event" stop looking alike.
    *free* key (the probe accepts it without a word, which looks exactly like a pass), and pressing
    `F` straight away — `F` is the force, it never asks, and the refusal this step is about never
    appears.
-4. **Persistence.** Press `S`, `Esc`, then start the probe again: the first line must say
-   `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
+4. **Persistence.** Press `S`, `Esc`, then start the probe again: the line right after the resolved
+   move axes must say `overlay loaded … N edit(s)`. That is the restart half of gate 4 on real storage. Press `X` then
    `S` to go back to the clean preset.
 5. **Unplug mid-session.** Yank the cable / turn the pad off while the probe runs: it prints
    `pad 0 DISCONNECTED -> profile falls back to 'generic'`, keyboard control keeps working, nothing
@@ -291,9 +300,74 @@ event" stop looking alike.
    in the probe, say so: the two read the same axes through different preset tables, and that split
    is the whole diagnosis.
 
+## 4. Gate 8 of #15 — the physics frame cost (Linux and Windows)
+
+> **Open.** Measured so far only on the machine this was written on: Apple M3 Pro, macOS 26.5.2,
+> Apple clang 21.0.0, Release. Worst scene 2.25 ms mean per frame at 500 dynamic bodies.
+
+CI **asserts** this target on all three OS, in Release and in Debug, and as of run
+[31393763850](https://github.com/n0sfer666/like-nes/actions/runs/31393763850) it is green there —
+the counters came back identical to the unit on ubuntu, macos and windows runners, in both
+configurations. That is a separate statement from the assertion, and it stays unwritten until a run
+says so: "CI is green" put down ahead of the run is exactly how #12 spent six red runs in a row.
+What CI asserts is the **work counters**, not the time. That split is deliberate and explained in
+`counters.hpp`: the counters are integer, deterministic and must be identical on all three OS to the
+unit, while the wall clock on a shared GitHub runner wanders by a factor. A red step saying "the
+frame took 3.1 ms instead of 2" would be switched off within a week, and the whole gate with it.
+
+So the runner answers "does the engine do the same amount of work everywhere" and cannot answer "does
+that work fit a frame". The second question is about a target machine, and the only target machines
+that exist are yours.
+
+```sh
+cmake --build build --target framework_physics_perf_test
+./build/framework_physics_perf_test
+```
+
+(Windows: `scripts\win-dev.bat check` builds the tree; then
+`build\framework_physics_perf_test.exe`.)
+
+Expected output. The counter values are **not repeated here on purpose**: they are pinned as
+constants inside the binary (`framework_physics_perf_test.cpp`), and a copy in a runbook is a copy
+nothing checks — it goes stale on the first re-pin and then quietly asks you to confirm last month's
+numbers. A differing counter prints its own `FAIL: <scene>: <field> = N, reference says M` line and
+the run exits non-zero, so what you check by eye is the shape, `allocs=0` and the final verdict. The
+`worst=` / `mean=` numbers may legitimately differ between machines; the measured table lives in
+`.context/specs/2026-07-26-physics-core.md`.
+
+```
+framework physics perf gate (500 bodies)
+  heap: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+  heap: worst=<time> ms mean=<time> ms allocs=0
+  scatter: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+  scatter: worst=<time> ms mean=<time> ms allocs=0
+  column: bodies=0 pairs=0 broad=<n(n-1)/2> narrow=0 vel=0 pos=0
+  column: worst=<time> ms mean=<time> ms allocs=0
+framework-physics-perf: PASS
+```
+
+What to judge, in this order:
+
+1. **Any `FAIL:` line** is the serious finding, and it outranks any timing. A counter that misses its
+   reference means two OS disagree about the arithmetic — the same class of defect the state golden
+   exists to catch. Report it before anything else, with the full output.
+2. **`heap: mean=`** against a 16.67 ms frame. On the M3 Pro it is 2.25 ms — 14%. Judge `mean`, not
+   `worst`: on a laptop `worst` catches another process and spikes past 10 ms without saying anything
+   about the step. A machine where `mean` passes 8 ms (half the frame) is the honest ceiling of "500
+   bodies", and the number belongs in the spec next to the M3 Pro row, not rounded away.
+3. **`allocs=0` on all three scenes.** Anything else means the step went to the heap on a scene the
+   runner does not exercise this way.
+
+`column` reporting `bodies=0` and zeros across the solver is **correct, not a broken scene**: its
+bodies are kinematic on purpose, so nothing is solved. `bodies=0` is not "nothing moves" — the step
+still walks all 500 of them through integration and the world-bound clamp; the counter reports the
+bodies gravity and damping were applied to, which is the load on the solver (`counters.hpp`). That
+scene exists to measure one thing — the broadphase degenerating to the full pairwise scan,
+124750 = 500·499/2.
+
 ## Beyond the gates
 
-The three gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+The four gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0xa67f56b681aed040` byte for byte on another OS.
@@ -307,8 +381,11 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The probe's console output (the CONNECTED line, the conflict, the overlay-loaded line, the
   DISCONNECTED line).
 - The loop timings per OS.
+- The full `framework_physics_perf_test` output per OS — both the counter lines (they must match
+  across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
 
-That closes gate 6 and 8 of spec #13 and gate 8 of spec #14, which is what ADR
-[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md) and
-[0014](../.context/decisions/2026-07-28-framework-input.md) are waiting on to move from *Proposed*
-to *Accepted*.
+That closes gate 6 and 8 of spec #13, gate 8 of spec #14 and gate 8 of spec #15, which is what ADR
+[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
+[0014](../.context/decisions/2026-07-28-framework-input.md) and
+[0015](../.context/decisions/2026-08-08-physics-core.md) are waiting on to move from *Proposed*
+to *Accepted*. The first three are already sent; the physics one is the outstanding half.

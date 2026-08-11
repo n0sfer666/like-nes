@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <cstdio>
 #include <vector>
 
@@ -18,6 +19,18 @@ void check(bool ok, const char* what) {
         ++fails;
     }
 }
+
+// Над-выравненный тип для контроля перехвата — и выделяется он через НЕПРОЗРАЧНУЮ границу, а не
+// строкой `new` по месту. Причина найдена прогоном, а не предусмотрена: на -O3 clang выкидывал пару
+// new/delete целиком (стандарт это разрешает, объект никуда не наблюдаем) и подставлял адрес из
+// статической памяти — он оказывался выровненным, счётчик показывал ноль, и контроль обвинял
+// перехват в том, чего тот не делал. В объектнике при этом не было даже ССЫЛКИ на `operator new`.
+// Запись указателя в `volatile` элизию не отменила; отменил её запрет инлайна на выделяющей функции.
+struct alignas(64) Wide {
+    char pad[64];
+};
+PLATFORM_NOINLINE Wide* make_wide() { return new Wide(); }
+PLATFORM_NOINLINE void drop_wide(Wide* w) { delete w; }
 
 } // namespace
 
@@ -107,6 +120,24 @@ int main(int argc, char** argv) {
     framework::probe::in_hot = false;
     delete leak;
     check(control > 0, "control: the counter sees a real allocation");
+
+    // Второй позитивный контроль — на ВЫРАВНЕННУЮ форму, и он отдельный не для симметрии. Форму
+    // перегрузки выбирает компилятор по `alignof` типа: пока над-выравненных типов на пути шага нет,
+    // выравненная ветка перехвата не исполняется ни разу, и её поломка ждала бы первого `alignas` в
+    // чужом коде, где выглядела бы как «гейт 6 всегда проходил, значит дело не в нём». Здесь же
+    // проверяется и возврат: адрес, выданный ручной разметкой, обязан пережить `delete` — под ASan
+    // неверный `free` роняет прогон, и это ровно тот сигнал, который нужен. Обещание это не
+    // риторическое: цель собрана под ASan/UBSan шагом «Physics — ASan/UBSan» в `ci.yml`. До того
+    // она не строилась санитайзером нигде, и фраза выше обещала покрытие, которого не было.
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    Wide* wide = make_wide();
+    const long aligned_control = framework::probe::allocs;
+    const bool aligned_ok = reinterpret_cast<std::uintptr_t>(wide) % alignof(Wide) == 0;
+    framework::probe::in_hot = false;
+    drop_wide(wide);
+    check(aligned_control > 0, "control: the counter sees an over-aligned allocation");
+    check(aligned_ok, "control: the over-aligned allocation really is aligned");
 
     std::printf("framework-physics-rt: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

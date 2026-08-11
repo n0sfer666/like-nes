@@ -61,6 +61,20 @@ jobs:
           python3 scripts/ci_lint.py --selftest
           python3 scripts/ci_lint.py
 
+      # Правило 5 (лимит длины файла) до этого раунда жило только текстом в CLAUDE.md, и результат
+      # виден по дереву: тринадцать файлов за мягкими 200, а сам `preflight.sh` дорос до 297 при
+      # жёстких 250. Лимит, который не проверяет никто, лимитом не является. Разрешение выше мягкого
+      # порога пишется строкой в `scripts/line_budget_allow.py` — с потолком, видом обоснования из
+      # закрытого списка и причиной словами; жёсткий порог причиной не выкупается.
+      # Проверка статическая, дерево одно — хватает одной ОС. `--selftest` отдельным вызовом, чтобы
+      # в логе был список правил: сломанное правило молчит неотличимо от чистого дерева.
+      - name: File-length budget — soft limit needs a written reason, hard limit is absolute
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 scripts/line_budget.py --selftest
+          python3 scripts/line_budget.py
+
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
       # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
       # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
@@ -991,18 +1005,47 @@ jobs:
           grep -q "physics-state-hash = 0xbeb8e8bee1bba145" phys_framework_physics_test.txt \
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
+      # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
+      # цену, а не правильность. Утверждает он счётчики работы — величины детерминированные и
+      # одинаковые на трёх ОС до единицы; стенные часы он печатает и НЕ проверяет. Раннер GitHub
+      # делится с соседями, и красный шаг «кадр занял 3.1 мс вместо 2» отключили бы первым же —
+      # вместе со всем гейтом. Цифры кадра при этом в логе нужны: расхождение раскладки между ОС
+      # начинается с вопроса «а сколько там было», и ответ на него обязан лежать в прогоне, а не
+      # добываться пересборкой.
+      - name: "Physics — work counters on the load scenes (gate 8, all OS)"
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          T=framework_physics_perf_test
+          B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+          need "$B" "$T"
+          # Литерала счётчиков здесь НЕТ намеренно: эталон живёт константами в самом бинаре
+          # (`framework_physics_perf_test.cpp`), и расхождение между ОС валит его собственный PASS.
+          # Греп по литералу в workflow не проверяется ничем локально и всплывал бы только после
+          # пуша и двадцати минут прогона на трёх ОС — ровно та петля, ради которой заведён ci_lint.
+          "$B" | tee phys_perf.txt
+          grep -q ": PASS" phys_perf.txt || { echo "$T FAILED on ${{ matrix.os }}"; exit 1; }
+
       # Инвариант 1 спеки #15 требует совпадения в Debug И Release, а до сих пор всё дерево
       # собиралось только Release: голден на -O0 не сверял никто. Это не педантизм — в
       # целочисленной арифметике расхождение между уровнями оптимизации означает UB, то есть
       # право компилятора выкинуть проверку, а не «погрешность». Санитайзерный шаг ниже гоняет
       # -O1 и только на Linux; здесь -O0 на всех трёх ОС.
+      #
+      # Список целей ОБЯЗАН совпадать со `STATE_TARGETS` в `scripts/check_goldens.sh`: он собран руками в
+      # двух местах, и разъехавшись, тихо оставляет цель без Debug-прогона на той стороне, где её
+      # забыли. Гейт 8 (`framework_physics_perf_test`) в нём потому, что его эталон счётчиков — такой
+      # же голден, только сверяет он ЧИСЛО работы, а не хеш состояния; на MSVC и gcc это
+      # единственное место, где -O0 против -O3 по нему проверяется вообще. Этап от него дороже:
+      # локально сцена кучи стоит 28 мс на кадр против 2.3 на -O3, то есть порядка полуминуты на
+      # прогон, и на раннере — кратно больше.
       - name: "Physics — the golden holds in Debug too (invariant 1: Debug and Release, all OS)"
         shell: bash
         env:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_trig_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_trig_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1014,7 +1057,7 @@ jobs:
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
-                   framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
+                   framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test \
                    framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_sleep_test framework_physics_band_test \
                    framework_physics_wake_test framework_trig_test; do
@@ -1060,6 +1103,13 @@ jobs:
           c++ $SAN $LIB engine/framework/physics/framework_physics_clamp_test.cpp $PLAT -o phys_clamp_san
           ./phys_clamp_san | tee physclampsan.txt
           grep -q ": PASS" physclampsan.txt
+          # Гейт 6 (`framework_physics_rt_test`) здесь потому, что его ручная разметка выравненного
+          # выделения проверяема ТОЛЬКО санитайзером: `delete` от указателя, которого `malloc` не
+          # выдавал, портит кучу молча, и без ASan цель печатала бы PASS ровно так же. Обещание
+          # такого покрытия в комментарии теста уже стояло, а самой сборки под санитайзером не было.
+          c++ $SAN $LIB engine/framework/physics/framework_physics_rt_test.cpp $PLAT -o phys_rt_san
+          ./phys_rt_san | tee physrtsan.txt
+          grep -q ": PASS" physrtsan.txt
           # Узкая фаза: SAT и отсечение — единственное место модуля, где произведения идут по
           # ПОВЁРНУТЫМ координатам, то есть через таблицу синуса, а не по осям мира. Целей три, по
           # числу её путей: под санитайзером они выполняют РАЗНЫЙ код (расстояние до ядра, отсечение
