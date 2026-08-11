@@ -2,6 +2,7 @@
 #include "engine.hpp"
 #include "pad_registry.hpp"
 #include "presets.hpp"
+#include "probe_axis_report.hpp"
 #include "rebind_store.hpp"
 #include "source.hpp"
 
@@ -22,7 +23,10 @@ void report_pads(::input::InputEngine& engine, ::input::GamepadSource* pad, PadR
 // различить надо — «бэкенд его не отдал» и «отдал, а мы потеряли» чинятся в разных местах.
 void report_cold_start(::input::InputEngine& engine, const ::input::GamepadSource* pad);
 
+// `axes` — разрешённые индексы move_x/move_y из пресета, а не 0 и 1: строка состояния печатает
+// подпись `move=`, и назвать ею чужую ось значит соврать в том самом выводе, который копируют в
+// отчёт о гейте.
 void report_status(const PresetTable& table, uint32_t preset, const ::input::InputFrame& frame,
-                   const PadRegistry& reg, uint32_t tick);
+                   const PadRegistry& reg, uint32_t tick, MoveAxes axes);
 
 } // namespace framework::input

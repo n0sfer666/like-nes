@@ -72,13 +72,13 @@ void report_cold_start(::input::InputEngine& engine, const ::input::GamepadSourc
 }
 
 void report_status(const PresetTable& table, uint32_t preset, const ::input::InputFrame& frame,
-                   const PadRegistry& reg, uint32_t tick) {
+                   const PadRegistry& reg, uint32_t tick, const MoveAxes axes) {
     std::printf("\r[t%6u] ", tick);
     for (uint32_t a = 0; a < table.action_count(preset); ++a)
         std::printf("%s:%s ", table.action_name(preset, a),
                     frame.action_held(static_cast<int>(a)) ? "#" : ".");
-    std::printf("move=(%+.2f,%+.2f) pad0='%s'   ", frame.axes[0].to_double(),
-                frame.axes[1].to_double(), reg.profile(0).name);
+    std::printf("move=(%+.2f,%+.2f) pad0='%s'   ", frame.axes[axes.x].to_double(),
+                frame.axes[axes.y].to_double(), reg.profile(0).name);
     std::fflush(stdout);
 }
 

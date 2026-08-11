@@ -38,10 +38,41 @@ double span(const double lo, const double hi) {
 
 } // namespace
 
+bool resolve_move_axes(const PresetTable& table, uint32_t preset, MoveAxes& out) {
+    out.x = table.find_axis(preset, "move_x");
+    out.y = table.find_axis(preset, "move_y");
+    // Верхняя граница проверяется наравне с промахом, и это не педантизм: индекс стал ДАННЫМИ
+    // манифеста, а пресет с девятью осями пекётся и открывается — обрезает его только
+    // `PresetTable::bind`, уже после. Литералы 0 и 1 выйти за `fix32 axes[MAX_AXES]` не могли,
+    // разрешение по имени — может, и чтение за границей кадра было бы внесено этой же правкой.
+    const int limit = ::input::MAX_AXES;
+    if (out.x >= 0 && out.x < limit && out.y >= 0 && out.y < limit) {
+        // Печатается всегда: разрешение по имени невидимо в остальном выводе, а `move=(…)` в строке
+        // состояния выглядит одинаково при любом порядке осей. Владелец, приславший отчёт, должен
+        // иметь возможность сверить, ЧТО именно судили — не «две первые оси», а названные.
+        std::printf("[probe] move axes resolved by name: move_x=%d move_y=%d (order comes from the "
+                    "manifest)\n",
+                    out.x, out.y);
+        return true;
+    }
+    // Оба числа названы вслух, а не пересказаны словами: -1 это «пресет такой оси не объявил»,
+    // а число от предела и выше - «объявил, но за краем кадра». Чинятся они разными строками
+    // манифеста, и вердикт, не различающий их, отправляет владельца искать не там.
+    // Текст английский по тому же основанию, что и остальной вывод пробы: консоль Windows не UTF-8.
+    std::fprintf(stderr,
+                 "[probe] preset '%s' gives no usable move axes: move_x=%d move_y=%d, and the\n"
+                 "        frame holds %d of them (-1 means the preset declares no axis by that\n"
+                 "        name). Falling back to index 0 would judge SOME axis while calling it\n"
+                 "        move_x, and this run's output is the evidence of gate 8 - fix the\n"
+                 "        manifest instead.\n",
+                 table.preset_name(preset), out.x, out.y, limit);
+    return false;
+}
+
 void AxisWitness::observe(const ::input::DeviceState& dev, const ::input::InputFrame& frame) {
     namespace c = ::input::code;
     const double raw[2] = {dev.pad_axis(0, c::LX).to_double(), dev.pad_axis(0, c::LY).to_double()};
-    const double res[2] = {frame.axes[0].to_double(), frame.axes[1].to_double()};
+    const double res[2] = {frame.axes[axes_.x].to_double(), frame.axes[axes_.y].to_double()};
     for (int a = 0; a < 2; ++a) {
         track(raw[a], raw_lo_[a], raw_hi_[a]);
         track(res[a], res_lo_[a], res_hi_[a]);
