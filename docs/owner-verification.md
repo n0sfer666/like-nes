@@ -373,10 +373,14 @@ What to judge, in this order:
 1. **Any `FAIL:` line** is the serious finding, and it outranks any timing. A counter that misses its
    reference means two OS disagree about the arithmetic — the same class of defect the state golden
    exists to catch. Report it before anything else, with the full output.
-2. **`heap: mean=`** against a 16.67 ms frame. On the M3 Pro it is 3.64 ms — 22%. Judge `mean`, not
-   `worst`: on a laptop `worst` catches another process and spikes past 10 ms without saying anything
-   about the step. A machine where `mean` passes 8 ms (half the frame) is the honest ceiling of "500
-   bodies", and the number belongs in the spec next to the M3 Pro row, not rounded away.
+2. **`heap: mean=`** against a 16.67 ms frame. Measured on three machines: 3.64 ms (22%) on the M3
+   Pro, 8.583 ms (51%) on the Nobara laptop, 9.594 ms (58%) on Windows on that same laptop. Judge
+   `mean`, not `worst`: on a laptop `worst` catches another process and spikes past 10 ms without
+   saying anything about the step. A machine where `mean` passes 8 ms (half the frame) is the honest
+   ceiling of "500 bodies" — and the two slow rows above already passed it, which is the open
+   decision described below. Judge against the **slowest** machine you have: the M3 Pro figure
+   describes the M3 Pro, and the whole point of running this on your hardware is that the fast row
+   cannot answer for the engine.
 3. **`allocs=0` on all three scenes.** Anything else means the step went to the heap on a scene the
    runner does not exercise this way.
 
@@ -386,6 +390,35 @@ still walks all 500 of them through integration and the world-bound clamp; the c
 bodies gravity and damping were applied to, which is the load on the solver (`counters.hpp`). That
 scene exists to measure one thing — the broadphase degenerating to the full pairwise scan,
 124750 = 500·499/2.
+
+### Open decision: 8 or 16 velocity iterations, and how many bodies
+
+The round that raised `VELOCITY_ITERATIONS` from 8 to 16 measured the price on one machine — the M3
+Pro, where the heap went 2.25 → 3.64 ms, 22% of the frame. Your run of 2026-08-12 measured the same
+scene on the Intel UHD 620 box at **9.594 ms mean** (58% of the frame, Windows/MSVC with the
+Defender exclusion applied) and **8.583 ms** under Linux/gcc on the same hardware. That is physics
+alone, before render, game logic and audio, and it is past the 8 ms ceiling this document declares
+three paragraphs above. So "four times the budget to spare" is an M3 Pro sentence, not an engine
+one, and the choice of 16 was made on the fastest machine of the set.
+
+Both knobs are one-line constants (`solver.hpp`, `framework_physics_load.hpp`), so what decides this
+is a rebuild matrix, not an argument:
+
+```
+bash scripts/perf_sweep.sh          # 16/8 iterations x 500/300 bodies, four rebuilds
+bash scripts/perf_sweep.sh 8:500    # or name the cells yourself, "iterations:bodies"
+```
+
+The script edits both headers, rebuilds only `framework_physics_perf_test`, restores them from HEAD
+and rebuilds once more; it refuses to start if either header has uncommitted changes. Red verdicts
+*inside* the run are expected and it says so on every cell: the reference counters are pinned to 500
+bodies at 16 iterations, so every other cell misses them by construction. The timings are printed
+before the verdict and are what the run is for.
+
+Send back the final table. Its `vel` column is the run's own positive control — two cells that
+differ in iterations must differ in `vel`, and the script prints `FAIL` in place of a verdict if
+they do not, because equal counters mean every row was measured on one binary that never got
+rebuilt. A table like that looks flawless, which is exactly the danger.
 
 ## Beyond the gates
 
@@ -405,6 +438,8 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The loop timings per OS.
 - The full `framework_physics_perf_test` output per OS — both the counter lines (they must match
   across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
+- The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
+  iterations and how many bodies this engine claims.
 
 That closes gate 6 and 8 of spec #13, gate 8 of spec #14 and gate 8 of spec #15, which is what ADR
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
