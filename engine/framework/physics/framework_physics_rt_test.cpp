@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "framework_alloc_probe.hpp"
+#include "framework_alloc_probe_control.hpp"
 #include "framework_physics_scene.hpp"
 #include "platform_args.hpp"
 
@@ -19,18 +20,6 @@ void check(bool ok, const char* what) {
         ++fails;
     }
 }
-
-// Над-выравненный тип для контроля перехвата — и выделяется он через НЕПРОЗРАЧНУЮ границу, а не
-// строкой `new` по месту. Причина найдена прогоном, а не предусмотрена: на -O3 clang выкидывал пару
-// new/delete целиком (стандарт это разрешает, объект никуда не наблюдаем) и подставлял адрес из
-// статической памяти — он оказывался выровненным, счётчик показывал ноль, и контроль обвинял
-// перехват в том, чего тот не делал. В объектнике при этом не было даже ССЫЛКИ на `operator new`.
-// Запись указателя в `volatile` элизию не отменила; отменил её запрет инлайна на выделяющей функции.
-struct alignas(64) Wide {
-    char pad[64];
-};
-PLATFORM_NOINLINE Wide* make_wide() { return new Wide(); }
-PLATFORM_NOINLINE void drop_wide(Wide* w) { delete w; }
 
 } // namespace
 
@@ -112,30 +101,29 @@ int main(int argc, char** argv) {
 
     // Позитивный контроль счётчика: без него ноль аллокаций неотличим от неработающего
     // перехвата — а неработающий перехват выглядит как самый зелёный гейт на свете.
+    //
+    // Выделение зовётся через НЕПРОЗРАЧНУЮ ГРАНИЦУ — тело в `framework_alloc_probe_control.cpp`.
+    // Строкой `new` по месту контроль был вакуумен ровно там, где нужен: см. шапку
+    // `framework_alloc_probe_control.hpp`.
     framework::probe::in_hot = true;
     framework::probe::allocs = 0;
-    std::vector<int>* leak = new std::vector<int>();
-    leak->resize(64);
+    const bool plain_ok = framework::probe::control::plain_allocation();
     const long control = framework::probe::allocs;
     framework::probe::in_hot = false;
-    delete leak;
     check(control > 0, "control: the counter sees a real allocation");
+    check(plain_ok, "control: that allocation really was handed out and written to");
 
-    // Второй позитивный контроль — на ВЫРАВНЕННУЮ форму, и он отдельный не для симметрии. Форму
-    // перегрузки выбирает компилятор по `alignof` типа: пока над-выравненных типов на пути шага нет,
-    // выравненная ветка перехвата не исполняется ни разу, и её поломка ждала бы первого `alignas` в
-    // чужом коде, где выглядела бы как «гейт 6 всегда проходил, значит дело не в нём». Здесь же
-    // проверяется и возврат: адрес, выданный ручной разметкой, обязан пережить `delete` — под ASan
-    // неверный `free` роняет прогон, и это ровно тот сигнал, который нужен. Обещание это не
-    // риторическое: цель собрана под ASan/UBSan шагом «Physics — ASan/UBSan» в `ci.yml`. До того
-    // она не строилась санитайзером нигде, и фраза выше обещала покрытие, которого не было.
+    // Второй позитивный контроль — на ВЫРАВНЕННУЮ форму, и он отдельный не для симметрии: разбор
+    // причин в шапке `framework_alloc_probe_control.hpp`. Проверяется и возврат: адрес, выданный
+    // ручной разметкой, обязан пережить `delete` — под ASan неверный `free` роняет прогон, и это
+    // ровно тот сигнал, который нужен. Обещание не риторическое: цель собрана под ASan/UBSan шагом
+    // «Physics — ASan/UBSan» в `ci.yml`. До того она не строилась санитайзером нигде, и фраза выше
+    // обещала покрытие, которого не было.
     framework::probe::in_hot = true;
     framework::probe::allocs = 0;
-    Wide* wide = make_wide();
+    const bool aligned_ok = framework::probe::control::aligned_allocation();
     const long aligned_control = framework::probe::allocs;
-    const bool aligned_ok = reinterpret_cast<std::uintptr_t>(wide) % alignof(Wide) == 0;
     framework::probe::in_hot = false;
-    drop_wide(wide);
     check(aligned_control > 0, "control: the counter sees an over-aligned allocation");
     check(aligned_ok, "control: the over-aligned allocation really is aligned");
 

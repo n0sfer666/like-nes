@@ -17,7 +17,8 @@ add_executable(framework_physics_order_test framework_physics_order_test.cpp)
 target_link_libraries(framework_physics_order_test PRIVATE framework_physics platform_core)
 
 add_executable(framework_physics_rt_test framework_physics_rt_test.cpp)
-target_link_libraries(framework_physics_rt_test PRIVATE framework_physics platform_core)
+target_link_libraries(framework_physics_rt_test PRIVATE framework_physics platform_core
+  framework_alloc_probe_control)
 
 # Геометрия узкой фазы отдельно от сцены: голден отвечает «три ОС сошлись», эти цели — «сошлись на
 # верном». Манифольд из одной точки там, где обязано быть две, обе платформы посчитают одинаково.
