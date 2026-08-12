@@ -52,6 +52,23 @@ takes the first that actually executes — the passport line prints which one, o
 missing interpreter fails the linter stage loudly instead of skipping it. Install Python from
 python.org and reopen the shell if you see that.
 
+**Defender is the third Windows trap, and it does not look like one.** Confirmed on the owner's
+machine, 2026-08-12: real-time protection refused to execute freshly built, unsigned binaries —
+"не удалось проверить подлинность издателя" — and seven of the eight test targets never ran at
+all. The shell returned 126 (found, exec denied), the stage printed the same word `FAIL` it prints
+for a target that ran and disagreed, and the report read as eight red tests on Windows. It was
+zero: that machine had said nothing about seven of them. The script now prints `BLOCKED` with the
+exit code for that case and counts it separately in the verdict, so `FAIL` again means what it
+says. Before a Windows run, exclude the tree from real-time scanning — PowerShell as
+Administrator, once per machine:
+
+```powershell
+Add-MpPreference -ExclusionPath 'C:\path\to\like-nes'
+```
+
+126 is exec denied, 127 is not found — the latter usually means a DLL next to the `.exe` went
+missing, which is a real finding and not a Defender one.
+
 It writes `build/owner-report-<os>.txt`: machine passport (OS, distro, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to

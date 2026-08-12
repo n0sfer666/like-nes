@@ -115,7 +115,7 @@ fi
 # Тесты берутся ИЗ КАТАЛОГА СБОРКИ, а не списком в скрипте: список разошёлся бы с деревом молча,
 # и пропавшая цель читалась бы как «всё зелёное».
 head_ "Тесты дерева"
-PASSED=0; FAILED_TESTS=(); SKIPPED=()
+PASSED=0; FAILED_TESTS=(); SKIPPED=(); BLOCKED_TESTS=()
 for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
     [ -x "$t" ] || continue
     name=$(basename "$t")
@@ -133,18 +133,39 @@ for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
         ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|play_spawn_test|plugin_*)
             SKIPPED+=("$name — нужны пути к плагинам/бандлам, вызов живёт в ci.yml"); continue;;
     esac
-    if out=$("$t" 2>&1); then
+    out=$("$t" 2>&1); rc=$?
+    # «Не запустился» и «не прошёл» РАЗВЕДЕНЫ, и это не косметика. Прогон владельца на Windows вернул
+    # восемь красных, из которых семь вообще не выполнялись: Defender запретил exec свежесобранным
+    # бинарям, шелл вернул 126, а этап печатал то же слово FAIL, что и разошедшемуся тесту. Одно и то
+    # же слово на «проверено и не сошлось» и «не проверено вовсе» — ровно тот дефект, который
+    # `ci_lint.py` ловит правилом `vacuous-gate` в чужих workflow. Коды фиксированы POSIX: 126 —
+    # файл найден, но запуск запрещён, 127 — не найден (пропала DLL рядом с exe).
+    if [ $rc -eq 0 ]; then
         PASSED=$((PASSED + 1))
         printf '  PASS %s\n' "$name" | tee -a "$REPORT"
+    elif [ $rc -eq 126 ] || [ $rc -eq 127 ]; then
+        BLOCKED_TESTS+=("$name (код $rc)")
+        printf '  BLOCKED %s — запуск запрещён (код %d), тест НЕ ВЫПОЛНЯЛСЯ\n' "$name" "$rc" |
+            tee -a "$REPORT"
     else
         FAILED_TESTS+=("$name")
         printf '  FAIL %s\n' "$name" | tee -a "$REPORT"
         printf '%s\n' "$out" | tail -20 >>"$REPORT"
     fi
 done
-say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}"
+say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}, не запущено: ${#BLOCKED_TESTS[@]}"
 for s in "${SKIPPED[@]:-}"; do [ -n "$s" ] && say "  SKIP $s"; done
 for f in "${FAILED_TESTS[@]:-}"; do [ -n "$f" ] && say "  FAIL $f"; done
+for b in "${BLOCKED_TESTS[@]:-}"; do [ -n "$b" ] && say "  BLOCKED $b"; done
+# Лечение печатается ОДИН раз и только когда есть что лечить: следующий прогон не должен начинаться
+# с догадок о том, что за «Permission denied» на файле, который сам же скрипт только что собрал.
+if [ ${#BLOCKED_TESTS[@]} -ne 0 ]; then
+    say "  ни один из них не проверен: Windows блокирует запуск неподписанных сборок (MOTW/Defender)."
+    say "  лечение — исключить каталог сборки из проверки в реальном времени, из PowerShell админом:"
+    say "    Add-MpPreference -ExclusionPath '$ROOT'"
+    say "  и перезапустить прогон. Пока строки BLOCKED есть, вердикт красный по праву: эта машина"
+    say "  про перечисленные цели не сказала ничего."
+fi
 
 # Замер цикла правка→сборка→hot-reload. Гейт 8 спеки #13 требует записать его фактом для Linux и
 # Windows: в CI число измеряет буферизацию логов раннера, а не сборку.
@@ -199,11 +220,15 @@ say "  #14 гейт 8 — framework_input_probe: паспорт пада, про
 say "  #15 гейт 8 — судить время из этапа выше против бюджета кадра: раннер его печатает, но не судит"
 
 printf '\n' | tee -a "$REPORT"
-if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ]; then
+# Незапущенное считается наравне с провалившимся, и в вердикте названо СВОИМ числом. Зелёный при
+# непустом BLOCKED означал бы «половина целей не проверена, зато красиво»; одно общее число вернуло
+# бы ту же неразличимость, ради устранения которой этот счётчик и заведён.
+if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ] && [ ${#BLOCKED_TESTS[@]} -eq 0 ]
+then
     say "owner-check: PASS — автоматизируемая половина зелёная на этой машине"
     say "отчёт: $REPORT"
     exit 0
 fi
-say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}"
+say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}, не запущено ${#BLOCKED_TESTS[@]}"
 say "отчёт: $REPORT"
 exit 1
