@@ -12,6 +12,10 @@
 // InputFrame. Проверка сквозная — манифест → таблица → ActionMap → resolve, — потому что
 // разойтись эти четыре шага могут только вместе: бейк, который печёт не то, и загрузчик, который
 // читает не так, поодиночке выглядят исправными.
+//
+// Отказы бейка живут своей целью, `framework_preset_refusal_test`: там вопрос не «доехало ли
+// написанное», а «названо ли ненаписуемое», и падает он иначе — не неверным кадром, а манифестом,
+// испёкшимся молча.
 namespace {
 
 int fails = 0;
@@ -47,14 +51,6 @@ shape  | look_y | 0.2 | 1.0 | 1 | look_x
 )";
 
 using framework::input::PresetTable;
-
-// Пределы движка проверяются манифестом, сгенерированным по числу, а не выписанным руками:
-// шестьдесят пять строк в исходнике теста никто не пересчитает после правки MAX_ACTIONS.
-std::string rows(const char* kind, const char* tail, int n) {
-    std::string m = "preset | p\n";
-    for (int i = 0; i < n; ++i) m += std::string(kind) + " | a" + std::to_string(i) + tail;
-    return m;
-}
 
 std::string source_roundtrip(const char* text) {
     ::input::Source s;
@@ -178,59 +174,6 @@ int main(int argc, char** argv) {
     f = map.resolve(stick, 0, 5, 0);
     check(f.axes[AX_X] == fix32::from_int(1), "the stick row drives its own axis");
     check(f.axes[AX_Y] == fix32{}, "the stick does not leak into the next axis");
-
-    // Ошибки манифеста называют строку: без номера строки диагностика бейка бесполезна ровно
-    // тогда, когда нужна.
-    std::vector<uint8_t> ignored;
-    check(!bake_presets("action | jump | key:space\n", ignored, err) && err.line == 1,
-          "an action before any preset is refused with its line");
-    check(!bake_presets("preset | p\naction | jump | key:nope\n", ignored, err) && err.line == 2,
-          "an unknown source is refused with its line");
-    check(!bake_presets("preset | p\naxis | x | key:d | key:a\nshape | x | 0.1 | 1.0 | 1 | y\n",
-                        ignored, err) && err.line > 0,
-          "a shape pairing an undeclared axis is refused");
-    check(!bake_presets("# comment only\n", ignored, err), "an empty manifest is refused");
-    check(!bake_presets("preset | p\naction | jump | key:space\naction | jump | pad:south\n",
-                        ignored, err) && err.line == 3,
-          "a second row for the same action is refused: its bindings must be contiguous");
-    check(!bake_presets("preset | p\nwiggle | x\n", ignored, err) && err.line == 2,
-          "an unknown row kind is refused with its line");
-
-    // Шесть строк ниже до этого раунда пеклись МОЛЧА и давали раскладку, отличную от написанной:
-    // потерянную форму, перевёрнутую ось или пресет, который загрузчик отвергает целиком.
-    check(!bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
-                        "shape | move_ex | 0.18 | 1.0 | 1 | -\n", ignored, err) && err.line == 3,
-          "a shape naming an undeclared axis is refused, and by its own line");
-    check(!bake_presets("preset | a\naxis | move_x | key:d | key:a\n"
-                        "shape | look_x | 0.18 | 1.0 | 1 | -\n"
-                        "preset | b\naxis | look_x | key:l | key:j\n", ignored, err) && err.line == 3,
-          "a shape reaching for an axis of the NEXT preset is refused");
-    check(!bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
-                        "shape | move_x | 0.1 | 1.0 | 1 | -\n"
-                        "shape | move_x | 0.4 | 0.5 | 3 | -\n", ignored, err) && err.line == 4,
-          "a second shape for one axis is refused instead of silently overwriting the first");
-    check(!bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
-                        "axis | move_x | key:a | key:d\n", ignored, err) && err.line == 3,
-          "an axis taking one source in both directions is refused: order would decide the sign");
-    check(!bake_presets(rows("action", " | key:d\n", ::input::MAX_ACTIONS + 1), ignored, err) &&
-              err.line == ::input::MAX_ACTIONS + 2,
-          "a preset declaring more actions than the engine binds is refused at the bake");
-    check(!bake_presets(rows("axis", " | key:d | key:a\n", ::input::MAX_AXES + 1), ignored, err) &&
-              err.line == ::input::MAX_AXES + 2,
-          "a preset declaring more axes than the engine binds is refused at the bake");
-
-    // Позитивный контроль тех же шести: отбивать ЧЕСТНЫЙ манифест они не должны, а три из них
-    // отличаются от нарушения одной деталью — направлением, порядком строк, единицей счёта.
-    check(bake_presets(rows("action", " | key:d\n", ::input::MAX_ACTIONS), ignored, err),
-          "a preset filling the action capacity exactly still bakes");
-    check(bake_presets(rows("axis", " | key:d | key:a\n", ::input::MAX_AXES), ignored, err),
-          "a preset filling the axis capacity exactly still bakes");
-    check(bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
-                       "axis | move_x | key:d | key:a\n", ignored, err),
-          "an exact duplicate axis row is not a contradiction: it names the same direction");
-    check(bake_presets("preset | p\nshape | move_x | 0.1 | 1.0 | 1 | -\n"
-                       "axis | move_x | key:d | key:a\n", ignored, err),
-          "a shape written before its axis still attaches: shapes are applied at the preset's end");
 
     // Битая таблица не открывается, а не читается как чужая память.
     std::vector<uint8_t> broken = blob;

@@ -946,8 +946,8 @@ jobs:
           # дают один бит. Разойдись она — физический голден покажет расхождение, но не назовёт
           # причину.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
-                   framework_pad_test framework_rebind_test framework_golden_test \
-                   framework_trig_test framework_rt_test; do
+                   framework_preset_refusal_test framework_pad_test framework_rebind_test \
+                   framework_golden_test framework_trig_test framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "fw_$T.txt"
