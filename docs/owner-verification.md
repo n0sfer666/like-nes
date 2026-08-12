@@ -303,7 +303,12 @@ event" stop looking alike.
 ## 4. Gate 8 of #15 — the physics frame cost (Linux and Windows)
 
 > **Open.** Measured so far only on the machine this was written on: Apple M3 Pro, macOS 26.5.2,
-> Apple clang 21.0.0, Release. Worst scene 2.25 ms mean per frame at 500 dynamic bodies.
+> Apple clang 21.0.0, Release. Worst scene 3.64 ms mean per frame at 500 dynamic bodies.
+>
+> The number moved from 2.25 ms when `VELOCITY_ITERATIONS` went from 8 to 16 (round of 2026-08-12):
+> the solver is the cost of the step, so doubling its iterations costs about what it says. What the
+> extra iterations buy is stack depth, and that is the reason the price is paid — see `solver.hpp`
+> and `framework_physics_depth_test`. Judge the new number, not the old one.
 
 CI **asserts** this target on all three OS, in Release and in Debug, and as of run
 [31393763850](https://github.com/n0sfer666/like-nes/actions/runs/31393763850) it is green there —
@@ -351,7 +356,7 @@ What to judge, in this order:
 1. **Any `FAIL:` line** is the serious finding, and it outranks any timing. A counter that misses its
    reference means two OS disagree about the arithmetic — the same class of defect the state golden
    exists to catch. Report it before anything else, with the full output.
-2. **`heap: mean=`** against a 16.67 ms frame. On the M3 Pro it is 2.25 ms — 14%. Judge `mean`, not
+2. **`heap: mean=`** against a 16.67 ms frame. On the M3 Pro it is 3.64 ms — 22%. Judge `mean`, not
    `worst`: on a laptop `worst` catches another process and spikes past 10 ms without saying anything
    about the step. A machine where `mean` passes 8 ms (half the frame) is the honest ceiling of "500
    bodies", and the number belongs in the spec next to the M3 Pro row, not rounded away.

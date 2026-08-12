@@ -34,7 +34,20 @@ constexpr uint32_t SLIDE = 300;
 // Сколько верхний ящик проедет от толчка `CREEP_RAW` через ручку; `explicit_wake` выбирает путь —
 // явное пробуждение против одной лишь записи. Оба обязаны дать ОДНО И ТО ЖЕ число: «толкнули» не
 // бывает слабее оттого, что забыли сказать про это вслух.
-fix32 creep(bool explicit_wake) {
+//
+// Возвращаются ДВЕ величины, и это разделение вынуждено замером. `first` — путь за ПЕРВЫЙ шаг после
+// записи, то есть сам факт доставки. `total` — путь за все `SLIDE` кадров, и он о доставке уже не
+// говорит: трение под толчком обычное, оно гасит его за два кадра, а оставшиеся под три сотни ящик
+// живёт остатком решателя. Прежняя редакция спрашивала знак у `total`, и подъём числа итераций с 8
+// до 16 (решатель стал гасить быстрее) увёл его с +28 в −23 при неизменившейся доставке: первый шаг
+// как давал +27, так и даёт. То есть гейт краснел не от потерянной правки, а от того, что мерил
+// сходимость решателя, называя её доставкой.
+struct Creep {
+    fix32 first;
+    fix32 total;
+};
+
+Creep creep(bool explicit_wake) {
     World w{16};
     build(w, GRIP);
     check(settle(w) != 0, "the tower the creeping push is measured on really freezes first");
@@ -42,8 +55,10 @@ fix32 creep(bool explicit_wake) {
     const fix32 before = w.bodies()[TOP].position.x;
     if (explicit_wake) w.wake(top);
     w.body(top).velocity.x = fix32::from_raw(CREEP_RAW);
-    for (uint32_t i = 0; i < SLIDE; ++i) w.step(DT);
-    return w.bodies()[TOP].position.x - before;
+    w.step(DT);
+    const fix32 first = w.bodies()[TOP].position.x - before;
+    for (uint32_t i = 1; i < SLIDE; ++i) w.step(DT);
+    return {first, w.bodies()[TOP].position.x - before};
 }
 
 // Чтение через неконстантную ручку обязано стоить РОВНО НОЛЬ. Сверяются два одинаковых мира, во
@@ -75,16 +90,20 @@ void test_reading_a_handle_costs_nothing() {
 // якоря сам и доедет при любой реализации, медленный — только если правку заметили. Равенство с путём
 // через `wake()` заодно пинит отсутствие потерянного кадра: проспи мир шаг, и путь станет короче.
 void test_writing_through_a_handle_lands() {
-    const fix32 by_hand = creep(false);
-    const fix32 by_wake = creep(true);
-    std::printf("  crept %d raw through a handle, %d after an explicit wake()\n", by_hand.raw,
-                by_wake.raw);
-    check(by_hand == by_wake, "a push through a handle travels exactly as far as after wake()");
-    // Спрашивается ЗНАК, а не дальность. Незамеченная правка даёт РОВНО ноль: замерший остров шаг не
-    // интегрирует, а `settle` того же кадра обнуляет ему скорость, — так что ноль отделяет отмену от
-    // доставки без всякого порога. Дальность же под трением задаёт решатель, и пинить её значило бы
-    // краснеть от каждой его правки.
-    check(by_hand.raw > 0, "and it is not cancelled by the very step it was handed to");
+    const Creep by_hand = creep(false);
+    const Creep by_wake = creep(true);
+    std::printf("  crept %d raw on the first step, %d over %u frames (%d and %d after wake())\n",
+                by_hand.first.raw, by_hand.total.raw, SLIDE, by_wake.first.raw, by_wake.total.raw);
+    // Равенство спрашивается у ОБЕИХ величин и у полной дистанции в том числе: потерянный кадр
+    // разошёлся бы и на первом шаге, а разъехавшийся дальше по прогону — только на полной.
+    check(by_hand.first == by_wake.first, "a push through a handle lands exactly as after wake()");
+    check(by_hand.total == by_wake.total, "and travels exactly as far as after wake()");
+    // Спрашивается ЗНАК, а не дальность, и спрашивается он у ПЕРВОГО шага. Незамеченная правка даёт
+    // на нём РОВНО ноль: замерший остров шаг не интегрирует, а `settle` того же кадра обнуляет ему
+    // скорость, — так что ноль отделяет отмену от доставки без всякого порога. Дальше первого шага
+    // ходом распоряжается уже трение, а не тот, кто толкал: знак суммы за три сотни кадров — это
+    // знак остатка решателя, и пинить его значило бы краснеть от каждой его правки.
+    check(by_hand.first.raw > 0, "and it is not cancelled by the very step it was handed to");
 }
 
 } // namespace

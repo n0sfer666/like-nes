@@ -31,7 +31,11 @@ cd "$ROOT" || exit 1
 # Список ОБЯЗАН совпадать с `LIKE_NES_BUILD_TARGETS` Debug-шага в `.github/workflows/ci.yml`: он
 # собран руками в двух местах, и разъехавшись, тихо оставляет цель без Debug-прогона на той стороне,
 # где её забыли.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_trig_test"
+#
+# `framework_physics_depth_test` — тоже голден, только предметом его служит ГРАНИЦА: башня
+# заявленной глубины стоит, на ящик глубже валится. Граница ножевая по построению, и уровень
+# оптимизации сдвинул бы её ровно так же, как сдвинул бы хеш.
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -52,7 +56,7 @@ debug_golden() {
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
     # -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
-    if [ "$golden" != "physics-state-hash = 0xbeb8e8bee1bba145" ]; then
+    if [ "$golden" != "physics-state-hash = 0xe243e1457a11f65e" ]; then
         echo "Debug разошёлся с Release по голдену физики: '$golden'"
         rc=1
     fi

@@ -113,6 +113,12 @@ target_link_libraries(framework_physics_wake_test PRIVATE framework_physics plat
 add_executable(framework_physics_handle_test framework_physics_handle_test.cpp)
 target_link_libraries(framework_physics_handle_test PRIVATE framework_physics platform_core)
 
+# Глубина стека, которую держит решатель. Отдельная цель, потому что гейт стека прибит к шести
+# ящикам и про границу не спрашивает: башня из девяти заваливалась при штатном трении молча, а
+# `VELOCITY_ITERATIONS` меняли, ни разу не спросив, сколько ящиков после этого стоит.
+add_executable(framework_physics_depth_test framework_physics_depth_test.cpp)
+target_link_libraries(framework_physics_depth_test PRIVATE framework_physics platform_core)
+
 # Гейт 8 спеки #15: цена шага на целевом числе тел. Отдельная цель, потому что мерит она не то же,
 # что все остальные: те спрашивают «верно ли», эта — «сколько стоит». Утверждает счётчики работы,
 # время печатает — обоснование этого разделения в самом файле и в `counters.hpp`.

@@ -989,12 +989,17 @@ jobs:
           # арифметика fix32, а закрытая дверь не даёт ни исключения, ни расхождения хеша — она даёт
           # ящик, висящий там, где из-под него убрали пол. Голдену такого не увидеть: он сверяет
           # прогон, в котором обстановку никто не менял.
+          #
+          # Глубина стека — на трёх ОС по третьей причине: её граница ножевая, и разъехавшись между
+          # x86 и ARM на один ящик, она сделает заявленную в `solver.hpp` цифру верной ровно на
+          # одной из них. Гейт стопки этого не видит: он прибит к шести ящикам, то есть к середине.
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
                    framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
-                   framework_physics_band_test framework_physics_wake_test framework_physics_handle_test; do
+                   framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
+                   framework_physics_depth_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "phys_$T.txt"
@@ -1002,7 +1007,7 @@ jobs:
           done
           # Гейт 1 отдельной строкой, а не общим PASS: сам тест сверяет эталон изнутри, но в логе
           # CI обязано быть видно ЗНАЧЕНИЕ, иначе расследование расхождения начинается с пересборки.
-          grep -q "physics-state-hash = 0xbeb8e8bee1bba145" phys_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xe243e1457a11f65e" phys_framework_physics_test.txt \
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
@@ -1045,7 +1050,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_trig_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1061,7 +1066,7 @@ jobs:
                    framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
-                   framework_trig_test; do
+                   framework_physics_depth_test framework_trig_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1069,7 +1074,7 @@ jobs:
           done
           # Тот же литерал, что у Release-шага выше, и это весь смысл шага: сверять Debug-прогон с
           # самим собой значило бы проверять, что -O0 воспроизводим, а не что он согласен с -O3.
-          grep -q "physics-state-hash = 0xbeb8e8bee1bba145" dbg_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xe243e1457a11f65e" dbg_framework_physics_test.txt \
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
@@ -1087,7 +1092,7 @@ jobs:
           ./phys_san | tee physsan.txt
           # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
           # но и досчитать до того же состояния.
-          grep -q "physics-state-hash = 0xbeb8e8bee1bba145" physsan.txt
+          grep -q "physics-state-hash = 0xe243e1457a11f65e" physsan.txt
           c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
           ./phys_order_san | tee physordersan.txt
           grep -q ": PASS" physordersan.txt
