@@ -4,6 +4,7 @@
 // Подмена глобальных `operator new`/`delete` живёт здесь, а не в измерительном заголовке: её
 // контракт — ровно один TU на программу, и владеть им обязан тот, кто программу и составляет.
 #include "framework_alloc_probe.hpp"
+#include "framework_alloc_probe_control.hpp"
 #include "framework_physics_load.hpp"
 #include "framework_physics_perf_probe.hpp"
 #include "platform_args.hpp"
@@ -141,6 +142,24 @@ int main(int argc, char** argv) {
     check(heap.allocs == 0, "heap scene: the settled step allocates nothing");
     check(scatter.allocs == 0, "scatter scene: the settled step allocates nothing");
     check(column.allocs == 0, "column scene: the settled step allocates nothing");
+
+    // Позитивный контроль СЧЁТЧИКА, отдельно от контроля сцен ниже и по другой причине. Три нуля
+    // выше держатся на том, что перехват работает, а неработающий перехват даёт ровно те же три
+    // нуля — и выглядит самым зелёным гейтом на свете. Замещение операторов действует на ПРОГРАММУ,
+    // так что доказательство из соседней цели сюда не переносится: у этого бинаря свой.
+    //
+    // Выделение зовётся через непрозрачную границу — тело в `framework_alloc_probe_control.cpp`;
+    // строкой `new` по месту контроль вакуумен ровно там, где нужен, разбор в шапке заголовка.
+    // Выравненной формы здесь нет намеренно: на пути шага над-выравненных типов не бывает, а сама
+    // ветка перехвата закреплена в `framework_physics_rt_test.cpp` — второй её экземпляр проверял бы
+    // тот же исходник дважды.
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    const bool counter_ok = framework::probe::control::plain_allocation();
+    const long counter_control = framework::probe::allocs;
+    framework::probe::in_hot = false;
+    check(counter_control > 0, "control: the counter sees a real allocation");
+    check(counter_ok, "control: that allocation really was handed out and written to");
 
     // Позитивный контроль сцен: пустая или разъехавшаяся сцена дала бы нули по всем счётчикам и
     // прошла бы любой потолок сверху. Гейт обязан сначала доказать, что работа вообще есть, и что
