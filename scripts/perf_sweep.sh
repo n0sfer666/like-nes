@@ -24,7 +24,9 @@ BUILD_DIR=${BUILD_DIR:-build}
 SOLVER="engine/framework/physics/solver.hpp"
 LOAD="engine/framework/physics/framework_physics_load.hpp"
 TARGET="framework_physics_perf_test"
-BUDGET_MS=16.67
+# Бюджет кадра в МИКРОсекундах: вся арифметика доли ниже целочисленная, и держать рядом вторую
+# константу «то же число, но с точкой» значило бы завести две правды об одном числе.
+BUDGET_US=16670
 
 CELLS=("$@")
 [ ${#CELLS[@]} -eq 0 ] && CELLS=(16:500 8:500 16:300 8:300)
@@ -37,6 +39,24 @@ die() {
 command -v cmake >/dev/null 2>&1 || die "cmake не найден"
 [ -f "$SOLVER" ] && [ -f "$LOAD" ] || die "заголовки не на месте: $SOLVER / $LOAD"
 [ -d "$BUILD_DIR" ] || die "каталог сборки '$BUILD_DIR' не сконфигурирован (BUILD_DIR=... чтобы задать свой)"
+
+# Windows: шелл, не видевший vcvars64.bat, компилятор не поднимет. Проверяется ОКРУЖЕНИЕ, а не PATH:
+# путь к cl.exe cmake помнит абсолютным, поэтому падает не поиск бинаря, а сама компиляция — на
+# отсутствии INCLUDE/LIB. Без этой проверки владелец получил бы двадцать строк лога ninja и чинил бы
+# не то: ровно по этой причине owner_check.sh и gate8_e2e.sh на Windows зовутся действиями
+# win-dev.bat, а не прямо. Проверка советующая: она называет процедуру, а не заменяет её.
+case "$(uname -s 2>/dev/null)" in
+    MINGW* | MSYS* | CYGWIN*)
+        if grep -qi 'CMAKE_CXX_COMPILER:[^=]*=.*cl\.exe' "$BUILD_DIR/CMakeCache.txt" 2>/dev/null &&
+            [ -z "${INCLUDE:-}" ]; then
+            printf 'perf-sweep: этот шелл не видел vcvars64.bat — cl.exe тут не соберёт ничего.\n' >&2
+            printf 'Порядок на Windows (два шага, из корня дерева):\n' >&2
+            printf '  scripts\\win-dev.bat shell\n' >&2
+            printf '  "%%ProgramFiles%%\\Git\\bin\\bash.exe" scripts/perf_sweep.sh\n' >&2
+            die "запуск прерван до первой правки заголовков"
+        fi
+        ;;
+esac
 
 # Отказ по грязным заголовкам. Восстановление в конце — это `git checkout --`, то есть откат к
 # HEAD: на файле с чужой правкой он молча уничтожил бы её.
@@ -56,6 +76,27 @@ set_const() {
     mv "$tmp" "$file" || die "не удалось записать $file"
     grep -q "constexpr uint32_t $name = $value;" "$file" ||
         die "константа $name не встала в значение $value — подстановка промахнулась мимо $file"
+}
+
+# Доля бюджета — на целочисленной арифметике шелла, а не через `awk`. Причина ровно та же, по
+# которой `ci_lint.py` держит правило `portability`: замер обязан идти на ТОЙ машине, где цифра
+# нужна, а на Windows его шелл — git-bash, и наличия `awk` там никто не обещал. Цель печатает время
+# с тремя знаками (`%.3f`), поэтому точку достаточно выбросить: "9.594" -> 9594 микросекунд.
+pct_of_budget() {
+    local ms=$1 us
+    case "$ms" in
+        *.[0-9][0-9][0-9]) ;;
+        # Формат печати цели изменился — честнее прочерк, чем правдоподобная цифра из мусора.
+        *)
+            printf '?'
+            return 0
+            ;;
+    esac
+    # `10#` обязателен: "0.966" даёт "0966", а это для шелла ВОСЬМЕРИЧНОЕ число — на девятке он
+    # ругается, а на "0.027" молча вернул бы 23 микросекунды вместо 27.
+    us=$((10#${ms/./}))
+    local tenths=$(((us * 1000 + BUDGET_US / 2) / BUDGET_US))
+    printf '%d.%d' $((tenths / 10)) $((tenths % 10))
 }
 
 binary() {
@@ -94,6 +135,16 @@ for cell in "${CELLS[@]}"; do
     out=$("$bin" 2>&1)
     rc=$?
     printf '%s\n' "$out"
+    # 126/127 — «найден, но запуск запрещён» и «не найден»: на Windows так выглядит защитник на
+    # свежесобранном неподписанном бинаре, а обход перепекает его на КАЖДОЙ ячейке. Без этой ветки
+    # пустой вывод уехал бы в диагноз «цель изменила формат печати» — обвинение не того, ровно тот
+    # дефект, который owner_check.sh уже разводил счётчиком BLOCKED.
+    if [ $rc -eq 126 ] || [ $rc -eq 127 ]; then
+        printf 'perf-sweep: запуск %s запрещён (код %d) — тест НЕ ВЫПОЛНЯЛСЯ.\n' "$bin" "$rc" >&2
+        printf 'На Windows это защитник: PowerShell от администратора, ОДИН раз на машину —\n' >&2
+        printf "  Add-MpPreference -ExclusionPath '%s'\n" "$ROOT" >&2
+        die "разбор в docs/owner-verification.md, раздел про Defender"
+    fi
     # Ненулевой возврат здесь ОЖИДАЕМ и не прерывает замер: утверждения гейта прибиты к 500 телам
     # (`heap.pairs > BODIES/2` и порог доли), и на урезанной сцене часть из них падает по построению.
     # Нас интересуют счётчики и время, а они печатаются до вердикта. Молчать об этом нельзя — строка
@@ -127,12 +178,12 @@ for ((i = 0; i < n; i++)); do
     done
 done
 
-printf '\n=== Итог (бюджет кадра %s мс)\n' "$BUDGET_MS"
+printf '\n=== Итог (бюджет кадра %d.%02d мс)\n' $((BUDGET_US / 1000)) $((BUDGET_US % 1000 / 10))
 printf 'итераций  тел   worst, мс   mean, мс   mean %% бюджета   vel\n'
 for ((i = 0; i < n; i++)); do
-    pct=$(awk -v m="${MEAN[$i]}" -v b="$BUDGET_MS" 'BEGIN { printf "%.1f", m * 100 / b }')
     printf '%-9s %-5s %-11s %-10s %-16s %s\n' \
-        "${ITERS[$i]}" "${BODIES[$i]}" "${WORST[$i]}" "${MEAN[$i]}" "$pct" "${VEL[$i]}"
+        "${ITERS[$i]}" "${BODIES[$i]}" "${WORST[$i]}" "${MEAN[$i]}" "$(pct_of_budget "${MEAN[$i]}")" \
+        "${VEL[$i]}"
 done
 
 if [ "$same" -eq 1 ]; then

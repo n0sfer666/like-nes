@@ -409,6 +409,21 @@ bash scripts/perf_sweep.sh          # 16/8 iterations x 500/300 bodies, four reb
 bash scripts/perf_sweep.sh 8:500    # or name the cells yourself, "iterations:bodies"
 ```
 
+**On Windows it is two steps, not one**, and for the same reason `owner_check.sh` and
+`gate8_e2e.sh` are reached through `win-dev.bat` there: a plain Git Bash window has never seen
+`vcvars64.bat`, so `cl.exe` compiles nothing in it. Raise the environment first, then run the sweep
+in the shell that inherited it — the second line spells `bash.exe` out in full because Git for
+Windows puts only its `cmd\` directory on `PATH`, so bare `bash` may not resolve:
+
+```
+scripts\win-dev.bat shell
+"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh
+```
+
+Run it from a Git Bash window by mistake and the script stops before it touches a single header,
+naming those two lines — the failure it would otherwise produce is twenty lines of ninja output
+about a compiler, which sends you fixing the wrong thing.
+
 The script edits both headers, rebuilds only `framework_physics_perf_test`, restores them from HEAD
 and rebuilds once more; it refuses to start if either header has uncommitted changes. Red verdicts
 *inside* the run are expected and it says so on every cell: the reference counters are pinned to 500
