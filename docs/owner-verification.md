@@ -375,9 +375,13 @@ What to judge, in this order:
    exists to catch. Report it before anything else, with the full output.
 2. **`heap: mean=`** against a 16.67 ms frame. Measured on three machines: 3.64 ms (22%) on the M3
    Pro, 8.583 ms (51%) on the Nobara laptop, 9.594 ms (58%) on Windows on that same laptop. Judge
-   `mean`, not `worst`: on a laptop `worst` catches another process and spikes past 10 ms without
-   saying anything about the step. A machine where `mean` passes 8 ms (half the frame) is the honest
-   ceiling of "500 bodies" — and the two slow rows above already passed it, which is the open
+   `mean`, not `worst`, and the 2026-08-13 sweep put numbers on why: across three repeats of one
+   cell — same binary, same scene, idle Mac — `mean` landed within **0.8%** (2.253 / 2.254 / 2.270)
+   while `worst` moved **20%** (2.411 / 2.406 / 2.894). On the Windows box `worst/mean` runs 1.4–1.8
+   against 1.1–1.2 for Linux on that same hardware, so half of a Windows `worst` is the scheduler,
+   not the step. `worst` stays in the table as an observed fact about the machine; it is not the
+   criterion that sets a body count. A machine where `mean` passes 8 ms (half the frame) is the
+   honest ceiling of "500 bodies" — and the two slow rows above already passed it, which is the open
    decision described below. Judge against the **slowest** machine you have: the M3 Pro figure
    describes the M3 Pro, and the whole point of running this on your hardware is that the fast row
    cannot answer for the engine.
@@ -391,23 +395,47 @@ bodies gravity and damping were applied to, which is the load on the solver (`co
 scene exists to measure one thing — the broadphase degenerating to the full pairwise scan,
 124750 = 500·499/2.
 
-### Open decision: 8 or 16 velocity iterations, and how many bodies
+### Open decision: how many bodies (the iteration half is closed — 16 stays)
 
 The round that raised `VELOCITY_ITERATIONS` from 8 to 16 measured the price on one machine — the M3
-Pro, where the heap went 2.25 → 3.64 ms, 22% of the frame. Your run of 2026-08-12 measured the same
-scene on the Intel UHD 620 box at **9.594 ms mean** (58% of the frame, Windows/MSVC with the
-Defender exclusion applied) and **8.583 ms** under Linux/gcc on the same hardware. That is physics
-alone, before render, game logic and audio, and it is past the 8 ms ceiling this document declares
-three paragraphs above. So "four times the budget to spare" is an M3 Pro sentence, not an engine
-one, and the choice of 16 was made on the fastest machine of the set.
+Pro, where the heap went 2.25 → 3.64 ms, 22% of the frame. Your sweep of 2026-08-13 measured the
+matrix on the Intel UHD 620 box under both OS, and it settles the iteration question and reframes
+the body one. Windows/MSVC, `mean` against the 16.67 ms frame:
 
-Both knobs are one-line constants (`solver.hpp`, `framework_physics_load.hpp`), so what decides this
-is a rebuild matrix, not an argument:
+| cell | Windows mean | Linux mean |
+|---|---|---|
+| 16 iterations, 500 bodies | 10.865 ms (65%) | 5.962 ms (36%) |
+| 8 iterations, 500 bodies | 7.292 ms (44%) | 4.070 ms (24%) |
+| 16 iterations, 300 bodies | 3.332 ms (20%) | 2.051 ms (12%) |
+
+**Iterations stay at 16.** Halving them only pays at 500 bodies (−33% on both OS). At 300 bodies it
+pays nothing and costs a little: 2.193 ms against 2.051 on Linux, because worse convergence leaves
+more contacts standing (`pairs` 830 against 750). Since the body count is what is coming down, the
+cheap-looking knob buys nothing on the scene we would actually ship — and it would hand back the
+stack depth of 10/11 that 16 iterations were bought for on 2026-08-08.
+
+**Bodies are the expensive axis.** 500 → 300 at 16 iterations is 3.3× cheaper because the broadphase
+here is quadratic: `broad` 11951 against 4252, and (500/300)² = 2.78. What is missing is the middle —
+nothing between 300 and 500 has been measured, and interpolation is not measurement:
 
 ```
-bash scripts/perf_sweep.sh          # 16/8 iterations x 500/300 bodies, four rebuilds
-bash scripts/perf_sweep.sh 8:500    # or name the cells yourself, "iterations:bodies"
+bash scripts/perf_sweep.sh 16:400 16:350 8:300
 ```
+
+The last cell is a rerun: **the Windows 8/300 cell of 2026-08-13 was thrown out.** The `column`
+scene runs zero solver iterations and, at equal body count, exactly the same work — so its cost in
+the two 300-body cells has to match. It did not: 0.214 against 0.511 ms mean (Linux, same cells:
+0.149 against 0.154), and all three scenes in that cell swelled together. Those numbers described a
+neighbouring process, not the step.
+
+That control is now in the script. A cell whose `column` mean exceeds the cheapest cell of its
+body-count group by more than 10% is marked `ШУМ`, the run ends with `exit 2`, and the marked rows
+are the ones to run again. A group with only one cell prints `?` — there is nothing to compare it
+against, and that is not the same as clean. The rule itself is checked by fixtures taken from these
+very runs (`bash scripts/perf_sweep_selftest.sh`, also a stage in `preflight.sh`): a control that
+can only be proven by a foreign process seizing the machine on cue would otherwise never be proven
+at all. The script also waits `SETTLE_S` seconds (10 by default) between the rebuild and the run —
+the measurement used to start on a CPU that had just had every core busy compiling that same target.
 
 **On Windows it is two steps, not one**, and for the same reason `owner_check.sh` and
 `gate8_e2e.sh` are reached through `win-dev.bat` there: a plain Git Bash window has never seen
@@ -417,7 +445,7 @@ Windows puts only its `cmd\` directory on `PATH`, so bare `bash` may not resolve
 
 ```
 scripts\win-dev.bat shell
-"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh
+"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh 16:400 16:350 8:300
 ```
 
 Run it from a Git Bash window by mistake and the script stops before it touches a single header,
@@ -430,10 +458,12 @@ and rebuilds once more; it refuses to start if either header has uncommitted cha
 bodies at 16 iterations, so every other cell misses them by construction. The timings are printed
 before the verdict and are what the run is for.
 
-Send back the final table. Its `vel` column is the run's own positive control — two cells that
+Send back the final table. It carries two controls of its own. The `vel` column: two cells that
 differ in iterations must differ in `vel`, and the script prints `FAIL` in place of a verdict if
 they do not, because equal counters mean every row was measured on one binary that never got
-rebuilt. A table like that looks flawless, which is exactly the danger.
+rebuilt. A table like that looks flawless, which is exactly the danger. The `контроль` column is the
+`column`-scene check above — `ok`, `?` (nothing to compare against) or `ШУМ`. Rows marked `ШУМ` are
+not results; run those cells again rather than reading them.
 
 ## Beyond the gates
 

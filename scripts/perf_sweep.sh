@@ -24,17 +24,46 @@ BUILD_DIR=${BUILD_DIR:-build}
 SOLVER="engine/framework/physics/solver.hpp"
 LOAD="engine/framework/physics/framework_physics_load.hpp"
 TARGET="framework_physics_perf_test"
-# Бюджет кадра в МИКРОсекундах: вся арифметика доли ниже целочисленная, и держать рядом вторую
-# константу «то же число, но с точкой» значило бы завести две правды об одном числе.
-BUDGET_US=16670
-
-CELLS=("$@")
-[ ${#CELLS[@]} -eq 0 ] && CELLS=(16:500 8:500 16:300 8:300)
+# Разбор чисел и контроль шума живут отдельно и проверяются фикстурами без единой сборки.
+. "$ROOT/scripts/perf_sweep_lib.sh"
+# Пауза между сборкой и прогоном. Замер идёт сразу после компиляции ТОЙ ЖЕ цели, то есть на CPU,
+# который только что держал все ядра занятыми: буст израсходован, вентилятор догоняет. Это
+# единственное различие условий, которое у нас на руках, а разошлись прошлые числа владельца на той
+# же коробке на 31%. Ноль оставлен для отладки самой обёртки, где время не мерят.
+SETTLE_S=${SETTLE_S:-10}
 
 die() {
     printf 'perf-sweep: %s\n' "$*" >&2
     exit 1
 }
+
+# Подстановка с ПРОВЕРКОЙ, что она случилась. Без неё скрипт после переименования константы честно
+# собирал бы одно и то же четыре раза и печатал ровный результат — ту самую вакуумную зелень,
+# которую ci_lint.py ловит правилом `vacuous-gate` в чужих workflow.
+set_const() {
+    local file=$1 name=$2 value=$3 tmp
+    tmp="$file.sweep.tmp"
+    sed -e "s/\(constexpr uint32_t $name = \)[0-9]*;/\1$value;/" "$file" >"$tmp" || die "sed упал на $file"
+    mv "$tmp" "$file" || die "не удалось записать $file"
+    grep -q "constexpr uint32_t $name = $value;" "$file" ||
+        die "константа $name не встала в значение $value — подстановка промахнулась мимо $file"
+}
+
+binary() {
+    local b="$BUILD_DIR/$TARGET"
+    [ -x "$b" ] && {
+        printf '%s' "$b"
+        return 0
+    }
+    [ -x "$b.exe" ] && {
+        printf '%s' "$b.exe"
+        return 0
+    }
+    return 1
+}
+
+CELLS=("$@")
+[ ${#CELLS[@]} -eq 0 ] && CELLS=(16:500 8:500 16:300 8:300)
 
 command -v cmake >/dev/null 2>&1 || die "cmake не найден"
 [ -f "$SOLVER" ] && [ -f "$LOAD" ] || die "заголовки не на месте: $SOLVER / $LOAD"
@@ -66,50 +95,11 @@ git diff --quiet HEAD -- "$SOLVER" "$LOAD" 2>/dev/null ||
 restore() { git checkout -- "$SOLVER" "$LOAD" 2>/dev/null; }
 trap restore EXIT INT TERM
 
-# Подстановка с ПРОВЕРКОЙ, что она случилась. Без неё скрипт после переименования константы честно
-# собирал бы одно и то же четыре раза и печатал ровный результат — ту самую вакуумную зелень,
-# которую ci_lint.py ловит правилом `vacuous-gate` в чужих workflow.
-set_const() {
-    local file=$1 name=$2 value=$3 tmp
-    tmp="$file.sweep.tmp"
-    sed -e "s/\(constexpr uint32_t $name = \)[0-9]*;/\1$value;/" "$file" >"$tmp" || die "sed упал на $file"
-    mv "$tmp" "$file" || die "не удалось записать $file"
-    grep -q "constexpr uint32_t $name = $value;" "$file" ||
-        die "константа $name не встала в значение $value — подстановка промахнулась мимо $file"
-}
-
-# Доля бюджета — на целочисленной арифметике шелла, а не через `awk`. Причина ровно та же, по
-# которой `ci_lint.py` держит правило `portability`: замер обязан идти на ТОЙ машине, где цифра
-# нужна, а на Windows его шелл — git-bash, и наличия `awk` там никто не обещал. Цель печатает время
-# с тремя знаками (`%.3f`), поэтому точку достаточно выбросить: "9.594" -> 9594 микросекунд.
-pct_of_budget() {
-    local ms=$1 us
-    case "$ms" in
-        *.[0-9][0-9][0-9]) ;;
-        # Формат печати цели изменился — честнее прочерк, чем правдоподобная цифра из мусора.
-        *)
-            printf '?'
-            return 0
-            ;;
-    esac
-    # `10#` обязателен: "0.966" даёт "0966", а это для шелла ВОСЬМЕРИЧНОЕ число — на девятке он
-    # ругается, а на "0.027" молча вернул бы 23 микросекунды вместо 27.
-    us=$((10#${ms/./}))
-    local tenths=$(((us * 1000 + BUDGET_US / 2) / BUDGET_US))
-    printf '%d.%d' $((tenths / 10)) $((tenths % 10))
-}
-
-binary() {
-    local b="$BUILD_DIR/$TARGET"
-    [ -x "$b" ] && { printf '%s' "$b"; return 0; }
-    [ -x "$b.exe" ] && { printf '%s' "$b.exe"; return 0; }
-    return 1
-}
-
 ITERS=()
 BODIES=()
 WORST=()
 MEAN=()
+COL=()
 VEL=()
 
 for cell in "${CELLS[@]}"; do
@@ -131,6 +121,7 @@ for cell in "${CELLS[@]}"; do
         die "сборка цели $TARGET не прошла на ячейке $cell"
     fi
     bin=$(binary) || die "бинарь $TARGET не найден в $BUILD_DIR после сборки"
+    [ "$SETTLE_S" -gt 0 ] && sleep "$SETTLE_S"
 
     out=$("$bin" 2>&1)
     rc=$?
@@ -153,12 +144,15 @@ for cell in "${CELLS[@]}"; do
 
     line=$(printf '%s\n' "$out" | grep -m1 'heap: worst=')
     counters=$(printf '%s\n' "$out" | grep -m1 'heap: bodies=')
-    [ -n "$line" ] && [ -n "$counters" ] || die "в выводе нет строк замера кучи — цель изменила формат печати"
+    col=$(printf '%s\n' "$out" | grep -m1 'column: worst=')
+    [ -n "$line" ] && [ -n "$counters" ] && [ -n "$col" ] ||
+        die "в выводе нет строк замера — цель изменила формат печати"
 
     ITERS+=("$it")
     BODIES+=("$bo")
     WORST+=("$(printf '%s' "$line" | sed -e 's/.*worst=\([0-9.]*\).*/\1/')")
     MEAN+=("$(printf '%s' "$line" | sed -e 's/.*mean=\([0-9.]*\).*/\1/')")
+    COL+=("$(printf '%s' "$col" | sed -e 's/.*mean=\([0-9.]*\).*/\1/')")
     VEL+=("$(printf '%s' "$counters" | sed -e 's/.*vel=\([0-9]*\).*/\1/')")
 done
 
@@ -178,17 +172,41 @@ for ((i = 0; i < n; i++)); do
     done
 done
 
+pairs=()
+for ((i = 0; i < n; i++)); do pairs+=("${BODIES[$i]}:${COL[$i]}"); done
+NOISY=" $(column_noise "${pairs[@]}" | tr '\n' ' ')"
+
 printf '\n=== Итог (бюджет кадра %d.%02d мс)\n' $((BUDGET_US / 1000)) $((BUDGET_US % 1000 / 10))
-printf 'итераций  тел   worst, мс   mean, мс   mean %% бюджета   vel\n'
+# Судейское число — mean, и оно стоит первым: на трёх повторах одной ячейки среднее сошлось до 0.8%,
+# а худшее разошлось на 20% (macOS, 2026-08-13) — при том, что бинарь и сцена те же. Худшее не
+# выброшено: оно наблюдаемый факт про машину, просто не критерий, по которому назначают число тел.
+printf 'итераций  тел   mean, мс  %% бюдж   worst, мс  %% бюдж   vel       контроль\n'
+noisy=0
 for ((i = 0; i < n; i++)); do
-    printf '%-9s %-5s %-11s %-10s %-16s %s\n' \
-        "${ITERS[$i]}" "${BODIES[$i]}" "${WORST[$i]}" "${MEAN[$i]}" "$(pct_of_budget "${MEAN[$i]}")" \
-        "${VEL[$i]}"
+    peers=0
+    for ((j = 0; j < n; j++)); do [ "${BODIES[$j]}" = "${BODIES[$i]}" ] && peers=$((peers + 1)); done
+    # «не проверено» и «чисто» обязаны различаться на взгляд: группа из одной ячейки сравнивать не с
+    # чем, и молчаливый «ok» под ней читался бы как доказанная чистота.
+    mark="ok"
+    [ "$peers" -lt 2 ] && mark="?"
+    case "$NOISY" in *" $i "*)
+        mark="ШУМ"
+        noisy=1
+        ;;
+    esac
+    printf '%-9s %-5s %-9s %-8s %-10s %-8s %-9s %s\n' \
+        "${ITERS[$i]}" "${BODIES[$i]}" "${MEAN[$i]}" "$(pct_of_budget "${MEAN[$i]}")" \
+        "${WORST[$i]}" "$(pct_of_budget "${WORST[$i]}")" "${VEL[$i]}" "$mark"
 done
 
 if [ "$same" -eq 1 ]; then
     printf '\nperf-sweep: FAIL — две ячейки с разным числом итераций дали одинаковый vel:\n'
     printf 'пересборка не доехала, и таблица выше снята с одного бинаря. Числам верить нельзя.\n'
     exit 1
+fi
+if [ "$noisy" -eq 1 ]; then
+    printf '\nperf-sweep: ШУМ — в ячейках выше сцена column при равной работе стоила разного.\n'
+    printf 'Машину в этот момент грузило посторонним; помеченные строки перезапусти по одной.\n'
+    exit 2
 fi
 printf '\nperf-sweep: PASS — заголовки восстановлены, цель пересобрана из исходников HEAD\n'
