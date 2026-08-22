@@ -428,14 +428,35 @@ the two 300-body cells has to match. It did not: 0.214 against 0.511 ms mean (Li
 0.149 against 0.154), and all three scenes in that cell swelled together. Those numbers described a
 neighbouring process, not the step.
 
-That control is now in the script. A cell whose `column` mean exceeds the cheapest cell of its
-body-count group by more than 10% is marked `ШУМ`, the run ends with `exit 2`, and the marked rows
-are the ones to run again. A group with only one cell prints `?` — there is nothing to compare it
-against, and that is not the same as clean. The rule itself is checked by fixtures taken from these
-very runs (`bash scripts/perf_sweep_selftest.sh`, also a stage in `preflight.sh`): a control that
-can only be proven by a foreign process seizing the machine on cue would otherwise never be proven
-at all. The script also waits `SETTLE_S` seconds (10 by default) between the rebuild and the run —
-the measurement used to start on a CPU that had just had every core busy compiling that same target.
+That control is now in the script, and it is no longer the only one. Every cell is measured
+`REPEATS` times (3 by default) **without a rebuild in between** — the compiler is what costs minutes
+here, the run costs seconds — and the judging number in the table is the **median** of those repeats,
+with their spread `(max − min) / median` in a column of its own. That is the direct answer to "can
+this row be trusted", where the `column` scene was only ever an indirect one. The run of 2026-08-13
+(2) is why: the same matrix on the same box came out 21–24% slower than the previous run in all four
+cells at once, while the ratios between cells reproduced to 1%. A row whose repeats spread by 5% or
+more is marked `ШУМ` — three repeats of one cell spread by 0.8%, so the threshold sits three times
+above jitter that was measured rather than assumed.
+
+The `column` control stayed and gained an absolute floor: a cell is marked only if its `column` mean
+exceeds the cheapest cell of its body-count group by more than 10% **and** by more than 100 µs per
+frame. The same run of 2026-08-13 (2) is why. A relative threshold without a floor is loudest
+exactly where the number is smallest, and it fired on 31 µs per frame — 0.19% of the budget. The
+floor sits between jitter that was measured (18 µs across repeats of one cell) and the real Windows
+finding (0.214 against 0.511 ms — 297 µs).
+
+**`ШУМ` marks the row; it does not fail the run** — the exit code stays 0. A red run would say "these
+numbers are unusable", and that is not true: the decision is made on ratios between cells of one
+run, and those survive machine shake. Only the absolute milliseconds of a marked row do not travel —
+rerun that row on its own if you need them. A flag that fails runs for nothing gets ignored, and
+then it is silent when it matters too. A group with only one cell prints `?`, and so does a run with
+`REPEATS=1`: nothing to compare against is not the same as clean.
+
+The rules are checked by fixtures taken from these very runs (`bash scripts/perf_sweep_selftest.sh`,
+also a stage in `preflight.sh`), the table and its verdicts included — a control that could only be
+proven by a foreign process seizing the machine on cue would otherwise never be proven at all. The
+script also waits `SETTLE_S` seconds (10 by default) between the rebuild and the first repeat: the
+measurement used to start on a CPU that had just had every core busy compiling that same target.
 
 **On Windows it is two steps, not one**, and for the same reason `owner_check.sh` and
 `gate8_e2e.sh` are reached through `win-dev.bat` there: a plain Git Bash window has never seen
@@ -458,12 +479,12 @@ and rebuilds once more; it refuses to start if either header has uncommitted cha
 bodies at 16 iterations, so every other cell misses them by construction. The timings are printed
 before the verdict and are what the run is for.
 
-Send back the final table. It carries two controls of its own. The `vel` column: two cells that
-differ in iterations must differ in `vel`, and the script prints `FAIL` in place of a verdict if
-they do not, because equal counters mean every row was measured on one binary that never got
-rebuilt. A table like that looks flawless, which is exactly the danger. The `контроль` column is the
-`column`-scene check above — `ok`, `?` (nothing to compare against) or `ШУМ`. Rows marked `ШУМ` are
-not results; run those cells again rather than reading them.
+Send back the final table. Its columns are `итераций тел медиана %бюдж худшее %бюдж разброс vel
+метка`, and the last two are controls rather than results. The `vel` column: two cells that differ
+in iterations must differ in `vel`, and the script prints `FAIL` in place of a verdict and exits 1
+if they do not, because equal counters mean every row was measured on one binary that never got
+rebuilt. A table like that looks flawless, which is exactly the danger. The `метка` column carries
+both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
 ## Beyond the gates
 
