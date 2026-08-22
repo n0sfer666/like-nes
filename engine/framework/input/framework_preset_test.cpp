@@ -12,6 +12,10 @@
 // InputFrame. Проверка сквозная — манифест → таблица → ActionMap → resolve, — потому что
 // разойтись эти четыре шага могут только вместе: бейк, который печёт не то, и загрузчик, который
 // читает не так, поодиночке выглядят исправными.
+//
+// Отказы бейка живут своей целью, `framework_preset_refusal_test`: там вопрос не «доехало ли
+// написанное», а «названо ли ненаписуемое», и падает он иначе — не неверным кадром, а манифестом,
+// испёкшимся молча.
 namespace {
 
 int fails = 0;
@@ -170,23 +174,6 @@ int main(int argc, char** argv) {
     f = map.resolve(stick, 0, 5, 0);
     check(f.axes[AX_X] == fix32::from_int(1), "the stick row drives its own axis");
     check(f.axes[AX_Y] == fix32{}, "the stick does not leak into the next axis");
-
-    // Ошибки манифеста называют строку: без номера строки диагностика бейка бесполезна ровно
-    // тогда, когда нужна.
-    std::vector<uint8_t> ignored;
-    check(!bake_presets("action | jump | key:space\n", ignored, err) && err.line == 1,
-          "an action before any preset is refused with its line");
-    check(!bake_presets("preset | p\naction | jump | key:nope\n", ignored, err) && err.line == 2,
-          "an unknown source is refused with its line");
-    check(!bake_presets("preset | p\naxis | x | key:d | key:a\nshape | x | 0.1 | 1.0 | 1 | y\n",
-                        ignored, err) && err.line > 0,
-          "a shape pairing an undeclared axis is refused");
-    check(!bake_presets("# comment only\n", ignored, err), "an empty manifest is refused");
-    check(!bake_presets("preset | p\naction | jump | key:space\naction | jump | pad:south\n",
-                        ignored, err) && err.line == 3,
-          "a second row for the same action is refused: its bindings must be contiguous");
-    check(!bake_presets("preset | p\nwiggle | x\n", ignored, err) && err.line == 2,
-          "an unknown row kind is refused with its line");
 
     // Битая таблица не открывается, а не читается как чужая память.
     std::vector<uint8_t> broken = blob;

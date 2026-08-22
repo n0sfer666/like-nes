@@ -52,6 +52,23 @@ takes the first that actually executes — the passport line prints which one, o
 missing interpreter fails the linter stage loudly instead of skipping it. Install Python from
 python.org and reopen the shell if you see that.
 
+**Defender is the third Windows trap, and it does not look like one.** Confirmed on the owner's
+machine, 2026-08-12: real-time protection refused to execute freshly built, unsigned binaries —
+"не удалось проверить подлинность издателя" — and seven of the eight test targets never ran at
+all. The shell returned 126 (found, exec denied), the stage printed the same word `FAIL` it prints
+for a target that ran and disagreed, and the report read as eight red tests on Windows. It was
+zero: that machine had said nothing about seven of them. The script now prints `BLOCKED` with the
+exit code for that case and counts it separately in the verdict, so `FAIL` again means what it
+says. Before a Windows run, exclude the tree from real-time scanning — PowerShell as
+Administrator, once per machine:
+
+```powershell
+Add-MpPreference -ExclusionPath 'C:\path\to\like-nes'
+```
+
+126 is exec denied, 127 is not found — the latter usually means a DLL next to the `.exe` went
+missing, which is a real finding and not a Defender one.
+
 It writes `build/owner-report-<os>.txt`: machine passport (OS, distro, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
@@ -303,7 +320,12 @@ event" stop looking alike.
 ## 4. Gate 8 of #15 — the physics frame cost (Linux and Windows)
 
 > **Open.** Measured so far only on the machine this was written on: Apple M3 Pro, macOS 26.5.2,
-> Apple clang 21.0.0, Release. Worst scene 2.25 ms mean per frame at 500 dynamic bodies.
+> Apple clang 21.0.0, Release. Worst scene 3.64 ms mean per frame at 500 dynamic bodies.
+>
+> The number moved from 2.25 ms when `VELOCITY_ITERATIONS` went from 8 to 16 (round of 2026-08-12):
+> the solver is the cost of the step, so doubling its iterations costs about what it says. What the
+> extra iterations buy is stack depth, and that is the reason the price is paid — see `solver.hpp`
+> and `framework_physics_depth_test`. Judge the new number, not the old one.
 
 CI **asserts** this target on all three OS, in Release and in Debug, and as of run
 [31393763850](https://github.com/n0sfer666/like-nes/actions/runs/31393763850) it is green there —
@@ -336,10 +358,10 @@ the run exits non-zero, so what you check by eye is the shape, `allocs=0` and th
 `.context/specs/2026-07-26-physics-core.md`.
 
 ```
-framework physics perf gate (500 bodies)
-  heap: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+framework physics perf gate (350 bodies)
+  heap: bodies=350 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
   heap: worst=<time> ms mean=<time> ms allocs=0
-  scatter: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+  scatter: bodies=350 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
   scatter: worst=<time> ms mean=<time> ms allocs=0
   column: bodies=0 pairs=0 broad=<n(n-1)/2> narrow=0 vel=0 pos=0
   column: worst=<time> ms mean=<time> ms allocs=0
@@ -351,19 +373,169 @@ What to judge, in this order:
 1. **Any `FAIL:` line** is the serious finding, and it outranks any timing. A counter that misses its
    reference means two OS disagree about the arithmetic — the same class of defect the state golden
    exists to catch. Report it before anything else, with the full output.
-2. **`heap: mean=`** against a 16.67 ms frame. On the M3 Pro it is 2.25 ms — 14%. Judge `mean`, not
-   `worst`: on a laptop `worst` catches another process and spikes past 10 ms without saying anything
-   about the step. A machine where `mean` passes 8 ms (half the frame) is the honest ceiling of "500
-   bodies", and the number belongs in the spec next to the M3 Pro row, not rounded away.
+2. **`heap: mean=`** against a 16.67 ms frame. At the declared **350 bodies** the sweep of 2026-08-22
+   measured 3.560 ms (21.4%) on Windows/MSVC and 2.931 ms (17.6%) on Nobara/gcc. The figures below
+   are the older 500-body scene and are kept because the reasoning about `worst` came out of them:
+   3.64 ms (22%) on the M3 Pro, 8.583 ms (51%) on the Nobara laptop, 9.594 ms (58%) on Windows on
+   that same laptop. Judge
+   `mean`, not `worst`, and the 2026-08-13 sweep put numbers on why: across three repeats of one
+   cell — same binary, same scene, idle Mac — `mean` landed within **0.8%** (2.253 / 2.254 / 2.270)
+   while `worst` moved **20%** (2.411 / 2.406 / 2.894). On the Windows box `worst/mean` runs 1.4–1.8
+   against 1.1–1.2 for Linux on that same hardware, so half of a Windows `worst` is the scheduler,
+   not the step. `worst` stays in the table as an observed fact about the machine; it is not the
+   criterion that sets a body count. A machine where `mean` passes 8 ms (half the frame) is the
+   honest ceiling — the 500-body scene passed it on both live machines, and that is why the declared
+   count came down to 350 (see below). Judge against the **slowest** machine you have: the M3 Pro figure
+   describes the M3 Pro, and the whole point of running this on your hardware is that the fast row
+   cannot answer for the engine.
 3. **`allocs=0` on all three scenes.** Anything else means the step went to the heap on a scene the
    runner does not exercise this way.
 
 `column` reporting `bodies=0` and zeros across the solver is **correct, not a broken scene**: its
 bodies are kinematic on purpose, so nothing is solved. `bodies=0` is not "nothing moves" — the step
-still walks all 500 of them through integration and the world-bound clamp; the counter reports the
+still walks all 350 of them through integration and the world-bound clamp; the counter reports the
 bodies gravity and damping were applied to, which is the load on the solver (`counters.hpp`). That
 scene exists to measure one thing — the broadphase degenerating to the full pairwise scan,
-124750 = 500·499/2.
+61075 = 350·349/2.
+
+### Closed 2026-08-22: 350 bodies at 16 iterations
+
+The round that raised `VELOCITY_ITERATIONS` from 8 to 16 measured the price on one machine — the M3
+Pro, where the heap went 2.25 → 3.64 ms, 22% of the frame. Your sweep of 2026-08-13 measured the
+matrix on the Intel UHD 620 box under both OS, and it settles the iteration question and reframes
+the body one. Windows/MSVC, `mean` against the 16.67 ms frame:
+
+| cell | Windows mean | Linux mean |
+|---|---|---|
+| 16 iterations, 500 bodies | 10.865 ms (65%) | 5.962 ms (36%) |
+| 8 iterations, 500 bodies | 7.292 ms (44%) | 4.070 ms (24%) |
+| 16 iterations, 300 bodies | 3.332 ms (20%) | 2.051 ms (12%) |
+
+**Iterations stay at 16.** Halving them only pays at 500 bodies (−33% on both OS). At 300 bodies it
+pays nothing and costs a little: 2.193 ms against 2.051 on Linux, because worse convergence leaves
+more contacts standing (`pairs` 830 against 750). Since the body count is what is coming down, the
+cheap-looking knob buys nothing on the scene we would actually ship — and it would hand back the
+stack depth of 10/11 that 16 iterations were bought for on 2026-08-08.
+
+**Bodies are the expensive axis.** 500 → 300 at 16 iterations is 3.3× cheaper because the broadphase
+here is quadratic: `broad` 11951 against 4252, and (500/300)² = 2.78. What is missing is the middle —
+nothing between 300 and 500 has been measured, and interpolation is not measurement:
+
+```
+bash scripts/perf_sweep.sh 16:400 8:400 16:350 8:300
+```
+
+**Four cells, not three, and `8:400` is the reason.** With `16:400 16:350 8:300` every difference
+reads two ways at once: 400 bodies would be measured only at 16 iterations and 8 iterations only at
+300, so neither axis has a partner holding the other fixed. `8:400` pairs with `16:400` on
+iterations and with `8:300` on bodies, and both comparisons become one-variable.
+
+**The answer, measured 2026-08-22** (median of three repeats, `mean` against the 16.67 ms frame):
+
+| cell | Windows/MSVC | Nobara/gcc |
+|---|---|---|
+| 16 iterations, 400 bodies | 4.595 ms (27.6%) | 3.843 ms (23.1%) |
+| 8 iterations, 400 bodies | 3.531 ms (21.2%) | 2.971 ms (17.8%) |
+| **16 iterations, 350 bodies** | **3.560 ms (21.4%)** | **2.931 ms (17.6%)** |
+| 8 iterations, 300 bodies | 2.672 ms (16.0%) | 2.265 ms (13.6%) |
+
+Both crosses closed and agreed across the two OS: 16 → 8 iterations at 400 bodies is −23% on each,
+400 → 350 bodies at 16 iterations is −23% and −24%. The decisive row is the pair that costs the
+same: `16:350` against `8:400` is 3.560 vs 3.531 on Windows and 2.931 vs 2.971 on Linux — inside the
+noise on both machines. Halving the iterations buys nothing that dropping fifty bodies does not buy,
+and 16 iterations were bought for the 10/11 stack depth (decision of 2026-08-08). So the iterations
+stay and **350 bodies is the declared count**: 21.4% of the frame on the slowest machine in the set,
+against 58% for the five hundred it replaces.
+
+The `ШУМ` mark in that run landed on `8:400` under Windows and needed no rerun. Repeat 2 lifted
+`column` along with the heap (0.291 → 0.576 ms) on literally identical work — the signature of a
+foreign process — while repeats 1 and 3 agreed to 0.9%. The ratio against `16:400` corroborates the
+median from the other side: 1.30 on Windows, 1.29 on Linux. The flag fired on `worst`; the verdict
+is taken on the median.
+
+The `8:300` cell is a rerun: **the Windows 8/300 cell of 2026-08-13 was thrown out.** The `column`
+scene runs zero solver iterations and, at equal body count, exactly the same work — so its cost in
+the two 300-body cells has to match. It did not: 0.214 against 0.511 ms mean (Linux, same cells:
+0.149 against 0.154), and all three scenes in that cell swelled together. Those numbers described a
+neighbouring process, not the step.
+
+That control is now in the script, and it is no longer the only one. Every cell is measured
+`REPEATS` times (3 by default) **without a rebuild in between** — the compiler is what costs minutes
+here, the run costs seconds — and the judging number in the table is the **median** of those repeats,
+with their spread `(max − min) / median` in a column of its own. That is the direct answer to "can
+this row be trusted", where the `column` scene was only ever an indirect one. The run of 2026-08-13
+(2) is why: the same matrix on the same box came out 21–24% slower than the previous run in all four
+cells at once, while the ratios between cells reproduced to 1%. A row whose repeats spread by 5% or
+more is marked `ШУМ` — three repeats of one cell spread by 0.8%, so the threshold sits three times
+above jitter that was measured rather than assumed.
+
+The `column` control stayed and gained an absolute floor: a cell is marked only if its `column` mean
+exceeds the cheapest cell of its body-count group by more than 10% **and** by more than 100 µs per
+frame. The same run of 2026-08-13 (2) is why. A relative threshold without a floor is loudest
+exactly where the number is smallest, and it fired on 31 µs per frame — 0.19% of the budget. The
+floor sits between jitter that was measured (18 µs across repeats of one cell) and the real Windows
+finding (0.214 against 0.511 ms — 297 µs).
+
+**`ШУМ` marks the row; it does not fail the run** — the exit code stays 0. A red run would say "these
+numbers are unusable", and that is not true: the decision is made on ratios between cells of one
+run, and those survive machine shake. Only the absolute milliseconds of a marked row do not travel —
+rerun that row on its own if you need them. A flag that fails runs for nothing gets ignored, and
+then it is silent when it matters too. A group with only one cell prints `?`, and so does a run with
+`REPEATS=1`: nothing to compare against is not the same as clean.
+
+The rules are checked by fixtures taken from these very runs (`bash scripts/perf_sweep_selftest.sh`,
+also a stage in `preflight.sh`), the table and its verdicts included — a control that could only be
+proven by a foreign process seizing the machine on cue would otherwise never be proven at all. The
+script also waits `SETTLE_S` seconds (10 by default) between the rebuild and the first repeat: the
+measurement used to start on a CPU that had just had every core busy compiling that same target.
+
+**On Windows it is two steps, not one**, and for the same reason `owner_check.sh` and
+`gate8_e2e.sh` are reached through `win-dev.bat` there: a plain Git Bash window has never seen
+`vcvars64.bat`, so `cl.exe` compiles nothing in it. Raise the environment first, then run the sweep
+in the shell that inherited it — the second line spells `bash.exe` out in full because Git for
+Windows puts only its `cmd\` directory on `PATH`, so bare `bash` may not resolve:
+
+```
+scripts\win-dev.bat shell
+"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh 16:400 8:400 16:350 8:300
+```
+
+Run it from a Git Bash window by mistake and the script stops before it touches a single header,
+naming those two lines — the failure it would otherwise produce is twenty lines of ninja output
+about a compiler, which sends you fixing the wrong thing.
+
+**Two refusals fire before the first rebuild**, because both of them cost a whole run rather than a
+row, and both have already been paid for. A checkout behind `origin` measures with the *old* script —
+that is where the run of 2026-08-22 went, and its table came back in a format retired eight commits
+earlier. A build directory configured as `Debug` is worse: the numbers come out several times slower
+while **every control stays green**, since the cells slow down together, their ratios hold, `column`
+matches across the group and the spread stays tight. There is nothing in such a table to tell it
+apart from an honest one, which is why it is refused rather than flagged. Each refusal names its own
+one-line cure (`git pull --ff-only`, `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`).
+
+Provenance is printed twice — as the first line of the run and again immediately above the table:
+
+```
+perf-sweep: инструмент <sha> от <date>[, дерево ГРЯЗНОЕ], ячеек 4, повторов 3
+```
+
+Once, in a header a hundred lines of build output away from the table, is once too few: what gets
+pasted back is the *tail* of the output, so the version has to travel inside it. The dirty-tree note
+does not stop the run — the script exists to be edited while it is used — but a table taken from a
+tree that differs from `origin` can be read; it cannot be used to pin numbers.
+
+The script edits both headers, rebuilds only `framework_physics_perf_test`, restores them from HEAD
+and rebuilds once more; it refuses to start if either header has uncommitted changes. Red verdicts
+*inside* the run are expected and it says so on every cell: the reference counters are pinned to 500
+bodies at 16 iterations, so every other cell misses them by construction. The timings are printed
+before the verdict and are what the run is for.
+
+Send back the final table. Its columns are `итераций тел медиана %бюдж худшее %бюдж разброс vel
+метка`, and the last two are controls rather than results. The `vel` column: two cells that differ
+in iterations must differ in `vel`, and the script prints `FAIL` in place of a verdict and exits 1
+if they do not, because equal counters mean every row was measured on one binary that never got
+rebuilt. A table like that looks flawless, which is exactly the danger. The `метка` column carries
+both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
 ## Beyond the gates
 
@@ -383,6 +555,8 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The loop timings per OS.
 - The full `framework_physics_perf_test` output per OS — both the counter lines (they must match
   across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
+- The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
+  iterations and how many bodies this engine claims.
 
 That closes gate 6 and 8 of spec #13, gate 8 of spec #14 and gate 8 of spec #15, which is what ADR
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),

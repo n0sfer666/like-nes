@@ -4,6 +4,7 @@
 // Подмена глобальных `operator new`/`delete` живёт здесь, а не в измерительном заголовке: её
 // контракт — ровно один TU на программу, и владеть им обязан тот, кто программу и составляет.
 #include "framework_alloc_probe.hpp"
+#include "framework_alloc_probe_control.hpp"
 #include "framework_physics_load.hpp"
 #include "framework_physics_perf_probe.hpp"
 #include "platform_args.hpp"
@@ -142,6 +143,24 @@ int main(int argc, char** argv) {
     check(scatter.allocs == 0, "scatter scene: the settled step allocates nothing");
     check(column.allocs == 0, "column scene: the settled step allocates nothing");
 
+    // Позитивный контроль СЧЁТЧИКА, отдельно от контроля сцен ниже и по другой причине. Три нуля
+    // выше держатся на том, что перехват работает, а неработающий перехват даёт ровно те же три
+    // нуля — и выглядит самым зелёным гейтом на свете. Замещение операторов действует на ПРОГРАММУ,
+    // так что доказательство из соседней цели сюда не переносится: у этого бинаря свой.
+    //
+    // Выделение зовётся через непрозрачную границу — тело в `framework_alloc_probe_control.cpp`;
+    // строкой `new` по месту контроль вакуумен ровно там, где нужен, разбор в шапке заголовка.
+    // Выравненной формы здесь нет намеренно: на пути шага над-выравненных типов не бывает, а сама
+    // ветка перехвата закреплена в `framework_physics_rt_test.cpp` — второй её экземпляр проверял бы
+    // тот же исходник дважды.
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    const bool counter_ok = framework::probe::control::plain_allocation();
+    const long counter_control = framework::probe::allocs;
+    framework::probe::in_hot = false;
+    check(counter_control > 0, "control: the counter sees a real allocation");
+    check(counter_ok, "control: that allocation really was handed out and written to");
+
     // Позитивный контроль сцен: пустая или разъехавшаяся сцена дала бы нули по всем счётчикам и
     // прошла бы любой потолок сверху. Гейт обязан сначала доказать, что работа вообще есть, и что
     // сцена осталась ТОЙ, ради которой заведена.
@@ -162,9 +181,15 @@ int main(int argc, char** argv) {
     check_share("heap", heap);
     check_share("scatter", scatter);
 
-    check_reference("heap", heap, Reference{500, 1435, 11972, 1435, 17576, 2085});
-    check_reference("scatter", scatter, Reference{500, 10, 538, 10, 56, 6});
-    check_reference("column", column, Reference{0, 0, 124750, 0, 0, 0});
+    // Эталон перепечатан вместе со снижением `BODIES` с 500 до 350 — числа сняты прогоном владельца
+    // 2026-08-22 на ячейке `16:350` и совпали на Windows/MSVC и Linux/gcc до последней цифры, что и
+    // есть проверка переносимости арифметики. Равенство здесь точное, а не потолок: потолок сверху
+    // назвал бы «пар стало больше» законным и молча пропустил бы правку, меняющую сцену. Прошлый
+    // эталон 500 тел (1555 пар, 11951 кандидатов, 38448 проекций) стоил 9.594 мс — 58% кадра на
+    // самой медленной машине, и снят он именно поэтому, а не ради круглого числа.
+    check_reference("heap", heap, Reference{350, 966, 5869, 966, 20480, 1065});
+    check_reference("scatter", scatter, Reference{350, 9, 285, 9, 96, 6});
+    check_reference("column", column, Reference{0, 0, 61075, 0, 0, 0});
 
     std::printf("framework-physics-perf: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

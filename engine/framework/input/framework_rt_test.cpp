@@ -3,6 +3,7 @@
 
 #include "codes.hpp"
 #include "framework_alloc_probe.hpp"
+#include "framework_alloc_probe_control.hpp"
 #include "pad_registry.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
@@ -95,10 +96,29 @@ int main() {
         reg.profile(0);
     }
     framework::probe::in_hot = false;
+    const long in_tick = framework::probe::allocs;
 
-    const bool pass = (framework::probe::allocs == 0) && g_ticked == 5000 && sink.raw != 0x7fffffff;
-    if (framework::probe::allocs != 0)
-        std::printf("  FAIL: %ld heap allocations in the framework tick\n", framework::probe::allocs);
+    // Позитивный контроль счётчика. Без него ноль выше неотличим от неработающего перехвата, а
+    // неработающий перехват выглядит как самый зелёный гейт на свете — и выглядел им здесь на всех
+    // трёх ОС с самого появления гейта. Замещение операторов действует на ПРОГРАММУ, поэтому
+    // доказательство из физической цели сюда не переносится: у этого бинаря оно своё.
+    //
+    // Выделение зовётся через непрозрачную границу — тело в `framework_alloc_probe_control.cpp`.
+    // Строкой `new` по месту контроль вакуумен ровно там, где нужен: и clang, и gcc выбрасывают
+    // пару new/delete, результат которой не наблюдаем, разбор и замеры — в шапке заголовка.
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    const bool control_ok = framework::probe::control::plain_allocation();
+    const long control = framework::probe::allocs;
+    framework::probe::in_hot = false;
+
+    const bool pass = in_tick == 0 && control > 0 && control_ok && g_ticked == 5000 &&
+                      sink.raw != 0x7fffffff;
+    if (in_tick != 0)
+        std::printf("  FAIL: %ld heap allocations in the framework tick\n", in_tick);
+    if (control <= 0 || !control_ok)
+        std::printf("  FAIL: control allocation not seen (allocs=%ld, handed out=%d)\n", control,
+                    control_ok ? 1 : 0);
     std::printf("framework-rt: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
 }

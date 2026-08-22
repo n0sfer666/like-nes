@@ -5,6 +5,17 @@ add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
 
+# --- Позитивный контроль счётчика аллокаций. Отдельной целью, а не файлом внутри framework_core:
+# код тестовый, и в прод-библиотеке ему делать нечего. Отдельной от теста — потому что барьер
+# нужен именно межмодульный: тело, видимое вызывающему, оба компилятора выбрасывают вместе с
+# выделением (разбор и замеры — в шапке framework_alloc_probe_control.hpp).
+#
+# Цель НЕ линкует framework_core и не должна: `framework_alloc_probe.hpp` ОПРЕДЕЛЯЕТ глобальные
+# operator new/delete и живёт ровно в одном TU на программу — здешние выделения видны счётчику
+# через замещение на линковке, тем же путём, каким их видит проверяемый код.
+add_library(framework_alloc_probe_control STATIC framework_alloc_probe_control.cpp)
+target_include_directories(framework_alloc_probe_control PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(framework_schedule_test framework_schedule_test.cpp)
 target_link_libraries(framework_schedule_test PRIVATE framework_core platform_core)
 

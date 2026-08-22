@@ -97,20 +97,10 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "[probe] preset table did not open\n");
         return 1;
     }
+    // Перебор пределов движка (`MAX_ACTIONS`/`MAX_AXES`) спрашивать здесь нечем и незачем: проба
+    // печёт манифест ПРЯМО НАД этой строкой, а `bake_presets` отбивает такой пресет с номером
+    // строки. Проверка после бейка повторяла бы её хуже — без строки и без имени.
     const uint32_t preset = 0;
-    // `ActionMap::bind` отвергает пресет ЦЕЛИКОМ, если счётчики выше пределов движка, а `rebuild`
-    // его отказ роняет на пол - и дальше проба печатала бы правдоподобный отчёт гейта 8 по пустой
-    // раскладке. Спрошено здесь и один раз: ни накладка перебиндов, ни сброс числа строк пресета
-    // не меняют.
-    if (table.action_count(preset) > ::input::MAX_ACTIONS ||
-        table.axis_count(preset) > static_cast<uint32_t>(::input::MAX_AXES)) {
-        std::fprintf(stderr,
-                     "[probe] preset '%s' declares %u action(s) and %u axis(es); the engine binds "
-                     "at most %d and %d.\n",
-                     table.preset_name(preset), table.action_count(preset),
-                     table.axis_count(preset), ::input::MAX_ACTIONS, ::input::MAX_AXES);
-        return 1;
-    }
     // До окна и до бэкендов: пресет без осей движения нечем судить, а проба, доехавшая до отчёта,
     // напечатала бы правдоподобные числа не про ту ось.
     MoveAxes move;

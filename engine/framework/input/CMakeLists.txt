@@ -1,7 +1,8 @@
 # --- framework_input: ввод из коробки (спека #14) — форма отклика стика, пресеты, профили.
 # Зависимость только вниз: input_core (спека #4) о слое не знает.
 add_library(framework_input STATIC
-  stick.cpp source_names.cpp preset_parse.cpp preset_pad_parse.cpp preset_bake.cpp
+  stick.cpp source_names.cpp preset_parse.cpp preset_validate.cpp preset_text.cpp
+  preset_pad_parse.cpp preset_bake.cpp
   presets.cpp pad_profile.cpp pad_registry.cpp rebind_store.cpp rebind_session.cpp)
 target_include_directories(framework_input PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_input PUBLIC framework_core input_core PRIVATE platform_core)
@@ -9,8 +10,14 @@ target_link_libraries(framework_input PUBLIC framework_core input_core PRIVATE p
 add_executable(framework_stick_test framework_stick_test.cpp)
 target_link_libraries(framework_stick_test PRIVATE framework_input platform_core)
 
+# Пресеты — ДВЕ цели. Первая спрашивает «доехало ли написанное до InputFrame», вторая — «названо ли
+# ненаписуемое»: отказ бейка падает не неверным кадром, а манифестом, испёкшимся молча и разошедшимся
+# с текстом. Имя упавшей цели в логе CI обязано отличать эти случаи.
 add_executable(framework_preset_test framework_preset_test.cpp)
 target_link_libraries(framework_preset_test PRIVATE framework_input platform_core)
+
+add_executable(framework_preset_refusal_test framework_preset_refusal_test.cpp)
+target_link_libraries(framework_preset_refusal_test PRIVATE framework_input platform_core)
 
 add_executable(framework_pad_test framework_pad_test.cpp)
 target_link_libraries(framework_pad_test PRIVATE framework_input platform_core)
@@ -19,7 +26,8 @@ add_executable(framework_rebind_test framework_rebind_test.cpp)
 target_link_libraries(framework_rebind_test PRIVATE framework_input platform_core)
 
 add_executable(framework_rt_test framework_rt_test.cpp)
-target_link_libraries(framework_rt_test PRIVATE framework_input platform_core)
+target_link_libraries(framework_rt_test PRIVATE framework_input platform_core
+  framework_alloc_probe_control)
 
 add_executable(framework_golden_test framework_golden_test.cpp)
 target_link_libraries(framework_golden_test PRIVATE framework_input platform_core)

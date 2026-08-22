@@ -17,7 +17,8 @@ add_executable(framework_physics_order_test framework_physics_order_test.cpp)
 target_link_libraries(framework_physics_order_test PRIVATE framework_physics platform_core)
 
 add_executable(framework_physics_rt_test framework_physics_rt_test.cpp)
-target_link_libraries(framework_physics_rt_test PRIVATE framework_physics platform_core)
+target_link_libraries(framework_physics_rt_test PRIVATE framework_physics platform_core
+  framework_alloc_probe_control)
 
 # Геометрия узкой фазы отдельно от сцены: голден отвечает «три ОС сошлись», эти цели — «сошлись на
 # верном». Манифольд из одной точки там, где обязано быть две, обе платформы посчитают одинаково.
@@ -78,8 +79,15 @@ target_link_libraries(framework_physics_event_test PRIVATE framework_physics pla
 # Гейт 3 спеки #15: башня стоит. Отдельная цель, потому что вопрос у неё не про значение, а про
 # ОТСУТСТВИЕ дрейфа за длинный прогон: сломанный тёплый старт даёт не другое число, а стопку, которая
 # расползается тем заметнее, чем дольше смотришь. В общей цели такое читалось бы как «сцена такая».
+#
+# Целей ДВЕ, по числу входов тёплого старта: у поставленной впритык башни импульсы растут с нуля в
+# тишине, у собранной падением — приходят ударами. Сцена и мерки общие
+# (`framework_physics_stack_scene.hpp`), потому что вторая цель сверяет свою раскладку покоя с первой.
 add_executable(framework_physics_stack_test framework_physics_stack_test.cpp)
 target_link_libraries(framework_physics_stack_test PRIVATE framework_physics platform_core)
+
+add_executable(framework_physics_impact_test framework_physics_impact_test.cpp)
+target_link_libraries(framework_physics_impact_test PRIVATE framework_physics platform_core)
 
 # Гейт 5 спеки #15: сон не влияет на результат. Отдельная цель, потому что сверяются ДВА прогона
 # одной сцены, и упасть она может по причине, которой нет ни у одной другой: экономия, изменившая
@@ -97,11 +105,24 @@ target_link_libraries(framework_physics_band_test PRIVATE framework_physics plat
 # Отдельная цель, потому что её отказ выглядит не отказом: незакрытая дверь не даёт ни исключения, ни
 # расхождения хеша — она даёт ящик, висящий в воздухе там, где из-под него убрали пол. Голдену сцены
 # такого не увидеть, он сверяет прогон, в котором обстановку никто не менял.
+#
+# Третья дверь — своей целью: там утверждение двустороннее (чтение обязано стоить ноль, запись —
+# доехать), обе стороны были дефектами, и обе мерятся числами, которых у первых двух дверей нет.
 add_executable(framework_physics_wake_test framework_physics_wake_test.cpp)
 target_link_libraries(framework_physics_wake_test PRIVATE framework_physics platform_core)
+
+add_executable(framework_physics_handle_test framework_physics_handle_test.cpp)
+target_link_libraries(framework_physics_handle_test PRIVATE framework_physics platform_core)
+
+# Глубина стека, которую держит решатель. Отдельная цель, потому что гейт стека прибит к шести
+# ящикам и про границу не спрашивает: башня из девяти заваливалась при штатном трении молча, а
+# `VELOCITY_ITERATIONS` меняли, ни разу не спросив, сколько ящиков после этого стоит.
+add_executable(framework_physics_depth_test framework_physics_depth_test.cpp)
+target_link_libraries(framework_physics_depth_test PRIVATE framework_physics platform_core)
 
 # Гейт 8 спеки #15: цена шага на целевом числе тел. Отдельная цель, потому что мерит она не то же,
 # что все остальные: те спрашивают «верно ли», эта — «сколько стоит». Утверждает счётчики работы,
 # время печатает — обоснование этого разделения в самом файле и в `counters.hpp`.
 add_executable(framework_physics_perf_test framework_physics_perf_test.cpp)
-target_link_libraries(framework_physics_perf_test PRIVATE framework_physics platform_core)
+target_link_libraries(framework_physics_perf_test PRIVATE framework_physics platform_core
+  framework_alloc_probe_control)
