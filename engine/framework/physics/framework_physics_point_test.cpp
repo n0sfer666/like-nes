@@ -96,6 +96,60 @@ void test_nearest_degenerate() {
     check(on_face.dir == Vec2{fix32{}, fix32::from_int(1)}, "and it keeps the face normal");
 }
 
+// Нормаль у ДЛИННОЙ грани. Отдельным случаем от вырожденного различителя, потому что вопрос другой:
+// там — «отличим ли ответ без направления», здесь — «верно ли направление, когда оно есть».
+//
+// Дефект, который случай пинит: ближайшая точка на грани считалась умножением ребра на параметр в
+// Q16.16, то есть с квантом `длина_ребра / 65536` ВДОЛЬ грани. На ребре в 400 юнитов это 0.006, и у
+// точки, стоящей в 0.006 ПОПЕРЁК грани, продольная и поперечная составляющие разности сравнимы —
+// нормировка давала (-0.91, -0.41) вместо (-1, 0). В движке это выглядело так: персонаж, въехавший
+// в стену на 2048 юнит/с, скользил вдоль ложной нормали и улетал ВВЕРХ со скоростью 942 юнит/с.
+//
+// Порог допуска взят на два порядка меньше найденного отклонения и на два больше кванта Q16.16:
+// допуск, в который пролезает старая реализация, ничего бы не пинил.
+void test_long_face_normal() {
+    BodyDesc wall;
+    // Стена вчетверо длиннее, чем насыщается квадрат длины ребра в Q16.16 (182 юнита), и тоньше
+    // кванта позиции по другой оси — ровно та геометрия, на которой считается тайловая полоса.
+    wall.shape = box(fix32::from_float(0.25), fix32::from_int(200));
+    const Body wb = make_body(wall);
+    WorldShape core;
+    to_world(wb.shape, wb.position, wb.rot, core);
+
+    constexpr fix32 TOL = fix32::from_float(0.001);
+    // Расстояние сверяется ПОЛОСОЙ шириной в несколько raw, а не «меньше ожидаемого»: односторонний
+    // порог пропускает и реализацию, отвечающую нулём, и старую — та на высоте 190 давала 0.00648,
+    // то есть промахивалась на 0.00048 и в допуск 0.001 пролезала. Полоса же в четыре raw (6e-5)
+    // отбивает её на всех трёх высотах. Ответ обязан быть ТОЧНЫМ: нормаль осевой грани единична бит
+    // в бит, а `farthest` при ней сводится к вычитанию координат.
+    const fix32 HX = fix32::from_float(0.25);
+    const fix32 PX = fix32::from_float(-0.256);
+    const fix32 want = -HX - PX;
+    constexpr fix32 DIST_TOL = fix32::from_raw(4);
+    // Высоты взяты НЕДВОИЧНЫЕ по параметру вдоль ребра — 237/400, 311/400, 390/400. Прежняя тройка
+    // (0, 50, 190) была тут ошибкой: у первых двух параметр равен 0.5 и 0.625, то есть представим в
+    // Q16.16 ТОЧНО, квант вдоль ребра не возникает вовсе, и старая реализация проходила их обе.
+    // Различала дефект одна высота из трёх, хотя комментарий обещал три.
+    const fix32 heights[3] = {fix32::from_int(37), fix32::from_int(111), fix32::from_int(190)};
+    for (int i = 0; i < 3; ++i) {
+        const Vec2 p = {PX, heights[i]};
+        const Nearest n = nearest_on_core(p, core);
+        const fix32 minus_one = fix32::from_float(-1);
+        check(minus_one - TOL < n.dir.x && n.dir.x < minus_one + TOL,
+              "the long face keeps a unit outward normal");
+        check(n.dir.y < TOL && -TOL < n.dir.y, "and no tangential component from the edge quantum");
+        check(want - DIST_TOL < n.dist && n.dist < want + DIST_TOL,
+              "and the plane distance is exact");
+    }
+
+    // Вершинная область на общем пути: там ближайшая точка — сама вершина, значение точное, и
+    // нормаль обязана быть диагональной, а не нормалью грани. Без этого случая ветка «внутри грани»
+    // могла бы отвечать на ВСЕ запросы и гейт молчал бы.
+    const Vec2 corner = {fix32::from_float(-0.25) - fix32::from_int(3), fix32::from_int(203)};
+    const Nearest cn = nearest_on_core(corner, core);
+    check(cn.dir.x < fix32{} && cn.dir.y.raw > 0, "past the end of the face the normal turns to the corner");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -103,6 +157,7 @@ int main(int argc, char** argv) {
     std::printf("framework physics point-core gate\n");
     test_point_core();
     test_nearest_degenerate();
+    test_long_face_normal();
     std::printf("framework-physics-point: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

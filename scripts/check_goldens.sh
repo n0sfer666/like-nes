@@ -56,7 +56,7 @@ debug_golden() {
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
     # -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
-    if [ "$golden" != "physics-state-hash = 0xe243e1457a11f65e" ]; then
+    if [ "$golden" != "physics-state-hash = 0xf238d0bc34325db6" ]; then
         echo "Debug разошёлся с Release по голдену физики: '$golden'"
         rc=1
     fi

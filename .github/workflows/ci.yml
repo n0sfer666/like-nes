@@ -1007,7 +1007,7 @@ jobs:
           done
           # Гейт 1 отдельной строкой, а не общим PASS: сам тест сверяет эталон изнутри, но в логе
           # CI обязано быть видно ЗНАЧЕНИЕ, иначе расследование расхождения начинается с пересборки.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" phys_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" phys_framework_physics_test.txt \
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
@@ -1074,7 +1074,7 @@ jobs:
           done
           # Тот же литерал, что у Release-шага выше, и это весь смысл шага: сверять Debug-прогон с
           # самим собой значило бы проверять, что -O0 воспроизводим, а не что он согласен с -O3.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" dbg_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" dbg_framework_physics_test.txt \
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
@@ -1092,7 +1092,7 @@ jobs:
           ./phys_san | tee physsan.txt
           # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
           # но и досчитать до того же состояния.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" physsan.txt
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" physsan.txt
           c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
           ./phys_order_san | tee physordersan.txt
           grep -q ": PASS" physordersan.txt
