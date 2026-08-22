@@ -1113,7 +1113,13 @@ jobs:
           # выделения проверяема ТОЛЬКО санитайзером: `delete` от указателя, которого `malloc` не
           # выдавал, портит кучу молча, и без ASan цель печатала бы PASS ровно так же. Обещание
           # такого покрытия в комментарии теста уже стояло, а самой сборки под санитайзером не было.
-          c++ $SAN $LIB engine/framework/physics/framework_physics_rt_test.cpp $PLAT -o phys_rt_san
+          # TU позитивного контроля дописан к этой цели поимённо: он живёт ОТДЕЛЬНЫМ файлом ровно
+          # затем, чтобы компилятор не свернул выделение в `true` и не выбросил его вместе с парным
+          # освобождением, — а ручная сборка про этот файл не знала и падала на линковке
+          # (`undefined reference to framework::probe::control::plain_allocation`). Цель собирается
+          # тут вручную, значит и список TU держится тут вручную: CMake для неё не спрашивают.
+          c++ $SAN $LIB engine/framework/core/framework_alloc_probe_control.cpp \
+            engine/framework/physics/framework_physics_rt_test.cpp $PLAT -o phys_rt_san
           ./phys_rt_san | tee physrtsan.txt
           grep -q ": PASS" physrtsan.txt
           # Узкая фаза: SAT и отсечение — единственное место модуля, где произведения идут по
