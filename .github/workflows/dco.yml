@@ -20,7 +20,6 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          DCO_SINCE: d177ef3085fe8a4ab51aa266ac82be0bcc6f4c00
         run: |
           set -euo pipefail
 
@@ -31,14 +30,12 @@ jobs:
             fi
           done
 
-          if [ -z "$DCO_SINCE" ]; then
-            commits="$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA")"
-          elif git cat-file -e "$DCO_SINCE^{commit}" 2>/dev/null; then
-            commits="$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA" --not "$DCO_SINCE")"
-          else
-            echo "::error::пин DCO_SINCE=$DCO_SINCE недоступен в клоне — почините пин, иначе гейт проверит всю историю"
-            exit 1
-          fi
+          # Отсечки по пину здесь больше нет. Пин освобождал историю до внедрения гейта, но диапазон
+          # BASE..HEAD и так содержит только коммиты самого PR, то есть освобождать ему было нечего,
+          # а сломался он ровно тем, чем такой пин и ломается: следующий же force-push осиротил
+          # d177ef3085fe…, и job умирал на проверке пина, не проверив ни одной подписи. Красным он
+          # при этом был честно — но по своей поломке, и PR раунда читал её как находку по подписям.
+          commits="$(git rev-list --no-merges "$BASE_SHA".."$HEAD_SHA")"
 
           if [ -z "$commits" ]; then
             echo "Нет коммитов, требующих подписи."
