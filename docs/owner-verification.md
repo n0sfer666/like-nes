@@ -358,10 +358,10 @@ the run exits non-zero, so what you check by eye is the shape, `allocs=0` and th
 `.context/specs/2026-07-26-physics-core.md`.
 
 ```
-framework physics perf gate (500 bodies)
-  heap: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+framework physics perf gate (350 bodies)
+  heap: bodies=350 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
   heap: worst=<time> ms mean=<time> ms allocs=0
-  scatter: bodies=500 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
+  scatter: bodies=350 pairs=<n> broad=<n> narrow=<n> vel=<n> pos=<n>
   scatter: worst=<time> ms mean=<time> ms allocs=0
   column: bodies=0 pairs=0 broad=<n(n-1)/2> narrow=0 vel=0 pos=0
   column: worst=<time> ms mean=<time> ms allocs=0
@@ -373,16 +373,19 @@ What to judge, in this order:
 1. **Any `FAIL:` line** is the serious finding, and it outranks any timing. A counter that misses its
    reference means two OS disagree about the arithmetic — the same class of defect the state golden
    exists to catch. Report it before anything else, with the full output.
-2. **`heap: mean=`** against a 16.67 ms frame. Measured on three machines: 3.64 ms (22%) on the M3
-   Pro, 8.583 ms (51%) on the Nobara laptop, 9.594 ms (58%) on Windows on that same laptop. Judge
+2. **`heap: mean=`** against a 16.67 ms frame. At the declared **350 bodies** the sweep of 2026-08-22
+   measured 3.560 ms (21.4%) on Windows/MSVC and 2.931 ms (17.6%) on Nobara/gcc. The figures below
+   are the older 500-body scene and are kept because the reasoning about `worst` came out of them:
+   3.64 ms (22%) on the M3 Pro, 8.583 ms (51%) on the Nobara laptop, 9.594 ms (58%) on Windows on
+   that same laptop. Judge
    `mean`, not `worst`, and the 2026-08-13 sweep put numbers on why: across three repeats of one
    cell — same binary, same scene, idle Mac — `mean` landed within **0.8%** (2.253 / 2.254 / 2.270)
    while `worst` moved **20%** (2.411 / 2.406 / 2.894). On the Windows box `worst/mean` runs 1.4–1.8
    against 1.1–1.2 for Linux on that same hardware, so half of a Windows `worst` is the scheduler,
    not the step. `worst` stays in the table as an observed fact about the machine; it is not the
    criterion that sets a body count. A machine where `mean` passes 8 ms (half the frame) is the
-   honest ceiling of "500 bodies" — and the two slow rows above already passed it, which is the open
-   decision described below. Judge against the **slowest** machine you have: the M3 Pro figure
+   honest ceiling — the 500-body scene passed it on both live machines, and that is why the declared
+   count came down to 350 (see below). Judge against the **slowest** machine you have: the M3 Pro figure
    describes the M3 Pro, and the whole point of running this on your hardware is that the fast row
    cannot answer for the engine.
 3. **`allocs=0` on all three scenes.** Anything else means the step went to the heap on a scene the
@@ -390,12 +393,12 @@ What to judge, in this order:
 
 `column` reporting `bodies=0` and zeros across the solver is **correct, not a broken scene**: its
 bodies are kinematic on purpose, so nothing is solved. `bodies=0` is not "nothing moves" — the step
-still walks all 500 of them through integration and the world-bound clamp; the counter reports the
+still walks all 350 of them through integration and the world-bound clamp; the counter reports the
 bodies gravity and damping were applied to, which is the load on the solver (`counters.hpp`). That
 scene exists to measure one thing — the broadphase degenerating to the full pairwise scan,
-124750 = 500·499/2.
+61075 = 350·349/2.
 
-### Open decision: how many bodies (the iteration half is closed — 16 stays)
+### Closed 2026-08-22: 350 bodies at 16 iterations
 
 The round that raised `VELOCITY_ITERATIONS` from 8 to 16 measured the price on one machine — the M3
 Pro, where the heap went 2.25 → 3.64 ms, 22% of the frame. Your sweep of 2026-08-13 measured the
@@ -426,6 +429,29 @@ bash scripts/perf_sweep.sh 16:400 8:400 16:350 8:300
 reads two ways at once: 400 bodies would be measured only at 16 iterations and 8 iterations only at
 300, so neither axis has a partner holding the other fixed. `8:400` pairs with `16:400` on
 iterations and with `8:300` on bodies, and both comparisons become one-variable.
+
+**The answer, measured 2026-08-22** (median of three repeats, `mean` against the 16.67 ms frame):
+
+| cell | Windows/MSVC | Nobara/gcc |
+|---|---|---|
+| 16 iterations, 400 bodies | 4.595 ms (27.6%) | 3.843 ms (23.1%) |
+| 8 iterations, 400 bodies | 3.531 ms (21.2%) | 2.971 ms (17.8%) |
+| **16 iterations, 350 bodies** | **3.560 ms (21.4%)** | **2.931 ms (17.6%)** |
+| 8 iterations, 300 bodies | 2.672 ms (16.0%) | 2.265 ms (13.6%) |
+
+Both crosses closed and agreed across the two OS: 16 → 8 iterations at 400 bodies is −23% on each,
+400 → 350 bodies at 16 iterations is −23% and −24%. The decisive row is the pair that costs the
+same: `16:350` against `8:400` is 3.560 vs 3.531 on Windows and 2.931 vs 2.971 on Linux — inside the
+noise on both machines. Halving the iterations buys nothing that dropping fifty bodies does not buy,
+and 16 iterations were bought for the 10/11 stack depth (decision of 2026-08-08). So the iterations
+stay and **350 bodies is the declared count**: 21.4% of the frame on the slowest machine in the set,
+against 58% for the five hundred it replaces.
+
+The `ШУМ` mark in that run landed on `8:400` under Windows and needed no rerun. Repeat 2 lifted
+`column` along with the heap (0.291 → 0.576 ms) on literally identical work — the signature of a
+foreign process — while repeats 1 and 3 agreed to 0.9%. The ratio against `16:400` corroborates the
+median from the other side: 1.30 on Windows, 1.29 on Linux. The flag fired on `worst`; the verdict
+is taken on the median.
 
 The `8:300` cell is a rerun: **the Windows 8/300 cell of 2026-08-13 was thrown out.** The `column`
 scene runs zero solver iterations and, at equal body count, exactly the same work — so its cost in
