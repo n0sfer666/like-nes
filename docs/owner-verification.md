@@ -419,10 +419,15 @@ here is quadratic: `broad` 11951 against 4252, and (500/300)² = 2.78. What is m
 nothing between 300 and 500 has been measured, and interpolation is not measurement:
 
 ```
-bash scripts/perf_sweep.sh 16:400 16:350 8:300
+bash scripts/perf_sweep.sh 16:400 8:400 16:350 8:300
 ```
 
-The last cell is a rerun: **the Windows 8/300 cell of 2026-08-13 was thrown out.** The `column`
+**Four cells, not three, and `8:400` is the reason.** With `16:400 16:350 8:300` every difference
+reads two ways at once: 400 bodies would be measured only at 16 iterations and 8 iterations only at
+300, so neither axis has a partner holding the other fixed. `8:400` pairs with `16:400` on
+iterations and with `8:300` on bodies, and both comparisons become one-variable.
+
+The `8:300` cell is a rerun: **the Windows 8/300 cell of 2026-08-13 was thrown out.** The `column`
 scene runs zero solver iterations and, at equal body count, exactly the same work — so its cost in
 the two 300-body cells has to match. It did not: 0.214 against 0.511 ms mean (Linux, same cells:
 0.149 against 0.154), and all three scenes in that cell swelled together. Those numbers described a
@@ -466,12 +471,32 @@ Windows puts only its `cmd\` directory on `PATH`, so bare `bash` may not resolve
 
 ```
 scripts\win-dev.bat shell
-"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh 16:400 16:350 8:300
+"%ProgramFiles%\Git\bin\bash.exe" scripts/perf_sweep.sh 16:400 8:400 16:350 8:300
 ```
 
 Run it from a Git Bash window by mistake and the script stops before it touches a single header,
 naming those two lines — the failure it would otherwise produce is twenty lines of ninja output
 about a compiler, which sends you fixing the wrong thing.
+
+**Two refusals fire before the first rebuild**, because both of them cost a whole run rather than a
+row, and both have already been paid for. A checkout behind `origin` measures with the *old* script —
+that is where the run of 2026-08-22 went, and its table came back in a format retired eight commits
+earlier. A build directory configured as `Debug` is worse: the numbers come out several times slower
+while **every control stays green**, since the cells slow down together, their ratios hold, `column`
+matches across the group and the spread stays tight. There is nothing in such a table to tell it
+apart from an honest one, which is why it is refused rather than flagged. Each refusal names its own
+one-line cure (`git pull --ff-only`, `cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release`).
+
+Provenance is printed twice — as the first line of the run and again immediately above the table:
+
+```
+perf-sweep: инструмент <sha> от <date>[, дерево ГРЯЗНОЕ], ячеек 4, повторов 3
+```
+
+Once, in a header a hundred lines of build output away from the table, is once too few: what gets
+pasted back is the *tail* of the output, so the version has to travel inside it. The dirty-tree note
+does not stop the run — the script exists to be edited while it is used — but a table taken from a
+tree that differs from `origin` can be read; it cannot be used to pin numbers.
 
 The script edits both headers, rebuilds only `framework_physics_perf_test`, restores them from HEAD
 and rebuilds once more; it refuses to start if either header has uncommitted changes. Red verdicts

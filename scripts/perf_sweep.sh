@@ -27,6 +27,9 @@ LOAD="engine/framework/physics/framework_physics_load.hpp"
 TARGET="framework_physics_perf_test"
 # Разбор чисел и контроль шума живут отдельно и проверяются фикстурами без единой сборки.
 . "$ROOT/scripts/perf_sweep_lib.sh"
+# Проверки «имеет ли смысл начинать»: версия инструмента и тип сборки. Обе валят ВСЮ таблицу, а не
+# строку, поэтому стоят до первой пересборки — после неё уже потрачены минуты.
+. "$ROOT/scripts/perf_sweep_guards.sh"
 # Пауза между сборкой и прогоном. Замер идёт сразу после компиляции ТОЙ ЖЕ цели, то есть на CPU,
 # который только что держал все ядра занятыми: буст израсходован, вентилятор догоняет. Это
 # единственное различие условий, которое у нас на руках, а разошлись прошлые числа владельца на той
@@ -94,6 +97,10 @@ case "$(uname -s 2>/dev/null)" in
         fi
         ;;
 esac
+
+sweep_guard_version || die "запуск прерван до первой пересборки"
+sweep_guard_build_type "$BUILD_DIR" || die "запуск прерван до первой пересборки"
+printf 'perf-sweep: %s, ячеек %d, повторов %d\n' "$(sweep_provenance)" "${#CELLS[@]}" "$REPEATS"
 
 # Отказ по грязным заголовкам. Восстановление в конце — это `git checkout --`, то есть откат к
 # HEAD: на файле с чужой правкой он молча уничтожил бы её.
@@ -188,4 +195,6 @@ restore
 trap - EXIT INT TERM
 cmake --build "$BUILD_DIR" --target "$TARGET" >/dev/null 2>&1
 
+# Второй раз вплотную к таблице: в чат уезжает КУСОК вывода, и версия обязана уехать вместе с ним.
+printf '\n=== %s\n' "$(sweep_provenance)"
 printf '%s' "$RECORDS" | bash "$ROOT/scripts/perf_sweep_report.sh"

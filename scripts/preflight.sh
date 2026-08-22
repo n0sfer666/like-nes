@@ -81,7 +81,10 @@ if command -v shellcheck >/dev/null; then
                    scripts/check_dco.sh scripts/check_goldens.sh \
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
                    scripts/tree_invariants.sh \
-                   scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh
+                   scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh \
+                   scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
+                   scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
+                   scripts/perf_sweep_selftest.sh
 else
     skip "shellcheck" "не установлен (brew install shellcheck)"
 fi
