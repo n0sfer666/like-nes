@@ -59,6 +59,9 @@ stage "Бюджет длины файлов — дерево" python3 scripts/li
 # по заказу машину не займёт. Значит, единственное, что стоит между «правило работает» и
 # «правило молчит всегда», это фикстуры, и место им там же, где остальным самопроверкам.
 stage "Контроль шума в замере — самопроверка правил" bash scripts/perf_sweep_selftest.sh
+# Наблюдатель CI по сети сюда не попадает — гейт без сети, — но его СУЖДЕНИЕ о прогонах чистое и
+# проверяется фикстурами. Место фикстурам там же, где остальным самопроверкам.
+stage "Вердикт о прогонах CI — самопроверка правил" bash scripts/ci_watch_selftest.sh
 
 if command -v actionlint >/dev/null; then
     # severity=warning: SC2086 (несплитящиеся "$VAR") в этом файле осознан — им собирается
@@ -77,7 +80,8 @@ if command -v shellcheck >/dev/null; then
         shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
                    scripts/check_dco.sh scripts/check_goldens.sh \
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
-                   scripts/tree_invariants.sh
+                   scripts/tree_invariants.sh \
+                   scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh
 else
     skip "shellcheck" "не установлен (brew install shellcheck)"
 fi
