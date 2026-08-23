@@ -15,9 +15,12 @@ namespace {
 
 template <typename T>
 const T* view(const uint8_t* base, uint32_t offset, uint32_t count, std::size_t size) {
-    // Проверка «влезает ли секция» — единственная защита zero-parse формата: дальше по нему
-    // ходят указателями, и битый бандл иначе читался бы как чужая память.
-    if (static_cast<std::size_t>(offset) + static_cast<std::size_t>(count) * sizeof(T) > size)
+    // Границы — единственная защита zero-parse формата: дальше по нему ходят указателями. Верхнего
+    // предела мало: смещение проверяется снизу (иначе строки лягут поверх заголовка) и на
+    // выравнивание (`reinterpret_cast` мимо границы = SIGBUS, как в `asset/bundle_view.cpp`), а
+    // сумма считается в uint64 — в `size_t` на 32 битах `count * sizeof(T)` заворачивается.
+    if (offset < sizeof(PresetHeader) || offset % alignof(T) != 0) return nullptr;
+    if (static_cast<uint64_t>(offset) + static_cast<uint64_t>(count) * sizeof(T) > size)
         return nullptr;
     return reinterpret_cast<const T*>(base + offset);
 }

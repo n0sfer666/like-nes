@@ -1,5 +1,7 @@
 #include "preset_parse.hpp"
 
+#include <cstdint>
+
 // Текстовый слой бейка: манифест — плоский текст, и всё, что превращает его в значения (границы
 // полей, число, имя в блобе) или обратно в диагностику, живёт здесь. Грамматика строк
 // (`preset_parse.cpp`) зовёт это как готовые примитивы и о разборе символов не знает.
@@ -33,7 +35,14 @@ bool preset_parse_fix(const std::string& s, fix32& out) {
         frac_raw = (frac * fix32::ONE + scale / 2) / scale;
     }
     if (!any || i != s.size()) return false;
-    out = fix32::from_raw(static_cast<int32_t>(sign * (whole * fix32::ONE + frac_raw)));
+    // Сумма проверяется в int64 ДО приведения. Целая часть уже ограничена 32767, но округление
+    // дроби вверх добавляет целую единицу: "32767.999999" даёт ровно 2^31, а приведение к int32 —
+    // INT32_MIN, то есть число ПРОТИВОПОЛОЖНОГО знака при возврате `true`. Отказ здесь, а не у
+    // вызывающего: контракт функции — «true значит число разобрано», и звать её будут не только
+    // там, где следом стоит проверка знака.
+    const int64_t raw = whole * fix32::ONE + frac_raw;
+    if (raw > INT32_MAX) return false;
+    out = fix32::from_raw(static_cast<int32_t>(sign * raw));
     return true;
 }
 
