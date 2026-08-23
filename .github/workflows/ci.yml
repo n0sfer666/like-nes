@@ -1243,7 +1243,7 @@ jobs:
           TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_text.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
-          TILES_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp"
+          TILES_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
             engine/framework/tilemap/framework_tilemap_test.cpp $PLAT -o tiles_san
           ./tiles_san | tee tilessan.txt
