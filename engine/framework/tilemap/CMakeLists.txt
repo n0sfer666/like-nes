@@ -1,9 +1,12 @@
 # --- framework_tilemap: тайловая сетка коллизии (спека #16, вертикаль 2, шаг A). Зависит ВНИЗ, на
 # framework_physics: сетка не пишет геометрию заново, а разворачивает тайл в форму #15 и отвечает
 # теми же свипом и узкой фазой. Обратного ребра нет — физика про тайлы не знает (решение 3 спеки).
-add_library(framework_tilemap STATIC grid.cpp query.cpp)
+add_library(framework_tilemap STATIC grid.cpp query.cpp map_text.cpp map_parse.cpp map_bake.cpp
+  map_read.cpp)
 target_include_directories(framework_tilemap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(framework_tilemap PUBLIC framework_physics)
+# platform_core — PRIVATE: наружу из модуля торчит сетка, а не файловый шов, которым пекарь читает
+# исходник. То же устройство, что у framework_character и framework_input.
+target_link_libraries(framework_tilemap PUBLIC framework_physics PRIVATE platform_core)
 
 # Гейт шага A: три запроса против ответов, посчитанных ИЗ РАСКЛАДКИ, плюс голден свёртки всех
 # ответов. Контроли внутри парные: зонд в воздухе обязан отвечать пусто, фильтр без совпадений —
@@ -16,3 +19,23 @@ target_link_libraries(framework_tilemap_test PRIVATE framework_tilemap platform_
 # сцен, и у каждого утверждения о пустоте здесь своя парная сцена, где ответ обязан быть.
 add_executable(framework_tilemap_seam_test framework_tilemap_seam_test.cpp)
 target_link_libraries(framework_tilemap_seam_test PRIVATE framework_tilemap platform_core)
+
+# Карта как испечённые ДАННЫЕ (вертикаль 2, шаг B) — ТРИ цели, и граница между ними та же, что у
+# профиля #16: имя упавшей цели в логе CI обязано называть класс поломки.
+#   * ..._bake_test — round-trip и голден байтов (согласованы ли пекарь с читателем и не поехала ли
+#     раскладка);
+#   * ..._refusal_test — отказы пекаря НОМЕРОМ СТРОКИ и отказы читателя на порченой секции;
+#   * ..._bundle_test — секция из ЛЕЖАЩЕГО В GIT game.bundle против разбора tilemap.txt (доехало ли
+#     испечённое до сетки, и перепечён ли бандл после правки исходника).
+add_executable(framework_tilemap_bake_test framework_tilemap_bake_test.cpp)
+target_link_libraries(framework_tilemap_bake_test PRIVATE framework_tilemap platform_core)
+
+add_executable(framework_tilemap_refusal_test framework_tilemap_refusal_test.cpp)
+target_link_libraries(framework_tilemap_refusal_test PRIVATE framework_tilemap platform_core)
+
+# asset_core — только здесь: бандл открывается менеджером ассетов, и тянуть его в саму библиотеку
+# значило бы связать карту с форматом хранения. Направление зависимостей это не ломает — инвариант 1
+# спеки #14 запрещает обратное ребро, от подсистем к слою.
+add_executable(framework_tilemap_bundle_test framework_tilemap_bundle_test.cpp)
+target_link_libraries(framework_tilemap_bundle_test PRIVATE framework_tilemap asset_core
+  platform_core)

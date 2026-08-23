@@ -20,12 +20,20 @@ CMake, а своим списком единиц трансляции в пер�
   `# ci-lint: mirrors-var <файл.sh> <ПЕРЕМЕННАЯ>` — РАВЕНСТВО множеств. Так связаны список целей
   Debug-шага и `STATE_TARGETS` в `check_goldens.sh`: они обязаны совпадать в обе стороны, и до
   сих пор это держалось абзацем в CLAUDE.md, то есть дисциплиной.
+  `# ci-lint: mirrors-group <имя>` — равенство списков МЕЖДУ СОБОЙ, без внешнего эталона. Списку
+  швов его взять неоткуда: он перечисляет posix-ветку платформы, то есть подмножество цели, и
+  `mirrors-target` отбивал бы его ложно. Копий у него три (`PLAT_FS` в двух шагах, `TILES_FS` в
+  третьем), а сверял их до 2026-08-24 никто: красная сборка того же дня — `undefined reference
+  to platform::root_len` — это ровно расхождение одной копии с двумя другими.
+
+Группа из ОДНОГО списка — находка, а не молчание: вторая копия переименована или удалена, и
+равенство, которому не с чем сравнивать, зелено вакуумно.
 """
 import re
 
 from ci_lint_rules import Finding
 
-MARKER = re.compile(r"#\s*ci-lint:\s*mirrors-(target|var)\s+(\S+)\s+(\S+)")
+MARKER = re.compile(r"#\s*ci-lint:\s*mirrors-(target|var|group)\s+(\S+)(?:\s+(\S+))?")
 ASSIGN = re.compile(r"^\s*([A-Za-z_][\w-]*)\s*[:=]\s*\"([^\"]*)\"")
 SOURCE = re.compile(r".+\.(?:c|cc|cpp|mm)$")
 CMAKE_KEYWORDS = frozenset({"STATIC", "SHARED", "MODULE", "OBJECT", "INTERFACE", "ALIAS",
@@ -96,6 +104,8 @@ def analyze(path, text, read):
     молчание: переехавший путь гасит сверку ровно так же, как её отсутствие."""
     findings = []
     for line, kind, ref_path, ref_name, list_name, listed in markers(text):
+        if kind == "group":
+            continue
         if list_name is None:
             findings.append(Finding(path, line, RULE,
                                     "маркер сверки не нашёл под собой списка в кавычках"))
@@ -120,15 +130,40 @@ def analyze(path, text, read):
     return findings
 
 
+def group_drift(entries):
+    """Суждение о группе, как и `drift`, отделено от чтения дерева: на вход приходят уже добытые
+    списки. Виноватого оно не называет — при двух копиях расхождение симметрично, и обе стороны
+    равно вправе быть правой; поэтому находка печатается на КАЖДОМ списке, где элемента нет."""
+    if len(entries) < 2:
+        path, line, list_name, _ = entries[0]
+        return [Finding(path, line, RULE,
+                        f"{list_name}: в группе единственный список, сверять не с чем")]
+    union = set().union(*(set(tokens) for _, _, _, tokens in entries))
+    return [Finding(path, line, RULE,
+                    f"{list_name}: {token} — есть в остальных списках группы, нет здесь")
+            for path, line, list_name, tokens in entries
+            for token in sorted(union - set(tokens))]
+
+
 def check(files, read):
     """Позитивный контроль на саму сверку: ноль маркеров в дереве — это переехавший формат
     комментария, а не «сверять нечего», и читается такое молчание как чистый прогон. Чтение
     приходит снаружи параметром, поэтому контроль проверяется фикстурой без единого файла."""
-    findings, seen = [], 0
+    findings, seen, groups = [], 0, {}
     for rel in files:
         text = read(rel)
-        seen += len(markers(text))
+        for line, kind, name, _ref, list_name, listed in markers(text):
+            seen += 1
+            if kind != "group":
+                continue
+            if list_name is None:
+                findings.append(Finding(rel, line, RULE,
+                                        "маркер сверки не нашёл под собой списка в кавычках"))
+                continue
+            groups.setdefault(name, []).append((rel, line, list_name, listed))
         findings += analyze(rel, text, read)
+    for name in sorted(groups):
+        findings += group_drift(groups[name])
     if not seen:
         findings.append(Finding(".github/workflows", 0, RULE,
                                 "ни одного маркера сверки: гейт ничего не проверил"))

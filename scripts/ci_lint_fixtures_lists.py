@@ -59,7 +59,24 @@ CASES = [
 # Позитивный контроль на саму сверку: набор без единого маркера обязан быть находкой, а не
 # молчанием, — иначе переехавший формат комментария читается как чистый прогон.
 NO_MARKER = _flow("LIB=\"cmake/body.cpp\"", "# просто комментарий, не маркер")
+
+# Группа сверяется со СВОИМИ копиями, а не с внешним эталоном, поэтому кейс — это набор файлов,
+# и живёт он в сводных фикстурах (SWEEP_CASES), а не в парных.
+GROUP_MARKER = "# ci-lint: mirrors-group seam-fs"
+SEAM = 'PLAT_FS="platform_fs.cpp platform_fs_posix.cpp platform_path_posix.cpp"'
+SEAM_SHORT = 'TILES_FS="platform_fs.cpp platform_fs_posix.cpp"'
+SEAM_TWIN = SEAM.replace("PLAT_FS", "TILES_FS")
+
+
+def _group(*assignments):
+    return {f"g{i}.yml": _flow(a, GROUP_MARKER) for i, a in enumerate(assignments)}
+
+
 SWEEP_CASES = [
     ("list-drift", "в дереве не нашлось ни одного маркера сверки",
      {"a.yml": NO_MARKER}, {"a.yml": _flow(FULL), **REFS}),
+    ("list-drift", "одна копия списка швов разъехалась с остальными",
+     _group(SEAM, SEAM_SHORT), _group(SEAM, SEAM_TWIN)),
+    ("list-drift", "у группы осталась единственная копия: сверять не с чем",
+     _group(SEAM), _group(SEAM, SEAM_TWIN)),
 ]

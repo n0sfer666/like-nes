@@ -1,20 +1,13 @@
 #include "bakers.hpp"
 
 #include <cstdio>
-#include <cstring>
 
-#include "../../engine/achievements/bake.hpp"
-#include "../../engine/framework/character/profile_bake.hpp"
-#include "../../engine/framework/input/preset_bake.hpp"
+#include "baker_guid.hpp"
 #include "format.hpp"
 #include "platform_fs.hpp"
-#include "hash.hpp"
 
 namespace asset::bakers {
 namespace {
-
-// GUID = FNV логического имени → стабилен (переживает rename файла), детерминирован cross-machine.
-uint64_t guid_of(const char* name) { return fnv1a(name, std::strlen(name)); }
 
 uint32_t bc7_size(uint32_t w, uint32_t h) {
     return ((w + 3) / 4) * ((h + 3) / 4) * 16; // 1 BC7-блок 4x4 = 16 байт
@@ -97,70 +90,6 @@ bool audio(const std::string& src, const char* name, bool loop, std::vector<Asse
     a.uncompressed_size = static_cast<uint32_t>(ogg.size());
     a.variant_key = loop ? AUDIO_FLAG_LOOP : 0u;
     a.payload = std::move(ogg);
-    out.push_back(std::move(a));
-    return true;
-}
-
-// Достижения (спека #10): текстовый исходник → zero-parse таблица в бандле.
-// Рантайм читает её из mmap-региона без парсинга; guid = fnv1a("achievements").
-bool achievements(const std::string& src, std::vector<AssetInput>& out) {
-    std::vector<uint8_t> table;
-    ach::BakeError err;
-    if (!ach::bake_manifest_file(src, table, err)) {
-        std::fprintf(stderr, "[assetc] achievements %s: line %d: %s\n", src.c_str(), err.line,
-                     err.message.c_str());
-        return false;
-    }
-    AssetInput a;
-    a.guid = guid_of("achievements");
-    a.type = AssetType::Raw;
-    a.codec = Codec::Raw;
-    a.residency = Residency::Mmap;
-    a.uncompressed_size = static_cast<uint32_t>(table.size());
-    a.payload = std::move(table);
-    out.push_back(std::move(a));
-    return true;
-}
-
-// Пресеты ввода (спека #14): текстовый манифест → zero-parse таблица в бандле, как достижения.
-// Раскладка — данные, поэтому правка биндинга не требует пересборки игры.
-bool input_presets(const std::string& src, std::vector<AssetInput>& out) {
-    std::vector<uint8_t> table;
-    framework::input::PresetBakeError err;
-    if (!framework::input::bake_presets_file(src, table, err)) {
-        std::fprintf(stderr, "[assetc] input %s: line %d: %s\n", src.c_str(), err.line,
-                     err.message.c_str());
-        return false;
-    }
-    AssetInput a;
-    a.guid = guid_of("input");
-    a.type = AssetType::Raw;
-    a.codec = Codec::Raw;
-    a.residency = Residency::Mmap;
-    a.uncompressed_size = static_cast<uint32_t>(table.size());
-    a.payload = std::move(table);
-    out.push_back(std::move(a));
-    return true;
-}
-
-// Профиль движения (спека #16): тот же zero-parse шов, что у пресетов. Настройка ОЩУЩЕНИЯ правится
-// десятками итераций подряд, и пересборка движка на каждую правку высоты прыжка убивает сам цикл
-// подбора — поэтому профиль едет данными; guid = fnv1a("movement").
-bool movement(const std::string& src, std::vector<AssetInput>& out) {
-    std::vector<uint8_t> table;
-    framework::character::ProfileBakeError err;
-    if (!framework::character::bake_profiles_file(src, table, err)) {
-        std::fprintf(stderr, "[assetc] movement %s: line %d: %s\n", src.c_str(), err.line,
-                     err.message.c_str());
-        return false;
-    }
-    AssetInput a;
-    a.guid = guid_of("movement");
-    a.type = AssetType::Raw;
-    a.codec = Codec::Raw;
-    a.residency = Residency::Mmap;
-    a.uncompressed_size = static_cast<uint32_t>(table.size());
-    a.payload = std::move(table);
     out.push_back(std::move(a));
     return true;
 }
