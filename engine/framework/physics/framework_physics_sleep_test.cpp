@@ -175,8 +175,8 @@ void test_sleep_is_invisible() {
     // не двигает, доказывает гейт пробуждения; здесь вопрос один — влияет ли на это выключатель.
     for (uint32_t i = 0; i < HOLD; ++i) step(t);
     const BodyId top{BOXES};
-    t.sleepy.body(top).velocity.x = fix32::from_int(60);
-    t.awake.body(top).velocity.x = fix32::from_int(60);
+    t.sleepy.mutate(top).velocity.x = fix32::from_int(60);
+    t.awake.mutate(top).velocity.x = fix32::from_int(60);
     const fix32 before = t.sleepy.bodies()[BOXES].position.x;
     step(t);
     check(before < t.sleepy.bodies()[BOXES].position.x,

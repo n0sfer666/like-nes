@@ -65,7 +65,7 @@ void test_moved_static_wakes() {
     check(settle(w) != 0, "the tower freezes before the floor is touched");
 
     const fix32 before = top_y(w);
-    w.body(BodyId{FLOOR}).position.y = fix32::from_int(400);
+    w.mutate(BodyId{FLOOR}).position.y = fix32::from_int(400);
     w.step(DT);
     check(!w.at_rest(BodyId{TOP}), "teleporting the floor wakes the island that stood on it");
     for (uint32_t i = 0; i < 60; ++i) w.step(DT);

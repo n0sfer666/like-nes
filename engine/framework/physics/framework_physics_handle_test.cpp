@@ -54,17 +54,23 @@ Creep creep(bool explicit_wake) {
     const BodyId top{TOP};
     const fix32 before = w.bodies()[TOP].position.x;
     if (explicit_wake) w.wake(top);
-    w.body(top).velocity.x = fix32::from_raw(CREEP_RAW);
+    w.mutate(top).velocity.x = fix32::from_raw(CREEP_RAW);
     w.step(DT);
     const fix32 first = w.bodies()[TOP].position.x - before;
     for (uint32_t i = 1; i < SLIDE; ++i) w.step(DT);
     return {first, w.bodies()[TOP].position.x - before};
 }
 
-// Чтение через неконстантную ручку обязано стоить РОВНО НОЛЬ. Сверяются два одинаковых мира, во
-// втором каждый кадр берётся ручка каждого тела — то, что делает цикл отрисовки. Утверждение по
-// ХЕШУ, а не по `at_rest`: разморозка «на кадр» покой сохраняла (`at_rest` всё время `true`), а
-// траекторию сдвигала — отпущенный остров проживает кадр целиком и замерзает в другой точке.
+// ВЫДАЧА ручки правки обязана стоить РОВНО НОЛЬ. Сверяются два одинаковых мира, во втором каждый
+// кадр берётся ручка каждого тела и НИЧЕГО ею не пишется. Утверждение по ХЕШУ, а не по `at_rest`:
+// разморозка «на кадр» покой сохраняла (`at_rest` всё время `true`), а траекторию сдвигала —
+// отпущенный остров проживает кадр целиком и замерзает в другой точке.
+//
+// Спрашивается именно `mutate`, а не чтение: чтение с этого раунда физически не может ничего
+// сделать — `body()` остался только константным, и утверждение о нём стало бы вакуумным. Живым
+// остался тот же вопрос по другую сторону шва: `mutate` метит индекс запросов протухшим и обязан
+// не делать БОЛЬШЕ ничего. Допиши в него `rest_.wake_all()` — окно покоя не досчитает до
+// `REST_FRAMES` ни разу, и этот гейт покраснеет.
 void test_reading_a_handle_costs_nothing() {
     World quiet{16};
     World watched{16};
@@ -76,14 +82,14 @@ void test_reading_a_handle_costs_nothing() {
 
     uint32_t diverged = 0;
     for (uint32_t i = 0; i < 600; ++i) {
-        for (uint32_t b = 0; b <= BOXES; ++b) (void)watched.body(BodyId{b});
+        for (uint32_t b = 0; b <= BOXES; ++b) (void)watched.mutate(BodyId{b});
         quiet.step(DT);
         watched.step(DT);
         if (diverged == 0 && quiet.hash() != watched.hash()) diverged = i + 1;
     }
-    check(diverged == 0, "taking a non-const handle every frame changes nothing in the state");
+    check(diverged == 0, "taking the mutate handle every frame changes nothing in the state");
     if (diverged != 0) std::printf("  diverged at frame %u\n", diverged);
-    check(tower_at_rest(watched), "and the run that was read from stays frozen throughout");
+    check(tower_at_rest(watched), "and the run whose handles were taken stays frozen throughout");
 }
 
 // А запись через ту же ручку обязана доехать, и доехать ЦЕЛИКОМ. Быстрый толчок выносит тело из круга

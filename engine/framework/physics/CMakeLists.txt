@@ -3,8 +3,8 @@
 # слое не знают, и инвариант 1 спеки #14 проверяет это грепом по этой самой строке линковки.
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
-  gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp rest.cpp sat.cpp
-  shape.cpp solver.cpp state_hash.cpp world.cpp)
+  gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp query_index.cpp
+  rest.cpp sat.cpp shape.cpp solver.cpp state_hash.cpp world.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
 
@@ -63,6 +63,13 @@ target_link_libraries(framework_physics_query_test PRIVATE framework_physics pla
 # ключу и очистка приёмника. В общей цели со свипами упавший порядок назывался бы «запросы сломаны».
 add_executable(framework_physics_overlap_test framework_physics_overlap_test.cpp)
 target_link_libraries(framework_physics_overlap_test PRIVATE framework_physics platform_core)
+
+# Индекс запросов: полоса вместо обхода мира. Своей целью, потому что спрашивает она не «верен ли
+# ответ» — на это отвечают три цели выше, — а «во сколько он обошёлся и не устарел ли». Оба вопроса
+# краснеют молча: подорожавший запрос остаётся верным, а протухший индекс даёт не ошибку, а тело,
+# которого запрос не видит там, куда его только что переставили.
+add_executable(framework_physics_index_test framework_physics_index_test.cpp)
+target_link_libraries(framework_physics_index_test PRIVATE framework_physics platform_core)
 
 # Слои, маски и триггеры. Отдельная цель, потому что это правило ОТБРАСЫВАНИЯ: сломанный фильтр не
 # даёт неверное число, он даёт отсутствие контакта, а отсутствие в общем тесте выглядит как «сцена

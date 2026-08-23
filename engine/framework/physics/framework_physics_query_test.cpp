@@ -92,7 +92,7 @@ void test_nearest_and_filter() {
     w.add(wall(1, fix32::from_int(50)));
     w.add(wall(2, fix32::from_int(100)));
     // Слой дальней стены — второй бит, ближней — первый: запрос сможет спросить именно дальнюю.
-    w.body(BodyId{1}).layer = 2u;
+    w.mutate(BodyId{1}).layer = 2u;
 
     const Vec2 origin{fix32{}, fix32{}};
     const Vec2 far_travel{fix32::from_int(200), fix32{}};
@@ -121,7 +121,7 @@ void test_trigger_visibility() {
     World w(8);
     w.add(wall(1, fix32::from_int(50)));
     w.add(wall(2, fix32::from_int(100)));
-    w.body(BodyId{0}).trigger = true;
+    w.mutate(BodyId{0}).trigger = true;
 
     const Vec2 origin{fix32{}, fix32{}};
     const Vec2 travel{fix32::from_int(200), fix32{}};
