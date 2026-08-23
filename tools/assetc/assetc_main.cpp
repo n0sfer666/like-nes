@@ -95,6 +95,7 @@ int main(int argc, char** argv) {
         if (!bakers::achievements(gsrc + "/achievements.txt", gassets)) return 1;
         if (!bakers::input_presets(gsrc + "/input.txt", gassets)) return 1;
         if (!bakers::movement(gsrc + "/movement.txt", gassets)) return 1;
+        if (!bakers::tilemap(gsrc + "/tilemap.txt", gassets)) return 1;
         return emit("game", gout, std::move(gassets));
     }
 

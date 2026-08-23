@@ -104,18 +104,23 @@ verify_bundle() {
     }
     printf '%s\n' "$out"
     case $out in
-        *"verify: PASS - 3 tool-free section(s)"*) ;;
+        *"verify: PASS - 4 tool-free section(s)"*) ;;
         *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
     esac
     # Второе утверждение о том же бандле, первым не заменяемое: `--verify-game` сверяет БАЙТЫ секции
-    # с перепечённым текстом («бандл отстал от movement.txt»), а тест читает её ЧИТАТЕЛЕМ и сверяет
-    # поля с `default_profile()` — согласованную перестановку полей байтовая сверка переживёт молча.
-    local bin rc
-    bin=$(find build-ci build-full -maxdepth 2 -type f -name framework_character_bundle_test 2>/dev/null | head -1)
-    if [ -z "$bin" ]; then echo "framework_character_bundle_test не собран"; return 1; fi
-    out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?
-    printf '%s\n' "$out"
-    [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -q ": PASS"   # статус наравне с грепом
+    # с перепечённым текстом («бандл отстал от исходника») и ЧИТАТЕЛЯ не запускает вовсе, а эти тесты
+    # читают секцию читателем и сверяют её с независимым ожиданием — `default_profile()` для профиля,
+    # разбор `tilemap.txt` для карты. Проверено сломанной реализацией: индексация флагов `x*h+y`
+    # краснит тест карты и оставляет `--verify-game` зелёным.
+    local bin rc t all=0
+    for t in framework_character_bundle_test framework_tilemap_bundle_test; do
+        bin=$(find build-ci build-full -maxdepth 2 -type f -name "$t" 2>/dev/null | head -1)
+        if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi
+        out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?
+        printf '%s\n' "$out"
+        { [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -q ": PASS"; } || all=1   # статус наравне с грепом
+    done
+    return $all
 }
 
 case ${1:-all} in

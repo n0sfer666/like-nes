@@ -316,7 +316,7 @@ jobs:
           # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
           # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
           # с числом: список секций растёт осознанно, вместе с этой строкой.
-          grep -q "verify: PASS - 3 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
+          grep -q "verify: PASS - 4 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
@@ -1006,7 +1006,9 @@ jobs:
                    framework_physics_depth_test framework_character_test framework_character_window_test \
                    framework_character_jump_test framework_character_tunnel_test \
                    framework_character_alloc_test framework_character_profile_test \
-                   framework_character_profile_refusal_test framework_character_bundle_test; do
+                   framework_character_profile_refusal_test framework_character_bundle_test \
+                   framework_tilemap_bake_test framework_tilemap_refusal_test \
+                   framework_tilemap_bundle_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "phys_$T.txt"
@@ -1030,6 +1032,12 @@ jobs:
           # значением, а не «тест упал».
           grep -q "tilemap answers hash = 0xb19419157787b1c3" phys_framework_tilemap_test.txt \
             || { echo "TILEMAP ANSWERS GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Пятый голден шага — БАЙТЫ испечённой таблицы карт (вертикаль 2 спеки #16). Он ловит то,
+          # чего не видит НИ ОДНА из двух сверок бандла: согласованную перестановку полей в пекаре и
+          # читателе. Проверено сломанной реализацией — swap width/height в обоих оставляет
+          # `--verify-game` и `framework_tilemap_bundle_test` зелёными и меняет это число.
+          grep -q "hash 0xcd034f07f57b5f8b" phys_framework_tilemap_bake_test.txt \
+            || { echo "TILEMAP TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
       # цену, а не правильность. Утверждает он счётчики работы — величины детерминированные и
@@ -1072,7 +1080,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1094,7 +1102,8 @@ jobs:
                    framework_physics_depth_test framework_trig_test framework_character_test \
                    framework_character_window_test framework_character_jump_test \
                    framework_character_tunnel_test framework_character_profile_test \
-                   framework_character_profile_refusal_test; do
+                   framework_character_profile_refusal_test \
+                   framework_tilemap_bake_test framework_tilemap_refusal_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1116,6 +1125,10 @@ jobs:
           # расхождение -O0 с -O3 здесь означало бы UB ровно по основанию трёх голденов выше.
           grep -q "tilemap answers hash = 0xb19419157787b1c3" dbg_framework_tilemap_test.txt \
             || { echo "TILEMAP DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Таблица карт собирается тем же разбором числа по int64, что и профиль выше: расхождение
+          # -O0 с -O3 на ней означало бы UB, а не «другие байты».
+          grep -q "hash 0xcd034f07f57b5f8b" dbg_framework_tilemap_bake_test.txt \
+            || { echo "TILEMAP TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'
@@ -1227,15 +1240,33 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp"
-          c++ $SAN -Iengine/framework/tilemap $LIB $TILES \
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_text.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
+          # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
+          # этом шаге не участвует, и цепочка собирается поимённо.
+          TILES_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp"
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
             engine/framework/tilemap/framework_tilemap_test.cpp $PLAT -o tiles_san
           ./tiles_san | tee tilessan.txt
           grep -q "tilemap answers hash = 0xb19419157787b1c3" tilessan.txt
-          c++ $SAN -Iengine/framework/tilemap $LIB $TILES \
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
             engine/framework/tilemap/framework_tilemap_seam_test.cpp $PLAT -o tiles_seam_san
           ./tiles_seam_san | tee tilesseamsan.txt
           grep -q ": PASS" tilesseamsan.txt
+          # Пекарь и читатель таблицы ложатся сюда по СВОЕМУ основанию: обе стороны считают
+          # смещения в плоский байтовый блок, и промах на запись читается как валидный `uint32_t` —
+          # соседнее поле, а не сегфолт. Голден на такое молчит, пока промах остаётся внутри своих
+          # же байт, и увидеть его может только санитайзер.
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
+            engine/framework/tilemap/framework_tilemap_bake_test.cpp $PLAT -o tiles_bake_san
+          ./tiles_bake_san | tee tilesbakesan.txt
+          grep -q "hash 0xcd034f07f57b5f8b" tilesbakesan.txt
+          # Отказы — вторая половина того же вопроса: испорченная таблица разбирается ЧИТАТЕЛЕМ, то
+          # есть чтение идёт по заведомо неверным смещениям. Без санитайзера «отбито проверкой» и
+          # «прочитано мимо, но повезло» дают одинаково зелёный прогон.
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
+            engine/framework/tilemap/framework_tilemap_refusal_test.cpp $PLAT -o tiles_refusal_san
+          ./tiles_refusal_san | tee tilesrefusalsan.txt
+          grep -q ": PASS" tilesrefusalsan.txt
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'
