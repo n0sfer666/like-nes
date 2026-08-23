@@ -12,6 +12,7 @@ from pathlib import Path
 # и каталога scripts/ в sys.path тогда нет.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from ci_lint_lists import check as check_lists  # noqa: E402
 from ci_lint_rules import RULES  # noqa: E402
 from ci_workflow import parse  # noqa: E402
 
@@ -45,8 +46,16 @@ def main(argv):
         # проект без CI, и «0 находок» тут значит «ничего не проверено».
         print(f"ci-lint: FAIL — в {workflows} не найдено ни одного workflow")
         return 1
-    findings = [f for p in files
-                for f in lint(p.relative_to(root).as_posix(), p.read_text(encoding="utf-8"))]
+    rel = [p.relative_to(root).as_posix() for p in files]
+
+    def read(path):
+        target = root / path
+        return target.read_text(encoding="utf-8") if target.is_file() else None
+
+    findings = [f for p in rel for f in lint(p, read(p))]
+    # Сверка руками написанных списков с их источником правды: она читает ДВА файла разом и
+    # шагом workflow не ограничена, поэтому в общий проход правил не встраивается.
+    findings += check_lists(rel, read)
     for finding in findings:
         print(finding)
     print(f"ci-lint: {'FAIL' if findings else 'PASS'} — "

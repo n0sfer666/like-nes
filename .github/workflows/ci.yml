@@ -1064,6 +1064,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
+          # ci-lint: mirrors-var scripts/check_goldens.sh STATE_TARGETS
           LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
@@ -1112,6 +1113,9 @@ jobs:
           # и на разных уровнях оптимизации оно проявляется по-разному. Один уровень доказывал бы
           # только про себя.
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform -Iengine/framework/core -Iengine/framework/physics"
+          # Список единиц трансляции здесь свой, не CMake-овский, и однажды он уже отстал от
+          # цели на один файл — линковка упала на раннере, когда всё локальное было зелёным.
+          # ci-lint: mirrors-target engine/framework/physics/CMakeLists.txt framework_physics
           LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
           PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
