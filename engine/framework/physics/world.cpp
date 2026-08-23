@@ -23,6 +23,7 @@ World::World(uint32_t capacity) {
     // проверяется он не намерением, а счётчиком `operator new` вокруг вызова `step()`.
     const size_t pairs = static_cast<size_t>(capacity) * PAIR_BUDGET_PER_BODY;
     bodies_.reserve(capacity);
+    queries_.reserve(capacity);
     pairs_.reserve(pairs);
     manifolds_.reserve(pairs);
     triggers_.reserve(pairs);
@@ -47,6 +48,10 @@ BodyId World::add(const BodyDesc& d) {
     }
     const BodyId id{static_cast<uint32_t>(bodies_.size())};
     bodies_.push_back(make_body(d));
+    // Новое тело — тоже протухание индекса, и забыть эту строку страшнее, чем строку в `mutate`:
+    // отставший на правку индекс отвечает про старое положение, отставший на добавление не отвечает
+    // про тело ВОВСЕ, то есть запрос его не видит.
+    queries_.invalidate();
     return id;
 }
 
@@ -59,6 +64,10 @@ void World::step(fix32 dt) {
     // «работа последнего шага» обязана начинаться с нуля целиком, иначе счётчик, чью ветку шаг не
     // прошёл, донёс бы число предыдущего кадра — и гейт прочитал бы его как работу этого.
     counters_.reset();
+    // Шаг двигает тела, значит индекс запросов после него описывает прошлый кадр.
+    // Помечается ЗДЕСЬ, а не в конце: шаг вправе оборваться на любой строке ниже, и
+    // пометка в конце пропустила бы ровно тот случай, где мир остался на полпути.
+    queries_.invalidate();
     counters_.broad_candidates = broad_.build(bodies_, pairs_);
     counters_.pairs = pairs_.size();
     rest_.wake_touched(bodies_, pairs_, islands_);

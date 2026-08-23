@@ -145,7 +145,7 @@ void test_role_change() {
         w.step(DT);
         if (w.events().empty() || w.events()[0].phase != ContactPhase::Stay) continue;
 
-        w.body(BodyId{1}).trigger = false;
+        w.mutate(BodyId{1}).trigger = false;
         w.step(DT);
         check(w.events().size() == 2, "flipping the role splits the frame into two events");
         if (w.events().size() != 2) return;

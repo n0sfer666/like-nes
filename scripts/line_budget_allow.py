@@ -57,6 +57,10 @@ ALLOW = {
     "engine/framework/input/framework_input_probe.cpp": (
         229, "single",
         "один кадровый цикл живой пробы: шаги читаются подряд и вне цикла не существуют"),
+    "engine/framework/physics/framework_physics_index_test.cpp": (
+        238, "data",
+        "перечисление утверждений об индексе и есть содержание гейта: шесть сцен, каждая — своя "
+        "дверь протухания или свой конец меры цены, и ни одна не зовётся дважды"),
     "engine/framework/physics/framework_physics_terms_test.cpp": (
         217, "data",
         "перечисление тождеств решателя и есть содержание теста"),
