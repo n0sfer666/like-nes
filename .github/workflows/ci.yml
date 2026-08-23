@@ -302,7 +302,8 @@ jobs:
 
       # Бандл игры закоммичен готовым, и перепечь его целиком на раннере нечем: текстурная секция
       # тянет tint и basisu, которых тут нет. Сверяются секции, что пекутся чистыми парсерами —
-      # правка input.txt или achievements.txt без перепекания иначе доезжает молча, а на бандле
+      # правка input.txt, achievements.txt или movement.txt без перепекания иначе доезжает молча,
+      # а на бандле
       # стоят и игра-образец, и sim-golden. Гейт несёт собственный позитивный контроль: испорченная
       # копия таблицы обязана быть отбита тем же сравнением, иначе он зелен вакуумно.
       - name: Asset — committed game.bundle matches its sources (tool-free sections, all OS)
@@ -315,7 +316,7 @@ jobs:
           # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
           # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
           # с числом: список секций растёт осознанно, вместе с этой строкой.
-          grep -q "verify: PASS - 2 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
+          grep -q "verify: PASS - 3 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
@@ -999,7 +1000,10 @@ jobs:
                    framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
-                   framework_physics_depth_test; do
+                   framework_physics_depth_test framework_character_test framework_character_window_test \
+                   framework_character_jump_test framework_character_tunnel_test \
+                   framework_character_alloc_test framework_character_profile_test \
+                   framework_character_profile_refusal_test framework_character_bundle_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "phys_$T.txt"
@@ -1007,8 +1011,17 @@ jobs:
           done
           # Гейт 1 отдельной строкой, а не общим PASS: сам тест сверяет эталон изнутри, но в логе
           # CI обязано быть видно ЗНАЧЕНИЕ, иначе расследование расхождения начинается с пересборки.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" phys_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" phys_framework_physics_test.txt \
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Гейт 1 спеки #16 той же строкой и по той же причине: траектория персонажа — второй
+          # голден, идущий через три ОС, и его ЗНАЧЕНИЕ обязано быть в логе рядом с физическим.
+          grep -q "character trajectory hash = 0x842d3b6aedccd477" phys_framework_character_test.txt \
+            || { echo "CHARACTER TRAJECTORY GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
+          # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
+          # полей в пекаре и читателе, а `game.bundle` в git — нет.
+          grep -q "hash 0x781caa6f9eac13a7" phys_framework_character_profile_test.txt \
+            || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
       # цену, а не правильность. Утверждает он счётчики работы — величины детерминированные и
@@ -1050,7 +1063,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1066,7 +1079,10 @@ jobs:
                    framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
-                   framework_physics_depth_test framework_trig_test; do
+                   framework_physics_depth_test framework_trig_test framework_character_test \
+                   framework_character_window_test framework_character_jump_test \
+                   framework_character_tunnel_test framework_character_profile_test \
+                   framework_character_profile_refusal_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1074,8 +1090,16 @@ jobs:
           done
           # Тот же литерал, что у Release-шага выше, и это весь смысл шага: сверять Debug-прогон с
           # самим собой значило бы проверять, что -O0 воспроизводим, а не что он согласен с -O3.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" dbg_framework_physics_test.txt \
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" dbg_framework_physics_test.txt \
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Траектория персонажа обязана совпасть между -O0 и -O3 по тому же основанию: расхождение
+          # уровней оптимизации в целочисленной арифметике это UB, а не погрешность.
+          grep -q "character trajectory hash = 0x842d3b6aedccd477" dbg_framework_character_test.txt \
+            || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
+          # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
+          grep -q "hash 0x781caa6f9eac13a7" dbg_framework_character_profile_test.txt \
+            || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'
@@ -1092,7 +1116,7 @@ jobs:
           ./phys_san | tee physsan.txt
           # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
           # но и досчитать до того же состояния.
-          grep -q "physics-state-hash = 0xe243e1457a11f65e" physsan.txt
+          grep -q "physics-state-hash = 0xf238d0bc34325db6" physsan.txt
           c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
           ./phys_order_san | tee physordersan.txt
           grep -q ": PASS" physordersan.txt
@@ -1138,6 +1162,17 @@ jobs:
           c++ $SAN $LIB engine/framework/physics/framework_physics_terms_test.cpp $PLAT -o phys_terms_san
           ./phys_terms_san | tee phystermssan.txt
           grep -q ": PASS" phystermssan.txt
+          # Гейт 1 спеки #16 под тем же санитайзером и по тому же основанию, что и голден физики:
+          # путь состояния персонажа считает `profile.cpp` СЫРЫМИ int64 (`2 * g.raw * h.raw` под
+          # целочисленным корнем), то есть ровно там, где знаковое переполнение — UB, а не большое
+          # число. Голден на -O3 такое пропускает молча: компилятор вправе выкинуть проверку, и
+          # хеш при этом остаётся стабильным на всех трёх ОС. Сверяется ЗНАЧЕНИЕ, а не PASS, —
+          # санитайзерный прогон обязан досчитать до того же эталона.
+          CHAR="engine/framework/character/controller.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/trajectory.cpp"
+          c++ $SAN -Iengine/framework/character $LIB $CHAR \
+            engine/framework/character/framework_character_test.cpp $PLAT -o char_san
+          ./char_san | tee charsan.txt
+          grep -q "character trajectory hash = 0x842d3b6aedccd477" charsan.txt
           # Свип (гейт 4) — единственный ИТЕРАТИВНЫЙ код модуля: доля пути растёт делением на
           # сближение, и оба конца этого частного подведены к насыщению на касательном пути, где
           # сближение стремится к нулю. Санитайзеру тут есть что сказать, чего не скажет ни голден,

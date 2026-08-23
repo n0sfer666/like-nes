@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "../../engine/achievements/bake.hpp"
+#include "../../engine/framework/character/profile_bake.hpp"
 #include "../../engine/framework/input/preset_bake.hpp"
 #include "format.hpp"
 #include "platform_fs.hpp"
@@ -133,6 +134,28 @@ bool input_presets(const std::string& src, std::vector<AssetInput>& out) {
     }
     AssetInput a;
     a.guid = guid_of("input");
+    a.type = AssetType::Raw;
+    a.codec = Codec::Raw;
+    a.residency = Residency::Mmap;
+    a.uncompressed_size = static_cast<uint32_t>(table.size());
+    a.payload = std::move(table);
+    out.push_back(std::move(a));
+    return true;
+}
+
+// Профиль движения (спека #16): тот же zero-parse шов, что у пресетов. Настройка ОЩУЩЕНИЯ правится
+// десятками итераций подряд, и пересборка движка на каждую правку высоты прыжка убивает сам цикл
+// подбора — поэтому профиль едет данными; guid = fnv1a("movement").
+bool movement(const std::string& src, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    framework::character::ProfileBakeError err;
+    if (!framework::character::bake_profiles_file(src, table, err)) {
+        std::fprintf(stderr, "[assetc] movement %s: line %d: %s\n", src.c_str(), err.line,
+                     err.message.c_str());
+        return false;
+    }
+    AssetInput a;
+    a.guid = guid_of("movement");
     a.type = AssetType::Raw;
     a.codec = Codec::Raw;
     a.residency = Residency::Mmap;

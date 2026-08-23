@@ -109,6 +109,63 @@ for broken in always_green ignores_count red_loses_to_pending; do
     fi
 done
 
+# --- сколько прогонов ждать ---------------------------------------------------------------------
+# Число прогонов раньше стояло константой `2` («на push идут ci и dco») и было неверным: `dco.yml`
+# подписан только на `pull_request`. Проверяется поэтому не «сколько получилось», а РАЗБОР триггеров
+# на фикстурах тех же трёх форм, что лежат в дереве.
+WF_OK=$(mktemp -d)
+WF_BAD=$(mktemp -d)
+trap 'rm -rf "$WF_OK" "$WF_BAD"' EXIT
+
+printf 'on:\n  push:\n  pull_request:\njobs:\n  a:\n    runs-on: ubuntu-latest\n' >"$WF_OK/ci.yml"
+printf 'on:\n  pull_request:\n    types: [opened, synchronize]\n' >"$WF_OK/dco.yml"
+printf "on:\n  push:\n    tags:\n      - 'v*'\n  workflow_dispatch:\n" >"$WF_OK/release.yml"
+printf 'on: [push]\n' >"$WF_BAD/inline.yml"
+
+ok 1 "$(expected_runs push "$WF_OK")" "push: тег-фильтр не делает workflow подписчиком push'а ветки"
+ok 2 "$(expected_runs pull_request "$WF_OK")" "pull_request: подписаны оба, ci и dco"
+ok 0 "$(expected_runs schedule "$WF_OK")" "событие без подписчиков — честный ноль, а не отказ"
+if expected_runs push "$WF_BAD" >/dev/null 2>&1; then
+    printf 'FAIL инлайновый «on: [push]» разобран числом — «не понял» выдано за ответ\n'
+    fails=$((fails + 1))
+else
+    ok 1 1 "неразобранная форма «on:» отказывается числом, а не отдаёт молчаливый ноль"
+fi
+
+# Позитивный контроль на ЖИВОМ дереве: ровно то утверждение, на котором наблюдатель врал сорок
+# минут. Разъедется дерево с этими числами — расходится не гейт, а знание о том, чего ждать.
+ok 1 "$(expected_runs push "$DIR/../.github/workflows")" "в дереве на push подписан один workflow"
+ok 2 "$(expected_runs pull_request "$DIR/../.github/workflows")" "а на pull_request — два"
+
+# Сломанные реализации счёта. Первая — та самая константа, вторая — разбор, не заметивший фильтра
+# по тегам: обе дают на pull_request правильную двойку и расходятся ровно на push.
+counts_ok() {
+    [ "$("$1" push "$WF_OK")" = 1 ] && [ "$("$1" pull_request "$WF_OK")" = 2 ]
+}
+constant_two() {
+    : "$1" "$2"
+    printf '2'
+}
+ignores_tag_filter() {
+    local event=$1 dir=$2 total=0 f
+    for f in "$dir"/*.yml; do
+        grep -q "^  $event:" "$f" && total=$((total + 1))
+    done
+    printf '%s' "$total"
+}
+counts_ok expected_runs || {
+    printf 'FAIL честный счёт по триггерам не проходит собственные фикстуры\n'
+    fails=$((fails + 1))
+}
+for broken in constant_two ignores_tag_filter; do
+    if counts_ok "$broken"; then
+        printf 'FAIL фикстуры пропустили сломанный счёт %s — ждать он будет не тех прогонов\n' "$broken"
+        fails=$((fails + 1))
+    else
+        printf 'ok   сломанный счёт %s отбит\n' "$broken"
+    fi
+done
+
 if [ "$fails" -ne 0 ]; then
     printf '\nci-watch-selftest: FAIL — проверок с находками %d\n' "$fails"
     exit 1

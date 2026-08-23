@@ -24,6 +24,7 @@ struct Section {
 const Section SECTIONS[] = {
     {"input presets", "/input.txt", bakers::input_presets},
     {"achievements", "/achievements.txt", bakers::achievements},
+    {"movement", "/movement.txt", bakers::movement},
 };
 
 // Расхождение называется по виду, а не одним словом STALE: перепекание снимает разошедшиеся байты,

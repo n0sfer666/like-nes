@@ -1,9 +1,12 @@
+#include <cstddef>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
 #include "platform_args.hpp"
 #include "preset_bake.hpp"
+#include "preset_format.hpp"
 #include "presets.hpp"
 
 // Что бейк обязан ОТБИТЬ — и что он обязан пропустить.
@@ -95,6 +98,41 @@ int main(int argc, char** argv) {
     check(bake_presets("preset | p\nshape | move_x | 0.1 | 1.0 | 1 | -\n"
                        "axis | move_x | key:d | key:a\n", ignored, err),
           "a shape written before its axis still attaches: shapes are applied at the preset's end");
+
+    // Отказы ЧИТАТЕЛЯ — тот же класс поломки, только предметом ему служат байты секции, а не текст
+    // манифеста: порченый бандл обязан не открыться, а не читаться как чужая память.
+    std::vector<uint8_t> blob;
+    if (!bake_presets("preset | p\naxis | move_x | key:d | key:a\n", blob, err)) {
+        std::printf("  FAIL: the reader fixture did not bake\n");
+        ++fails;
+    }
+    PresetTable good;
+    check(good.open(blob.data(), blob.size()), "the untouched table is the positive control");
+    PresetTable bad;
+    std::vector<uint8_t> broken;
+    // Смещение таблицы проверяется снизу и на выравнивание, а не только на «влезает». Нулевое
+    // кладёт строки поверх заголовка; нечётное даёт `reinterpret_cast` мимо границы. Фикстура
+    // невыровненности собрана сдвигом СОДЕРЖИМОГО вместе со всеми смещениями заголовка — правка
+    // одного поля отбивается проверкой размера, и утверждение вышло бы вакуумным.
+    broken = blob;
+    const uint32_t zero = 0;
+    std::memcpy(broken.data() + offsetof(PresetHeader, presets_offset), &zero, sizeof(zero));
+    check(!bad.open(broken.data(), broken.size()), "a table overlapping the header is rejected");
+    broken = blob;
+    broken.insert(broken.begin() + sizeof(PresetHeader), 2, 0);
+    for (std::size_t at : {offsetof(PresetHeader, presets_offset),
+                           offsetof(PresetHeader, actions_offset),
+                           offsetof(PresetHeader, axes_offset),
+                           offsetof(PresetHeader, bindings_offset),
+                           offsetof(PresetHeader, pads_offset),
+                           offsetof(PresetHeader, strings_offset),
+                           offsetof(PresetHeader, total_size)}) {
+        uint32_t v = 0;
+        std::memcpy(&v, broken.data() + at, sizeof(v));
+        v += 2;
+        std::memcpy(broken.data() + at, &v, sizeof(v));
+    }
+    check(!bad.open(broken.data(), broken.size()), "a misaligned table offset is rejected");
 
     const bool pass = (fails == 0);
     std::printf("framework-preset-refusal: %s\n", pass ? "PASS" : "FAIL");
