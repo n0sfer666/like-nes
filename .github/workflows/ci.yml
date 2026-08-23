@@ -997,6 +997,7 @@ jobs:
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
+                   framework_physics_corner_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1016,7 +1017,7 @@ jobs:
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Гейт 1 спеки #16 той же строкой и по той же причине: траектория персонажа — второй
           # голден, идущий через три ОС, и его ЗНАЧЕНИЕ обязано быть в логе рядом с физическим.
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" phys_framework_character_test.txt \
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" phys_framework_character_test.txt \
             || { echo "CHARACTER TRAJECTORY GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
           # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
@@ -1065,7 +1066,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_goldens.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1078,6 +1079,7 @@ jobs:
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test \
+                   framework_physics_corner_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1097,7 +1099,7 @@ jobs:
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Траектория персонажа обязана совпасть между -O0 и -O3 по тому же основанию: расхождение
           # уровней оптимизации в целочисленной арифметике это UB, а не погрешность.
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" dbg_framework_character_test.txt \
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" dbg_framework_character_test.txt \
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
@@ -1178,7 +1180,7 @@ jobs:
           c++ $SAN -Iengine/framework/character $LIB $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" charsan.txt
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" charsan.txt
           # Свип (гейт 4) — единственный ИТЕРАТИВНЫЙ код модуля: доля пути растёт делением на
           # сближение, и оба конца этого частного подведены к насыщению на касательном пути, где
           # сближение стремится к нулю. Санитайзеру тут есть что сказать, чего не скажет ни голден,
