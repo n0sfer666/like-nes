@@ -58,6 +58,9 @@ target_link_libraries(framework_physics_clamp_test PRIVATE framework_physics pla
 add_executable(framework_physics_query_test framework_physics_query_test.cpp)
 target_link_libraries(framework_physics_query_test PRIVATE framework_physics platform_core)
 
+add_executable(framework_physics_corner_test framework_physics_corner_test.cpp)
+target_link_libraries(framework_physics_corner_test PRIVATE framework_physics platform_core)
+
 # Перекрытие области — третий вид запроса и своя цель. Вопрос у него не «когда коснёмся», а «кто
 # здесь сейчас»: ответ не одиночный, а СПИСОК, и у списка есть собственный контракт — порядок по
 # ключу и очистка приёмника. В общей цели со свипами упавший порядок назывался бы «запросы сломаны».

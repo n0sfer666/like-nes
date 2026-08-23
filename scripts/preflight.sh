@@ -6,7 +6,8 @@
 # иначе экономия превращается в ту же последовательность кругов, только локальную.
 #
 # Здесь живёт ПОРЯДОК и условия этапов, а не сами проверки: тела, доросшие до собственного имени,
-# вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`) и зовутся как внешние команды. Так
+# вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`, `check_debug_golden.sh`) и зовутся как
+# внешние команды. Так
 # каждую можно прогнать по одной, не выбирая между «весь preflight» и «руками из истории шелла».
 set -uo pipefail
 
@@ -78,7 +79,7 @@ if command -v shellcheck >/dev/null; then
     # шаг выглядит сломанным ДЕРЕВОМ, а не сломанным скриптом.
     stage "shellcheck скриптов гейтов" \
         shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
-                   scripts/check_dco.sh scripts/check_goldens.sh \
+                   scripts/check_dco.sh scripts/check_goldens.sh scripts/check_debug_golden.sh \
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
                    scripts/tree_invariants.sh \
                    scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh \

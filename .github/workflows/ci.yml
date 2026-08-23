@@ -997,6 +997,8 @@ jobs:
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
+                   framework_physics_corner_test \
+                   framework_tilemap_test framework_tilemap_seam_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1016,13 +1018,18 @@ jobs:
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Гейт 1 спеки #16 той же строкой и по той же причине: траектория персонажа — второй
           # голден, идущий через три ОС, и его ЗНАЧЕНИЕ обязано быть в логе рядом с физическим.
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" phys_framework_character_test.txt \
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" phys_framework_character_test.txt \
             || { echo "CHARACTER TRAJECTORY GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
           # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
           # полей в пекаре и читателе, а `game.bundle` в git — нет.
           grep -q "hash 0x781caa6f9eac13a7" phys_framework_character_profile_test.txt \
             || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Четвёртый голден шага — свёртка ответов трёх запросов к тайловой сетке (гейт шага A
+          # вертикали 2 спеки #16). В логе по той же причине: расхождение обязано называть себя
+          # значением, а не «тест упал».
+          grep -q "tilemap answers hash = 0xb19419157787b1c3" phys_framework_tilemap_test.txt \
+            || { echo "TILEMAP ANSWERS GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
       # цену, а не правильность. Утверждает он счётчики работы — величины детерминированные и
@@ -1051,7 +1058,7 @@ jobs:
       # право компилятора выкинуть проверку, а не «погрешность». Санитайзерный шаг ниже гоняет
       # -O1 и только на Linux; здесь -O0 на всех трёх ОС.
       #
-      # Список целей ОБЯЗАН совпадать со `STATE_TARGETS` в `scripts/check_goldens.sh`: он собран руками в
+      # Список целей ОБЯЗАН совпадать со `STATE_TARGETS` в `scripts/check_debug_golden.sh`: он собран руками в
       # двух местах, и разъехавшись, тихо оставляет цель без Debug-прогона на той стороне, где её
       # забыли. Гейт 8 (`framework_physics_perf_test`) в нём потому, что его эталон счётчиков — такой
       # же голден, только сверяет он ЧИСЛО работы, а не хеш состояния; на MSVC и gcc это
@@ -1064,8 +1071,8 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          # ci-lint: mirrors-var scripts/check_goldens.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
+          # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1078,6 +1085,8 @@ jobs:
           for T in framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test \
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test \
+                   framework_physics_corner_test \
+                   framework_tilemap_test framework_tilemap_seam_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1097,12 +1106,16 @@ jobs:
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Траектория персонажа обязана совпасть между -O0 и -O3 по тому же основанию: расхождение
           # уровней оптимизации в целочисленной арифметике это UB, а не погрешность.
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" dbg_framework_character_test.txt \
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" dbg_framework_character_test.txt \
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
           grep -q "hash 0x781caa6f9eac13a7" dbg_framework_character_profile_test.txt \
             || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Ответы сетки складываются из долей и точек, то есть из той же арифметики fix32:
+          # расхождение -O0 с -O3 здесь означало бы UB ровно по основанию трёх голденов выше.
+          grep -q "tilemap answers hash = 0xb19419157787b1c3" dbg_framework_tilemap_test.txt \
+            || { echo "TILEMAP DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'
@@ -1178,7 +1191,7 @@ jobs:
           c++ $SAN -Iengine/framework/character $LIB $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
-          grep -q "character trajectory hash = 0x842d3b6aedccd477" charsan.txt
+          grep -q "character trajectory hash = 0xb8a964e87679bce4" charsan.txt
           # Свип (гейт 4) — единственный ИТЕРАТИВНЫЙ код модуля: доля пути растёт делением на
           # сближение, и оба конца этого частного подведены к насыщению на касательном пути, где
           # сближение стремится к нулю. Санитайзеру тут есть что сказать, чего не скажет ни голден,
@@ -1206,6 +1219,23 @@ jobs:
             "./phys_${T}_san" | tee "phys${T}san.txt"
             grep -q ": PASS" "phys${T}san.txt"
           done
+          # Вертикаль 2, шаг A. Вопрос у санитайзера здесь опять свой: сетка ПЛОСКАЯ, тайл берётся
+          # по `y * width + x` из одного вектора, а окно зонда считается делением координат на
+          # размер тайла и отсекается по карте. Промах отсечения на единицу читает соседний
+          # `TileFlags` — валидный `uint16_t`, — и голден на это молчит по устройству ответа: лишний
+          # тайл либо пуст, либо отсеивается геометрией, то есть на ответе не виден. Сцены гейта
+          # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
+          # то есть ровно там, где такой промах и живёт.
+          # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp"
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES \
+            engine/framework/tilemap/framework_tilemap_test.cpp $PLAT -o tiles_san
+          ./tiles_san | tee tilessan.txt
+          grep -q "tilemap answers hash = 0xb19419157787b1c3" tilessan.txt
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES \
+            engine/framework/tilemap/framework_tilemap_seam_test.cpp $PLAT -o tiles_seam_san
+          ./tiles_seam_san | tee tilesseamsan.txt
+          grep -q ": PASS" tilesseamsan.txt
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'
