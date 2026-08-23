@@ -12,6 +12,11 @@
 // Хитбокс при этом берётся ОБЩИЙ (`make_hull`): персонаж у всех гейтов один, и «не прошёл сквозь
 // стену» на другом размере коробки не говорило бы о том персонаже, чей голден пинится рядом.
 //
+// Стена и угол выложены ТАЙЛАМИ (вертикаль 3): с переездом контроллера на сетку инвариант 2 обязан
+// держаться там, где персонаж теперь и бегает. Телесная половина того же вопроса закрыта гейтами
+// свипа #15 — здесь она была бы повторением чужого утверждения. Мира тел в сцене нет вовсе, то есть
+// заодно прогоняется сцена с одним источником (`collision.hpp`: указатели опциональны).
+//
 // Гейт несёт ПОЗИТИВНЫЙ КОНТРОЛЬ и без него был бы вакуумным: «персонаж не прошёл сквозь стену»
 // одинаково верно и для стены, которую невозможно пробить, и для стены, до которой он не долетел.
 // Контроль — телепорт, то есть движение БЕЗ шейпкаста: он обязан пройти насквозь той же сценой и
@@ -38,16 +43,13 @@ constexpr fix32 WALL_X = fix32::from_int(200);
 // движением «сдвинуть и проверить».
 constexpr fix32 WALL_HALF = fix32::from_float(0.25);
 
-physics::World make_thin_wall() {
-    physics::World w(4);
-    w.set_gravity({fix32{}, fix32{}});
-    physics::BodyDesc d;
-    d.key = 1;
-    d.type = physics::BodyType::Static;
-    d.shape = physics::box(WALL_HALF, fix32::from_int(200));
-    d.position = {WALL_X, fix32{}};
-    w.add(d);
-    return w;
+// Столбик в один тайл шириной: размер тайла и есть толщина стены, поэтому «тоньше пути за тик»
+// остаётся утверждением о стене, а не о раскладке сетки.
+tilemap::TileGrid make_thin_wall() {
+    tilemap::TileGrid g({WALL_X - WALL_HALF, fix32::from_int(-200)}, WALL_HALF * fix32::from_int(2),
+                        1, 800);
+    g.fill(0, 0, 1, 800, tilemap::TILE_SOLID);
+    return g;
 }
 
 MoveProfile flying_profile() {
@@ -65,7 +67,8 @@ MoveProfile flying_profile() {
 void test_sweep_stops_at_the_wall() {
     const MoveProfile p = flying_profile();
     const MoveDerived d = derive(p, tick_dt());
-    physics::World w = make_thin_wall();
+    tilemap::TileGrid g = make_thin_wall();
+    const CollisionScene s{nullptr, &g};
     const CharacterHull hull = make_hull();
     Character c;
     c.position = {fix32::from_int(-40), fix32{}};
@@ -73,7 +76,7 @@ void test_sweep_stops_at_the_wall() {
     for (uint32_t t = 0; t < 60; ++t) {
         MoveInput in;
         in.move_x = fix32::from_int(1);
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         top_speed = max_fix(top_speed, c.velocity.x);
         // Сверять с ЦЕНТРОМ стены значило бы разрешить восемь юнитов проникновения: у хитбокса
         // полуширина 8, и «центр не пересечён» верно ещё и когда персонаж наполовину в стене.
@@ -92,7 +95,7 @@ void test_sweep_stops_at_the_wall() {
 
 void test_teleport_control_passes_through() {
     const MoveProfile p = flying_profile();
-    physics::World w = make_thin_wall();
+    const tilemap::TileGrid g = make_thin_wall();
     const CharacterHull hull = make_hull();
     Vec2 position = {fix32::from_int(-40), fix32{}};
     const Vec2 travel = {p.max_speed * tick_dt(), fix32{}};
@@ -101,10 +104,9 @@ void test_teleport_control_passes_through() {
         // Тот самый «сдвинуть и проверить»: позиция меняется без свипа, столкновение ищется уже
         // ПОСЛЕ сдвига. Именно так стена и теряется.
         position = position + travel;
-        physics::QueryFilter f;
-        f.mask = hull.mask;
-        std::vector<physics::Overlap> hits;
-        physics::overlap_shape(w, hull.shape, position, fix32{}, f, hits);
+        tilemap::TileFilter f;
+        std::vector<tilemap::TileOverlap> hits;
+        tilemap::overlap_shape(g, hull.shape, position, fix32{}, f, hits);
         crossed = hits.empty() && WALL_X < position.x;
     }
     check(crossed, "the teleport control does tunnel through the same wall");
@@ -119,36 +121,31 @@ void test_teleport_control_passes_through() {
 // Позитивный контроль внутри самого случая: тот же персонаж, поставленный ровно в допуск свипа
 // вместо зазора, обязан НЕ сдвинуться тем же движением. Без него «сдвинулся на 4 юнита» проверяло
 // бы, что свип вообще работает, а не что зазор что-то держит.
-physics::World make_inner_corner() {
-    physics::World w(4);
-    w.set_gravity({fix32{}, fix32{}});
-    physics::BodyDesc d;
-    d.key = 1;
-    d.type = physics::BodyType::Static;
-    d.shape = physics::box(fix32::from_int(300), fix32::from_int(100));
-    d.position = {fix32::from_int(300), fix32::from_int(100)};
-    w.add(d);
-    d.key = 2;
-    d.shape = physics::box(fix32::from_int(10), fix32::from_int(100));
-    d.position = {fix32::from_int(-10), fix32::from_int(-100)};
-    w.add(d);
-    return w;
+// Те же две грани, что и прежними коробками, юнит в юнит: пол x [0, 600] y [0, 200], стена
+// x [-20, 0] y [-200, 0]. Внутренний угол на сетке — это стык ДВУХ соседних тайлов, а не двух тел,
+// и разбирается он тем же отходом на зазор.
+tilemap::TileGrid make_inner_corner() {
+    tilemap::TileGrid g({fix32::from_int(-20), fix32::from_int(-200)}, fix32::from_int(10), 62, 40);
+    g.fill(0, 0, 2, 20, tilemap::TILE_SOLID);
+    g.fill(2, 20, 62, 40, tilemap::TILE_SOLID);
+    return g;
 }
 
-fix32 travelled(const physics::World& w, const CharacterHull& hull, Vec2 from, Vec2 travel) {
+fix32 travelled(const CollisionScene& s, const CharacterHull& hull, Vec2 from, Vec2 travel) {
     Vec2 position = from;
     Vec2 velocity{};
-    move_and_slide(w, hull, travel, position, velocity);
+    move_and_slide(s, hull, travel, position, velocity);
     Vec2 dir{};
     return normalize(position - from, dir);
 }
 
 void test_corner_clearance() {
-    physics::World w = make_inner_corner();
+    const tilemap::TileGrid g = make_inner_corner();
+    const CollisionScene s{nullptr, &g};
     const CharacterHull hull = make_hull();
     Vec2 position = {fix32::from_int(60), fix32::from_int(-17)};
     Vec2 velocity = {fix32::from_int(-100), fix32::from_int(50)};
-    move_and_slide(w, hull, {fix32::from_int(-100), fix32::from_int(50)}, position, velocity);
+    move_and_slide(s, hull, {fix32::from_int(-100), fix32::from_int(50)}, position, velocity);
 
     // Угол разобран: персонаж стоит на полу у стены, а не внутри них.
     check(HULL_HALF_W < position.x && position.x < HULL_HALF_W + fix32::from_int(1),
@@ -158,8 +155,8 @@ void test_corner_clearance() {
 
     const Vec2 up = {fix32{}, fix32::from_int(-4)};
     const Vec2 away = {fix32::from_int(4), fix32{}};
-    const fix32 rose = travelled(w, hull, position, up);
-    const fix32 slid = travelled(w, hull, position, away);
+    const fix32 rose = travelled(s, hull, position, up);
+    const fix32 slid = travelled(s, hull, position, away);
     std::printf("  corner: up=%.3f, away=%.3f\n", rose.to_double(), slid.to_double());
     check(fix32::from_float(3.9) < rose, "and free to leave the floor");
     check(fix32::from_float(3.9) < slid, "and free to leave the wall");
@@ -167,7 +164,7 @@ void test_corner_clearance() {
     // Контроль: тот же персонаж в ДОПУСКЕ свипа вместо зазора никуда не уезжает.
     const Vec2 pinched = {HULL_HALF_W + physics::CONTACT_SLOP,
                           -HULL_HALF_H - physics::CONTACT_SLOP};
-    const fix32 pinched_up = travelled(w, hull, pinched, up);
+    const fix32 pinched_up = travelled(s, hull, pinched, up);
     std::printf("  pinched control: up=%.3f\n", pinched_up.to_double());
     check(pinched_up < fix32::from_int(1), "the pinched control cannot move at all");
 }

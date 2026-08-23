@@ -27,7 +27,7 @@ fix32 rate_for(fix32 v, fix32 target, fix32 accel, fix32 decel) {
 
 } // namespace
 
-void step(const physics::World& w, const CharacterHull& hull, const MoveProfile& raw,
+void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile& raw,
           const MoveDerived& d, const MoveInput& in, fix32 dt, Character& c) {
     // Профиль приводится в диапазон ЗДЕСЬ, а не «предполагается приведённым». `derive` уже так и
     // делает, и расхождение между двумя входами одной подсистемы было бы ловушкой: профиль,
@@ -86,7 +86,7 @@ void step(const physics::World& w, const CharacterHull& hull, const MoveProfile&
     // неё в неопределённом месте вместо того, чтобы честно упереться в край мира. Физика держит тот
     // же кламп на телах решателя (`world.cpp`), и держать его здесь по-другому было бы расхождением
     // двух путей движения в одном мире.
-    const SlideResult sr = move_and_slide(w, hull, c.velocity * dt, c.position, c.velocity);
+    const SlideResult sr = move_and_slide(s, hull, c.velocity * dt, c.position, c.velocity);
     c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.hit_ceiling = sr.hit_ceiling;
@@ -98,7 +98,7 @@ void step(const physics::World& w, const CharacterHull& hull, const MoveProfile&
     if (c.buffer_left > 0) --c.buffer_left;
 
     // 8. Опора и состояние.
-    c.on_ground = probe_ground(w, hull, c.position);
+    c.on_ground = probe_ground(s, hull, c.position);
     c.state = c.on_ground ? MoveState::Ground : MoveState::Air;
     if (c.on_ground) {
         c.coyote_left = 0;

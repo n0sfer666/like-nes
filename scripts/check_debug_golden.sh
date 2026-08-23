@@ -34,7 +34,7 @@ cd "$ROOT" || exit 1
 # `framework_physics_depth_test` — тоже голден, только предметом его служит ГРАНИЦА: башня
 # заявленной глубины стоит, на ящик глубже валится. Граница ножевая по построению, и уровень
 # оптимизации сдвинул бы её ровно так же, как сдвинул бы хеш.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -73,7 +73,7 @@ debug_golden() {
     fi
     # Траектория персонажа (гейт 1 спеки #16) — второй голден на этом пути, и сверяется он тем же
     # способом: свой литерал, а не «хеш не пуст».
-    if [ "$traj" != "character trajectory hash = 0xb8a964e87679bce4" ]; then
+    if [ "$traj" != "character trajectory hash = 0x7801049c168bb301" ]; then
         echo "Debug разошёлся с Release по голдену траектории: '$traj'"
         rc=1
     fi

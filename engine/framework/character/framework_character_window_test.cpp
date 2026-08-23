@@ -36,7 +36,8 @@ bool rising(const Character& c) { return c.velocity.y.raw < 0; }
 // `delay == 0` означало бы прыжок в тике схода, когда опора ещё есть, — это обычный прыжок, а не
 // прощение, поэтому отсчёт начинается с единицы.
 bool coyote_jump(const MoveProfile& p, const MoveDerived& d, uint32_t delay) {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     Character c = standing_at(LEDGE_RIGHT - fix32::from_int(60));
     uint32_t since_air = 0;
@@ -45,7 +46,7 @@ bool coyote_jump(const MoveProfile& p, const MoveDerived& d, uint32_t delay) {
         MoveInput in;
         in.move_x = fix32::from_int(1);
         in.jump_held = airborne && since_air == delay;
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         if (in.jump_held) return rising(c);
         if (airborne) ++since_air;
         if (!airborne && !c.on_ground) {
@@ -59,14 +60,15 @@ bool coyote_jump(const MoveProfile& p, const MoveDerived& d, uint32_t delay) {
 // Тик, на котором прыжок после падения становится возможен: опора появилась в конце предыдущего
 // тика, и шаг 4 контроллера видит её только в следующем.
 uint32_t landing_tick(const MoveProfile& p, const MoveDerived& d) {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     Character c = standing_at(fix32{});
     c.position.y = c.position.y - fix32::from_int(120);
     c.on_ground = false;
     c.state = MoveState::Air;
     for (uint32_t t = 0; t < 240; ++t) {
-        step(w, hull, p, d, MoveInput{}, tick_dt(), c);
+        step(s, hull, p, d, MoveInput{}, tick_dt(), c);
         if (c.on_ground) return t + 1;
     }
     return 0;
@@ -74,7 +76,8 @@ uint32_t landing_tick(const MoveProfile& p, const MoveDerived& d) {
 
 // Нажать за `ahead` тиков до первого тика с опорой и проверить, дожило ли нажатие до него.
 bool buffered_jump(const MoveProfile& p, const MoveDerived& d, uint32_t landing, uint32_t ahead) {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     Character c = standing_at(fix32{});
     c.position.y = c.position.y - fix32::from_int(120);
@@ -83,7 +86,7 @@ bool buffered_jump(const MoveProfile& p, const MoveDerived& d, uint32_t landing,
     for (uint32_t t = 0; t <= landing; ++t) {
         MoveInput in;
         in.jump_held = (t + ahead == landing);
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         if (t == landing) return rising(c);
     }
     return false;
@@ -112,7 +115,8 @@ void test_buffer_window() {
 // отпущенным. Отсчёт вершины ведётся от позиции в тике приземления.
 fix32 buffered_apex(const MoveProfile& p, const MoveDerived& d, uint32_t landing, uint32_t ahead,
                     bool keep_held) {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     Character c = standing_at(fix32{});
     c.position.y = c.position.y - fix32::from_int(120);
@@ -127,7 +131,7 @@ fix32 buffered_apex(const MoveProfile& p, const MoveDerived& d, uint32_t landing
             start_y = c.position.y;
             top = start_y;
         }
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         if (t < landing) continue;
         top = min_fix(top, c.position.y);
         if (t > landing && c.on_ground) break;

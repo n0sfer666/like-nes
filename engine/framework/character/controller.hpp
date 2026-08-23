@@ -36,7 +36,7 @@ namespace framework::character {
 // требовать приведения только от одного из них значит завести ловушку, срабатывающую от порядка
 // вызовов. Позиция по итогам тика клампится границей мира — за ней Q16.16 насыщается, а насыщенная
 // координата делает мусором любой шейпкаст.
-void step(const physics::World& w, const CharacterHull& hull, const MoveProfile& p,
+void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile& p,
           const MoveDerived& d, const MoveInput& in, fix32 dt, Character& c);
 
 } // namespace framework::character

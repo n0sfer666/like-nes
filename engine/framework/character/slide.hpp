@@ -1,5 +1,5 @@
 #pragma once
-#include "query.hpp"
+#include "collision.hpp"
 #include "state.hpp"
 
 // Движение со скольжением и проба опоры — весь контакт персонажа с миром.
@@ -7,15 +7,10 @@
 // Персонаж двигается ШЕЙПКАСТОМ, а не «сдвинуть и вытолкнуть»: свип #15 не перепрыгивает касание по
 // построению (`cast.hpp`), поэтому тонкая стена не теряется на большой скорости — это инвариант 2
 // спеки #16, и он достаётся даром, а не «при достаточно мелком шаге».
+//
+// Спрашивается СЦЕНА (`collision.hpp`), а не мир тел: с вертикали 3 уровень выложен тайлами, и
+// «персонаж стоит на полу» обязано значить одно и то же, чем бы этот пол ни был выложен.
 namespace framework::character {
-
-// Хитбокс и слои, по которым персонаж считает мир твёрдым. Отдельно от `Character`: состояние
-// хешируется голденом, а форма и маска — описание запроса, и складывать их в одну структуру значит
-// либо тащить 264 байта формы в хеш, либо объяснять в каждом хеше, какие поля он пропускает.
-struct CharacterHull {
-    physics::Shape shape;
-    physics::LayerMask mask = physics::MASK_ALL;
-};
 
 // Зазор до поверхности. СТРОГО больше допуска проникновения физики, и строгость несущая: свип
 // останавливается уже НА `CONTACT_SLOP` (`cast.cpp`), то есть форма, стоящая ровно в допуске,
@@ -57,10 +52,10 @@ struct SlideResult {
 // Сдвинуть на `travel` со скольжением вдоль встреченных поверхностей. Гасит составляющую скорости
 // вдоль нормали касания — ту же, что и составляющую остатка пути: иначе персонаж, упёршийся в пол,
 // накапливал бы скорость падения и при первом же шаге в сторону улетал бы вниз рывком.
-SlideResult move_and_slide(const physics::World& w, const CharacterHull& hull, Vec2 travel,
+SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
                            Vec2& position, Vec2& velocity);
 
 // Есть ли под персонажем опора. Читающая: мир не двигает, состояние не трогает.
-bool probe_ground(const physics::World& w, const CharacterHull& hull, Vec2 position);
+bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position);
 
 } // namespace framework::character
