@@ -4,7 +4,6 @@
 #   debug   — голден физики совпадает в Debug и в Release (инвариант 1 спеки #15);
 #   core    — восемь голденов ядра целы (гейт 2 спеки #11);
 #   bundle  — `game.bundle` сверен с исходниками по секциям без внешних инструментов.
-#
 # Зовётся по ОДНОМУ имени (`check_goldens.sh debug|core|bundle`), как `tree_invariants.sh`: имя
 # упавшей проверки обязано быть в логе, иначе «что-то из трёх разошлось» приходится доразбирать
 # руками. `all` гоняет все три и не даёт первой упавшей скрыть остальные — то же основание, что у
@@ -32,10 +31,14 @@ cd "$ROOT" || exit 1
 # собран руками в двух местах, и разъехавшись, тихо оставляет цель без Debug-прогона на той стороне,
 # где её забыли.
 #
+# `framework_character_profile_refusal_test` — не голден, но путь тот же: номер строки отказа даёт
+# разбор числа по int64, и расхождение -O0 с -O3 на нём было бы UB, а не «другая диагностика». Плюс
+# локально его до сих пор не гонял никто: только Release-цикл CI.
+#
 # `framework_physics_depth_test` — тоже голден, только предметом его служит ГРАНИЦА: башня
 # заявленной глубины стоит, на ящик глубже валится. Граница ножевая по построению, и уровень
 # оптимизации сдвинул бы её ровно так же, как сдвинул бы хеш.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test"
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -44,7 +47,7 @@ debug_golden() {
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
     BUILD_DIR=build-debug LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TYPE=Debug \
         LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
-    local t bin out rc=0 golden="" traj=""
+    local t bin out rc=0 golden="" traj="" baked=""
     for t in $STATE_TARGETS; do
         bin=$(find build-debug -maxdepth 2 -type f -name "$t" | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
@@ -55,6 +58,9 @@ debug_golden() {
         fi
         if [ "$t" = framework_character_test ]; then
             traj=$(printf '%s\n' "$out" | grep -o 'character trajectory hash = 0x[0-9a-f]*')
+        fi
+        if [ "$t" = framework_character_profile_test ]; then
+            baked=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
         fi
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
@@ -67,6 +73,12 @@ debug_golden() {
     # способом: свой литерал, а не «хеш не пуст».
     if [ "$traj" != "character trajectory hash = 0x842d3b6aedccd477" ]; then
         echo "Debug разошёлся с Release по голдену траектории: '$traj'"
+        rc=1
+    fi
+    # Третий голден этого пути — байты испечённого профиля: разбор числа из текста идёт по int64,
+    # то есть ровно там, где расхождение уровней оптимизации означало бы UB, а не погрешность.
+    if [ "$baked" != "hash 0x781caa6f9eac13a7" ]; then
+        echo "Debug разошёлся с Release по голдену таблицы профиля: '$baked'"
         rc=1
     fi
     return $rc
@@ -141,13 +153,13 @@ core_goldens() {
     return $rc
 }
 
-# `game.bundle` лежит в git готовым, и перепечь его ЦЕЛИКОМ негде, кроме машины владельца:
-# текстурная секция тянет tint и basisu. Секции, что пекутся чистыми парсерами, сверяются везде —
-# без этого правка input.txt или achievements.txt без перепекания доезжает молча, а на бандле стоят
-# и игра-образец, и sim-golden.
-# Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из списка SECTIONS,
-# бинарь честно напечатает меньшее число и вернёт ноль. Ассертится строка вместе с числом — тот же
-# критерий, что в шаге CI, чтобы локально и на раннере отбивалось одно и то же.
+# `game.bundle` лежит в git готовым, и перепечь его ЦЕЛИКОМ негде, кроме машины владельца: текстурная
+# секция тянет tint и basisu. Секции, что пекутся чистыми парсерами, сверяются везде — без этого
+# правка input.txt, achievements.txt или movement.txt без перепекания доезжает молча, а на бандле
+# стоят и игра-образец, и sim-golden.
+# Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из SECTIONS, бинарь
+# напечатает меньшее число и вернёт ноль. Поэтому ассертится строка вместе с числом — тем же
+# критерием, что в шаге CI.
 verify_bundle() {
     local out
     out=$(build-ci/assetc --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle) || {
@@ -156,9 +168,18 @@ verify_bundle() {
     }
     printf '%s\n' "$out"
     case $out in
-        *"verify: PASS - 2 tool-free section(s)"*) return 0 ;;
+        *"verify: PASS - 3 tool-free section(s)"*) ;;
         *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
     esac
+    # Второе утверждение о том же бандле, первым не заменяемое: `--verify-game` сверяет БАЙТЫ секции
+    # с перепечённым текстом («бандл отстал от movement.txt»), а тест читает её ЧИТАТЕЛЕМ и сверяет
+    # поля с `default_profile()` — согласованную перестановку полей байтовая сверка переживёт молча.
+    local bin rc
+    bin=$(find build-ci build-full -maxdepth 2 -type f -name framework_character_bundle_test 2>/dev/null | head -1)
+    if [ -z "$bin" ]; then echo "framework_character_bundle_test не собран"; return 1; fi
+    out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?
+    printf '%s\n' "$out"
+    [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -q ": PASS"   # статус наравне с грепом
 }
 
 case ${1:-all} in

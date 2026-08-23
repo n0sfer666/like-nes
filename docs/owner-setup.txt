@@ -234,21 +234,21 @@ Windows: не открывать проект как папку в самой Vi
   ./build/assetc --game example_ugly_game/assets ./rebake.bundle
 
   Должен напечатать:
-    [assetc] bundle_hash = 0xa67f56b681aed040
+    [assetc] bundle_hash = 0xc0b43156b353a0c1
 
   Это тот же хеш, что на macOS. Отличается — значит бейк не детерминирован
   между ОС, и это находка (пришли строку целиком).
 
   Шаг остался ручным ТОЛЬКО из-за текстуры: она требует tint и basisu, а их
   нет ни на раннерах, ни на чистой машине. Секции, которые пекутся чистыми
-  парсерами (input.txt, achievements.txt), с 2026-08-08 сверяются машинно и
-  на трёх ОС:
+  парсерами (input.txt, achievements.txt, movement.txt), с 2026-08-08
+  сверяются машинно и на трёх ОС:
 
     ./build/assetc --verify-game example_ugly_game/assets \
         example_ugly_game/assets/game.bundle
 
   Должен напечатать:
-    [assetc] verify: PASS - 2 tool-free section(s) checked against ...
+    [assetc] verify: PASS - 3 tool-free section(s) checked against ...
 
   Отдельно гонять не надо — это шаг CI и этап preflight. Здесь он назван,
   чтобы `bundle_hash` выше читался как проверка ИМЕННО текстурного бейка.

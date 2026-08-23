@@ -302,7 +302,8 @@ jobs:
 
       # Бандл игры закоммичен готовым, и перепечь его целиком на раннере нечем: текстурная секция
       # тянет tint и basisu, которых тут нет. Сверяются секции, что пекутся чистыми парсерами —
-      # правка input.txt или achievements.txt без перепекания иначе доезжает молча, а на бандле
+      # правка input.txt, achievements.txt или movement.txt без перепекания иначе доезжает молча,
+      # а на бандле
       # стоят и игра-образец, и sim-golden. Гейт несёт собственный позитивный контроль: испорченная
       # копия таблицы обязана быть отбита тем же сравнением, иначе он зелен вакуумно.
       - name: Asset — committed game.bundle matches its sources (tool-free sections, all OS)
@@ -315,7 +316,7 @@ jobs:
           # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
           # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
           # с числом: список секций растёт осознанно, вместе с этой строкой.
-          grep -q "verify: PASS - 2 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
+          grep -q "verify: PASS - 3 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
@@ -1001,7 +1002,8 @@ jobs:
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
                    framework_physics_depth_test framework_character_test framework_character_window_test \
                    framework_character_jump_test framework_character_tunnel_test \
-                   framework_character_alloc_test; do
+                   framework_character_alloc_test framework_character_profile_test \
+                   framework_character_profile_refusal_test framework_character_bundle_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "phys_$T.txt"
@@ -1015,6 +1017,11 @@ jobs:
           # голден, идущий через три ОС, и его ЗНАЧЕНИЕ обязано быть в логе рядом с физическим.
           grep -q "character trajectory hash = 0x842d3b6aedccd477" phys_framework_character_test.txt \
             || { echo "CHARACTER TRAJECTORY GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
+          # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
+          # полей в пекаре и читателе, а `game.bundle` в git — нет.
+          grep -q "hash 0x781caa6f9eac13a7" phys_framework_character_profile_test.txt \
+            || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Гейт 8 отдельным шагом, а не строкой в цикле выше, ровно потому, что он ОДИН здесь мерит
       # цену, а не правильность. Утверждает он счётчики работы — величины детерминированные и
@@ -1056,7 +1063,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_overlap_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_profile_test framework_character_profile_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1074,7 +1081,8 @@ jobs:
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
                    framework_physics_depth_test framework_trig_test framework_character_test \
                    framework_character_window_test framework_character_jump_test \
-                   framework_character_tunnel_test; do
+                   framework_character_tunnel_test framework_character_profile_test \
+                   framework_character_profile_refusal_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1088,6 +1096,10 @@ jobs:
           # уровней оптимизации в целочисленной арифметике это UB, а не погрешность.
           grep -q "character trajectory hash = 0x842d3b6aedccd477" dbg_framework_character_test.txt \
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
+          # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
+          grep -q "hash 0x781caa6f9eac13a7" dbg_framework_character_profile_test.txt \
+            || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'
