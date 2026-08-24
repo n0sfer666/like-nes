@@ -34,6 +34,13 @@ VAR_FULL = 'LIKE_NES_BUILD_TARGETS: "alpha_test beta_test gamma_test"'
 VAR_SHORT = 'LIKE_NES_BUILD_TARGETS: "alpha_test beta_test"'
 VAR_LONG = 'LIKE_NES_BUILD_TARGETS: "alpha_test beta_test gamma_test delta_test"'
 
+# Третья форма списка — цикл `for T in … ; do`, которым написана третья копия целей Debug-шага.
+# Перенос строки здесь не украшение: без сборки хвоста сверка увидела бы только первую строку и
+# объявила бы недостачей всё остальное — то есть падала бы на СОШЕДШЕМСЯ списке.
+FOR_FULL = "for T in alpha_test beta_test \\\n                   gamma_test; do"
+FOR_SHORT = "for T in alpha_test beta_test; do"
+FOR_TAIL_LOST = "for T in alpha_test beta_test \\\n                   gamma_test delta_test; do"
+
 REFS = {"cmake/CMakeLists.txt": CMAKE, "scripts/g.sh": SHELL}
 
 # (правило, название, сломанная пара, починенная пара). Пара — (текст workflow, словарь эталонов).
@@ -52,6 +59,10 @@ CASES = [
      (_flow(FULL), {"cmake/CMakeLists.txt": CMAKE.replace("framework_physics STATIC",
                                                           "framework_phys STATIC")}),
      (_flow(FULL), REFS)),
+    ("list-drift", "цикл `for T in` короче своего эталона в шелле",
+     (_flow(FOR_SHORT, VAR_MARKER), REFS), (_flow(FOR_FULL, VAR_MARKER), REFS)),
+    ("list-drift", "цикл `for T in` несёт цель, которой в эталоне нет",
+     (_flow(FOR_TAIL_LOST, VAR_MARKER), REFS), (_flow(FOR_FULL, VAR_MARKER), REFS)),
     ("list-drift", "маркер стоит, а списка под ним нет",
      (_flow("echo no list here"), REFS), (_flow(FULL), REFS)),
 ]

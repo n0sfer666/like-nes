@@ -35,16 +35,33 @@ from ci_lint_rules import Finding
 
 MARKER = re.compile(r"#\s*ci-lint:\s*mirrors-(target|var|group)\s+(\S+)(?:\s+(\S+))?")
 ASSIGN = re.compile(r"^\s*([A-Za-z_][\w-]*)\s*[:=]\s*\"([^\"]*)\"")
+FOR_HEAD = re.compile(r"^\s*for\s+([A-Za-z_]\w*)\s+in\s+(.*)$")
 SOURCE = re.compile(r".+\.(?:c|cc|cpp|mm)$")
 CMAKE_KEYWORDS = frozenset({"STATIC", "SHARED", "MODULE", "OBJECT", "INTERFACE", "ALIAS",
                             "IMPORTED", "EXCLUDE_FROM_ALL", "WIN32", "MACOSX_BUNDLE"})
 RULE = "list-drift"
 
 
+def for_tokens(lines, start, head):
+    """Слова цикла `for X in …`, собранные через переносы строки. Хвост `; do` не элемент списка,
+    и сам перенос тоже: без их отсева сверка нашла бы расхождение на каждой копии разом."""
+    body = head
+    k = start
+    while body.rstrip().endswith("\\") and k + 1 < len(lines):
+        k += 1
+        body = body.rstrip().rstrip("\\") + " " + lines[k]
+    body = body.split(";")[0]
+    return [t for t in body.split() if t not in ("\\", "do")]
+
+
 def markers(text):
     """Пары «маркер → список под ним». Список ищется в ближайших строках ПОД маркером, а не в
     той же: `LIB=` в шелле и `LIKE_NES_BUILD_TARGETS:` в `env:` пишутся по-разному, но маркер
-    над ними стоит одинаково."""
+    над ними стоит одинаково.
+
+    Третья форма — `for T in … ; do` с переносами: третья копия списка целей Debug-шага написана
+    именно ею, и до 2026-08-25 маркер над ней не читался вовсе, то есть список, отставший от двух
+    сверяемых копий, молчал бы ровно как сошедшийся."""
     lines = text.splitlines()
     found = []
     for i, line in enumerate(lines):
@@ -56,6 +73,11 @@ def markers(text):
             if a:
                 found.append((i + 1, m.group(1), m.group(2), m.group(3), a.group(1),
                               a.group(2).split()))
+                break
+            f = FOR_HEAD.match(lines[j])
+            if f:
+                found.append((i + 1, m.group(1), m.group(2), m.group(3), f.group(1),
+                              for_tokens(lines, j, f.group(2))))
                 break
         else:
             found.append((i + 1, m.group(1), m.group(2), m.group(3), None, None))
