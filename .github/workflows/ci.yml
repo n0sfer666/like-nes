@@ -1275,15 +1275,19 @@ jobs:
           # Сам `CHAR` перечисляет четыре файла модуля из девяти ОСОЗНАННО: путь голдена — это
           # контроллер, профиль, скольжение, шов сцены и хеш; пекарь, парсер и читатель профиля в
           # прогоне не участвуют вовсе, и равенство с целью отбивало бы список ложно.
+          # `$TILES_FS` едет вместе с `$TILES` и без него не обходится: список зеркалит ЦЕЛЬ, а в
+          # цели лежит пекарь карт, читающий исходник файлом. Прогон персонажа пекаря не зовёт
+          # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
+          # красной сборки на единственном раннере, где шаг вообще запускается.
           CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/trajectory.cpp"
-          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $CHAR \
+          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
           grep -q "character trajectory hash = 0x7801049c168bb301" charsan.txt
           # Шов смешанной сцены — свой вопрос к санитайзеру, не совпадающий ни с голденом, ни с
           # гейтами тайлмапа: слияние читает ответ ОДНОГО источника и переписывает им ответ другого,
           # то есть работает с полем структуры, заполненной не тем вызовом, который её объявил.
-          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $CHAR \
+          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_collision_test.cpp $PLAT -o char_scene_san
           ./char_scene_san | tee charscenesan.txt
           grep -q ": PASS" charscenesan.txt
