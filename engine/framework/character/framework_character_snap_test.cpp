@@ -52,7 +52,7 @@ const Vec2 STANDING = {fix32::from_int(20), FLOOR_TOP - HULL_HALF_H - SKIN};
 
 fix32 snap_drop(const CollisionScene& s, fix32 window) {
     Vec2 p = STANDING;
-    snap_to_ground(s, make_hull(), window, p);
+    snap_to_ground(s, make_hull(), window, default_profile().max_slope, p);
     return p.y - STANDING.y;
 }
 
@@ -74,14 +74,16 @@ void test_snap_window() {
     check(too_deep.raw == 0, "a drop past the window is a fall, not a step");
 }
 
-// Клин с наклонной ВЕРХНЕЙ гранью: от (-20, 100) до (20, 20), то есть 63 градуса к горизонту —
-// круче порога `SURFACE_NORMAL_Y`, значит стоять на нём нельзя. Осевой стеной этот случай не
+// Клин с наклонной ВЕРХНЕЙ гранью: от (-20, 90) до (20, 30), то есть отношение подъёма к пробегу
+// 1.5 — круче порога профиля по умолчанию (1), но положе потолка (2). Оба конца взяты С ЗАПАСОМ
+// нарочно: у порога равенство точно только на 45° (`slide.hpp`), и клин, поставленный ровно на
+// границу, отвечал бы разрядом округления нормировки, а не порогом. Осевой стеной этот случай не
 // строится: вертикальный свип к вертикальной грани не приближается. Наклонная отвечает на любом
 // зазоре — и ровно ради неё, то есть ради склонов шага B, проверка нормали и заведена.
 void add_wedge(physics::World& w, Vec2 center) {
-    const Vec2 tri[3] = {{fix32::from_int(-20), fix32::from_int(40)},
-                         {fix32::from_int(20), fix32::from_int(40)},
-                         {fix32::from_int(20), fix32::from_int(-40)}};
+    const Vec2 tri[3] = {{fix32::from_int(-20), fix32::from_int(30)},
+                         {fix32::from_int(20), fix32::from_int(30)},
+                         {fix32::from_int(20), fix32::from_int(-30)}};
     physics::BodyDesc d;
     d.key = 7;
     d.type = physics::BodyType::Static;
@@ -98,10 +100,17 @@ void test_snap_refuses_a_steep_slope() {
     const CharacterHull h = make_hull();
     Vec2 p{fix32{}, fix32::from_int(20)};
     SceneHit hit;
+    const fix32 walkable = default_profile().max_slope;
     check(cast_nearest(s, h, p, {fix32{}, MAX_GROUND_SNAP}, hit) && hit.normal.y.raw < 0 &&
-              !(hit.normal.y < -SURFACE_NORMAL_Y),
+              !is_floor(hit.normal, walkable),
           "control: the downward sweep answers with a face too steep to stand on");
-    check(!snap_to_ground(s, h, MAX_GROUND_SNAP, p), "a steep face underfoot is not ground");
+    check(!snap_to_ground(s, h, MAX_GROUND_SNAP, walkable, p),
+          "a steep face underfoot is not ground");
+    // Пара: ТА ЖЕ грань и тот же свип, порог другой. Без неё отказ выше доказывал бы лишь то, что
+    // свип чего-то не нашёл, — а он обязан доказывать, что решение принял ПОРОГ.
+    Vec2 q = p;
+    check(snap_to_ground(s, h, MAX_GROUND_SNAP, MAX_SLOPE, q),
+          "pair: the same face is ground for a profile whose threshold covers its ratio");
     // Приём двигает позицию по НОРМАЛИ, и у склона она наклонена: без проверки персонаж не просто
     // «встал» бы на непроходимое, а уехал бы вбок — то есть выдал бы спуск по стене за спуск.
     check(p.x.raw == 0 && p.y == fix32::from_int(20), "and a refused snap leaves the position alone");

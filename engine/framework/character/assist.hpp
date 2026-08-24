@@ -44,7 +44,7 @@ constexpr fix32 CORNER_STEP = fix32::from_int(1);
 //
 // Возвращает, случился ли сдвиг. Позиция меняется ТОЛЬКО при успехе.
 bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
-                    fix32 max_shift, Vec2& position);
+                    fix32 max_shift, fix32 max_slope, Vec2& position);
 
 // Прилипание к земле на спусках. Персонаж, у которого опора БЫЛА и который не поднимается,
 // притягивается вниз не больше чем на `max_distance`, если там пол.
@@ -59,6 +59,6 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
 // Возвращает, случилось ли притяжение. Позиция меняется ТОЛЬКО при успехе, и персонаж встаёт на
 // зазор `SKIN` над полом — ровно туда же, куда его ставит разбор касания в `move_and_slide`.
 bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 max_distance,
-                    Vec2& position);
+                    fix32 max_slope, Vec2& position);
 
 } // namespace framework::character

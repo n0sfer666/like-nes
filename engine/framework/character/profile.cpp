@@ -51,6 +51,7 @@ MoveProfile sanitize(const MoveProfile& p) {
     o.min_jump_height = clamp_fix(p.min_jump_height, fix32{}, o.jump_height);
     o.corner_correction = clamp_fix(p.corner_correction, fix32{}, MAX_CORNER_CORRECTION);
     o.ground_snap = clamp_fix(p.ground_snap, fix32{}, MAX_GROUND_SNAP);
+    o.max_slope = clamp_fix(p.max_slope, fix32{}, MAX_SLOPE);
     o.coyote_ticks = p.coyote_ticks < MAX_WINDOW_TICKS ? p.coyote_ticks : MAX_WINDOW_TICKS;
     o.buffer_ticks = p.buffer_ticks < MAX_WINDOW_TICKS ? p.buffer_ticks : MAX_WINDOW_TICKS;
     return o;
@@ -90,6 +91,10 @@ MoveProfile default_profile() {
     // потому что мерит другое — высоту ступеньки под ногами, а не ширину промаха.
     p.corner_correction = fix32::from_int(4);
     p.ground_snap = fix32::from_int(8);
+    // Ровно 45°: тайл-склон вертикали 3 — единственная наклонная грань, которую умеет выложить
+    // карта, и профиль по умолчанию обязан пускать персонажа по ней ходить. Проверяется РАВЕНСТВОМ
+    // (`slide.hpp`), поэтому запаса «чуть больше единицы» тут не нужно.
+    p.max_slope = fix32::from_int(1);
     return sanitize(p);
 }
 

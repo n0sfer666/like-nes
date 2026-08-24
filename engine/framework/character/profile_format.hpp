@@ -18,11 +18,12 @@
 namespace framework::character {
 
 constexpr uint8_t MOVE_MAGIC[4] = {'L', 'N', 'F', 'M'};   // like-nes framework movement
-// Версия 2 (2026-08-24): в строку дописаны `corner_correction` и `ground_snap` — геометрическое
-// прощение вертикали 3. Читатель отвергает версию 1 ПО НОМЕРУ, миграции нет и не будет: потребителя
-// в рантайме у таблицы пока не появилось, а бандл перепечён тем же коммитом. Разбирать чужую старую
-// раскладку значило бы держать вторую копию читателя ради байтов, которых нигде нет.
-constexpr uint32_t MOVE_VERSION = 2;
+// Версия 3 (2026-08-24): в строку дописан `max_slope` — проходимость наклонной грани, ставшая полем
+// профиля вместе с тайлами-склонами. Читатель отвергает предыдущие версии ПО НОМЕРУ, миграции нет и
+// не будет: потребителя в рантайме у таблицы пока не появилось, а бандл перепекается тем же
+// коммитом. Разбирать чужую старую раскладку значило бы держать вторую копию читателя ради байтов,
+// которых нигде нет.
+constexpr uint32_t MOVE_VERSION = 3;
 
 struct MoveHeader {
     uint8_t magic[4];
@@ -57,7 +58,8 @@ struct MoveRow {
     // таблица прочиталась бы новым читателем без единой ошибки — просто другими числами.
     int32_t corner_correction_raw;
     int32_t ground_snap_raw;
+    int32_t max_slope_raw;
 };
-static_assert(sizeof(MoveRow) == 60, "MoveRow layout pinned (zero-parse ABI)");
+static_assert(sizeof(MoveRow) == 64, "MoveRow layout pinned (zero-parse ABI)");
 
 } // namespace framework::character

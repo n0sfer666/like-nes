@@ -1009,7 +1009,7 @@ jobs:
                    framework_physics_depth_test framework_character_test framework_character_window_test \
                    framework_character_jump_test framework_character_tunnel_test \
                    framework_character_collision_test framework_character_corner_test \
-                   framework_character_snap_test \
+                   framework_character_snap_test framework_character_slope_test \
                    framework_character_alloc_test framework_character_profile_test \
                    framework_character_profile_refusal_test framework_character_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
@@ -1030,7 +1030,7 @@ jobs:
           # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
           # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
           # полей в пекаре и читателе, а `game.bundle` в git — нет.
-          grep -q "hash 0x6fc67dbed5d4c5e9" phys_framework_character_profile_test.txt \
+          grep -q "hash 0x5633becd833be880" phys_framework_character_profile_test.txt \
             || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Четвёртый голден шага — свёртка ответов трёх запросов к тайловой сетке (гейт шага A
           # вертикали 2 спеки #16). В логе по той же причине: расхождение обязано называть себя
@@ -1125,7 +1125,7 @@ jobs:
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
-          grep -q "hash 0x6fc67dbed5d4c5e9" dbg_framework_character_profile_test.txt \
+          grep -q "hash 0x5633becd833be880" dbg_framework_character_profile_test.txt \
             || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Ответы сетки складываются из долей и точек, то есть из той же арифметики fix32:
           # расхождение -O0 с -O3 здесь означало бы UB ровно по основанию трёх голденов выше.
@@ -1304,12 +1304,15 @@ jobs:
             engine/framework/character/framework_character_collision_test.cpp $PLAT -o char_scene_san
           ./char_scene_san | tee charscenesan.txt
           grep -q ": PASS" charscenesan.txt
-          # Геометрическое прощение — третий вопрос к санитайзеру, и целей у него две: сдвиг из-под
-          # угла и притяжение к полу гоняют свип каждый по СВОЕЙ сцене и по позиции, которую в тот
-          # момент никто не двигал, — а сцена голдена не срабатывает ни на одном из них, то есть под
-          # ASan этот путь иначе не попадает вовсе. Обе цели зовутся одним циклом: разойтись флагами
-          # им негде, а два скопированных вызова расходятся ровно так, как расходятся списки, — молча.
-          for G in corner snap; do
+          # Геометрическое прощение и склоны — третий вопрос к санитайзеру, и целей у него три:
+          # сдвиг из-под угла, притяжение к полу и ходьба по склону гоняют свип каждая по СВОЕЙ
+          # сцене и по позиции, которую в тот момент никто не двигал, — а сцена голдена не
+          # срабатывает ни на одной из них, то есть под ASan этот путь иначе не попадает вовсе.
+          # Склон добавляет к этому ЕДИНСТВЕННОЕ место, где свип отвечает диагональной гранью
+          # тайла: развёртка треугольника живёт в буфере вершин, и промах по нему осевые сцены не
+          # видят. Цели зовутся одним циклом: разойтись флагами им негде, а скопированные вызовы
+          # расходятся ровно так, как расходятся списки, — молча.
+          for G in corner snap slope; do
             c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
               "engine/framework/character/framework_character_${G}_test.cpp" $PLAT -o "char_${G}_san"
             "./char_${G}_san" | tee "char${G}san.txt"

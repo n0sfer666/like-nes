@@ -55,6 +55,13 @@ add_executable(framework_character_snap_test framework_character_snap_test.cpp)
 target_link_libraries(framework_character_snap_test PRIVATE framework_character
   framework_tilemap platform_core)
 
+# Ходьба по склону (шаг B вертикали 3). Третьей целью, а не случаем в двух гейтах выше: вопрос у неё
+# не про окно прощения, а про то, ЧЕМ грань считается, и раскладка — своя (ступенька в тайл со
+# склоном на весь перепад), потому что окна прощения на ней не срабатывают вовсе.
+add_executable(framework_character_slope_test framework_character_slope_test.cpp)
+target_link_libraries(framework_character_slope_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.
 add_executable(framework_character_tunnel_test framework_character_tunnel_test.cpp)
 target_link_libraries(framework_character_tunnel_test PRIVATE framework_character

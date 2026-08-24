@@ -13,7 +13,7 @@ Vec2 slide_along(Vec2 v, Vec2 normal) { return v - normal * dot(v, normal); }
 } // namespace
 
 SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
-                           Vec2& position, Vec2& velocity) {
+                           fix32 max_slope, Vec2& position, Vec2& velocity) {
     SlideResult r;
     for (uint32_t pass = 0; pass < SLIDE_PASSES; ++pass) {
         if (is_zero(travel)) return r;
@@ -44,21 +44,22 @@ SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, V
         travel = slide_along(travel - advance, hit.normal);
         velocity = slide_along(velocity, hit.normal);
 
-        // Потолок — нормаль СМОТРИТ ВНИЗ (+Y), потому что наружу из потолка это вниз. Знак здесь
-        // единственное, что отличает удар головой от приземления, и записан он явно по той же
-        // причине, по которой `units.hpp` записывает направление тяготения.
-        if (SURFACE_NORMAL_Y < hit.normal.y) r.hit_ceiling = true;
-        if (hit.normal.y < SURFACE_NORMAL_Y && -SURFACE_NORMAL_Y < hit.normal.y) r.hit_wall = true;
+        // Стена — то, что не пол и не потолок. Три ветки берутся ОДНИМ порогом (`slide.hpp`),
+        // потому что склон, проходимый пробой опоры, но объявленный стеной здесь, гасил бы
+        // персонажу горизонтальную скорость ровно там, где он по нему идёт.
+        if (is_ceiling(hit.normal, max_slope)) r.hit_ceiling = true;
+        else if (!is_floor(hit.normal, max_slope)) r.hit_wall = true;
     }
     return r;
 }
 
-bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position) {
+bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position,
+                  fix32 max_slope) {
     SceneHit hit;
     if (!cast_nearest(s, hull, position, {fix32{}, GROUND_PROBE}, hit)) return false;
     // Опора — только поверхность, на которой можно стоять. Свип вниз упирается и в стену, вдоль
     // которой персонаж скользит: считать её опорой значит выдать бесконечный прыжок от стены.
-    return hit.normal.y < -SURFACE_NORMAL_Y;
+    return is_floor(hit.normal, max_slope);
 }
 
 } // namespace framework::character
