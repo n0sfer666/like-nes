@@ -45,15 +45,11 @@ struct CharacterHull {
 struct CollisionScene {
     const physics::World* world = nullptr;
     const tilemap::TileGrid* grid = nullptr;
-    tilemap::TileFilter tiles;
-
-    // Конструктор, а не агрегат: у `-Wmissing-field-initializers` нет понятия «поле со значением по
-    // умолчанию», и каждая из двадцати уже написанных сцен `{&w, &g}` стала бы ошибкой сборки при
-    // добавлении ТРЕТЬЕГО поля. Дописывать им `, {}` значило бы платить шумом в каждом гейте за
-    // расширение структуры — и платить снова на следующем поле.
-    CollisionScene() = default;
-    CollisionScene(const physics::World* w, const tilemap::TileGrid* g, tilemap::TileFilter f = {})
-        : world(w), grid(g), tiles(f) {}
+    // Инициализатор `{}` тут несущий, а не косметика: `-Wmissing-field-initializers` молчит ровно
+    // о тех полях, у которых он ЗАПИСАН, и без него каждая из двадцати уже написанных сцен
+    // `{&w, &g}` стала бы ошибкой сборки — а лечение дописыванием `, {}` в каждый гейт пришлось бы
+    // повторять на следующем поле. Так же живёт `oneway` в `SceneHit` ниже.
+    tilemap::TileFilter tiles{};
 };
 
 // Ответ слияния. Тела и тайлы отвечают разными структурами (`physics::RayHit` знает про `BodyId` и
