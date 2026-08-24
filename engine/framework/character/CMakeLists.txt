@@ -70,6 +70,14 @@ add_executable(framework_character_oneway_test framework_character_oneway_test.c
 target_link_libraries(framework_character_oneway_test PRIVATE framework_character
   framework_tilemap platform_core)
 
+# ПИН клина «подножие склона + стена в ширину корпуса» (находка вертикали 3, шаг C). Отдельной
+# целью, а не случаем в гейте склона: тот держит ИСПРАВНОЕ поведение и обязан оставаться зелёным
+# смыслом, а здесь утверждения перевёрнуты — зелено то, что дефект воспроизводится. Смешав их в
+# одном файле, мы получили бы гейт, про который нельзя сказать, что означает его цвет.
+add_executable(framework_character_wedge_test framework_character_wedge_test.cpp)
+target_link_libraries(framework_character_wedge_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
 # Движущаяся платформа (шаг B3 вертикали 3). Пятой целью по тому же основанию, что склон и
 # односторонняя платформа, и с самым сильным из них: голден траектории идёт по сцене, где мир не
 # шагается НИ РАЗУ, то есть про движущуюся геометрию не утверждает ничего. Раскладка своя и вынесена
