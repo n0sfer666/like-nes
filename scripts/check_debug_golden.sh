@@ -34,12 +34,17 @@ cd "$ROOT" || exit 1
 # `framework_physics_depth_test` — тоже голден, только предметом его служит ГРАНИЦА: башня
 # заявленной глубины стоит, на ящик глубже валится. Граница ножевая по построению, и уровень
 # оптимизации сдвинул бы её ровно так же, как сдвинул бы хеш.
+# `game_platformer_sim_test` — прогон образца по уровню из бандла: те же склон, односторонняя
+# площадка и перенос опорой, но СЦЕПЛЕННЫЕ в один маршрут длиной в четыреста тиков. Гейты выше
+# судят по приёму за прогон, и накопленное расхождение уровней оптимизации им негде показать:
+# сойдись -O0 с -O3 на каждом приёме по отдельности и разойдись на четвёртой сотне тиков — молчали
+# бы все.
 # Гейты вертикали 3 шага B стоят здесь по предмету, а не потому, что они «тоже про персонажа»:
 # склон судится умножением fix32 с насыщением (`max_slope * |n.y|` в `slide.hpp`), односторонний
 # тайл — сравнением границ, перенос опорой — сложением позиции ДО свипа. Расхождение -O0 с -O3 в
 # любом из трёх было бы UB, и увидеть его больше негде: `list-drift` сверяет копии списка МЕЖДУ
 # собой и про полноту не знает ничего, поэтому забытая цель молчала бы на обеих сторонах разом.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_tilemap_slope_test framework_tilemap_oneway_test"
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_tilemap_slope_test framework_tilemap_oneway_test game_platformer_sim_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -48,7 +53,7 @@ debug_golden() {
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
     BUILD_DIR=build-debug LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TYPE=Debug \
         LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
-    local t bin out rc=0 golden="" traj="" baked="" tiles="" maps=""
+    local t bin out rc=0 golden="" traj="" baked="" tiles="" maps="" plat=""
     for t in $STATE_TARGETS; do
         bin=$(find build-debug -maxdepth 2 -type f -name "$t" | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
@@ -68,6 +73,9 @@ debug_golden() {
         fi
         if [ "$t" = framework_tilemap_bake_test ]; then
             maps=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
+        fi
+        if [ "$t" = game_platformer_sim_test ]; then
+            plat=$(printf '%s\n' "$out" | grep -o 'platformer trajectory hash = 0x[0-9a-f]*')
         fi
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
@@ -98,6 +106,12 @@ debug_golden() {
     # таблица профиля выше, и по тому же основанию обязаны совпасть между -O0 и -O3.
     if [ "$maps" != "hash 0xcd034f07f57b5f8b" ]; then
         echo "Debug разошёлся с Release по голдену таблицы карт: '$maps'"
+        rc=1
+    fi
+    # Шестой — маршрут образца-платформера. Он единственный здесь сшивает приёмы в одну траекторию,
+    # поэтому и сверяется отдельным литералом: «хеш не пуст» пропустило бы расхождение целиком.
+    if [ "$plat" != "platformer trajectory hash = 0xfead7a87477a9258" ]; then
+        echo "Debug разошёлся с Release по голдену образца-платформера: '$plat'"
         rc=1
     fi
     return $rc

@@ -112,8 +112,11 @@ verify_bundle() {
     # читают секцию читателем и сверяют её с независимым ожиданием — `default_profile()` для профиля,
     # разбор `tilemap.txt` для карты. Проверено сломанной реализацией: индексация флагов `x*h+y`
     # краснит тест карты и оставляет `--verify-game` зелёным.
+    # Третьим здесь стоит образец-платформер, и он про бандл утверждает своё: обе сверки выше судят
+    # ОДНУ секцию каждая, а он ПРОХОДИТ по уровню тем же контроллером, что и живая игра, — то есть
+    # ловит бандл, где обе секции по отдельности верны, а вместе уровень непроходим.
     local bin rc t all=0
-    for t in framework_character_bundle_test framework_tilemap_bundle_test; do
+    for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test; do
         bin=$(find build-ci build-full -maxdepth 2 -type f -name "$t" 2>/dev/null | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi
         out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?

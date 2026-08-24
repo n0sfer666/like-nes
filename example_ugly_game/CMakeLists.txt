@@ -6,6 +6,16 @@ add_executable(ach_plugin_test
   ${ACH_TEST_DIR}/plugin_host_test.cpp backend_host.cpp)
 target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 
+# --- Образец-платформер, машинная половина (шаг C вертикали 3 спеки #16): скриптованный прогон по
+# уровню из game.bundle → голден траектории. Стоит ДО выхода по IDE_POC вместе с `ach_plugin_test`,
+# а не рядом с остальными sim-целями ниже: ни окна, ни WebGPU, ни flecs ему не нужно, и цель,
+# спрятанная за чужой опцией, молча выпадала бы из headless-набора, которым её и гоняют.
+add_executable(game_platformer_sim_test
+  platformer_sim_test.cpp platformer_sim.cpp platformer_scene.cpp)
+target_include_directories(game_platformer_sim_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_platformer_sim_test PRIVATE framework_character framework_tilemap
+  asset_core platform_core)
+
 if(NOT IDE_POC)
   return()
 endif()
