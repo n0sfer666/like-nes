@@ -51,6 +51,8 @@ const FixField FIELDS[] = {
     {"max_fall_speed", &MoveProfile::max_fall_speed},
     {"jump_height", &MoveProfile::jump_height},
     {"min_jump_height", &MoveProfile::min_jump_height},
+    {"corner_correction", &MoveProfile::corner_correction},
+    {"ground_snap", &MoveProfile::ground_snap},
 };
 
 // Число расхождений, а не «совпало/нет»: список полей печатается целиком, чтобы одна правка

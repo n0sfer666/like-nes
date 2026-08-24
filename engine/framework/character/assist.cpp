@@ -1,5 +1,7 @@
 #include "assist.hpp"
 
+#include "profile.hpp"
+
 namespace framework::character {
 namespace {
 
@@ -16,6 +18,12 @@ bool side_is_free(const CollisionScene& s, const CharacterHull& hull, Vec2 posit
 bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
                     fix32 max_shift, Vec2& position) {
     if (max_shift.raw <= 0 || travel.y.raw >= 0) return false;
+    // Окно приводится ЗДЕСЬ, а не «предполагается приведённым» — той же дисциплиной, что и профиль
+    // в `step`/`derive`. Причина не в аккуратности: `fix32::operator+` НАСЫЩАЕТ, поэтому перебор
+    // `shift = shift + CORNER_STEP` до `max_shift` с `raw == INT32_MAX` упирался бы в потолок типа и
+    // не кончался НИКОГДА — вис с четырьмя свипами на итерацию. Главный путь спасал `sanitize`, но
+    // заголовок публичный, и предусловие, которого нет в коде, есть предусловие, которого нет.
+    const fix32 window = min_fix(max_shift, MAX_CORNER_CORRECTION);
 
     // Свип берёт ТОЛЬКО вертикальную составляющую пути. Полный путь отвечал бы на другой вопрос:
     // при разбеге вбок он упирается в стену впереди, а приём спрашивает ровно про голову.
@@ -25,7 +33,10 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
     if (!(SURFACE_NORMAL_Y < hit.normal.y)) return false;
 
     const bool prefer_left = travel.x.raw < 0;
-    for (fix32 shift = CORNER_STEP; !(max_shift < shift); shift = shift + CORNER_STEP) {
+    // Счётчик ЦЕЛЫЙ: он кончается по построению, а не по тому, что сложение ещё не насытилось.
+    const int32_t steps = (window / CORNER_STEP).to_int();
+    for (int32_t k = 1; k <= steps; ++k) {
+        const fix32 shift = CORNER_STEP * fix32::from_int(k);
         for (int i = 0; i < 2; ++i) {
             const bool left = (i == 0) == prefer_left;
             const fix32 dx = left ? -shift : shift;
@@ -43,7 +54,7 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
 bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 max_distance,
                     Vec2& position) {
     if (max_distance.raw <= 0) return false;
-    const Vec2 down = {fix32{}, max_distance};
+    const Vec2 down = {fix32{}, min_fix(max_distance, MAX_GROUND_SNAP)};   // тем же приведением
     SceneHit hit;
     if (!cast_nearest(s, hull, position, down, hit)) return false;
     // Опора — только то, на чём можно стоять, тем же порогом, что и у пробы (`slide.cpp`). Свип

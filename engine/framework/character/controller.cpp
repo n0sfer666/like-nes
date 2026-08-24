@@ -92,8 +92,13 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // Прощение угла потолка идёт ПЕРЕД движением, а не после разбора касания: сдвиг существует ровно
     // затем, чтобы удара головой не случилось вовсе. После касания скорость подъёма уже погашена
     // скольжением, и «поправленный» персонаж просто висел бы под потолком сдвинутым вбок.
-    if (c.velocity.y.raw < 0)
-        corner_correct(s, hull, c.velocity * dt, p.corner_correction, c.position);
+    //
+    // Подъём снимается ДО движения и по знаку скорости, а не после него: касание потолка гасит
+    // `velocity.y` тем же тиком (`slide_along` по нормали {0,+1}), и шаг 8, прочитавший скорость
+    // после, увидел бы у прыгнувшего ноль. Снимок — не оптимизация, а само условие: «не
+    // поднимается» это про НАМЕРЕНИЕ тика, а не про то, чем оно кончилось.
+    const bool was_rising = c.velocity.y.raw < 0;
+    if (was_rising) corner_correct(s, hull, c.velocity * dt, p.corner_correction, c.position);
     const SlideResult sr = move_and_slide(s, hull, c.velocity * dt, c.position, c.velocity);
     c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
@@ -111,12 +116,19 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // есть спуск по ступеньке — без притяжения персонаж каждую ступеньку слетал бы в короткий полёт,
     // теряя и опору, и управление по земле.
     //
-    // Прыжок сюда не попадает ПО ПОСТРОЕНИЮ, а не по списку исключений: его первый тик даёт
-    // `velocity.y < 0`. Скорость падения при успехе гасится — притянутый персонаж СТОИТ, и оставить
-    // ему накопленное падение значило бы отдать следующему тику скорость, которой не соответствует
-    // ни одно движение.
-    if (!c.on_ground && was_ground && c.velocity.y.raw >= 0 &&
+    // Прыжок сюда не попадает по снимку `was_rising`, снятому ДО движения. По скорости ПОСЛЕ него
+    // это не работало: прыжок под низким потолком — просвет меньше одного тика подъёма — гасил себе
+    // `velocity.y` о потолок, проходил условие «не поднимается» и притягивался обратно на пол тем
+    // же тиком. Прыжка не случалось вовсе, и окно дефекта считалось числами профиля, а не редкой
+    // геометрией. Скорость падения при успехе гасится — притянутый персонаж СТОИТ, и оставить ему
+    // накопленное падение значило бы отдать следующему тику скорость, которой не соответствует ни
+    // одно движение.
+    if (!c.on_ground && was_ground && !was_rising &&
         snap_to_ground(s, hull, p.ground_snap, c.position)) {
+        // Кламп повторяется здесь, потому что притяжение двигает позицию ПОСЛЕ клампа шага 6, а
+        // инвариант заголовка — про позицию по итогам ТИКА, а не по итогам движения.
+        c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
+        c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
         c.on_ground = true;
         c.velocity.y = fix32{};
     }

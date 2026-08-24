@@ -41,8 +41,18 @@ target_link_libraries(framework_character_collision_test PRIVATE framework_chara
 # срабатывают ровно в заявленном окне ЮНИТОВ. Отдельной целью от гейта окон, который меряет то же
 # самое ТИКАМИ на общей сцене: здесь нужна своя геометрия — потолок с проёмом и ступенька вниз, — а
 # дописывать её в общую сцену значило бы менять обстановку под голденом.
-add_executable(framework_character_assist_test framework_character_assist_test.cpp)
-target_link_libraries(framework_character_assist_test PRIVATE framework_character
+#
+# Целей ДВЕ, по приёму на каждую, и граница между ними — не длина файла, а раскладка: у сдвига она
+# про потолок, у притяжения про пол, и общего у сцен нет ничего, кроме клина, которым обе проверяют
+# отказ по нормали. Один файл на оба приёма упирался бы в жёсткий потолок бюджета длины ровно тогда,
+# когда к таблице окон добавится случай, а резать таблицу пополам ради счётчика — это и есть тот
+# разрез не по смыслу, от которого предостерегает allowlist.
+add_executable(framework_character_corner_test framework_character_corner_test.cpp)
+target_link_libraries(framework_character_corner_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+add_executable(framework_character_snap_test framework_character_snap_test.cpp)
+target_link_libraries(framework_character_snap_test PRIVATE framework_character
   framework_tilemap platform_core)
 
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.
