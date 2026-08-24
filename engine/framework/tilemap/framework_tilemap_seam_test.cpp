@@ -93,6 +93,37 @@ void test_seam_across_the_grid() {
     check(hits > scenes / 3, "while the floor itself is seen in a good share of them");
 }
 
+// Тот же стык, но приход на него СВЕРХУ-СБОКУ. Ничья по доле пути разрешается здесь не индексом
+// тайла, а осевой гранью (`closer` в `query.cpp`): у диагонального спуска входы по X и по Y
+// совпадают до кванта ровно на границе тайлов, и узкая фаза отдаёт соседу, которого корпус лишь
+// задел УГЛОМ, обратное направление пути вместо нормали. Тайл-сосед младше по индексу, поэтому
+// прежнее правило выбирало именно его: персонаж, севший на ПЛОСКИЙ пол, получал диагональ, всё
+// скольжение вдоль пола уходило в ноль, и он вставал на ровном месте.
+//
+// Числа подобраны так, чтобы ничья была ТОЧНОЙ: зазор до пола 1 юнит при скорости 50 и зазор до
+// границы тайла 2 юнита при скорости 100 дают одну и ту же долю 1/50. Доля утверждается наравне с
+// нормалью — ответ «не нашёл» иначе прошёл бы проверку нормали молча.
+void test_landing_on_a_seam() {
+    const TileGrid g = flat_floor();
+    TileFilter f;
+    TileHit h;
+    const physics::Shape body = physics::box(fx(6), fx(12));
+    const Vec2 at{fx(72), fx(83)};
+    const Vec2 travel{fx(-100), fx(50)};
+
+    check(shapecast(g, body, at, fix32{}, travel, f, h), "the diagonal descent reaches the floor");
+    check(h.fraction == fix32::from_int(1) / fix32::from_int(50),
+          "at the fraction the one-unit gap dictates");
+    check(h.normal == Vec2{fix32{}, fx(-1)}, "and answers with the floor's own face, not a corner");
+    check(h.x == 4 && h.y == 6, "naming the tile the body actually lands on");
+
+    // Контроль: тот же корпус, тот же стык, но приход СТРОГО сверху — ничьей по доле нет, и ответ
+    // обязан быть тем же. Без него «нормаль пола» читалось бы как свойство сцены, а не правила.
+    check(shapecast(g, body, at, fix32{}, {fix32{}, fx(50)}, f, h) &&
+              h.normal == Vec2{fix32{}, fx(-1)},
+          "control: a straight drop onto the same seam answers the same way");
+}
+
 // Инвариант 2: путь, кончающийся внутри сплошного участка, обязан быть остановлен. Проверяется
 // перебором направлений вокруг зонда, и счётчик «сколько путей вообще заканчивались внутри» стоит
 // утверждением — набор, где таких путей ноль, проходит проверку молча и не проверяет ничего.
@@ -155,6 +186,7 @@ int main(int argc, char** argv) {
     std::printf("framework tilemap seam gate\n");
     test_seam_versus_step();
     test_seam_across_the_grid();
+    test_landing_on_a_seam();
     test_no_pass_through();
     test_embedded_body();
     std::printf("framework-tilemap-seam: %s\n", fails == 0 ? "PASS" : "FAIL");

@@ -43,18 +43,19 @@ MoveInput input_at(uint32_t t) {
 }
 
 void test_step_allocates_nothing() {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     const MoveProfile p = default_profile();
     const MoveDerived d = derive(p, tick_dt());
     Character c = standing_at(fix32::from_int(-100));
     // Первый тик прогоняется ДО счётчика: кучу мог бы тронуть не он, а ленивая инициализация чего
     // угодно под ним, и обвинён был бы тик.
-    step(w, hull, p, d, input_at(0), tick_dt(), c);
+    step(s, hull, p, d, input_at(0), tick_dt(), c);
 
     framework::probe::in_hot = true;
     framework::probe::allocs = 0;
-    for (uint32_t t = 1; t < 300; ++t) step(w, hull, p, d, input_at(t), tick_dt(), c);
+    for (uint32_t t = 1; t < 300; ++t) step(s, hull, p, d, input_at(t), tick_dt(), c);
     const long during = framework::probe::allocs;
     framework::probe::in_hot = false;
 

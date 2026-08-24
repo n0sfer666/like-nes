@@ -34,7 +34,8 @@ fix32 tick_dt() { return fix32::from_int(1) / fix32::from_int(60); }
 // Прогон одного прыжка: кнопка удерживается `hold` тиков, дальше отпущена. Возвращает набранную
 // высоту — расстояние от стартовой позиции до верхней точки.
 fix32 jump_apex(const MoveProfile& p, const MoveDerived& d, uint32_t hold) {
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     Character c = standing_at(fix32{});
     const fix32 start_y = c.position.y;
@@ -42,7 +43,7 @@ fix32 jump_apex(const MoveProfile& p, const MoveDerived& d, uint32_t hold) {
     for (uint32_t t = 0; t < 240; ++t) {
         MoveInput in;
         in.jump_held = t < hold;
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         top = min_fix(top, c.position.y);
         if (t > 0 && c.on_ground) break;
     }
@@ -97,7 +98,8 @@ void test_variable_height() {
 void test_ceiling_kills_the_rise() {
     const MoveProfile p = default_profile();
     const MoveDerived d = derive(p, tick_dt());
-    physics::World w = make_scene();
+    Scene sc = make_scene();
+    const CollisionScene s = sc.view();
     const CharacterHull hull = make_hull();
     // Под потолком сцены: до него меньше, чем целевая высота прыжка, значит подъём обязан
     // оборваться ударом, а не долететь.
@@ -108,7 +110,7 @@ void test_ceiling_kills_the_rise() {
     for (uint32_t t = 0; t < 120; ++t) {
         MoveInput in;
         in.jump_held = true;
-        step(w, hull, p, d, in, tick_dt(), c);
+        step(s, hull, p, d, in, tick_dt(), c);
         touched = touched || c.hit_ceiling;
         top = min_fix(top, c.position.y);
         if (t > 0 && c.on_ground) break;

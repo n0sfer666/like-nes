@@ -542,7 +542,7 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 The four gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
-mid-frame, and `assetc` reproducing `bundle_hash = 0xb86719612225e36f` byte for byte on another OS.
+mid-frame, and `assetc` reproducing `bundle_hash = 0xecf9af92663a002c` byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt).
 

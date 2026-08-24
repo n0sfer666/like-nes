@@ -12,15 +12,13 @@ Vec2 slide_along(Vec2 v, Vec2 normal) { return v - normal * dot(v, normal); }
 
 } // namespace
 
-SlideResult move_and_slide(const physics::World& w, const CharacterHull& hull, Vec2 travel,
+SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
                            Vec2& position, Vec2& velocity) {
     SlideResult r;
-    physics::QueryFilter f;
-    f.mask = hull.mask;
     for (uint32_t pass = 0; pass < SLIDE_PASSES; ++pass) {
         if (is_zero(travel)) return r;
-        physics::RayHit hit;
-        if (!physics::shapecast(w, hull.shape, position, fix32{}, travel, f, hit)) {
+        SceneHit hit;
+        if (!cast_nearest(s, hull, position, travel, hit)) {
             position = position + travel;
             return r;
         }
@@ -55,13 +53,9 @@ SlideResult move_and_slide(const physics::World& w, const CharacterHull& hull, V
     return r;
 }
 
-bool probe_ground(const physics::World& w, const CharacterHull& hull, Vec2 position) {
-    physics::QueryFilter f;
-    f.mask = hull.mask;
-    physics::RayHit hit;
-    if (!physics::shapecast(w, hull.shape, position, fix32{}, {fix32{}, GROUND_PROBE}, f, hit)) {
-        return false;
-    }
+bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position) {
+    SceneHit hit;
+    if (!cast_nearest(s, hull, position, {fix32{}, GROUND_PROBE}, hit)) return false;
     // Опора — только поверхность, на которой можно стоять. Свип вниз упирается и в стену, вдоль
     // которой персонаж скользит: считать её опорой значит выдать бесконечный прыжок от стены.
     return hit.normal.y < -SURFACE_NORMAL_Y;
