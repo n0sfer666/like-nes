@@ -53,7 +53,7 @@ const Vec2 RISE = {fix32{}, fix32::from_int(-40)};
 fix32 corner_shift(const CollisionScene& s, const CharacterHull& hull, fix32 window, Vec2 travel,
                    Vec2 from) {
     Vec2 p = from;
-    corner_correct(s, hull, travel, window, p);
+    corner_correct(s, hull, travel, window, default_profile().max_slope, p);
     return p.x - from.x;
 }
 
@@ -138,7 +138,7 @@ void test_corner_refuses_a_crossed_column() {
     check(crossed.raw == 0, "a shift whose path crosses a column is refused, not taken");
 }
 
-// Клин с наклонной НИЖНЕЙ гранью: от (-20, -100) до (20, -20), то есть 63 градуса к горизонту.
+// Клин с наклонной НИЖНЕЙ гранью: от (-20, -100) до (20, -20), отношение подъёма к пробегу — 2.
 // Осевой стеной этот случай не строится вовсе: вертикальный свип к вертикальной грани не
 // приближается и ответить ею может лишь из касания, которого при зазоре SKIN не бывает. Наклонная
 // грань отвечает на любом зазоре — и ровно ради неё, то есть ради склонов шага B, проверка нормали
@@ -165,7 +165,7 @@ void test_corner_refuses_a_steep_ceiling() {
     const Vec2 rise = {fix32{}, fix32::from_int(-30)};
     SceneHit hit;
     check(cast_nearest(s, h, from, rise, hit) && hit.normal.y.raw > 0 &&
-              !(SURFACE_NORMAL_Y < hit.normal.y),
+              !is_ceiling(hit.normal, default_profile().max_slope),
           "control: the rise answers with a face too steep to be a ceiling");
     // Сдвиг ВЛЕВО просвет увеличивает — грань уходит вверх, — то есть приём без проверки нормали
     // нашёл бы куда уехать и растащил бы персонажа вдоль склона, вдоль которого он и так скользит.

@@ -16,7 +16,7 @@ bool side_is_free(const CollisionScene& s, const CharacterHull& hull, Vec2 posit
 } // namespace
 
 bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 travel,
-                    fix32 max_shift, Vec2& position) {
+                    fix32 max_shift, fix32 max_slope, Vec2& position) {
     if (max_shift.raw <= 0 || travel.y.raw >= 0) return false;
     // Окно приводится ЗДЕСЬ, а не «предполагается приведённым» — той же дисциплиной, что и профиль
     // в `step`/`derive`. Причина не в аккуратности: `fix32::operator+` НАСЫЩАЕТ, поэтому перебор
@@ -30,7 +30,7 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
     const Vec2 rise = {fix32{}, travel.y};
     SceneHit hit;
     if (!cast_nearest(s, hull, position, rise, hit)) return false;
-    if (!(SURFACE_NORMAL_Y < hit.normal.y)) return false;
+    if (!is_ceiling(hit.normal, max_slope)) return false;
 
     const bool prefer_left = travel.x.raw < 0;
     // Счётчик ЦЕЛЫЙ: он кончается по построению, а не по тому, что сложение ещё не насытилось.
@@ -52,7 +52,7 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
 }
 
 bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 max_distance,
-                    Vec2& position) {
+                    fix32 max_slope, Vec2& position, GroundInfo* info) {
     if (max_distance.raw <= 0) return false;
     const Vec2 down = {fix32{}, min_fix(max_distance, MAX_GROUND_SNAP)};   // тем же приведением
     SceneHit hit;
@@ -60,8 +60,9 @@ bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 ma
     // Опора — только то, на чём можно стоять, тем же порогом, что и у пробы (`slide.cpp`). Свип
     // вниз упирается и в стену, вдоль которой персонаж скользит, и притянуть себя к ней значило бы
     // выдать бесконечный спуск по стене за «спуск по склону».
-    if (!(hit.normal.y < -SURFACE_NORMAL_Y)) return false;
+    if (!is_floor(hit.normal, max_slope)) return false;
     position = position + down * hit.fraction + hit.normal * SKIN;
+    if (info != nullptr) *info = {hit.oneway, hit.body};
     return true;
 }
 

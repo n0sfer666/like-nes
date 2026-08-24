@@ -83,6 +83,7 @@ if command -v shellcheck >/dev/null; then
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
                    scripts/tree_invariants.sh \
                    scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh \
+                   scripts/ci_watch_wait_selftest.sh \
                    scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
                    scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
                    scripts/perf_sweep_selftest.sh

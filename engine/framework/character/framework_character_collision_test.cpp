@@ -2,6 +2,7 @@
 
 #include "framework_character_scene.hpp"
 #include "platform_args.hpp"
+#include "profile.hpp"
 
 // Шов смешанной сцены (`collision.hpp`, вертикаль 3 спеки #16): два представления геометрии — один
 // ответ. Гейт отдельной целью от голдена по той же причине, что и гейты профиля: имя упавшей цели
@@ -178,12 +179,14 @@ void test_ground_probe_sees_both() {
     const Vec2 rest{fix32{}, -HULL_HALF_H - SKIN};
     const physics::World w = body_floor(fix32{});
     const tilemap::TileGrid g = tile_floor(fix32{});
-    check(probe_ground({&w, nullptr}, hull, rest), "a body floor is ground");
-    check(probe_ground({nullptr, &g}, hull, rest), "a tiled floor is ground");
-    check(probe_ground({&w, &g}, hull, rest), "and so is a mixed one");
+    const fix32 walkable = default_profile().max_slope;
+    check(probe_ground({&w, nullptr}, hull, rest, walkable), "a body floor is ground");
+    check(probe_ground({nullptr, &g}, hull, rest, walkable), "a tiled floor is ground");
+    check(probe_ground({&w, &g}, hull, rest, walkable), "and so is a mixed one");
 
     const tilemap::TileGrid wall = tile_wall(HULL_HALF_W + SKIN);
-    check(!probe_ground({nullptr, &wall}, hull, {fix32{}, fix32{}}), "control: a wall is not ground");
+    check(!probe_ground({nullptr, &wall}, hull, {fix32{}, fix32{}}, walkable),
+          "control: a wall is not ground");
 }
 } // namespace
 

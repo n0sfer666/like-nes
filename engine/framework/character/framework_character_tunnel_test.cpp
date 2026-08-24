@@ -134,7 +134,7 @@ tilemap::TileGrid make_inner_corner() {
 fix32 travelled(const CollisionScene& s, const CharacterHull& hull, Vec2 from, Vec2 travel) {
     Vec2 position = from;
     Vec2 velocity{};
-    move_and_slide(s, hull, travel, position, velocity);
+    move_and_slide(s, hull, travel, default_profile().max_slope, position, velocity);
     Vec2 dir{};
     return normalize(position - from, dir);
 }
@@ -145,7 +145,8 @@ void test_corner_clearance() {
     const CharacterHull hull = make_hull();
     Vec2 position = {fix32::from_int(60), fix32::from_int(-17)};
     Vec2 velocity = {fix32::from_int(-100), fix32::from_int(50)};
-    move_and_slide(s, hull, {fix32::from_int(-100), fix32::from_int(50)}, position, velocity);
+    move_and_slide(s, hull, {fix32::from_int(-100), fix32::from_int(50)},
+                   default_profile().max_slope, position, velocity);
 
     // Угол разобран: персонаж стоит на полу у стены, а не внутри них.
     check(HULL_HALF_W < position.x && position.x < HULL_HALF_W + fix32::from_int(1),

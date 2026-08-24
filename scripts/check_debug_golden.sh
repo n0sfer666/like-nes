@@ -34,7 +34,12 @@ cd "$ROOT" || exit 1
 # `framework_physics_depth_test` — тоже голден, только предметом его служит ГРАНИЦА: башня
 # заявленной глубины стоит, на ящик глубже валится. Граница ножевая по построению, и уровень
 # оптимизации сдвинул бы её ровно так же, как сдвинул бы хеш.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
+# Гейты вертикали 3 шага B стоят здесь по предмету, а не потому, что они «тоже про персонажа»:
+# склон судится умножением fix32 с насыщением (`max_slope * |n.y|` в `slide.hpp`), односторонний
+# тайл — сравнением границ, перенос опорой — сложением позиции ДО свипа. Расхождение -O0 с -O3 в
+# любом из трёх было бы UB, и увидеть его больше негде: `list-drift` сверяет копии списка МЕЖДУ
+# собой и про полноту не знает ничего, поэтому забытая цель молчала бы на обеих сторонах разом.
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_tilemap_slope_test framework_tilemap_oneway_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -79,7 +84,7 @@ debug_golden() {
     fi
     # Третий голден этого пути — байты испечённого профиля: разбор числа из текста идёт по int64,
     # то есть ровно там, где расхождение уровней оптимизации означало бы UB, а не погрешность.
-    if [ "$baked" != "hash 0x6fc67dbed5d4c5e9" ]; then
+    if [ "$baked" != "hash 0x5633becd833be880" ]; then
         echo "Debug разошёлся с Release по голдену таблицы профиля: '$baked'"
         rc=1
     fi

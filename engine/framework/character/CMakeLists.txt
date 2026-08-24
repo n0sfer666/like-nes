@@ -4,7 +4,8 @@
 # грепом по этой самой строке линковки. Обратного ребра нет: ни физика, ни сетка про персонажа не
 # знают.
 add_library(framework_character STATIC controller.cpp collision.cpp profile.cpp slide.cpp
-  assist.cpp trajectory.cpp profile_text.cpp profile_parse.cpp profile_bake.cpp profile_read.cpp)
+  assist.cpp support.cpp trajectory.cpp profile_text.cpp profile_parse.cpp profile_bake.cpp
+  profile_read.cpp)
 target_include_directories(framework_character PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит профиль, а не файловый шов, которым пекарь
 # читает манифест. То же устройство, что у framework_input.
@@ -53,6 +54,28 @@ target_link_libraries(framework_character_corner_test PRIVATE framework_characte
 
 add_executable(framework_character_snap_test framework_character_snap_test.cpp)
 target_link_libraries(framework_character_snap_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+# Ходьба по склону (шаг B вертикали 3). Третьей целью, а не случаем в двух гейтах выше: вопрос у неё
+# не про окно прощения, а про то, ЧЕМ грань считается, и раскладка — своя (ступенька в тайл со
+# склоном на весь перепад), потому что окна прощения на ней не срабатывают вовсе.
+add_executable(framework_character_slope_test framework_character_slope_test.cpp)
+target_link_libraries(framework_character_slope_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+# Односторонняя платформа (шаг B вертикали 3). Четвёртой целью по тому же основанию, что и склон:
+# вопрос у неё не про грань и не про окно, а про то, КОМУ тайл отвечает и как с него сойти по
+# команде, и раскладка своя — платформа с просветом над сплошным полом.
+add_executable(framework_character_oneway_test framework_character_oneway_test.cpp)
+target_link_libraries(framework_character_oneway_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+# Движущаяся платформа (шаг B3 вертикали 3). Пятой целью по тому же основанию, что склон и
+# односторонняя платформа, и с самым сильным из них: голден траектории идёт по сцене, где мир не
+# шагается НИ РАЗУ, то есть про движущуюся геометрию не утверждает ничего. Раскладка своя и вынесена
+# в заголовок — здесь обстановка, в гейте утверждения.
+add_executable(framework_character_platform_test framework_character_platform_test.cpp)
+target_link_libraries(framework_character_platform_test PRIVATE framework_character
   framework_tilemap platform_core)
 
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.

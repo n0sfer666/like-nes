@@ -4,6 +4,8 @@
 
 #include "cast.hpp"
 #include "narrowphase.hpp"
+#include "tile_rules.hpp"
+#include "tile_shape.hpp"
 #include "units.hpp"
 
 namespace framework::tilemap {
@@ -11,7 +13,21 @@ namespace {
 
 using physics::Aabb;
 
-bool participates(TileFlags flags, const TileFilter& f) { return (flags & f.require) != 0; }
+using detail::closer;
+using detail::lowest_y;
+using detail::oneway_holds;
+using detail::participates;
+
+// Что запрос узнал о тайле, дойдя до геометрии. Структурой, а не пятью позиционными параметрами:
+// обходчик один на три запроса, и порядок из шести аргументов — это ошибка, которую компилятор не
+// заметит, потому что координаты, флаги и размеры у него одного типа.
+struct Scanned {
+    int32_t x;
+    int32_t y;
+    TileFlags flags;
+    Aabb bounds;
+    Vec2 centre;
+};
 
 // Коробка, покрывающая ВЕСЬ путь свипа. Тот же довод, что в `physics/query.cpp`: тайл, лежащий в
 // конце пути, в стартовую коробку не попадает, и запрос молча отвечал бы «свободно» ровно там, где
@@ -20,47 +36,6 @@ Aabb swept(const Aabb& a, Vec2 travel) {
     const Aabb b{a.min + travel, a.max + travel};
     return {{min_fix(a.min.x, b.min.x), min_fix(a.min.y, b.min.y)},
             {max_fix(a.max.x, b.max.x), max_fix(a.max.y, b.max.y)}};
-}
-
-// Внутренних граней запрос НЕ отсекает, и это решение по замеру, а не по недосмотру.
-//
-// Сетка из отдельных коробок вроде бы обязана отдавать зацеп за стык: персонаж, идущий по плоскому
-// полу, упирается в боковую грань следующего тайла и встаёт на ровном месте. Отсечение таких граней
-// («за гранью стоит такой же тайл — значит грани нет») здесь было написано и снято обратно, потому
-// что воспроизвести зацеп не удалось НИ ОДНОЙ сценой: 9773 случайных свипа со свободного старта и
-// 490 сцен с выровненными координатами (зазор от −1/8 до +1/64, смещение по X от 0 до 8.5, длины
-// 1/3/5/16/17/48/64, оба направления) дали ноль расхождений между «с отсечением» и «без». Ноль
-// вышел и на ДО-фиксовом правиле нормали (`terminal_normal`, коммит 5ecda91), то есть зацеп не
-// прятался за той ничьей тоже.
-//
-// Причину видно в замере по зазорам: свип вдоль плоского пола либо не видит его вовсе (тело дальше
-// `CONTACT_SLOP` — ответ «свободно»), либо УЖЕ в контакте и получает долю ноль с верхней нормалью.
-// Боковая грань соседа не выигрывает никогда, потому что путь до неё проходит через самого соседа,
-// а сосед участвует в том же запросе и отвечает своей гранью не позже. Это геометрия, и держит
-// инвариант 3 спеки она, а не код.
-//
-// Цена отсечения при этом была не нулевой: тело, оказавшееся ЦЕЛИКОМ внутри тайлов (спавн в стене,
-// телепорт), теряло ВСЕ грани разом и получало «путь свободен» — 2360 из 20000 случайных свипов.
-// Теперь оно получает долю ноль, ровно как от `physics::World` (решение владельца 2026-08-23):
-// контракт у сетки и у мира один, и контроллеру не нужно знать, кто ему ответил.
-
-// Ближайшее по доле пути, ничьи разводятся ИНДЕКСОМ тайла. Без разведения ответ зависел бы от
-// порядка обхода окна, то есть от того, где стоит зонд, — а угол в угол на осевой сетке это не
-// редкий случай, а норма жизни тайлмапа.
-// Осевая грань бьёт диагональ, и только потом решает индекс. На осевой сетке всякая НАСТОЯЩАЯ
-// грань даёт осевую нормаль; диагональ означает касание УГЛОМ В УГОЛ, где входы по обеим осям
-// совпали до кванта и ось контакта не определена вовсе — узкая фаза отдаёт там обратное
-// направление пути. Без этого правила порядок решал индекс, то есть номер тайла, и персонаж,
-// садящийся на ПЛОСКИЙ пол ровно на стыке двух тайлов, получал вместо нормали пола диагональ:
-// скольжение вдоль пола обнулялось, и он вставал на ровном месте (найдено переездом контроллера
-// на сетку, гейт угла в `framework_character_tunnel_test`).
-bool axial(Vec2 n) { return n.x == fix32{} || n.y == fix32{}; }
-
-bool closer(const TileHit& candidate, const TileHit& best, bool have_best) {
-    if (!have_best) return true;
-    if (!(candidate.fraction == best.fraction)) return candidate.fraction < best.fraction;
-    if (axial(candidate.normal) != axial(best.normal)) return axial(candidate.normal);
-    return candidate.index < best.index;
 }
 
 // Единственный вход всех трёх запросов. Общий он не ради краткости: счётчик цены обязан считать у
@@ -78,7 +53,7 @@ void scan_window(const TileGrid& g, const Aabb& raw_probe, const TileFilter& f, 
                      {raw_probe.max.x + pad, raw_probe.max.y + pad}};
     const TileWindow win = g.window(probe);
     const fix32 half = fix32::from_raw(g.tile_size().raw / 2);
-    const physics::Shape core = physics::sanitize(physics::box(half, half));
+    TileShapes shapes(half);
     const Rot no_rot = rotation(fix32{});
     uint64_t scanned = 0;
     for (int32_t y = win.y0; y < win.y1; ++y) {
@@ -87,12 +62,13 @@ void scan_window(const TileGrid& g, const Aabb& raw_probe, const TileFilter& f, 
             // плотность карты. Считать после проверки флагов значило бы получать ноль на пустом
             // уровне и объявлять это независимостью от размера.
             ++scanned;
-            if (!participates(g.at(x, y), f)) continue;
+            const TileFlags flags = g.at(x, y);
+            if (!participates(flags, f)) continue;
             const Aabb b = g.tile_bounds(x, y);
             const Vec2 centre{b.min.x + half, b.min.y + half};
             physics::WorldShape target;
-            to_world(core, centre, no_rot, target);
-            visit(x, y, centre, target);
+            to_world(shapes.of(flags), centre, no_rot, target);
+            visit(Scanned{x, y, flags, b, centre}, target);
         }
     }
     detail::TileQuerySeam::note(g, scanned);
@@ -117,16 +93,17 @@ void ray_shape(Vec2 origin, physics::WorldShape& out) {
 bool cast_against_grid(const TileGrid& g, const physics::WorldShape& moving, Vec2 center,
                        Vec2 travel, const Aabb& probe, const TileFilter& f, TileHit& out) {
     bool found = false;
-    scan_window(g, swept(probe, travel), f,
-                [&](int32_t x, int32_t y, Vec2 centre, const physics::WorldShape& target) {
-                    physics::CastHit hit;
-                    if (!cast_shape(moving, center, travel, target, centre, hit)) return;
-                    const TileHit candidate{x,          y,         tile_index(g, x, y),
-                                            hit.fraction, hit.point, hit.normal};
-                    if (!closer(candidate, out, found)) return;
-                    out = candidate;
-                    found = true;
-                });
+    const fix32 bottom = lowest_y(moving);
+    scan_window(g, swept(probe, travel), f, [&](const Scanned& t, const physics::WorldShape& target) {
+        physics::CastHit hit;
+        if (!cast_shape(moving, center, travel, target, t.centre, hit)) return;
+        if ((t.flags & TILE_ONEWAY) != 0 && !oneway_holds(hit.normal, t.bounds, bottom)) return;
+        const TileHit candidate{t.x,          t.y,       tile_index(g, t.x, t.y),
+                                hit.fraction, hit.point, hit.normal};
+        if (!closer(candidate, out, found)) return;
+        out = candidate;
+        found = true;
+    });
     return found;
 }
 
@@ -141,13 +118,16 @@ void overlap_shape(const TileGrid& g, const physics::Shape& s, Vec2 position, fi
     to_world(core, position, rot, probe);
 
     scan_window(g, physics::bounds(core, position, rot), f,
-                [&](int32_t x, int32_t y, Vec2 centre, const physics::WorldShape& target) {
+                [&](const Scanned& t, const physics::WorldShape& target) {
                     physics::Manifold m;
                     // Той же узкой фазой, что и шаг мира, и с НУЛЕВЫМ спекулятивным полем: запрос
                     // отвечает на «кто здесь СЕЙЧАС», и тайл в 1/16 юнита от области в ответе быть
                     // не должен. Своя проверка пересечения была бы вторым ответом на тот же вопрос.
-                    if (!collide_shapes(probe, position, target, centre, fix32{}, m)) return;
-                    out.push_back({x, y, tile_index(g, x, y)});
+                    //
+                    // Правило одностороннего тайла сюда не приходит: у перекрытия нет пути, а
+                    // значит нет и того, откуда пришли. Платформа, накрывшая область, в ответе есть.
+                    if (!collide_shapes(probe, position, target, t.centre, fix32{}, m)) return;
+                    out.push_back({t.x, t.y, tile_index(g, t.x, t.y)});
                 });
     std::sort(out.begin(), out.end(),
               [](const TileOverlap& l, const TileOverlap& r) { return l.index < r.index; });

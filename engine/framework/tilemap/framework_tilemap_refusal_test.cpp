@@ -27,26 +27,57 @@ struct Case {
     const char* what;
     const char* source;
     int line;
+    // Кусок сообщения, которым пекарь ОБЯЗАН назвать причину. Без него набор вакуумен наполовину:
+    // почти каждый исходник ниже неполон и как карта, поэтому закрытие карты отвергло бы его на той
+    // же последней строке — и «отказано номером строки» сбывалось бы у пекаря, потерявшего саму
+    // проверку. Найдено сломанной реализацией: `slope_words > 9` оставляет набор зелёным, пока
+    // сверяется один номер.
+    const char* said;
 };
 
 const Case CASES[] = {
-    {"a line before the first map", "row | XX\n", 1},
-    {"unknown key", "map | a\nspeed | 1\n", 2},
-    {"tile_size set twice", "map | a\ntile_size | 16\ntile_size | 16\n", 3},
-    {"missing origin", "map | a\ntile_size | 16\nlegend | . | empty\nrow | .\n", 4},
-    {"map without a row", "map | a\ntile_size | 16\norigin | 0 | 0\n", 3},
-    {"tile size the grid would round", "map | a\ntile_size | 0.00005\n", 2},
-    {"glyph declared twice", "map | a\nlegend | . | empty\nlegend | . | solid\n", 3},
-    {"unknown flag", "map | a\nlegend | X | sticky\n", 2},
-    {"'empty' combined with a flag", "map | a\nlegend | X | empty | solid\n", 2},
-    {"a separator where a glyph belongs", "map | a\nlegend | | | solid\n", 2},
+    {"a line before the first map", "row | XX\n", 1, "before the first"},
+    {"unknown key", "map | a\nspeed | 1\n", 2, "unknown key"},
+    {"tile_size set twice", "map | a\ntile_size | 16\ntile_size | 16\n", 3, "set twice"},
+    {"missing origin", "map | a\ntile_size | 16\nlegend | . | empty\nrow | .\n", 4,
+     "is missing origin"},
+    {"map without a row", "map | a\ntile_size | 16\norigin | 0 | 0\n", 3, "has no row"},
+    {"tile size the grid would round", "map | a\ntile_size | 0.00005\n", 2, "at least 2 raw"},
+    {"glyph declared twice", "map | a\nlegend | . | empty\nlegend | . | solid\n", 3,
+     "is declared twice"},
+    {"unknown flag", "map | a\nlegend | X | sticky\n", 2, "unknown tile flag"},
+    {"'empty' combined with a flag", "map | a\nlegend | X | empty | solid\n", 2,
+     "cannot be combined"},
+    {"a separator where a glyph belongs", "map | a\nlegend | | | solid\n", 2, "one visible glyph"},
     {"glyph missing from the legend",
-     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nrow | .X.\n", 5},
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nrow | .X.\n", 5,
+     "is not in the legend"},
     {"a row of another width",
-     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nrow | ..\nrow | ...\n", 6},
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nrow | ..\nrow | ...\n", 6,
+     "not as wide"},
     {"map declared twice", "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
-                           "row | .\nmap | a\n", 6},
-    {"a source without maps", "# only a comment\n", 1},
+                           "row | .\nmap | a\n", 6, "is declared twice"},
+    {"a source without maps", "# only a comment\n", 1, "declares no map"},
+    // Склон: обе проверки совместимости слов. Первая — про то, что биты зеркал СКЛАДЫВАЮТСЯ, то
+    // есть два слова дают молча третью ориентацию; вторая — про то, что склон это форма, а не тело,
+    // и тайл без телесного флага выпал бы из запроса дыркой в полу, а не отказом. Карта тут полная
+    // нарочно: неполной хватило бы закрытия карты, чтобы отказ случился и без этих проверок.
+    {"two slope orientations at once",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
+     "legend | X | solid | slope_br | slope_tl\nrow | .X\n", 5, "one slope orientation"},
+    {"a slope without a body flag",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nlegend | X | slope_br\n"
+     "row | .X\n", 5, "needs a body flag"},
+    // Односторонний тайл — те же две проверки по своим основаниям. Тело ему нужно затем же, зачем
+    // склону: `oneway` это ПРАВИЛО ГРАНИ, а не тело, и без `solid` держать нечему. Пара со склоном
+    // отвергается потому, что держащая грань склона — гипотенуза: правило «пришёл сверху» на ней не
+    // выражается вовсе, и молча получилась бы третья геометрия вместо отказа.
+    {"a one-way tile without a body flag",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nlegend | X | oneway\n"
+     "row | .X\n", 5, "needs a body flag"},
+    {"a one-way slope",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
+     "legend | X | solid | slope_br | oneway\nrow | .X\n", 5, "cannot be one-way"},
 };
 
 // Исходник, который ОБЯЗАН испечься: без него набор отказов зелен вакуумно — пекарь, отвергающий
@@ -79,8 +110,9 @@ void test_baker() {
                         c.line, e.message.c_str());
             ++fails;
         }
-        if (e.message.empty()) {
-            std::printf("  FAIL: %s: refused without saying why\n", c.what);
+        if (e.message.find(c.said) == std::string::npos) {
+            std::printf("  FAIL: %s: refused saying '%s', expected to name '%s'\n", c.what,
+                        e.message.c_str(), c.said);
             ++fails;
         }
     }

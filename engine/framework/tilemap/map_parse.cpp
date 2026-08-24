@@ -20,6 +20,17 @@ struct FlagWord {
 const FlagWord FLAG_WORDS[] = {
     {"empty", TILE_EMPTY},
     {"solid", TILE_SOLID},
+    // Ориентация склона названа СПЛОШНЫМ УГЛОМ (`grid.hpp`): `br` — прямой угол внизу справа.
+    // Зеркальные биты по отдельности словом не пишутся вовсе, поэтому «отражение без склона»
+    // невыразимо, и отвергать его нечем и незачем.
+    {"slope_br", TILE_SLOPE},
+    {"slope_bl", TILE_SLOPE | TILE_SLOPE_FLIP_X},
+    {"slope_tr", TILE_SLOPE | TILE_SLOPE_FLIP_Y},
+    {"slope_tl", TILE_SLOPE | TILE_SLOPE_FLIP_X | TILE_SLOPE_FLIP_Y},
+    // Односторонний тайл — модификатор того, какие грани держат, и пишется он ВМЕСТЕ с телом
+    // (`solid oneway`): бит живёт рядом с `TILE_SOLID`, а не вместо него, чтобы запрос, спросивший
+    // `solid`, платформу видел, а держать её решал по грани хита.
+    {"oneway", TILE_ONEWAY},
 };
 
 constexpr uint32_t SEEN_TILE_SIZE = 1u << 0;
@@ -44,17 +55,40 @@ bool parse_flag_words(const std::vector<std::string>& f, TileFlags& out, int lin
                       MapBakeError& err) {
     out = TILE_EMPTY;
     bool empty_word = false;
+    int slope_words = 0;
     for (std::size_t i = 2; i < f.size(); ++i) {
         bool known = false;
         for (const FlagWord& w : FLAG_WORDS) {
             if (f[i] != w.name) continue;
             if (w.bits == TILE_EMPTY) empty_word = true;
+            if ((w.bits & TILE_SLOPE) != 0) ++slope_words;
             out = static_cast<TileFlags>(out | w.bits);
             known = true;
             break;
         }
         if (!known) return fail(err, line, "unknown tile flag '" + f[i] + "'");
     }
+    // Два склона в одной строке — не «оба сразу», а ТРЕТЬЯ ориентация: биты зеркал складываются
+    // побитово, и `slope_br slope_tl` молча даёт `slope_tl`. Молчание тут хуже отказа: раскладка
+    // читается глазами по легенде, а не по битам.
+    if (slope_words > 1) return fail(err, line, "a tile has one slope orientation, not several");
+    // Склон — модификатор ФОРМЫ, а не тело (`grid.hpp`): без телесного флага тайл выпадает из
+    // всякого запроса, чей фильтр спрашивает `solid`, то есть выглядит как дырка в полу, а не как
+    // ошибка исходника.
+    if ((out & TILE_SLOPE) != 0 && (out & TILE_SOLID) == 0)
+        return fail(err, line, "a slope needs a body flag such as 'solid'");
+    // Односторонний тайл — модификатор ГРАНЕЙ по тому же основанию: сам по себе он тело не
+    // объявляет, и `oneway` в одиночку дал бы тайл, невидимый всякому запросу, — то есть дырку, а
+    // не платформу.
+    if ((out & TILE_ONEWAY) != 0 && (out & TILE_SOLID) == 0)
+        return fail(err, line, "a one-way tile needs a body flag such as 'solid'");
+    // Склон и односторонность НЕ сочетаются, и пара отвергается здесь, а не «работает как-нибудь».
+    // Держащая грань склона — гипотенуза, а правило прихода сверху мерится верхом ТАЙЛА (решение
+    // владельца 2026-08-24): стоящий на нижней половине склона оказывается НИЖЕ его верха, и та же
+    // грань, что держала бы его на верхней половине, перестала бы держать на нижней. Бит, который
+    // в половине клетки молча не держит, хуже отказа на разборе.
+    if ((out & TILE_SLOPE) != 0 && (out & TILE_ONEWAY) != 0)
+        return fail(err, line, "a slope cannot be one-way: its holding face is the hypotenuse");
     // «Пусто вместе с чем-то» — противоречие, а не экзотическая запись: `empty` это отсутствие
     // флагов, и молчаливая победа второго слова означала бы, что смысл строки решает её порядок.
     if (empty_word && f.size() != 3)
