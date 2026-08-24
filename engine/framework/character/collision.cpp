@@ -1,6 +1,6 @@
 #include "collision.hpp"
 
-#include "../tilemap/query.hpp"
+#include "../tilemap/grid.hpp"
 
 namespace framework::character {
 namespace {
@@ -33,15 +33,17 @@ bool cast_nearest(const CollisionScene& s, const CharacterHull& hull, Vec2 posit
         }
     }
     if (s.grid != nullptr) {
-        // Отбор тайлов — по умолчанию, то есть «сплошной». Односторонние тайлы и склоны вертикали 3
-        // сделают его вопросом ЗАПРОСА (свип вниз видит односторонний тайл, свип вверх — нет), и
-        // тогда фильтр придёт сюда полем сцены; заводить его пустым сейчас значило бы завести
-        // настройку без потребителя.
-        tilemap::TileFilter f;
+        // Отбор тайлов приезжает СЦЕНОЙ: обычный тик спрашивает «всё сплошное», тик спуска — то же
+        // самое минус односторонние. Копии фильтра здесь нет нарочно — иначе спуск пришлось бы
+        // объявлять в каждом из трёх мест, спрашивающих сцену.
         tilemap::TileHit hit;
-        if (tilemap::shapecast(*s.grid, hull.shape, position, fix32{}, travel, f, hit)
+        if (tilemap::shapecast(*s.grid, hull.shape, position, fix32{}, travel, s.tiles, hit)
             && (!any || tile_wins(hit, out, travel))) {
-            out = {hit.fraction, hit.normal};
+            // Односторонность читается по флагам тайла, а не приходит в `TileHit`: запрос отвечает
+            // ГЕОМЕТРИЕЙ касания, и дописывать в его ответ поле ради одного читателя значило бы
+            // расширять формат тайлмапа под нужду персонажа.
+            const bool oneway = (s.grid->at(hit.x, hit.y) & tilemap::TILE_ONEWAY) != 0;
+            out = {hit.fraction, hit.normal, oneway};
             any = true;
         }
     }

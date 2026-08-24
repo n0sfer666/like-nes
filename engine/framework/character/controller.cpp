@@ -59,8 +59,30 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     const fix32 g = c.velocity.y.raw < 0 ? p.gravity_rise : p.gravity_fall;
     c.velocity.y = min_fix(c.velocity.y + g * dt, p.max_fall_speed);
 
-    // 4. Прыжок: разрешение даёт опора ИЛИ незакрытое окно coyote, запрос — живой буфер.
-    const bool jumped = (c.on_ground || c.coyote_left > 0) && c.buffer_left > 0;
+    // 4. Прыжок или СПУСК: разрешение даёт опора ИЛИ незакрытое окно coyote, запрос — живой буфер.
+    const bool wants_jump = (c.on_ground || c.coyote_left > 0) && c.buffer_left > 0;
+    // Одна и та же команда — «вниз» плюс фронт прыжка — значит разное в зависимости от ОПОРЫ, а не
+    // от ввода: на односторонней платформе это спуск, на каменном полу обычный прыжок. Различие
+    // несущее: съеденный на сплошном полу прыжок игрок читает как пропавшее нажатие, а не как
+    // правило, и первым же присевшим персонажем это возвращается багом.
+    //
+    // Спрашивается отдельной пробой, потому что штатная (шаг 8) стоит ПОСЛЕ движения, то есть
+    // отвечает про опору уже следующего тика. Цена — один свип в тике, где игрок держит «вниз» и
+    // жмёт прыжок, и только там.
+    bool dropped = false;
+    if (wants_jump && in.down_held && c.on_ground) {
+        bool oneway = false;
+        probe_ground(s, hull, c.position, p.max_slope, &oneway);
+        dropped = oneway;
+    }
+    const bool jumped = wants_jump && !dropped;
+    if (dropped) {
+        // Запрос ИЗРАСХОДОВАН. Без этого буфер доживал бы до следующего тика и выдавал прыжок сразу
+        // после спуска — то есть «вниз + прыжок» подбрасывал бы там, где обязан ронять.
+        c.buffer_left = 0;
+        c.coyote_left = 0;
+        c.on_ground = false;
+    }
     if (jumped) {
         c.velocity.y = -d.jump_speed;
         c.buffer_left = 0;
@@ -97,9 +119,21 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // `velocity.y` тем же тиком (`slide_along` по нормали {0,+1}), и прощение угла, прочитавшее
     // скорость после, не сработало бы у прыгнувшего ни разу. Снимок — не оптимизация, а само
     // условие: «поднимается» это про НАМЕРЕНИЕ тика, а не про то, чем оно кончилось.
+    //
+    // Спуск снимает односторонние тайлы со ВСЕХ запросов тика разом — движения, прощения угла и
+    // пробы опоры, — и делает это копией сцены, а не третьим аргументом каждому. Одного тика
+    // хватает, и это не подобранное число: тяготение уносит ноги на 0.667 юнита вниз при зазоре в
+    // 0.125, то есть ниже верха платформы, а держит она (`tile_rules.hpp`) только тех, чьи ноги на
+    // старте пути были не ниже её верха. Со следующего тика платформа не держит уже сама, без
+    // всякого исключения, — поэтому «сколько тиков помнить спуск» не поле профиля и не поле
+    // состояния: помнить нечего.
+    CollisionScene tick = s;
+    if (dropped)
+        tick.tiles.exclude =
+            static_cast<tilemap::TileFlags>(tick.tiles.exclude | tilemap::TILE_ONEWAY);
     const bool was_rising = c.velocity.y.raw < 0;
-    if (was_rising) corner_correct(s, hull, c.velocity * dt, p.corner_correction, p.max_slope, c.position);
-    const SlideResult sr = move_and_slide(s, hull, c.velocity * dt, p.max_slope, c.position, c.velocity);
+    if (was_rising) corner_correct(tick, hull, c.velocity * dt, p.corner_correction, p.max_slope, c.position);
+    const SlideResult sr = move_and_slide(tick, hull, c.velocity * dt, p.max_slope, c.position, c.velocity);
     c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.hit_ceiling = sr.hit_ceiling;
@@ -111,7 +145,7 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     if (c.buffer_left > 0) --c.buffer_left;
 
     // 8. Опора и состояние.
-    c.on_ground = probe_ground(s, hull, c.position, p.max_slope);
+    c.on_ground = probe_ground(tick, hull, c.position, p.max_slope);
     // Прилипание к земле на спуске: опора БЫЛА, персонаж не поднимается, а пробы не хватило. Это и
     // есть спуск по ступеньке — без притяжения персонаж каждую ступеньку слетал бы в короткий полёт,
     // теряя и опору, и управление по земле.
@@ -131,7 +165,7 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // падение значило бы отдать следующему тику скорость, которой не соответствует ни одно
     // движение.
     if (!c.on_ground && was_ground && !jumped &&
-        snap_to_ground(s, hull, p.ground_snap, p.max_slope, c.position)) {
+        snap_to_ground(tick, hull, p.ground_snap, p.max_slope, c.position)) {
         // Кламп повторяется здесь, потому что притяжение двигает позицию ПОСЛЕ клампа шага 6, а
         // инвариант заголовка — про позицию по итогам ТИКА, а не по итогам движения.
         c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
@@ -143,10 +177,11 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     if (c.on_ground) {
         c.coyote_left = 0;
         c.jump_active = false;
-    } else if (was_ground && !jumped) {
-        // Опора потеряна НЕ прыжком — значит персонаж сошёл с края, и это единственный случай, в
-        // котором окно coyote имеет смысл. Прыжок опору тоже «теряет», и выдать окно там значило бы
-        // разрешить второй прыжок в воздухе.
+    } else if (was_ground && !jumped && !dropped) {
+        // Опора потеряна НЕ прыжком и НЕ спуском — значит персонаж сошёл с края, и это единственный
+        // случай, в котором окно coyote имеет смысл. Прыжок опору тоже «теряет», и выдать окно там
+        // значило бы разрешить второй прыжок в воздухе; спуск по команде — такой же осознанный уход
+        // с опоры, и окно после него дало бы этот второй прыжок прямо под платформой.
         //
         // Здесь же снимается подъём, набранный СКОЛЬЖЕНИЕМ по склону, — иначе склон работает
         // трамплином. Механика та же, что даёт ходьбу вверх: `slide_along` проецирует на грань не

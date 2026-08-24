@@ -27,6 +27,10 @@ const FlagWord FLAG_WORDS[] = {
     {"slope_bl", TILE_SLOPE | TILE_SLOPE_FLIP_X},
     {"slope_tr", TILE_SLOPE | TILE_SLOPE_FLIP_Y},
     {"slope_tl", TILE_SLOPE | TILE_SLOPE_FLIP_X | TILE_SLOPE_FLIP_Y},
+    // Односторонний тайл — модификатор того, какие грани держат, и пишется он ВМЕСТЕ с телом
+    // (`solid oneway`): бит живёт рядом с `TILE_SOLID`, а не вместо него, чтобы запрос, спросивший
+    // `solid`, платформу видел, а держать её решал по грани хита.
+    {"oneway", TILE_ONEWAY},
 };
 
 constexpr uint32_t SEEN_TILE_SIZE = 1u << 0;
@@ -73,6 +77,18 @@ bool parse_flag_words(const std::vector<std::string>& f, TileFlags& out, int lin
     // ошибка исходника.
     if ((out & TILE_SLOPE) != 0 && (out & TILE_SOLID) == 0)
         return fail(err, line, "a slope needs a body flag such as 'solid'");
+    // Односторонний тайл — модификатор ГРАНЕЙ по тому же основанию: сам по себе он тело не
+    // объявляет, и `oneway` в одиночку дал бы тайл, невидимый всякому запросу, — то есть дырку, а
+    // не платформу.
+    if ((out & TILE_ONEWAY) != 0 && (out & TILE_SOLID) == 0)
+        return fail(err, line, "a one-way tile needs a body flag such as 'solid'");
+    // Склон и односторонность НЕ сочетаются, и пара отвергается здесь, а не «работает как-нибудь».
+    // Держащая грань склона — гипотенуза, а правило прихода сверху мерится верхом ТАЙЛА (решение
+    // владельца 2026-08-24): стоящий на нижней половине склона оказывается НИЖЕ его верха, и та же
+    // грань, что держала бы его на верхней половине, перестала бы держать на нижней. Бит, который
+    // в половине клетки молча не держит, хуже отказа на разборе.
+    if ((out & TILE_SLOPE) != 0 && (out & TILE_ONEWAY) != 0)
+        return fail(err, line, "a slope cannot be one-way: its holding face is the hypotenuse");
     // «Пусто вместе с чем-то» — противоречие, а не экзотическая запись: `empty` это отсутствие
     // флагов, и молчаливая победа второго слова означала бы, что смысл строки решает её порядок.
     if (empty_word && f.size() != 3)

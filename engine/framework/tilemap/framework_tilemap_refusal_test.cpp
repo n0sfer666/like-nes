@@ -68,6 +68,16 @@ const Case CASES[] = {
     {"a slope without a body flag",
      "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nlegend | X | slope_br\n"
      "row | .X\n", 5, "needs a body flag"},
+    // Односторонний тайл — те же две проверки по своим основаниям. Тело ему нужно затем же, зачем
+    // склону: `oneway` это ПРАВИЛО ГРАНИ, а не тело, и без `solid` держать нечему. Пара со склоном
+    // отвергается потому, что держащая грань склона — гипотенуза: правило «пришёл сверху» на ней не
+    // выражается вовсе, и молча получилась бы третья геометрия вместо отказа.
+    {"a one-way tile without a body flag",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\nlegend | X | oneway\n"
+     "row | .X\n", 5, "needs a body flag"},
+    {"a one-way slope",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
+     "legend | X | solid | slope_br | oneway\nrow | .X\n", 5, "cannot be one-way"},
 };
 
 // Исходник, который ОБЯЗАН испечься: без него набор отказов зелен вакуумно — пекарь, отвергающий

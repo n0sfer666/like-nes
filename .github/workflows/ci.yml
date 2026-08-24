@@ -1002,6 +1002,7 @@ jobs:
                    framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
                    framework_physics_corner_test \
                    framework_tilemap_test framework_tilemap_seam_test framework_tilemap_slope_test \
+                   framework_tilemap_oneway_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1010,6 +1011,7 @@ jobs:
                    framework_character_jump_test framework_character_tunnel_test \
                    framework_character_collision_test framework_character_corner_test \
                    framework_character_snap_test framework_character_slope_test \
+                   framework_character_oneway_test \
                    framework_character_alloc_test framework_character_profile_test \
                    framework_character_profile_refusal_test framework_character_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
@@ -1260,6 +1262,15 @@ jobs:
           # смещения в плоский байтовый блок, и промах на запись читается как валидный `uint32_t` —
           # соседнее поле, а не сегфолт. Голден на такое молчит, пока промах остаётся внутри своих
           # же байт, и увидеть его может только санитайзер.
+          # Односторонний тайл — своё основание: правило прихода сверху берёт САМУЮ НИЖНЮЮ точку
+          # движущейся формы, то есть проходит буфер вершин по счётчику, и сверяет её с границами
+          # тайла, взятыми из того же плоского вектора, что и флаги. Промах по любому из двух даёт
+          # валидный `fix32` — то есть другой ответ «держит/пропускает», а не падение, — и голден
+          # ответов сетки на это молчит: одностороннего тайла в его сцене нет вовсе.
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
+            engine/framework/tilemap/framework_tilemap_oneway_test.cpp $PLAT -o tiles_oneway_san
+          ./tiles_oneway_san | tee tilesonewaysan.txt
+          grep -q ": PASS" tilesonewaysan.txt
           c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
             engine/framework/tilemap/framework_tilemap_bake_test.cpp $PLAT -o tiles_bake_san
           ./tiles_bake_san | tee tilesbakesan.txt
@@ -1312,7 +1323,10 @@ jobs:
           # тайла: развёртка треугольника живёт в буфере вершин, и промах по нему осевые сцены не
           # видят. Цели зовутся одним циклом: разойтись флагами им негде, а скопированные вызовы
           # расходятся ровно так, как расходятся списки, — молча.
-          for G in corner snap slope; do
+          # Односторонняя платформа приезжает в тот же цикл четвёртой целью: спуск копирует сцену
+          # на тик и дописывает биту исключения, а зонд опоры лезет за флагом тайла ПО ИНДЕКСУ
+          # хита — по тому самому плоскому вектору, промах по которому даёт валидный `TileFlags`.
+          for G in corner snap slope oneway; do
             c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
               "engine/framework/character/framework_character_${G}_test.cpp" $PLAT -o "char_${G}_san"
             "./char_${G}_san" | tee "char${G}san.txt"

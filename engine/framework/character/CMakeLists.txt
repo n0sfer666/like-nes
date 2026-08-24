@@ -62,6 +62,13 @@ add_executable(framework_character_slope_test framework_character_slope_test.cpp
 target_link_libraries(framework_character_slope_test PRIVATE framework_character
   framework_tilemap platform_core)
 
+# Односторонняя платформа (шаг B вертикали 3). Четвёртой целью по тому же основанию, что и склон:
+# вопрос у неё не про грань и не про окно, а про то, КОМУ тайл отвечает и как с него сойти по
+# команде, и раскладка своя — платформа с просветом над сплошным полом.
+add_executable(framework_character_oneway_test framework_character_oneway_test.cpp)
+target_link_libraries(framework_character_oneway_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.
 add_executable(framework_character_tunnel_test framework_character_tunnel_test.cpp)
 target_link_libraries(framework_character_tunnel_test PRIVATE framework_character

@@ -82,7 +82,12 @@ SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, V
                            fix32 max_slope, Vec2& position, Vec2& velocity);
 
 // Есть ли под персонажем опора. Читающая: мир не двигает, состояние не трогает.
+//
+// `oneway` — необязательный ответ про ХАРАКТЕР опоры: сквозь неё можно спуститься по команде.
+// Отдельным выходом, а не вторым вызовом с другим фильтром, потому что вопрос один и свип один:
+// «стою ли я и на чём» — это одно касание, и два запроса вместо него разошлись бы ровно на границе,
+// где одна платформа кончается и начинается другая. При отсутствии опоры поле не трогается вовсе.
 bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position,
-                  fix32 max_slope);
+                  fix32 max_slope, bool* oneway = nullptr);
 
 } // namespace framework::character
