@@ -20,6 +20,13 @@ struct FlagWord {
 const FlagWord FLAG_WORDS[] = {
     {"empty", TILE_EMPTY},
     {"solid", TILE_SOLID},
+    // Ориентация склона названа СПЛОШНЫМ УГЛОМ (`grid.hpp`): `br` — прямой угол внизу справа.
+    // Зеркальные биты по отдельности словом не пишутся вовсе, поэтому «отражение без склона»
+    // невыразимо, и отвергать его нечем и незачем.
+    {"slope_br", TILE_SLOPE},
+    {"slope_bl", TILE_SLOPE | TILE_SLOPE_FLIP_X},
+    {"slope_tr", TILE_SLOPE | TILE_SLOPE_FLIP_Y},
+    {"slope_tl", TILE_SLOPE | TILE_SLOPE_FLIP_X | TILE_SLOPE_FLIP_Y},
 };
 
 constexpr uint32_t SEEN_TILE_SIZE = 1u << 0;
@@ -44,17 +51,28 @@ bool parse_flag_words(const std::vector<std::string>& f, TileFlags& out, int lin
                       MapBakeError& err) {
     out = TILE_EMPTY;
     bool empty_word = false;
+    int slope_words = 0;
     for (std::size_t i = 2; i < f.size(); ++i) {
         bool known = false;
         for (const FlagWord& w : FLAG_WORDS) {
             if (f[i] != w.name) continue;
             if (w.bits == TILE_EMPTY) empty_word = true;
+            if ((w.bits & TILE_SLOPE) != 0) ++slope_words;
             out = static_cast<TileFlags>(out | w.bits);
             known = true;
             break;
         }
         if (!known) return fail(err, line, "unknown tile flag '" + f[i] + "'");
     }
+    // Два склона в одной строке — не «оба сразу», а ТРЕТЬЯ ориентация: биты зеркал складываются
+    // побитово, и `slope_br slope_tl` молча даёт `slope_tl`. Молчание тут хуже отказа: раскладка
+    // читается глазами по легенде, а не по битам.
+    if (slope_words > 1) return fail(err, line, "a tile has one slope orientation, not several");
+    // Склон — модификатор ФОРМЫ, а не тело (`grid.hpp`): без телесного флага тайл выпадает из
+    // всякого запроса, чей фильтр спрашивает `solid`, то есть выглядит как дырка в полу, а не как
+    // ошибка исходника.
+    if ((out & TILE_SLOPE) != 0 && (out & TILE_SOLID) == 0)
+        return fail(err, line, "a slope needs a body flag such as 'solid'");
     // «Пусто вместе с чем-то» — противоречие, а не экзотическая запись: `empty` это отсутствие
     // флагов, и молчаливая победа второго слова означала бы, что смысл строки решает её порядок.
     if (empty_word && f.size() != 3)

@@ -20,6 +20,11 @@ target_link_libraries(framework_tilemap_test PRIVATE framework_tilemap platform_
 add_executable(framework_tilemap_seam_test framework_tilemap_seam_test.cpp)
 target_link_libraries(framework_tilemap_seam_test PRIVATE framework_tilemap platform_core)
 
+# Геометрия склона (вертикаль 3, шаг B) — своей целью: у `..._test` предмет это ОКНО и маска, а
+# здесь ФОРМА, в которую разворачивается тайл, и имя упавшей цели в логе CI обязано их различать.
+add_executable(framework_tilemap_slope_test framework_tilemap_slope_test.cpp)
+target_link_libraries(framework_tilemap_slope_test PRIVATE framework_tilemap platform_core)
+
 # Карта как испечённые ДАННЫЕ (вертикаль 2, шаг B) — ТРИ цели, и граница между ними та же, что у
 # профиля #16: имя упавшей цели в логе CI обязано называть класс поломки.
 #   * ..._bake_test — round-trip и голден байтов (согласованы ли пекарь с читателем и не поехала ли

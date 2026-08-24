@@ -1001,7 +1001,7 @@ jobs:
                    framework_physics_order_test framework_physics_range_test framework_physics_clamp_test \
                    framework_physics_terms_test framework_physics_rt_test framework_physics_query_test \
                    framework_physics_corner_test \
-                   framework_tilemap_test framework_tilemap_seam_test \
+                   framework_tilemap_test framework_tilemap_seam_test framework_tilemap_slope_test \
                    framework_physics_overlap_test framework_physics_index_test \
                    framework_physics_filter_test framework_physics_event_test \
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
@@ -1248,6 +1248,14 @@ jobs:
             engine/framework/tilemap/framework_tilemap_seam_test.cpp $PLAT -o tiles_seam_san
           ./tiles_seam_san | tee tilesseamsan.txt
           grep -q ": PASS" tilesseamsan.txt
+          # Склон ложится сюда по СВОЕМУ основанию: ориентация тайла — это ИНДЕКС в массив из
+          # четырёх кешированных форм, собранный из битов флагов. Промах индекса читает валидную
+          # `physics::Shape` (соседнюю ориентацию или мусор рядом), то есть даёт не падение, а
+          # другой ответ — и различить «не тот индекс» и «не та геометрия» может только санитайзер.
+          c++ $SAN -Iengine/framework/tilemap $LIB $TILES $TILES_FS \
+            engine/framework/tilemap/framework_tilemap_slope_test.cpp $PLAT -o tiles_slope_san
+          ./tiles_slope_san | tee tilesslopesan.txt
+          grep -q ": PASS" tilesslopesan.txt
           # Пекарь и читатель таблицы ложатся сюда по СВОЕМУ основанию: обе стороны считают
           # смещения в плоский байтовый блок, и промах на запись читается как валидный `uint32_t` —
           # соседнее поле, а не сегфолт. Голден на такое молчит, пока промах остаётся внутри своих

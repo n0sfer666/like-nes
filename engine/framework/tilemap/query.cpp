@@ -4,6 +4,7 @@
 
 #include "cast.hpp"
 #include "narrowphase.hpp"
+#include "tile_shape.hpp"
 #include "units.hpp"
 
 namespace framework::tilemap {
@@ -78,7 +79,7 @@ void scan_window(const TileGrid& g, const Aabb& raw_probe, const TileFilter& f, 
                      {raw_probe.max.x + pad, raw_probe.max.y + pad}};
     const TileWindow win = g.window(probe);
     const fix32 half = fix32::from_raw(g.tile_size().raw / 2);
-    const physics::Shape core = physics::sanitize(physics::box(half, half));
+    TileShapes shapes(half);
     const Rot no_rot = rotation(fix32{});
     uint64_t scanned = 0;
     for (int32_t y = win.y0; y < win.y1; ++y) {
@@ -87,11 +88,12 @@ void scan_window(const TileGrid& g, const Aabb& raw_probe, const TileFilter& f, 
             // плотность карты. Считать после проверки флагов значило бы получать ноль на пустом
             // уровне и объявлять это независимостью от размера.
             ++scanned;
-            if (!participates(g.at(x, y), f)) continue;
+            const TileFlags flags = g.at(x, y);
+            if (!participates(flags, f)) continue;
             const Aabb b = g.tile_bounds(x, y);
             const Vec2 centre{b.min.x + half, b.min.y + half};
             physics::WorldShape target;
-            to_world(core, centre, no_rot, target);
+            to_world(shapes.of(flags), centre, no_rot, target);
             visit(x, y, centre, target);
         }
     }
