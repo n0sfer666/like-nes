@@ -4,7 +4,7 @@
 # грепом по этой самой строке линковки. Обратного ребра нет: ни физика, ни сетка про персонажа не
 # знают.
 add_library(framework_character STATIC controller.cpp collision.cpp profile.cpp slide.cpp
-  trajectory.cpp profile_text.cpp profile_parse.cpp profile_bake.cpp profile_read.cpp)
+  assist.cpp trajectory.cpp profile_text.cpp profile_parse.cpp profile_bake.cpp profile_read.cpp)
 target_include_directories(framework_character PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит профиль, а не файловый шов, которым пекарь
 # читает манифест. То же устройство, что у framework_input.
@@ -35,6 +35,14 @@ target_link_libraries(framework_character_jump_test PRIVATE framework_character
 # порядок наблюдаем только там, где оба источника отвечают на одной доле пути.
 add_executable(framework_character_collision_test framework_character_collision_test.cpp)
 target_link_libraries(framework_character_collision_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+# Геометрическое прощение (вертикаль 3): сдвиг из-под угла потолка и притяжение к полу
+# срабатывают ровно в заявленном окне ЮНИТОВ. Отдельной целью от гейта окон, который меряет то же
+# самое ТИКАМИ на общей сцене: здесь нужна своя геометрия — потолок с проёмом и ступенька вниз, — а
+# дописывать её в общую сцену значило бы менять обстановку под голденом.
+add_executable(framework_character_assist_test framework_character_assist_test.cpp)
+target_link_libraries(framework_character_assist_test PRIVATE framework_character
   framework_tilemap platform_core)
 
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.

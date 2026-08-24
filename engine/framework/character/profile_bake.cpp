@@ -46,6 +46,8 @@ bool bake_profiles(const std::string& text, std::vector<uint8_t>& out, ProfileBa
         r.min_jump_height_raw = p.min_jump_height.raw;
         r.coyote_ticks = p.coyote_ticks;
         r.buffer_ticks = p.buffer_ticks;
+        r.corner_correction_raw = p.corner_correction.raw;
+        r.ground_snap_raw = p.ground_snap.raw;
         rows.push_back(r);
     }
 

@@ -64,6 +64,8 @@ bool ProfileTable::at(uint32_t index, MoveProfile& out) const {
     out.min_jump_height = fix32::from_raw(r.min_jump_height_raw);
     out.coyote_ticks = r.coyote_ticks;
     out.buffer_ticks = r.buffer_ticks;
+    out.corner_correction = fix32::from_raw(r.corner_correction_raw);
+    out.ground_snap = fix32::from_raw(r.ground_snap_raw);
     return true;
 }
 

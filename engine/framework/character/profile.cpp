@@ -49,6 +49,8 @@ MoveProfile sanitize(const MoveProfile& p) {
     // выше, чем удерживая» это не экзотическая настройка, а перевёрнутая механика, и молча
     // разрешать её значит отдавать отладку такого профиля игре.
     o.min_jump_height = clamp_fix(p.min_jump_height, fix32{}, o.jump_height);
+    o.corner_correction = clamp_fix(p.corner_correction, fix32{}, MAX_CORNER_CORRECTION);
+    o.ground_snap = clamp_fix(p.ground_snap, fix32{}, MAX_GROUND_SNAP);
     o.coyote_ticks = p.coyote_ticks < MAX_WINDOW_TICKS ? p.coyote_ticks : MAX_WINDOW_TICKS;
     o.buffer_ticks = p.buffer_ticks < MAX_WINDOW_TICKS ? p.buffer_ticks : MAX_WINDOW_TICKS;
     return o;
@@ -83,6 +85,11 @@ MoveProfile default_profile() {
     p.min_jump_height = fix32::from_int(16);
     p.coyote_ticks = 6;
     p.buffer_ticks = 6;
+    // Четверть тайла вбок и полтайла вниз. Сдвиг мельче тайла по построению: приём обязан прощать
+    // ЗАДЕТЫЙ угол, а не переносить персонажа в соседний проход. Притяжение вдвое больше сдвига,
+    // потому что мерит другое — высоту ступеньки под ногами, а не ширину промаха.
+    p.corner_correction = fix32::from_int(4);
+    p.ground_snap = fix32::from_int(8);
     return sanitize(p);
 }
 

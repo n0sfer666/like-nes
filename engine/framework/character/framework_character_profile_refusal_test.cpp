@@ -38,6 +38,7 @@ const char* KEYS[][2] = {
     {"air_accel", "1600"},       {"air_decel", "900"},       {"gravity_rise", "1200"},
     {"gravity_fall", "2400"},    {"max_fall_speed", "900"},  {"jump_height", "64"},
     {"min_jump_height", "16"},   {"coyote_ticks", "6"},      {"buffer_ticks", "6"},
+    {"corner_correction", "4"},  {"ground_snap", "8"},
 };
 constexpr int KEY_COUNT = static_cast<int>(sizeof(KEYS) / sizeof(KEYS[0]));
 
@@ -104,6 +105,10 @@ void test_reader_refusals() {
     const Broken BROKEN[] = {
         {[&table] { auto b = table; b[0] = 'X'; return b; }(), "bad magic refused"},
         {patched(offsetof(MoveHeader, version), MOVE_VERSION + 1), "unknown version refused"},
+        // Версия 1 отвергается ПО НОМЕРУ, а не разбирается старой раскладкой (решение владельца
+        // 2026-08-24). Записана она отдельным случаем от «версии из будущего», потому что это
+        // РЕШЕНИЕ, а не следствие: миграции у таблицы нет, и утверждать это обязан прогон.
+        {patched(offsetof(MoveHeader, version), MOVE_VERSION - 1), "the previous version refused"},
         {[&table] { auto b = table; b.pop_back(); return b; }(), "truncated table refused"},
         {[&table] { auto b = table; b.back() = 'x'; return b; }(),
          "name blob without its terminator refused"},

@@ -1008,7 +1008,7 @@ jobs:
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
                    framework_physics_depth_test framework_character_test framework_character_window_test \
                    framework_character_jump_test framework_character_tunnel_test \
-                   framework_character_collision_test \
+                   framework_character_collision_test framework_character_assist_test \
                    framework_character_alloc_test framework_character_profile_test \
                    framework_character_profile_refusal_test framework_character_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
@@ -1029,7 +1029,7 @@ jobs:
           # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
           # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
           # полей в пекаре и читателе, а `game.bundle` в git — нет.
-          grep -q "hash 0x781caa6f9eac13a7" phys_framework_character_profile_test.txt \
+          grep -q "hash 0x6fc67dbed5d4c5e9" phys_framework_character_profile_test.txt \
             || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Четвёртый голден шага — свёртка ответов трёх запросов к тайловой сетке (гейт шага A
           # вертикали 2 спеки #16). В логе по той же причине: расхождение обязано называть себя
@@ -1084,7 +1084,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_assist_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1106,6 +1106,7 @@ jobs:
                    framework_physics_depth_test framework_trig_test framework_character_test \
                    framework_character_window_test framework_character_jump_test \
                    framework_character_tunnel_test framework_character_collision_test \
+                   framework_character_assist_test \
                    framework_character_profile_test framework_character_profile_refusal_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1123,7 +1124,7 @@ jobs:
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
-          grep -q "hash 0x781caa6f9eac13a7" dbg_framework_character_profile_test.txt \
+          grep -q "hash 0x6fc67dbed5d4c5e9" dbg_framework_character_profile_test.txt \
             || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Ответы сетки складываются из долей и точек, то есть из той же арифметики fix32:
           # расхождение -O0 с -O3 здесь означало бы UB ровно по основанию трёх голденов выше.
@@ -1272,14 +1273,17 @@ jobs:
           # линкуется он теперь через `$TILES` — то есть через список, у которого уже есть эталон
           # (`mirrors-target` выше). Своя копия имён тайлмапа рядом с `CHAR` завела бы второй
           # руками написанный список без эталона, а именно этот класс и стоил красной сборки 23-го.
-          # Сам `CHAR` перечисляет четыре файла модуля из девяти ОСОЗНАННО: путь голдена — это
-          # контроллер, профиль, скольжение, шов сцены и хеш; пекарь, парсер и читатель профиля в
-          # прогоне не участвуют вовсе, и равенство с целью отбивало бы список ложно.
+          # Сам `CHAR` перечисляет шесть файлов модуля из десяти ОСОЗНАННО: путь голдена — это
+          # контроллер, профиль, скольжение, шов сцены, геометрическое прощение и хеш; пекарь,
+          # парсер и читатель профиля в прогоне не участвуют вовсе, и равенство с целью отбивало бы
+          # список ложно. `assist.cpp` приехал в него с вертикалью 3 не потому, что прогон зовёт эти
+          # приёмы (в сцене голдена не срабатывает ни один), а потому что их зовёт `controller.cpp`:
+          # линкеру безразлично, исполнится вызов или нет.
           # `$TILES_FS` едет вместе с `$TILES` и без него не обходится: список зеркалит ЦЕЛЬ, а в
           # цели лежит пекарь карт, читающий исходник файлом. Прогон персонажа пекаря не зовёт
           # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
           # красной сборки на единственном раннере, где шаг вообще запускается.
-          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/trajectory.cpp"
+          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/trajectory.cpp"
           c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
@@ -1291,6 +1295,13 @@ jobs:
             engine/framework/character/framework_character_collision_test.cpp $PLAT -o char_scene_san
           ./char_scene_san | tee charscenesan.txt
           grep -q ": PASS" charscenesan.txt
+          # Геометрическое прощение — третий вопрос к санитайзеру: оба приёма гоняют свип по СВОЕЙ
+          # сцене и по позиции, которую в тот момент никто не двигал, — а сцена голдена не
+          # срабатывает ни на одном из них, то есть под ASan этот путь иначе не попадает вовсе.
+          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
+            engine/framework/character/framework_character_assist_test.cpp $PLAT -o char_assist_san
+          ./char_assist_san | tee charassistsan.txt
+          grep -q ": PASS" charassistsan.txt
 
       - name: Achievements — ASan/UBSan (core + store + delivery + bundle/manifest robustness, Linux)
         if: runner.os == 'Linux'

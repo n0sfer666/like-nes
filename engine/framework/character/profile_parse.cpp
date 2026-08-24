@@ -31,6 +31,8 @@ const FixKey FIX_KEYS[] = {
     {"max_fall_speed", &MoveProfile::max_fall_speed, MAX_MOVE_SPEED},
     {"jump_height", &MoveProfile::jump_height, MAX_JUMP_HEIGHT},
     {"min_jump_height", &MoveProfile::min_jump_height, MAX_JUMP_HEIGHT},
+    {"corner_correction", &MoveProfile::corner_correction, MAX_CORNER_CORRECTION},
+    {"ground_snap", &MoveProfile::ground_snap, MAX_GROUND_SNAP},
 };
 constexpr uint32_t FIX_COUNT = sizeof(FIX_KEYS) / sizeof(FIX_KEYS[0]);
 

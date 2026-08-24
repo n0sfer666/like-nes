@@ -1,5 +1,7 @@
 #include "controller.hpp"
 
+#include "assist.hpp"
+
 namespace framework::character {
 namespace {
 
@@ -86,6 +88,12 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // неё в неопределённом месте вместо того, чтобы честно упереться в край мира. Физика держит тот
     // же кламп на телах решателя (`world.cpp`), и держать его здесь по-другому было бы расхождением
     // двух путей движения в одном мире.
+    //
+    // Прощение угла потолка идёт ПЕРЕД движением, а не после разбора касания: сдвиг существует ровно
+    // затем, чтобы удара головой не случилось вовсе. После касания скорость подъёма уже погашена
+    // скольжением, и «поправленный» персонаж просто висел бы под потолком сдвинутым вбок.
+    if (c.velocity.y.raw < 0)
+        corner_correct(s, hull, c.velocity * dt, p.corner_correction, c.position);
     const SlideResult sr = move_and_slide(s, hull, c.velocity * dt, c.position, c.velocity);
     c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
@@ -99,6 +107,19 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
 
     // 8. Опора и состояние.
     c.on_ground = probe_ground(s, hull, c.position);
+    // Прилипание к земле на спуске: опора БЫЛА, персонаж не поднимается, а пробы не хватило. Это и
+    // есть спуск по ступеньке — без притяжения персонаж каждую ступеньку слетал бы в короткий полёт,
+    // теряя и опору, и управление по земле.
+    //
+    // Прыжок сюда не попадает ПО ПОСТРОЕНИЮ, а не по списку исключений: его первый тик даёт
+    // `velocity.y < 0`. Скорость падения при успехе гасится — притянутый персонаж СТОИТ, и оставить
+    // ему накопленное падение значило бы отдать следующему тику скорость, которой не соответствует
+    // ни одно движение.
+    if (!c.on_ground && was_ground && c.velocity.y.raw >= 0 &&
+        snap_to_ground(s, hull, p.ground_snap, c.position)) {
+        c.on_ground = true;
+        c.velocity.y = fix32{};
+    }
     c.state = c.on_ground ? MoveState::Ground : MoveState::Air;
     if (c.on_ground) {
         c.coyote_left = 0;
