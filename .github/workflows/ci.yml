@@ -1011,7 +1011,7 @@ jobs:
                    framework_character_jump_test framework_character_tunnel_test \
                    framework_character_collision_test framework_character_corner_test \
                    framework_character_snap_test framework_character_slope_test \
-                   framework_character_oneway_test \
+                   framework_character_oneway_test framework_character_platform_test \
                    framework_character_alloc_test framework_character_profile_test \
                    framework_character_profile_refusal_test framework_character_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
@@ -1303,7 +1303,7 @@ jobs:
           # цели лежит пекарь карт, читающий исходник файлом. Прогон персонажа пекаря не зовёт
           # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
           # красной сборки на единственном раннере, где шаг вообще запускается.
-          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/trajectory.cpp"
+          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/trajectory.cpp"
           c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
@@ -1326,7 +1326,11 @@ jobs:
           # Односторонняя платформа приезжает в тот же цикл четвёртой целью: спуск копирует сцену
           # на тик и дописывает биту исключения, а зонд опоры лезет за флагом тайла ПО ИНДЕКСУ
           # хита — по тому самому плоскому вектору, промах по которому даёт валидный `TileFlags`.
-          for G in corner snap slope oneway; do
+          # Движущаяся платформа — пятой целью, и вопрос у неё к санитайзеру свой: это ЕДИНСТВЕННЫЙ
+          # прогон персонажа, который ШАГАЕТ МИР, то есть держит `BodyId` через шаг, двигающий
+          # тела и перестраивающий индекс запросов. Четыре цели выше сцену не шагают ни разу, а
+          # сцена голдена не держит тел вовсе.
+          for G in corner snap slope oneway platform; do
             c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
               "engine/framework/character/framework_character_${G}_test.cpp" $PLAT -o "char_${G}_san"
             "./char_${G}_san" | tee "char${G}san.txt"

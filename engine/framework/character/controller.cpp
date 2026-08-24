@@ -1,6 +1,7 @@
 #include "controller.hpp"
 
 #include "assist.hpp"
+#include "support.hpp"
 
 namespace framework::character {
 namespace {
@@ -44,6 +45,15 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // дисциплине, а снимок делает то же самое устройством.
     const bool was_ground = c.on_ground;
 
+    // 0. Перенос опорой — ДО всего остального: платформа уже сдвинулась (порядок кадра «физика,
+    // потом персонаж», решение владельца), и до переноса персонаж стоит не там, где стоял
+    // относительно неё. Все восемь шагов ниже спрашивают геометрию, и спрашивать её из положения,
+    // которого в мире не было ни одного мгновения, значило бы мерить полтика назад.
+    //
+    // Только со СТОЯЩИМ: опора помнится и в окне coyote — ради наследования горизонтали прыжком, —
+    // но сошедшего с платформы возить за ней по воздуху нельзя.
+    c.crushed = was_ground && !carry_by_support(s, hull, c.support, dt, c.position);
+
     // 1. Буфер помнит нажатие `buffer_ticks` тиков ПОСЛЕ того, в котором оно случилось, поэтому
     // заводится на единицу больше: сам тик нажатия расходуется на проверку в шаге 4.
     if (pressed) c.buffer_left = p.buffer_ticks + 1;
@@ -71,9 +81,9 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // жмёт прыжок, и только там.
     bool dropped = false;
     if (wants_jump && in.down_held && c.on_ground) {
-        bool oneway = false;
-        probe_ground(s, hull, c.position, p.max_slope, &oneway);
-        dropped = oneway;
+        GroundInfo below;
+        probe_ground(s, hull, c.position, p.max_slope, &below);
+        dropped = below.oneway;
     }
     const bool jumped = wants_jump && !dropped;
     if (dropped) {
@@ -85,6 +95,14 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     }
     if (jumped) {
         c.velocity.y = -d.jump_speed;
+        // Прыжок с движущейся платформы наследует её ГОРИЗОНТАЛЬ и только её (решение владельца).
+        // Горизонталь — потому что иначе прыжок с едущей платформы уходит назад относительно неё и
+        // промахивается мимо собственной опоры. Вертикаль — нет: наследованная, она делала бы высоту
+        // прыжка функцией скорости лифта, то есть отменяла бы `jump_height` профиля ровно там, где
+        // игрок целится. Скорость персонажа при этом всё время была В СИСТЕМЕ ОТСЧЁТА ПЛАТФОРМЫ —
+        // перенос двигает позицию и не трогает `velocity` (`support.hpp`), — и сложение здесь как
+        // раз возвращает её в систему отсчёта мира.
+        c.velocity.x = c.velocity.x + support_velocity(s, c.support).x;
         c.buffer_left = 0;
         c.coyote_left = 0;
         c.jump_active = true;
@@ -145,7 +163,8 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     if (c.buffer_left > 0) --c.buffer_left;
 
     // 8. Опора и состояние.
-    c.on_ground = probe_ground(tick, hull, c.position, p.max_slope);
+    GroundInfo ground;
+    c.on_ground = probe_ground(tick, hull, c.position, p.max_slope, &ground);
     // Прилипание к земле на спуске: опора БЫЛА, персонаж не поднимается, а пробы не хватило. Это и
     // есть спуск по ступеньке — без притяжения персонаж каждую ступеньку слетал бы в короткий полёт,
     // теряя и опору, и управление по земле.
@@ -165,7 +184,7 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // падение значило бы отдать следующему тику скорость, которой не соответствует ни одно
     // движение.
     if (!c.on_ground && was_ground && !jumped &&
-        snap_to_ground(tick, hull, p.ground_snap, p.max_slope, c.position)) {
+        snap_to_ground(tick, hull, p.ground_snap, p.max_slope, c.position, &ground)) {
         // Кламп повторяется здесь, потому что притяжение двигает позицию ПОСЛЕ клампа шага 6, а
         // инвариант заголовка — про позицию по итогам ТИКА, а не по итогам движения.
         c.position.x = clamp_fix(c.position.x, -physics::WORLD_HALF, physics::WORLD_HALF);
@@ -175,6 +194,7 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     }
     c.state = c.on_ground ? MoveState::Ground : MoveState::Air;
     if (c.on_ground) {
+        c.support = ground.body;
         c.coyote_left = 0;
         c.jump_active = false;
     } else if (was_ground && !jumped && !dropped) {
@@ -198,6 +218,11 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
         c.velocity.y = max_fix(c.velocity.y, fix32{});
         c.coyote_left = p.coyote_ticks;
     }
+    // Опора забывается, когда не осталось ни её самой, ни окна. Пока окно открыто, она ещё «моя»:
+    // окно и означает «опора считается прежней», и прыжок из него с едущей платформы обязан
+    // наследовать её горизонталь так же, как обычный, — иначе прощение работало бы только на
+    // неподвижном полу.
+    if (!c.on_ground && c.coyote_left == 0) c.support = physics::BodyId{physics::BodyId::INVALID};
 
     c.jump_was_held = in.jump_held;
 }

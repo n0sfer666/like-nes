@@ -52,7 +52,7 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
 }
 
 bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 max_distance,
-                    fix32 max_slope, Vec2& position) {
+                    fix32 max_slope, Vec2& position, GroundInfo* info) {
     if (max_distance.raw <= 0) return false;
     const Vec2 down = {fix32{}, min_fix(max_distance, MAX_GROUND_SNAP)};   // тем же приведением
     SceneHit hit;
@@ -62,6 +62,7 @@ bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 ma
     // выдать бесконечный спуск по стене за «спуск по склону».
     if (!is_floor(hit.normal, max_slope)) return false;
     position = position + down * hit.fraction + hit.normal * SKIN;
+    if (info != nullptr) *info = {hit.oneway, hit.body};
     return true;
 }
 

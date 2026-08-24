@@ -58,7 +58,11 @@ bool corner_correct(const CollisionScene& s, const CharacterHull& hull, Vec2 tra
 //
 // Возвращает, случилось ли притяжение. Позиция меняется ТОЛЬКО при успехе, и персонаж встаёт на
 // зазор `SKIN` над полом — ровно туда же, куда его ставит разбор касания в `move_and_slide`.
+//
+// `info` — тот же необязательный ответ про характер опоры, что и у `probe_ground`, и по той же
+// причине: притянувшийся персонаж СТОИТ, а значит обязан знать, на чём. Отдельной пробой после
+// притяжения это стоило бы второго свипа на каждом тике спуска по склону, а касание здесь уже есть.
 bool snap_to_ground(const CollisionScene& s, const CharacterHull& hull, fix32 max_distance,
-                    fix32 max_slope, Vec2& position);
+                    fix32 max_slope, Vec2& position, GroundInfo* info = nullptr);
 
 } // namespace framework::character

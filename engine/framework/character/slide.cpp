@@ -54,7 +54,7 @@ SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, V
 }
 
 bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 position,
-                  fix32 max_slope, bool* oneway) {
+                  fix32 max_slope, GroundInfo* info) {
     SceneHit hit;
     if (!cast_nearest(s, hull, position, {fix32{}, GROUND_PROBE}, hit)) return false;
     // Опора — только поверхность, на которой можно стоять. Свип вниз упирается и в стену, вдоль
@@ -62,7 +62,7 @@ bool probe_ground(const CollisionScene& s, const CharacterHull& hull, Vec2 posit
     if (!is_floor(hit.normal, max_slope)) return false;
     // Характер опоры отдаётся ТОЛЬКО вместе с самой опорой: не пол — не ответ, и записывать сюда
     // ложь значило бы сказать «опора сплошная» там, где опоры нет вовсе.
-    if (oneway != nullptr) *oneway = hit.oneway;
+    if (info != nullptr) *info = {hit.oneway, hit.body};
     return true;
 }
 

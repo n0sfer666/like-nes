@@ -28,7 +28,7 @@ bool cast_nearest(const CollisionScene& s, const CharacterHull& hull, Vec2 posit
         f.mask = hull.mask;
         physics::RayHit hit;
         if (physics::shapecast(*s.world, hull.shape, position, fix32{}, travel, f, hit)) {
-            out = {hit.fraction, hit.normal};
+            out = {hit.fraction, hit.normal, false, hit.body};
             any = true;
         }
     }
