@@ -156,6 +156,22 @@ void test_the_threshold_decides() {
     check(!strict.kept_ground, "pair: at threshold zero the same slope stops being ground");
     check(strict.hit_wall, "pair: and the tick reports it as a wall");
 }
+// Порог, приехавший мимо `sanitize` профиля, кламплется ТАМ ЖЕ, ГДЕ ИМ СУДЯТ. Судит `is_floor`, а
+// зовут его не только через контроллер: гейты и всякий будущий потребитель передают число сами.
+// Без клампа `from_int(100)` объявляет полом почти вертикальную стену — грань 10:1 проходит, — и
+// персонаж получает от неё опору и бесконечный прыжок. Пара внизу берёт ту же нормаль штатным
+// порогом: «стена не пол» обязано быть свойством ОТНОШЕНИЯ, а не того, что кламп заодно убил всё.
+void test_the_threshold_is_clamped() {
+    // Нормаль грани 10:1, нормированная: |n.x| / |n.y| = 10, то есть вдесятеро круче предела движка.
+    const Vec2 steep = {fix32::from_float(-0.995f), fix32::from_float(-0.0995f)};
+    check(!is_floor(steep, fx(100)), "a threshold beyond the engine limit does not make a wall floor");
+    check(!is_floor(steep, default_profile().max_slope), "pair: nor does the shipped one");
+    // Пара с другой стороны: кламп обязан оставить нетронутым всё, что и так в пределах. Грань 45°
+    // точна по построению, и на ней порог `MAX_SLOPE` сравнивается с самим собой.
+    const Vec2 ramp = {fix32::from_float(-0.7071f), fix32::from_float(-0.7071f)};
+    check(is_floor(ramp, MAX_SLOPE), "pair: and leaves a 45 degree slope floor at the limit");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -165,6 +181,7 @@ int main(int argc, char** argv) {
     test_walking_down();
     test_the_ramp_is_not_a_jump();
     test_the_threshold_decides();
+    test_the_threshold_is_clamped();
     std::printf("framework-character-slope: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

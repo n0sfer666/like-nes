@@ -1,5 +1,6 @@
 #pragma once
 #include "collision.hpp"
+#include "profile.hpp"
 #include "state.hpp"
 
 // Движение со скольжением и проба опоры — весь контакт персонажа с миром.
@@ -53,9 +54,17 @@ constexpr fix32 GROUND_PROBE = fix32::from_raw(SKIN.raw * 4);
 //
 // Стена не становится полом ни при каком значении: у вертикальной грани `n.y == 0`, то есть правая
 // часть ноль, а левая — единица. Ноль в поле оставляет полом только идеально ровное.
+//
+// Порог кламплется ЗДЕСЬ, а не только в `sanitize` профиля: судят им обе функции ниже, а зовут их
+// не только через контроллер — гейты и всякий будущий потребитель передают число сами. Порог
+// `from_int(100)` иначе объявлял бы полом почти вертикальную стену, и персонаж прыгал бы от неё
+// бесконечно. Та же дисциплина, которой окна кламплются в `assist.cpp`: предусловие, которого нет
+// в коде, — не предусловие.
+inline fix32 slope_limit(fix32 max_slope) { return clamp_fix(max_slope, fix32{}, MAX_SLOPE); }
+
 inline bool is_floor(Vec2 normal, fix32 max_slope) {
     if (!(normal.y.raw < 0)) return false;
-    return !(max_slope * abs_fix(normal.y) < abs_fix(normal.x));
+    return !(slope_limit(max_slope) * abs_fix(normal.y) < abs_fix(normal.x));
 }
 
 // Потолок — та же грань, повёрнутая: нормаль СМОТРИТ ВНИЗ (+Y), потому что наружу из потолка это
@@ -63,7 +72,7 @@ inline bool is_floor(Vec2 normal, fix32 max_slope) {
 // двум полям тут негде, кроме как молча.
 inline bool is_ceiling(Vec2 normal, fix32 max_slope) {
     if (!(normal.y.raw > 0)) return false;
-    return !(max_slope * normal.y < abs_fix(normal.x));
+    return !(slope_limit(max_slope) * normal.y < abs_fix(normal.x));
 }
 
 // Потолок проходов скольжения за тик. Исчерпан — остаток пути ОТБРАСЫВАЕТСЯ, и это осознанно:

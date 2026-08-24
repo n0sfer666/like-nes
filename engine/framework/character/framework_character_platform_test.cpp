@@ -2,6 +2,7 @@
 
 #include "framework_character_platform_scene.hpp"
 #include "platform_args.hpp"
+#include "support.hpp"
 
 // Гейт ПЕРЕНОСА ОПОРОЙ (вертикаль 3, шаг B3): персонаж, стоящий на движущейся платформе, едет
 // вместе с ней, прыгает с неё, вжимается в потолок и забывает её, сойдя с края.
@@ -165,6 +166,27 @@ void test_the_support_is_forgotten() {
     check(in_window, "it survives the tick he steps off: the coyote window still calls it his");
     check(!after_window, "and is forgotten together with the window");
 }
+// Опора — ЗАПОМНЕННОЕ состояние, а сцена приезжает аргументом: связывает их только вызывающий, и
+// перезагруженный уровень даёт ДРУГОЙ вектор тел. Индекс, стабильный в своём мире, в чужом
+// указывает за конец, а `World::body()` индексирует без проверки границ. Здесь это утверждение о
+// НЕЧТЕНИИ за концом, поэтому судит его не только полоса ниже: гейт входит в санитайзерный цикл CI,
+// и без клампа тот же прогон под ASan падает на чтении, а не на несовпавшем числе.
+void test_the_support_belongs_to_its_world() {
+    Stage st = make_stage(physics::BodyType::Kinematic, {CARRY_V, fix32{}}, false);
+    const physics::BodyId far_away = st.platform;
+    physics::World empty(1);
+    const CollisionScene other = {&empty, nullptr};
+    const Vec2 v = support_velocity(other, far_away);
+    std::printf("  foreign world: bodies=%zu index=%u velocity=(%.3f, %.3f)\n",
+                empty.bodies().size(), far_away.index, v.x.to_double(), v.y.to_double());
+    check(empty.bodies().size() <= far_away.index, "precondition: the index is past that world's end");
+    check(v.x.raw == 0 && v.y.raw == 0, "a support index out of the scene's world carries nobody");
+    // Пара: та же опора в СВОЁМ мире по-прежнему везёт. Иначе «ноль» выше проходило бы и у
+    // реализации, разучившейся читать скорость вовсе.
+    const Vec2 mine = support_velocity(st.view(), st.platform);
+    check(mine.x == CARRY_V, "pair: and the same one in its own world still does");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -176,6 +198,7 @@ int main(int argc, char** argv) {
     test_the_jump_does_not_inherit_the_vertical();
     test_the_crush_is_a_fact();
     test_the_support_is_forgotten();
+    test_the_support_belongs_to_its_world();
     std::printf("framework-character-platform: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

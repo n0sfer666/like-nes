@@ -130,6 +130,26 @@ void test_overlap_still_sees_it() {
     check(out.size() == 1, "pair: exactly as a plain solid tile does");
 }
 
+// Низ формы мерится ВМЕСТЕ с радиусом, и круг — единственная форма, на которой это видно: ядро у
+// него ОДНА точка (`sanitize` выдаёт радиус всякой форме с `count < 3`), поэтому низ по вершинам
+// врёт ровно на радиус. Правило `oneway_holds` — правило ЗАПРОСА к сетке, а не персонажа: коробка
+// с радиусом ноль ответ не меняет, а всякий другой потребитель свипа получал бы неверный молча —
+// провалившийся сквозь платформу мяч читался бы как пришедший сверху, и его втащило бы обратно.
+void test_the_bottom_counts_the_radius() {
+    const TileGrid g = one_tile(ONEWAY);
+    const physics::Shape ball = physics::sanitize(physics::circle(fx(6)));
+    TileFilter f;
+    TileHit hit;
+    const Vec2 down = {fix32{}, fx(20)};
+    // Центр 40: низ круга 46, то есть выше верха тайла (48) — пришёл сверху, платформа держит.
+    check(shapecast(g, ball, {fx(56), fx(40)}, fix32{}, down, f, hit),
+          "a circle that starts above the tile top is held");
+    // Центр 44: низ круга 50, УЖЕ ниже верха. По вершинам это 44, то есть «сверху», и платформа
+    // держала бы то, что сквозь неё уже провалилось.
+    check(!shapecast(g, ball, {fx(56), fx(44)}, fix32{}, down, f, hit),
+          "and one whose radius already reaches below it is not");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -138,6 +158,7 @@ int main(int argc, char** argv) {
     test_faces_and_feet();
     test_exclude_drops_through();
     test_overlap_still_sees_it();
+    test_the_bottom_counts_the_radius();
     std::printf("framework-tilemap-oneway: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }
