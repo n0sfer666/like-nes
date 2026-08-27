@@ -6,6 +6,40 @@ add_executable(ach_plugin_test
   ${ACH_TEST_DIR}/plugin_host_test.cpp backend_host.cpp)
 target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 
+# --- Образец-платформер, машинная половина (шаг C вертикали 3 спеки #16): скриптованный прогон по
+# уровню из game.bundle → голден траектории. Стоит ДО выхода по IDE_POC вместе с `ach_plugin_test`,
+# а не рядом с остальными sim-целями ниже: ни окна, ни WebGPU, ни flecs ему не нужно, и цель,
+# спрятанная за чужой опцией, молча выпадала бы из headless-набора, которым её и гоняют.
+add_executable(game_platformer_sim_test
+  platformer_sim_test.cpp platformer_sim.cpp platformer_scene.cpp)
+target_include_directories(game_platformer_sim_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_platformer_sim_test PRIVATE framework_character framework_tilemap
+  asset_core platform_core)
+
+# Чистая половина ЖИВОЙ цели — камера и сборка квадов (шаг C вертикали 3). Тоже до выхода по
+# IDE_POC и по тому же основанию: рисовать ей нечем, ни окна, ни адаптера она не открывает, и
+# спрятанная за чужой опцией она проверялась бы только там, где собирают всё дерево, — то есть на
+# машине владельца, где живое окно и так открывается глазами.
+add_executable(game_platformer_view_test
+  platformer_view_test.cpp platformer_view.cpp platformer_scene.cpp)
+target_include_directories(game_platformer_view_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_platformer_view_test PRIVATE framework_character framework_tilemap
+  asset_core platform_core)
+
+# Шов ввода образца — раскладка в намерение персонажа. Тоже headless: манифест печётся `preset_bake`
+# из движка, а кадр ввода собирается руками, поэтому ни окна, ни ОС цели не нужно.
+add_executable(game_platformer_input_test platformer_input_test.cpp platformer_input.cpp)
+# platform_core тут НЕ в списке библиотек, хотя `platform::Args` цели нужен: и framework_input, и
+# framework_character держат его PRIVATE, то есть каждый дописывает его в замыкание СВОЕЙ строкой,
+# и названный сверх этого явно он попадает на линкер-строку дважды — ld на macOS отвечает
+# `warning: ignoring duplicate libraries`. Предупреждение идёт мимо -Werror, но прямо в лог,
+# который читает build_check.sh, поэтому гейт от него красный. Тот же случай расписан у
+# game_sidescroller ниже. Библиотека приезжает транзитивно, а вот заголовки PRIVATE-связь не
+# несёт — отсюда каталог, названный руками.
+target_include_directories(game_platformer_input_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/engine/platform)
+target_link_libraries(game_platformer_input_test PRIVATE framework_input framework_character)
+
 if(NOT IDE_POC)
   return()
 endif()
@@ -59,6 +93,31 @@ elseif(WIN32)
 endif()
 target_copy_webgpu_binaries(game_sidescroller)
 reproducible_rpath(game_sidescroller)
+
+# --- Образец-платформер, ЖИВАЯ половина (гейт 8 спеки #16): окно, часы и ввод поверх той же сцены,
+# которую гоняет sim-голден. Отдельная цель, а не режим `game_sidescroller`: у шутера нет ни
+# гравитации, ни тайлов, и общего у них ровно два куска — спрайт-батч и шов ввода.
+#
+# flecs приезжает сюда транзитивно и не по нужде: `batch.cpp` включает `world.hpp` ради двух
+# констант вида. Платформер их перекрывает своим `set_viewport`, но цель всё равно обязана
+# слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
+add_executable(game_platformer
+  platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp
+  batch.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
+  ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
+target_include_directories(game_platformer PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
+target_link_libraries(game_platformer PRIVATE
+  engine_core framework_character framework_tilemap framework_input asset_core platform_core
+  flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+if(APPLE)
+  target_link_libraries(game_platformer PRIVATE
+    "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+elseif(WIN32)
+  target_link_libraries(game_platformer PRIVATE Xinput9_1_0)
+endif()
+target_copy_webgpu_binaries(game_platformer)
+reproducible_rpath(game_platformer)
 
 # --- Packaging per-OS (спека #8, гейт 4): самодостаточный бандл + version-stamp (git-hash).
 # macOS .app (@rpath→Frameworks) / Linux tarball ($ORIGIN, flat) / Windows папка (.exe+DLL).
