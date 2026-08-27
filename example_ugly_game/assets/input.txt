@@ -4,6 +4,12 @@ preset | default
 
 action | fire   | key:space | mouse:left | pad:south
 
+# Прыжок платформера — отдельным действием, а не переиспользованным `fire`: раскладка есть данные,
+# и владелец, переназначающий кнопку прыжка, обязан найти в ней слово `jump`, а не догадываться,
+# что стрельба тут прыгает. Строка стоит ПОСЛЕДНЕЙ среди действий: порядок задаёт индексы, и вставка выше
+# переставила бы биты уже разложенного `fire`.
+action | jump   | key:space | key:up | pad:south
+
 axis   | move_x | key:d | key:a
 axis   | move_x | key:right | key:left
 axis   | move_x | padaxis:lx | -

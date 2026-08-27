@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Three of the four gates below are **closed** — each of those carries the run that closed it, with
-the evidence; the fourth is **open**. They stay here as the procedure, because each one needs a
+Three of the five gates below are **closed** — each of those carries the run that closed it, with
+the evidence; the other two are **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -11,10 +11,12 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | **open** | `engine/framework/physics`, load scenes, solver iterations |
+| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | **open** | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 
-Only the first three are closed; the fourth is open and is the one gate here whose answer a runner
-could *print* but not *judge*. That column is the whole point of keeping the procedure: a closed gate
-protects nothing if the code under it moves and nobody re-runs it.
+Only the first three are closed. The last two are the gates here whose answer a runner could
+*print* but not *judge* — one asks whether a number fits a real frame budget, the other whether a
+character feels responsive under a hand. That column is the whole point of keeping the procedure: a
+closed gate protects nothing if the code under it moves and nobody re-runs it.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
@@ -537,12 +539,87 @@ if they do not, because equal counters mean every row was measured on one binary
 rebuilt. A table like that looks flawless, which is exactly the danger. The `метка` column carries
 both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
+## 5. Gate 8 of #16 — the platformer sample plays (all three OSes)
+
+> **Open.** Spec [#16](../.context/specs/2026-07-26-character-tilemap.md) gate 8 is the one gate of
+> that spec no runner can close, and it says so in its own text: *"subjective check that the control
+> feels responsive"*. Everything mechanical about this sample is already pinned elsewhere and does
+> not need your machine — the route hash `0xfead7a87477a9258` on three OSes
+> (`game_platformer_sim_test`), the camera and the drawn geometry (`game_platformer_view_test`), the
+> layout-to-intent mapping (`game_platformer_input_test`). What is left is a hand on a key and an
+> eye on a screen.
+
+The live target is behind `IDE_POC`, so CI never builds it — configure with the full option set:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target game_platformer
+./build/game_platformer
+```
+
+Windows: `scripts\win-dev.bat` sets up vcvars, and the binary lands next to the copied WebGPU DLL,
+so run it as `build\example_ugly_game\game_platformer.exe` from the same prompt.
+
+The window is 960×720 and the view inside it is 320×240 at ×3 — the level is 640×240, that is to
+say **wider than the view on purpose**: a camera that never has to scroll is a camera whose clamp is
+untestable. Everything is flat tinted quads, no art: grey-blue is solid, green is a slope, amber is
+a one-way platform, cyan is the moving platform, red is the hero.
+
+Startup prints exactly one line, and the pad half of it is the fact worth reading:
+
+```
+[platformer] WASD/arrows = move | space/up = jump | down+jump = drop | gamepad: GameController.framework (macOS) | Esc = quit
+```
+
+`gamepad:` says `evdev (Linux)`, `XInput (Windows)` or `none` on the other machines. Esc — or the
+window button — ends the run with:
+
+```
+[platformer] window clean exit
+```
+
+Anything else on stderr is a finding, not noise: `level unreadable` means the bundle next to the
+binary is stale, `controls unavailable` means the `input` section lost the `jump` action, and
+`surface texture status <n> - frame skipped` repeating every frame means the surface never
+recovered from a resize or a display change.
+
+**Walk the level left to right and answer six questions.** They are the same six moves the scripted
+run makes, which is the point: the hash says the moves came out identical on three machines, and it
+says nothing at all about whether any of them is pleasant.
+
+1. **Running and stopping.** Does the hero start and stop when you ask, or does he skate past the
+   spot you released at?
+2. **Jumping.** Hold the button and he goes higher than a tap — is the difference usable, and does
+   the jump come out when you press it a hair before landing (the buffer window) or a hair after
+   running off an edge (coyote)? Both are measured in ticks and pinned by tests; what is not pinned
+   is whether the numbers feel right.
+3. **The slope.** The green 45° hill: walk up it, walk down it, stop on it. Going down, does he stay
+   glued to the surface, or does he leave the ground every few tiles and stutter?
+4. **The one-way platforms.** The two amber slabs overlap in X on purpose. Jump *through* the lower
+   one from below and land on top; then press down + jump to drop back through. Does the drop happen
+   on the first press, and does he ever catch the platform he was told to leave?
+5. **The moving platform.** The cyan slab shuttles left and right. Step onto it and stand still: it
+   should carry you with no input of your own, and stepping off should hand you back your own
+   momentum rather than fling you.
+6. **Walls and ceilings.** Push into the right wall and into the overhang above the pocket. Does he
+   stop cleanly, or does he shudder, stick, or slide up the face?
+
+If a pad is connected, answer 1–3 again on the stick: the dead zone is circular (0.18) and shared
+between the two axes, so a diagonal push is where a wrong shape shows up first — a diagonal that
+reads as "drop through" is a bug in the sign of `move_y`, not a matter of taste.
+
+**Record the screen** (spec #16 asks for it by name — macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G),
+one pass of the level, thirty seconds is enough. Send the recording, the startup line with the
+`gamepad:` field as it printed on that machine, and a yes/no per question above with a sentence
+wherever the answer is no. A "no" here is not a failure of the gate — it is the number in
+`default_profile()` that the gate exists to find.
+
 ## Beyond the gates
 
 The four gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
-mid-frame, and `assetc` reproducing `bundle_hash = 0x5b218a72901bbf74` byte for byte on another OS.
+mid-frame, and `assetc` reproducing `bundle_hash = 0xd1ddc5d5a3435a7d` byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt).
 
@@ -557,9 +634,12 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
+- The platformer screen recording per OS, its startup line, and the six answers from section 5.
 
-That closes gate 6 and 8 of spec #13, gate 8 of spec #14 and gate 8 of spec #15, which is what ADR
+That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gate 8 of spec
+#16, which is what ADR
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
 [0014](../.context/decisions/2026-07-28-framework-input.md) and
 [0015](../.context/decisions/2026-08-08-physics-core.md) are waiting on to move from *Proposed*
-to *Accepted*. The first three are already sent; the physics one is the outstanding half.
+to *Accepted*. The first three are already sent; physics and the platformer are the outstanding
+halves.
