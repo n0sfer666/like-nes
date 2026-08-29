@@ -115,7 +115,12 @@ fi
 # Тесты берутся ИЗ КАТАЛОГА СБОРКИ, а не списком в скрипте: список разошёлся бы с деревом молча,
 # и пропавшая цель читалась бы как «всё зелёное».
 head_ "Тесты дерева"
-PASSED=0; FAILED_TESTS=(); SKIPPED=(); BLOCKED_TESTS=()
+PASSED=0; FAILED_TESTS=(); SKIPPED=(); BLOCKED_TESTS=(); STALE_TESTS=()
+# Свежесть спрашивается у ninja, а не у mtime: в неизменном каталоге время файла старое и у
+# АКТУАЛЬНЫХ целей. Нужно стало 2026-08-29: гейт встал на 426-й цели из 654, этап прогнал бинари от
+# 12 августа и напечатал двум FAIL — вердикт о дереве, которого в каталоге нет. Нет ninja — сказать.
+have ninja || say "  ninja не найден: свежесть бинарей не проверена, вердикты ниже могут быть о прошлой сборке"
+stale() { have ninja && ! ninja -C "$BUILD_DIR" -n "$1" 2>/dev/null | grep -q 'no work to do'; }
 for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
     [ -x "$t" ] || continue
     name=$(basename "$t")
@@ -133,6 +138,9 @@ for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
         ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|play_spawn_test|plugin_*)
             SKIPPED+=("$name — нужны пути к плагинам/бандлам, вызов живёт в ci.yml"); continue;;
     esac
+    if stale "$key"; then
+        STALE_TESTS+=("$name"); say "  STALE $name — не от этой сборки, тест НЕ ВЫПОЛНЯЛСЯ"; continue
+    fi
     out=$("$t" 2>&1); rc=$?
     # «Не запустился» и «не прошёл» РАЗВЕДЕНЫ, и это не косметика. Прогон владельца на Windows вернул
     # восемь красных, из которых семь вообще не выполнялись: Defender запретил exec свежесобранным
@@ -153,10 +161,11 @@ for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
         printf '%s\n' "$out" | tail -20 >>"$REPORT"
     fi
 done
-say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}, не запущено: ${#BLOCKED_TESTS[@]}"
+say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}, не запущено: $((${#BLOCKED_TESTS[@]} + ${#STALE_TESTS[@]}))"
 for s in "${SKIPPED[@]:-}"; do [ -n "$s" ] && say "  SKIP $s"; done
 for f in "${FAILED_TESTS[@]:-}"; do [ -n "$f" ] && say "  FAIL $f"; done
 for b in "${BLOCKED_TESTS[@]:-}"; do [ -n "$b" ] && say "  BLOCKED $b"; done
+for u in "${STALE_TESTS[@]:-}"; do [ -n "$u" ] && say "  STALE $u"; done
 # Лечение печатается ОДИН раз и только когда есть что лечить: следующий прогон не должен начинаться
 # с догадок о том, что за «Permission denied» на файле, который сам же скрипт только что собрал.
 if [ ${#BLOCKED_TESTS[@]} -ne 0 ]; then
@@ -206,7 +215,7 @@ if [ -x "$PERF_BIN" ]; then
     # этого этап, напечатавший «FAIL: …», уходил бы в отчёт зелёным — гейт был бы декорацией.
     "$PERF_BIN" | tee -a "$REPORT"
     [ "${PIPESTATUS[0]}" -eq 0 ] || STAGES_FAILED+=("Цена шага физики (framework_physics_perf_test)")
-    say "  бюджет 16.67 мс; куча: M3 Pro 3.64 (22%), слабая коробка 8.6-9.6 мс (51-58%) — судить по слабой"
+    say "  бюджет 16.67 мс; гейт закрыт 2026-08-22 на 350 телах: 3.560 (21.4%) MSVC, 2.931 (17.6%) gcc"
     say "  счётчики закреплены в бинаре: расхождение печатает FAIL само, вправе гулять worst/mean"
 else
     say "  framework_physics_perf_test не собран — цена шага на этой машине не снята"
@@ -214,21 +223,20 @@ fi
 
 head_ "Ручная половина"
 say "Осталось глазами и руками — docs/owner-verification.md:"
-say "  #13 гейт 6 — редактор под X11 И под Wayland (-DLINUX_WAYLAND=ON), скриншот каждой сессии"
-say "  #13 гейт 8 — сквозной сценарий: правка кода игры → hot-reload → изменение видно"
-say "  #14 гейт 8 — framework_input_probe: паспорт пада, профиль, перебинд, отключение на ходу"
-say "  #15 гейт 8 — судить время из этапа выше против бюджета кадра: раннер его печатает, но не судит"
+say "  #16 гейт 8 ОТКРЫТ — game_platformer в живом окне: склон, односторонняя, платформа, отклик"
+say "  закрытые (#13 гейты 6 и 8, #14 гейт 8, #15 гейт 8) — перепрогон, когда коммит тронул их поверхность"
 
 printf '\n' | tee -a "$REPORT"
 # Незапущенное считается наравне с провалившимся, и в вердикте названо СВОИМ числом. Зелёный при
 # непустом BLOCKED означал бы «половина целей не проверена, зато красиво»; одно общее число вернуло
 # бы ту же неразличимость, ради устранения которой этот счётчик и заведён.
-if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ] && [ ${#BLOCKED_TESTS[@]} -eq 0 ]
+if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ] && [ ${#BLOCKED_TESTS[@]} -eq 0 ] &&
+   [ ${#STALE_TESTS[@]} -eq 0 ]
 then
     say "owner-check: PASS — автоматизируемая половина зелёная на этой машине"
     say "отчёт: $REPORT"
     exit 0
 fi
-say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}, не запущено ${#BLOCKED_TESTS[@]}"
+say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}, не запущено $((${#BLOCKED_TESTS[@]} + ${#STALE_TESTS[@]}))"
 say "отчёт: $REPORT"
 exit 1
