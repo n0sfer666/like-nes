@@ -32,3 +32,9 @@ demo_frames/
 /*.txt
 !/CMakeLists.txt
 !/THIRD-PARTY-NOTICES*.txt
+
+# Состояния гейта, которые читает pre-commit hook. Лежали в .git/info/exclude, то есть в ОДНОМ
+# клоне: на второй машине владельца те же два файла всплывали бы untracked-шумом ровно там, где
+# перед коммитом смотрят `git status` на предмет чужих правок.
+.claude/.verify-state.json
+.claude/.review-state.json
