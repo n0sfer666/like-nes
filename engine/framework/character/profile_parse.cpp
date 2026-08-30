@@ -34,6 +34,7 @@ const FixKey FIX_KEYS[] = {
     {"corner_correction", &MoveProfile::corner_correction, MAX_CORNER_CORRECTION},
     {"ground_snap", &MoveProfile::ground_snap, MAX_GROUND_SNAP},
     {"max_slope", &MoveProfile::max_slope, MAX_SLOPE},
+    {"climb_speed", &MoveProfile::climb_speed, MAX_MOVE_SPEED},
 };
 constexpr uint32_t FIX_COUNT = sizeof(FIX_KEYS) / sizeof(FIX_KEYS[0]);
 
@@ -45,6 +46,7 @@ struct TickKey {
 const TickKey TICK_KEYS[] = {
     {"coyote_ticks", &MoveProfile::coyote_ticks},
     {"buffer_ticks", &MoveProfile::buffer_ticks},
+    {"ladder_regrab_ticks", &MoveProfile::ladder_regrab_ticks},
 };
 constexpr uint32_t TICK_COUNT = sizeof(TICK_KEYS) / sizeof(TICK_KEYS[0]);
 constexpr uint32_t KEY_COUNT = FIX_COUNT + TICK_COUNT;

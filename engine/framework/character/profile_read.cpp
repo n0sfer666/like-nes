@@ -67,6 +67,8 @@ bool ProfileTable::at(uint32_t index, MoveProfile& out) const {
     out.corner_correction = fix32::from_raw(r.corner_correction_raw);
     out.ground_snap = fix32::from_raw(r.ground_snap_raw);
     out.max_slope = fix32::from_raw(r.max_slope_raw);
+    out.climb_speed = fix32::from_raw(r.climb_speed_raw);
+    out.ladder_regrab_ticks = r.ladder_regrab_ticks;
     return true;
 }
 

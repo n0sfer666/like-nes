@@ -23,7 +23,9 @@ constexpr uint8_t MOVE_MAGIC[4] = {'L', 'N', 'F', 'M'};   // like-nes framework 
 // не будет: потребителя в рантайме у таблицы пока не появилось, а бандл перепекается тем же
 // коммитом. Разбирать чужую старую раскладку значило бы держать вторую копию читателя ради байтов,
 // которых нигде нет.
-constexpr uint32_t MOVE_VERSION = 3;
+// Версия 4 (2026-08-30): дописаны `climb_speed` и `ladder_regrab_ticks` — лестница стала режимом
+// движения контроллера, и оба её числа настраиваются ассетом, как всё прочее ощущение.
+constexpr uint32_t MOVE_VERSION = 4;
 
 struct MoveHeader {
     uint8_t magic[4];
@@ -59,7 +61,9 @@ struct MoveRow {
     int32_t corner_correction_raw;
     int32_t ground_snap_raw;
     int32_t max_slope_raw;
+    int32_t climb_speed_raw;
+    uint32_t ladder_regrab_ticks;
 };
-static_assert(sizeof(MoveRow) == 64, "MoveRow layout pinned (zero-parse ABI)");
+static_assert(sizeof(MoveRow) == 72, "MoveRow layout pinned (zero-parse ABI)");
 
 } // namespace framework::character

@@ -50,6 +50,8 @@ buffer_ticks    | 6
 corner_correction | 4
 ground_snap       | 8
 max_slope         | 1
+climb_speed         | 120
+ladder_regrab_ticks | 8
 
 profile | heavy
 max_speed       | 200      # the tail after # is dropped
@@ -67,11 +69,13 @@ buffer_ticks    | 9
 corner_correction | 2.5
 ground_snap       | 11
 max_slope         | 1.75
+climb_speed         | 90
+ladder_regrab_ticks | 4
 )";
 
 // Голден байтовой таблицы. Перепечатывается ОСОЗНАННО и только вместе с `MOVE_VERSION`: раскладка
 // пиннута static_assert'ами, а этот хеш пинит ещё и порядок полей и содержимое блоба имён.
-constexpr uint64_t GOLDEN = 0x5633becd833be880ull;
+constexpr uint64_t GOLDEN = 0xa554e52327f8d33dull;
 
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
     uint64_t h = 0xcbf29ce484222325ull;
@@ -100,6 +104,7 @@ const FixField FIELDS[] = {
     {"corner_correction", &MoveProfile::corner_correction},
     {"ground_snap", &MoveProfile::ground_snap},
     {"max_slope", &MoveProfile::max_slope},
+    {"climb_speed", &MoveProfile::climb_speed},
 };
 constexpr std::size_t FIELD_COUNT = sizeof(FIELDS) / sizeof(FIELDS[0]);
 
@@ -108,13 +113,14 @@ struct Expect {
     double fix[FIELD_COUNT];
     uint32_t coyote;
     uint32_t buffer;
+    uint32_t regrab;
 };
 
 // Числа стоят в порядке FIELDS и повторяют манифест ГЛАЗАМИ, а не вычислением из него: ожидание,
 // посчитанное тем же кодом, что и результат, проверяет только детерминизм этого кода.
 const Expect EXPECT[] = {
-    {"player", {340, 2400, 3200, 1600, 900, 1200, 2400, 900, 64, 16, 4, 8, 1}, 6, 6},
-    {"heavy", {200, 1000, 1100, 1200, 1300, 1400, 1500, 700, 40, 12.5, 2.5, 11, 1.75}, 3, 9},
+    {"player", {340, 2400, 3200, 1600, 900, 1200, 2400, 900, 64, 16, 4, 8, 1, 120}, 6, 6, 8},
+    {"heavy", {200, 1000, 1100, 1200, 1300, 1400, 1500, 700, 40, 12.5, 2.5, 11, 1.75, 90}, 3, 9, 4},
 };
 constexpr uint32_t PROFILE_COUNT = sizeof(EXPECT) / sizeof(EXPECT[0]);
 
@@ -130,6 +136,7 @@ void same(const MoveProfile& got, const Expect& e) {
     }
     check(got.coyote_ticks == e.coyote, "coyote_ticks");
     check(got.buffer_ticks == e.buffer, "buffer_ticks");
+    check(got.ladder_regrab_ticks == e.regrab, "ladder_regrab_ticks");
 }
 
 void test_round_trip(const std::vector<uint8_t>& table) {

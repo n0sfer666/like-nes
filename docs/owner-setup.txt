@@ -234,7 +234,7 @@ Windows: не открывать проект как папку в самой Vi
   ./build/assetc --game example_ugly_game/assets ./rebake.bundle
 
   Должен напечатать:
-    [assetc] bundle_hash = 0xd1ddc5d5a3435a7d
+    [assetc] bundle_hash = 0x8d38adffbcfd4a61
 
   Это тот же хеш, что на macOS. Отличается — значит бейк не детерминирован
   между ОС, и это находка (пришли строку целиком).
