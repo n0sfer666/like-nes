@@ -42,4 +42,9 @@ private:
     InstanceStage stage_{nullptr, 0};
 };
 
+// Проход с очисткой. Живёт здесь, а не в `draw.cpp`, потому что вызывающих ДВА образца, а
+// `draw.hpp` тянет за собой flecs и частицы шутера — платформеру не нужные. Копий было две, и
+// отличались они одним числом: цвет поэтому параметр.
+WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view, WGPUColor clear);
+
 } // namespace game

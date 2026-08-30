@@ -141,7 +141,7 @@ int run_window(int frame_cap) {
         push_screen(batch, atlas, gs);
         push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view());   // сцена → HDR
+        WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view(), WGPUColor{0.02, 0.02, 0.07, 1.0});   // сцена → HDR
         batch.flush(pass);
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);

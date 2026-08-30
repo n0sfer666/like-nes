@@ -14,6 +14,5 @@ void push_toast(SpriteBatch& batch, const Atlas& atlas, const char* name, uint32
 // Частицы подаются ОТСЮДА, а не из `Fx`: сам он про WebGPU не знает намеренно (см. `Fx::draw`), и
 // подача кадра собрана в одном файле, а не в двух.
 void push_fx(SpriteBatch& batch, Fx& fx, const Atlas& atlas);
-WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view);
 
 } // namespace game
