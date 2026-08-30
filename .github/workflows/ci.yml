@@ -984,6 +984,7 @@ jobs:
                    framework_graphics_tile_refusal_test \
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
+                   game_sprite_out_test game_fx_test \
                    framework_graphics_viewport_test framework_graphics_zoom_reach_test \
                    framework_graphics_viewport_refusal_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1074,6 +1075,28 @@ jobs:
           # координат зум рисует правильную картинку в неверном окне, то есть даёт обычный PASS.
           grep -q "culling: zoom 2 visits 18, zoom 1/2 visits 273" gfx_framework_graphics_zoom_reach_test.txt \
             || { echo "ZOOM DID NOT REACH THE CULLING WINDOW on ${{ matrix.os }}"; exit 1; }
+          # Вертикаль 3, шаг B3 — частицы ШУТЕРА на фреймворке. Хеш целочисленный по тому же
+          # основанию, что и голден эмиттеров выше, и стоит отдельно от него намеренно: тот судит
+          # фреймворк на синтетических описаниях, а этот — восемь описаний ИГРЫ, переведённых из
+          # float'а старого `fx.cpp`, и опечатка в переводе фреймворковый голден не трогает вовсе.
+          grep -q "shooter particle hash = 0xfd9ca7d2936ad48a" gfx_game_fx_test.txt \
+            || { echo "SHOOTER PARTICLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Три числа — про то, что прогон ВООБЩЕ ЧТО-ТО ИСПУСКАЛ: остановившийся эмиттер даёт
+          # стабильный хеш ничуть не хуже живого. Пик берётся по ходу прогона, а остаток — в конце:
+          # залп босса из шестидесяти живёт полсекунды и к последнему тику успевает истечь.
+          grep -q "alive: 53, peak: 113, dropped: 0" gfx_game_fx_test.txt \
+            || { echo "SHOOTER PARTICLE ACTIVITY DRIFT on ${{ matrix.os }}"; exit 1; }
+          # Гейт 8 на игровом пути: пулы `Fx` стали массивами именно ради этой строки. Числа рядом
+          # с нулём обязательны — счётчик, не увидевший НИ ОДНОЙ частицы, отвечает тем же нулём.
+          grep -q "steady frames: allocations = 0, alive 31 -> 71" gfx_game_fx_test.txt \
+            || { echo "SHOOTER FRAME ALLOCATED on ${{ matrix.os }}"; exit 1; }
+          # Размер окна звезды, а не расхождения по нему: сами расхождения меряются по альфе,
+          # посчитанной во float (`hypot`, `pow`), и литерал по ним краснел бы от чужого libm на
+          # находке, которой нет, — их судит порог внутри теста. А вот 64x64 целочисленно и
+          # утверждает ровно то, что легко сломать: обход снимает полтексела, уведённые внутрь для
+          # СЭМПЛЕРА, и без этого берёт окно 63x63, сдвинутое на полпикселя от центра звезды.
+          grep -q "star 64x64:" gfx_game_fx_test.txt \
+            || { echo "STAR REGION WINDOW DRIFT on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется
       # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только

@@ -163,6 +163,61 @@ void test_continuous_rate() {
     check(e.count() == 15, "and a half-tick step gives half as many");
 }
 
+// Разброс на частицу (шаг B3 вертикали 3). Первое утверждение — про ЧУЖИЕ сцены: описание без
+// разброса не берёт из генератора ни одного лишнего числа, поэтому голден вертикали 2 стоит там же,
+// где стоял. Оно здесь, а не только в голдене: голден скажет «хеш не сошёлся», эта строка — чем.
+void test_jitter() {
+    EmitDesc d[2];
+    d[0].life_ticks = 100;
+    d[0].region = 1;
+    d[1] = d[0];
+    d[1].life_jitter = fix32::from_float(0.5);
+    d[1].half_jitter = fix32::from_float(0.5);
+
+    GameplayEmitter plain(pool_a, CAP, d, 2, 7u);
+    GameplayEmitter mixed(pool_b, CAP, d, 2, 7u);
+    plain.burst(0, {fix32{}, fix32{}}, 8);
+    mixed.burst(1, {fix32{}, fix32{}}, 8);
+    check(plain.stream() != mixed.stream(), "the spread costs numbers, so the streams diverge");
+    check(plain.at(7).life == fix32::from_int(100) && plain.at(7).scale == ONE,
+          "without a spread the life is the whole desc and the size is untouched");
+
+    fix32 lo = mixed.at(0).life;
+    fix32 hi = lo;
+    bool sized = false;
+    for (uint32_t i = 0; i < 8; ++i) {
+        const framework::graphics::Particle& p = mixed.at(i);
+        lo = p.life < lo ? p.life : lo;
+        hi = hi < p.life ? p.life : hi;
+        sized = sized || p.scale != ONE;
+        check(!(p.life < fix32::from_int(50)), "and never falls past the half the desc allows");
+    }
+    check(lo < hi && sized, "the spread is per particle, not per burst");
+
+    // Форма испускания: полоса вдоль одной стороны. Сторона, оставленная нулём, обязана не сдвинуть
+    // рождение ни на разряд — иначе «прямоугольник» на деле квадрат, и это видно только на выхлопе.
+    d[1].spawn_half = {fix32{}, fix32::from_int(5)};
+    GameplayEmitter band(pool_a, CAP, d, 2, 7u);
+    band.burst(1, {fix32{}, fix32{}}, 8);
+    bool along = false;
+    for (uint32_t i = 0; i < 8; ++i) {
+        check(band.at(i).pos.x == fix32{}, "the side left at zero does not move the spawn");
+        along = along || band.at(i).pos.y != fix32{};
+    }
+    check(along, "and the side that was asked for spreads the spawn along itself");
+
+    // Разброс, съевший жизнь ЦЕЛИКОМ, обязан оставить разряд: `draw` делит на неё. Ноль тут — не
+    // «странная частица», а деление на ноль в кадре, на который никто не смотрит.
+    d[0].life_jitter = fix32::from_int(1);
+    d[0].half_jitter = fix32::from_int(2);
+    GameplayEmitter edge(pool_a, CAP, d, 2, 3u);
+    edge.burst(0, {fix32{}, fix32{}}, 64);
+    for (uint32_t i = 0; i < edge.count(); ++i) {
+        check(fix32{} < edge.at(i).life && !(edge.at(i).scale < fix32{}),
+              "a life eaten whole keeps one unit, and a size eaten whole never goes negative");
+    }
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -175,6 +230,7 @@ int main(int argc, char** argv) {
     test_step_geometry();
     test_draw();
     test_continuous_rate();
+    test_jitter();
 
     uint32_t live = 0;
     uint32_t lost = 0;

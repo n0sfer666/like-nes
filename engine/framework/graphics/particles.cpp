@@ -33,6 +33,10 @@ uint32_t lerp_rgba(uint32_t a, uint32_t b, fix32 t) {
 
 fix32 lerp_fix(fix32 a, fix32 b, fix32 t) { return a + (b - a) * t; }
 
+fix32 floor_at(fix32 v, int32_t raw_min) {
+    return v.raw < raw_min ? fix32::from_raw(raw_min) : v;
+}
+
 } // namespace
 
 ParticleStore::ParticleStore(Particle* buf, uint32_t capacity, const EmitDesc* descs,
@@ -73,14 +77,27 @@ uint32_t ParticleStore::burst(uint16_t desc, Vec2 at, uint32_t n) {
         // Два числа на частицу, и берутся они ВСЕГДА — даже когда класть уже некуда.
         const fix32 turns = d.dir_turns + d.spread_turns * (next01(rng_) * TWO - ONE);
         const fix32 speed = lerp_fix(d.speed_min, d.speed_max, next01(rng_));
+        // Третье и четвёртое — только заказавшему разброс: см. `EmitDesc::life_jitter`. Условие
+        // стоит на ОПИСАНИИ, а не на частице, поэтому поток по-прежнему не зависит ни от заполнения
+        // буфера, ни от того, какая частица по счёту.
+        const fix32 lj = d.life_jitter.raw != 0 ? next01(rng_) : fix32{};
+        const fix32 hj = d.half_jitter.raw != 0 ? next01(rng_) : fix32{};
+        const fix32 sx = d.spawn_half.x.raw != 0 ? next01(rng_) * TWO - ONE : fix32{};
+        const fix32 sy = d.spawn_half.y.raw != 0 ? next01(rng_) * TWO - ONE : fix32{};
         if (count_ >= capacity_) {
             ++dropped_;
             continue;
         }
         Particle& p = buf_[count_++];
-        p.pos = at;
+        p.pos = {at.x + d.spawn_half.x * sx, at.y + d.spawn_half.y * sy};
         p.vel = {cos_turns(turns) * speed, sin_turns(turns) * speed};
         p.age = fix32{};
+        // Пол у жизни ОДИН разряд, а не ноль: `draw` делит возраст на неё, и разброс, съевший жизнь
+        // целиком, делил бы на ноль. Отказом это не сделано намеренно — `life_ticks == 0` отбивается
+        // раньше и целым описанием, а здесь речь о крайнем броске уже принятого описания: убить
+        // подачу из-за него значило бы, что редкая частица роняет весь взрыв.
+        p.life = floor_at(fix32::from_int(d.life_ticks) * (ONE - d.life_jitter * lj), 1);
+        p.scale = floor_at(ONE - d.half_jitter * hj, 0);
         p.desc = desc;
         ++born;
     }
@@ -111,7 +128,7 @@ void ParticleStore::integrate(fix32 dt) {
         p.vel = (p.vel + d.gravity * dt) * (ONE - (ONE - d.damping) * dt);
         p.pos = p.pos + p.vel * dt;
         p.age = p.age + dt;
-        if (!(p.age < fix32::from_int(d.life_ticks))) continue;
+        if (!(p.age < p.life)) continue;
         // Уплотнение СДВИГОМ, а не обменом с последней. Игра-образец меняет местами
         // (`example_ugly_game/fx.cpp`), и для аддитивной вспышки это ничего не значит; здесь же
         // порядок подачи входит в ключ сортировки шага A, то есть обмен переставлял бы две
@@ -130,8 +147,8 @@ uint32_t ParticleStore::draw(SpriteList& out) const {
         // Регион `0` означает «не рисовать» — то же соглашение, что у тайлов шага B: невидимая
         // частица иначе занимала бы слот батча прозрачным квадом.
         if (d.region == 0) continue;
-        const fix32 t = p.age / fix32::from_int(d.life_ticks);
-        const fix32 h = lerp_fix(d.half_start, d.half_end, t);
+        const fix32 t = p.age / p.life;
+        const fix32 h = lerp_fix(d.half_start, d.half_end, t) * p.scale;
         Sprite s;
         s.center = p.pos;
         s.half = {h, h};

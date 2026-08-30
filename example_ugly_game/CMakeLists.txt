@@ -76,12 +76,14 @@ set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
-  batch.cpp art.cpp atlas_regions.cpp sim.cpp combat.cpp boss.cpp fx.cpp bloom.cpp audio.cpp
+  batch.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp boss.cpp fx.cpp
+  bloom.cpp audio.cpp
   input_setup.cpp capture.cpp
   gpu_env.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render
+  ${CMAKE_SOURCE_DIR}/engine/framework)
 target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(game_sidescroller PRIVATE
   engine_core framework_input framework_graphics flecs_static webgpu glfw3webgpu glfw ach_plugin
@@ -109,6 +111,32 @@ elseif(WIN32)
 endif()
 target_copy_webgpu_binaries(game_sidescroller)
 reproducible_rpath(game_sidescroller)
+
+# Шов «спрайт фреймворка → инстанс шутера» (вертикаль 3, шаг B3). Цель headless: `Instance` живёт
+# отдельным заголовком от `batch.hpp` именно затем, чтобы гейт, считающий ЧТО уезжает на видеокарту,
+# не поднимал ради этого WebGPU.
+add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp art.cpp
+  atlas_regions.cpp)
+target_include_directories(game_sprite_out_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_link_libraries(game_sprite_out_test PRIVATE framework_graphics asset_core platform_core)
+
+# Частицы шутера на фреймворке (вертикаль 3, шаг B3): голден сцены + гейт 8 + симметрия звезды.
+# Отдельно от `game_sprite_out_test`, а не случаем внутри него, по двум причинам сразу.
+# `framework_alloc_probe.hpp` подменяет глобальные operator new/delete и допустим ровно в ОДНОЙ цели
+# на программу — тот же довод, по которому у батча фреймворка гейт 8 отделён от гейта сборки.
+# И предмет разный: адаптер проверяется единицами и отказами, частицы — числом за прогон, и слитый
+# гейт называл бы в логе CI не тот слой. flecs приезжает ради обхода следов в `emit_trails`,
+# WebGPU — нет: `Instance` живёт отдельным заголовком именно затем.
+add_executable(game_fx_test game_fx_test.cpp fx.cpp sprite_out.cpp art.cpp atlas_regions.cpp)
+target_include_directories(game_fx_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+# platform_core тут НЕ назван, хотя нужен: framework_graphics и framework_input дописывают его в
+# замыкание каждый своей PRIVATE-связью, и названный сверх этого явно он попадает на линкер-строку
+# дважды — ld на macOS отвечает `warning: ignoring duplicate libraries`, мимо -Werror, но прямо в
+# лог гейта. Тот же случай расписан у game_platformer_input_test выше.
+target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
+  framework_alloc_probe_control flecs_static asset_core)
 
 # --- Образец-платформер, ЖИВАЯ половина (гейт 8 спеки #16): окно, часы и ввод поверх той же сцены,
 # которую гоняет sim-голден. Отдельная цель, а не режим `game_sidescroller`: у шутера нет ни
