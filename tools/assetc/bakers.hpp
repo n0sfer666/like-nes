@@ -17,6 +17,7 @@ bool achievements(const std::string& src, std::vector<AssetInput>& out);
 bool input_presets(const std::string& src, std::vector<AssetInput>& out);
 bool movement(const std::string& src, std::vector<AssetInput>& out);
 bool tilemap(const std::string& src, std::vector<AssetInput>& out);
+bool atlas_regions(const std::string& src, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
 

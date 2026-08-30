@@ -4,6 +4,7 @@
 
 #include "../../engine/achievements/bake.hpp"
 #include "../../engine/framework/character/profile_bake.hpp"
+#include "../../engine/framework/graphics/atlas_bake.hpp"
 #include "../../engine/framework/input/preset_bake.hpp"
 #include "../../engine/framework/tilemap/map_bake.hpp"
 #include "baker_guid.hpp"
@@ -15,7 +16,7 @@
 namespace asset::bakers {
 namespace {
 
-// Сборка ассета одна на четверых: тип, кодек и резидентность у zero-parse таблицы не выбираются, а
+// Сборка ассета одна на всех: тип, кодек и резидентность у zero-parse таблицы не выбираются, а
 // следуют из самого шва. Пекари различаются ИСХОДНИКОМ и именем guid — и только ими.
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out) {
     AssetInput a;
@@ -28,7 +29,7 @@ void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<Asse
     out.push_back(std::move(a));
 }
 
-// Отказ печатается ОДИНАКОВО для всех четырёх: имя секции, файл, номер строки, причина словами.
+// Отказ печатается ОДИНАКОВО для всех: имя секции, файл, номер строки, причина словами.
 // Номер строки тут несущий — он единственное, что отличает «исходник не разобрался» от «а где».
 void report(const char* section, const std::string& src, int line, const std::string& message) {
     std::fprintf(stderr, "[assetc] %s %s: line %d: %s\n", section, src.c_str(), line,
@@ -88,6 +89,21 @@ bool tilemap(const std::string& src, std::vector<AssetInput>& out) {
         return false;
     }
     push_table("tilemap", std::move(table), out);
+    return true;
+}
+
+// Нарезка атласа (спека #17, вертикаль 1, шаг D): тот же zero-parse шов, что у карты. Имя guid —
+// `atlas_regions`, а не `atlas`: `atlas` уже занят САМОЙ ТЕКСТУРОЙ игры-образца, и совпадение guid
+// означало бы, что вторая запись бандла молча вытесняет первую. Нарезка правится каждым
+// перерисованным спрайтом, и пересборка движка на сдвинутый на пиксель кадр убивает цикл рисования.
+bool atlas_regions(const std::string& src, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    framework::graphics::AtlasBakeError err;
+    if (!framework::graphics::bake_atlas_file(src, table, err)) {
+        report("atlas", src, err.line, err.message);
+        return false;
+    }
+    push_table("atlas_regions", std::move(table), out);
     return true;
 }
 

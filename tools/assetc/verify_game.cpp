@@ -26,6 +26,7 @@ const Section SECTIONS[] = {
     {"achievements", "/achievements.txt", bakers::achievements},
     {"movement", "/movement.txt", bakers::movement},
     {"tilemap", "/tilemap.txt", bakers::tilemap},
+    {"atlas regions", "/atlas.txt", bakers::atlas_regions},
 };
 
 // Расхождение называется по виду, а не одним словом STALE: перепекание снимает разошедшиеся байты,
