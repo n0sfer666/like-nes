@@ -92,6 +92,13 @@ void test_reader_refusals() {
     std::vector<uint8_t> table;
     ProfileBakeError err;
     if (!bake_profiles(good(), table, err)) return;   // отбито позитивным контролем ниже
+    // Длина утверждается ДО порчи фикстур, и это не тавтология ради компилятора. Испечённая таблица
+    // короче заголовка означала бы, что `bake_profiles` вернул успех на пустоте, а `pop_back`/`back`
+    // ниже пошли бы мимо границы — то есть набор «испорченное отвергнуто» ронял бы сам себя порчей
+    // памяти, а не ловил чужую. gcc 16 читает это статически и отбивает `-Warray-bounds` прямо на
+    // сборке: вывести непустоту из чужого `bake_profiles` ему нечем.
+    check(table.size() > sizeof(MoveHeader), "baked table is longer than its header");
+    if (table.size() <= sizeof(MoveHeader)) return;
 
     ProfileTable t;
     check(t.open(table.data(), table.size()), "untouched table is the positive control");

@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Three of the five gates below are **closed** — each of those carries the run that closed it, with
-the evidence; the other two are **open**. They stay here as the procedure, because each one needs a
+Four of the five gates below are **closed** — each of those carries the run that closed it, with
+the evidence; the fifth is **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -10,12 +10,12 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | Linux X11 **and** Wayland — editor renders, gizmo moves an object | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 6 | Linux | 2026-08-05 | window backend, surface glue, `LINUX_WAYLAND` |
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
-| Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | **open** | `engine/framework/physics`, load scenes, solver iterations |
+| Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | **open** | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 
-Only the first three are closed. The last two are the gates here whose answer a runner could
-*print* but not *judge* — one asks whether a number fits a real frame budget, the other whether a
-character feels responsive under a hand. That column is the whole point of keeping the procedure: a
+Only the platformer gate is open. It and the physics gate are the two here whose answer a runner
+could *print* but not *judge* — one asks whether a number fits a real frame budget, the other whether
+a character feels responsive under a hand. That column is the whole point of keeping the procedure: a
 closed gate protects nothing if the code under it moves and nobody re-runs it.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
@@ -76,7 +76,7 @@ session type, Vulkan device, input nodes), the build gate, the workflow linter, 
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
 plugins or bundles are skipped by name and say so — CI runs those with arguments on all three OS.
 
-Green means only that this machine agrees with the runners. The four gates below are what the
+Green means only that this machine agrees with the runners. The five gates below are what the
 runners never saw.
 
 **A red build gate here is a finding, not a chore.** The runners are `ubuntu-latest`, and a rolling
@@ -222,6 +222,24 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 > lx=-0.01`, which an exact compare against zero read as "the preset ate the stick". The mouse is
 > live as a *button* only — the sample layout binds `mouse:left → fire` and no `mouseaxis:` row,
 > so a trackpad moves nothing there by composition of the manifest, not by a defect.
+>
+> **Re-run 2026-08-29** on `8f822eb`, Windows only (MSVC 14.44, NVIDIA MX150 / Vulkan), all six
+> steps, PASS. Same pad and the same answer as the closing run — `vid=045e pid=02ff -> profile
+> 'Microsoft Xbox' (deadzone 0.18, trigger 0.12)`. The rebind conflict was refused by name and taken
+> by `F`, the overlay survived the restart (`overlay loaded ... 2 edit(s)`) and was cleaned back down
+> to `bye - overlay empty`, hotplug fell back to `generic` and came back, and the sample game flew on
+> the stick under `gamepad: XInput (Windows)` with a clean exit. Both branches of `cold-start scan`
+> fell out of this one sitting: `NO pad on any of 8 slots` when the pad was plugged in mid-run, and
+> `1 pad(s) already connected` on the next start.
+>
+> Two things this run does *not* assert. The four directions came from two probe sessions rather than
+> one `axis report` — `up ly=-0.68 -> (+0.00,+0.61)` and `left lx=-0.61 -> (-0.52,+0.00)` in the
+> first, `right lx=+0.59 -> (+0.51,+0.00)` and `down ly=+0.50 -> (+0.00,-0.39)` in the second — so
+> each sign is verified against the expectation printed beside it, but not the four of them agreeing
+> at once. And step 3's refusal was reachable only because the run started from a clean overlay: the
+> first attempt did not. The file the 2026-08-07 closure left behind was still on disk three weeks
+> later, holding `fire -> key:j` with `jump` slot 0 stripped, and it is why the fourth trap below is
+> written down at all.
 
 ```sh
 cmake --build build --target framework_input_probe
@@ -259,6 +277,30 @@ event" stop looking alike.
   a lost connect event would heal by itself on the next one; XInput simply reported no device.
   Settings → Gaming → Xbox Game Bar → Off (and quit Steam), or re-plug the pad after the probe
   starts.
+
+A fourth trap belongs to the *procedure* rather than the backend, and it is worse than the three
+above because it makes steps 3 and 4 look **passed** instead of broken. **The run starts from a
+clean overlay.** The rebind overlay outlives the run that wrote it, and the cleanup that removes it
+is the last sentence of step 4 — the easiest line in this section to skip once the pad already
+works. It was skipped: on 2026-08-29 the file left by the 2026-08-07 closure was still sitting in
+`%APPDATA%\like-nes\controls_probe.txt`, three weeks old, holding `fire → key:j` with `jump` slot 0
+stripped. Started on top of that file, this gate proves nothing twice over — step 3 asks for a
+conflict on a source that **nobody owns any more**, so the probe accepts `J` without a word and the
+refusal the step exists to see never appears; step 4 finds `overlay loaded … N edit(s)` printed on
+the *first* start, before anything was saved, so its restart half is carried by a file older than
+the binary. Both look exactly like a pass.
+
+The probe already prints the answer — second line of the run, right after the resolved move axes.
+Read it before step 1, and it must say
+
+```
+[probe] no overlay for preset 'probe' at <path> - clean preset
+```
+
+`overlay loaded` there instead means the previous run was never cleaned up: quit, delete the file
+the line names (the path is *in* the line, so there is nothing to look up per OS), start again. The
+`X` then `S` cleanup at the end of step 4 stays where it is — this is the check for the run where
+it was forgotten, and a gate whose precondition is only a habit is not a gate.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
@@ -321,8 +363,18 @@ event" stop looking alike.
 
 ## 4. Gate 8 of #15 — the physics frame cost (Linux and Windows)
 
-> **Open.** Measured so far only on the machine this was written on: Apple M3 Pro, macOS 26.5.2,
-> Apple clang 21.0.0, Release. Worst scene 3.64 ms mean per frame at 500 dynamic bodies.
+> **Closed 2026-08-22** on the Intel UHD 620 box under both OS, at the declared **350 bodies** and
+> 16 iterations: `heap` mean 3.560 ms (21.4% of the 16.67 ms frame) on Windows/MSVC and 2.931 ms
+> (17.6%) on Nobara/gcc, `allocs=0` on all three scenes. The sweep that settled that body count is
+> the subsection below. Kept as the procedure — re-run it when the solver, the load scenes or the
+> iteration count move.
+>
+> **Re-run 2026-08-29** on `64bd866`, Linux only, as the physics stage of `owner_check.sh`: same box,
+> same declared count, `heap` mean 2.952 ms (17.7%), `scatter` 0.054 ms, `column` 0.161 ms,
+> `allocs=0` on all three, every counter on its pinned reference. Within 0.7% of the closing run.
+>
+> The Apple M3 Pro figures below (macOS 26.5.2, Apple clang 21.0.0, Release: 3.64 ms mean at **500**
+> dynamic bodies) are the older scene, kept because the reasoning about `worst` came out of them.
 >
 > The number moved from 2.25 ms when `VELOCITY_ITERATIONS` went from 8 to 16 (round of 2026-08-12):
 > the solver is the cost of the step, so doubling its iterations costs about what it says. What the
@@ -616,7 +668,7 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 ## Beyond the gates
 
-The four gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+The five gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0xd1ddc5d5a3435a7d` byte for byte on another OS.
@@ -641,5 +693,4 @@ That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
 [0014](../.context/decisions/2026-07-28-framework-input.md) and
 [0015](../.context/decisions/2026-08-08-physics-core.md) are waiting on to move from *Proposed*
-to *Accepted*. The first three are already sent; physics and the platformer are the outstanding
-halves.
+to *Accepted*. Four are sent; the platformer is the outstanding half.

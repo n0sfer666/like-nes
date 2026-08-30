@@ -117,18 +117,19 @@ void test_kill_during_write() {
     int intact = 0;
     int mid_write = 0;
     int replaced = 0;
+    int rounds = 0;
     const std::string ready = ready_path_for(SAVE_PATH);
-    for (int round = 0; round < 12; ++round) {
+    // Один раунд: ребёнок доходит до цикла записи, живёт `delay_us` и умирает. false возвращается,
+    // только когда сорвалось само устройство раунда, — дальше набору идти незачем.
+    auto round_at = [&](int delay_us) -> bool {
         platform::remove_file(ready);
         platform::Child writer;
         check(writer.spawn({self, "--writer", SAVE_PATH}), "spawn writer child");
-        if (!writer.alive()) return;
-        if (!wait_ready(SAVE_PATH)) { check(false, "writer child reached its loop"); return; }
-        // Пауза растёт от раунда к раунду: убийство должно попадать в разные точки транзакции —
-        // и до temp, и между temp и rename. Иначе гейт проверяет одну-единственную фазу. Отсчёт —
-        // от флага готовности, поэтому шкала микросекундная: старт процесса из неё исключён.
-        std::this_thread::sleep_for(std::chrono::microseconds(200 + round * 350));
+        if (!writer.alive()) return false;
+        if (!wait_ready(SAVE_PATH)) { check(false, "writer child reached its loop"); return false; }
+        std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
         check(writer.kill_and_wait(), "child killed mid-write");
+        ++rounds;
 
         const std::string tmp = ach::temp_path_for(SAVE_PATH);
         if (platform::file_exists(tmp)) {
@@ -139,7 +140,7 @@ void test_kill_during_write() {
         std::vector<uint8_t> got;
         if (!ach::read_file(SAVE_PATH, got)) {
             check(false, "target readable after kill");
-            continue;
+            return true;
         }
         if (got == bytes_even || got == bytes_odd) {
             ++intact;
@@ -149,11 +150,28 @@ void test_kill_during_write() {
             ach::Snapshot back;
             const ach::DecodeResult r = ach::decode(got.data(), got.size(), back);
             std::printf("  FAIL round %d: target is neither image (%zu of %zu bytes, decode: %s)\n",
-                        round, got.size(), bytes_even.size(), ach::decode_reason(r));
+                        rounds - 1, got.size(), bytes_even.size(), ach::decode_reason(r));
         }
-    }
-    std::printf("  kill-during-write: %d/12 intact, %d replaced, %d killed between temp and rename\n",
-                intact, replaced, mid_write);
+        return true;
+    };
+
+    // Пауза растёт от раунда к раунду: убийство должно попадать в разные точки транзакции — и до
+    // temp, и между temp и rename. Иначе гейт проверяет одну-единственную фазу. Отсчёт — от флага
+    // готовности, поэтому шкала микросекундная: старт процесса из неё исключён.
+    for (int round = 0; round < 12; ++round)
+        if (!round_at(200 + round * 350)) return;
+
+    // Окно между temp и rename — доля витка цикла ребёнка, и попадёт в него убийство или нет,
+    // решает фаза, которой отсюда никто не управляет: двенадцать раундов вправе промахнуться все
+    // разом. 2026-08-29 на Nobara так и вышло — 12/12 целых, НОЛЬ попаданий и красный гейт на
+    // машине, где через минуту тот же бинарь прошёл пять раз подряд. Промах — повод искать дальше
+    // мелким шагом, а не приговор. Утверждение под добором прежнее, и бюджет у добора конечный:
+    // гейт, ни разу не попавший в окно, о нём ничего не доказал и обязан быть красным.
+    for (int extra = 0; mid_write == 0 && extra < 24; ++extra)
+        if (!round_at(120 + extra * 90)) return;
+
+    std::printf("  kill-during-write: %d/%d intact, %d replaced, %d killed between temp and rename\n",
+                intact, rounds, replaced, mid_write);
     check(mid_write > 0, "kill actually landed mid-write at least once");
 }
 

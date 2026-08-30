@@ -98,6 +98,24 @@ The loop the editor drives is covered end to end by a gate you can run yourself:
 It prints `ide-build-loop: PASS` when a source edit reaches a loaded module without restarting the
 host — the same path the editor uses when you save a gameplay file.
 
+Spec [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) gate 8 wants the loop's cost as a
+fact per OS, and `scripts/owner_check.sh` is what prints it — `best` and `median` of three timed
+runs. What has been measured so far:
+
+| OS | machine | best | median |
+|---|---|---|---|
+| Windows 11, MSVC 14.44 | i7-8550U, NVIDIA MX150 | 1.49 s | 1.59 s |
+
+The Linux row is still empty. Run `owner_check.sh` there and fill it in — the point of the number is
+the comparison between the two, and one cell answers nothing.
+
+Until 2026-08-30 the Windows cell could not be filled at all, and the reason is worth keeping: the
+stage handed the binary to Python as a *relative* path with forward slashes, which `CreateProcess`
+does not read as a path at all, so the stage died on a traceback. That traceback went into a report
+whose verdict still said `owner-check: PASS`, because the stage's exit status was swallowed by its
+own `| tee` and never counted. A gate that prints a stack trace and passes is worse than one that is
+missing.
+
 ## When something is missing
 
 Missing system packages are meant to surface as a named error, not as a link failure:

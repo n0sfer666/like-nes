@@ -64,13 +64,25 @@ stage "Контроль шума в замере — самопроверка п
 # проверяется фикстурами. Место фикстурам там же, где остальным самопроверкам.
 stage "Вердикт о прогонах CI — самопроверка правил" bash scripts/ci_watch_selftest.sh
 
+# Чем ставить пропущенный инструмент — вопрос к МАШИНЕ, а не к одной ОС: обе строки ниже до
+# 2026-08-29 звали `brew`, и на Nobara совет был неисполним, отчего пропуск читался как «этого
+# гейта здесь и не бывает», хотя shellcheck лежит в репозитории дистрибутива. Имя пакета врозь с
+# именем команды: в Fedora пакет зовётся ShellCheck. Пусто вместо пакета значит «в этом менеджере
+# его нет» — тогда называется источник, а не выдумывается формула.
+install_hint() {  # $1 brew-формула, $2 пакет dnf, $3 пакет apt, $4 запасной источник
+    if command -v brew >/dev/null; then echo "brew install $1"
+    elif [ -n "$2" ] && command -v dnf >/dev/null; then echo "sudo dnf install $2"
+    elif [ -n "$3" ] && command -v apt-get >/dev/null; then echo "sudo apt-get install $3"
+    else echo "$4"; fi
+}
+
 if command -v actionlint >/dev/null; then
     # severity=warning: SC2086 (несплитящиеся "$VAR") в этом файле осознан — им собирается
     # командная строка, — а вот warning и выше означает реальный дефект скрипта.
     stage "actionlint + shellcheck (severity=warning)" \
         env SHELLCHECK_OPTS="--severity=warning" actionlint
 else
-    skip "actionlint" "не установлен (brew install actionlint shellcheck)"
+    skip "actionlint" "не установлен ($(install_hint actionlint '' '' 'релиз с github.com/rhysd/actionlint/releases либо go install github.com/rhysd/actionlint/cmd/actionlint@latest'))"
 fi
 
 if command -v shellcheck >/dev/null; then
@@ -88,7 +100,7 @@ if command -v shellcheck >/dev/null; then
                    scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
                    scripts/perf_sweep_selftest.sh
 else
-    skip "shellcheck" "не установлен (brew install shellcheck)"
+    skip "shellcheck" "не установлен ($(install_hint shellcheck ShellCheck shellcheck 'пакет shellcheck вашего дистрибутива'))"
 fi
 
 # Каталог build-ci, а не build: `build` — умолчание коммит-гейта, и оставлять его в урезанном
