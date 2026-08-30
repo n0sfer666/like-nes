@@ -48,6 +48,12 @@ WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d,
 // Квад вида → инстанс батча. Батч меряет мир в ЮНИТАХ ВИДА (`set_viewport(VIEW_W, VIEW_H)`), а не в
 // пикселях окна: скейл тогда целиком в размере окна, и растяжение делает растеризатор — ровно один
 // раз и одинаково для всех квадов. Оси у батча свои: центр квада и +Y ВВЕРХ.
+// Распаковка RGBA8 в доли единицы. Тон приезжает из чистой половины упакованным (вертикаль 3 спеки
+// #17): столько его и несёт спрайт фреймворка, и разрядов, которых в нём нет, здесь не появится.
+float channel(uint32_t rgba, unsigned shift) {
+    return static_cast<float>((rgba >> shift) & 0xffu) / 255.0f;
+}
+
 void push_frame(game::SpriteBatch& batch, const game::Atlas& atlas, const std::vector<Quad>& qs) {
     for (const Quad& q : qs) {
         game::Instance i;
@@ -57,7 +63,8 @@ void push_frame(game::SpriteBatch& batch, const game::Atlas& atlas, const std::v
         i.h = q.h;
         i.u0 = atlas.solid.u0; i.v0 = atlas.solid.v0;
         i.u1 = atlas.solid.u1; i.v1 = atlas.solid.v1;
-        i.r = q.color.r; i.g = q.color.g; i.b = q.color.b; i.a = q.color.a;
+        i.r = channel(q.color, 24); i.g = channel(q.color, 16);
+        i.b = channel(q.color, 8); i.a = channel(q.color, 0);
         batch.push(i);
     }
 }
@@ -117,6 +124,7 @@ int run(const std::string& bundle) {
                 "gamepad: %s | Esc = quit\n", have_pad ? pad->backend_name() : "none");
 
     std::vector<Quad> quads;
+    FrameSprites sprites;
     const auto period = std::chrono::microseconds(16667);
     auto next = std::chrono::steady_clock::now();
     bool surface_warned = false;
@@ -147,7 +155,7 @@ int run(const std::string& bundle) {
             continue;
         }
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
-        build_quads(stage, camera_at(stage), quads);
+        build_quads(stage, camera_at(stage), sprites, quads);
         batch.begin();
         push_frame(batch, atlas, quads);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);

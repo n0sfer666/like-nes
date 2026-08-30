@@ -22,9 +22,15 @@ target_link_libraries(game_platformer_sim_test PRIVATE framework_character frame
 # машине владельца, где живое окно и так открывается глазами.
 add_executable(game_platformer_view_test
   platformer_view_test.cpp platformer_view.cpp platformer_scene.cpp)
-target_include_directories(game_platformer_view_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(game_platformer_view_test PRIVATE framework_character framework_tilemap
-  asset_core platform_core)
+# framework_graphics_tiles СТОИТ ВМЕСТО framework_tilemap и platform_core, а не рядом с ними: карту
+# он тянет PUBLIC-связью, платформу — PRIVATE-связью своего framework_graphics, и названные сверх
+# этого вторым именем они попадают на линкер-строку дважды — macOS отвечает `warning: ignoring
+# duplicate libraries`, мимо -Werror, но прямо в лог гейта. Библиотека приезжает транзитивно, а вот
+# заголовки PRIVATE-связь не несёт — отсюда каталог платформы, названный руками.
+target_include_directories(game_platformer_view_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/engine/platform)
+target_link_libraries(game_platformer_view_test PRIVATE framework_character
+  framework_graphics_tiles asset_core)
 
 # Шов ввода образца — раскладка в намерение персонажа. Тоже headless: манифест печётся `preset_bake`
 # из движка, а кадр ввода собирается руками, поэтому ни окна, ни ОС цели не нужно.
@@ -113,10 +119,14 @@ add_executable(game_platformer
   platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp
   batch.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
+# platform_core здесь не назван по тому же основанию, что и в гейте выше: framework_graphics_tiles
+# тянет его PRIVATE-связью своего framework_graphics, и второе имя дало бы `warning: ignoring
+# duplicate libraries` на macOS — мимо -Werror, но прямо в лог гейта. Заголовки платформы такая
+# связь не несёт, поэтому её каталог назван руками.
 target_include_directories(game_platformer PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
 target_link_libraries(game_platformer PRIVATE
-  engine_core framework_character framework_tilemap framework_input asset_core platform_core
+  engine_core framework_character framework_graphics_tiles framework_input asset_core
   flecs_static webgpu glfw3webgpu glfw Threads::Threads)
 if(APPLE)
   target_link_libraries(game_platformer PRIVATE
