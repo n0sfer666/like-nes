@@ -3,6 +3,7 @@
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
 #include "nine_slice.hpp"
+#include "particles.hpp"
 #include "platform_args.hpp"
 #include "sprite.hpp"
 
@@ -35,6 +36,8 @@ constexpr uint32_t CAP = 2048;
 Sprite storage[CAP];
 uint64_t keys[CAP];
 Batch batches[CAP];
+Particle sim_pool[512];
+Particle fx_pool[512];
 
 Sprite at(uint32_t i, uint32_t frame) {
     Sprite s;
@@ -48,11 +51,35 @@ Sprite at(uint32_t i, uint32_t frame) {
     return s;
 }
 
-// Кадр обязан пройти ВЕСЬ путь раскладки: подача, 9-slice поверх неё, сортировка и нарезка на
-// батчи. Счётчик на одной только сортировке отвечал бы про `std::sort`, а не про кадр.
-uint32_t frame(SpriteList& list, uint32_t f) {
+const EmitDesc* particle_table() {
+    static EmitDesc d[1];
+    d[0].speed_min = fix32::from_int(1);
+    d[0].speed_max = fix32::from_int(3);
+    d[0].spread_turns = fix32::from_float(0.5);
+    d[0].gravity = {fix32{}, fix32::from_float(0.2)};
+    d[0].damping = fix32::from_float(0.97);
+    d[0].rate_per_tick = fix32::from_float(6.5);
+    d[0].half_end = fix32::from_int(3);
+    d[0].life_ticks = 20;
+    d[0].region = 21;
+    d[0].material = 3;
+    return d;
+}
+
+// Кадр обязан пройти ВЕСЬ путь раскладки: подача, ЧАСТИЦЫ ОБОИХ КЛАССОВ, 9-slice поверх неё,
+// сортировка и нарезка на батчи. Счётчик на одной только сортировке отвечал бы про `std::sort`, а
+// не про кадр. Частицы попали сюда шагом C: пул им даёт вызывающий, и обещание это стоит ровно
+// столько же, сколько обещание списка спрайтов, — то есть проверяется тем же счётчиком.
+uint32_t frame(SpriteList& list, GameplayEmitter& sim, DecorEmitter& fx, uint32_t f) {
     list.clear();
+    const fix32 dt = fix32::from_float(0.5);
+    sim.burst(0, {fix32::from_int(static_cast<int32_t>(f % 20)), fix32{}}, 8);
+    sim.step();
+    fx.emit(0, {fix32::from_int(4), fix32::from_int(9)}, dt);
+    fx.advance(dt);
     for (uint32_t i = 0; i < 1024; ++i) list.push(at(i, f));
+    sim.draw(list);
+    fx.draw(list);
     nine_slice(list, NineSliceRegions{1, 2, 3, 4, 5, 6, 7, 8, 9},
                {fix32::from_int(100), fix32::from_int(60)},
                {fix32::from_int(40), fix32::from_int(25)},
@@ -63,14 +90,16 @@ uint32_t frame(SpriteList& list, uint32_t f) {
 
 void test_frame_allocates_nothing() {
     SpriteList list(storage, keys, CAP);
+    GameplayEmitter sim(sim_pool, 512, particle_table(), 1, 0x2545f491u);
+    DecorEmitter fx(fx_pool, 512, particle_table(), 1, 0x9e3779b9u);
     // Первый кадр прогоняется ДО счётчика: кучу мог бы тронуть не он, а ленивая инициализация чего
     // угодно под ним, и обвинён был бы кадр.
-    const uint32_t first = frame(list, 0);
+    const uint32_t first = frame(list, sim, fx, 0);
 
     framework::probe::in_hot = true;
     framework::probe::allocs = 0;
     uint32_t total = 0;
-    for (uint32_t f = 1; f < 120; ++f) total += frame(list, f);
+    for (uint32_t f = 1; f < 120; ++f) total += frame(list, sim, fx, f);
     const long during = framework::probe::allocs;
     framework::probe::in_hot = false;
 
@@ -80,6 +109,9 @@ void test_frame_allocates_nothing() {
     // Порогом, а не нулём, по тому же основанию, что у лестницы в гейте персонажа.
     check(total > 119, "control: the counted frames really did lay sprites out");
     check(list.dropped() == 0, "control: nothing was silently dropped instead of laid out");
+    std::printf("  particles alive: sim %u, decor %u\n", sim.count(), fx.count());
+    check(sim.count() > 0 && fx.count() > 0 && sim.dropped() == 0 && fx.dropped() == 0,
+          "control: both particle classes really were running inside the counted frames");
 }
 
 void test_counter_sees_a_real_allocation() {

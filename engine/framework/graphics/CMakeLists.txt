@@ -4,7 +4,8 @@
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
 add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_text.cpp
-  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp)
+  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
+  particles.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
@@ -129,3 +130,19 @@ add_executable(framework_graphics_tile_refusal_test framework_graphics_tile_refu
 target_link_libraries(framework_graphics_tile_refusal_test PRIVATE framework_graphics_tiles)
 target_include_directories(framework_graphics_tile_refusal_test PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+# Частицы обоих классов (вертикаль 2, шаг C) — ТРИ цели, граница та же: класс поломки.
+#   * ..._particle_test         — ДЕТЕРМИНИЗМ геймплейного класса (гейт 4), геометрия шага, отрисовка;
+#   * ..._particle_split_test   — ГЕЙТ 3: декорация не доезжает до sim-хеша, и разделение — в типе;
+#   * ..._particle_refusal_test — ОТКАЗЫ: нет пула, нет таблицы, описание вне её, потолок подачи.
+# Сцена у первых двух общая (`framework_graphics_particle_scene.hpp`) вынужденно: гейт 3 сравнивает
+# ДВА прогона, и сцена, написанная в каждой цели заново, сравнивала бы разные сцены молча.
+add_executable(framework_graphics_particle_test framework_graphics_particle_test.cpp)
+target_link_libraries(framework_graphics_particle_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_particle_split_test framework_graphics_particle_split_test.cpp)
+target_link_libraries(framework_graphics_particle_split_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_particle_refusal_test framework_graphics_particle_refusal_test.cpp)
+target_link_libraries(framework_graphics_particle_refusal_test PRIVATE framework_graphics
+  platform_core)
