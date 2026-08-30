@@ -72,6 +72,7 @@ int run_window(int frame_cap) {
     GameState gs;
     spawn(world, gs);
     Fx fx;
+    const TrailQuery trails = make_trail_query(world);
     FxSink sink;
     GameAudio audio;
     const bool have_audio = audio.init(resolve_asset("audio.bundle"));
@@ -106,7 +107,7 @@ int run_window(int frame_cap) {
         sink.events.clear();
         step(world, gs, f, dt, &sink);
         fx.emit(sink);
-        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
+        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(trails);
         fx.update();
         audio.on_events(sink);
         ach.observe(gs);                                 // наблюдатель: sim о нём не знает

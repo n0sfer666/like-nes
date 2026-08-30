@@ -32,8 +32,15 @@ void Fx::emit(const FxSink& sink) {
     }
 }
 
-void Fx::emit_trails(flecs::world& world) {
-    world.each([&](flecs::entity e, const Transform& t, const Velocity&) {
+TrailQuery make_trail_query(flecs::world& world) {
+    return world.query<const Transform, const Velocity>();
+}
+
+// Один запрос на оба рода следов, а не два. Два разбили бы обход на «все корабли, потом все пули»,
+// то есть поменяли бы ПОРЯДОК розыгрыша генератора эмиттера — и голден сцены сдвинулся бы на
+// правке, которая про аллокации.
+void Fx::emit_trails(const TrailQuery& trails) {
+    trails.each([&](flecs::entity e, const Transform& t, const Velocity&) {
         // Смещение сопла — ЦЕЛОЕ число пикселей и берётся из позиции напрямую: старый код гонял её
         // через `double` только потому, что частица была `float`, и обратный перевод добавлял бы
         // округление там, где его нет.

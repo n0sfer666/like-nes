@@ -76,6 +76,7 @@ int run_demo(const char* dir, int frames) {
     GameState gs;
     spawn(world, gs);
     Fx fx;
+    const TrailQuery trails = make_trail_query(world);
     FxSink sink;
     Controls controls;
     if (!load_controls(controls)) { std::fprintf(stderr, "controls unavailable\n"); return 1; }
@@ -91,7 +92,7 @@ int run_demo(const char* dir, int frames) {
         sink.events.clear();
         step(world, gs, f, dt, &sink);
         fx.emit(sink);
-        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
+        if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(trails);
         fx.update();
         ach.observe(gs);
 

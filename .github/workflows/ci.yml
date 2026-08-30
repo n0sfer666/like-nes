@@ -984,7 +984,7 @@ jobs:
                    framework_graphics_tile_refusal_test \
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
-                   game_sprite_out_test game_fx_test \
+                   game_sprite_out_test game_fx_test game_star_test \
                    framework_graphics_viewport_test framework_graphics_zoom_reach_test \
                    framework_graphics_viewport_refusal_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1093,14 +1093,17 @@ jobs:
             || { echo "SHOOTER PARTICLE ACTIVITY DRIFT on ${{ matrix.os }}"; exit 1; }
           # Гейт 8 на игровом пути: пулы `Fx` стали массивами именно ради этой строки. Числа рядом
           # с нулём обязательны — счётчик, не увидевший НИ ОДНОЙ частицы, отвечает тем же нулём.
-          grep -q "steady frames: allocations = 0, alive 31 -> 71" gfx_game_fx_test.txt \
+          # Счётчиков ДВА, и второй не украшение: `framework::probe` подменяет `operator new`, а
+          # flecs ходит в кучу через `ecs_os_api` и в него не попадает — до 2026-08-31 обход
+          # сущностей стоял вне окна, и ноль там значил «не смотрю».
+          grep -q "steady frames: allocations = 0 (ecs 0), alive 28 -> 104" gfx_game_fx_test.txt \
             || { echo "SHOOTER FRAME ALLOCATED on ${{ matrix.os }}"; exit 1; }
           # Размер окна звезды, а не расхождения по нему: сами расхождения меряются по альфе,
           # посчитанной во float (`hypot`, `pow`), и литерал по ним краснел бы от чужого libm на
           # находке, которой нет, — их судит порог внутри теста. А вот 64x64 целочисленно и
           # утверждает ровно то, что легко сломать: обход снимает полтексела, уведённые внутрь для
           # СЭМПЛЕРА, и без этого берёт окно 63x63, сдвинутое на полпикселя от центра звезды.
-          grep -q "star 64x64:" gfx_game_fx_test.txt \
+          grep -q "star 64x64:" gfx_game_star_test.txt \
             || { echo "STAR REGION WINDOW DRIFT on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется

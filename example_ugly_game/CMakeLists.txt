@@ -140,6 +140,13 @@ target_include_directories(game_fx_test PRIVATE
 target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
   framework_alloc_probe_control flecs_static asset_core)
 
+# --- Симметрия звезды атласа: своя цель, а не третий тест в `game_fx_test`. Она стоит на ПЕЧЁНОМ
+# атласе и не трогает ни `Fx`, ни flecs — в общем файле гейт краснел бы на правке траектории.
+add_executable(game_star_test game_star_test.cpp art.cpp atlas_regions.cpp)
+target_include_directories(game_star_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
+
 # --- Образец-платформер, ЖИВАЯ половина (гейт 8 спеки #16): окно, часы и ввод поверх той же сцены,
 # которую гоняет sim-голден. Отдельная цель, а не режим `game_sidescroller`: у шутера нет ни
 # гравитации, ни тайлов, и общего у них ровно два куска — спрайт-батч и шов ввода.
