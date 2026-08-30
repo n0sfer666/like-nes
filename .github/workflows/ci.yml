@@ -1327,17 +1327,21 @@ jobs:
           # линкуется он теперь через `$TILES` — то есть через список, у которого уже есть эталон
           # (`mirrors-target` выше). Своя копия имён тайлмапа рядом с `CHAR` завела бы второй
           # руками написанный список без эталона, а именно этот класс и стоил красной сборки 23-го.
-          # Сам `CHAR` перечисляет шесть файлов модуля из десяти ОСОЗНАННО: путь голдена — это
-          # контроллер, профиль, скольжение, шов сцены, геометрическое прощение и хеш; пекарь,
-          # парсер и читатель профиля в прогоне не участвуют вовсе, и равенство с целью отбивало бы
-          # список ложно. `assist.cpp` приехал в него с вертикалью 3 не потому, что прогон зовёт эти
-          # приёмы (в сцене голдена не срабатывает ни один), а потому что их зовёт `controller.cpp`:
-          # линкеру безразлично, исполнится вызов или нет.
+          # `CHAR` зеркалит ЦЕЛЬ ЦЕЛИКОМ, а не путь голдена, и это исправление 2026-08-30: подмножество
+          # «только то, что зовёт прогон» здесь никогда не было верным критерием — линкеру безразлично,
+          # исполнится вызов или нет, ему нужно ЗАМЫКАНИЕ по вызовам из `controller.cpp`. Замыкание
+          # руками не выражается, эталона у такого списка нет, поэтому `list-drift` молчал по
+          # построению — и `ladder.cpp`, приехавший с режимом лестницы, дал `undefined reference to
+          # ladder_step` на единственном раннере, где шаг вообще запускается. Ровно тем же был
+          # `assist.cpp` вертикали 3 и `platform::read_text` у `$TILES_FS`. Равенство с целью снимает
+          # класс целиком: пекарь и парсер профиля в прогоне не участвуют, но компиляция трёх лишних
+          # TU под ASan стоит секунды, а рукописное подмножество стоило двух красных сборок.
           # `$TILES_FS` едет вместе с `$TILES` и без него не обходится: список зеркалит ЦЕЛЬ, а в
           # цели лежит пекарь карт, читающий исходник файлом. Прогон персонажа пекаря не зовёт
           # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
           # красной сборки на единственном раннере, где шаг вообще запускается.
-          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/trajectory.cpp"
+          # ci-lint: mirrors-target engine/framework/character/CMakeLists.txt framework_character
+          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/ladder.cpp engine/framework/character/trajectory.cpp engine/framework/character/profile_text.cpp engine/framework/character/profile_parse.cpp engine/framework/character/profile_bake.cpp engine/framework/character/profile_read.cpp"
           c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
@@ -1364,7 +1368,13 @@ jobs:
           # прогон персонажа, который ШАГАЕТ МИР, то есть держит `BodyId` через шаг, двигающий
           # тела и перестраивающий индекс запросов. Четыре цели выше сцену не шагают ни разу, а
           # сцена голдена не держит тел вовсе.
-          for G in corner snap slope oneway platform; do
+          # Лестница — шестой целью, и вопрос у неё к санитайзеру ЕДИНСТВЕННЫЙ в модуле: её тик
+          # щупает сетку не свипом, а ПРЯМЫМ индексом — вырожденным окном в точке и зондом под
+          # ногами, который у нижнего конца шахты честно уходит за границу карты. Промах там даёт
+          # валидный `TileFlags`, то есть другой ответ «схватился/не схватился», а не падение, и
+          # позиционные утверждения гейта на это молчат. Свиповые цели выше этот путь не трогают
+          # вовсе: `ladder.cpp` в них линкуется и не исполняется ни разу.
+          for G in corner snap slope oneway platform ladder; do
             c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
               "engine/framework/character/framework_character_${G}_test.cpp" $PLAT -o "char_${G}_san"
             "./char_${G}_san" | tee "char${G}san.txt"
