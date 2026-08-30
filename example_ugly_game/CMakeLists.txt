@@ -76,7 +76,8 @@ set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
-  batch.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp boss.cpp fx.cpp
+  batch.cpp instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
+  boss.cpp fx.cpp
   bloom.cpp audio.cpp
   input_setup.cpp capture.cpp
   gpu_env.cpp
@@ -115,11 +116,12 @@ reproducible_rpath(game_sidescroller)
 # Шов «спрайт фреймворка → инстанс шутера» (вертикаль 3, шаг B3). Цель headless: `Instance` живёт
 # отдельным заголовком от `batch.hpp` именно затем, чтобы гейт, считающий ЧТО уезжает на видеокарту,
 # не поднимал ради этого WebGPU.
-add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp art.cpp
-  atlas_regions.cpp)
+add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp instance_stage.cpp
+  art.cpp atlas_regions.cpp)
 target_include_directories(game_sprite_out_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
-target_link_libraries(game_sprite_out_test PRIVATE framework_graphics asset_core platform_core)
+target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
+  framework_alloc_probe_control asset_core platform_core)
 
 # Частицы шутера на фреймворке (вертикаль 3, шаг B3): голден сцены + гейт 8 + симметрия звезды.
 # Отдельно от `game_sprite_out_test`, а не случаем внутри него, по двум причинам сразу.
@@ -147,7 +149,7 @@ target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
 # слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
 add_executable(game_platformer
   platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp
-  batch.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
+  batch.cpp instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 # platform_core здесь не назван по тому же основанию, что и в гейте выше: framework_graphics_tiles
 # тянет его PRIVATE-связью своего framework_graphics, и второе имя дало бы `warning: ignoring

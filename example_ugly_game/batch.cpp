@@ -67,7 +67,8 @@ WGPUBuffer make_buffer(WGPUDevice device, WGPUQueue queue, WGPUBufferUsage usage
 void SpriteBatch::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat target,
                        const Atlas& atlas) {
     device_ = device; queue_ = queue;
-    cpu_.reserve(MAX_INSTANCES);
+    cpu_ = std::make_unique<Instance[]>(MAX_INSTANCES);
+    stage_ = InstanceStage(cpu_.get(), MAX_INSTANCES);
 
     // Baked-путь (шов assetc→билд): BC7 из бандла. Иначе RGBA (процедурный/mobile-шелл).
     const bool baked = !atlas.bc7.empty();
@@ -192,23 +193,20 @@ void SpriteBatch::set_viewport(uint32_t w, uint32_t h) {
     wgpuQueueWriteBuffer(queue_, vp_ubo_, 0, vp, sizeof(vp));
 }
 
-void SpriteBatch::begin() { cpu_.clear(); }
+void SpriteBatch::begin() { stage_.begin(); }
 
-void SpriteBatch::push(const Instance& inst) {
-    if (cpu_.size() < MAX_INSTANCES) cpu_.push_back(inst);
-}
+void SpriteBatch::push(const Instance& inst) { stage_.push(inst); }
 
 void SpriteBatch::flush(WGPURenderPassEncoder pass) {
-    if (cpu_.empty()) return;
-    wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, cpu_.data(), cpu_.size() * sizeof(Instance));
+    if (stage_.count() == 0) return;
+    wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, stage_.data(), stage_.bytes());
     wgpuRenderPassEncoderSetPipeline(pass, pipe_);
     wgpuRenderPassEncoderSetBindGroup(pass, 0, bg_, 0, nullptr);
     wgpuRenderPassEncoderSetVertexBuffer(pass, 0, quad_vbo_, 0, WGPU_WHOLE_SIZE);
-    wgpuRenderPassEncoderSetVertexBuffer(pass, 1, inst_vbo_, 0,
-                                         cpu_.size() * sizeof(Instance));
+    wgpuRenderPassEncoderSetVertexBuffer(pass, 1, inst_vbo_, 0, stage_.bytes());
     wgpuRenderPassEncoderSetIndexBuffer(pass, quad_ibo_, WGPUIndexFormat_Uint16, 0,
                                         WGPU_WHOLE_SIZE);
-    wgpuRenderPassEncoderDrawIndexed(pass, 6, (uint32_t)cpu_.size(), 0, 0, 0);
+    wgpuRenderPassEncoderDrawIndexed(pass, 6, stage_.count(), 0, 0, 0);
 }
 
 void SpriteBatch::shutdown() {

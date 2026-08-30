@@ -2,7 +2,10 @@
 #include <cstdio>
 
 #include "art.hpp"
+#include "framework_alloc_probe.hpp"
+#include "framework_alloc_probe_control.hpp"
 #include "graphics/sprite.hpp"
+#include "instance_stage.hpp"
 #include "platform_args.hpp"
 #include "sprite_out.hpp"
 
@@ -112,6 +115,69 @@ void test_rotation(const game::Atlas& atlas) {
     check(near(insts[1].rot, 1.5707963f), "and a quarter turn down is a quarter turn of the quad");
 }
 
+// Последний шов перед видеокартой: накопитель кадра. Гейт 8 спеки #17 требовал загрузки в вершинный
+// буфер и утверждения на ней, а `SpriteBatch` для утверждения не годится — он открывает устройство,
+// текстуру и конвейер, которых на раннере нет. Поэтому накопление отделено от загрузки
+// (`InstanceStage`), и здесь проверяется ровно накопление: ёмкость не растёт, лишнее ОТКАЗЫВАЕТ и
+// считается, длина в байтах следует за числом инстансов, а установившийся кадр не ходит в кучу.
+void test_stage() {
+    constexpr uint32_t N = 64;
+    constexpr uint32_t GUARD = 4;
+    // Буфер ДЛИННЕЕ объявленной ёмкости, а хвост остаётся сторожевым. Без него граница, сдвинутая
+    // на единицу (`>` вместо `>=`), роняет прогон записью за край РАНЬШЕ, чем тот успевает
+    // напечатать хоть одно утверждение, — и «гейт красный» читается как «тест сломан».
+    game::Instance buf[N + GUARD];
+    for (uint32_t i = 0; i < N + GUARD; ++i) buf[i].x = -1.0f;
+    game::InstanceStage stage(buf, N);
+    game::Instance one{};
+    one.x = 7.0f;
+
+    stage.begin();
+    for (uint32_t i = 0; i < N + 5; ++i) stage.push(one);
+    check(stage.count() == N, "the stage stops at its capacity");
+    check(stage.dropped() == 5, "the stage counts what it refused");
+    check(stage.data() == buf, "the stage never moved off the buffer it was given");
+    check(buf[N - 1].x == 7.0f, "the last accepted instance actually landed");
+    check(buf[N].x == -1.0f && buf[N + GUARD - 1].x == -1.0f,
+          "the stage wrote nothing past the capacity it was given");
+
+    // Длина в байтах меряется на НЕПОЛНОМ кадре. На полном она совпадает с ёмкостью, и утверждение
+    // прошло бы на накопителе, отдающем ёмкость вместо числа, — то есть на том, который грузит в
+    // вершинный буфер мусор за концом кадра. Проверено сломанной реализацией.
+    stage.begin();
+    for (uint32_t i = 0; i < 3; ++i) stage.push(one);
+    check(stage.bytes() == 3 * sizeof(game::Instance), "the byte length follows the count");
+    check(stage.capacity() == N, "the capacity is what the stage was handed");
+
+    // `begin` обнуляет и СЧЁТЧИК ОТКАЗОВ тоже: кадр, унаследовавший чужие потери, докладывал бы про
+    // переполнение, которого в нём не было, — и первое же настоящее переполнение утонуло бы в шуме.
+    stage.begin();
+    check(stage.count() == 0 && stage.dropped() == 0, "begin clears the count and the refusals");
+
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    for (uint32_t f = 0; f < 32; ++f) {
+        stage.begin();
+        for (uint32_t i = 0; i < N; ++i) stage.push(one);
+    }
+    const long during = framework::probe::allocs;
+    framework::probe::in_hot = false;
+    std::printf("  stage: %u frames of %u instances = %ld allocations\n", 32u, N, during);
+    check(during == 0, "the steady stage frame does not touch the heap");
+    check(stage.count() == N, "the counted frames actually filled the stage");
+
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    const bool plain_ok = framework::probe::control::plain_allocation();
+    const long plain = framework::probe::allocs;
+    framework::probe::allocs = 0;
+    const bool aligned_ok = framework::probe::control::aligned_allocation();
+    const long aligned = framework::probe::allocs;
+    framework::probe::in_hot = false;
+    check(plain_ok && plain > 0, "control: the counter sees a plain allocation");
+    check(aligned_ok && aligned > 0, "control: the counter sees an over-aligned allocation");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -127,6 +193,7 @@ int main(int argc, char** argv) {
     test_refusals(atlas);
     test_overflow(atlas);
     test_rotation(atlas);
+    test_stage();
 
     std::printf("game-sprite-out: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
