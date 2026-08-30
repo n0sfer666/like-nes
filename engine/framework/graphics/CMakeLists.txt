@@ -4,7 +4,7 @@
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
 add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_text.cpp
-  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp)
+  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
@@ -87,3 +87,19 @@ target_link_libraries(framework_graphics_debug_test PRIVATE framework_graphics p
 
 add_executable(framework_graphics_debug_refusal_test framework_graphics_debug_refusal_test.cpp)
 target_link_libraries(framework_graphics_debug_refusal_test PRIVATE framework_graphics platform_core)
+
+# Спрайты, слои и батчи (вертикаль 2, шаг A) — ТРИ цели, граница та же: класс поломки.
+#   * ..._batch_test         — ПОРЯДОК, число draw-call'ов (гейт 6) и раскладка 9-slice + голден;
+#   * ..._batch_refusal_test — ОТКАЗЫ: переполнение списка, переполнение батчей, буферов нет;
+#   * ..._batch_alloc_test   — ГЕЙТ 8: установившийся кадр не ходит в кучу.
+# Третья отделена от первых двух вынужденно, а не по вкусу: `framework_alloc_probe.hpp` подменяет
+# глобальные operator new/delete всей программе и допустим ровно в одной цели.
+add_executable(framework_graphics_batch_test framework_graphics_batch_test.cpp)
+target_link_libraries(framework_graphics_batch_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_batch_refusal_test framework_graphics_batch_refusal_test.cpp)
+target_link_libraries(framework_graphics_batch_refusal_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_batch_alloc_test framework_graphics_batch_alloc_test.cpp)
+target_link_libraries(framework_graphics_batch_alloc_test PRIVATE framework_graphics platform_core
+  framework_alloc_probe_control)
