@@ -967,11 +967,12 @@ jobs:
       # поэтому гоняются на трёх ОС, и смысл именно в трёх: кадр берётся целочисленным делением с
       # остатком, а метка кадра входит в геймплей (решение 3 спеки). Разойдись хеш между x86 и ARM,
       # это не «другая картинка», а другая игра.
-      - name: "Graphics — clip timeline, frame marks, animation state golden (gate 1, all OS)"
+      - name: "Graphics — clip timeline, frame marks, state machine, animation golden (gate 1, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
           for T in framework_graphics_clip_test framework_graphics_event_test \
+                   framework_graphics_pick_test framework_graphics_hold_test \
                    framework_graphics_anim_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"

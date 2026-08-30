@@ -3,7 +3,7 @@
 # здесь — номер, а не текстура. Ни физики, ни платформы, ни тем более RHI модулю не нужно, и
 # добавлять их «на будущее» значило бы связать анимацию с устройством вывода ровно тем ребром,
 # которое инвариант 1 спеки #14 запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp player.cpp)
+add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Гейты шага A — ТРИ цели, и граница между ними класс поломки, который обязано называть имя
@@ -26,3 +26,11 @@ target_link_libraries(framework_graphics_event_test PRIVATE framework_graphics p
 add_executable(framework_graphics_anim_test framework_graphics_anim_test.cpp)
 target_link_libraries(framework_graphics_anim_test PRIVATE framework_graphics framework_physics
   platform_core)
+
+# Машина разделена на два гейта по КЛАССУ ОТКАЗА: «выбрала не тот переход» видно по номеру
+# состояния, «переключилась не в тот тик» — только по номеру тика, и в одном файле второе тонет.
+add_executable(framework_graphics_pick_test framework_graphics_pick_test.cpp)
+target_link_libraries(framework_graphics_pick_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_hold_test framework_graphics_hold_test.cpp)
+target_link_libraries(framework_graphics_hold_test PRIVATE framework_graphics platform_core)
