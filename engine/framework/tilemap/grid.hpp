@@ -68,7 +68,23 @@ struct TileCounters {
     // Тайлы, дошедшие до геометрии, — то, что запрос рассмотрел сверх окна. Это мера ОКНА, и
     // отвечает она ровно на инвариант 4: обходим ли мы зонд или карту. Число попаданий на этот
     // вопрос не отвечает — попаданий может не быть потому, что уровень пустой.
+    //
+    // Величина ПОСЛЕДНЕГО запроса: столько и нужно, когда зонд один и его ставят руками
+    // (`framework_tilemap_test`). Тик персонажа зовёт запросы НЕСКОЛЬКО раз — свип, проба опоры,
+    // прощение угла, — и ни один из них не есть цена тика.
     uint64_t scanned = 0;
+    // Те же тайлы и те же запросы, накопленные С ПОСЛЕДНЕГО ОБНУЛЕНИЯ. Это цена окна за отрезок
+    // времени, который выбирает вызывающий, и гейт 7 спеки #16 читает именно её: «сколько работы
+    // стоит тик на уровне целевого размера» и «меняется ли это число, когда карта вырастает в
+    // тридцать раз».
+    uint64_t queries = 0;
+    uint64_t scanned_total = 0;
+
+    // Обнуляет ВЫЗЫВАЮЩИЙ, а не запрос, и это не забывчивость: у запроса нет понятия кадра — его
+    // зовут из игровой логики в произвольный момент, в том числе без единого шага между двумя
+    // вызовами. Ровно та же граница, по которой `WorkCounters::reset()` живёт в начале шага, а
+    // `QueryCounters` — вне его.
+    void reset() { *this = TileCounters{}; }
 };
 
 class TileGrid;
@@ -116,10 +132,15 @@ public:
     TileWindow window(const physics::Aabb& probe) const;
 
     const TileCounters& counters() const { return counters_; }
+    void reset_counters() const { counters_.reset(); }
 
 private:
     friend struct detail::TileQuerySeam;
-    void note_scanned(uint64_t scanned) const { counters_.scanned = scanned; }
+    void note_scanned(uint64_t scanned) const {
+        counters_.scanned = scanned;
+        ++counters_.queries;
+        counters_.scanned_total += scanned;
+    }
 
     Vec2 origin_;
     fix32 tile_size_;

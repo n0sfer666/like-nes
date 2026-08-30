@@ -1074,6 +1074,22 @@ jobs:
           "$B" | tee phys_perf.txt
           grep -q ": PASS" phys_perf.txt || { echo "$T FAILED on ${{ matrix.os }}"; exit 1; }
 
+      # Гейт 7 спеки #16 отдельным шагом по той же причине, что гейт 8 физики выше: общий цикл
+      # оставил бы от него одно слово PASS, а числа и есть то, ради чего он написан. Утверждает он
+      # РАБОТУ — счётчики тайлового запроса на карте 256x32 и на карте 1024x256 совпадают до
+      # единицы при тридцатидвухкратной разнице площади (инвариант 4 спеки), — а время печатает, и
+      # судит его владелец на живом железе (правило 18). Литерала счётчиков здесь НЕТ по той же
+      # причине, что и у физики: эталон живёт константами в самом бинаре.
+      - name: "Character — a target-size level costs a small one's tick (gate 7 of #16, all OS)"
+        shell: bash
+        run: |
+          need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
+          T=framework_character_perf_test
+          B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+          need "$B" "$T"
+          "$B" | tee char_perf.txt
+          grep -q ": PASS" char_perf.txt || { echo "$T FAILED on ${{ matrix.os }}"; exit 1; }
+
       # Инвариант 1 спеки #15 требует совпадения в Debug И Release, а до сих пор всё дерево
       # собиралось только Release: голден на -O0 не сверял никто. Это не педантизм — в
       # целочисленной арифметике расхождение между уровнями оптимизации означает UB, то есть
@@ -1094,7 +1110,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_tilemap_slope_test framework_tilemap_oneway_test game_platformer_sim_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test game_platformer_sim_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1121,6 +1137,7 @@ jobs:
                    framework_character_profile_test framework_character_profile_refusal_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
                    framework_character_slope_test framework_character_oneway_test framework_character_platform_test \
+                   framework_character_perf_test \
                    framework_tilemap_slope_test framework_tilemap_oneway_test game_platformer_sim_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"

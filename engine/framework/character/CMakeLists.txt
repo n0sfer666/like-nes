@@ -120,3 +120,12 @@ target_link_libraries(framework_character_profile_refusal_test PRIVATE framework
 add_executable(framework_character_bundle_test framework_character_bundle_test.cpp)
 target_link_libraries(framework_character_bundle_test PRIVATE framework_character
   framework_tilemap asset_core platform_core)
+
+# Гейт 7 спеки #16: уровень целевого размера укладывается в бюджет кадра, и цена тика не зависит от
+# размера карты (инвариант 4). Отдельной целью от гейта аллокаций по тому же контракту, что развёл
+# гейты 6 и 8 физики: `framework_alloc_probe.hpp` подменяет операторы всей программе и допустим
+# ровно в одном TU, а вопросы у целей разные — там «тик не ходит в кучу», здесь «сколько тайлов
+# стоит тик и меняется ли это от размера уровня».
+add_executable(framework_character_perf_test framework_character_perf_test.cpp)
+target_link_libraries(framework_character_perf_test PRIVATE framework_character
+  framework_tilemap platform_core framework_alloc_probe_control)

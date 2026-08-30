@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Four of the five gates below are **closed** — each of those carries the run that closed it, with
-the evidence; the fifth is **open**. They stay here as the procedure, because each one needs a
+Four of the six gates below are **closed** — each of those carries the run that closed it, with
+the evidence; two are **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -11,11 +11,12 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
+| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | **open** | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 
-Only the platformer gate is open. It and the physics gate are the two here whose answer a runner
-could *print* but not *judge* — one asks whether a number fits a real frame budget, the other whether
-a character feels responsive under a hand. That column is the whole point of keeping the procedure: a
+The two open gates are the character tick cost and the platformer itself. They and the physics gate
+are the three here whose answer a runner could *print* but not *judge* — two ask whether a number
+fits a real frame budget, the third whether a character feels responsive under a hand. That column is the whole point of keeping the procedure: a
 closed gate protects nothing if the code under it moves and nobody re-runs it.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
@@ -76,7 +77,7 @@ session type, Vulkan device, input nodes), the build gate, the workflow linter, 
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to
 plugins or bundles are skipped by name and say so — CI runs those with arguments on all three OS.
 
-Green means only that this machine agrees with the runners. The five gates below are what the
+Green means only that this machine agrees with the runners. The six gates below are what the
 runners never saw.
 
 **A red build gate here is a finding, not a chore.** The runners are `ubuntu-latest`, and a rolling
@@ -591,7 +592,73 @@ if they do not, because equal counters mean every row was measured on one binary
 rebuilt. A table like that looks flawless, which is exactly the danger. The `метка` column carries
 both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
-## 5. Gate 8 of #16 — the platformer sample plays (all three OSes)
+## 5. Gate 7 of #16 — the character tick cost (all three OSes)
+
+> **Open.** The counter half of this gate is closed by CI and needs no machine of yours: the same
+> scripted route over a 256×32 map and over a 1024×256 one — thirty-two times the area — returns the
+> *same* `queries`, the same `scanned`, the same worst tick and the same trajectory hash, on three
+> OSes and in both configurations (`framework_character_perf_test`). That is invariant 4 of spec
+> [#16](../.context/specs/2026-07-26-character-tilemap.md) — the cost of a query does not depend on
+> the size of the level — and it is observable only by **comparison**, never by an absolute number.
+>
+> What is left is the same half that keeps the physics gate open one section up: whether the work
+> those counters describe fits a frame **on your hardware**. The Apple M3 Pro run of 2026-08-30
+> (macOS 26.5.2, Apple clang, Release) put the target-size level at `worst` 0.087 ms and `mean`
+> 0.0103 ms — 0.06% of a 16.67 ms frame — but the M3 Pro figure describes the M3 Pro, and the
+> machine that decides is the slowest one you have.
+
+This gate is the character half of the frame-cost stage of `owner_check.sh`, so a full report
+already carries it. Alone:
+
+```sh
+cmake --build build --target framework_character_perf_test
+./build/framework_character_perf_test
+```
+
+(Windows: `scripts\win-dev.bat check` builds the tree, then
+`build\framework_character_perf_test.exe`. Both frame-cost measurements at once, physics and
+character, are `bash scripts/owner_perf.sh`.)
+
+Expected output. The counters are **not repeated here**, for the reason given one section up: they
+are pinned as constants inside the binary and a copy in a runbook is a copy nothing checks. A
+differing counter prints its own `FAIL: <field> = N, reference says M` line and the run exits
+non-zero.
+
+```
+framework character perf gate (a target-size level costs a small one's tick)
+  small:  map=256x32 (8192 tiles) queries=<n> scanned=<n>
+  small:  worst tick = <n> queries / <n> tiles, hash=<hash>
+  small:  worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
+  small:  ground=<n> air=<n> ceiling=<n> slope=<n>
+  target: map=1024x256 (262144 tiles) queries=<n> scanned=<n>
+  target: worst tick = <n> queries / <n> tiles, hash=<hash>
+  target: worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
+  target: ground=<n> air=<n> ceiling=<n> slope=<n>
+framework-character-perf: PASS
+```
+
+What to judge, in this order:
+
+1. **Any `FAIL:` line**, ahead of every timing — the same rule and the same class of defect as the
+   physics gate: a counter off its reference means two machines disagree about the arithmetic.
+2. **The counter lines are identical between `small:` and `target:`** — `queries`, `scanned`, the
+   worst tick and the hash. That is the invariant itself, and it is the one thing here you can check
+   by eye without knowing what a good number looks like. Only the two `worst=`/`mean=` lines may
+   differ between the maps, and they differ by the clock, not by the map.
+3. **`target: mean=` added to the physics `heap: mean=`** against the 16.67 ms frame. Both run in
+   the same frame of a real game, so their costs add; the character tick is the small summand and is
+   expected to stay one — a machine where it reaches a millisecond is the finding, and it is a
+   finding about the tick, not about the map, because the map cannot make it grow.
+4. **`allocs=0` on both maps.** Anything else means the tick went to the heap on a route the runner
+   does not exercise this way.
+
+`ceiling=` in the low tens against `ground=` in the hundreds is **correct, not a thin route**: the
+generated pattern carries one ceiling ledge and the scripted run passes under it a few times per
+lap. Those four tallies are asserted non-zero on purpose — a route that stopped touching a slope, a
+ceiling or the air would go on measuring an easier level and printing PASS, which is exactly the
+shape of a gate that has quietly stopped gating.
+
+## 6. Gate 8 of #16 — the platformer sample plays (all three OSes)
 
 > **Open.** Spec [#16](../.context/specs/2026-07-26-character-tilemap.md) gate 8 is the one gate of
 > that spec no runner can close, and it says so in its own text: *"subjective check that the control
@@ -668,7 +735,7 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 ## Beyond the gates
 
-The five gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0xd1ddc5d5a3435a7d` byte for byte on another OS.
@@ -684,11 +751,13 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The loop timings per OS.
 - The full `framework_physics_perf_test` output per OS — both the counter lines (they must match
   across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
+- The full `framework_character_perf_test` output per OS — the `small:`/`target:` counter lines must
+  be identical to each other and to the other machines; the `worst=` / `mean=` numbers must not.
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
-- The platformer screen recording per OS, its startup line, and the six answers from section 5.
+- The platformer screen recording per OS, its startup line, and the six answers from section 6.
 
-That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gate 8 of spec
+That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gates 7 and 8 of spec
 #16, which is what ADR
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
 [0014](../.context/decisions/2026-07-28-framework-input.md) and
