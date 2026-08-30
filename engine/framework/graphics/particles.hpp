@@ -1,0 +1,126 @@
+#pragma once
+#include <cstdint>
+
+#include "atlas_read.hpp"
+#include "fixmath.hpp"
+#include "sprite.hpp"
+
+// Частицы обоих классов (спека #17, вертикаль 2, шаг C). Решение владельца 4 требует, чтобы класс
+// эмиттера был ЧАСТЬЮ ТИПА, а не соглашением, — поэтому здесь два разных типа, а не один с флагом:
+// у геймплейного есть `step()` и нет `advance()`, у декоративного наоборот. Перепутать их нельзя не
+// потому, что «так договорились», а потому, что не компилируется.
+//
+// Общего у них ровно хранилище и интегратор (`ParticleStore`), и это не лень: вторая реализация
+// движения частиц была бы вторым КОНТРАКТОМ, расходящимся с первым на округлении, — тот же довод,
+// по которому окно шага B заимствуется у сетки, а не считается заново. Числа поэтому `fix32` у
+// ОБОИХ классов: декоративность — это чужой поток случайности и чужое время, а не другой тип числа.
+namespace framework::graphics {
+
+using framework::Vec2;
+
+// Эмиттер описан ДАННЫМИ: одна запись таблицы — один вид частиц. Кривые размера и цвета заданы
+// концами, а не сплайном: промежуточная точка потребует потребителя, который её задаёт, а его
+// сегодня нет (то же основание, по которому зум перенесён из вертикали 1).
+//
+// `damping` — множитель скорости ЗА ТИК; на доле тика он берётся линейно (`1 - (1-k)*dt`), потому
+// что возведение в дробную степень целочисленной арифметикой нам нечем считать, а на dt = 1 линейная
+// форма совпадает с множителем точно, то есть геймплейный класс не платит за декоративный ничем.
+struct EmitDesc {
+    Vec2 gravity{};
+    fix32 speed_min{};
+    fix32 speed_max{};
+    fix32 dir_turns{};
+    fix32 spread_turns{};
+    fix32 damping = fix32::from_int(1);
+    fix32 rate_per_tick{};
+    fix32 half_start = fix32::from_int(1);
+    fix32 half_end = fix32::from_int(1);
+    uint32_t rgba_start = 0xffffffffu;
+    uint32_t rgba_end = 0xffffffffu;
+    uint16_t life_ticks = 1;
+    RegionId region = 0;
+    uint16_t material = 0;
+    int16_t layer = 0;
+};
+
+// Возраст — `fix32`, а не число тиков: декоративный класс живёт в кадре и стареет долей тика.
+// Геймплейному это ничего не стоит — прибавка ровно единицы точна в Q16.16, — а второй структуры
+// частицы под второй класс не заводится.
+struct Particle {
+    Vec2 pos{};
+    Vec2 vel{};
+    fix32 age{};
+    uint16_t desc = 0;
+};
+
+// Потолок на одну подачу. Существует не ради оптимизации: `rate_per_tick` — авторская величина, и
+// запись с шестью нулями иначе крутила бы генератор миллион раз внутри тика. Лишнее СЧИТАЕТСЯ
+// потерей, а не отбрасывается молча.
+constexpr uint32_t MAX_BURST = 4096;
+
+// Буфер ПРИНАДЛЕЖИТ ВЫЗЫВАЮЩЕМУ (гейт 8), таблица описаний — тоже. Потери считаются по той же
+// причине, что у списка спрайтов шага A: не родившаяся частица снаружи выглядит ровно как частица,
+// которой не заказывали.
+class ParticleStore {
+public:
+    void clear();
+
+    // Разовая подача. Числа генератора берутся ДО попытки положить частицу в буфер, поэтому поток
+    // не зависит от того, полон буфер или пуст: сцена, посчитанная с большим пулом, обязана дать тот
+    // же поток, что и с маленьким, иначе «частиц стало больше» тихо меняло бы игру.
+    uint32_t burst(uint16_t desc, Vec2 at, uint32_t n);
+
+    // Непрерывная подача: `rate_per_tick * dt` копится в дробном остатке и подаётся целыми частицами.
+    // Остаток ОДИН на эмиттер — два непрерывных источника на одном эмиттере делили бы его; каждому
+    // источнику полагается свой эмиттер, и это ограничение названо, а не спрятано.
+    uint32_t emit(uint16_t desc, Vec2 at, fix32 dt);
+
+    uint32_t draw(SpriteList& out) const;
+
+    uint32_t count() const { return count_; }
+    uint32_t dropped() const { return dropped_; }
+    // Состояние генератора входит в хеш гейта 4 наравне с частицами: два прогона, совпавшие
+    // частицами при разошедшемся потоке, разойдутся на первой же следующей подаче.
+    uint32_t stream() const { return rng_; }
+    const Particle& at(uint32_t i) const;
+
+protected:
+    ParticleStore(Particle* buf, uint32_t capacity, const EmitDesc* descs, uint16_t desc_count,
+                  uint32_t seed);
+    ~ParticleStore() = default;
+
+    void integrate(fix32 dt);
+
+    Particle* buf_ = nullptr;
+    const EmitDesc* descs_ = nullptr;
+    uint32_t capacity_ = 0;
+    uint32_t count_ = 0;
+    uint32_t dropped_ = 0;
+    uint32_t rng_ = 0;
+    fix32 accum_{};
+    uint16_t desc_count_ = 0;
+};
+
+// Геймплейный класс: живёт В ТИКЕ и шагает только целым тиком. Доли тика у него нет намеренно —
+// именно ею в симуляцию и протекает частота кадров.
+class GameplayEmitter : public ParticleStore {
+public:
+    GameplayEmitter(Particle* buf, uint32_t capacity, const EmitDesc* descs, uint16_t desc_count,
+                    uint32_t seed)
+        : ParticleStore(buf, capacity, descs, desc_count, seed) {}
+
+    void step() { integrate(fix32::from_int(1)); }
+};
+
+// Декоративный класс: живёт В КАДРЕ и шагает долей тика. Свой буфер и свой поток случайности —
+// гейт 3 спеки утверждает ровно это: прогон с ним и без него даёт один и тот же sim-хеш.
+class DecorEmitter : public ParticleStore {
+public:
+    DecorEmitter(Particle* buf, uint32_t capacity, const EmitDesc* descs, uint16_t desc_count,
+                 uint32_t seed)
+        : ParticleStore(buf, capacity, descs, desc_count, seed) {}
+
+    void advance(fix32 dt_ticks) { integrate(dt_ticks); }
+};
+
+} // namespace framework::graphics
