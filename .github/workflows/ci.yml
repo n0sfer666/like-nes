@@ -967,13 +967,15 @@ jobs:
       # поэтому гоняются на трёх ОС, и смысл именно в трёх: кадр берётся целочисленным делением с
       # остатком, а метка кадра входит в геймплей (решение 3 спеки). Разойдись хеш между x86 и ARM,
       # это не «другая картинка», а другая игра.
-      - name: "Graphics — clip timeline, frame marks, state machine, animation golden (gate 1, all OS)"
+      - name: "Graphics — clip timeline, frame marks, state machine, camera policies, goldens (gates 1/5, all OS)"
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
           for T in framework_graphics_clip_test framework_graphics_event_test \
                    framework_graphics_pick_test framework_graphics_hold_test \
-                   framework_graphics_anim_test; do
+                   framework_graphics_anim_test framework_graphics_camera_test \
+                   framework_graphics_shake_test framework_graphics_pixel_test \
+                   framework_graphics_path_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -984,6 +986,14 @@ jobs:
           # читает состояние», а не «состояние то же, что вчера».
           grep -q "anim-state hash = 0x8db6e6730e0c446f" gfx_framework_graphics_anim_test.txt \
             || { echo "ANIM STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Гейт 5: траектория камеры за 240 тиков со всеми политиками разом. Каналов ДВА, и
+          # оба обязаны стоять здесь: центр состояния не знает ни про тряску, ни про пиксельную
+          # сетку — они живут только во втором, и одного канала хватило бы, чтобы разъехавшаяся
+          # между x86 и ARM привязка к сетке прошла молча.
+          grep -q "camera-path hash = 0x15028037bdca9f22" gfx_framework_graphics_path_test.txt \
+            || { echo "CAMERA PATH GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "camera-view hash = 0xd6c2f15de2ab50f8" gfx_framework_graphics_path_test.txt \
+            || { echo "CAMERA VIEW GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется
       # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только
@@ -1133,7 +1143,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1164,7 +1174,7 @@ jobs:
                    framework_tilemap_slope_test framework_tilemap_oneway_test \
                    framework_tilemap_ladder_test framework_character_ladder_test \
                    framework_graphics_clip_test framework_graphics_event_test \
-                   framework_graphics_anim_test \
+                   framework_graphics_anim_test framework_graphics_path_test \
                    game_platformer_sim_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -1201,6 +1211,14 @@ jobs:
           # порядковых номеров шага: расхождение -O0 с -O3 здесь означало бы UB, а не «другой кадр».
           grep -q "anim-state hash = 0x8db6e6730e0c446f" dbg_framework_graphics_anim_test.txt \
             || { echo "ANIM STATE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          # Восьмой и девятый — траектория камеры (гейт 5 спеки #17). Потолок скорости считает
+          # длину через целочисленный корень, привязка к пикселю — деление С ОКРУГЛЕНИЕМ ВНИЗ по
+          # int64, а тряска умножает амплитуду на затухание тем же int64: три места, где -O0 и -O3
+          # обязаны дать одни байты, иначе это UB, а не «камера чуть иначе поехала».
+          grep -q "camera-path hash = 0x15028037bdca9f22" dbg_framework_graphics_path_test.txt \
+            || { echo "CAMERA PATH DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "camera-view hash = 0xd6c2f15de2ab50f8" dbg_framework_graphics_path_test.txt \
+            || { echo "CAMERA VIEW DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'

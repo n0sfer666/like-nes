@@ -3,8 +3,11 @@
 # здесь — номер, а не текстура. Ни физики, ни платформы, ни тем более RHI модулю не нужно, и
 # добавлять их «на будущее» значило бы связать анимацию с устройством вывода ровно тем ребром,
 # которое инвариант 1 спеки #14 запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp)
+add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
+# детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
+target_link_libraries(framework_graphics PUBLIC framework_core)
 
 # Гейты шага A — ТРИ цели, и граница между ними класс поломки, который обязано называть имя
 # упавшей цели в логе CI:
@@ -34,3 +37,21 @@ target_link_libraries(framework_graphics_pick_test PRIVATE framework_graphics pl
 
 add_executable(framework_graphics_hold_test framework_graphics_hold_test.cpp)
 target_link_libraries(framework_graphics_hold_test PRIVATE framework_graphics platform_core)
+
+# Камера разделена на четыре цели тем же доводом, что и клипы, — по КЛАССУ ОТКАЗА:
+#   * ..._camera_test — ПОЛИТИКИ и их порядок: «камера в нужном месте», видно по координате;
+#   * ..._shake_test  — ТРЯСКА: «дрожит как заказано и только в отрисовке», по координате не видно;
+#   * ..._pixel_test  — СЕТКА И ПАРАЛЛАКС: «не дрожит относительно соседа», видно только на ходу;
+#   * ..._path_test   — ГОЛДЕН траектории: «три машины сошлись», за верность не отвечает вовсе.
+add_executable(framework_graphics_camera_test framework_graphics_camera_test.cpp)
+target_link_libraries(framework_graphics_camera_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_pixel_test framework_graphics_pixel_test.cpp)
+target_link_libraries(framework_graphics_pixel_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_shake_test framework_graphics_shake_test.cpp)
+target_link_libraries(framework_graphics_shake_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_path_test framework_graphics_path_test.cpp)
+target_link_libraries(framework_graphics_path_test PRIVATE framework_graphics framework_physics
+  platform_core)
