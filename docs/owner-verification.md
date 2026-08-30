@@ -746,7 +746,7 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
-mid-frame, and `assetc` reproducing `bundle_hash = 0x8d38adffbcfd4a61` byte for byte on another OS.
+mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt).
 

@@ -28,6 +28,14 @@ target_link_libraries(game_platformer_view_test PRIVATE framework_character fram
 
 # Шов ввода образца — раскладка в намерение персонажа. Тоже headless: манифест печётся `preset_bake`
 # из движка, а кадр ввода собирается руками, поэтому ни окна, ни ОС цели не нужно.
+# Анти-дрейф нарезки (спека #17, шаг D): у игры-образца ДВА источника регионов — `assets/atlas.txt`
+# в бандле и `game::set_regions()` в коде, — и живут они оба, пока рендер не переехал на слой
+# (вертикаль 3). Гейт сверяет их числами, снимая полтексела `game::rgn`. Цель headless: `art.cpp` —
+# чистый CPU, ни окна, ни RHI ему не нужно.
+add_executable(game_atlas_regions_test game_atlas_regions_test.cpp art.cpp)
+target_include_directories(game_atlas_regions_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_atlas_regions_test PRIVATE framework_graphics asset_core platform_core)
+
 add_executable(game_platformer_input_test platformer_input_test.cpp platformer_input.cpp)
 # platform_core тут НЕ в списке библиотек, хотя `platform::Args` цели нужен: и framework_input, и
 # framework_character держат его PRIVATE, то есть каждый дописывает его в замыкание СВОЕЙ строкой,

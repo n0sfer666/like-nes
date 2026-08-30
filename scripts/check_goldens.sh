@@ -104,19 +104,23 @@ verify_bundle() {
     }
     printf '%s\n' "$out"
     case $out in
-        *"verify: PASS - 4 tool-free section(s)"*) ;;
+        *"verify: PASS - 5 tool-free section(s)"*) ;;
         *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
     esac
     # Второе утверждение о том же бандле, первым не заменяемое: `--verify-game` сверяет БАЙТЫ секции
     # с перепечённым текстом («бандл отстал от исходника») и ЧИТАТЕЛЯ не запускает вовсе, а эти тесты
     # читают секцию читателем и сверяют её с независимым ожиданием — `default_profile()` для профиля,
-    # разбор `tilemap.txt` для карты. Проверено сломанной реализацией: индексация флагов `x*h+y`
-    # краснит тест карты и оставляет `--verify-game` зелёным.
-    # Третьим здесь стоит образец-платформер, и он про бандл утверждает своё: обе сверки выше судят
-    # ОДНУ секцию каждая, а он ПРОХОДИТ по уровню тем же контроллером, что и живая игра, — то есть
-    # ловит бандл, где обе секции по отдельности верны, а вместе уровень непроходим.
+    # разбор `tilemap.txt` для карты, `parse_atlas_file` для нарезки. Проверено сломанной
+    # реализацией: индексация флагов `x*h+y` краснит тест карты и оставляет `--verify-game` зелёным.
+    # Образец-платформер стоит среди них со своим утверждением: сверки выше судят ОДНУ секцию
+    # каждая, а он ПРОХОДИТ по уровню тем же контроллером, что и живая игра, — то есть ловит бандл,
+    # где обе секции по отдельности верны, а вместе уровень непроходим.
+    # Последним — анти-дрейф нарезки: у игры-образца регионы объявлены ДВАЖДЫ (`atlas.txt` в бандле
+    # и `game::set_regions()` в коде), и ни одна из сверок выше про их расхождение не знает — они
+    # обе судят бандл, а второй источник живёт в C++.
     local bin rc t all=0
-    for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test; do
+    for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test \
+        framework_graphics_atlas_bundle_test game_atlas_regions_test; do
         bin=$(find build-ci build-full -maxdepth 2 -type f -name "$t" 2>/dev/null | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi
         out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?

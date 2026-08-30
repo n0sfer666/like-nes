@@ -234,7 +234,7 @@ Windows: не открывать проект как папку в самой Vi
   ./build/assetc --game example_ugly_game/assets ./rebake.bundle
 
   Должен напечатать:
-    [assetc] bundle_hash = 0x8d38adffbcfd4a61
+    [assetc] bundle_hash = 0x1a557ae839e76ea0
 
   Это тот же хеш, что на macOS. Отличается — значит бейк не детерминирован
   между ОС, и это находка (пришли строку целиком).
@@ -243,14 +243,14 @@ Windows: не открывать проект как папку в самой Vi
   на раннерах, ни на чистой машине. tint в команде тоже назван, но зовётся он
   лишь на шейдерах (engine/asset/codec.cpp), а их в наборе игры-образца нет:
   бейк проходит и без него. Секции, которые пекутся чистыми парсерами
-  (input.txt, achievements.txt, movement.txt, tilemap.txt), с 2026-08-08
+  (input.txt, achievements.txt, movement.txt, tilemap.txt, atlas.txt), с 2026-08-08
   сверяются машинно и на трёх ОС:
 
     ./build/assetc --verify-game example_ugly_game/assets \
         example_ugly_game/assets/game.bundle
 
   Должен напечатать:
-    [assetc] verify: PASS - 4 tool-free section(s) checked against ...
+    [assetc] verify: PASS - 5 tool-free section(s) checked against ...
 
   Отдельно гонять не надо — это шаг CI и этап preflight. Здесь он назван,
   чтобы `bundle_hash` выше читался как проверка ИМЕННО текстурного бейка.
