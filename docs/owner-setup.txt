@@ -171,6 +171,14 @@ Windows: не открывать проект как папку в самой Vi
     [game] achievements: 5 defined, 0 unlocked, backend: local
     [game] WASD/arrows/LStick = move · gamepad: <бэкенд> · Esc = quit
 
+  Размер в первой строке приезжает ИЗ БАНДЛА (секция `atlas_regions`), а не
+  из кода: нарезка спрайтов после вертикали 3 спеки #17 читается по именам.
+  Вместо неё может напечататься одна из двух строк отказа — обе означают, что
+  игра пошла на процедурный атлас и картинка будет грубее:
+
+    [game] assets: atlas_regions section unusable -> procedural
+    [game] assets: bundle .../game.bundle unreadable -> procedural fallback
+
   Управление: WASD или стрелки — движение, пробел или ЛКМ — огонь,
   геймпад: левый стик — движение, южная кнопка (A/X) — огонь. Esc — выход.
 

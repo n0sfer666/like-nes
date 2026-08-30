@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Five of the six gates below are **closed** — each of those carries the run that closed it, with
-the evidence; one is **open**. They stay here as the procedure, because each one needs a
+Five of the seven gates below are **closed** — each of those carries the run that closed it, with
+the evidence; two are **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -13,10 +13,12 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
+| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
-The open gate is the character tick cost. It and the physics gate are the two here whose answer a
-runner could *print* but not *judge*: both ask whether a number fits a real frame budget on the
-slowest machine you own. The right-hand column is the whole point of keeping the procedure: a closed
+The open gates are the character tick cost and the look of the sample after the framework move. The
+first, with the physics gate, is one whose answer a runner could *print* but not *judge*: both ask
+whether a number fits a real frame budget on the slowest machine you own. The second a runner cannot
+even print — it is recordings held side by side, one pair per sample. The right-hand column is the whole point of keeping the procedure: a closed
 gate protects nothing if the code under it moves and nobody re-runs it — and the platformer gate,
 closed 2026-08-30, sits directly under the module this round keeps changing.
 
@@ -741,6 +743,115 @@ one pass of the level, thirty seconds is enough. Send the recording, the startup
 wherever the answer is no. A "no" here is not a failure of the gate — it is the number in
 `default_profile()` that the gate exists to find.
 
+## 7. Gate 9 of #17 — the sample looks the same after the framework move
+
+> **Open.** Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
+> platformer's camera, view window, tile drawing and draw order, step B3 took the shooter's
+> particles and the instance buffer under them. Everything mechanical about either move is pinned
+> headless — `game_platformer_view_test` and the untouched route hash `0xfead7a87477a9258` (gate 10)
+> for the first, `game_fx_test` and `game_sprite_out_test` for the second — and what no runner can
+> say is whether the picture on the screen is the same picture. That is two recordings and your
+> eyes, **twice**: the two halves below are separate runs against separate "before" commits, and
+> either can be answered without the other.
+
+### The platformer, after step A
+
+Two builds of the same level: the commit before the move, and the current one. The old one lives in
+a worktree so your checkout stays where it is.
+
+```sh
+git worktree add ../like-nes-before 2bdfcb7
+cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before/build --target game_platformer
+cd ../like-nes-before && ./build/game_platformer          # "before"
+```
+
+Run it **from the worktree root**, not from `build/`: the bundle is found relative to the working
+directory. Then the same three commands in your own checkout for the "after" run, and
+`git worktree remove ../like-nes-before` when both recordings are in hand. On Windows both builds go
+through `scripts\win-dev.bat` and the binaries are `build\example_ugly_game\game_platformer.exe`.
+
+Both runs print the same startup line — the one from section 6, `gamepad:` and all — and end with
+`[platformer] window clean exit`. A difference in either line is a finding before you look at a
+single frame.
+
+**Record one pass of the level in each build** (macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G), walking
+left to right: spawn, the green hill, both amber slabs, the cyan platform, the right wall. Then hold
+the two recordings side by side and answer:
+
+1. **The camera.** At the far left and far right the view stops dead at the level edge. Does it stop
+   at the same place in both, and does it start scrolling at the same point on the way there?
+2. **The hill.** The green slope is a staircase of 16 sub-quads, each one pixel wide, rising left to
+   right and standing on the tile floor. Same staircase, same direction, no gap under it?
+3. **The slabs.** Amber, and *only* the one-way platforms are amber — a slab drawn grey-blue like a
+   wall is the exact bug the per-kind tint exists to prevent.
+4. **The platform and the hero.** The cyan plate shuttles; standing on it, is the hero drawn **over**
+   the plate, with his feet visible, in both runs?
+5. **The edges of the screen.** Nothing half-drawn or popping at the left and right borders as the
+   camera moves: a tile column either fully enters the view or is not drawn at all.
+
+The tints themselves moved from four floats to packed RGBA8, so each channel is now the nearest
+8-bit value to what it was — at most one step of 1/255, which is below what the framebuffer could
+show either way. A colour difference you can actually see is therefore a finding, not the rounding.
+
+Send both recordings, or one recording plus a "same as before" per question. A "no" on question 1 or
+5 points at the view window (`platformer_view.cpp`), a "no" on 3 at the tint table
+(`TileSet::tint`), a "no" on 4 at the layer constants — each of those has a headless gate that
+should have caught it, so the answer also names a hole in `game_platformer_view_test`.
+
+### The shooter, after step B3
+
+Step B3 moved the shooter's particles onto the framework emitter and its instances through a new
+adapter. Unlike the platformer half above, **this one is not expected to be frame-identical, and
+saying so up front is the point** — three differences are deliberate, and mistaking one of them for
+a regression costs an evening:
+
+- **Trajectories differ.** The old system drew its random numbers from a float LCG; the framework
+  draws from a `fix32` one, and it damps velocity before the move rather than after. Individual
+  sparks therefore fly along different paths. What must NOT differ is the character: same colours,
+  same rough size, same reach, same time to fade.
+- **The ship's exhaust no longer fans with its offset.** The old trail correlated a particle's
+  vertical speed with where in the 10-pixel band it was born. It is now a band plus a narrow cone,
+  which looks the same in motion but is not the same arithmetic.
+- **Particles no longer rotate individually.** They are drawn with the star, which is a radial
+  gradient — `game_fx_test` asserts it is symmetric under both mirrors and under transposition, so
+  a rotated star is the same star. If you can see a difference here, that assertion is wrong and the
+  gate has a hole.
+
+```sh
+git worktree add ../like-nes-before ddd0efa
+cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before/build --target game_sidescroller
+cd ../like-nes-before && ./build/game_sidescroller          # "before"
+```
+
+Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
+in your own checkout, then `git worktree remove ../like-nes-before`. On Windows both go through
+`scripts\win-dev.bat` and the binary is `build\example_ugly_game\game_sidescroller.exe`.
+
+**Record one run of each** up to and including the boss fight, then answer:
+
+1. **The ship's exhaust.** A continuous band of blue-white sparks trailing off the ship's left edge,
+   about ten pixels tall — not a single line, not a cone starting from a point.
+2. **Firing.** Every shot puffs four pale-cyan sparks at the muzzle, and the bullet drags a short
+   trail behind it. Same brightness in both runs?
+3. **An enemy dying.** Sixteen orange sparks, spreading in every direction, the shortest-lived gone
+   in a third of a second and the longest in eight tenths. Same colour, same reach, same spread of
+   fade times — the cloud must not go out all at once?
+4. **The boss dying.** The big one: sixty sparks in two waves — 46 orange ones thrown fast and far,
+   and 14 bigger, paler, near-white ones that stay closer in. Both waves present, and the pale one
+   *not* outrunning the orange one? (It is slower on purpose: 140 against 340 px/s.)
+5. **Glow.** The sparks are visibly BRIGHTER than the sprites around them — that is the `MAT_Glow`
+   exposure of 1.9 that used to be a literal in `fx.cpp`. Flat, unglowing sparks mean the material
+   exposure is not reaching the instance.
+6. **Nothing disappears under load.** During the boss fight, no moment where sparks stop being
+   emitted altogether: the pool holds 512 and the gate says the scripted fight never fills it, but
+   the scripted fight is not your fight.
+
+A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at the burst counts in
+`fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
+counts exactly that case and nothing prints it yet, so a "no" here is also a request for that line.
+
 ## Beyond the gates
 
 The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
@@ -764,6 +875,9 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
 - The platformer screen recording per OS, its startup line, and the six answers from section 6.
+- For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after
+  `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
+  One pair without the other is still worth sending — the halves are independent.
 
 That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gates 7 and 8 of spec
 #16, which is what ADR

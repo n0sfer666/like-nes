@@ -127,4 +127,10 @@ WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view) 
     return wgpuCommandEncoderBeginRenderPass(enc, &d);
 }
 
+void push_fx(SpriteBatch& batch, Fx& fx, const Atlas& atlas) {
+    Instance insts[FX_CAP];
+    const uint32_t n = fx.draw(atlas, insts, FX_CAP);
+    for (uint32_t i = 0; i < n; ++i) batch.push(insts[i]);
+}
+
 } // namespace game

@@ -92,12 +92,12 @@ int run_demo(const char* dir, int frames) {
         step(world, gs, f, dt, &sink);
         fx.emit(sink);
         if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
-        fx.update(1.0f / 60);
+        fx.update();
         ach.observe(gs);
 
         batch.begin();
         push_scene(batch, world, atlas);
-        fx.render(batch, atlas);
+        push_fx(batch, fx, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
         push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);

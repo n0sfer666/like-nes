@@ -39,7 +39,7 @@ pv::Camera camera_with_hero(pv::Stage& st, int x, int y) {
     return pv::camera_at(st);
 }
 
-const pv::Quad* find_color(const std::vector<pv::Quad>& qs, pv::Rgba c) {
+const pv::Quad* find_color(const std::vector<pv::Quad>& qs, uint32_t c) {
     for (const pv::Quad& q : qs)
         if (q.color == c) return &q;
     return nullptr;
@@ -69,20 +69,22 @@ void check_camera(pv::Stage& st) {
     // Оба КОНЦА, а не середина: кламп — это поведение на границах, и голден из середины диапазона
     // одинаков у клампа и у его отсутствия.
     const pv::Camera at_left = camera_with_hero(st, 40, 200);
-    check(at_left.left.raw == 0, "camera clamps to the left edge of the level");
+    check(pv::view_origin(at_left).x.raw == 0, "camera clamps to the left edge of the level");
     const pv::Camera at_right = camera_with_hero(st, wide - 25, 200);
-    check(at_right.left == fix32::from_int(wide - pv::VIEW_W),
+    check(pv::view_origin(at_right).x == fix32::from_int(wide - pv::VIEW_W),
           "camera clamps to the right edge of the level");
     const pv::Camera mid = camera_with_hero(st, 300, 200);
-    check(mid.left == fix32::from_int(300 - pv::VIEW_W / 2),
+    check(pv::view_origin(mid).x == fix32::from_int(300 - pv::VIEW_W / 2),
           "camera follows the hero in the middle");
 
     // Уровень ровно в высоту вида: кламп обязан прижать камеру к нулю и на дне, и под потолком.
     // Утверждение про КАРТУ, а не про камеру, стоит рядом — иначе строка ниже молчит про то, что
     // проверяет вырожденный случай.
     check(tall == pv::VIEW_H, "the level is exactly one view tall");
-    check(camera_with_hero(st, 300, 16).top.raw == 0, "camera clamps to the top of the level");
-    check(camera_with_hero(st, 300, 224).top.raw == 0, "camera clamps to the bottom of the level");
+    check(pv::view_origin(camera_with_hero(st, 300, 16)).y.raw == 0,
+          "camera clamps to the top of the level");
+    check(pv::view_origin(camera_with_hero(st, 300, 224)).y.raw == 0,
+          "camera clamps to the bottom of the level");
 }
 
 void check_slope(pv::Stage& st, const pv::Camera& cam, const std::vector<pv::Quad>& qs) {
@@ -92,8 +94,9 @@ void check_slope(pv::Stage& st, const pv::Camera& cam, const std::vector<pv::Qua
         return;
     }
     const pv::ph::Aabb box = st.grid->tile_bounds(tx, ty);
-    const float left = static_cast<float>((box.min.x - cam.left).to_double());
-    const float top = static_cast<float>((box.min.y - cam.top).to_double());
+    const pv::Vec2 origin = pv::view_origin(cam);
+    const float left = static_cast<float>((box.min.x - origin.x).to_double());
+    const float top = static_cast<float>((box.min.y - origin.y).to_double());
     const float size = static_cast<float>((box.max.x - box.min.x).to_double());
     const float step = size / pv::SLOPE_STEPS;
 
@@ -129,7 +132,8 @@ void check_frame(pv::Stage& st) {
     // конец карты — на нём и проверяется отбрасывание.
     const pv::Camera cam = camera_with_hero(st, 40, 200);
     std::vector<pv::Quad> qs;
-    pv::build_quads(st, cam, qs);
+    pv::FrameSprites sprites;
+    pv::build_quads(st, cam, sprites, qs);
     check(!qs.empty(), "the frame is not empty");
 
     bool outside = false;
@@ -149,16 +153,23 @@ void check_frame(pv::Stage& st) {
     check(find_color(qs, pv::C_SOLID) != nullptr, "a solid tile is drawn in its own colour");
 
     // Платформа стоит за правым краем этого вида — её отсутствие здесь и есть отбрасывание. Второй
-    // кадр, снятый оттуда, обязан её показать: без него «нет платформы» доказывало бы, что её не
-    // рисуют вовсе.
+    // кадр оттуда обязан её показать: без него «нет платформы» значило бы «её не рисуют вовсе».
     check(find_color(qs, pv::C_LIFT) == nullptr, "the far-off lift takes no slot near the spawn");
     const pv::Camera far = camera_with_hero(st, 540, 176);
     std::vector<pv::Quad> there;
-    pv::build_quads(st, far, there);
+    pv::build_quads(st, far, sprites, there);
     const pv::Quad* lift = find_color(there, pv::C_LIFT);
     check(lift != nullptr, "the lift is drawn once the camera reaches it");
     if (lift)
         check(close_to(lift->w, 48) && close_to(lift->h, 16), "the lift quad is the plate itself");
+
+    // Порядок отрисовки — утверждение о СЛОЯХ, а не о порядке вызовов: везомый стоит на крыше
+    // плиты, и нарисованная после него плита прятала бы его подошвы ровно в тот момент, ради
+    // которого она в уровне есть. Указатели сравниваются как места в ОДНОМ векторе кадра.
+    const pv::Quad* first_tile = find_color(there, pv::C_SOLID);
+    const pv::Quad* rider = find_color(there, pv::C_HERO);
+    check(first_tile && lift && rider && first_tile < lift && lift < rider,
+          "tiles go first, the lift over them, the hero last");
 
     check_slope(st, cam, qs);
 }

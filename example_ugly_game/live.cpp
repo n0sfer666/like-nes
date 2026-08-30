@@ -107,7 +107,7 @@ int run_window(int frame_cap) {
         step(world, gs, f, dt, &sink);
         fx.emit(sink);
         if (gs.phase == PH_Play || gs.phase == PH_Boss) fx.emit_trails(world);
-        fx.update(1.0f / 60);
+        fx.update();
         audio.on_events(sink);
         ach.observe(gs);                                 // наблюдатель: sim о нём не знает
         if ((t % 60) == 0) ach.pump();                   // доставка — вне тика
@@ -135,7 +135,7 @@ int run_window(int frame_cap) {
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
         batch.begin();
         push_scene(batch, world, atlas);
-        fx.render(batch, atlas);
+        push_fx(batch, fx, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
         push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);

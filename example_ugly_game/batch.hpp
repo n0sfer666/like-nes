@@ -1,20 +1,13 @@
 #pragma once
 #include <webgpu/webgpu.h>
 #include <cstdint>
-#include <vector>
+#include <memory>
 
 #include "art.hpp"
+#include "instance.hpp"
+#include "instance_stage.hpp"
 
 namespace game {
-
-struct Instance {
-    float x, y, w, h;
-    float u0, v0, u1, v1;
-    float r, g, b, a;
-    float rot = 0;   // S9: поворот квада (наклон корабля, вращение частиц)
-};
-
-constexpr uint32_t MAX_INSTANCES = 2048;   // S9: + частицы
 
 class SpriteBatch {
 public:
@@ -24,6 +17,10 @@ public:
     void push(const Instance& inst);
     void flush(WGPURenderPassEncoder pass);
     void shutdown();
+
+    // Сколько инстансов не влезло в кадр. Наружу — потому что отказ, который никто не спрашивает,
+    // неотличим от кадра, где рисовать было нечего.
+    uint32_t dropped() const { return stage_.dropped(); }
 
 private:
     WGPUDevice device_ = nullptr;
@@ -38,7 +35,11 @@ private:
     WGPUBindGroupLayout bgl_ = nullptr;
     WGPUBindGroup bg_ = nullptr;
     WGPURenderPipeline pipe_ = nullptr;
-    std::vector<Instance> cpu_;
+    // Буфер кадра выделяется РОВНО ОДИН РАЗ, в `init`, и на стек не кладётся: сто килобайт в
+    // кадровом кадре `run()` — это 10% стека главного потока на Windows, а `SpriteBatch` живёт всю
+    // программу. Накопитель поверх него — `InstanceStage`, отдельным типом ради headless-гейта.
+    std::unique_ptr<Instance[]> cpu_;
+    InstanceStage stage_{nullptr, 0};
 };
 
 } // namespace game

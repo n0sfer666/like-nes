@@ -9,15 +9,6 @@ float f(fix32 v) { return static_cast<float>(v.to_double()); }
 
 fix32 half(fix32 v) { return v / fix32::from_int(2); }
 
-// Кламп по одной оси. Уровень уже вида (`hi < lo`) — прижимаемся к его началу: иначе камера
-// уезжала бы за карту тем самым клампом, который её обязан держать.
-fix32 clamp_axis(fix32 want, fix32 lo, fix32 hi) {
-    if (hi.raw < lo.raw) return lo;
-    if (want.raw < lo.raw) return lo;
-    if (hi.raw < want.raw) return hi;
-    return want;
-}
-
 // Диапазон по Y, который выпуклая форма занимает на вертикальной полосе [x0,x1] — в ЛОКАЛЬНЫХ осях
 // формы. Считается по рёбрам, а не по формуле склона: формул было бы четыре (по зеркалу на каждое),
 // и разошлись бы они с решателем при первой же правке `TileShapes::build`.
@@ -44,89 +35,161 @@ bool span(const ph::Shape& s, fix32 x0, fix32 x1, fix32& lo, fix32& hi) {
     return any;
 }
 
-// Мировая коробка → квад вида. Отбрасывание ЦЕЛИКОМ, без подрезки размеров: подрезанный квад врал
-// бы гейту про геометрию тайла, а обрезать его по краю экрана и так умеет растеризатор.
-void emit(std::vector<Quad>& out, const Camera& cam, fix32 left, fix32 top, fix32 w, fix32 h,
-          Rgba color) {
-    const fix32 x = left - cam.left;
-    const fix32 y = top - cam.top;
-    if ((x + w).raw <= 0 || (y + h).raw <= 0) return;
-    if (fix32::from_int(VIEW_W).raw <= x.raw || fix32::from_int(VIEW_H).raw <= y.raw) return;
-    out.push_back({f(x), f(y), f(w), f(h), color});
-}
-
 // Односторонняя площадка спрашивается ПЕРВОЙ: её бит живёт вместе с `solid` (`grid.hpp`), и порядок
 // «сначала solid» покрасил бы её как стену — то есть скрыл бы единственное, чем она от стены
 // отличается.
-Rgba tile_color(tm::TileFlags fl) {
+uint32_t kind_tint(tm::TileFlags fl) {
     if ((fl & tm::TILE_ONEWAY) != 0) return C_ONEWAY;
     if ((fl & tm::TILE_SLOPE) != 0) return C_SLOPE;
     return C_SOLID;
 }
 
-void push_tile(std::vector<Quad>& out, const Camera& cam, const ph::Aabb& box, tm::TileFlags fl,
-               tm::TileShapes& shapes) {
-    const Rgba color = tile_color(fl);
-    const fix32 w = box.max.x - box.min.x;
-    const fix32 h = box.max.y - box.min.y;
-    if ((fl & tm::TILE_SLOPE) == 0) {
-        emit(out, cam, box.min.x, box.min.y, w, h, color);
-        return;
+// Набор перечисляет КОМБИНАЦИИ битов, а не «типы тайлов»: индекс таблицы у `draw_tiles` — сами
+// флаги, поэтому площадка (`solid|oneway`) и стена (`solid`) это два разных класса, и заполнять
+// таблицу приходится обходом всех шести разрядов.
+//
+// Склон из набора ВЫЧЕРКНУТ (регион нулевой): целым квадом холм выглядел бы стеной, и персонаж —
+// идущим сквозь неё. Его рисует второй проход ступенькой подквадов.
+gx::TileSet stage_tiles() {
+    gx::TileSet set;
+    set.rgba = C_SOLID;
+    set.layer = L_TILES;
+    for (uint32_t k = 1; k < gx::TILE_KINDS; ++k) {
+        const tm::TileFlags fl = static_cast<tm::TileFlags>(k);
+        if ((fl & tm::TILE_SLOPE) != 0) continue;
+        set.region[k] = R_SOLID;
+        set.tint[k] = kind_tint(fl);
     }
-    // Центр тайла, потому что форма склона задана вокруг него (`tile_shape.hpp`), и перенос в мир —
-    // то же прибавление центра, которым её переносит запрос.
-    const fix32 cx = box.min.x + half(w);
-    const fix32 cy = box.min.y + half(h);
-    const fix32 step = w / fix32::from_int(SLOPE_STEPS);
-    for (int i = 0; i < SLOPE_STEPS; ++i) {
-        const fix32 x0 = step * fix32::from_int(i) - half(w);
-        fix32 lo, hi;
-        if (!span(shapes.of(fl), x0, x0 + step, lo, hi)) continue;
-        emit(out, cam, cx + x0, cy + lo, step, hi - lo, color);
-    }
+    return set;
+}
+
+// Отбрасывание ЦЕЛИКОМ, без подрезки размеров: подрезанный квад врал бы гейту про геометрию тайла,
+// а обрезать его по краю экрана и так умеет растеризатор. Сравнения строгие — коробка, касающаяся
+// края вида ровно нулевой площадью, невидима.
+bool visible(const ph::Aabb& view, Vec2 center, Vec2 half) {
+    return view.min.x.raw < (center.x + half.x).raw && (center.x - half.x).raw < view.max.x.raw &&
+           view.min.y.raw < (center.y + half.y).raw && (center.y - half.y).raw < view.max.y.raw;
+}
+
+void push_box(gx::SpriteList& list, const ph::Aabb& view, Vec2 center, Vec2 half, uint32_t color,
+              int16_t layer) {
+    if (!visible(view, center, half)) return;
+    gx::Sprite s;
+    s.center = center;
+    s.half = half;
+    s.rgba = color;
+    s.region = R_SOLID;
+    s.layer = layer;
+    list.push(s);
+}
+
+// Склоны окна — вторым проходом по тем же тайлам. Это ВТОРОЙ обход окна, и он осознан: сложить оба
+// в один значило бы просить `draw_tiles` знать про формы тайлов, то есть тащить в отрисовку
+// решатель физики. Окно здесь — 22×17 тайлов при любом размере карты, поэтому цена обхода не растёт
+// с уровнем; тем же числом её меряет гейт 7 спеки #17.
+void push_slopes(gx::SpriteList& list, const tm::TileGrid& g, const ph::Aabb& view) {
+    const tm::TileWindow win = g.window(view);
+    // Кеш форм живёт ровно один кадр — по тому же основанию, что и в запросе: форма зависит от
+    // размера тайла, то есть от сетки, и общий на все сетки кеш пришлось бы сторожить ключом.
+    tm::TileShapes shapes(half(g.tile_size()));
+    for (int32_t ty = win.y0; ty < win.y1; ++ty)
+        for (int32_t tx = win.x0; tx < win.x1; ++tx) {
+            const tm::TileFlags fl = g.at(tx, ty);
+            if ((fl & tm::TILE_SLOPE) == 0) continue;
+            const ph::Aabb box = g.tile_bounds(tx, ty);
+            const fix32 w = box.max.x - box.min.x;
+            // Центр тайла, потому что форма склона задана вокруг него (`tile_shape.hpp`), и перенос
+            // в мир — то же прибавление центра, которым её переносит запрос.
+            const Vec2 c{box.min.x + half(w), box.min.y + half(box.max.y - box.min.y)};
+            const fix32 step = w / fix32::from_int(SLOPE_STEPS);
+            for (int i = 0; i < SLOPE_STEPS; ++i) {
+                const fix32 x0 = step * fix32::from_int(i) - half(w);
+                fix32 lo, hi;
+                if (!span(shapes.of(fl), x0, x0 + step, lo, hi)) continue;
+                push_box(list, view, {c.x + x0 + half(step), c.y + lo + half(hi - lo)},
+                         {half(step), half(hi - lo)}, C_SLOPE, L_TILES);
+            }
+        }
 }
 
 } // namespace
 
+gx::Viewport stage_viewport() {
+    gx::Viewport v;
+    v.screen_half = {fix32::from_int(VIEW_W / 2), fix32::from_int(VIEW_H / 2)};
+    v.zoom = fix32::from_int(1);
+    v.pixels_per_unit = 1;
+    return v;
+}
+
+Vec2 view_origin(const Camera& cam) { return cam.center - gx::viewport_half_world(stage_viewport()); }
+
 Camera camera_at(const Stage& st) {
-    const fix32 want_x = st.hero.position.x - fix32::from_int(VIEW_W / 2);
-    const fix32 want_y = st.hero.position.y - fix32::from_int(VIEW_H / 2);
+    gx::CameraConfig cfg;
+    cfg.half_view = gx::viewport_half_world(stage_viewport());
     // Без сетки клампить не к чему: границ уровня не существует, и выдуманные здесь были бы
     // границами вида, а не карты. Живой путь сюда не доходит — `load_stage` без сетки не стартует.
-    if (!st.grid) return {want_x, want_y};
-    const Vec2 o = st.grid->origin();
-    const fix32 ts = st.grid->tile_size();
-    const fix32 right = o.x + ts * fix32::from_int(static_cast<int32_t>(st.grid->width()));
-    const fix32 bottom = o.y + ts * fix32::from_int(static_cast<int32_t>(st.grid->height()));
+    if (st.grid) {
+        const Vec2 o = st.grid->origin();
+        const fix32 ts = st.grid->tile_size();
+        cfg.policies = gx::CAMERA_BOUNDS;
+        cfg.bounds = {o.x, o.y,
+                      o.x + ts * fix32::from_int(static_cast<int32_t>(st.grid->width())),
+                      o.y + ts * fix32::from_int(static_cast<int32_t>(st.grid->height()))};
+    }
+    // Камера каждый кадр считается ЗАНОВО, поэтому следование берётся с нуля: ни скорости, ни
+    // мёртвой зоны у образца не было и раньше, а завести их здесь значило бы менять поведение под
+    // видом перевода на фреймворк.
     Camera c;
-    c.left = clamp_axis(want_x, o.x, right - fix32::from_int(VIEW_W));
-    c.top = clamp_axis(want_y, o.y, bottom - fix32::from_int(VIEW_H));
+    gx::camera_follow(c, cfg, st.hero.position, 0);
     return c;
 }
 
-void build_quads(const Stage& st, const Camera& cam, std::vector<Quad>& out) {
+// Верхняя граница кадра, а не догадка: окно вида это 22×17 тайлов при тайле в 16, и худший тайл —
+// склон, дающий `SLOPE_STEPS` подквадов. Плюс платформа и персонаж. Список, которому хватает по
+// построению, не может потерять квад молча — а потерянный выглядел бы ровно как «так и задумано».
+FrameSprites::FrameSprites()
+    : sprites_(static_cast<size_t>((VIEW_W / 16 + 2) * (VIEW_H / 16 + 2) * SLOPE_STEPS + 2)),
+      keys_(sprites_.size()) {}
+
+gx::SpriteList FrameSprites::list() {
+    return gx::SpriteList(sprites_.data(), keys_.data(), static_cast<uint32_t>(sprites_.size()));
+}
+
+void build_quads(const Stage& st, const Camera& cam, FrameSprites& buf, std::vector<Quad>& out) {
     out.clear();
+    const gx::Viewport view = stage_viewport();
+    const Vec2 origin = view_origin(cam);
+    // Дальний угол вида — ПОСЛЕДНЯЯ ВИДИМАЯ точка, а не первая невидимая. Окно тайлов включает
+    // правый край (`grid.cpp`), потому что зонд, поставленный впритык к стене, обязан стену найти;
+    // отрисовке же столбец, начинающийся ровно на краю экрана, не виден ни одним пикселем, и
+    // поданный он был бы занятым слотом батча под квадом за экраном.
+    const fix32 last = fix32::from_raw(1);
+    const Vec2 far = origin + gx::viewport_half_world(view) * fix32::from_int(2);
+    const ph::Aabb box{origin, {far.x - last, far.y - last}};
+
+    gx::SpriteList list = buf.list();
     if (st.grid) {
-        const tm::TileGrid& g = *st.grid;
-        const Vec2 corner{cam.left + fix32::from_int(VIEW_W), cam.top + fix32::from_int(VIEW_H)};
-        const tm::TileWindow win = g.window(ph::Aabb{{cam.left, cam.top}, corner});
-        // Кеш форм живёт ровно один кадр — по тому же основанию, что и в запросе: форма зависит от
-        // размера тайла, то есть от сетки, и общий на все сетки кеш пришлось бы сторожить ключом.
-        tm::TileShapes shapes(half(g.tile_size()));
-        for (int32_t ty = win.y0; ty < win.y1; ++ty)
-            for (int32_t tx = win.x0; tx < win.x1; ++tx) {
-                const tm::TileFlags fl = g.at(tx, ty);
-                if (fl == tm::TILE_EMPTY) continue;
-                push_tile(out, cam, g.tile_bounds(tx, ty), fl, shapes);
-            }
+        draw_tiles(list, *st.grid, box, stage_tiles());
+        push_slopes(list, *st.grid, box);
     }
-    // Платформа рисуется ДО персонажа, а персонаж последним: везомый стоит на её крыше, и обратный
-    // порядок прятал бы его подошвы под плитой ровно в тот момент, ради которого она в уровне есть.
     const ph::Body& lift = st.world.body(st.lift);
-    emit(out, cam, lift.position.x - LIFT_HALF_W, lift.position.y - LIFT_HALF_H,
-         LIFT_HALF_W + LIFT_HALF_W, LIFT_HALF_H + LIFT_HALF_H, C_LIFT);
-    emit(out, cam, st.hero.position.x - HULL_HALF_W, st.hero.position.y - HULL_HALF_H,
-         HULL_HALF_W + HULL_HALF_W, HULL_HALF_H + HULL_HALF_H, C_HERO);
+    push_box(list, box, lift.position, {LIFT_HALF_W, LIFT_HALF_H}, C_LIFT, L_LIFT);
+    push_box(list, box, st.hero.position, {HULL_HALF_W, HULL_HALF_H}, C_HERO, L_HERO);
+
+    // Батч здесь ровно один — материал у образца общий, — но `build` зовётся не ради их числа: он
+    // сортирует ключи, то есть задаёт порядок, в котором ниже читается `drawn`.
+    gx::Batch batches[4];
+    list.build(batches, 4);
+
+    const fix32 s = gx::viewport_scale(view);
+    for (uint32_t i = 0; i < list.count(); ++i) {
+        const gx::Sprite& sp = list.drawn(i);
+        const Vec2 p = gx::world_to_screen(view, cam.center, sp.center);
+        const fix32 w = sp.half.x * s;
+        const fix32 h = sp.half.y * s;
+        out.push_back({f(p.x - w), f(p.y - h), f(w + w), f(h + h), sp.rgba});
+    }
 }
 
 } // namespace platformer

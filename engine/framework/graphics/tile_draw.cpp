@@ -31,7 +31,7 @@ TileDrawStats draw_tiles(SpriteList& out, const tilemap::TileGrid& grid, const p
             Sprite s;
             s.center = (box.min + box.max) * HALF;
             s.half = (box.max - box.min) * HALF;
-            s.rgba = set.rgba;
+            s.rgba = set.tint[flags] != 0 ? set.tint[flags] : set.rgba;
             s.region = region;
             s.material = set.material;
             s.layer = set.layer;
