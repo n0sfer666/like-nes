@@ -50,7 +50,7 @@ bool preset_parse_pad(PresetBuild& b, const std::vector<std::string>& f, int lin
     if (!parse_labels(f[5], r.labels))
         return preset_fail(err, line, "the label set must be xbox, nintendo or playstation");
     fix32 dz, trig;
-    if (!preset_parse_fix(f[6], dz) || !preset_parse_fix(f[7], trig))
+    if (!core::parse_fix(f[6], dz) || !core::parse_fix(f[7], trig))
         return preset_fail(err, line, "the deadzone and the trigger threshold must be decimal numbers");
     r.deadzone_raw = dz.raw;
     r.outer_raw = fix32::ONE;

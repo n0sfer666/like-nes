@@ -3,8 +3,7 @@
 # регион атласа здесь — прямоугольник в пикселях, а не текстура. Тянуть сюда RHI «на будущее»
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_text.cpp
-  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
+add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
   particles.cpp viewport.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация

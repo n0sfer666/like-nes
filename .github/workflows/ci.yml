@@ -951,7 +951,8 @@ jobs:
           # причину.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
                    framework_preset_refusal_test framework_pad_test framework_rebind_test \
-                   framework_golden_test framework_trig_test framework_rt_test; do
+                   framework_golden_test framework_trig_test framework_text_test \
+                   framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "fw_$T.txt"
@@ -1380,7 +1381,7 @@ jobs:
           # Список единиц трансляции здесь свой, не CMake-овский, и однажды он уже отстал от
           # цели на один файл — линковка упала на раннере, когда всё локальное было зелёным.
           # ci-lint: mirrors-target engine/framework/physics/CMakeLists.txt framework_physics
-          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
+          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/core/text_fields.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
           PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
           ./phys_san | tee physsan.txt
@@ -1467,7 +1468,7 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_text.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
           # ci-lint: mirrors-group seam-fs
@@ -1537,7 +1538,7 @@ jobs:
           # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
           # красной сборки на единственном раннере, где шаг вообще запускается.
           # ci-lint: mirrors-target engine/framework/character/CMakeLists.txt framework_character
-          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/ladder.cpp engine/framework/character/trajectory.cpp engine/framework/character/profile_text.cpp engine/framework/character/profile_parse.cpp engine/framework/character/profile_bake.cpp engine/framework/character/profile_read.cpp"
+          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/ladder.cpp engine/framework/character/trajectory.cpp engine/framework/character/profile_parse.cpp engine/framework/character/profile_bake.cpp engine/framework/character/profile_read.cpp"
           c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
             engine/framework/character/framework_character_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt

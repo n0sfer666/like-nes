@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "fixed.hpp"
+#include "text_fields.hpp"
 #include "preset_bake.hpp"
 #include "preset_format.hpp"
 
@@ -16,7 +17,9 @@
 //   `preset_parse.cpp`    — грамматика строки: сколько полей, что в них лежит, куда это класть;
 //   `preset_validate.cpp` — проверки, которым мало одной строки: ёмкость движка, противоречия
 //                           между строками пресета, привязка форм в `preset_close`;
-//   `preset_text.cpp`     — текстовый слой: trim/split, число из текста, блоб имён.
+//   `preset_strings.cpp`  — блоб имён: одинаковые строки манифеста делят одно смещение.
+// Текстовый слой (trim/split, число из текста) сюда больше не входит: он общий для пекарей слоя и
+// живёт в `framework/core/text_fields.hpp`.
 namespace framework::input {
 
 // Форма отклика объявляется отдельной строкой и применяется к оси в конце пресета: иначе порядок
@@ -47,8 +50,6 @@ struct PresetBuild {
     PresetStrings blob;
 };
 
-std::string preset_trim(const std::string& s);
-std::vector<std::string> preset_split(const std::string& line);
 bool preset_parse_line(PresetBuild& b, const std::vector<std::string>& fields, int line,
                        PresetBakeError& err);
 bool preset_close(PresetBuild& b, PresetBakeError& err, int line);
@@ -59,7 +60,12 @@ bool preset_check_axis_row(const PresetBuild& b, const std::string& name, int li
                            PresetBakeError& err);
 bool preset_parse_pad(PresetBuild& b, const std::vector<std::string>& fields, int line,
                       PresetBakeError& err);
-bool preset_fail(PresetBakeError& err, int line, const std::string& message);
-bool preset_parse_fix(const std::string& s, fix32& out);
+// Отказ бейка — установка полей, а не логика, поэтому inline здесь, а не отдельным TU: файла с
+// одной этой функцией не осталось, когда текстовый слой уехал в `framework/core`.
+inline bool preset_fail(PresetBakeError& err, int line, const std::string& message) {
+    err.line = line;
+    err.message = message;
+    return false;
+}
 
 } // namespace framework::input
