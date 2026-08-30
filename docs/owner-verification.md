@@ -869,16 +869,23 @@ counts exactly that case and nothing prints it yet, so a "no" here is also a req
 Expected, three lines in this order:
 
 ```
-[game] golden control: PASS (blot and drift refused)
-[game] golden repeat: mean 0.00000 max 0.00000 over-eps 0.0000% (eps 0.000, frac 0.00%, cap 0.00)
+[game] golden control: PASS (blot, scatter and one-pixel shift refused)
+[game] golden repeat: mean 0.00000 max 0.00000 over-eps 0.0000% blob 0 (eps 0.000, frac 0.000%, blob 0)
 [game] golden repeat: PASS
-[game] golden frame: mean <small> max <small> over-eps <small>% (eps 0.020, frac 2.00%, cap 0.35)
+[game] golden frame: mean <small> max <small> over-eps <small>% blob <n> (eps 0.020, frac 0.100%, blob 12)
 [game] golden frame: PASS
 ```
 
 `repeat` is the strict one and it has no tolerance at all: two runs on the same adapter must agree
 exactly. If *it* fails, the finding is about this engine, not about your driver — send the numbers
 before looking at anything else.
+
+What `frame` judges is `blob` — the largest CONNECTED patch of differing pixels — and not the peak
+error, because on lavapipe the peak is already 0.73: an edge pixel a rasteriser rounds to the other
+side of a sprite outline differs by the CONTRAST of that outline, not by a small amount. A real
+defect moves an area instead, so the patch is what separates the two. The cost of that is worth
+knowing before you read a green line: a bright artifact SMALLER than 12 connected pixels is
+something this gate cannot tell from rasteriser noise.
 
 A red `frame` is not automatically a bug. Send the numbers line and the `golden_actual.png` the run
 drops next to it: that file is the only evidence by which the tolerance either gets widened with a

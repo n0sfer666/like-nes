@@ -237,9 +237,14 @@ Windows: не открывать проект как папку в самой Vi
       --golden example_ugly_game/golden/scene_960x540.png --golden-selftest
 
   Должен напечатать три строки подряд:
-    [game] golden control: PASS (blot and drift refused)
+    [game] golden control: PASS (blot, scatter and one-pixel shift refused)
     [game] golden repeat: ... PASS
     [game] golden frame: ... PASS
+
+  Строка "frame" судит по "blob" — крупнейшему СВЯЗНОМУ пятну разошедшихся
+  пикселей, а не по пику: на кромке спрайта растеризатор округляет пиксель
+  на другую сторону контура, и канал там расходится на КОНТРАСТ кромки, а
+  не на «немножко». Дефект двигает область, поэтому ловится пятном.
 
   Эталон испечён на Metal (M3 Pro), а у тебя настоящие драйверы AMD/NVIDIA/
   Intel — раннеры их не видят: там lavapipe (Linux) и DX12-WARP (Windows),

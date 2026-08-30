@@ -138,9 +138,10 @@ int render_run(const DemoOptions& opt, std::vector<uint8_t>& last) {
 }
 
 int report(const char* what, const FrameDiff& d, FrameTolerance tol) {
-    std::printf("[game] golden %s: mean %.5f max %.5f over-eps %.4f%% (eps %.3f, frac %.2f%%, cap %.2f)\n",
-                what, d.mean_abs, d.max_abs, d.frac_over * 100.0, tol.pixel_eps,
-                tol.frac_tol * 100.0, tol.max_cap);
+    std::printf("[game] golden %s: mean %.5f max %.5f over-eps %.4f%% blob %u "
+                "(eps %.3f, frac %.3f%%, blob %u)\n",
+                what, d.mean_abs, d.max_abs, d.frac_over * 100.0, d.max_cluster, tol.pixel_eps,
+                tol.frac_tol * 100.0, tol.max_cluster);
     std::printf("[game] golden %s: %s\n", what, d.pass ? "PASS" : "FAIL");
     return d.pass ? 0 : 1;
 }
@@ -157,14 +158,14 @@ int run_demo(const DemoOptions& opt) {
     // «узнаваем ли кадр», повторяемость — на «повторяем ли мы сами себя», и первая без второй
     // молчит про собственный дрейф, попавший в допуск чужого.
     if (opt.selftest) {
-        if (!comparator_refuses_spoiled(px)) {
+        if (!comparator_refuses_spoiled(px, VIEW_W, VIEW_H)) {
             std::printf("[game] golden control: FAIL (spoiled frame passed the comparison)\n");
             return 1;
         }
-        std::printf("[game] golden control: PASS (blot and drift refused)\n");
+        std::printf("[game] golden control: PASS (blot, scatter and one-pixel shift refused)\n");
         std::vector<uint8_t> again;
         if (render_run(opt, again) != 0) return 1;
-        rc |= report("repeat", compare_frames(px, again, TOL_SAME_BACKEND), TOL_SAME_BACKEND);
+        rc |= report("repeat", compare_frames(px, again, VIEW_W, VIEW_H, TOL_SAME_BACKEND), TOL_SAME_BACKEND);
     }
     if (!opt.golden) return rc;
     if (opt.update) {
@@ -183,7 +184,7 @@ int run_demo(const DemoOptions& opt) {
                      VIEW_W, VIEW_H);
         return 1;
     }
-    rc |= report("frame", compare_frames(px, ref, TOL_CROSS_BACKEND), TOL_CROSS_BACKEND);
+    rc |= report("frame", compare_frames(px, ref, VIEW_W, VIEW_H, TOL_CROSS_BACKEND), TOL_CROSS_BACKEND);
     if (rc != 0) {
         write_png("golden_actual.png", px, VIEW_W, VIEW_H);
         std::printf("[game] golden: rendered frame saved as golden_actual.png\n");
