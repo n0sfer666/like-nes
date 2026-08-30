@@ -183,9 +183,9 @@ LOOP_BIN="$BUILD_DIR/build_loop_test"
 [ -x "$LOOP_BIN" ] || LOOP_BIN="$BUILD_DIR/build_loop_test.exe"
 if [ -x "$LOOP_BIN" ] && [ -n "$PY" ]; then
     "$PY" - "$LOOP_BIN" <<'PY' | tee -a "$REPORT"
-import subprocess, sys, time
-binary = sys.argv[1]
-times = []
+import os, subprocess, sys, time
+binary = os.path.abspath(sys.argv[1])
+times, bad = [], 0
 for i in range(3):
     t0 = time.perf_counter()
     r = subprocess.run([binary], capture_output=True, text=True)
@@ -193,9 +193,12 @@ for i in range(3):
     times.append(dt)
     print("  run %d: %.2f s (%s)" % (i + 1, dt, "PASS" if r.returncode == 0 else "FAIL"))
     if r.returncode != 0:
+        bad += 1
         print(r.stdout[-800:])
 print("  best: %.2f s, median: %.2f s" % (min(times), sorted(times)[1]))
+sys.exit(1 if bad else 0)
 PY
+    [ "${PIPESTATUS[0]}" -eq 0 ] || STAGES_FAILED+=("Цикл правка→сборка→hot-reload")
 elif [ -z "$PY" ]; then
     say "  замер пропущен: питона нет — число для гейта 8 спеки #13 не снято"
 else
