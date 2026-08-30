@@ -34,11 +34,12 @@ target_link_libraries(game_platformer_view_test PRIVATE framework_character
 
 # Шов ввода образца — раскладка в намерение персонажа. Тоже headless: манифест печётся `preset_bake`
 # из движка, а кадр ввода собирается руками, поэтому ни окна, ни ОС цели не нужно.
-# Анти-дрейф нарезки (спека #17, шаг D): у игры-образца ДВА источника регионов — `assets/atlas.txt`
-# в бандле и `game::set_regions()` в коде, — и живут они оба, пока рендер не переехал на слой
-# (вертикаль 3). Гейт сверяет их числами, снимая полтексела `game::rgn`. Цель headless: `art.cpp` —
-# чистый CPU, ни окна, ни RHI ему не нужно.
-add_executable(game_atlas_regions_test game_atlas_regions_test.cpp art.cpp)
+# Анти-дрейф нарезки (спека #17, шаги D и B вертикали 3): у игры-образца ДВА источника регионов —
+# секция `atlas_regions` бандла (бейкнутый путь) и `game::set_regions()` (процедурный fallback,
+# рисующий пиксели сам). Гейт сверяет их числами, снимая полтексела `game::rgn`, и отдельно
+# утверждает, что бейкнутый путь читает ТАБЛИЦУ. Цель headless: `art.cpp` и `atlas_regions.cpp` —
+# чистый CPU, ни окна, ни RHI им не нужно (`bundle_atlas.cpp` сюда не входит: он тянет транскод).
+add_executable(game_atlas_regions_test game_atlas_regions_test.cpp art.cpp atlas_regions.cpp)
 target_include_directories(game_atlas_regions_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_atlas_regions_test PRIVATE framework_graphics asset_core platform_core)
 
@@ -75,14 +76,15 @@ set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
-  batch.cpp art.cpp sim.cpp combat.cpp boss.cpp fx.cpp bloom.cpp audio.cpp input_setup.cpp capture.cpp
+  batch.cpp art.cpp atlas_regions.cpp sim.cpp combat.cpp boss.cpp fx.cpp bloom.cpp audio.cpp
+  input_setup.cpp capture.cpp
   gpu_env.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
 target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(game_sidescroller PRIVATE
-  engine_core framework_input flecs_static webgpu glfw3webgpu glfw ach_plugin
+  engine_core framework_input framework_graphics flecs_static webgpu glfw3webgpu glfw ach_plugin
   Threads::Threads)
 # asset_core (и через него platform_core) приходит транзитивно из ach_bundle. Явным его тут не
 # держим: CMake дедуплицирует ПРЯМОЙ список, но транзитивное замыкание дописывает ПОСЛЕ него, и
