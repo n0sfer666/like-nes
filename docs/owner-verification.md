@@ -222,6 +222,24 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 > lx=-0.01`, which an exact compare against zero read as "the preset ate the stick". The mouse is
 > live as a *button* only — the sample layout binds `mouse:left → fire` and no `mouseaxis:` row,
 > so a trackpad moves nothing there by composition of the manifest, not by a defect.
+>
+> **Re-run 2026-08-29** on `8f822eb`, Windows only (MSVC 14.44, NVIDIA MX150 / Vulkan), all six
+> steps, PASS. Same pad and the same answer as the closing run — `vid=045e pid=02ff -> profile
+> 'Microsoft Xbox' (deadzone 0.18, trigger 0.12)`. The rebind conflict was refused by name and taken
+> by `F`, the overlay survived the restart (`overlay loaded ... 2 edit(s)`) and was cleaned back down
+> to `bye - overlay empty`, hotplug fell back to `generic` and came back, and the sample game flew on
+> the stick under `gamepad: XInput (Windows)` with a clean exit. Both branches of `cold-start scan`
+> fell out of this one sitting: `NO pad on any of 8 slots` when the pad was plugged in mid-run, and
+> `1 pad(s) already connected` on the next start.
+>
+> Two things this run does *not* assert. The four directions came from two probe sessions rather than
+> one `axis report` — `up ly=-0.68 -> (+0.00,+0.61)` and `left lx=-0.61 -> (-0.52,+0.00)` in the
+> first, `right lx=+0.59 -> (+0.51,+0.00)` and `down ly=+0.50 -> (+0.00,-0.39)` in the second — so
+> each sign is verified against the expectation printed beside it, but not the four of them agreeing
+> at once. And step 3's refusal was reachable only because the run started from a clean overlay: the
+> first attempt did not. The file the 2026-08-07 closure left behind was still on disk three weeks
+> later, holding `fire -> key:j` with `jump` slot 0 stripped, and it is why the fourth trap below is
+> written down at all.
 
 ```sh
 cmake --build build --target framework_input_probe
@@ -259,6 +277,30 @@ event" stop looking alike.
   a lost connect event would heal by itself on the next one; XInput simply reported no device.
   Settings → Gaming → Xbox Game Bar → Off (and quit Steam), or re-plug the pad after the probe
   starts.
+
+A fourth trap belongs to the *procedure* rather than the backend, and it is worse than the three
+above because it makes steps 3 and 4 look **passed** instead of broken. **The run starts from a
+clean overlay.** The rebind overlay outlives the run that wrote it, and the cleanup that removes it
+is the last sentence of step 4 — the easiest line in this section to skip once the pad already
+works. It was skipped: on 2026-08-29 the file left by the 2026-08-07 closure was still sitting in
+`%APPDATA%\like-nes\controls_probe.txt`, three weeks old, holding `fire → key:j` with `jump` slot 0
+stripped. Started on top of that file, this gate proves nothing twice over — step 3 asks for a
+conflict on a source that **nobody owns any more**, so the probe accepts `J` without a word and the
+refusal the step exists to see never appears; step 4 finds `overlay loaded … N edit(s)` printed on
+the *first* start, before anything was saved, so its restart half is carried by a file older than
+the binary. Both look exactly like a pass.
+
+The probe already prints the answer — second line of the run, right after the resolved move axes.
+Read it before step 1, and it must say
+
+```
+[probe] no overlay for preset 'probe' at <path> - clean preset
+```
+
+`overlay loaded` there instead means the previous run was never cleaned up: quit, delete the file
+the line names (the path is *in* the line, so there is nothing to look up per OS), start again. The
+`X` then `S` cleanup at the end of step 4 stays where it is — this is the check for the run where
+it was forgotten, and a gate whose precondition is only a habit is not a gate.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
