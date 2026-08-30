@@ -124,6 +124,23 @@ void test_tileset_of_zeros() {
     check(list.dropped() == 0, "a tile nobody asked to draw is not a loss");
 }
 
+// Ноль в таблице тонов значит «взять общий тон», а не «нарисовать прозрачным»: класс, которому тона
+// не выписали, обязан выглядеть как все, а не исчезнуть. Оба исхода стоят в одном наборе — без
+// второй половины таблица, которую никто не читает, прошла бы гейт целиком.
+void test_tint_zero_means_the_common_tone() {
+    TileSet set = full_set();
+    set.rgba = 0x102030ffu;
+    set.tint[tm::TILE_SOLID] = 0x40a0ffffu;
+    SpriteList list(storage, keys, CAP);
+    tm::TileGrid g({fix32{}, fix32{}}, fix32::from_int(16), 10, 10);
+    g.set(1, 1, tm::TILE_SOLID);
+    g.set(2, 1, tm::TILE_LADDER);
+    draw_tiles(list, g, box(0, 0, 160, 160), set);
+    check(list.count() == 2, "control: both kinds really were drawn");
+    check(list.data()[0].rgba == 0x40a0ffffu, "a kind with its own tone is drawn with it");
+    check(list.data()[1].rgba == 0x102030ffu, "a kind without one falls back to the common tone");
+}
+
 void test_empty_tile_draws_nothing() {
     const TileSet set = full_set();
     SpriteList list(storage, keys, CAP);
@@ -176,6 +193,7 @@ int main(int argc, char** argv) {
     test_degenerate_view();
     test_overflow_is_counted();
     test_tileset_of_zeros();
+    test_tint_zero_means_the_common_tone();
     test_empty_tile_draws_nothing();
     test_flags_outside_the_table();
     test_no_storage();
