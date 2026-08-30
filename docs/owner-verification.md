@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Four of the six gates below are **closed** — each of those carries the run that closed it, with
-the evidence; two are **open**. They stay here as the procedure, because each one needs a
+Five of the six gates below are **closed** — each of those carries the run that closed it, with
+the evidence; one is **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -12,12 +12,13 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** | `engine/framework/character`, `engine/framework/tilemap`, query window |
-| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | **open** | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
+| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 
-The two open gates are the character tick cost and the platformer itself. They and the physics gate
-are the three here whose answer a runner could *print* but not *judge* — two ask whether a number
-fits a real frame budget, the third whether a character feels responsive under a hand. That column is the whole point of keeping the procedure: a
-closed gate protects nothing if the code under it moves and nobody re-runs it.
+The open gate is the character tick cost. It and the physics gate are the two here whose answer a
+runner could *print* but not *judge*: both ask whether a number fits a real frame budget on the
+slowest machine you own. The right-hand column is the whole point of keeping the procedure: a closed
+gate protects nothing if the code under it moves and nobody re-runs it — and the platformer gate,
+closed 2026-08-30, sits directly under the module this round keeps changing.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
@@ -660,10 +661,17 @@ shape of a gate that has quietly stopped gating.
 
 ## 6. Gate 8 of #16 — the platformer sample plays (all three OSes)
 
-> **Open.** Spec [#16](../.context/specs/2026-07-26-character-tilemap.md) gate 8 is the one gate of
-> that spec no runner can close, and it says so in its own text: *"subjective check that the control
-> feels responsive"*. Everything mechanical about this sample is already pinned elsewhere and does
-> not need your machine — the route hash `0xfead7a87477a9258` on three OSes
+> **Closed 2026-08-30** by the owner, who ran the sample and reported the control responsive.
+> **The banner names a confirmation, not artefacts:** the screen recording, the startup line and the
+> six answers below were not handed over, so unlike the four gates above this one carries no
+> evidence anyone else can re-read. That is a weaker close, and it is written down as one — send the
+> recording and the `gamepad:` line whenever convenient and this banner gets the same footing as the
+> others.
+>
+> The procedure stays, because gate 8 is the one gate of that spec no runner can close, and it says
+> so in its own text: *"subjective check that the control feels responsive"*. Re-run it when the
+> module underneath moves — this round alone added the ladder mode and moved `MoveState`. Everything
+> mechanical about this sample is already pinned elsewhere and does not need your machine — the route hash `0xfead7a87477a9258` on three OSes
 > (`game_platformer_sim_test`), the camera and the drawn geometry (`game_platformer_view_test`), the
 > layout-to-intent mapping (`game_platformer_input_test`). What is left is a hand on a key and an
 > eye on a screen.
