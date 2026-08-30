@@ -5,7 +5,7 @@
 # запрещает в обратную сторону.
 add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_text.cpp
   atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
-  particles.cpp)
+  particles.cpp viewport.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
@@ -145,4 +145,24 @@ target_link_libraries(framework_graphics_particle_split_test PRIVATE framework_g
 
 add_executable(framework_graphics_particle_refusal_test framework_graphics_particle_refusal_test.cpp)
 target_link_libraries(framework_graphics_particle_refusal_test PRIVATE framework_graphics
+  platform_core)
+
+# Зум (вертикаль 2, шаг D) — ТРИ цели, граница та же, что у частиц: класс поломки.
+#   * ..._viewport_test         — ПЕРЕВОД координат и пиксельная сетка, плюс голден развёртки;
+#   * ..._zoom_reach_test       — до кого зум ДОЕХАЛ: окно culling'а и границы уровня;
+#   * ..._viewport_refusal_test — ОТКАЗЫ: нулевой и отрицательный зум, ppu, свёрнутое окно.
+# Второй линкует `framework_graphics_tiles`, а первый — нет, и это не мелочь: голден перевода
+# координат не имеет права падать оттого, что разъехалась сетка.
+add_executable(framework_graphics_viewport_test framework_graphics_viewport_test.cpp)
+target_link_libraries(framework_graphics_viewport_test PRIVATE framework_graphics framework_physics
+  platform_core)
+
+add_executable(framework_graphics_zoom_reach_test framework_graphics_zoom_reach_test.cpp)
+target_link_libraries(framework_graphics_zoom_reach_test PRIVATE framework_graphics_tiles)
+target_include_directories(framework_graphics_zoom_reach_test PRIVATE
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(framework_graphics_viewport_refusal_test
+  framework_graphics_viewport_refusal_test.cpp)
+target_link_libraries(framework_graphics_viewport_refusal_test PRIVATE framework_graphics
   platform_core)
