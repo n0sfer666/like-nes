@@ -851,6 +851,43 @@ jobs:
             && { echo "frames identical — game not animating"; exit 1; }
           echo "game demo: PASS ($N frames, last $SZ bytes, picture changes)"
 
+      # Гейт 2 спеки #17 — эталонный кадр. Шаг выше доказывает, что игра АНИМИРУЕТСЯ, и молчит про
+      # то, ЧТО нарисовано: сцена, съехавшая на полтексела или потерявшая слой, меняется во времени
+      # ровно так же. Поэтому кадр 239 того же скриптованного прогона сверяется с пиннутым эталоном
+      # (испечён на Metal, `--update-golden`), а допуск — в `frame_golden.hpp`: побайтового равенства
+      # между Metal, lavapipe и DX12-WARP не бывает.
+      #
+      # Три утверждения одним прогоном, и каждое закрывает дыру соседнего:
+      #   control — испорченный кадр ОБЯЗАН быть отбит (иначе сравнение зелено вакуумно);
+      #   repeat  — два прогона на ОДНОМ бэкенде совпадают ТОЧНО (собственный дрейф не спрячется
+      #             в допуске, выданном чужому бэкенду);
+      #   frame   — кадр сошёлся с эталоном.
+      - name: Game — golden frame (gate #2 of spec #17)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'game_sidescroller' -o -name 'game_sidescroller.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "game_sidescroller not built"; exit 1; }
+          RUN=""
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            RUN="xvfb-run -a"
+          fi
+          $RUN "$BIN" --frames 240 --golden example_ugly_game/golden/scene_960x540.png \
+            --golden-selftest | tee golden.txt
+          grep -q "golden control: PASS" golden.txt || { echo "comparator control did not run"; exit 1; }
+          grep -q "golden repeat: PASS" golden.txt || { echo "same-backend repeat FAILED"; exit 1; }
+          grep -q "golden frame: PASS" golden.txt || { echo "GOLDEN FRAME MISMATCH on ${{ matrix.os }}"; exit 1; }
+
+      # Кадр, не сошедшийся с эталоном, — единственная улика, по которой решается, чинить рендер
+      # или расширять допуск; в логе его нет, поэтому он уезжает артефактом. `failure()` — про
+      # упавший ЛЮБОЙ шаг выше, отсюда ignore: файла может не быть вовсе.
+      - name: Upload the mismatching frame
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: golden-actual-${{ matrix.os }}
+          path: golden_actual.png
+          if-no-files-found: ignore
+
       # --- Достижения (спека #10): ядро — чистый наблюдатель sim. Гейты 1/2 (golden+идемпотентность)
       # и 4-манифест, и бандл/плагин/Steam/крэш гоняются на всех 3 ОС: mmap, загрузка модуля и
       # «породить ребёнка и убить его» ушли за швы platform_io/platform_module/platform_process.

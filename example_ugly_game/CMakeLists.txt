@@ -79,7 +79,7 @@ add_executable(game_sidescroller
   batch.cpp instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
   boss.cpp fx.cpp
   bloom.cpp audio.cpp
-  input_setup.cpp capture.cpp
+  input_setup.cpp capture.cpp frame_golden.cpp
   gpu_env.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
@@ -95,13 +95,16 @@ target_link_libraries(game_sidescroller PRIVATE
 # `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
 # начале строки, и в хвосте замыкания.
 target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
+# Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
+# что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
+# предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
+# давал MSVC `D8021`/`D9025` мимо -Werror, но прямо в лог гейта (cmake/warnings.cmake).
+target_link_libraries(game_sidescroller PRIVATE stb_impl_vendored)
 # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
 # (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
 if(AUDIO_MINIAUDIO)
   target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
 endif()
-set_source_files_properties(capture.cpp PROPERTIES   # stb_image_write sprintf (не MSVC:
-  COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-deprecated-declarations>")  # D8021)
 if(APPLE)
   set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_macos.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
