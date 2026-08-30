@@ -31,6 +31,9 @@ const FlagWord FLAG_WORDS[] = {
     // (`solid oneway`): бит живёт рядом с `TILE_SOLID`, а не вместо него, чтобы запрос, спросивший
     // `solid`, платформу видел, а держать её решал по грани хита.
     {"oneway", TILE_ONEWAY},
+    // Лестница — метка РЕЖИМА движения, а не тела (`grid.hpp`): пишется одна (`ladder`) там, где
+    // сквозь неё ходят, и с односторонней площадкой (`solid oneway ladder`) там, где на неё встают.
+    {"ladder", TILE_LADDER},
 };
 
 constexpr uint32_t SEEN_TILE_SIZE = 1u << 0;
@@ -89,6 +92,15 @@ bool parse_flag_words(const std::vector<std::string>& f, TileFlags& out, int lin
     // в половине клетки молча не держит, хуже отказа на разборе.
     if ((out & TILE_SLOPE) != 0 && (out & TILE_ONEWAY) != 0)
         return fail(err, line, "a slope cannot be one-way: its holding face is the hypotenuse");
+    // Лестница на склоне невыразима: лазание мерится ВЕРТИКАЛЬЮ тайла, а у гипотенузы её нет, и
+    // «влез до верха» на клине пришлось бы мерить чем-то третьим.
+    if ((out & TILE_LADDER) != 0 && (out & TILE_SLOPE) != 0)
+        return fail(err, line, "a slope cannot be a ladder: climbing is measured up a tile");
+    // Сплошная лестница — бит без потребителя: внутрь сплошного тайла залезть нечем. Законна она
+    // ровно в паре с односторонностью — верхняя площадка, что держит сверху и пускает снизу.
+    // Молча такой тайл читался бы как лестница, а работал бы как стена.
+    if ((out & TILE_LADDER) != 0 && (out & TILE_SOLID) != 0 && (out & TILE_ONEWAY) == 0)
+        return fail(err, line, "a solid ladder must be one-way: nothing climbs inside a full tile");
     // «Пусто вместе с чем-то» — противоречие, а не экзотическая запись: `empty` это отсутствие
     // флагов, и молчаливая победа второго слова означала бы, что смысл строки решает её порядок.
     if (empty_word && f.size() != 3)

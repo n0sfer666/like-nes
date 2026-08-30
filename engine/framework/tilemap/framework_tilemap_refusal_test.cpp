@@ -78,13 +78,25 @@ const Case CASES[] = {
     {"a one-way slope",
      "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
      "legend | X | solid | slope_br | oneway\nrow | .X\n", 5, "cannot be one-way"},
+    // Лестница — снова две, и обе про то, что бит остался бы без потребителя. Со склоном лазание
+    // нечем мерить: вертикали у гипотенузы нет. Со сплошным телом без односторонности внутрь тайла
+    // нечем влезть, и карта читалась бы как лестница, работая стеной.
+    {"a ladder slope",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
+     "legend | X | solid | slope_br | ladder\nrow | .X\n", 5, "cannot be a ladder"},
+    {"a solid ladder that is not one-way",
+     "map | a\ntile_size | 16\norigin | 0 | 0\nlegend | . | empty\n"
+     "legend | X | solid | ladder\nrow | .X\n", 5, "must be one-way"},
 };
 
 // Исходник, который ОБЯЗАН испечься: без него набор отказов зелен вакуумно — пекарь, отвергающий
 // всё подряд, прошёл бы каждый случай выше.
+// Обе законные записи лестницы стоят ЗДЕСЬ, а не отдельным случаем: отказы выше утверждают, чего
+// пекарь не принимает, и сами по себе сбылись бы и у пекаря, не знающего слова `ladder` вовсе.
 const char* VALID =
     "map | field\ntile_size | 16\norigin | 0 | -32\nlegend | . | empty\nlegend | X | solid\n"
-    "row | .X.\nrow | XXX\n";
+    "legend | H | ladder\nlegend | T | solid | oneway | ladder\n"
+    "row | .T.\nrow | .H.\nrow | XXX\n";
 
 void check(bool ok, const char* what) {
     if (!ok) {

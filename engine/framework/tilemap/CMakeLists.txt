@@ -30,6 +30,11 @@ target_link_libraries(framework_tilemap_slope_test PRIVATE framework_tilemap pla
 add_executable(framework_tilemap_oneway_test framework_tilemap_oneway_test.cpp)
 target_link_libraries(framework_tilemap_oneway_test PRIVATE framework_tilemap platform_core)
 
+# Лестница (вертикаль 3, шаг D) — своей целью: предмет здесь бит, который НЕ геометрия, и половина
+# утверждений о нём — про ОТСУТСТВИЕ ответа у запроса, спросившего тело.
+add_executable(framework_tilemap_ladder_test framework_tilemap_ladder_test.cpp)
+target_link_libraries(framework_tilemap_ladder_test PRIVATE framework_tilemap platform_core)
+
 # Карта как испечённые ДАННЫЕ (вертикаль 2, шаг B) — ТРИ цели, и граница между ними та же, что у
 # профиля #16: имя упавшей цели в логе CI обязано называть класс поломки.
 #   * ..._bake_test — round-trip и голден байтов (согласованы ли пекарь с читателем и не поехала ли
