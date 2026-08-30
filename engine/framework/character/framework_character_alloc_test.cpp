@@ -3,6 +3,7 @@
 #include "controller.hpp"
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
+#include "framework_character_ladder_scene.hpp"
 #include "framework_character_scene.hpp"
 #include "platform_args.hpp"
 
@@ -67,6 +68,39 @@ void test_step_allocates_nothing() {
     check(c.position.x != fix32::from_int(-100), "control: the run really did move the character");
 }
 
+// Лестница — АЛЬТЕРНАТИВНЫЙ тик (вертикаль 3, шаг D), и общей сценой он не проверяется вовсе: в ней
+// нет ни одного тайла лестницы, поэтому `ladder_step` там возвращает `false` первой же строкой. А
+// ходит он в сетку СВОИМИ запросами — окном по вырожденному AABB и пробой опоры по сцене с
+// дописанным исключением, — и одна проверка не тем запросом (`overlap_shape` держит `std::vector`)
+// уронила бы инвариант 5 в режиме, которого счётчик не видит.
+void test_ladder_step_allocates_nothing() {
+    Sim sim(LADDER, 8, fix32::from_int(40));
+    settle(sim);
+    // Тот же порядок, что выше: первый тик режима — до счётчика.
+    sim.run(held(true, false, false), 1);
+    check(sim.c.state == MoveState::Ladder, "control: the ladder run really is on the ladder");
+
+    framework::probe::in_hot = true;
+    framework::probe::allocs = 0;
+    // Ввод обязан пройти ВСЕ пути режима: лазание вверх, лазание вниз, висение без ввода, прыжок с
+    // лестницы и перехват её обратно по истечении окна.
+    uint32_t on_ladder = 0;
+    for (uint32_t t = 0; t < 240; ++t) {
+        const uint32_t phase = t % 60;
+        sim.run(held(phase < 10, phase >= 10 && phase < 40, phase >= 50), 1);
+        if (sim.c.state == MoveState::Ladder) ++on_ladder;
+    }
+    const long during = framework::probe::allocs;
+    framework::probe::in_hot = false;
+
+    std::printf("  allocs: 240 ladder ticks = %ld, on the ladder %u, ended at (%.2f, %.2f)\n",
+                during, on_ladder, sim.c.position.x.to_double(), sim.c.position.y.to_double());
+    check(during == 0, "the ladder tick allocates nothing");
+    // Порогом, а не нулём: прогон, съехавший в обычный тик после первого же прыжка, отвечал бы про
+    // контроллер под именем лестницы — и был бы зелёным, потому что про контроллер это уже правда.
+    check(on_ladder > 120, "control: most of the counted ticks really were ladder ticks");
+}
+
 void test_counter_sees_a_real_allocation() {
     // Выделение зовётся через НЕПРОЗРАЧНУЮ ГРАНИЦУ (`framework_alloc_probe_control.hpp`): в своём
     // TU компилятор выбрасывает пару new/delete целиком, и контроль краснел бы при живом счётчике.
@@ -91,6 +125,7 @@ int main(int argc, char** argv) {
     platform::Args args(argc, argv);
     std::printf("framework character alloc gate\n");
     test_step_allocates_nothing();
+    test_ladder_step_allocates_nothing();
     test_counter_sees_a_real_allocation();
     std::printf("framework-character-alloc: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

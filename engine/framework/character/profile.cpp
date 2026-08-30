@@ -52,8 +52,11 @@ MoveProfile sanitize(const MoveProfile& p) {
     o.corner_correction = clamp_fix(p.corner_correction, fix32{}, MAX_CORNER_CORRECTION);
     o.ground_snap = clamp_fix(p.ground_snap, fix32{}, MAX_GROUND_SNAP);
     o.max_slope = clamp_fix(p.max_slope, fix32{}, MAX_SLOPE);
+    o.climb_speed = clamp_fix(p.climb_speed, fix32{}, MAX_MOVE_SPEED);
     o.coyote_ticks = p.coyote_ticks < MAX_WINDOW_TICKS ? p.coyote_ticks : MAX_WINDOW_TICKS;
     o.buffer_ticks = p.buffer_ticks < MAX_WINDOW_TICKS ? p.buffer_ticks : MAX_WINDOW_TICKS;
+    o.ladder_regrab_ticks =
+        p.ladder_regrab_ticks < MAX_WINDOW_TICKS ? p.ladder_regrab_ticks : MAX_WINDOW_TICKS;
     return o;
 }
 
@@ -95,6 +98,12 @@ MoveProfile default_profile() {
     // карта, и профиль по умолчанию обязан пускать персонажа по ней ходить. Проверяется РАВЕНСТВОМ
     // (`slide.hpp`), поэтому запаса «чуть больше единицы» тут не нужно.
     p.max_slope = fix32::from_int(1);
+    // Лазание втрое медленнее бега: по лестнице поднимаются, а не взбегают, и 120 юнит/с это семь с
+    // половиной тайлов в секунду. Окно перехвата — восемь тиков, чуть больше окна прощения: за
+    // шесть тиков прыжок с лестницы не успевает вынести ноги за её пределы, и персонаж хватался бы
+    // обратно, не покинув тайла.
+    p.climb_speed = fix32::from_int(120);
+    p.ladder_regrab_ticks = 8;
     return sanitize(p);
 }
 

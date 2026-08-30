@@ -49,6 +49,8 @@ bool bake_profiles(const std::string& text, std::vector<uint8_t>& out, ProfileBa
         r.corner_correction_raw = p.corner_correction.raw;
         r.ground_snap_raw = p.ground_snap.raw;
         r.max_slope_raw = p.max_slope.raw;
+        r.climb_speed_raw = p.climb_speed.raw;
+        r.ladder_regrab_ticks = p.ladder_regrab_ticks;
         rows.push_back(r);
     }
 

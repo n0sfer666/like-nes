@@ -38,7 +38,8 @@ const char* KEYS[][2] = {
     {"air_accel", "1600"},       {"air_decel", "900"},       {"gravity_rise", "1200"},
     {"gravity_fall", "2400"},    {"max_fall_speed", "900"},  {"jump_height", "64"},
     {"min_jump_height", "16"},   {"coyote_ticks", "6"},      {"buffer_ticks", "6"},
-    {"corner_correction", "4"},  {"ground_snap", "8"},     {"max_slope", "1"},
+    {"corner_correction", "4"},  {"ground_snap", "8"},       {"max_slope", "1"},
+    {"climb_speed", "120"},      {"ladder_regrab_ticks", "8"},
 };
 constexpr int KEY_COUNT = static_cast<int>(sizeof(KEYS) / sizeof(KEYS[0]));
 

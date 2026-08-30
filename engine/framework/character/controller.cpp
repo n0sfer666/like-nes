@@ -1,6 +1,7 @@
 #include "controller.hpp"
 
 #include "assist.hpp"
+#include "ladder.hpp"
 #include "support.hpp"
 
 namespace framework::character {
@@ -39,6 +40,10 @@ void step(const CollisionScene& s, const CharacterHull& hull, const MoveProfile&
     // закрываются отрицательная скорость падения (вечный подъём) и максимум выше насыщения Q16.16.
     // Цена — десяток клампов против шейпкаста в том же тике.
     const MoveProfile p = sanitize(raw);
+    // Лестница — АЛЬТЕРНАТИВНЫЙ тик, и делится он не шагом, а целиком: съеденный тик уже посчитал
+    // скорость, движение, состояние и память кнопки. Хук стоит ДО шага 0, потому что на лестнице
+    // опоры нет по построению, а перенос её движением — первое, что делает обычный тик.
+    if (ladder_step(s, hull, p, d, in, dt, c)) return;
     const bool pressed = in.jump_held && !c.jump_was_held;
     // Опора СНИМАЕТСЯ до всех шагов: шаг 4 гасит `on_ground` сам, и читать её после него значит
     // читать уже переписанное значение. Держалось это на ручном `!jumped` в шаге 8 — то есть на

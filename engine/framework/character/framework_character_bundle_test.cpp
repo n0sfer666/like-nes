@@ -54,6 +54,7 @@ const FixField FIELDS[] = {
     {"corner_correction", &MoveProfile::corner_correction},
     {"ground_snap", &MoveProfile::ground_snap},
     {"max_slope", &MoveProfile::max_slope},
+    {"climb_speed", &MoveProfile::climb_speed},
 };
 
 // Число расхождений, а не «совпало/нет»: список полей печатается целиком, чтобы одна правка
@@ -76,6 +77,11 @@ int diff(const MoveProfile& got, const MoveProfile& want, bool loud) {
         ++n;
         if (loud) std::printf("  FAIL: buffer_ticks: bundle %u, engine %u\n", got.buffer_ticks,
                               want.buffer_ticks);
+    }
+    if (got.ladder_regrab_ticks != want.ladder_regrab_ticks) {
+        ++n;
+        if (loud) std::printf("  FAIL: ladder_regrab_ticks: bundle %u, engine %u\n",
+                              got.ladder_regrab_ticks, want.ladder_regrab_ticks);
     }
     return n;
 }
