@@ -4,7 +4,7 @@
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
 add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_text.cpp
-  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp)
+  atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
@@ -78,3 +78,12 @@ target_link_libraries(framework_graphics_atlas_refusal_test PRIVATE framework_gr
 add_executable(framework_graphics_atlas_bundle_test framework_graphics_atlas_bundle_test.cpp)
 target_link_libraries(framework_graphics_atlas_bundle_test PRIVATE framework_graphics asset_core
   platform_core)
+
+# Отладочная отрисовка (шаг E) — ДВЕ цели по тому же основанию, что у нарезки выше: геометрия и
+# голден потока квадов отдельно от ОТКАЗОВ (переполнение буфера, вырожденный отрезок, атлас без
+# шрифта). Обе headless: построитель не знает ни про RHI, ни про батч.
+add_executable(framework_graphics_debug_test framework_graphics_debug_test.cpp)
+target_link_libraries(framework_graphics_debug_test PRIVATE framework_graphics platform_core)
+
+add_executable(framework_graphics_debug_refusal_test framework_graphics_debug_refusal_test.cpp)
+target_link_libraries(framework_graphics_debug_refusal_test PRIVATE framework_graphics platform_core)
