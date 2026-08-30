@@ -103,3 +103,29 @@ target_link_libraries(framework_graphics_batch_refusal_test PRIVATE framework_gr
 add_executable(framework_graphics_batch_alloc_test framework_graphics_batch_alloc_test.cpp)
 target_link_libraries(framework_graphics_batch_alloc_test PRIVATE framework_graphics platform_core
   framework_alloc_probe_control)
+
+# Шов «тайлы → спрайты» (вертикаль 2, шаг B) — ОТДЕЛЬНАЯ цель, а не файл в `framework_graphics`.
+# Сетка тянет за собой физику, и затащи её в саму библиотеку — клипы, машина и камера линковали бы
+# тайлы с решателем, не спросив ни одного тайла. Ровно тот же довод, по которому RHI нет среди
+# зависимостей выше.
+add_library(framework_graphics_tiles STATIC tile_draw.cpp)
+target_include_directories(framework_graphics_tiles PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(framework_graphics_tiles PUBLIC framework_graphics framework_tilemap)
+
+# Две цели по классу отказа: culling и голден отдельно от ОТКАЗОВ (вид мимо карты, переполнение
+# списка, тайл с битами вне таблицы).
+# `platform_core` берётся ЗАГОЛОВКАМИ, а не третьей строкой линковки, и это вынужденно: сюда он и
+# так приезжает дважды — `framework_graphics` и `framework_tilemap` держат его PRIVATE каждый, — а
+# третье упоминание в списке заставляет линкер macOS сказать `ld: warning: ignoring duplicate
+# libraries` и уронить сборочный гейт предупреждением, к нашему коду отношения не имеющим. Тело
+# `platform::Args` приезжает по любому из двух рёбер, а PRIVATE-ребро не несёт каталога включений —
+# его и дописываем.
+add_executable(framework_graphics_tile_test framework_graphics_tile_test.cpp)
+target_link_libraries(framework_graphics_tile_test PRIVATE framework_graphics_tiles)
+target_include_directories(framework_graphics_tile_test PRIVATE
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(framework_graphics_tile_refusal_test framework_graphics_tile_refusal_test.cpp)
+target_link_libraries(framework_graphics_tile_refusal_test PRIVATE framework_graphics_tiles)
+target_include_directories(framework_graphics_tile_refusal_test PRIVATE
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)

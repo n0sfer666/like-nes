@@ -44,7 +44,7 @@ cd "$ROOT" || exit 1
 # тайл — сравнением границ, перенос опорой — сложением позиции ДО свипа. Расхождение -O0 с -O3 в
 # любом из трёх было бы UB, и увидеть его больше негде: `list-drift` сверяет копии списка МЕЖДУ
 # собой и про полноту не знает ничего, поэтому забытая цель молчала бы на обеих сторонах разом.
-STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test"
+STATE_TARGETS="framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test"
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
@@ -53,7 +53,7 @@ debug_golden() {
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
     BUILD_DIR=build-debug LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TYPE=Debug \
         LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
-    local t bin out rc=0 golden="" traj="" baked="" tiles="" maps="" plat="" anim="" cpath="" cview="" atlas="" overlay="" batch=""
+    local t bin out rc=0 golden="" traj="" baked="" tiles="" maps="" plat="" anim="" cpath="" cview="" atlas="" overlay="" batch="" tdraw=""
     for t in $STATE_TARGETS; do
         bin=$(find build-debug -maxdepth 2 -type f -name "$t" | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
@@ -92,6 +92,9 @@ debug_golden() {
         fi
         if [ "$t" = framework_graphics_batch_test ]; then
             batch=$(printf '%s\n' "$out" | grep -o 'sprite-batch hash = 0x[0-9a-f]*')
+        fi
+        if [ "$t" = framework_graphics_tile_test ]; then
+            tdraw=$(printf '%s\n' "$out" | grep -o 'tile-draw hash = 0x[0-9a-f]*')
         fi
     done
     # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
@@ -167,6 +170,13 @@ debug_golden() {
     # выше.
     if [ "$batch" != "sprite-batch hash = 0xbda7b692a87b1155" ]; then
         echo "Debug разошёлся с Release по голдену порядка отрисовки: '$batch'"
+        rc=1
+    fi
+    # Двенадцатый — поток спрайтов тайловой карты (вертикаль 2, шаг B). Окно считается
+    # целочисленным делением с округлением ВНИЗ по сырому Q16.16 со знаком, а центр и полуразмер
+    # тайла — умножением на 1/2: расхождение -O0 с -O3 здесь было бы UB, а не «сдвинулась картинка».
+    if [ "$tdraw" != "tile-draw hash = 0x599044fa7aabfddc" ]; then
+        echo "Debug разошёлся с Release по голдену отрисовки тайлов: '$tdraw'"
         rc=1
     fi
     return $rc
