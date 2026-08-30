@@ -87,21 +87,6 @@ int diff(const AtlasRegion& r, const game::Region& g, float aw, float ah, const 
     return n;
 }
 
-// Имя строкой, а не указателем: `strdup` на MSVC устарел и стоил бы предупреждения в гейте, где
-// предупреждение есть ошибка.
-struct Named { std::string name; const game::Region* region; };
-
-// Один список имён на оба источника (и один ПОРЯДОК: сверка идёт по номеру): второй, написанный
-// рядом, разъехался бы с первым — тем самым способом, ради которого этот гейт и заведён.
-std::vector<Named> named_regions(const game::Atlas& a) {
-    std::vector<Named> v{{"ship", &a.ship},     {"star", &a.star},       {"enemy", &a.enemy},
-                         {"bullet", &a.bullet}, {"boss", &a.boss},       {"hostile", &a.hostile},
-                         {"solid", &a.solid}};
-    for (int d = 0; d < 10; ++d) v.push_back({"digit_" + std::to_string(d), &a.digit[d]});
-    for (int l = 0; l < 26; ++l) v.push_back({std::string("letter_") + char('a' + l), &a.letter[l]});
-    return v;
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
@@ -122,33 +107,46 @@ int main(int argc, char** argv) {
     check(t.page_width() == art.w && t.page_height() == art.h,
           "atlas.txt and art.cpp agree on the page size");
 
-    const std::vector<Named> want = named_regions(art);
     // Число регионов сверяется тоже: таблица, потерявшая букву, прошла бы циклы ниже целиком —
     // спрашивают-то её по именам из кода.
-    check(t.count() == want.size(), "the bundle holds exactly the regions the game names");
+    check(t.count() == game::RID_Count - 1, "the bundle holds exactly the regions the game names");
 
     const auto aw = static_cast<float>(art.w), ah = static_cast<float>(art.h);
     game::Atlas from_bundle;
     check(game::regions_from_table(t, from_bundle), "the section resolves every name of the game");
-    const std::vector<Named> got = named_regions(from_bundle);
-    for (std::size_t i = 0; i < got.size(); ++i) {
-        const std::optional<framework::graphics::RegionId> id = t.find(got[i].name.c_str());
-        if (!id.has_value()) {
-            std::printf("  FAIL: region '%s' of the game is missing from atlas.txt\n",
-                        got[i].name.c_str());
+    for (uint16_t id = game::RID_None + 1; id < game::RID_Count; ++id) {
+        const char* name = game::region_name(id);
+        const std::optional<framework::graphics::RegionId> tid = t.find(name);
+        if (!tid.has_value()) {
+            std::printf("  FAIL: region '%s' of the game is missing from atlas.txt\n", name);
             ++fails;
             continue;
         }
         // По ВСЕМ регионам, а не по одному: `ship` квадратный, и перепутанные местами ширина с
         // высотой на нём неразличимы.
-        check(diff(*t.region(*id), *got[i].region, aw, ah, got[i].name.c_str(), /*loud=*/true) == 0,
+        const game::Region& b = *game::region_at(from_bundle, id);
+        check(diff(*t.region(*tid), b, aw, ah, name, /*loud=*/true) == 0,
               "the baked cut agrees with atlas.txt");
         // Процедурный fallback: обратный перевод тут не нужен — обе стороны уже UV.
-        const game::Region& a = *want[i].region;
-        const game::Region& b = *got[i].region;
+        const game::Region& a = *game::region_at(art, id);
         check(a.u0 == b.u0 && a.v0 == b.v0 && a.u1 == b.u1 && a.v1 == b.v1,
               "the procedural fallback shows the same cut as the baked path");
     }
+
+    // Номер обязан адресовать ТО ЖЕ поле, что и имя. Согласованная перестановка внутри нумерации
+    // прошла бы цикл выше молча — он и пишет, и читает через неё, — а вся остальная игра берёт поля
+    // по имени (`atlas.star` в `draw.cpp`), и перестановка нарисовала бы врагов звёздами.
+    check(game::region_at(art, game::RID_Ship) == &art.ship &&
+              game::region_at(art, game::RID_Star) == &art.star &&
+              game::region_at(art, game::RID_Solid) == &art.solid &&
+              game::region_at(art, game::RID_Digit0 + 7) == &art.digit[7] &&
+              game::region_at(art, game::RID_LetterA + 25) == &art.letter[25],
+          "the region number addresses the field its name promises");
+    check(game::region_at(art, game::RID_None) == nullptr &&
+              game::region_at(art, game::RID_Count) == nullptr &&
+              game::region_name(game::RID_None) == nullptr &&
+              game::region_name(game::RID_Count) == nullptr,
+          "a number outside the cut is refused, not drawn as a corner of the page");
 
     // Позитивный контроль сверки: сдвинутый на пиксель регион обязан быть отбит ТЕМ ЖЕ сравнением
     // — иначе «расхождений нет» неотличимо от сверки, которая не сравнивает.
