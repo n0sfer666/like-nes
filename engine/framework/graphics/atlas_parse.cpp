@@ -1,5 +1,5 @@
 #include "atlas_bake.hpp"
-#include "atlas_text.hpp"
+#include "text_fields.hpp"
 #include "clip.hpp"
 
 // Грамматика исходника: сколько полей в строке, что в них лежит и что нельзя решить по одной
@@ -24,7 +24,7 @@ bool parse_page(ParsedAtlas& out, const std::vector<std::string>& f, int line,
                 AtlasBakeError& err) {
     if (f.size() != 3) return fail(err, line, "expected 'atlas | <width> | <height>'");
     if (out.page_width != 0) return fail(err, line, "the page size is set twice");
-    if (!atlas_parse_u16(f[1], out.page_width) || !atlas_parse_u16(f[2], out.page_height))
+    if (!core::parse_u16(f[1], out.page_width) || !core::parse_u16(f[2], out.page_height))
         return fail(err, line, "the page size takes two whole numbers of pixels");
     if (out.page_width == 0 || out.page_height == 0) {
         out.page_width = 0;
@@ -45,8 +45,8 @@ bool parse_region(ParsedAtlas& out, const std::vector<std::string>& f, int line,
 
     ParsedRegion r;
     r.name = f[1];
-    if (!atlas_parse_u16(f[2], r.x) || !atlas_parse_u16(f[3], r.y) ||
-        !atlas_parse_u16(f[4], r.w) || !atlas_parse_u16(f[5], r.h))
+    if (!core::parse_u16(f[2], r.x) || !core::parse_u16(f[3], r.y) ||
+        !core::parse_u16(f[4], r.w) || !core::parse_u16(f[5], r.h))
         return fail(err, line, "the rectangle takes four whole numbers of pixels");
     if (r.w == 0 || r.h == 0)
         return fail(err, line, "region '" + r.name + "' has a zero side and draws nothing");
@@ -55,7 +55,7 @@ bool parse_region(ParsedAtlas& out, const std::vector<std::string>& f, int line,
     if (static_cast<uint32_t>(r.x) + r.w > out.page_width ||
         static_cast<uint32_t>(r.y) + r.h > out.page_height)
         return fail(err, line, "region '" + r.name + "' hangs off the page");
-    if (!atlas_parse_fix(f[6], r.pivot.x) || !atlas_parse_fix(f[7], r.pivot.y))
+    if (!core::parse_fix(f[6], r.pivot.x) || !core::parse_fix(f[7], r.pivot.y))
         return fail(err, line, "the pivot takes two decimal numbers of pixels");
     out.regions.push_back(std::move(r));
     return true;
@@ -79,11 +79,11 @@ bool parse_atlas(const std::string& text, ParsedAtlas& out, AtlasBakeError& err)
         ++line;
         const std::size_t hash = raw.find('#');
         if (hash != std::string::npos) raw.erase(hash);
-        const std::string body = atlas_trim(raw);
+        const std::string body = core::trim(raw);
         if (body.empty()) continue;
         content_line = line;
 
-        const std::vector<std::string> f = atlas_split(body);
+        const std::vector<std::string> f = core::split_fields(body);
         if (f[0] == "atlas") {
             if (!parse_page(out, f, line, err)) return false;
             continue;

@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "profile_bake.hpp"
-#include "profile_text.hpp"
+#include "text_fields.hpp"
 
 // Грамматика манифеста: сколько полей в строке, что в них лежит, куда это класть и что нельзя
 // решить по одной строке. Отделено от сборки байтов (`profile_bake.cpp`) по той же границе, что
@@ -81,7 +81,7 @@ bool assign(NamedProfile& np, uint32_t& seen, const std::string& key, const std:
         if (std::strcmp(FIX_KEYS[i].name, key.c_str()) != 0) continue;
         if ((seen & (1u << i)) != 0) return fail(err, line, key + " is set twice in this profile");
         fix32 v{};
-        if (!profile_parse_fix(value, v)) return fail(err, line, key + " must be a decimal number");
+        if (!core::parse_fix(value, v)) return fail(err, line, key + " must be a decimal number");
         if (v.raw < 0 || FIX_KEYS[i].limit < v)
             return fail(err, line, key + " is outside the range the engine accepts");
         np.profile.*FIX_KEYS[i].field = v;
@@ -93,7 +93,7 @@ bool assign(NamedProfile& np, uint32_t& seen, const std::string& key, const std:
         const uint32_t bit = 1u << (FIX_COUNT + i);
         if ((seen & bit) != 0) return fail(err, line, key + " is set twice in this profile");
         uint32_t v = 0;
-        if (!profile_parse_u32(value, v))
+        if (!core::parse_u32(value, v))
             return fail(err, line, key + " must be a whole number of ticks");
         if (v > MAX_WINDOW_TICKS)
             return fail(err, line, key + " is outside the range the engine accepts");
@@ -124,12 +124,12 @@ bool parse_profiles(const std::string& text, std::vector<NamedProfile>& out,
         ++line;
         const std::size_t hash = raw.find('#');
         if (hash != std::string::npos) raw.erase(hash);
-        const std::string body = profile_trim(raw);
+        const std::string body = core::trim(raw);
         if (body.empty()) continue;
         const int prev_content = content_line;
         content_line = line;
 
-        const std::vector<std::string> f = profile_split(body);
+        const std::vector<std::string> f = core::split_fields(body);
         if (f.size() != 2 || f[0].empty() || f[1].empty())
             return fail(err, line, "expected '<key> | <value>'");
         if (f[0] == "profile") {

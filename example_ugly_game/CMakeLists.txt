@@ -79,7 +79,7 @@ add_executable(game_sidescroller
   batch.cpp instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
   boss.cpp fx.cpp
   bloom.cpp audio.cpp
-  input_setup.cpp capture.cpp
+  input_setup.cpp capture.cpp frame_golden.cpp
   gpu_env.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
@@ -95,13 +95,16 @@ target_link_libraries(game_sidescroller PRIVATE
 # `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
 # начале строки, и в хвосте замыкания.
 target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
+# Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
+# что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
+# предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
+# давал MSVC `D8021`/`D9025` мимо -Werror, но прямо в лог гейта (cmake/warnings.cmake).
+target_link_libraries(game_sidescroller PRIVATE stb_impl_vendored)
 # Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
 # (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
 if(AUDIO_MINIAUDIO)
   target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
 endif()
-set_source_files_properties(capture.cpp PROPERTIES   # stb_image_write sprintf (не MSVC:
-  COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-deprecated-declarations>")  # D8021)
 if(APPLE)
   set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_macos.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
@@ -139,6 +142,13 @@ target_include_directories(game_fx_test PRIVATE
 # лог гейта. Тот же случай расписан у game_platformer_input_test выше.
 target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
   framework_alloc_probe_control flecs_static asset_core)
+
+# --- Симметрия звезды атласа: своя цель, а не третий тест в `game_fx_test`. Она стоит на ПЕЧЁНОМ
+# атласе и не трогает ни `Fx`, ни flecs — в общем файле гейт краснел бы на правке траектории.
+add_executable(game_star_test game_star_test.cpp art.cpp atlas_regions.cpp)
+target_include_directories(game_star_test PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 
 # --- Образец-платформер, ЖИВАЯ половина (гейт 8 спеки #16): окно, часы и ввод поверх той же сцены,
 # которую гоняет sim-голден. Отдельная цель, а не режим `game_sidescroller`: у шутера нет ни

@@ -118,15 +118,6 @@ void push_toast(SpriteBatch& batch, const Atlas& atlas, const char* name, uint32
     push_center(batch, atlas, buf, -HALF_H + 38, 21, k, 0.95f * k, 0.55f * k);
 }
 
-WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view) {
-    WGPURenderPassColorAttachment a = {};
-    a.view = view; a.loadOp = WGPULoadOp_Clear; a.storeOp = WGPUStoreOp_Store;
-    a.clearValue = WGPUColor{0.02, 0.02, 0.07, 1.0};
-    WGPURenderPassDescriptor d = {};
-    d.colorAttachmentCount = 1; d.colorAttachments = &a;
-    return wgpuCommandEncoderBeginRenderPass(enc, &d);
-}
-
 void push_fx(SpriteBatch& batch, Fx& fx, const Atlas& atlas) {
     Instance insts[FX_CAP];
     const uint32_t n = fx.draw(atlas, insts, FX_CAP);

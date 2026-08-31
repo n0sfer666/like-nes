@@ -222,4 +222,13 @@ void SpriteBatch::shutdown() {
     if (tex_) wgpuTextureRelease(tex_);
 }
 
+WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view, WGPUColor clear) {
+    WGPURenderPassColorAttachment a = {};
+    a.view = view; a.loadOp = WGPULoadOp_Clear; a.storeOp = WGPUStoreOp_Store;
+    a.clearValue = clear;
+    WGPURenderPassDescriptor d = {};
+    d.colorAttachmentCount = 1; d.colorAttachments = &a;
+    return wgpuCommandEncoderBeginRenderPass(enc, &d);
+}
+
 } // namespace game

@@ -1,15 +1,15 @@
-#include <cmath>
 #include <cstdio>
 
 #include "art.hpp"
+#include "ecs_alloc_probe.hpp"
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
 #include "fx.hpp"
 
-// Частицы шутера НА ФРЕЙМВОРКЕ (спека #17, вертикаль 3, шаг B3). Три утверждения, и ни одно не
-// заменяет другие: сцена повторяется числом (голден), установившийся кадр не ходит в кучу (гейт 8)
-// и звезда, которой рисуется частица, радиально симметрична — то есть отказ от ЛИЧНОГО ПОВОРОТА
-// частицы, который был у старого float-`fx.cpp`, невидим по построению картинки, а не «на глаз».
+// Частицы шутера НА ФРЕЙМВОРКЕ (спека #17, вертикаль 3, шаг B3). Два утверждения, и одно не
+// заменяет другое: сцена повторяется числом (голден) и установившийся кадр не ходит в кучу
+// (гейт 8). Симметрия звезды, которой оплачен отказ от личного поворота частицы, живёт своим
+// файлом (`game_star_test`) — она про печёный атлас, а не про `Fx`.
 //
 // Кадр здесь не проверяется: он про экспозицию и UV и стоит отдельным швом
 // (`game_sprite_out_test`). Слить их значило бы получить хеш, краснеющий на правке материала ровно
@@ -91,9 +91,9 @@ void fill_events(game::FxSink& sink, uint32_t t) {
 
 // Кадр ЦЕЛИКОМ и в том же порядке, в каком его гоняют `live.cpp` и `demo.cpp`: события боя, следы,
 // шаг, выкладка. Кадр, собранный в гейте иначе, проверял бы не ту игру.
-void frame(game::FxSink& sink, flecs::world& world) {
+void frame(game::FxSink& sink, const game::TrailQuery& trails) {
     fx.emit(sink);
-    fx.emit_trails(world);
+    fx.emit_trails(trails);
     fx.update();
     fx.draw(game_atlas(), insts, game::FX_CAP);
 }
@@ -105,11 +105,12 @@ void test_golden() {
     std::printf("shooter particles: scripted run over %u ticks\n", TICKS);
     game::FxSink sink;
     flecs::world world = make_world();
+    const game::TrailQuery trails = game::make_trail_query(world);
     fx.clear();
     uint32_t peak = 0;
     for (uint32_t t = 0; t < TICKS; ++t) {
         fill_events(sink, t);
-        frame(sink, world);
+        frame(sink, trails);
         if (fx.count() > peak) peak = fx.count();
     }
     const uint64_t h = fold(fx);
@@ -126,32 +127,33 @@ void test_golden() {
     check(fx.dropped() == 0, "no burst was truncated");
 }
 
-// ГЕЙТ 8 на игровом пути. Мерится ФРЕЙМВОРКОВАЯ половина кадра: `emit` + `update` + `draw`. Обход
-// сущностей (`emit_trails`) стоит снаружи намеренно — запрос ведёт flecs, и его аллокации сказали
-// бы про ECS, а не про то, ради чего пулы у `Fx` стали массивами.
+// ГЕЙТ 8 на игровом пути: ВЕСЬ игровой кадр (`emit` + `emit_trails` + `update` + `draw`), а не
+// фреймворковая его половина. Обход сущностей стоял снаружи «чтобы не обвинить ECS», и защищало это
+// НИЧЕГО: счётчик фреймворка подменяет `operator new`, а flecs ходит в кучу через `ecs_os_api` и
+// мимо него — ноль там значил «не смотрю». Счётчиков поэтому два, и оба обязаны быть нулём.
 void test_no_alloc() {
     game::FxSink sink;
     flecs::world world = make_world();
+    const game::TrailQuery trails = game::make_trail_query(world);
     fx.clear();
-    // Первые кадры — ДО счётчика: ленивая инициализация мира, векторов приёмника и статического
-    // атласа обязана быть оплачена заранее, иначе гейт обвинил бы в аллокации установившийся кадр.
-    for (uint32_t t = 0; t < 8; ++t) { fill_events(sink, t); frame(sink, world); }
+    // Первые кадры — ДО счётчика: ленивая инициализация мира, векторов приёмника, статического
+    // атласа и таблиц, которые запрос сопоставляет на первом обходе, оплачивается заранее.
+    for (uint32_t t = 0; t < 8; ++t) { fill_events(sink, t); frame(sink, trails); }
     fill_events(sink, 0);
-    fx.emit_trails(world);
     const uint32_t before = fx.count();
 
     framework::probe::in_hot = true;
     framework::probe::allocs = 0;
-    for (uint32_t t = 0; t < 16; ++t) {
-        fx.emit(sink);
-        fx.update();
-        fx.draw(game_atlas(), insts, game::FX_CAP);
-    }
+    game::ecs_probe::allocs = 0;
+    for (uint32_t t = 0; t < 16; ++t) frame(sink, trails);
     const long during = framework::probe::allocs;
+    const long during_ecs = game::ecs_probe::allocs;
     framework::probe::in_hot = false;
 
-    std::printf("  steady frames: allocations = %ld, alive %u -> %u\n", during, before, fx.count());
-    check(during == 0, "the steady framework frame does not touch the heap");
+    std::printf("  steady frames: allocations = %ld (ecs %ld), alive %u -> %u\n", during,
+                during_ecs, before, fx.count());
+    check(during == 0, "the steady game frame does not touch the heap");
+    check(during_ecs == 0, "the steady game frame does not touch the ECS heap");
     check(fx.count() > before, "the measured frames actually emitted particles");
     check(fx.dropped() == 0, "the measured frames drew a full quota");
 
@@ -162,72 +164,22 @@ void test_no_alloc() {
     framework::probe::allocs = 0;
     const bool aligned_ok = framework::probe::control::aligned_allocation();
     const long aligned = framework::probe::allocs;
+    game::ecs_probe::allocs = 0;
+    ecs_os_free(ecs_os_malloc(64));
+    const long ecs_ctl = game::ecs_probe::allocs;
     framework::probe::in_hot = false;
     check(plain_ok && plain > 0, "control: the counter sees a plain allocation");
     check(aligned_ok && aligned > 0, "control: the counter sees an over-aligned allocation");
-}
-
-// Отказ от личного поворота частицы законен ровно постольку, поскольку повёрнутая звезда неотличима
-// от неповёрнутой. Утверждение проверяемо: регион звезды квадратный, и его альфа обязана совпадать
-// с собой под отражениями по обеим осям И под транспонированием. Первых двух мало — четырёхлучевая
-// «искра» переживает оба отражения и разъезжается только на транспонировании, то есть на повороте
-// в 45°, который эмиттер как раз и раздаёт.
-void test_star_symmetry() {
-    const game::Atlas& a = game_atlas();
-    // Полтексела ВОЗВРАЩАЮТСЯ. `game::rgn` уводит UV внутрь на `0.5/w` — приём для СЭМПЛЕРА, и
-    // читать по нему пиксели значит взять окно шириной на пиксель меньше, сдвинутое на полпикселя
-    // относительно настоящего центра. Первая версия гейта так и сделала и отбила симметрию по
-    // отражениям (18 из 255) при нулевом расхождении по транспонированию — то есть обвинила
-    // картинку в том, что натворил её собственный обход.
-    auto lo = [](float uv, uint32_t size) {
-        return static_cast<uint32_t>(uv * static_cast<float>(size) - 0.5f + 0.5f);
-    };
-    auto hi = [](float uv, uint32_t size) {
-        return static_cast<uint32_t>(uv * static_cast<float>(size) + 0.5f + 0.5f);
-    };
-    const uint32_t x0 = lo(a.star.u0, a.w), y0 = lo(a.star.v0, a.h);
-    const uint32_t x1 = hi(a.star.u1, a.w), y1 = hi(a.star.v1, a.h);
-    const uint32_t n = x1 - x0;
-    const int32_t before = fails;
-    check(n > 0 && n == y1 - y0, "the star region is a non-empty square");
-    check(a.px.size() >= static_cast<size_t>(a.w) * a.h * 4, "the procedural page carries pixels");
-    // Выход по СВОИМ находкам, а не по глобальному счётчику: тот к этому месту уже несёт чужие, и
-    // проверка симметрии молча пропускалась бы каждый раз, когда красен голден выше.
-    if (fails != before) return;
-
-    auto alpha = [&](uint32_t x, uint32_t y) {
-        return a.px[(static_cast<size_t>(y0 + y) * a.w + (x0 + x)) * 4 + 3];
-    };
-    int32_t worst_mx = 0, worst_my = 0, worst_tr = 0, span = 0;
-    for (uint32_t y = 0; y < n; ++y) {
-        for (uint32_t x = 0; x < n; ++x) {
-            const int32_t v = alpha(x, y);
-            if (v > span) span = v;
-            const int32_t mx = v - alpha(n - 1 - x, y);
-            const int32_t my = v - alpha(x, n - 1 - y);
-            const int32_t tr = v - alpha(y, x);
-            if (std::abs(mx) > worst_mx) worst_mx = std::abs(mx);
-            if (std::abs(my) > worst_my) worst_my = std::abs(my);
-            if (std::abs(tr) > worst_tr) worst_tr = std::abs(tr);
-        }
-    }
-    std::printf("  star %ux%u: mirror-x %d, mirror-y %d, transpose %d (span %d)\n", n, n, worst_mx,
-                worst_my, worst_tr, span);
-    // Порог, а не ноль: альфа — восьмибитная развёртка `pow(1 - d/r, 1.8)`, и округление двух
-    // расстояний, равных с точностью до float, законно расходится на единицу.
-    check(worst_mx <= 1 && worst_my <= 1 && worst_tr <= 1, "the star is symmetric under rotation");
-    // Позитивный контроль симметрии: сплошной прямоугольник тоже симметричен, и порог выше прошёл бы
-    // на нём с тем же нулём. Звезда обязана быть ГРАДИЕНТОМ — иначе доказывать нечего.
-    check(span > 200, "the star actually has opaque pixels");
-    check(alpha(0, 0) == 0 && alpha(n / 2, n / 2) == span, "the star falls off from its centre");
+    // Тот же контроль второму счётчику: незаряженный шов отвечает нулём честного кадра.
+    check(ecs_ctl > 0, "control: the counter sees an ECS allocation");
 }
 
 } // namespace
 
 int main() {
+    game::ecs_probe::install();   // ДО первого мира: таблицу он забирает при создании
     test_golden();
     test_no_alloc();
-    test_star_symmetry();
     std::printf("game-fx: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

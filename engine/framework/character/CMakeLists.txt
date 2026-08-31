@@ -4,7 +4,7 @@
 # грепом по этой самой строке линковки. Обратного ребра нет: ни физика, ни сетка про персонажа не
 # знают.
 add_library(framework_character STATIC controller.cpp collision.cpp profile.cpp slide.cpp
-  assist.cpp support.cpp ladder.cpp trajectory.cpp profile_text.cpp profile_parse.cpp
+  assist.cpp support.cpp ladder.cpp trajectory.cpp profile_parse.cpp
   profile_bake.cpp profile_read.cpp)
 target_include_directories(framework_character PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит профиль, а не файловый шов, которым пекарь

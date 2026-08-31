@@ -91,7 +91,7 @@ bool RebindStore::parse(const std::string& text, std::string& preset_out) {
         const std::size_t nl = text.find('\n', pos);
         const std::string line = text.substr(pos, nl == std::string::npos ? nl : nl - pos);
         pos = nl == std::string::npos ? text.size() + 1 : nl + 1;
-        const std::vector<std::string> f = preset_split(line);
+        const std::vector<std::string> f = core::split_fields(line);
         if (f.size() == 1 && f[0].empty()) continue;
         if (!f[0].empty() && f[0][0] == '#') continue;
         if (f[0] == "preset" && f.size() == 2) {

@@ -852,6 +852,47 @@ A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at
 `fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
 counts exactly that case and nothing prints it yet, so a "no" here is also a request for that line.
 
+## 8. Gate 2 of #17 — the reference frame on a real GPU
+
+> **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
+> frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
+> pinned on Metal. What CI cannot say is whether the tolerance survives a *real* driver — the
+> runners have lavapipe on Linux and DX12-WARP on Windows, both software rasterisers, and the
+> macOS runner is the same Metal the reference was baked on. Your three machines are the only
+> AMD/NVIDIA/Intel in this project.
+
+```sh
+./build/game_sidescroller --frames 240 \
+  --golden example_ugly_game/golden/scene_960x540.png --golden-selftest
+```
+
+Expected, three lines in this order:
+
+```
+[game] golden control: PASS (blot, scatter and one-pixel shift refused)
+[game] golden repeat: mean 0.00000 max 0.00000 over-eps 0.0000% blob 0 (eps 0.000, frac 0.000%, blob 0)
+[game] golden repeat: PASS
+[game] golden frame: mean <small> max <small> over-eps <small>% blob <n> (eps 0.020, frac 0.100%, blob 12)
+[game] golden frame: PASS
+```
+
+`repeat` is the strict one and it has no tolerance at all: two runs on the same adapter must agree
+exactly. If *it* fails, the finding is about this engine, not about your driver — send the numbers
+before looking at anything else.
+
+What `frame` judges is `blob` — the largest CONNECTED patch of differing pixels — and not the peak
+error, because on lavapipe the peak is already 0.73: an edge pixel a rasteriser rounds to the other
+side of a sprite outline differs by the CONTRAST of that outline, not by a small amount. A real
+defect moves an area instead, so the patch is what separates the two. The cost of that is worth
+knowing before you read a green line: a bright artifact SMALLER than 12 connected pixels is
+something this gate cannot tell from rasteriser noise.
+
+A red `frame` is not automatically a bug. Send the numbers line and the `golden_actual.png` the run
+drops next to it: that file is the only evidence by which the tolerance either gets widened with a
+measurement or stays and the renderer gets fixed. Do **not** re-bake with `--update-golden` — the
+reference is pinned on Metal deliberately, and a re-bake on another GPU silently turns the gate into
+a comparison of your machine with itself.
+
 ## Beyond the gates
 
 The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
@@ -875,6 +916,8 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
 - The platformer screen recording per OS, its startup line, and the six answers from section 6.
+- The three `golden` lines from section 8 per OS, with the GPU name from the `[gpu]` line above
+  them — and `golden_actual.png` if `frame` came out red.
 - For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

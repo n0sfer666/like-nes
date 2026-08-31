@@ -6,7 +6,7 @@
 
 // Грамматика строки манифеста: сколько полей, что в них лежит и куда это класть. Всё, что нельзя
 // решить по одной строке, спрашивается у `preset_validate.cpp`; всё, что про текст как таковой, —
-// у `preset_text.cpp`.
+// у `framework/core/text_fields.hpp`.
 namespace framework::input {
 namespace {
 
@@ -98,7 +98,7 @@ bool parse_shape(PresetBuild& b, const std::vector<std::string>& f, int line, Pr
         return preset_fail(err, line,
                     "shape needs a name, a deadzone, an outer edge, a curve and a pair ('-' for none)");
     fix32 dz, outer;
-    if (!preset_parse_fix(f[2], dz) || !preset_parse_fix(f[3], outer))
+    if (!core::parse_fix(f[2], dz) || !core::parse_fix(f[3], outer))
         return preset_fail(err, line, "deadzone and outer edge must be decimal numbers");
     PresetShape s;
     s.deadzone_raw = dz.raw;

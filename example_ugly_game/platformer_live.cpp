@@ -69,14 +69,7 @@ void push_frame(game::SpriteBatch& batch, const game::Atlas& atlas, const std::v
     }
 }
 
-WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view) {
-    WGPURenderPassColorAttachment a = {};
-    a.view = view; a.loadOp = WGPULoadOp_Clear; a.storeOp = WGPUStoreOp_Store;
-    a.clearValue = WGPUColor{0.05, 0.06, 0.10, 1.0};
-    WGPURenderPassDescriptor d = {};
-    d.colorAttachmentCount = 1; d.colorAttachments = &a;
-    return wgpuCommandEncoderBeginRenderPass(enc, &d);
-}
+constexpr WGPUColor SKY{0.05, 0.06, 0.10, 1.0};
 
 int run(const std::string& bundle) {
     Stage stage;
@@ -159,7 +152,7 @@ int run(const std::string& bundle) {
         batch.begin();
         push_frame(batch, atlas, quads);
         WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassEncoder pass = begin_clear(enc, view);
+        WGPURenderPassEncoder pass = game::begin_clear(enc, view, SKY);
         batch.flush(pass);
         wgpuRenderPassEncoderEnd(pass);
         wgpuRenderPassEncoderRelease(pass);

@@ -27,9 +27,9 @@ bool bake_presets(const std::string& text, std::vector<uint8_t>& out, PresetBake
         pos = nl == std::string::npos ? text.size() + 1 : nl + 1;
         ++line;
         const std::size_t hash = raw.find('#');
-        const std::string body = preset_trim(hash == std::string::npos ? raw : raw.substr(0, hash));
+        const std::string body = core::trim(hash == std::string::npos ? raw : raw.substr(0, hash));
         if (body.empty()) continue;
-        if (!preset_parse_line(b, preset_split(body), line, err)) return false;
+        if (!preset_parse_line(b, core::split_fields(body), line, err)) return false;
     }
     if (!preset_close(b, err, line)) return false;
     if (b.presets.empty()) {

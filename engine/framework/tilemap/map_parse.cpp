@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "map_bake.hpp"
-#include "map_text.hpp"
+#include "text_fields.hpp"
 
 // Грамматика исходника: сколько полей в строке, что в них лежит и что нельзя решить по одной
 // строке. Отделено от сборки байтов (`map_bake.cpp`) по той же границе, что `profile_parse.cpp` от
@@ -147,7 +147,7 @@ bool assign(ParsedMap& m, std::vector<Legend>& legend, uint32_t& seen,
     if (f[0] == "tile_size") {
         if (f.size() != 2) return fail(err, line, "expected 'tile_size | <number>'");
         if ((seen & SEEN_TILE_SIZE) != 0) return fail(err, line, "tile_size is set twice");
-        if (!map_parse_fix(f[1], m.tile_size))
+        if (!core::parse_fix(f[1], m.tile_size))
             return fail(err, line, "tile_size must be a decimal number");
         // Сетка приводит размер сама (`grid.cpp`): нечётный raw оставляет щель между тайлами,
         // нулевой схлопывает карту в ячейку. Приведённое молча значение сделало бы исходник
@@ -160,7 +160,7 @@ bool assign(ParsedMap& m, std::vector<Legend>& legend, uint32_t& seen,
     if (f[0] == "origin") {
         if (f.size() != 3) return fail(err, line, "expected 'origin | <x> | <y>'");
         if ((seen & SEEN_ORIGIN) != 0) return fail(err, line, "origin is set twice");
-        if (!map_parse_fix(f[1], m.origin.x) || !map_parse_fix(f[2], m.origin.y))
+        if (!core::parse_fix(f[1], m.origin.x) || !core::parse_fix(f[2], m.origin.y))
             return fail(err, line, "origin takes two decimal numbers");
         seen |= SEEN_ORIGIN;
         return true;
@@ -207,12 +207,12 @@ bool parse_maps(const std::string& text, std::vector<ParsedMap>& out, MapBakeErr
         ++line;
         const std::size_t hash = raw.find('#');
         if (hash != std::string::npos) raw.erase(hash);
-        const std::string body = map_trim(raw);
+        const std::string body = core::trim(raw);
         if (body.empty()) continue;
         const int prev_content = content_line;
         content_line = line;
 
-        const std::vector<std::string> f = map_split(body);
+        const std::vector<std::string> f = core::split_fields(body);
         if (f[0].empty()) return fail(err, line, "expected '<key> | <value>'");
         if (f[0] == "map") {
             if (f.size() != 2 || f[1].empty()) return fail(err, line, "expected 'map | <name>'");
