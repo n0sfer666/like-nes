@@ -79,8 +79,23 @@ install_hint() {  # $1 brew-формула, $2 пакет dnf, $3 пакет apt
 if command -v actionlint >/dev/null; then
     # severity=warning: SC2086 (несплитящиеся "$VAR") в этом файле осознан — им собирается
     # командная строка, — а вот warning и выше означает реальный дефект скрипта.
-    stage "actionlint + shellcheck (severity=warning)" \
-        env SHELLCHECK_OPTS="--severity=warning" actionlint
+    #
+    # На Windows интеграция с линтером шелла снимается, и это не косметика: actionlint кормит его
+    # через пайп и на git-bash не дожидается ответа НИКОГДА — прогон 2026-09-01 простоял час,
+    # накопив 0.9 с процессорного времени, то есть висел, а не считал. Разведено врозь: без него
+    # в PATH тот же вызов отдаёт вердикт мгновенно, с ним — не отдаёт вовсе, а `-shellcheck=`
+    # при том же PATH снова мгновенен. Сам линтер здесь ни при чём: из stdin он отвечает.
+    # Скрипты ВНУТРИ workflow остаются за CI (там этап идёт на Linux), гейт-скрипты дерева
+    # закрывает отдельный этап ниже, и он на Windows работает. Висящий гейт хуже падающего:
+    # падение читается как находка, час тишины — как «ещё считает».
+    al_title="actionlint + shellcheck (severity=warning)"
+    al_cmd=(env SHELLCHECK_OPTS="--severity=warning" actionlint)
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*)
+            al_title="actionlint (без shellcheck: связка виснет на Windows)"
+            al_cmd=(actionlint -shellcheck=) ;;
+    esac
+    stage "$al_title" "${al_cmd[@]}"
 else
     skip "actionlint" "не установлен ($(install_hint actionlint '' '' 'релиз с github.com/rhysd/actionlint/releases либо go install github.com/rhysd/actionlint/cmd/actionlint@latest'))"
 fi
