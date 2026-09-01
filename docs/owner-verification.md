@@ -90,6 +90,25 @@ Add-MpPreference -ExclusionPath 'C:\path\to\like-nes'
 126 is exec denied, 127 is not found — the latter usually means a DLL next to the `.exe` went
 missing, which is a real finding and not a Defender one.
 
+**The exclusion is not always the answer, and 2026-09-01 found the second mechanism.** On that run
+the tree was already excluded — `Get-MpPreference` listed it — and a subset of freshly built
+binaries still came back 126. Run one through `cmd` instead of the shell and Windows names the real
+blocker: *"blocked by the Device Guard policy of your organisation"*. That is **Smart App Control**,
+user-mode code integrity judged against a reputation service, and it has nothing to do with the
+antivirus exclusion list. It blocks *some* unsigned binaries and not others — on that machine
+`determinism_test.exe` ran and `audio_golden.exe` did not, same build, identical permissions — so
+the symptom reads as a flaky gate rather than as a policy, which is why it is written down here.
+
+```powershell
+Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' |
+  Select-Object VerifiedAndReputablePolicyState   # 0 off, 1 enforcing, 2 evaluation
+```
+
+Turning it off is Settings → Privacy & security → Windows Security → App & browser control → Smart
+App Control. **That switch is one-way** — Windows cannot re-enable it without reinstalling the OS —
+so it is the owner's call, and nothing in this repository touches it. Left on, the targets it
+refuses stay `BLOCKED`, which is the honest verdict: the machine has said nothing about them.
+
 It writes `build/owner-report-<os>.txt`: machine passport (OS, distro, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
 test in the tree, and three timed runs of the edit→build→hot-reload loop. Tests that need paths to

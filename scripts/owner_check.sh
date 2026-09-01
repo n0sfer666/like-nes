@@ -172,6 +172,9 @@ if [ ${#BLOCKED_TESTS[@]} -ne 0 ]; then
     say "  ни один из них не проверен: Windows блокирует запуск неподписанных сборок (MOTW/Defender)."
     say "  лечение — исключить каталог сборки из проверки в реальном времени, из PowerShell админом:"
     say "    Add-MpPreference -ExclusionPath '$ROOT'"
+    say "  каталог УЖЕ исключён, а BLOCKED остались — причина вторая: Smart App Control (Device"
+    say "  Guard) режет ЧАСТЬ неподписанных сборок мимо антивируса. Смотреть ключ CI\\Policy:"
+    say "    Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' | Select VerifiedAndReputablePolicyState"
     say "  и перезапустить прогон. Пока строки BLOCKED есть, вердикт красный по праву: эта машина"
     say "  про перечисленные цели не сказала ничего."
 fi
