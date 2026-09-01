@@ -664,11 +664,18 @@ shape of a gate that has quietly stopped gating.
 ## 6. Gate 8 of #16 — the platformer sample plays (all three OSes)
 
 > **Closed 2026-08-30** by the owner, who ran the sample and reported the control responsive.
-> **The banner names a confirmation, not artefacts:** the screen recording, the startup line and the
-> six answers below were not handed over, so unlike the four gates above this one carries no
-> evidence anyone else can re-read. That is a weaker close, and it is written down as one — send the
-> recording and the `gamepad:` line whenever convenient and this banner gets the same footing as the
-> others.
+> **Re-closed 2026-09-01 with artefacts,** on Nobara (X11), and this banner now stands on the same
+> footing as the four gates above. The recording is
+> `~/wiki/_meta/attachments/2026-09-01-like-nes-gate8-platformer-linux.mp4`, one pass of the level;
+> the startup line read `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes` and
+> `gamepad: evdev (Linux)`, and the run ended on `[platformer] window clean exit` with nothing else
+> on stderr. Questions **1–6 came back clean** and question **7 clean on both halves** — but only
+> after three findings the two runs produced, each written up below with its numbers and its gate.
+> The last of them was re-checked in a live window on the fix, and the owner's verdict is the
+> boundary of the behaviour, not a shrug: *"the platform no longer throws you out by accident, only
+> when it squeezes you against a wall."* Being squeezed against a wall is the lethal case he chose
+> himself when he picked "shove him along in front of it" over "let him pass through" — so a crush
+> there is the sample obeying its own design, and a crush anywhere else is a finding.
 >
 > The procedure stays, because gate 8 is the one gate of that spec no runner can close, and it says
 > so in its own text: *"subjective check that the control feels responsive"*. Re-run it when the
@@ -828,6 +835,12 @@ minus the `SKIN` the controller keeps under his soles) and the slab's underside 
 630, both travel directions, reports `crushes=0` after the fix. The crushes that remain all require
 jumping into the slab's band next to the step, which is the lethal case the owner asked for by name
 when he chose "shove him along in front of it" over "let him pass through".
+
+The owner re-ran the level in a live window on the fix and closed question 7: *"the platform no
+longer throws you out by accident, only when it squeezes you against a wall."* That second half is
+not a leftover defect — it is the crush he asked for by name in the finding above, arriving where
+it was designed to arrive.
+
 **Record the screen** (spec #16 asks for it by name — macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G),
 one pass of the level, thirty seconds is enough. Send the recording, the startup line with the
 `gamepad:` field as it printed on that machine, and a yes/no per question above with a sentence
@@ -1006,7 +1019,7 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   be identical to each other and to the other machines; the `worst=` / `mean=` numbers must not.
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
-- The platformer screen recording per OS, its startup line, and the six answers from section 6.
+- The platformer screen recording per OS, its startup line, and the seven answers from section 6.
 - The three `golden` lines from section 8 per OS, with the GPU name from the `[gpu]` line above
   them — and `golden_actual.png` if `frame` came out red.
 - For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after
