@@ -55,7 +55,7 @@ debug_golden() {
         LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
     local t bin out rc=0 golden="" traj="" baked="" tiles="" maps="" plat="" anim="" cpath="" cview="" atlas="" overlay="" batch="" tdraw="" parts="" view=""
     for t in $STATE_TARGETS; do
-        bin=$(find build-debug -maxdepth 2 -type f -name "$t" | head -1)
+        bin=$(find build-debug -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
         out=$("$bin") || rc=1
         printf '%s\n' "$out" | grep -q ": PASS" || { printf '%s\n' "$out"; rc=1; }
