@@ -11,7 +11,7 @@ target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 # а не рядом с остальными sim-целями ниже: ни окна, ни WebGPU, ни flecs ему не нужно, и цель,
 # спрятанная за чужой опцией, молча выпадала бы из headless-набора, которым её и гоняют.
 add_executable(game_platformer_sim_test
-  platformer_sim_test.cpp platformer_sim.cpp platformer_scene.cpp)
+  platformer_sim_test.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
 target_include_directories(game_platformer_sim_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_platformer_sim_test PRIVATE framework_character framework_tilemap
   asset_core platform_core)
@@ -21,7 +21,7 @@ target_link_libraries(game_platformer_sim_test PRIVATE framework_character frame
 # спрятанная за чужой опцией она проверялась бы только там, где собирают всё дерево, — то есть на
 # машине владельца, где живое окно и так открывается глазами.
 add_executable(game_platformer_view_test
-  platformer_view_test.cpp platformer_view.cpp platformer_scene.cpp)
+  platformer_view_test.cpp platformer_view.cpp platformer_scene.cpp platformer_level.cpp)
 # framework_graphics_tiles СТОИТ ВМЕСТО framework_tilemap и platform_core, а не рядом с ними: карту
 # он тянет PUBLIC-связью, платформу — PRIVATE-связью своего framework_graphics, и названные сверх
 # этого вторым именем они попадают на линкер-строку дважды — macOS отвечает `warning: ignoring
@@ -158,7 +158,7 @@ target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 # констант вида. Платформер их перекрывает своим `set_viewport`, но цель всё равно обязана
 # слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
 add_executable(game_platformer
-  platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp
+  platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
   batch.cpp instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 # platform_core здесь не назван по тому же основанию, что и в гейте выше: framework_graphics_tiles
