@@ -67,12 +67,83 @@ void test_overlap() {
     check(out.size() == 1 && out[0].key == 10, "turned a quarter it covers only the middle one");
 }
 
+// `each_contact` — тот же вопрос «кто здесь», но ОБХОДОМ и без вектора: спрашивают его из тика
+// персонажа (`character/push.hpp`), которому нельзя в кучу. Отвечать одним ближайшим этот вопрос не
+// умеет — на нулевом пути ближайших столько же, сколько касаний, и ничью между ними разводит ключ,
+// то есть РАСКЛАДКА, — поэтому гейт стоит ровно на том, что обход отдаёт ВСЕХ.
+struct Seen {
+    uint32_t count = 0;
+    uint32_t key[4] = {0, 0, 0, 0};
+    Vec2 normal[4];
+};
+
+void note(void* user, const RayHit& hit) {
+    Seen& s = *static_cast<Seen*>(user);
+    if (s.count < 4) {
+        s.key[s.count] = hit.key;
+        s.normal[s.count] = hit.normal;
+    }
+    ++s.count;
+}
+
+// Ищется по КЛЮЧУ, а не по номеру вызова: порядок обхода — порядок полосы, и гейт, опершийся на
+// него, поймал бы сам себя на первой же перетасованной раскладке (гейт 2 спеки #15).
+bool seen_key(const Seen& s, uint32_t key, Vec2& normal) {
+    for (uint32_t i = 0; i < s.count && i < 4; ++i) {
+        if (s.key[i] != key) continue;
+        normal = s.normal[i];
+        return true;
+    }
+    return false;
+}
+
+void test_each_contact() {
+    World w(8);
+    w.add(wall(10, fix32::from_int(-4)));
+    w.add(wall(20, fix32::from_int(4)));
+
+    QueryFilter f;
+    // Зонд мельче тел и стоит между ними: обе восьмёрки его накрывают, а отведённый влево он
+    // остаётся наедине с одной.
+    const Shape probe = box(fix32::from_int(2), fix32::from_int(2));
+
+    Seen both;
+    each_contact(w, probe, {fix32{}, fix32{}}, fix32{}, f, &note, &both);
+    check(both.count == 2, "the walk hands over every body the shape touches, not just the nearest");
+    Vec2 left;
+    Vec2 right;
+    check(seen_key(both, 10, left) && seen_key(both, 20, right),
+          "and names them by key, whatever order the band ran in");
+    // Нормаль — та же, по которой персонажа разбирает скольжение: НАРУЖУ из тела, то есть в сторону
+    // зонда. Без неё обход отвечал бы «касание есть», и снос не знал бы, куда сносить.
+    check(left.x.raw > 0 && right.x.raw < 0, "each contact carries the normal out of its body");
+
+    // Тот же критерий касания, что у свипа. Заявление несущее: персонаж ходит в мир свипами, и
+    // обход, считающий касание по-своему, разошёлся бы с ними на допуске — а на нём стоит зазор SKIN.
+    RayHit nearest;
+    check(shapecast(w, probe, {fix32{}, fix32{}}, fix32{}, Vec2{}, f, nearest),
+          "precondition: the sweep sees a contact in the same spot");
+    Vec2 same;
+    check(seen_key(both, nearest.key, same), "the sweep's answer is one of the walk's contacts");
+
+    Seen alone;
+    each_contact(w, probe, {fix32::from_int(-10), fix32{}}, fix32{}, f, &note, &alone);
+    check(alone.count == 1 && alone.key[0] == 10, "moved inside one body it hands over that one");
+
+    // Пусто — это НОЛЬ вызовов, а не последний ответ: обход ничего не накапливает и очищать ему
+    // нечего, поэтому единственный способ сказать «никого» — не позвать ни разу.
+    Seen nobody;
+    each_contact(w, probe, {fix32::from_int(1000), fix32{}}, fix32{}, f, &note, &nobody);
+    check(nobody.count == 0, "over empty space it calls back not once");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
     std::printf("framework physics overlap gate\n");
     test_overlap();
+    test_each_contact();
     std::printf("framework-physics-overlap: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

@@ -4,6 +4,7 @@
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
 #include "framework_character_ladder_scene.hpp"
+#include "framework_character_platform_scene.hpp"
 #include "framework_character_scene.hpp"
 #include "platform_args.hpp"
 
@@ -101,6 +102,44 @@ void test_ladder_step_allocates_nothing() {
     check(on_ladder > 120, "control: most of the counted ticks really were ladder ticks");
 }
 
+// Снос движущимся телом (шаг 0 тика, `push.hpp`) — третий путь, которого не видит ни один случай
+// выше: в общей сцене тел нет вовсе, поэтому обход касаний там не зовётся ни разу. Дорога к куче тут
+// самая короткая из всех — первый напрашивающийся запрос «кто здесь сейчас» (`overlap_shape`)
+// отвечает ВЕКТОРОМ, и снос обязан спрашивать мир не им, а обходом.
+void test_shove_allocates_nothing() {
+    Stage st = make_stage(physics::BodyType::Kinematic, {CARRY_V, fix32{}}, false);
+    MoveProfile p = default_profile();
+    // Без тяготения: падающий персонаж выпал бы из полосы платформы раньше, чем та до него доедет,
+    // и счётчик считал бы тики без единого касания.
+    p.gravity_rise = fix32{};
+    p.gravity_fall = fix32{};
+    const MoveDerived d = derive(p, tick_dt());
+    Character c;
+    c.position = {HANG_X, HANG_Y};
+    const fix32 from_x = c.position.x;
+    st.world.step(tick_dt());
+    step(st.view(), make_rider(), p, d, MoveInput{}, tick_dt(), c);
+
+    // Счётчик включается вокруг ТИКА, а не вокруг кадра: шаг мира — чужая работа, под инвариант 5 он
+    // не подпадает, и посчитанный вместе с тиком обвинял бы тик в чужой аллокации.
+    long during = 0;
+    for (uint32_t t = 0; t < 30; ++t) {
+        st.world.step(tick_dt());
+        framework::probe::in_hot = true;
+        framework::probe::allocs = 0;
+        step(st.view(), make_rider(), p, d, MoveInput{}, tick_dt(), c);
+        during += framework::probe::allocs;
+        framework::probe::in_hot = false;
+    }
+
+    std::printf("  allocs: 30 shoved ticks = %ld, moved %.2f\n", during,
+                (c.position.x - from_x).to_double());
+    check(during == 0, "the shoved tick allocates nothing");
+    // Прогон обязан состояться: платформа, не доехавшая до персонажа, отвечает про тик, в котором
+    // обход касаний не нашёл никого, — то есть про самый дешёвый путь из всех.
+    check(from_x < c.position.x, "control: the platform really did shove the character");
+}
+
 void test_counter_sees_a_real_allocation() {
     // Выделение зовётся через НЕПРОЗРАЧНУЮ ГРАНИЦУ (`framework_alloc_probe_control.hpp`): в своём
     // TU компилятор выбрасывает пару new/delete целиком, и контроль краснел бы при живом счётчике.
@@ -126,6 +165,7 @@ int main(int argc, char** argv) {
     std::printf("framework character alloc gate\n");
     test_step_allocates_nothing();
     test_ladder_step_allocates_nothing();
+    test_shove_allocates_nothing();
     test_counter_sees_a_real_allocation();
     std::printf("framework-character-alloc: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

@@ -154,6 +154,23 @@ void overlap_shape(const World& w, const Shape& s, Vec2 position, fix32 angle, c
               [](const Overlap& l, const Overlap& r) { return l.key < r.key; });
 }
 
+void each_contact(const World& w, const Shape& s, Vec2 position, fix32 angle,
+                  const QueryFilter& f, ContactFn fn, void* user) {
+    WorldShape probe;
+    query_shape(s, position, angle, probe);
+    scan_band(w, world_bounds(probe), f, [&](uint32_t i, const Body& b) {
+        WorldShape target;
+        to_world(b.shape, b.position, b.rot, target);
+        CastHit hit;
+        // Путь НУЛЕВОЙ: вопрос — «кого я задеваю здесь», и длина запроса в ответ не входит вовсе.
+        // Свип из перекрытия отвечает долей ноль и нормалью разделения (`cast.cpp`), то есть ровно
+        // тем, чем персонажа потом разбирает скольжение.
+        if (!cast_shape(probe, position, Vec2{}, target, b.position, hit)) return;
+        const RayHit contact{BodyId{i}, b.key, hit.fraction, hit.point, hit.normal};
+        fn(user, contact);
+    });
+}
+
 bool raycast(const World& w, Vec2 origin, Vec2 delta, const QueryFilter& f, RayHit& out) {
     WorldShape ray;
     ray_shape(origin, ray);
