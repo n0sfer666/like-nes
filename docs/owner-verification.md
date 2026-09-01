@@ -768,7 +768,7 @@ cmake --build build --target game_platformer
 ```
 
 Windows: `scripts\win-dev.bat` sets up vcvars, and the binary lands next to the copied WebGPU DLL,
-so run it as `build\example_ugly_game\game_platformer.exe` from the same prompt.
+so run it as `build\game_platformer.exe` from the same prompt.
 
 The window is 960×720 and the view inside it is 320×240 at ×3 — the level is 640×240, that is to
 say **wider than the view on purpose**: a camera that never has to scroll is a camera whose clamp is
@@ -950,9 +950,12 @@ Run it **from the worktree root**, not from `build/`: the bundle is found relati
 directory. Then the same three commands in your own checkout for the "after" run, and
 `git worktree remove ../like-nes-before-platformer` when both recordings are in hand.
 **On the Linux box the worktree and its build already exist** (prepared 2026-09-01), so the Linux
-pass is `cd ../like-nes-before-platformer && ./build/game_platformer` and nothing else. On Windows
-both builds go through `scripts\win-dev.bat` and the binaries are
-`build\example_ugly_game\game_platformer.exe`.
+pass is `cd ../like-nes-before-platformer && ./build/game_platformer` and nothing else. **On the
+Windows box they exist too** (prepared 2026-09-02, MSVC 14.44, Release): `cd ..\like-nes-before-platformer`
+and `build\game_platformer.exe`. Targets land flat in `build\`, next to the copied `wgpu_native.dll` —
+there is no `build\example_ugly_game\` binary, that directory holds CMake bookkeeping only. Building
+a worktree yourself goes through **that worktree's own** `scripts\win-dev.bat` (it works from its own
+root, so the checkout's copy would rebuild the checkout), and it builds every target, not one.
 
 The worktree is named after its half on purpose: the shooter half below pins a **different** "before"
 commit, and one shared `../like-nes-before` would have forced the two halves into sequence — build,
@@ -1015,8 +1018,9 @@ cd ../like-nes-before-shooter && ./build/game_sidescroller          # "before"
 
 Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
 in your own checkout, then `git worktree remove ../like-nes-before-shooter`. This worktree and its
-build are prepared on the Linux box too, from the same 2026-09-01 pass. On Windows both go
-through `scripts\win-dev.bat` and the binary is `build\example_ugly_game\game_sidescroller.exe`.
+build are prepared on the Linux box too, from the same 2026-09-01 pass, and on the Windows box from
+the 2026-09-02 one: `cd ..\like-nes-before-shooter` and `build\game_sidescroller.exe`, same flat
+layout as the half above.
 
 **Record one run of each** up to and including the boss fight, then answer:
 

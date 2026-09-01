@@ -509,7 +509,7 @@ owner_check.sh гоняет это сам и кладёт вывод в отчё
     ./build/game_platformer
 
   Windows: из x64 Native Tools prompt, затем
-    build\example_ugly_game\game_platformer.exe
+    build\game_platformer.exe
 
   Окно 960x720, вид внутри 320x240 при скейле x3. Уровень 640x240 — ШИРЕ
   вида намеренно: камера, которой некуда ехать, не проверяет свой кламп.
