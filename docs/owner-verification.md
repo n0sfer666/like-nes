@@ -733,9 +733,53 @@ says nothing at all about whether any of them is pleasant.
 6. **Walls and ceilings.** Push into the right wall and into the overhang above the pocket. Does he
    stop cleanly, or does he shudder, stick, or slide up the face?
 
+7. **The edges of the level and the platform's flank.** Walk into the left edge of the map and jump
+   at it — the hero must stay on the level. Then stand in the cyan slab's path, in mid-air, and let
+   it arrive: it should shove you along in front of it, not swallow you.
+
 If a pad is connected, answer 1–3 again on the stick: the dead zone is circular (0.18) and shared
 between the two axes, so a diagonal push is where a wrong shape shows up first — a diagonal that
 reads as "drop through" is a bug in the sign of `move_y`, not a matter of taste.
+
+### Run 2026-09-01 (Linux, Nobara): two findings, both fixed and pinned
+
+The owner ran the sample and answered 1–6; questions 1–5 came back clean and question 6 clean for
+walls and the overhang. Two things came back as findings, and question 7 above exists because of
+them — both were reachable by ordinary play and neither was visible from any gate that existed:
+
+* **The level had no left edge.** *"I walked left off the screen and the hero vanished, but the
+  controls stayed — I could still move the stage."* The left wall of the map is three tiles tall
+  and the jump takes four, so hero goes over it, and past column zero the grid holds no tiles at
+  all: he kept walking, kept falling and kept being controlled, outside the level. Fixed in
+  `platformer_scene.cpp` — the sample clamps the hero to the same rectangle the camera is already
+  clamped to (X only; the floor spans the whole width, and catching a fall through it would hide a
+  controller defect instead of closing a hole in the level). The clamp puts him **on** the boundary,
+  which is the edge of the map and not a promise of empty space, so it is followed by a nudge one
+  tile at a time back inside while the hull still stands in solid tiles — on this map the edge
+  column is exactly that, and without the nudge the clamp parked him inside the wall. Pinned by the
+  edge run in `game_platformer_sim_test`, which walks left **with the jump held** — plain walking
+  stops at the wall on 24.125 and would have passed the assertion without ever reaching the edge —
+  and which asserts on the run's **leftmost** position, not its last: the nudge returns him inside,
+  so by the final number "flew over the wall and was returned" and "never left the wall" look the
+  same.
+* **The moving platform went through a character it was not carrying.** *"If you jump neatly just
+  before the blue platform arrives, it keeps moving and squeezes you upwards like paste out of a
+  tube."* The character tick looked at moving bodies only through the support it was standing on, so
+  a platform arriving from the side kept driving into a mid-air character — fifty units deep over
+  half a second — and the only thing pushing back was `move_and_slide` stepping off the contact by
+  `SKIN` along whichever axis he had sunk into **less**, an eighth of a unit per tick, across the
+  platform's travel. Fixed by `character/push.hpp`: a body driving into a character shoves him along
+  its own direction, atomically, and reports `crushed` when the destination is blocked by something
+  other than the pusher. The ladder tick gets the same step 0, because a platform arriving at a
+  character hanging on a ladder is the same event. Pinned by `framework_character_push_test` (six
+  cases; on the pre-fix code the first of them measures a 53.985-unit penetration, and the
+  bystander case — a still body the character merely touches, with a **lower key** than the pusher —
+  is what defeats answering the question with a single nearest-hit sweep). Being crushed stays a
+  statement, not a decision: the engine sets the flag, and the sample answers it by returning the
+  hero to the spawn point, because left where he stands he would be crushed again next frame.
+
+Neither fix moves the route hash `0xfead7a87477a9258`: the scripted route touches neither the map's
+edge nor the platform's flank, which is exactly why it said nothing about either.
 
 **Record the screen** (spec #16 asks for it by name — macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G),
 one pass of the level, thirty seconds is enough. Send the recording, the startup line with the
