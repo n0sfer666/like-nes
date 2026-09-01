@@ -781,6 +781,53 @@ them — both were reachable by ordinary play and neither was visible from any g
 Neither fix moves the route hash `0xfead7a87477a9258`: the scripted route touches neither the map's
 edge nor the platform's flank, which is exactly why it said nothing about either.
 
+### Re-run 2026-09-01 (Linux, Nobara): the platform's flank, third finding
+
+The owner replayed the level on the two fixes above and recorded it. Questions **1–6 came back
+clean, all six**, and question 7 split: *"the edges are clean, the platform is not"*. What he saw
+was not a flag but a teleport — *"it throws me back to the spawn point"* — best visible at **11–13 s**
+of the recording, and the sample only ever teleports for one reason: `crushed` is set and
+`platformer_scene.cpp` answers it with `place_at_spawn`.
+
+Nothing was crushing him. **The carry was atomic across both axes at once.** A rider standing on the
+slab's roof is pushed right along with it; the overhang's left face is at x 592 and the slab's roof
+ends at 592 as well, so the rider ends up flush against that face at x 583.875 with a hull half-width
+of 8 — and there he still has a one-unit carry owed to him every tick. `carry_by_support` asked
+"does the whole displacement fit" in one question, got `false` because the face is in the way, and
+reported failure, which the tick reports as `crushed`. Repro before the fix, one tick:
+`t 1 CRUSHED hero=(40.000, 207.875)` — the coordinates are already the spawn point.
+
+The two axes are not the same event, and folding them into one question is what made the sample
+lethal. Upward, a platform **presses** the rider into the ceiling: nowhere to go is genuinely a
+crush. Sideways, it merely **drives along** under his soles: nowhere to go is a slip, the ordinary
+thing that happens whenever a rider meets a wall. Fixed in `carry_by_support` — the carry stays
+atomic, but **per axis**: a blocked horizontal drops to a slip and `true`, and only a blocked
+vertical is still a refusal. The ceiling case (`test_the_crush_is_a_fact`) is untouched, which is
+the point of the pair.
+
+Pinned twice, both red on the pre-fix code and green after it:
+
+* `framework_character_platform_test` — `test_a_blocked_ride_is_a_slip`, three assertions on a
+  fixture with a pillar planted in the platform's path: the blocked rider is not crushed, keeps his
+  ground, and stops at the last whole carry step before contact (14, the step before 16); the pair
+  without the pillar rides on; and a diagonal carry proves the vertical component is still delivered
+  while the horizontal one is refused. Pre-fix: three FAILs.
+* `game_platformer_sim_test` — `test_the_rider_is_not_crushed_at_the_overhang`, on the shipped
+  bundle, the sample's own numbers: `rider: hero=583.542 plate=555.999 slipped=1 crushed=0`. The
+  `slipped` field is the precondition, not decoration — without it the assertion would also pass for
+  a hero the platform never reached. Pre-fix the same line reads `hero=148.967 slipped=0 crushed=1`,
+  and 148.967 is the fall away from the spawn point the owner watched.
+
+The route hash `0xfead7a87477a9258` is unmoved again, for the same reason as before: the scripted
+route never rides the slab into the overhang.
+
+One thing the run **did not** find, recorded because it was chased and ruled out: the pocket the slab
+crosses is not too low for a standing hero. His crown sits at 191.875 (floor top 224, half-height 16,
+minus the `SKIN` the controller keeps under his soles) and the slab's underside at 192 — a gap of
+1/8, wider than `CONTACT_SLOP`, so nothing touches. A no-jump sweep of every start column from 20 to
+630, both travel directions, reports `crushes=0` after the fix. The crushes that remain all require
+jumping into the slab's band next to the step, which is the lethal case the owner asked for by name
+when he chose "shove him along in front of it" over "let him pass through".
 **Record the screen** (spec #16 asks for it by name — macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G),
 one pass of the level, thirty seconds is enough. Send the recording, the startup line with the
 `gamepad:` field as it printed on that machine, and a yes/no per question above with a sentence

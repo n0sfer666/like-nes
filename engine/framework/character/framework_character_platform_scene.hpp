@@ -116,6 +116,22 @@ inline void add_lid(Stage& st) {
     st.world.add(l);
 }
 
+// Столб НА ПУТИ ПАССАЖИРА: стоит над крышей платформы (60..100 по высоте) и в её ход по
+// горизонтали не лезет вовсе — низ столба ровно на верхе плиты, и та проезжает под ним. Стоящий на
+// крыше персонаж занимает 79.875..99.875, то есть упирается в столб БОКОМ, а не макушкой: между ним
+// и столбом нет ничего, чем можно сдавить, и остановленный им перенос — скольжение по опоре, а не
+// тиски. Ключ 3: 1 у платформы, 2 у стены сноса, а ничью долей пути физика разводит ключом.
+constexpr fix32 PILLAR_HALF_W = fix32::from_int(8);
+constexpr fix32 PILLAR_X = fix32::from_int(30);
+inline void add_pillar(Stage& st) {
+    physics::BodyDesc c;
+    c.key = 3;
+    c.type = physics::BodyType::Static;
+    c.shape = physics::box(PILLAR_HALF_W, fix32::from_int(20));
+    c.position = {PILLAR_X, PLATFORM_TOP - fix32::from_int(20)};
+    st.world.add(c);
+}
+
 struct Run {
     Vec2 moved;     // путь ПЕРСОНАЖА за считанные тики
     Vec2 platform;  // путь его ОПОРЫ за те же тики

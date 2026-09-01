@@ -77,6 +77,58 @@ void test_the_level_has_edges(const std::string& path) {
     check(st.hero.on_ground, "and on its floor: past the edge there is nothing to stand on");
 }
 
+// Третья находка владельческого прогона §6 (2026-09-01, уже по фиксам первых двух): «сбрасывает в
+// спавн». Пассажир, доехавший на плите до козырька и упёршийся в него, объявлялся раздавленным —
+// перенос опорой отбивался целиком, `crushed` поднимался, и образец отвечал на флаг возвратом в
+// точку появления. Давить там нечем: сверху пусто, плита едет ПОД подошвами, а козырёк стоит сбоку.
+//
+// Утверждение здесь, как и про край уровня: голден маршрута про этот угол карты не говорит ничего,
+// а дописать его в скрипт значило бы сдвинуть хеш ради случая, к нему не относящегося. Правило
+// движка пришпилено своим гейтом (`framework_character_platform_test`), здесь — ровно та
+// обстановка, в которой владелец это увидел.
+void test_the_rider_is_not_crushed_at_the_overhang(const std::string& path) {
+    platformer::Stage st;
+    if (!platformer::load_stage(path, st)) {
+        check(false, "the level loads for the rider run");
+        return;
+    }
+    // Плита у правого конца маршрута и едет ВПРАВО, персонаж — на её крыше правым боком у края:
+    // так он добирается до козырька своим ходом, не потеряв опоры, и координата козырька не
+    // переезжает из карты в этот файл второй правдой о ней.
+    const fix32 start = platformer::LIFT_RIGHT - fix32::from_int(16);
+    st.world.mutate(st.lift).position.x = start;
+    st.world.mutate(st.lift).velocity.x = platformer::LIFT_SPEED;
+    st.hero.position = {start + platformer::LIFT_HALF_W - platformer::HULL_HALF_W,
+                        platformer::LIFT_TOP - platformer::HULL_HALF_H - platformer::ch::SKIN};
+    st.hero.on_ground = true;
+    st.hero.state = platformer::ch::MoveState::Ground;
+
+    platformer::ch::MoveInput in;
+    in.move_x = fix32::from_int(1);
+    bool crushed = false;
+    bool slipped = false;
+    for (uint32_t t = 0; t < 30; ++t) {
+        const fix32 was = st.hero.position.x;
+        const fix32 plate_was = st.world.body(st.lift).position.x;
+        platformer::step_stage(st, in);
+        crushed = crushed || st.hero.crushed;
+        // Скольжение: плита уехала вправо, персонаж стоит на ней — и не сдвинулся. Предпосылка, а
+        // не утверждение: прогон, в котором персонаж просто гулял по крыше, доказывал бы «не
+        // раздавило» ни разу не упёршись, то есть был бы зелен вакуумно.
+        slipped = slipped || (st.hero.on_ground && st.hero.support.valid() &&
+                              st.hero.support.index == st.lift.index &&
+                              plate_was < st.world.body(st.lift).position.x &&
+                              st.hero.position.x == was);
+    }
+    std::printf("  rider: hero=%.3f plate=%.3f slipped=%d crushed=%d\n",
+                st.hero.position.x.to_double(),
+                st.world.body(st.lift).position.x.to_double(), slipped ? 1 : 0, crushed ? 1 : 0);
+    check(slipped, "precondition: the plate really carries him into the overhang and he holds");
+    check(!crushed, "a rider pressed against the overhang is not crushed by his own platform");
+    // Тот же факт словами владельца: он видел не флаг, а телепорт в точку появления.
+    check(platformer::SPAWN_X < st.hero.position.x, "and is never returned to the spawn point");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -136,6 +188,7 @@ int main(int argc, char** argv) {
     }
 
     test_the_level_has_edges(path);
+    test_the_rider_is_not_crushed_at_the_overhang(path);
 
     std::printf("game-platformer-sim: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
