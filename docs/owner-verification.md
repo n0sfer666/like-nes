@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Five of the seven gates below are **closed** — each of those carries the run that closed it, with
-the evidence; two are **open**. They stay here as the procedure, because each one needs a
+Six of the seven gates below are **closed** — each of those carries the run that closed it, with
+the evidence; one is **open**. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -11,22 +11,27 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
-| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** — macOS and Linux measured, Windows left | `engine/framework/character`, `engine/framework/tilemap`, query window |
+| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
-The open gates are the character tick cost and the look of the sample after the framework move. The
-first, with the physics gate, is one whose answer a runner could *print* but not *judge*: both ask
-whether a number fits a real frame budget on the slowest machine you own. The second a runner cannot
-even print — it is recordings held side by side, one pair per sample.
+The open gate is the look of the sample after the framework move, and it is the kind a runner cannot
+even *print* — it is recordings held side by side, one pair per sample. The character tick cost
+stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
+*judge*, because it asks, as the physics gate does, whether a number fits a real frame budget on the
+slowest machine you own.
 
-**Everything reachable from Linux was done on 2026-09-01, so what is left is a Windows session.**
-On the Intel UHD 620 box: the tick cost measured (§5, `worst` 0.2600 ms — 1.56% of a frame), the
-platformer played and its three findings fixed (§6, closed with the recording), the reference frame
-compared against a real Intel Vulkan driver (§8, `blob 1` of an allowed 12). Gate 9 (§7) is the one
-that cannot be finished from either OS alone in a single pass — it needs your eyes on two pairs of
+**Both sessions ran on 2026-09-01 — Linux first, Windows after — and between them they left one
+gate.** On the Intel UHD 620 box under Nobara: the tick cost measured (§5, `worst` 0.2600 ms —
+1.56% of a frame), the platformer played and its three findings fixed (§6, closed with the
+recording), the reference frame compared against a real Intel Vulkan driver (§8, `blob 1` of an
+allowed 12). On the same box under Windows 11 and MSVC: the tick cost measured again and §5 closed
+on it (`worst` 0.2338–0.6174 ms, the counters identical to the Linux run), and §8 answered twice
+more — once on the discrete NVIDIA MX150 and once, through `LIKENES_GPU_POWER=low`, on the Intel
+driver, a different stack over the same silicon. Gate 9 (§7) is what is left, and it is the one that
+cannot be finished from either OS alone in a single pass — it needs your eyes on two pairs of
 recordings — but both "before" builds are prepared on the Linux box already, so its Linux pass is
-down to running four binaries. The same four gates on Windows/MSVC close the round.
+down to running four binaries.
 
 The right-hand column is the whole point of keeping the procedure: a closed gate protects nothing if
 the code under it moves and nobody re-runs it — and the platformer gate, closed 2026-08-30, sits
@@ -607,7 +612,8 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
 ## 5. Gate 7 of #16 — the character tick cost (all three OSes)
 
-> **Open.** The counter half of this gate is closed by CI and needs no machine of yours: the same
+> **Closed 2026-09-01** by the Windows run at the foot of this banner. The counter half of this gate
+> is closed by CI and needs no machine of yours: the same
 > scripted route over a 256×32 map and over a 1024×256 one — thirty-two times the area — returns the
 > *same* `queries`, the same `scanned`, the same worst tick and the same trajectory hash, on three
 > OSes and in both configurations (`framework_character_perf_test`). That is invariant 4 of spec
@@ -631,8 +637,24 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 > with itself across the thirty-two-fold area on this machine too: `queries=5345 scanned=38794`
 > and `hash=5b3bcf0fc03ada62` on both maps, `allocs=0`.
 >
-> **What is still missing is Windows on that same box** — MSVC, Release, the same silicon. It is
-> one run, and it is the only thing between this gate and closed; macOS and Linux are in hand.
+> **Windows on that same box answered 2026-09-01, and it is what closes the gate.** Windows 11
+> (build 26200), MSVC 14.44.35207, Release, the same i7-8550U: five idle runs put the target-size
+> level at `worst` **0.2338–0.6174 ms** and `mean` **0.0304–0.0310 ms** — 0.18% of a 16.67 ms frame
+> by the mean, 1.7% by a typical worst tick, 3.7% by the longest of the five. The counters came out
+> identical to the Linux run on this silicon down to the digit: `queries=5345 scanned=38794`,
+> `hash=5b3bcf0fc03ada62`, worst tick `20 queries / 156 tiles`, `allocs=0`, `cols=[106, 193]`,
+> `ground=712 air=1088 ceiling=14 slope=123`. Two toolchains agreeing about the arithmetic to the
+> unit and differing only in the clock is the invariant answering on a third OS, not a coincidence.
+> MSVC is about a third slower than clang on this box by `mean` (0.0305 against ~0.0227) and carries
+> a longer tail: the 0.6174 ms draw is one sample of five whose `mean` did not move (0.0310 against
+> 0.0305 beside it), which is the scheduler, not the tick. Three OSes measured, the slowest of them
+> leaving twenty-six frames of headroom — no number here would have changed the spec, unlike #15,
+> where the owner's run cut 500 bodies to 350.
+>
+> The box was **idle** for those five runs, and that is why they are quoted: `LoadPercentage` was
+> held under 12% for five consecutive samples before the first one started. Straight after the build
+> it read 60–63% while Defender finished reading the fresh binaries, and the section below explains
+> what measuring through that would have printed.
 
 This gate is the character half of the frame-cost stage of `owner_check.sh`, so a full report
 already carries it. Alone:
@@ -661,11 +683,11 @@ differing counter prints its own `FAIL: <field> = N, reference says M` line and 
 non-zero.
 
 ```
-framework character perf gate (a target-size level costs a small one's tick)
-  small:  map=256x32 (8192 tiles) queries=<n> scanned=<n>
-  small:  worst tick = <n> queries / <n> tiles, hash=<hash>
-  small:  worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
-  small:  ground=<n> air=<n> ceiling=<n> slope=<n>
+framework character perf gate (1024 x 256 tiles)
+  small: map=256x32 (8192 tiles) queries=<n> scanned=<n>
+  small: worst tick = <n> queries / <n> tiles, hash=<hash>
+  small: worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
+  small: ground=<n> air=<n> ceiling=<n> slope=<n>
   target: map=1024x256 (262144 tiles) queries=<n> scanned=<n>
   target: worst tick = <n> queries / <n> tiles, hash=<hash>
   target: worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
@@ -1020,8 +1042,20 @@ counts exactly that case and nothing prints it yet, so a "no" here is also a req
 > self-test refused blot, scatter and the one-pixel shift, so the comparison that passed is a
 > comparison that can still fail.
 >
-> **AMD and NVIDIA are still unanswered**, and so is Windows on this same Intel — the driver stack
-> differs even where the silicon does not.
+> **NVIDIA and Windows answered 2026-09-01, on that same box.** Windows 11 (build 26200) takes the
+> discrete adapter by default, so the first run was the one no machine in this project had made:
+> `[gpu] NVIDIA GeForce MX150 | Vulkan | BC: yes`, `golden frame: mean 0.00000 max 0.03137 over-eps
+> 0.0002% blob 1` — one blob of an allowed twelve, two ten-thousandths of a percent of the pixels.
+> Forcing the integrated adapter with `LIKENES_GPU_POWER=low` answers the half the silicon alone
+> could not: the *same* Intel UHD 620, under the Windows driver instead of Mesa, came out `max
+> 0.00392 over-eps 0.0000% blob 0` — **not one pixel past eps**, against `max 0.18039 over-eps
+> 0.0004% blob 1` from Mesa on that very card. Two drivers over one GPU differing by a factor of
+> forty-six in peak error, both green, is the measurement that says the tolerance is sized for the
+> stack and not for the silicon. `repeat` was exact on both adapters (`max 0.00000 blob 0`) and the
+> self-test refused blot, scatter and the one-pixel shift on both, so neither number is about the
+> engine.
+>
+> **AMD is still unanswered** — it is the one adapter vendor nothing in this project has run on.
 
 ```sh
 ./build/game_sidescroller --frames 240 \
