@@ -11,16 +11,26 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
-| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** | `engine/framework/character`, `engine/framework/tilemap`, query window |
-| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
+| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** — macOS and Linux measured, Windows left | `engine/framework/character`, `engine/framework/tilemap`, query window |
+| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
 The open gates are the character tick cost and the look of the sample after the framework move. The
 first, with the physics gate, is one whose answer a runner could *print* but not *judge*: both ask
 whether a number fits a real frame budget on the slowest machine you own. The second a runner cannot
-even print — it is recordings held side by side, one pair per sample. The right-hand column is the whole point of keeping the procedure: a closed
-gate protects nothing if the code under it moves and nobody re-runs it — and the platformer gate,
-closed 2026-08-30, sits directly under the module this round keeps changing.
+even print — it is recordings held side by side, one pair per sample.
+
+**Everything reachable from Linux was done on 2026-09-01, so what is left is a Windows session.**
+On the Intel UHD 620 box: the tick cost measured (§5, `worst` 0.2600 ms — 1.56% of a frame), the
+platformer played and its three findings fixed (§6, closed with the recording), the reference frame
+compared against a real Intel Vulkan driver (§8, `blob 1` of an allowed 12). Gate 9 (§7) is the one
+that cannot be finished from either OS alone in a single pass — it needs your eyes on two pairs of
+recordings — but both "before" builds are prepared on the Linux box already, so its Linux pass is
+down to running four binaries. The same four gates on Windows/MSVC close the round.
+
+The right-hand column is the whole point of keeping the procedure: a closed gate protects nothing if
+the code under it moves and nobody re-runs it — and the platformer gate, closed 2026-08-30, sits
+directly under the module this round keeps changing.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
@@ -609,6 +619,20 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 > (macOS 26.5.2, Apple clang, Release) put the target-size level at `worst` 0.087 ms and `mean`
 > 0.0103 ms — 0.06% of a 16.67 ms frame — but the M3 Pro figure describes the M3 Pro, and the
 > machine that decides is the slowest one you have.
+>
+> **The slowest machine answered on 2026-09-01, and it answered Linux.** Nobara (kernel 7.2.0,
+> clang, Release) on the Intel UHD 620 box — the same box that decided the body count in the
+> physics gate one section up — put the target-size level at `worst` **0.2600 ms** and `mean`
+> **0.0242 ms**: **1.56%** and **0.15%** of a 16.67 ms frame. That worst tick is one draw from a
+> spread: five idle runs of the same binary landed between 0.1910 and 0.2785 ms, and the `mean`
+> barely moved at all (0.0226–0.0290). Three times the M3 Pro's worst tick
+> and still sixty-four frames' worth of headroom, so the number that would have changed the spec
+> does not exist here — unlike #15, where the owner's run cut 500 bodies to 350. The counter half agreed
+> with itself across the thirty-two-fold area on this machine too: `queries=5345 scanned=38794`
+> and `hash=5b3bcf0fc03ada62` on both maps, `allocs=0`.
+>
+> **What is still missing is Windows on that same box** — MSVC, Release, the same silicon. It is
+> one run, and it is the only thing between this gate and closed; macOS and Linux are in hand.
 
 This gate is the character half of the frame-cost stage of `owner_check.sh`, so a full report
 already carries it. Alone:
@@ -621,6 +645,15 @@ cmake --build build --target framework_character_perf_test
 (Windows: `scripts\win-dev.bat check` builds the tree, then
 `build\framework_character_perf_test.exe`. Both frame-cost measurements at once, physics and
 character, are `bash scripts/owner_perf.sh`.)
+
+**Measure on an idle machine — that is part of the procedure, not a nicety.** On 2026-09-01 this
+same binary on this same box printed `worst=3.7349 ms mean=0.1579 ms` while three builds were
+running beside it, and `worst=0.1910…0.2785 ms mean≈0.0227 ms` with the box quiet: **fourteen times
+apart**, 22% of a frame against 1.5%. Nothing in the output separates the two runs — the counters,
+the worst tick and the hash are pinned in the binary and come out identical either way, so the
+loaded run prints `PASS` and hands you a timing that reads as a finding about the tick. The step
+above this one in `owner_check.sh` builds nothing, but a build you started yourself in another
+window counts. Close them first, then measure.
 
 Expected output. The counters are **not repeated here**, for the reason given one section up: they
 are pinned as constants inside the binary and a copy in a runbook is a copy nothing checks. A
@@ -719,9 +752,11 @@ binary is stale, `controls unavailable` means the `input` section lost the `jump
 `surface texture status <n> - frame skipped` repeating every frame means the surface never
 recovered from a resize or a display change.
 
-**Walk the level left to right and answer six questions.** They are the same six moves the scripted
-run makes, which is the point: the hash says the moves came out identical on three machines, and it
-says nothing at all about whether any of them is pleasant.
+**Walk the level left to right and answer seven questions.** The first six are the moves the
+scripted run makes, which is the point: the hash says they came out identical on three machines, and
+it says nothing at all about whether any of them is pleasant. The seventh is here because the
+scripted run did *not* make it — it was added on 2026-09-01 after the live run found three defects
+the hash had been passing over for a month.
 
 1. **Running and stopping.** Does the hero start and stop when you ask, or does he skate past the
    spot you released at?
@@ -864,16 +899,24 @@ Two builds of the same level: the commit before the move, and the current one. T
 a worktree so your checkout stays where it is.
 
 ```sh
-git worktree add ../like-nes-before 2bdfcb7
-cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build ../like-nes-before/build --target game_platformer
-cd ../like-nes-before && ./build/game_platformer          # "before"
+git worktree add ../like-nes-before-platformer 2bdfcb7
+cmake -S ../like-nes-before-platformer -B ../like-nes-before-platformer/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before-platformer/build --target game_platformer
+cd ../like-nes-before-platformer && ./build/game_platformer          # "before"
 ```
 
 Run it **from the worktree root**, not from `build/`: the bundle is found relative to the working
 directory. Then the same three commands in your own checkout for the "after" run, and
-`git worktree remove ../like-nes-before` when both recordings are in hand. On Windows both builds go
-through `scripts\win-dev.bat` and the binaries are `build\example_ugly_game\game_platformer.exe`.
+`git worktree remove ../like-nes-before-platformer` when both recordings are in hand.
+**On the Linux box the worktree and its build already exist** (prepared 2026-09-01), so the Linux
+pass is `cd ../like-nes-before-platformer && ./build/game_platformer` and nothing else. On Windows
+both builds go through `scripts\win-dev.bat` and the binaries are
+`build\example_ugly_game\game_platformer.exe`.
+
+The worktree is named after its half on purpose: the shooter half below pins a **different** "before"
+commit, and one shared `../like-nes-before` would have forced the two halves into sequence — build,
+watch, tear down, build again — for no reason other than the name. They are independent runs and the
+text above already says so.
 
 Both runs print the same startup line — the one from section 6, `gamepad:` and all — and end with
 `[platformer] window clean exit`. A difference in either line is a finding before you look at a
@@ -923,15 +966,16 @@ a regression costs an evening:
   gate has a hole.
 
 ```sh
-git worktree add ../like-nes-before ddd0efa
-cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build ../like-nes-before/build --target game_sidescroller
-cd ../like-nes-before && ./build/game_sidescroller          # "before"
+git worktree add ../like-nes-before-shooter ddd0efa
+cmake -S ../like-nes-before-shooter -B ../like-nes-before-shooter/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before-shooter/build --target game_sidescroller
+cd ../like-nes-before-shooter && ./build/game_sidescroller          # "before"
 ```
 
 Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
-in your own checkout, then `git worktree remove ../like-nes-before`. On Windows both go through
-`scripts\win-dev.bat` and the binary is `build\example_ugly_game\game_sidescroller.exe`.
+in your own checkout, then `git worktree remove ../like-nes-before-shooter`. This worktree and its
+build are prepared on the Linux box too, from the same 2026-09-01 pass. On Windows both go
+through `scripts\win-dev.bat` and the binary is `build\example_ugly_game\game_sidescroller.exe`.
 
 **Record one run of each** up to and including the boss fight, then answer:
 
@@ -964,6 +1008,20 @@ counts exactly that case and nothing prints it yet, so a "no" here is also a req
 > runners have lavapipe on Linux and DX12-WARP on Windows, both software rasterisers, and the
 > macOS runner is the same Metal the reference was baked on. Your three machines are the only
 > AMD/NVIDIA/Intel in this project.
+>
+> **First real driver answered 2026-09-01: Intel UHD 620 (KBL GT2), Vulkan, Nobara.** The
+> tolerance survives it, and with room to spare — `golden frame: mean 0.00000 max 0.18039
+> over-eps 0.0004% blob 1` against an allowance of `eps 0.020, frac 0.100%, blob 12`. One blob of
+> twelve, four ten-thousandths of a percent of the pixels: the reference baked on Metal is a
+> reference on an Intel Vulkan driver too, which is the thing no runner could say.
+>
+> The strict half came out **exact**: `golden repeat: mean 0.00000 max 0.00000 over-eps 0.0000%
+> blob 0` — two runs on this adapter agree bit for bit, so nothing here is about the engine. The
+> self-test refused blot, scatter and the one-pixel shift, so the comparison that passed is a
+> comparison that can still fail.
+>
+> **AMD and NVIDIA are still unanswered**, and so is Windows on this same Intel — the driver stack
+> differs even where the silicon does not.
 
 ```sh
 ./build/game_sidescroller --frames 240 \
