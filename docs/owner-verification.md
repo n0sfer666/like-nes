@@ -1232,9 +1232,16 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.
 
-That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gates 7 and 8 of spec
-#16, which is what ADR
-[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
-[0014](../.context/decisions/2026-07-28-framework-input.md) and
-[0015](../.context/decisions/2026-08-08-physics-core.md) are waiting on to move from *Proposed*
-to *Accepted*. Four are sent; the platformer is the outstanding half.
+Every one of those has been sent, and each ADR that was waiting on one is now *Accepted*:
+[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md) (2026-08-06),
+[0014](../.context/decisions/2026-07-28-framework-input.md) (2026-08-07),
+[0015](../.context/decisions/2026-08-08-physics-core.md) (2026-08-22),
+[0016](../.context/decisions/2026-08-30-character-tilemap.md) and
+[0017](../.context/decisions/2026-08-30-graphics-framework.md) (2026-09-02). The list stays as the
+shape of a re-run: when a commit touches the surface named in the right-hand column of the table at
+the top, this is what the re-run is expected to produce.
+
+One thing on this page is still unanswered, and no gate waits on it: **AMD**. Section 8 has now been
+compared against Metal, lavapipe, DX12-WARP, Intel/Mesa, Intel/Windows and NVIDIA/Vulkan — six
+stacks, three of them real drivers, and not one AMD. It is the only adapter vendor nothing in this
+project has ever run on.
