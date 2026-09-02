@@ -1,0 +1,41 @@
+# Источники света golden-сцены гейта 7 (спека #18, вертикаль 3).
+#
+# Список ДАННЫЕ, а не код: число источников читается из таблицы, и в шейдере его нет вовсе.
+# Их здесь ПЯТЬ — ни три (столько зашито в PoC `scene.cpp`), ни шесть (столько влезало в
+# `array<vec4f,6>` прежнего юниформа): совпади оно с любым из двух, «читаем из таблицы» и
+# «оставили как было» дали бы один и тот же кадр.
+
+light | key | point
+set | pos       | -0.42, 0.28
+set | height    | 0.36
+set | color     | 1.00, 0.42, 0.28
+set | intensity | 3.20
+set | radius    | 1.55
+
+light | fill | point
+set | pos       | 0.44, 0.16
+set | height    | 0.30
+set | color     | 0.30, 0.55, 1.00
+set | intensity | 2.40
+set | radius    | 1.30
+
+light | rim | point
+set | pos       | 0.06, -0.46
+set | height    | 0.24
+set | color     | 0.45, 1.00, 0.55
+set | intensity | 1.80
+set | radius    | 1.10
+
+light | spark | point
+set | pos       | -0.18, -0.12
+set | height    | 0.12
+set | color     | 1.00, 0.86, 0.62
+set | intensity | 0.90
+set | radius    | 0.55
+
+# Направленный источник радиуса и высоты не имеет: затухания у него нет, и поля, которых у вида
+# нет, пекарь ОТБИВАЕТ, а не молча обнуляет.
+light | sun | directional
+set | dir       | 0.35, -0.94
+set | color     | 0.55, 0.62, 0.90
+set | intensity | 0.60

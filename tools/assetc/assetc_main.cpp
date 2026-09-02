@@ -46,7 +46,8 @@ int main(int argc, char** argv) {
                      "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
                      "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
-                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>  (tools-free)\n");
+                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
+                     " [--lights L.txt]  (tools-free)\n");
         return 2;
     }
     // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
@@ -87,11 +88,20 @@ int main(int argc, char** argv) {
     if (std::strcmp(argv[1], "--materials") == 0) {
         if (argc < 5) {
             std::fprintf(stderr,
-                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>\n");
+                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
+                         " [--lights <lights.txt>]\n");
             return 2;
         }
+        // Светы едут ИМЕНОВАННЫМ флагом, а не четвёртым позиционным путём: у этого режима уже был
+        // трёхаргументный вид, где третий путь был выходом, и устаревший бинарь написал бандл
+        // ПОВЕРХ исходника шейдера. Позиция, меняющая смысл, — тот же капкан по второму разу.
+        const char* lights_src = nullptr;
+        for (int i = 5; i + 1 < argc; i += 2)
+            if (std::strcmp(argv[i], "--lights") == 0) lights_src = argv[i + 1];
+
         std::vector<AssetInput> massets;
         if (!bakers::materials(argv[2], argv[3], massets)) return 1;
+        if (lights_src && !bakers::lights(lights_src, massets)) return 1;
         // Валидация стоит МЕЖДУ бейком и записью: отвергнутая библиотека не должна оставлять на
         // диске бандл, которым потом кто-то нарисует кадр (гейт 2 спеки #18).
         if (!validate_materials(massets, argv[3])) return 1;

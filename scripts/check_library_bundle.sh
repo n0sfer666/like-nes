@@ -15,11 +15,12 @@ tmp=$(mktemp -d) || exit 1
 # был выходом, и устаревший бинарь в `build-ci` дважды написал бандл ПОВЕРХ `sprite_effects.wgsl`.
 # Гейт при этом честно сообщал о расхождении — им же и вызванном. Копия отбирает у него право
 # портить то, что он проверяет.
-cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl "$tmp/" || {
+cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl \
+    engine/light/library/lights.txt "$tmp/" || {
     rm -rf "$tmp"; exit 1
 }
-if ! build-ci/assetc --materials "$tmp/library.mat" \
-        "$tmp/sprite_effects.wgsl" "$tmp/library.bundle" >"$tmp/bake.txt"; then
+if ! build-ci/assetc --materials "$tmp/library.mat" "$tmp/sprite_effects.wgsl" \
+        "$tmp/library.bundle" --lights "$tmp/lights.txt" >"$tmp/bake.txt"; then
     echo "  library.bundle не перепёкся — assetc --materials упал"
     cat "$tmp/bake.txt"
     rm -rf "$tmp"
@@ -28,7 +29,7 @@ fi
 if cmp -s "$tmp/library.bundle" example_ugly_game/assets/library.bundle; then
     echo "  library.bundle совпал с перепечённым"
 else
-    echo "  library.bundle ОТСТАЛ от engine/material/library — перепеки: assetc --materials"
+    echo "  library.bundle ОТСТАЛ от engine/material/library или engine/light/library"
     rc=1
 fi
 # Второй контроль — на КОНЦЫ СТРОК: ОБА входа с CRLF обязаны дать те же байты. Иначе артефакт
@@ -42,11 +43,12 @@ if ! command -v python3 >/dev/null 2>&1; then
     rc=1
 else
     crlf_ok=1
-    for f in library.mat sprite_effects.wgsl; do
+    for f in library.mat sprite_effects.wgsl lights.txt; do
+        case "$f" in lights.txt) sdir=engine/light/library ;; *) sdir=engine/material/library ;; esac
         if ! python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))" \
-                "engine/material/library/$f" "$tmp/crlf-$f"; then
+                "$sdir/$f" "$tmp/crlf-$f"; then
             echo "  контроль концов строк: подстановка CRLF в $f упала"; rc=1; crlf_ok=0
-        elif cmp -s "$tmp/crlf-$f" "engine/material/library/$f"; then
+        elif cmp -s "$tmp/crlf-$f" "$sdir/$f"; then
             # Вход, который подстановка не изменила, доказывает не независимость от концов строк, а
             # собственную неработоспособность — ровно в том сценарии, ради которого гейт и написан.
             echo "  контроль концов строк НЕ ИЗМЕНИЛ $f — сравнивать нечего"; rc=1; crlf_ok=0
@@ -54,7 +56,7 @@ else
     done
     if [ $crlf_ok -eq 1 ]; then
         if ! build-ci/assetc --materials "$tmp/crlf-library.mat" "$tmp/crlf-sprite_effects.wgsl" \
-                "$tmp/crlf.bundle" >/dev/null; then
+                "$tmp/crlf.bundle" --lights "$tmp/crlf-lights.txt" >/dev/null; then
             echo "  library.bundle: перепекание из копии с CRLF упало"; rc=1
         elif ! cmp -s "$tmp/crlf.bundle" example_ugly_game/assets/library.bundle; then
             echo "  library.bundle зависит от концов строк — байты артефакта не функция содержимого"
@@ -85,7 +87,7 @@ if [ -n "${checked:-}" ] && [ "${checked:-0}" -ge 1 ]; then
     python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
         engine/material/library/sprite_effects.wgsl "$tmp/bad.wgsl"
     if build-ci/assetc --materials "$tmp/library.mat" "$tmp/bad.wgsl" "$tmp/bad.bundle" \
-            >"$tmp/bad.txt" 2>&1; then
+            --lights "$tmp/lights.txt" >"$tmp/bad.txt" 2>&1; then
         echo "  БИТЫЙ ШЕЙДЕР ПРИНЯТ — валидация не отбивает несобираемый WGSL"
         rc=1
     elif ! grep -q "bad.wgsl:[0-9][0-9]*:[0-9][0-9]*: error:" "$tmp/bad.txt"; then

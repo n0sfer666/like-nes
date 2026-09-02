@@ -393,32 +393,35 @@ jobs:
           # с числом: список секций растёт осознанно, вместе с этой строкой.
           grep -q "verify: PASS - 5 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
-      # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: обе его секции пекутся чистыми
-      # парсерами — таблица материалов и текст модуля, — ни tint, ни basisu им не нужно, поэтому он
+      # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: все его секции пекутся чистыми
+      # парсерами — таблица материалов, текст модуля и таблица светов, — ни tint, ни basisu им не нужно, поэтому он
       # перепекается ЦЕЛИКОМ и сравнивается байт в байт. На бандле стоит живой прогон образца, и
       # правка library.mat без перепекания иначе доезжает молча. Печём из КОПИИ: у `--materials` был
       # трёхаргументный вид, где третий путь был выходом, и устаревший бинарь дважды написал бандл
       # поверх `sprite_effects.wgsl` — гейт портил ровно то, что проверяет.
-      - name: Asset — committed library.bundle matches engine/material/library + WGSL validated (all OS)
+      - name: Asset — committed library.bundle matches engine/{material,light}/library + WGSL validated (all OS)
         shell: bash
         run: |
           A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           mkdir -p libsrc
           cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl libsrc/
-          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle | tee libbake.txt
+          cp engine/light/library/lights.txt libsrc/
+          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle \
+            --lights libsrc/lights.txt | tee libbake.txt
           cmp libsrc/library.bundle example_ugly_game/assets/library.bundle || {
-            echo "library.bundle ОТСТАЛ от engine/material/library on ${{ matrix.os }}"; exit 1; }
+            echo "library.bundle ОТСТАЛ от engine/material/library или engine/light/library on ${{ matrix.os }}"; exit 1; }
           # Контроль на КОНЦЫ СТРОК, и он здесь не теоретический: `core.autocrlf=true` на
           # Windows-раннере уже дал 6192 байта против 6080 — по лишнему на строку, — и гейт покраснел,
           # ничего не сказав про сами материалы. Байты артефакта обязаны быть функцией содержимого.
-          for f in library.mat sprite_effects.wgsl; do
+          for f in library.mat sprite_effects.wgsl lights.txt; do
             python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))" \
               "libsrc/$f" "libsrc/crlf-$f"
             cmp -s "libsrc/crlf-$f" "libsrc/$f" && {
               echo "ПОДСТАНОВКА CRLF НЕ ИЗМЕНИЛА $f on ${{ matrix.os }}"; exit 1; }
           done
-          "$A" --materials libsrc/crlf-library.mat libsrc/crlf-sprite_effects.wgsl libsrc/crlf.bundle
+          "$A" --materials libsrc/crlf-library.mat libsrc/crlf-sprite_effects.wgsl libsrc/crlf.bundle \
+            --lights libsrc/crlf-lights.txt
           cmp libsrc/crlf.bundle example_ugly_game/assets/library.bundle || {
             echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК on ${{ matrix.os }}"; exit 1; }
           # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита, иначе
@@ -447,13 +450,26 @@ jobs:
           # весь гейт держится на том, что библиотека валидна, и молчал бы при выключенной проверке.
           python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
             libsrc/sprite_effects.wgsl libsrc/bad.wgsl
-          if "$A" --materials libsrc/library.mat libsrc/bad.wgsl libsrc/bad.bundle > bad.txt 2>&1; then
+          if "$A" --materials libsrc/library.mat libsrc/bad.wgsl libsrc/bad.bundle \
+              --lights libsrc/lights.txt > bad.txt 2>&1; then
             echo "БИТЫЙ ШЕЙДЕР ПРИНЯТ БЕЙКОМ on ${{ matrix.os }}"; cat bad.txt; exit 1
           fi
           grep -q "libsrc/bad.wgsl:[0-9][0-9]*:[0-9][0-9]*: error:" bad.txt || {
             echo "ОТКАЗ БЕЗ ДИАГНОСТИКИ file:line:col on ${{ matrix.os }}"; cat bad.txt; exit 1; }
           [ ! -f libsrc/bad.bundle ] || {
             echo "ОТВЕРГНУТАЯ БИБЛИОТЕКА ОСТАВИЛА БАНДЛ НА ДИСКЕ on ${{ matrix.os }}"; exit 1; }
+          # Тот же контроль по ВТОРОМУ входу: битый источник светов обязан быть отбит на уровне
+          # ПЕКАРЯ — с именем файла и номером строки. Юнит-тест светов проверяет парсер, а шов
+          # assetc печатает диагностику своим `report()`, и разъехаться они могут порознь.
+          printf 'light | broken | point\nset | pos | 0,0\n' > libsrc/bad-lights.txt
+          if "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/badl.bundle \
+              --lights libsrc/bad-lights.txt > badl.txt 2>&1; then
+            echo "БИТЫЙ ИСТОЧНИК СВЕТА ПРИНЯТ БЕЙКОМ on ${{ matrix.os }}"; cat badl.txt; exit 1
+          fi
+          grep -q "lights libsrc/bad-lights.txt: line 1:" badl.txt || {
+            echo "ОТКАЗ СВЕТОВ БЕЗ ФАЙЛА И СТРОКИ on ${{ matrix.os }}"; cat badl.txt; exit 1; }
+          [ ! -f libsrc/badl.bundle ] || {
+            echo "ОТВЕРГНУТЫЕ СВЕТЫ ОСТАВИЛИ БАНДЛ НА ДИСКЕ on ${{ matrix.os }}"; exit 1; }
 
       # Диагностика гейта 2 обещана спекой #18 «совместимой с панелью #7». Обещание проверяется
       # утверждением: строку печатает форматтер валидатора, разбирает её парсер редактора.
