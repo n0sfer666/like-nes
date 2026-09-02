@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Six of the seven gates below are **closed** — each of those carries the run that closed it, with
-the evidence; one is **open**. They stay here as the procedure, because each one needs a
+All seven gates below are **closed** — each carries the run that closed it, with the
+evidence. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -13,11 +13,11 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
-| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** — platformer half answered 2026-09-02, shooter half left | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
-The open gate is the look of the sample after the framework move, and it is the kind a runner cannot
-even *print* — it is recordings held side by side, one pair per sample. The character tick cost
-stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
+The last to close was the look of the sample after the framework move, and it is the kind a runner
+cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
+cost stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
 *judge*, because it asks, as the physics gate does, whether a number fits a real frame budget on the
 slowest machine you own.
 
@@ -28,11 +28,11 @@ recording), the reference frame compared against a real Intel Vulkan driver (§8
 allowed 12). On the same box under Windows 11 and MSVC: the tick cost measured again and §5 closed
 on it (`worst` 0.2338–0.6174 ms, the counters identical to the Linux run), and §8 answered twice
 more — once on the discrete NVIDIA MX150 and once, through `LIKENES_GPU_POWER=low`, on the Intel
-driver, a different stack over the same silicon. Gate 9 (§7) is what is left, and it is the one that
-cannot be finished from either OS alone in a single pass — it needs your eyes on two pairs of
-recordings — but both "before" builds are prepared on the Linux box already, so its Linux pass is
-down to running four binaries. **Its platformer half was answered on 2026-09-02** from the Windows
-box, where both "before" builds now stand as well; the shooter half is the whole of what is left.
+driver, a different stack over the same silicon. Gate 9 (§7) was what was left, and it is the one that
+could not be finished from either OS alone in a single pass — it needs your eyes on two pairs of
+recordings. **It was answered on 2026-09-02** from the Windows box: four binaries against the two
+"before" worktrees prepared there, both halves in one evening. Its Linux pass would now be a re-run,
+not a first answer, and both worktrees stand ready on that box too.
 
 The right-hand column is the whole point of keeping the procedure: a closed gate protects nothing if
 the code under it moves and nobody re-runs it — and the platformer gate, closed 2026-08-30, sits
@@ -926,8 +926,8 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 ## 7. Gate 9 of #17 — the sample looks the same after the framework move
 
-> **Open — the platformer half is answered (2026-09-02, Windows), the shooter half is not.**
-> Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
+> **Closed 2026-09-02** on the Windows box — both halves in one pass, the records at the foot of
+> each half below. Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
 > platformer's camera, view window, tile drawing and draw order, step B3 took the shooter's
 > particles and the instance buffer under them. Everything mechanical about either move is pinned
 > headless — `game_platformer_view_test` and the untouched route hash `0xfead7a87477a9258` (gate 10)
@@ -1013,7 +1013,7 @@ side-by-side answer — nothing was reported against the camera, and the "before
 not comparable anyway for the reason given at the top of this half. The "before" run reproduced the
 three gameplay defects listed there and nothing besides, which is the **first sighting by eye** of
 what `d0d4a14`, `e01908d` and `43b0ed6` fixed: until this run all three were pinned headless only.
-The shooter half below is still unanswered, so the gate itself stays open.
+The shooter half below was answered the same evening.
 
 ### The shooter, after step B3
 
@@ -1034,12 +1034,30 @@ a regression costs an evening:
   a rotated star is the same star. If you can see a difference here, that assertion is wrong and the
   gate has a hole.
 
+**All three sit below the threshold of the eye, and the expected answer to this half is therefore
+"the two are visually the same game".** That sentence was missing until 2026-09-02, and its absence
+was a defect of this runbook, not of the reader: "mistaking one of them for a regression costs an
+evening" reads as a promise that they are *visible*, and sends you hunting for something the port
+was built not to produce. Every number that governs what the eye sees was carried across unchanged —
+the burst counts (4 / 16 / 5 / 46 + 14 / 12) and speeds (120 / 250 / 170 / 340 / 140 / 220 px/s) now
+in `fx_table.hpp` are the literals that stood in `fx.cpp` at `ddd0efa`, and so are the colours, the
+sizes, the lifetimes, the ±5 px trail band and the 0.9 damping. What actually changed is the random
+stream, and one correlation traded for a ±4.8° cone of the same vertical reach. So the six questions
+below are not "spot the difference": they are six named things that had to **survive**, and a
+blanket "same game" answers each of them yes.
+
 ```sh
 git worktree add ../like-nes-before-shooter ddd0efa
 cmake -S ../like-nes-before-shooter -B ../like-nes-before-shooter/build -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build ../like-nes-before-shooter/build --target game_sidescroller
 cd ../like-nes-before-shooter && ./build/game_sidescroller          # "before"
 ```
+
+**Check first that the two binaries are not the same file.** Neither build prints anything that
+names it — no version line, no banner — so "I see no difference" is by itself indistinguishable from
+having run one binary twice, which is the vacuous green this repo hunts everywhere else. `ls -l`
+both paths before you start: on the Windows box of 2026-09-02 they were 2 723 328 and 2 817 536
+bytes. Different sizes are the positive control this half has; if they ever match, `md5sum` them.
 
 Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
 in your own checkout, then `git worktree remove ../like-nes-before-shooter`. This worktree and its
@@ -1069,6 +1087,20 @@ layout as the half above.
 A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at the burst counts in
 `fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
 counts exactly that case and nothing prints it yet, so a "no" here is also a request for that line.
+
+**Answered 2026-09-02** on the Windows box (MSVC 14.44, Release, Intel UHD 620), one run of each
+build up to and through the boss fight: *"no difference at all, two visually identical games"* —
+which is questions 1 through 5 each answered yes, the exhaust band, the muzzle puffs with the
+bullet's trail, the sixteen orange sparks, both waves of the boss's sixty, and the glow, all as
+described. Question 6 rides on that verdict instead of answering it: it asks for the **absence** of
+a moment, and the owner reported no anomaly rather than reporting that he watched for one — the pool
+holding under a live boss fight is unrefuted, not tested, and `Fx::dropped()` still prints nothing
+that would have turned it into an assertion. Provenance of the pair rests on the owner's own
+navigation into the worktree, with the file sizes above as its only check; it is corroborated for
+this pass by the platformer half, run the same evening through the same mechanism, which returned
+two **different** results — a mechanism handing back one binary twice could not have done that.
+
+With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
