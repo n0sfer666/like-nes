@@ -1,6 +1,9 @@
 #include "editor_ui.hpp"
 #include "editor_gate6.hpp"
+#include "material_panel.hpp"
+#include "material_panel_gate.hpp"
 #include "platform_args.hpp"
+#include "platform_env.hpp"
 #include "gpu.hpp"
 #include "wgpu_imgui.hpp"
 #include "backends/imgui_impl_glfw.h"
@@ -24,11 +27,18 @@ int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);   // путь снимка гейта приходит аргументом — шов обязателен
 
     bool gate6 = false;
+    bool gate3 = false;
     const char* gate6_png = "gate6.png";
+    const char* gate3_work = "gate3_work";
     for (int i = 1; i < argc; ++i) {
-        if (std::string(argv[i]) != "--gate6") continue;
-        gate6 = true;
-        if (i + 1 < argc && argv[i + 1][0] != '-') gate6_png = argv[++i];
+        const std::string a = argv[i];
+        if (a == "--gate6") {
+            gate6 = true;
+            if (i + 1 < argc && argv[i + 1][0] != '-') gate6_png = argv[++i];
+        } else if (a == "--gate3") {
+            gate3 = true;
+            if (i + 1 < argc && argv[i + 1][0] != '-') gate3_work = argv[++i];
+        }
     }
 
     EditorState st;   // flecs-мир создаётся ЗДЕСЬ (не в static-init)
@@ -95,9 +105,26 @@ int main(int argc, char** argv) {
     info.RenderTargetFormat = fmt;
     ImGui_ImplWGPU_Init(&info);
 
+    // Панель материалов поднимается ТОЛЬКО по каталогу из окружения: копия библиотеки рядом с
+    // исполняемым файлом не лежит, а зашитый путь к дереву исходников сделал бы редактор
+    // непереносимым. Каталога нет — панели нет, и это состояние названо словами (гейт 3 спеки #18).
+    std::string lib_dir;
+    platform::env_var("LIKENES_MATERIAL_LIB", lib_dir);
+    MaterialPanel materials;
+    const bool have_materials = !gate3 && !lib_dir.empty() && materials.init(gpu, lib_dir);
+    if (gate3)
+        std::fprintf(stderr, "[editor] materials panel: gate 3 runs its own copy\n");
+    else if (lib_dir.empty())
+        std::fprintf(stderr, "[editor] materials panel off: LIKENES_MATERIAL_LIB is not set\n");
+    else
+        std::fprintf(stderr, "[editor] materials panel %s: %s\n",
+                     have_materials ? "on" : "off", materials.status());
+
     int rc = 0;
     bool built = false;
-    if (gate6) {
+    if (gate3) {
+        rc = run_gate3(gpu, lib_dir, gate3_work);
+    } else if (gate6) {
         rc = run_gate6(st, win, gpu, surface, fmt, gate6_png);
     } else {
         while (!glfwWindowShouldClose(win)) {
@@ -112,12 +139,14 @@ int main(int argc, char** argv) {
             ImGui_ImplWGPU_NewFrame();
             ImGui_ImplGlfw_NewFrame();
             ImGui::NewFrame();
+            if (have_materials) { materials.poll(); materials.draw(); }
             draw_ui(st, built);
             ImGui::Render();
             wgpu_imgui::present(gpu, surface, WGPUColor{0.08, 0.09, 0.11, 1.0});
         }
     }
 
+    if (have_materials) materials.shutdown();
     ImGui_ImplWGPU_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();

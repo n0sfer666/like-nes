@@ -110,6 +110,15 @@ bool MaterialFx::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat targ
     return true;
 }
 
+bool MaterialFx::watch_shader(const std::string& wgsl_path) {
+    if (!ready_) return false;
+    return hot_.start(wgsl_path);
+}
+
+void MaterialFx::poll_shader() {
+    if (ready_ && hot_.watching()) hot_.poll(cache_, /*timeout_ms=*/0);
+}
+
 void MaterialFx::params(uint32_t material, float out[mat::PARAM_BLOCK_FLOATS]) const {
     if (material >= table_.count()) {
         for (uint32_t i = 0; i < mat::PARAM_BLOCK_FLOATS; ++i) out[i] = 0.0f;

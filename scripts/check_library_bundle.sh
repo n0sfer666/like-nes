@@ -19,8 +19,9 @@ cp engine/material/library/library.mat engine/material/library/sprite_effects.wg
     rm -rf "$tmp"; exit 1
 }
 if ! build-ci/assetc --materials "$tmp/library.mat" \
-        "$tmp/sprite_effects.wgsl" "$tmp/library.bundle" >/dev/null; then
+        "$tmp/sprite_effects.wgsl" "$tmp/library.bundle" >"$tmp/bake.txt"; then
     echo "  library.bundle не перепёкся — assetc --materials упал"
+    cat "$tmp/bake.txt"
     rm -rf "$tmp"
     exit 1
 fi
@@ -59,6 +60,41 @@ else
             echo "  library.bundle зависит от концов строк — байты артефакта не функция содержимого"
             rc=1
         fi
+    fi
+fi
+# Третье утверждение — ВАЛИДАЦИЯ (гейт 2 спеки #18): тот же прогон бейка собрал библиотеку на
+# бэкендах этой машины. Число ассертится ЧИСЛОМ, потому что код возврата у бейка нулевой и там, где
+# не поднялся ни один адаптер: «шейдер валиден» и «проверять было негде» различает только эта
+# строка. Имена бэкендов не ассертятся локально — их набор у машины владельца свой, а
+# «на macOS обязан быть Metal» стоит в шаге CI, где окружение известно.
+checked=$(sed -n 's/.*materials: \([0-9][0-9]*\) of [0-9][0-9]* target backend(s) checked/\1/p' \
+    "$tmp/bake.txt")
+if [ -z "$checked" ]; then
+    echo "  бейк не сказал, сколько бэкендов проверил — валидация молчит"
+    rc=1
+elif [ "$checked" -lt 1 ]; then
+    echo "  ни один бэкенд не проверил библиотеку — валидации на этой машине не было"
+    rc=1
+else
+    grep '\[assetc\] materials:' "$tmp/bake.txt" | sed 's/^/  /'
+fi
+# Позитивный контроль ВАЛИДАЦИИ: заведомо битый WGSL обязан быть отбит ненулевым кодом, названной
+# позицией и НЕ оставленным бандлом. Без него утверждение выше держится на том, что библиотека
+# валидна, и осталось бы зелёным при выключенной проверке.
+if [ -n "${checked:-}" ] && [ "${checked:-0}" -ge 1 ]; then
+    python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
+        engine/material/library/sprite_effects.wgsl "$tmp/bad.wgsl"
+    if build-ci/assetc --materials "$tmp/library.mat" "$tmp/bad.wgsl" "$tmp/bad.bundle" \
+            >"$tmp/bad.txt" 2>&1; then
+        echo "  БИТЫЙ ШЕЙДЕР ПРИНЯТ — валидация не отбивает несобираемый WGSL"
+        rc=1
+    elif ! grep -q "bad.wgsl:[0-9][0-9]*:[0-9][0-9]*: error:" "$tmp/bad.txt"; then
+        echo "  отказ без диагностики file:line:col — панель редактора её не разберёт"
+        cat "$tmp/bad.txt"
+        rc=1
+    elif [ -f "$tmp/bad.bundle" ]; then
+        echo "  отвергнутая библиотека оставила бандл на диске"
+        rc=1
     fi
 fi
 # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита. Без него первая

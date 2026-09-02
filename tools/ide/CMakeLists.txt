@@ -26,6 +26,12 @@ target_include_directories(diag_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(diagnostics_test compile/diagnostics_test.cpp)
 target_link_libraries(diagnostics_test PRIVATE diag_core)
 
+# Гейт 2 спеки #18 обещает диагностику, СОВМЕСТИМУЮ с этой панелью. Обещание проверяется здесь:
+# строку печатает валидатор материалов, разбирает её парсер выше, и обе стороны линкуются в одну
+# цель. Ни webgpu, ни устройства — формат строки от них не зависит.
+add_executable(material_diag_compat_test material_diag_compat_test.cpp)
+target_link_libraries(material_diag_compat_test PRIVATE diag_core material_diag)
+
 add_executable(perf_test perf_test.cpp)
 target_link_libraries(perf_test PRIVATE scene_core platform_core)   # шов: PLATFORM_NOINLINE
 
@@ -90,9 +96,14 @@ if(TARGET imgui)
   # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext и
   # capture (снимок кадра для --gate6) — из render_core; glfw3webgpu — surface из GLFW-окна.
   # platform_core нужен режиму гейта: паспорт сессии читает окружение через platform::env_var.
+  # Панель материалов (гейт 3 спеки #18) рисует превью ТЕМ ЖЕ кадром, что сверяет голден, —
+  # отсюда `material_preview`; `material_hot` даёт наблюдение за файлом, `material_bake` —
+  # выпечку библиотеки из текста, `diag_core` — разбор нашей же диагностики в поля панели.
   add_executable(editor_shell
-    editor/editor_shell_main.cpp editor/editor_gate6.cpp editor/editor_gate6_session.cpp)
-  target_link_libraries(editor_shell PRIVATE editor_core imgui render_core platform_core glfw3webgpu webgpu)
+    editor/editor_shell_main.cpp editor/editor_gate6.cpp editor/editor_gate6_session.cpp
+    editor/material_panel.cpp editor/material_panel_gate.cpp)
+  target_link_libraries(editor_shell PRIVATE editor_core diag_core imgui render_core
+    material_preview material_hot material_bake platform_core glfw3webgpu webgpu)
   target_copy_webgpu_binaries(editor_shell)
   reproducible_rpath(editor_shell)
 endif()

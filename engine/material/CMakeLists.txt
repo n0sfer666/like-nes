@@ -31,5 +31,23 @@ target_link_libraries(material_library_test PRIVATE material_bake platform_core)
 # ядро читает таблицу и не знает про GPU вовсе — им пользуются пекарь и тесты, которым WebGPU не
 # нужен, а на мобильных шеллах его ещё и нет. Текстового парсера здесь тоже нет: кэш получает
 # готовую таблицу и текст модуля, а откуда они взялись — не его вопрос.
-add_library(material_gpu STATIC cache.cpp pipeline.cpp)
-target_link_libraries(material_gpu PUBLIC material_core webgpu)
+add_library(material_gpu STATIC cache.cpp pipeline.cpp reload.cpp wgpu_error.cpp)
+target_link_libraries(material_gpu PUBLIC material_core material_diag webgpu)
+
+# Диагностика шейдера — своей целью БЕЗ webgpu. Не мелочность: её линкует тест совместимости с
+# панелью редактора (#7), у которого ни устройства, ни адаптера нет и быть не должно, — а тест,
+# ради формата строки поднимающий GPU, не запускается там, где формат как раз и разъезжается.
+add_library(material_diag STATIC diag.cpp)
+target_include_directories(material_diag PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Горячая замена библиотеки по правке файла (гейт 3 спеки #18). Отдельной целью, потому что здесь
+# кэш впервые узнаёт про ФАЙЛЫ: `material_gpu` получает текст модуля готовым и тем живёт в играх,
+# где никакого `.wgsl` на диске нет вовсе. Наблюдение идёт через шов №8 платформы (спека #13).
+add_library(material_hot STATIC hot_reload.cpp)
+target_link_libraries(material_hot PUBLIC material_gpu platform_core)
+
+# Кросс-бэкендная валидация библиотеки (гейт 2 спеки #18). Отдельно от `material_gpu`, потому что
+# потребитель у неё один и он не рисует: пекарь. Кэшу она не нужна, а тянуть в каждую игру
+# перебор бэкендов значило бы поднимать в рантайме три инстанса ради вопроса, отвеченного в бейке.
+add_library(material_validate STATIC validate.cpp validate_device.cpp)
+target_link_libraries(material_validate PUBLIC material_gpu material_diag)

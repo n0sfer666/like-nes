@@ -103,10 +103,10 @@ target_link_libraries(game_sidescroller PRIVATE
 # `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
 # начале строки, и в хвосте замыкания.
 target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
-# Библиотека эффектов (спека #18, второй потребитель). Названа только `material_gpu`: `material_core`
-# он тянет PUBLIC-связью, и второе имя дало бы `warning: ignoring duplicate libraries` на macOS —
-# мимо -Werror, но прямо в лог гейта.
-target_link_libraries(game_sidescroller PRIVATE material_gpu)
+# Библиотека эффектов (спека #18) + драйвер горячей замены (гейт 3): правка шейдера проверяется в
+# том, что рисует. Названа только `material_hot`: `material_gpu`, `material_core` и `platform_core`
+# он тянет PUBLIC-связью, и второе имя дало бы `warning: ignoring duplicate libraries` на macOS.
+target_link_libraries(game_sidescroller PRIVATE material_hot)
 # Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
 # что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
 # предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
@@ -184,7 +184,7 @@ target_include_directories(game_platformer PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
 target_link_libraries(game_platformer PRIVATE
   engine_core framework_character framework_graphics_tiles framework_input asset_core
-  material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+  material_hot flecs_static webgpu glfw3webgpu glfw Threads::Threads)
 if(APPLE)
   target_link_libraries(game_platformer PRIVATE
     "-framework GameController" "-framework CoreHaptics" "-framework Foundation")

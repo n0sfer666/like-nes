@@ -52,9 +52,24 @@ endif()
 # Первый потребитель материалов (решение 6 спеки #18): библиотека эффектов, нарисованная через
 # кэш. Живёт в render, а не в material, по направлению зависимости — рисующий знает про материалы,
 # материалы про рисующего не знают (инвариант 1 спеки #14).
-add_executable(material_golden
-  material_golden_main.cpp material_scene.cpp material_textures.cpp material_frame.cpp)
-target_link_libraries(material_golden PRIVATE render_core material_gpu material_bake
+# Сцена, текстуры и offscreen-кадр вынесены в БИБЛИОТЕКУ, а не собираются в голден-цель: тем же
+# кадром рисует превью материалов в редакторе (гейт 3 спеки #18, половина «в редакторе»), и второй
+# реализацией он разъехался бы с голденом ровно в том, что голден и проверяет.
+add_library(material_preview STATIC material_scene.cpp material_textures.cpp material_frame.cpp)
+target_include_directories(material_preview PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(material_preview PUBLIC material_gpu webgpu)
+
+add_executable(material_golden material_golden_main.cpp)
+target_link_libraries(material_golden PRIVATE render_core material_preview material_bake
   platform_core webgpu)
 target_copy_webgpu_binaries(material_golden)
 reproducible_rpath(material_golden)
+
+# Гейт 3 спеки #18: горячая замена библиотеки. Отдельной целью от `material_golden`, а не флагом
+# в нём: предмет здесь другой — не кадр и не счётчики батчинга, а ЖИВУЧЕСТЬ сцены после битой
+# правки, — и в логе обязано стоять имя упавшего гейта, а не «что-то в материалах».
+add_executable(material_hot_reload material_hot_reload_main.cpp)
+target_link_libraries(material_hot_reload PRIVATE render_core material_hot material_bake
+  platform_core webgpu)
+target_copy_webgpu_binaries(material_hot_reload)
+reproducible_rpath(material_hot_reload)

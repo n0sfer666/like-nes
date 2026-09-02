@@ -3,8 +3,10 @@
 #include <webgpu/webgpu.h>
 
 #include <cstdint>
+#include <string>
 #include <vector>
 
+#include "diag.hpp"
 #include "instance.hpp"
 #include "table.hpp"
 
@@ -44,10 +46,17 @@ public:
     // перестать расти — компиляция В КАДРЕ и есть тот фриз, ради которого написан инвариант 3.
     void warm_up();
 
+    // Горячая замена библиотеки целиком (гейт 3 спеки #18). true — набор заменён; false — НИЧЕГО
+    // не изменилось, кэш рисует прежним вариантом, причина лежит в `diag` с файлом и строкой.
+    // Именно так: правка шейдера делается вслепую по десять раз подряд, и вариант «сохранил с
+    // опечаткой — сцена погасла» стоит дороже, чем любая экономия на промежуточном наборе.
+    bool reload(const char* wgsl, const std::string& file, ShaderDiag& diag);
+
     WGPUBindGroupLayout layout() const { return bgl_; }
 
     uint32_t pipelines_created() const { return created_; }
     uint32_t fallbacks() const { return fallbacks_; }
+    uint32_t reloads() const { return reloads_; }
 
 private:
     struct Entry {
@@ -62,6 +71,7 @@ private:
     WGPUTextureFormat target_ = WGPUTextureFormat_RGBA8Unorm;
     const Table* table_ = nullptr;
     const char* wgsl_ = nullptr;
+    std::string owned_wgsl_;   // текст, приехавший горячей заменой: кэш переживает его источник
     WGPUShaderModule module_ = nullptr;
     WGPUShaderModule fallback_module_ = nullptr;
     WGPUBindGroupLayout bgl_ = nullptr;
@@ -70,6 +80,7 @@ private:
     std::vector<Entry> entries_;
     uint32_t created_ = 0;
     uint32_t fallbacks_ = 0;
+    uint32_t reloads_ = 0;
 };
 
 // Раскладка вершинных буферов библиотеки: quad-VB (позиция+uv) и инстансный буфер `Instance`.

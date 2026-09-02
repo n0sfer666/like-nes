@@ -35,6 +35,28 @@ void set_blend(uint8_t blend, WGPUBlendState& out) {
 
 } // namespace
 
+WGPUBindGroupLayout make_bind_group_layout(WGPUDevice device) {
+    WGPUBindGroupLayoutEntry e[4] = {};
+    e[0].binding = 0;
+    e[0].visibility = WGPUShaderStage_Vertex | WGPUShaderStage_Fragment;
+    e[0].buffer.type = WGPUBufferBindingType_Uniform;
+    e[0].buffer.minBindingSize = 16;
+    e[1].binding = 1;
+    e[1].visibility = WGPUShaderStage_Fragment;
+    e[1].sampler.type = WGPUSamplerBindingType_Filtering;
+    e[2].binding = 2;
+    e[2].visibility = WGPUShaderStage_Fragment;
+    e[2].texture.sampleType = WGPUTextureSampleType_Float;
+    e[2].texture.viewDimension = WGPUTextureViewDimension_2D;
+    e[3] = e[2];
+    e[3].binding = 3;
+
+    WGPUBindGroupLayoutDescriptor d = {};
+    d.entryCount = 4;
+    d.entries = e;
+    return wgpuDeviceCreateBindGroupLayout(device, &d);
+}
+
 WGPUShaderModule make_module(WGPUDevice device, const char* wgsl) {
     WGPUShaderModuleWGSLDescriptor desc = {};
     desc.chain.sType = WGPUSType_ShaderModuleWGSLDescriptor;
