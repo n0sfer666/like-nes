@@ -6,13 +6,19 @@
 // which is why they live in one file instead of three copies of the same vertex stage.
 //
 // Parameter slots are NOT free-form: the baker assigns them in declaration order in `library.mat`,
-// and the numbers below mirror that assignment. The mirror is pinned by `material_library_test` —
+// and the numbers below mirror that assignment. The mirror is pinned by `material_library_test` --
 // reordering the rows of `library.mat` without touching this file fails that gate instead of
 // silently feeding the shader a value from the wrong offset.
 
 struct Viewport {
-    size: vec2f,
-    texel: vec2f,
+    // Half the screen in pixels: world coordinates divide by it and land in NDC. Same shape and
+    // size as the uniform of the sample game's SpriteBatch, so the library has ONE vertex stage
+    // across both consumers instead of a copy per consumer.
+    half_extent: vec2f,
+    // Padding to the 16 bytes a uniform buffer binds, and the same shape as the sample game's VP
+    // struct. Effects that need a size work in the INSTANCE's units instead (see `upx` below):
+    // a screen-wide texel says nothing about how large this particular sprite is drawn.
+    pad: vec2f,
 };
 
 @group(0) @binding(0) var<uniform> vp: Viewport;
@@ -21,13 +27,16 @@ struct Viewport {
 @group(0) @binding(3) var aux: texture_2d<f32>;
 
 struct VsIn {
-    @builtin(vertex_index) vi: u32,
-    @location(0) rect: vec4f,
-    @location(1) uv: vec4f,
-    @location(2) color: vec4f,
-    @location(3) rot: f32,
-    @location(4) p0: vec4f,
-    @location(5) p1: vec4f,
+    @location(0) qpos: vec2f,
+    @location(1) quv: vec2f,
+    @location(2) ipos: vec2f,
+    @location(3) isize: vec2f,
+    @location(4) iuv0: vec2f,
+    @location(5) iuv1: vec2f,
+    @location(6) itint: vec4f,
+    @location(7) irot: f32,
+    @location(8) ip0: vec4f,
+    @location(9) ip1: vec4f,
 };
 
 struct VsOut {
@@ -36,30 +45,26 @@ struct VsOut {
     @location(1) color: vec4f,
     @location(2) p0: vec4f,
     @location(3) p1: vec4f,
+    // How much UV one SCREEN PIXEL of this instance covers. Thickness authored in pixels becomes a
+    // UV offset only through this: the same material on a sprite drawn twice as large must keep the
+    // outline one pixel wide, and a constant taken from the screen or the atlas cannot do that.
+    @location(4) upx: vec2f,
 };
 
 @vertex
 fn vs_main(in: VsIn) -> VsOut {
-    var corner = array<vec2f, 4>(
-        vec2f(-0.5, -0.5), vec2f(0.5, -0.5), vec2f(0.5, 0.5), vec2f(-0.5, 0.5)
-    );
-    var idx = array<u32, 6>(0u, 1u, 2u, 0u, 2u, 3u);
-    let c = corner[idx[in.vi]];
-
-    let s = sin(in.rot);
-    let k = cos(in.rot);
-    let scaled = vec2f(c.x * in.rect.z, c.y * in.rect.w);
-    let rotated = vec2f(scaled.x * k - scaled.y * s, scaled.x * s + scaled.y * k);
-    let px = in.rect.xy + rotated;
+    let k = cos(in.irot);
+    let s = sin(in.irot);
+    let rq = vec2f(in.qpos.x * k - in.qpos.y * s, in.qpos.x * s + in.qpos.y * k);
+    let world = in.ipos + rq * in.isize;
 
     var out: VsOut;
-    // +Y is down in engine units (physics/units.hpp), +Y is up in clip space: the flip lives here,
-    // once, and not in every effect.
-    out.pos = vec4f(px.x / vp.size.x * 2.0 - 1.0, 1.0 - px.y / vp.size.y * 2.0, 0.0, 1.0);
-    out.uv = mix(in.uv.xy, in.uv.zw, c + vec2f(0.5, 0.5));
-    out.color = in.color;
-    out.p0 = in.p0;
-    out.p1 = in.p1;
+    out.pos = vec4f(world / vp.half_extent, 0.0, 1.0);
+    out.uv = mix(in.iuv0, in.iuv1, in.quv);
+    out.color = in.itint;
+    out.p0 = in.ip0;
+    out.p1 = in.ip1;
+    out.upx = (in.iuv1 - in.iuv0) / in.isize;
     return out;
 }
 
@@ -79,7 +84,7 @@ fn fs_outline(in: VsOut) -> @location(0) vec4f {
     if (c.a > 0.5) {
         return c;
     }
-    let step = vp.texel * in.p1.x;
+    let step = in.upx * in.p1.x;
     var near = 0.0;
     near = max(near, textureSample(albedo, samp, in.uv + vec2f(step.x, 0.0)).a);
     near = max(near, textureSample(albedo, samp, in.uv - vec2f(step.x, 0.0)).a);

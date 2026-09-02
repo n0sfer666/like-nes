@@ -40,7 +40,10 @@ struct MaterialRow {
     uint16_t base;
     uint8_t blend;
     uint8_t reserved0;
-    uint32_t reserved1;
+    // Имя шейдера, а не только его guid: guid адресует ассет, а точку входа в модуле нечем назвать,
+    // кроме строки. Отдельного соглашения «guid X значит вход Y» здесь нет намеренно — соглашение,
+    // которое ничто не проверяет, разъезжается молча (спека #18, шов «материал → пайплайн»).
+    uint32_t shader_off;
 };
 static_assert(sizeof(MaterialRow) == 32, "MaterialRow layout pinned (zero-parse ABI)");
 
@@ -87,6 +90,9 @@ public:
     const ParamRow& param(uint32_t i) const { return params_[i]; }
     const TextureRow& texture(uint32_t i) const { return textures_[i]; }
     const char* name(uint32_t off) const { return strings_ + off; }
+
+    // Имя шейдера материала = имя точки входа в модуле библиотеки.
+    const char* shader(uint32_t i) const { return strings_ + materials_[i].shader_off; }
 
     // Индекс материала по имени — то самое число, которое ложится в `Sprite::material`.
     // Ненайденное имя отдаёт `count()`, а не 0: нулевой индекс — законный материал.

@@ -24,3 +24,10 @@ target_link_libraries(material_table_test PRIVATE material_bake)
 # относительный от корня дерева, как у бандл-гейтов).
 add_executable(material_library_test material_library_test.cpp)
 target_link_libraries(material_library_test PRIVATE material_bake platform_core)
+
+# Шов «материал → пайплайн» (гейты 4/5/6 спеки #18). Третья цель, а не часть `material_core`:
+# ядро читает таблицу и не знает про GPU вовсе — им пользуются пекарь и тесты, которым WebGPU не
+# нужен, а на мобильных шеллах его ещё и нет. Текстового парсера здесь тоже нет: кэш получает
+# готовую таблицу и текст модуля, а откуда они взялись — не его вопрос.
+add_library(material_gpu STATIC cache.cpp pipeline.cpp)
+target_link_libraries(material_gpu PUBLIC material_core webgpu)

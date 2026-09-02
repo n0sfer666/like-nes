@@ -284,6 +284,27 @@ jobs:
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
+      # Гейты 4/5/6 спеки #18 — шов «материал → пайплайн» на живой видеокарте, на всех трёх ОС и
+      # БЕЗ эталонной картинки. Утверждения здесь числовые, и потому портируемые: сколько пайплайнов
+      # дал разогрев (семь материалов делят три точки входа), во сколько вызовов собрался кадр
+      # (двадцать восемь объектов с РАЗНЫМИ значениями параметров — параметры едут в инстансном
+      # буфере, инвариант 2 спеки) и создал ли кадр после разогрева хоть один пайплайн (инвариант 3).
+      # Кадр при этом ещё и сверяется сам с собой: два прогона на одном бэкенде обязаны совпасть
+      # ТОЧНО. Сверка с эталонным PNG сюда не вынесена намеренно — она у владельца на Metal
+      # (docs/owner-verification.md, гейт 1): допуск, под который пролезает lavapipe, пропускает
+      # заодно и настоящий артефакт, и это уже измерено в гейте 2 спеки #17.
+      - name: Materials — cache, batching and warm-up on a real GPU (gates 4/5/6 of spec #18)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'material_golden' -o -name 'material_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "material_golden not built"; exit 1; }
+          "$BIN" --selftest | tee mat.txt
+          grep -q "warm-up: 3 pipeline(s) for 7 material(s), 0 fallback(s)" mat.txt || {
+            echo "WARM-UP COUNT CHANGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "in 3 draw call(s)" mat.txt || {
+            echo "PARAMETERS SPLIT THE BATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "material-gpu: PASS" mat.txt || { echo "MATERIAL GATES FAILED"; exit 1; }
+
       # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---
       # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
       # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,

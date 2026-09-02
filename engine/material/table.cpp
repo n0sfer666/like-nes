@@ -71,7 +71,7 @@ LoadResult Table::load(const void* base, std::size_t size) {
 
     for (uint32_t i = 0; i < h->material_count; ++i) {
         const MaterialRow& m = materials[i];
-        if (m.name_off >= str_len) return LoadResult::BadString;
+        if (m.name_off >= str_len || m.shader_off >= str_len) return LoadResult::BadString;
         if (m.blend > static_cast<uint8_t>(Blend::Additive)) return LoadResult::BadEnum;
         if (static_cast<uint64_t>(m.param_first) + m.param_count > h->param_count)
             return LoadResult::BadRange;

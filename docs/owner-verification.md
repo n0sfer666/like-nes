@@ -1,7 +1,8 @@
 # Owner verification: the gates a runner cannot close
 
-All seven gates below are **closed** — each carries the run that closed it, with the
-evidence. They stay here as the procedure, because each one needs a
+Seven of the eight gates below are **closed** — each carries the run that closed it, with the
+evidence. The eighth (§9, the effect library) opened with round #18 and waits for a machine with a
+screen. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -14,6 +15,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1203,6 +1205,77 @@ measurement or stays and the renderer gets fixed. Do **not** re-bake with `--upd
 reference is pinned on Metal deliberately, and a re-bake on another GPU silently turns the gate into
 a comparison of your machine with itself.
 
+## 9. Gate 1 of #18 — the effect library on a real GPU
+
+> **Open.** The numeric half of this seam is machine-side and green on all three runners: how many
+> pipelines the warm-up builds, in how many draw calls the frame is assembled, and whether a frame
+> after the warm-up compiles anything. What no runner can answer is the picture — whether flash,
+> outline and dissolve look like what the material *says*, on a screen.
+
+```sh
+cmake --build build --target material_golden
+./build/material_golden --golden engine/render/golden/materials_640x360.png
+```
+
+Expected, on the Metal machine the reference was baked on:
+
+```
+[material] no entry point `fs_nope` in the library: falling back
+[gpu] <adapter> | Metal | BC: yes
+  warm-up: 3 pipeline(s) for 7 material(s), 0 fallback(s)
+  frame: 28 instance(s) in 3 draw call(s)
+  painted: 30.4% of the frame
+  golden engine/render/golden/materials_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
+material-gpu: PASS
+```
+
+The first line is not a failure: the run deliberately builds a material naming a shader entry that
+does not exist, to prove a broken material still draws with the fallback instead of drawing nothing.
+Its absence would be the finding.
+
+`max=0.00000` means the reference file is bit for bit what your GPU just drew, so opening
+`engine/render/golden/materials_640x360.png` *is* looking at your own frame. If the numbers came out
+non-zero, write yours to a scratch path first — the harness bakes a reference it cannot read —
+and compare the two by eye:
+
+```sh
+./build/material_golden --golden /tmp/mine.png
+```
+
+Do **not** point `--update` at the checked-in reference on another machine: it would replace the
+pinned frame with yours and turn the gate into a comparison of your GPU with itself.
+
+Then open the PNG and answer four questions — this is the half the numbers do not cover:
+
+1. **Seven columns, four rows.** Left to right: `flash`, `flash_red`, `flash_gold`, `outline`,
+   `outline_danger`, `dissolve`, `dissolve_ash`. Bottom row is the material's own value, each row
+   up adds one step. Is every column there?
+2. **Flash** — the tint grows upward, white / red / gold by column. The bottom sprite carries the
+   material's own strength: untouched in `flash` and `flash_red` (0), already half-tinted in
+   `flash_gold` (0.5). Do the colours match the names, and is the ramp the right way up? Strongest
+   at the bottom means the parameter arrives inverted.
+3. **Outline** — a ring OUTSIDE the silhouette, black in column 4 and red in column 5, starting at
+   1 px in the bottom row (2 px for `outline_danger`, its own thickness) and growing a pixel per
+   row. Does it ring the whole sprite, or only an arc? An arc means thickness is converted to UV
+   through the wrong size — the bug this gate caught on 2026-09-02, when the shader offset by a
+   screen-wide texel instead of the instance's own.
+4. **Dissolve** — the bottom sprite is whole (threshold 0) and holes eat it upward, with a coloured
+   rim on the edge: orange in `dissolve`, ash-grey and twice as wide in `dissolve_ash`. Is the rim
+   there, and is it the colour the material names?
+
+**On Linux and Windows run `--selftest`, not `--golden`.** The comparison this harness carries is
+the render-vertical one (`eps 0.02`, `frac 1%`, peak cap 0.35), and it judges the PEAK error — which
+§8 has already measured at 0.73 on a foreign rasteriser, on exactly the sprite edges this scene is
+made of. A red `frame` there would be about the criterion, not about the renderer. The cluster-based
+comparison that survives foreign drivers lives in the sample game (`example_ugly_game/frame_golden.*`)
+and reaching it from the engine needs it moved first — a follow-up, not this round. What `--selftest`
+does say on those machines is portable and worth having: the same counters, plus two runs on that
+adapter agreeing bit for bit.
+
+```sh
+./build/material_golden --selftest
+```
+
 ## Beyond the gates
 
 The seven gates above are what the ADRs waited on, and all seven are closed. A machine with a screen, speakers and a pad can
@@ -1228,11 +1301,13 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The platformer screen recording per OS, its startup line, and the seven answers from section 6.
 - The three `golden` lines from section 8 per OS, with the GPU name from the `[gpu]` line above
   them — and `golden_actual.png` if `frame` came out red.
-- For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after
+- For §9, the frame `material_golden` writes on the Metal box, with the four answers — and, from
+  the Linux and Windows boxes, the `--selftest` output with the `[gpu]` line above it.
+- For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.
 
-Every one of those has been sent, and each ADR that was waiting on one is now *Accepted*:
+Every one of those except §9 has been sent, and each ADR that was waiting on one is now *Accepted*:
 [0013](../.context/decisions/2026-07-27-desktop-dev-parity.md) (2026-08-06),
 [0014](../.context/decisions/2026-07-28-framework-input.md) (2026-08-07),
 [0015](../.context/decisions/2026-08-08-physics-core.md) (2026-08-22),

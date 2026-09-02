@@ -60,6 +60,7 @@ bool bake_materials(const std::string& text, std::vector<uint8_t>& out, BakeErro
         MaterialRow row{};
         row.shader_guid = guid(m.shader);
         row.name_off = strings.add(m.name);
+        row.shader_off = strings.add(m.shader);
         row.param_first = static_cast<uint32_t>(params.size());
         row.param_count = static_cast<uint16_t>(m.params.size());
         row.texture_first = static_cast<uint32_t>(textures.size());

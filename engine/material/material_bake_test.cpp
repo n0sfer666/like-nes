@@ -1,5 +1,6 @@
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -57,6 +58,10 @@ void test_shape() {
     check(inst.shader_guid == flash.shader_guid, "the instance inherits the shader");
     check(flash.shader_guid == asset::fnv1a("sprite_flash", 12),
           "shader guid is fnv1a of the logical name, as in assetc");
+    // Имя шейдера строкой, а не только хешем: точку входа в модуле нечем назвать, кроме неё, и у
+    // инстанса она обязана быть УНАСЛЕДОВАННОЙ, а не пустой.
+    check(std::strcmp(t.shader(0), "sprite_flash") == 0, "shader name reaches the reader");
+    check(std::strcmp(t.shader(3), t.shader(0)) == 0, "the instance inherits the shader name");
 
     const mat::MaterialRow& dis = t.row(2);
     check(dis.texture_count == 1, "dissolve declares one texture slot");

@@ -60,10 +60,14 @@ struct ShaderPin {
 };
 
 const ShaderPin SHADERS[] = {
-    {"flash", "sprite_flash", "fn fs_flash("},
-    {"outline", "sprite_outline", "fn fs_outline("},
-    {"dissolve", "sprite_dissolve", "fn fs_dissolve("},
+    {"flash", "fs_flash", "fn fs_flash("},
+    {"outline", "fs_outline", "fn fs_outline("},
+    {"dissolve", "fs_dissolve", "fn fs_dissolve("},
 };
+
+// Вершинный этап один на всю библиотеку, и его имя тоже обязано найтись: без него ни один материал
+// не соберётся в пайплайн, а гейт, смотрящий только на фрагментные входы, этого не заметит.
+const char* VERTEX_ENTRY = "fn vs_main(";
 
 // Разрешённый блок параметров целиком, а не «сколько чисел разошлось»: инстанс, потерявший
 // наследование, отличался бы от базы в тех же двух числах, что и правильный, и счётчик расхождений
@@ -173,10 +177,15 @@ int main(int argc, char** argv) {
         if (t.row(m).shader_guid != want)
             std::printf("  FAIL: %s names a shader other than '%s'\n", s.material, s.shader);
         check(t.row(m).shader_guid == want, "material names the library shader");
+        check(std::strcmp(t.shader(m), s.shader) == 0, "shader name reaches the reader as a string");
         if (wgsl.find(s.entry) == std::string::npos)
             std::printf("  FAIL: sprite_effects.wgsl has no entry point '%s'\n", s.entry);
         check(wgsl.find(s.entry) != std::string::npos, "shader carries the entry point");
     }
+
+    if (wgsl.find(VERTEX_ENTRY) == std::string::npos)
+        std::printf("  FAIL: sprite_effects.wgsl has no vertex entry '%s'\n", VERTEX_ENTRY);
+    check(wgsl.find(VERTEX_ENTRY) != std::string::npos, "library carries its shared vertex stage");
 
     for (const ResolvePin& r : RESOLVED) {
         const uint32_t i = t.find(r.material);
