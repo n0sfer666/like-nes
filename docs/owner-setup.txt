@@ -329,7 +329,7 @@ Windows: не открывать проект как папку в самой Vi
     [assetc] materials: <бэкенд> validated 7 material(s) in 3 pipeline(s)
     [assetc] materials: <бэкенд> skipped (no adapter on this machine)
     [assetc] materials: 1 of 3 target backend(s) checked
-    [assetc] materials /tmp/library.bundle (6416 bytes, 3 assets)
+    [assetc] materials /tmp/library.bundle (6432 bytes, 3 assets)
 
   Три ассета, а не два: таблица материалов, текст модуля и таблица светов.
   Два — значит флаг `--lights` не доехал, и сверка бандла покраснеет байтами.

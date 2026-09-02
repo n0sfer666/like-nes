@@ -40,8 +40,9 @@ void append(std::vector<uint8_t>& out, const T& v) {
 } // namespace
 
 bool bake_lights(const std::string& text, std::vector<uint8_t>& out, BakeError& err) {
-    std::vector<LightSpec> specs;
-    if (!parse_lights(text, specs, err)) return false;
+    LightSet set;
+    if (!parse_lights(text, set, err)) return false;
+    const std::vector<LightSpec>& specs = set.lights;
 
     Strings strings;
     std::vector<LightRow> rows;
@@ -62,6 +63,7 @@ bool bake_lights(const std::string& text, std::vector<uint8_t>& out, BakeError& 
     TableHeader h{};
     std::memcpy(h.magic, TABLE_MAGIC, 4);
     h.version = TABLE_VERSION;
+    std::memcpy(h.ambient, set.ambient, sizeof(h.ambient));
     h.light_count = static_cast<uint32_t>(rows.size());
     h.lights_offset = sizeof(TableHeader);
     h.strings_offset = h.lights_offset + h.light_count * static_cast<uint32_t>(sizeof(LightRow));

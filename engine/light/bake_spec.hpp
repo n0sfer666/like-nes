@@ -20,11 +20,18 @@ struct LightSpec {
     int line = 0;   // строка объявления: отказ о НЕДОСТАЮЩЕМ поле называет её, а не конец файла
 };
 
+// Ambient — свойство НАБОРА, а не источника, поэтому он здесь, а не в LightSpec: у него нет ни
+// позиции, ни затухания, и строкой списка светов он бы притворялся источником.
+struct LightSet {
+    std::vector<LightSpec> lights;
+    float ambient[4] = {0, 0, 0, 0};
+};
+
 struct BakeError {
     int line = 0;
     std::string message;
 };
 
-bool parse_lights(const std::string& text, std::vector<LightSpec>& out, BakeError& err);
+bool parse_lights(const std::string& text, LightSet& out, BakeError& err);
 
 } // namespace light

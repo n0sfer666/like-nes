@@ -73,8 +73,11 @@ bool close_light(LightSpec& cur, uint32_t have, BakeError& err) {
 
 } // namespace
 
-bool parse_lights(const std::string& text, std::vector<LightSpec>& out, BakeError& err) {
+bool parse_lights(const std::string& text, LightSet& set, BakeError& err) {
+    std::vector<LightSpec>& out = set.lights;
     out.clear();
+    set.ambient[0] = set.ambient[1] = set.ambient[2] = set.ambient[3] = 0;
+    bool ambient_set = false;
     uint32_t have = 0;
     int line_no = 0;
     std::size_t pos = 0;
@@ -89,6 +92,19 @@ bool parse_lights(const std::string& text, std::vector<LightSpec>& out, BakeErro
         if (line.empty()) continue;
 
         const std::vector<std::string> f = split(line, '|');
+
+        // Ambient разбирается ДО проверки «строка вне света»: он и есть строка вне света, и
+        // ставить его можно один раз — заданный дважды, он молча взял бы последнее значение.
+        if (f[0] == "ambient") {
+            if (f.size() != 3) return fail(err, line_no, "ambient | r, g, b | strength");
+            if (ambient_set) return fail(err, line_no, "ambient is set twice");
+            if (!numbers(f[1], 3, set.ambient, err, line_no)) return false;
+            if (!numbers(f[2], 1, &set.ambient[3], err, line_no)) return false;
+            for (int k = 0; k < 4; ++k)
+                if (set.ambient[k] < 0) return fail(err, line_no, "ambient is negative");
+            ambient_set = true;
+            continue;
+        }
 
         if (f[0] == "light") {
             if (!out.empty() && !close_light(out.back(), have, err)) return false;
@@ -137,7 +153,11 @@ bool parse_lights(const std::string& text, std::vector<LightSpec>& out, BakeErro
         if (bit == F_RADIUS && cur.radius <= 0) return fail(err, line_no, "radius must be positive");
     }
     if (out.empty()) return fail(err, 0, "no lights in the source");
-    return close_light(out.back(), have, err);
+    // Последний свет закрывается ПЕРВЫМ: у его отказа есть номер строки, а у «нет ambient» — нет,
+    // и назвать источник поимённо ценнее, чем сказать про набор.
+    if (!close_light(out.back(), have, err)) return false;
+    if (!ambient_set) return fail(err, 0, "no ambient in the source");
+    return true;
 }
 
 } // namespace light

@@ -8,7 +8,7 @@ namespace light {
 // материалы (#18), достижения (#10) и пресеты ввода (#14). Раскладка запинена static_assert'ами —
 // это ABI между пекарем и читателем.
 constexpr uint8_t TABLE_MAGIC[4] = {'L', 'N', 'L', 'T'};
-constexpr uint32_t TABLE_VERSION = 1;
+constexpr uint32_t TABLE_VERSION = 2;
 
 enum class Kind : uint8_t { Point = 0, Directional = 1 };
 
@@ -19,8 +19,12 @@ struct TableHeader {
     uint32_t lights_offset;
     uint32_t strings_offset;
     uint32_t total_size;
+    // Ambient живёт в ЗАГОЛОВКЕ, а не строкой таблицы: он не источник — у него нет ни позиции, ни
+    // затухания, — и списком светов он бы притворялся. До этой версии его цвет и сила стояли
+    // литералами в `renderer.cpp::write_lights`, то есть менялись пересборкой движка.
+    float ambient[4];   // rgb + сила
 };
-static_assert(sizeof(TableHeader) == 24, "TableHeader layout pinned (zero-parse ABI)");
+static_assert(sizeof(TableHeader) == 40, "TableHeader layout pinned (zero-parse ABI)");
 
 // Направление хранится УЖЕ НОРМАЛИЗОВАННЫМ: нормализация в кадре стоила бы корня на источник, а
 // главное — «забыли нормализовать» стало бы тусклым светом вместо отказа. Пекарь нормализует и
@@ -57,6 +61,7 @@ public:
     LoadResult load(const void* data, std::size_t size);
 
     uint32_t count() const { return header_ ? header_->light_count : 0; }
+    const float* ambient() const { return header_ ? header_->ambient : nullptr; }
     const LightRow* row(uint32_t i) const;
     const char* name(uint32_t i) const;
 
