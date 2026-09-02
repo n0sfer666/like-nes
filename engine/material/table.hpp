@@ -103,6 +103,13 @@ public:
     // потребитель наследовал бы по-своему (решение 2 спеки #18).
     void resolve(uint32_t i, float out[PARAM_BLOCK_FLOATS]) const;
 
+    // Смещение параметра по ИМЕНИ, с той же развёрткой базы. Нет параметра — `-1`.
+    // Выставлено наружу затем, чтобы игра, меняющая силу вспышки в кадре, не писала смещение
+    // числом: перестановка строк в `library.mat` тогда молча красила бы не тот слот, и увидеть
+    // это можно было бы только глазами на кадре (тот же класс, что ловит material_library_test
+    // для WGSL библиотеки).
+    int32_t slot_of(uint32_t i, const char* param_name) const;
+
 private:
     const TableHeader* header_ = nullptr;
     const MaterialRow* materials_ = nullptr;

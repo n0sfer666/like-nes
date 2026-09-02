@@ -339,6 +339,29 @@ jobs:
           # с числом: список секций растёт осознанно, вместе с этой строкой.
           grep -q "verify: PASS - 5 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
+      # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: обе его секции пекутся чистыми
+      # парсерами — таблица материалов и текст модуля, — ни tint, ни basisu им не нужно, поэтому он
+      # перепекается ЦЕЛИКОМ и сравнивается байт в байт. На бандле стоит живой прогон образца, и
+      # правка library.mat без перепекания иначе доезжает молча. Печём из КОПИИ: у `--materials` был
+      # трёхаргументный вид, где третий путь был выходом, и устаревший бинарь дважды написал бандл
+      # поверх `sprite_effects.wgsl` — гейт портил ровно то, что проверяет.
+      - name: Asset — committed library.bundle matches engine/material/library (all OS)
+        shell: bash
+        run: |
+          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
+          [ -n "$A" ] || { echo "assetc not built"; exit 1; }
+          mkdir -p libsrc
+          cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl libsrc/
+          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle
+          cmp libsrc/library.bundle example_ugly_game/assets/library.bundle || {
+            echo "library.bundle ОТСТАЛ от engine/material/library on ${{ matrix.os }}"; exit 1; }
+          # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита, иначе
+          # первая же опечатка в пути делает гейт вечно зелёным (правило vacuous-gate линтера).
+          printf 'x' >> libsrc/library.bundle
+          if cmp -s libsrc/library.bundle example_ugly_game/assets/library.bundle; then
+            echo "СРАВНЕНИЕ НЕ ОТБИВАЕТ ИСПОРЧЕННУЮ КОПИЮ on ${{ matrix.os }}"; exit 1
+          fi
+
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
         run: |
@@ -1044,6 +1067,7 @@ jobs:
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
                    game_sprite_out_test game_fx_test game_star_test \
+                   game_material_runs_test \
                    framework_graphics_viewport_test framework_graphics_zoom_reach_test \
                    framework_graphics_viewport_refusal_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1164,6 +1188,12 @@ jobs:
           # СЭМПЛЕРА, и без этого берёт окно 63x63, сдвинутое на полпикселя от центра звезды.
           grep -q "star 64x64:" gfx_game_star_test.txt \
             || { echo "STAR REGION WINDOW DRIFT on ${{ matrix.os }}"; exit 1; }
+          # Гейт 5 спеки #18 со стороны игры, и он ЦЕЛОЧИСЛЕННЫЙ, поэтому стоит здесь, а не у
+          # видеокарты: десять спрайтов с РАЗНЫМИ значениями параметров делят материал и стоят один
+          # вызов, а чередование платит по вызову за смену — «оптимизация», собравшая одинаковые
+          # материалы со всего кадра, переставила бы 2D-перекрытие и нарисовала другую картинку.
+          grep -q "draws: 10 alike = 1, 6 alternating = 6" gfx_game_material_runs_test.txt \
+            || { echo "MATERIAL RUN SPLITTING CHANGED on ${{ matrix.os }}"; exit 1; }
 
       # Инвариант 1 спеки #14: слой знает о подсистемах, подсистемы о слое — нет. Проверяется
       # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только

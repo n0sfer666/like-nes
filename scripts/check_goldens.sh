@@ -3,7 +3,8 @@
 #
 #   debug   — голден физики совпадает в Debug и в Release (инвариант 1 спеки #15);
 #   core    — восемь голденов ядра целы (гейт 2 спеки #11);
-#   bundle  — `game.bundle` сверен с исходниками по секциям без внешних инструментов.
+#   bundle  — `game.bundle` сверен с исходниками по секциям без внешних инструментов, а
+#             `library.bundle` (спека #18) перепечён целиком и сверен байт в байт.
 # Зовётся по ОДНОМУ имени (`check_goldens.sh debug|core|bundle`), как `tree_invariants.sh`: имя
 # упавшей проверки обязано быть в логе, иначе «что-то из трёх разошлось» приходится доразбирать
 # руками. `all` гоняет все три и не даёт первой упавшей скрыть остальные — то же основание, что у
@@ -127,7 +128,45 @@ verify_bundle() {
         printf '%s\n' "$out"
         { [ $rc -eq 0 ] && printf '%s\n' "$out" | grep -q ": PASS"; } || all=1   # статус наравне с грепом
     done
+    verify_library || all=1
     return $all
+}
+
+# `library.bundle` (спека #18) сверяется СТРОЖЕ, чем `game.bundle`: обе его секции пекутся чистыми
+# парсерами — таблица материалов и текст модуля, — ни tint, ни basisu им не нужно, поэтому он
+# перепекается целиком и сравнивается БАЙТ В БАЙТ. Без этого правка `library.mat` без перепекания
+# доезжает молча, а на бандле стоит живой прогон образца (гейт 9 спеки).
+verify_library() {
+    local tmp rc=0
+    tmp=$(mktemp -d) || return 1
+    # Печём из КОПИИ, а не из дерева: у `assetc --materials` был трёхаргументный вид, где третий путь
+    # был выходом, и устаревший бинарь в `build-ci` дважды написал бандл ПОВЕРХ `sprite_effects.wgsl`.
+    # Гейт при этом честно сообщал о расхождении — им же и вызванном. Копия отбирает у него право
+    # портить то, что он проверяет.
+    cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl "$tmp/" || {
+        rm -rf "$tmp"; return 1
+    }
+    if ! build-ci/assetc --materials "$tmp/library.mat" \
+            "$tmp/sprite_effects.wgsl" "$tmp/library.bundle" >/dev/null; then
+        echo "  library.bundle не перепёкся — assetc --materials упал"
+        rm -rf "$tmp"
+        return 1
+    fi
+    if cmp -s "$tmp/library.bundle" example_ugly_game/assets/library.bundle; then
+        echo "  library.bundle совпал с перепечённым"
+    else
+        echo "  library.bundle ОТСТАЛ от engine/material/library — перепеки: assetc --materials"
+        rc=1
+    fi
+    # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита. Без него первая
+    # же опечатка в пути делает гейт вечно зелёным — тот же класс, что ловит правило `vacuous-gate`.
+    printf 'x' >> "$tmp/library.bundle"
+    if cmp -s "$tmp/library.bundle" example_ugly_game/assets/library.bundle; then
+        echo "  сравнение не отбивает испорченную копию — гейт зелен вакуумно"
+        rc=1
+    fi
+    rm -rf "$tmp"
+    return $rc
 }
 
 case ${1:-all} in

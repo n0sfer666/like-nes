@@ -137,4 +137,19 @@ void Table::resolve(uint32_t i, float out[PARAM_BLOCK_FLOATS]) const {
     }
 }
 
+int32_t Table::slot_of(uint32_t i, const char* param_name) const {
+    if (i >= count()) return -1;
+    for (uint32_t at = i, depth = 0; depth < 64; ++depth) {
+        const MaterialRow& m = materials_[at];
+        for (uint32_t p = 0; p < m.param_count; ++p) {
+            const ParamRow& row = params_[m.param_first + p];
+            if (std::strcmp(strings_ + row.name_off, param_name) == 0)
+                return static_cast<int32_t>(row.slot);
+        }
+        if (m.base == NO_BASE) break;
+        at = m.base;
+    }
+    return -1;
+}
+
 } // namespace mat

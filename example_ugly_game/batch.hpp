@@ -6,17 +6,26 @@
 #include "art.hpp"
 #include "instance.hpp"
 #include "instance_stage.hpp"
+#include "material_fx.hpp"
+#include "material_runs.hpp"
 
 namespace game {
 
 class SpriteBatch {
 public:
-    void init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat target, const Atlas& atlas);
+    // `fx` может быть null или неготовым — тогда образец рисует как рисовал, без библиотеки.
+    void init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat target, const Atlas& atlas,
+              MaterialFx* fx = nullptr);
     void set_viewport(uint32_t w, uint32_t h);
     void begin();
     void push(const Instance& inst);
+    void push(const Instance& inst, uint32_t material);
     void flush(WGPURenderPassEncoder pass);
     void shutdown();
+
+    // Вызовов отрисовки в последнем `flush`. Наружу — ради гейта: группировка прогонов проверяется
+    // только числом вызовов, из картинки она не видна.
+    uint32_t draws() const { return draws_; }
 
     // Сколько инстансов не влезло в кадр. Наружу — потому что отказ, который никто не спрашивает,
     // неотличим от кадра, где рисовать было нечего.
@@ -40,6 +49,12 @@ private:
     // программу. Накопитель поверх него — `InstanceStage`, отдельным типом ради headless-гейта.
     std::unique_ptr<Instance[]> cpu_;
     InstanceStage stage_{nullptr, 0};
+    std::unique_ptr<uint16_t[]> mat_;
+    std::unique_ptr<MaterialRun[]> runs_;
+    MaterialFx* fx_ = nullptr;
+    uint32_t draws_ = 0;
+    // Раскладка своя только без библиотеки: чужую освобождать нельзя, её владелец — кэш.
+    bool owns_bgl_ = false;
 };
 
 // Проход с очисткой. Живёт здесь, а не в `draw.cpp`, потому что вызывающих ДВА образца, а

@@ -13,6 +13,14 @@ void quad(SpriteBatch& b, float x, float y, float w, float h, const Region& r,
     b.push({x, y, w, h, r.u0, r.v0, r.u1, r.v1, cr, cg, cb, ca, rot});
 }
 
+void quad_fx(SpriteBatch& b, float x, float y, float w, float h, const Region& r,
+             float cr, float cg, float cb, uint32_t material,
+             const float p[mat::PARAM_BLOCK_FLOATS]) {
+    Instance inst{x, y, w, h, r.u0, r.v0, r.u1, r.v1, cr, cg, cb, 1.0f, 0.0f, {}};
+    for (uint32_t i = 0; i < mat::PARAM_BLOCK_FLOATS; ++i) inst.params[i] = p[i];
+    b.push(inst, material);
+}
+
 const Region* glyph(const Atlas& a, char c) {
     if (c >= 'A' && c <= 'Z') return &a.letter[c - 'A'];
     if (c >= '0' && c <= '9') return &a.digit[c - '0'];
@@ -34,17 +42,28 @@ void push_center(SpriteBatch& b, const Atlas& a, const char* s, float y, float c
 
 } // namespace
 
-void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas) {
+void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas,
+                const SceneFx& sfx) {
+    float p[mat::PARAM_BLOCK_FLOATS];
     world.each([&](const Transform& t, const Star& s) {
         const float f = s.shade / 255.0f, sz = (float)s.size.to_double();
         quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), sz, sz, atlas.star,
              f * 0.85f, f * 0.92f, f, 1.0f);
     });
-    world.each([&](const Transform& t, const Boss&) {
-        quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 124, 92, atlas.boss, 1, 1, 1, 1);
+    world.each([&](const Transform& t, const Boss& b) {
+        const float x = (float)t.x.to_double(), y = (float)t.y.to_double();
+        if (!sfx.ready()) { quad(batch, x, y, 124, 92, atlas.boss, 1, 1, 1, 1); return; }
+        const uint32_t m = sfx.boss(b.hp / (float)BOSS_HP_MAX, p);
+        quad_fx(batch, x, y, 124, 92, atlas.boss, 1, 1, 1, m, p);
     });
+    // Подход врага — доля пройденного им пути справа налево. Берётся из позиции, а не из таймера:
+    // позиция уже детерминирована симуляцией, а второй счётчик на стороне отрисовки разъезжался бы
+    // с ней на паузе и на пропущенном кадре.
     world.each([&](const Transform& t, const Enemy&) {
-        quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 64, 48, atlas.enemy, 1, 1, 1, 1);
+        const float x = (float)t.x.to_double(), y = (float)t.y.to_double();
+        if (!sfx.ready()) { quad(batch, x, y, 64, 48, atlas.enemy, 1, 1, 1, 1); return; }
+        const uint32_t m = sfx.enemy((HALF_W - x) / (2.0f * HALF_W), p);
+        quad_fx(batch, x, y, 64, 48, atlas.enemy, 1, 1, 1, m, p);
     });
     // Яркие tint>1 → bloom-свечение на desktop (HDR). Mobile-шеллы рендерят в LDR без bloom →
     // tint клампится (пуля/hostile слегка тонированы, не белые) — осознанное косметич. расхождение

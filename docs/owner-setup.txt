@@ -182,6 +182,7 @@ Windows: не открывать проект как папку в самой Vi
   говорит, что подсистема поднялась):
 
     [game] assets: baked bundle .../game.bundle (BC7 512x256)
+    [game] materials: on (3 pipeline(s), 0 fallback(s))
     [game] audio: on (SFX + music)
     [game] achievements: 5 defined, 0 unlocked, backend: local
     [game] WASD/arrows/LStick = move · gamepad: <бэкенд> · Esc = quit
@@ -193,6 +194,13 @@ Windows: не открывать проект как папку в самой Vi
 
     [game] assets: atlas_regions section unusable -> procedural
     [game] assets: bundle .../game.bundle unreadable -> procedural fallback
+
+  Вторая строка — библиотека эффектов (спека #18): семь материалов делят три
+  точки входа, поэтому пайплайнов три. `off` означает, что рядом с бинарём не
+  нашёлся `library.bundle` — его кладёт тот же install-шаг, что и `game.bundle`,
+  поэтому `off` после чистой сборки это находка, а не настройка руками. Ненулевые
+  fallback'и означают, что материал назвал точку входа, которой в модуле нет:
+  игра продолжает рисовать (в этом и смысл отката), а число — улика.
 
   Управление: WASD или стрелки — движение, пробел или ЛКМ — огонь,
   геймпад: левый стик — движение, южная кнопка (A/X) — огонь. Esc — выход.

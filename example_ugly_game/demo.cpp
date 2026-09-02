@@ -65,6 +65,9 @@ int render_run(const DemoOptions& opt, std::vector<uint8_t>& last) {
     }
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas);   // → HDR (bloom)
+    // Offscreen-путь идёт БЕЗ библиотеки эффектов намеренно: на его кадре стоит голден рендер-гейтов
+    // #2, и надеть эффекты значило бы перепечь эталон ради косметики (гейт 8 спеки #18).
+    const SceneFx no_fx;
     Bloom bloom;
     if (!bloom.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA8Unorm, VIEW_W, VIEW_H)) {
         std::fprintf(stderr, "bloom init failed\n"); gpu.shutdown(); return 1;
@@ -104,7 +107,7 @@ int render_run(const DemoOptions& opt, std::vector<uint8_t>& last) {
         ach.observe(gs);
 
         batch.begin();
-        push_scene(batch, world, atlas);
+        push_scene(batch, world, atlas, no_fx);
         push_fx(batch, fx, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);

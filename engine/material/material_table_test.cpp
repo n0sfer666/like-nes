@@ -101,6 +101,22 @@ void test_corruption() {
             [](std::vector<uint8_t>& b) { textures(b)[0].binding = 9; });
 }
 
+// Смещение по имени обязано разворачивать базу так же, как `resolve`: `hit` объявляет только
+// `strength`, а `tint` наследует. Читатель, ищущий имя лишь в собственных строках материала,
+// отдал бы на `tint` минус единицу, и потребитель молча перестал бы красить.
+void test_slot_of() {
+    std::vector<uint8_t> b = baked();
+    mat::Table t;
+    if (t.load(b.data(), b.size()) != mat::LoadResult::Ok) { check(false, "fixture loads"); return; }
+    const uint32_t base = t.find("flash"), inst = t.find("hit");
+    check(t.slot_of(base, "tint") == 0, "the base finds its own colour");
+    check(t.slot_of(base, "strength") == 4, "the base finds its own scalar");
+    check(t.slot_of(inst, "strength") == 4, "the instance finds the slot it overrides");
+    check(t.slot_of(inst, "tint") == 0, "the instance inherits the slot it never names");
+    check(t.slot_of(inst, "nope") == -1, "a name no one declares is not a slot");
+    check(t.slot_of(t.count(), "tint") == -1, "a material that is not there has no slots");
+}
+
 // Каждая причина отказа обязана иметь СВОИ слова: две ветки с одним текстом читаются в логе
 // одинаково, и различить их можно только по коду, которого в логе нет.
 void test_reasons_are_distinct() {
@@ -121,6 +137,7 @@ int main() {
     std::printf("material table reader\n");
     test_intact();
     test_corruption();
+    test_slot_of();
     test_reasons_are_distinct();
     std::printf(failures == 0 ? "PASS\n" : "FAIL\n");
     return failures == 0 ? 0 : 1;

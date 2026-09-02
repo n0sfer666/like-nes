@@ -1276,9 +1276,49 @@ adapter agreeing bit for bit.
 ./build/material_golden --selftest
 ```
 
+## 10. Gate 9 of #18 — the sample game plays with library materials
+
+> **Open.** The library reaches the game through `library.bundle`, and everything a runner can say
+> about that path it already says: the bundle matches its sources byte for byte on three OSes, and
+> the run-splitting numbers are asserted headlessly. What no runner can answer is whether the
+> effects land on the right objects at the right moment, in a game that is moving.
+
+```sh
+cmake --build build --target game_sidescroller
+./build/game_sidescroller
+```
+
+The first line of stdout is the gate's machine half:
+
+```
+[game] materials: on (3 pipeline(s), 0 fallback(s))
+```
+
+`off` means the bundle was not found next to the binary — the install step copies both
+`game.bundle` and `library.bundle`, so an `off` here after a clean build is a finding, not a
+configuration to fix by hand. A non-zero fallback count means a material named an entry point the
+shader does not carry: the game keeps drawing, which is the point of the fallback, and the number
+is the evidence that it happened.
+
+Then watch the screen and answer three questions:
+
+1. **Enemies flash red as they close in.** The strength is the enemy's own progress across the
+   screen, not a timer: an enemy that just entered from the right is barely tinted, one about to
+   reach the hero is strongly red. A flash that pulses in lockstep across all enemies means the
+   parameter is coming from somewhere shared instead of from the instance.
+2. **The boss is ringed in red while it is healthy.** `outline_danger`, two pixels, around the
+   silhouette and not around its bounding box.
+3. **Below a quarter of its health the boss burns to ash instead.** The ring is replaced by
+   `dissolve_ash`: holes eat the sprite, widening as the health falls, with a grey rim on their
+   edge. The switch happens once, at 25%, and does not flicker back and forth on the boundary.
+
+The offscreen path is deliberately material-free: `--demo` renders the same scene without the
+library so the render goldens of spec #2 stay byte-identical, and gate 8 of this spec is exactly
+that regression. Seeing no effects there is correct.
+
 ## Beyond the gates
 
-The seven gates above are what the ADRs waited on, and all seven are closed. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the two of spec #18 are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.

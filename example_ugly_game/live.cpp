@@ -17,6 +17,7 @@
 #include "draw.hpp"
 #include "gpu.hpp"
 #include "gpu_env.hpp"
+#include "material_fx.hpp"
 #include "platform_env.hpp"
 #include "sim.hpp"
 #include "source.hpp"
@@ -60,8 +61,17 @@ int run_window(int frame_cap) {
                                               (uint32_t)fbw, (uint32_t)fbh);
 
     Atlas atlas = load_game_atlas(gpu.supports_bc);
+    // Библиотека эффектов (гейт 9 спеки #18). Отказ не фатален: `bind` вернёт false, и сцена
+    // нарисуется базовым пайплайном — играть можно без эффектов, но не без окна.
+    MaterialFx materials;
+    SceneFx sfx;
+    const bool have_fx = materials.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float,
+                                        resolve_asset("library.bundle").c_str()) && sfx.bind(&materials);
+    std::printf("[game] materials: %s (%u pipeline(s), %u fallback(s))\n", have_fx ? "on" : "off",
+                materials.pipelines_created(), materials.fallbacks());
     SpriteBatch batch;
-    batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas);   // → HDR (bloom)
+    batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,
+               have_fx ? &materials : nullptr);   // → HDR (bloom)
     Bloom bloom;
     if (!bloom.init(gpu.device, gpu.queue, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
         std::fprintf(stderr, "bloom init failed\n");
@@ -135,7 +145,7 @@ int run_window(int frame_cap) {
         }
         WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
         batch.begin();
-        push_scene(batch, world, atlas);
+        push_scene(batch, world, atlas, sfx);
         push_fx(batch, fx, atlas);
         push_hud(batch, world, atlas, gs);
         push_screen(batch, atlas, gs);
@@ -160,6 +170,7 @@ int run_window(int frame_cap) {
     audio.shutdown();
     bloom.shutdown();
     batch.shutdown();
+    materials.shutdown();
     wgpuSurfaceRelease(surface);
     gpu.shutdown();
     glfwDestroyWindow(win);

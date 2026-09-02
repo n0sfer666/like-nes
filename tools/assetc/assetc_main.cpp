@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
                      "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
                      "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
-                     "       assetc --materials <library.mat> <out.bundle>  (tools-free)\n");
+                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>  (tools-free)\n");
         return 2;
     }
     // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
@@ -84,13 +84,14 @@ int main(int argc, char** argv) {
     // движка не запускается без ассетов примера. Пекарь чистый, внешних кодеков не зовёт, поэтому
     // режим работает на любой машине, включая раннеры без tint и basisu.
     if (std::strcmp(argv[1], "--materials") == 0) {
-        if (argc < 4) {
-            std::fprintf(stderr, "usage: assetc --materials <library.mat> <out.bundle>\n");
+        if (argc < 5) {
+            std::fprintf(stderr,
+                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>\n");
             return 2;
         }
         std::vector<AssetInput> massets;
-        if (!bakers::materials(argv[2], massets)) return 1;
-        return emit("materials", argv[3], std::move(massets));
+        if (!bakers::materials(argv[2], argv[3], massets)) return 1;
+        return emit("materials", argv[4], std::move(massets));
     }
 
     // Игра-образец (спека #8 шов assetc→билд): плейсхолдер-atlas.png → target-native
