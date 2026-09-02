@@ -465,6 +465,28 @@ jobs:
           "$BIN" | tee mdiag.txt
           grep -q "material-diag: PASS" mdiag.txt || { echo "SHADER DIAGNOSTIC IS NOT PANEL-COMPATIBLE on ${{ matrix.os }}"; exit 1; }
 
+      # Пять целей, которые дерево СОБИРАЛО и не запускало ни разу: `material_bake_test`,
+      # `material_source_test`, `material_table_test` и `material_library_test` до 2026-09-03 не
+      # назывались ни в одном шаге CI и ни в одном гейте preflight, то есть доказывали ровно
+      # компилируемость своего файла и молчали про то, ради чего написаны. Это тот же класс, что
+      # ловит правило `vacuous-gate` в ci_lint.py, только этажом выше. Свет (#18, вертикаль 3)
+      # заводится сюда с первого своего коммита, а не «потом».
+      # Вердикт берётся ДВАЖДЫ — кодом возврата и напечатанной строкой: тест, упавший до вывода
+      # итога, и тест, выведший FAIL с нулевым кодом, ломаются по-разному, а молчат одинаково.
+      - name: Material/Light — bakers, readers and refusals (all OS)
+        shell: bash
+        run: |
+          for t in material_bake_test material_source_test material_table_test \
+                   material_library_test light_table_test; do
+            B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
+            [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
+            "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
+            cat "$t.txt"
+            if ! grep -q "PASS" "$t.txt"; then
+              echo "$t exited 0 without printing a verdict on ${{ matrix.os }}"; exit 1
+            fi
+          done
+
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash
         run: |
