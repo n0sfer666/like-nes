@@ -1099,14 +1099,15 @@ layout as the half above.
    2026-09-02 the sample answers it itself: on exit it prints
 
    ```
-   [game] fx: peak 113 of 512, dropped 0
+   [game] fx: peak 136 of 512, dropped 0
    ```
 
-   `dropped` **is** the question — anything but `0` means a burst was truncated because the pool was
-   full, which is exactly the "sparks stopped coming" this asks about. `peak` is the headroom that
-   zero sits in. Two measured numbers for scale: the scripted fight of `game_fx_test` peaks at 113
-   of 512, and 240 frames of idle flying peak at 32. Play a dense fight, quit with Esc, read the
-   line. A counter stuck at zero would be the worst outcome here, so both halves of it are pinned:
+   — the owner's run of 2026-09-02, and the answer to this question. `dropped` **is** the question:
+   anything but `0` means a burst was truncated because the pool was full, which is exactly the
+   "sparks stopped coming" this asks about. `peak` is the headroom that zero sits in. Three measured
+   numbers for scale — 240 frames of idle flying peak at 32, the scripted fight of `game_fx_test` at
+   113, and a played fight through the boss at 136, which is 27% of the pool. Play a dense fight,
+   quit with Esc, read the line. A counter stuck at zero would be the worst outcome here, so both halves of it are pinned:
    `game_fx_test` asserts `fx.peak()` equals the high-water mark the test measures for itself, and
    `framework_graphics_particle_refusal_test` asserts `dropped()` counts an overflow one particle at
    a time.
@@ -1121,8 +1122,12 @@ which is questions 1 through 5 each answered yes, the exhaust band, the muzzle p
 bullet's trail, the sixteen orange sparks, both waves of the boss's sixty, and the glow, all as
 described. Question 6 rides on that verdict instead of answering it: it asks for the **absence** of
 a moment, and the owner reported no anomaly rather than reporting that he watched for one — the pool
-holding under a live boss fight was unrefuted, not tested. That is what the exit line added the same
-day is for, and question 6 is settled by the first run that reads it, not by this one. Provenance of the pair rests on the owner's own
+holding under a live boss fight was unrefuted, not tested. So the exit line was added the same day
+and the fight replayed: **`[game] fx: peak 136 of 512, dropped 0`**, which answers question 6 by
+measurement. What that number settles is this run and the size of its margin — 136 against a
+scripted 113, so a played fight is denser than the script by a fifth and still leaves nearly four
+fifths of the pool unused. What it does not settle is every possible fight; the difference from
+before is that any future one now reports itself instead of being watched for. Provenance of the pair rests on the owner's own
 navigation into the worktree: the `--golden-selftest` control above was written **after** this run,
 in answer to it, so this pass did not use it. What corroborates the pass instead is the platformer
 half, run the same evening through the same mechanism, which returned two **different** results — a
