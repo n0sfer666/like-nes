@@ -298,7 +298,20 @@ jobs:
         run: |
           BIN=$(find build -maxdepth 2 -type f \( -name 'material_golden' -o -name 'material_golden.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "material_golden not built"; exit 1; }
-          "$BIN" --selftest | tee mat.txt
+          # Код возврата прогона называется словом, а stderr лежит в том же файле, что и stdout.
+          # `| tee` отдавал гейту только вердикт пайплайна: прогон 33663261501 на windows-latest
+          # оборвался, не напечатав НИ ОДНОЙ строки отчёта, и первый же греп назвал это «сменился
+          # счёт разогрева» — обвинение не тому. Пустой вывод и другое число неразличимы для
+          # `grep -q`, пока их не развели.
+          set +e
+          "$BIN" --selftest > mat.txt 2>&1
+          rc=$?
+          set -e
+          cat mat.txt
+          [ "$rc" -eq 0 ] || { echo "SELFTEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "warm-up: " mat.txt || {
+            echo "SELFTEST PRINTED NO WARM-UP LINE on ${{ matrix.os }} ($(wc -c < mat.txt) bytes)"
+            exit 1; }
           grep -q "warm-up: 3 pipeline(s) for 7 material(s), 0 fallback(s)" mat.txt || {
             echo "WARM-UP COUNT CHANGED on ${{ matrix.os }}"; exit 1; }
           grep -q "in 3 draw call(s)" mat.txt || {

@@ -71,6 +71,11 @@ void broken_material(GpuContext& gpu, const std::string& wgsl) {
 } // namespace
 
 int main(int argc, char** argv) {
+    // Вывод гейта не буферизуется. Пайп делает stdout полностью буферизованным, и весь отчёт
+    // прогона существует только при штатном выходе: прогон 33663261501 на windows-latest оборвался
+    // между сообщением в stderr и сбросом буфера, гейт не увидел НИ ОДНОЙ строки и назвал это
+    // «WARM-UP COUNT CHANGED» — обвинение не тому. Улика дороже нескольких записей в пайп.
+    std::setvbuf(stdout, nullptr, _IONBF, 0);
     platform::Args utf8_argv(argc, argv);
     std::string dir = "engine/material/library";
     const char* golden_path = nullptr;
