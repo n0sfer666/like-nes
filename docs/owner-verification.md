@@ -13,7 +13,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
-| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** — platformer half answered 2026-09-02, shooter half left | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
 The open gate is the look of the sample after the framework move, and it is the kind a runner cannot
 even *print* — it is recordings held side by side, one pair per sample. The character tick cost
@@ -31,7 +31,8 @@ more — once on the discrete NVIDIA MX150 and once, through `LIKENES_GPU_POWER=
 driver, a different stack over the same silicon. Gate 9 (§7) is what is left, and it is the one that
 cannot be finished from either OS alone in a single pass — it needs your eyes on two pairs of
 recordings — but both "before" builds are prepared on the Linux box already, so its Linux pass is
-down to running four binaries.
+down to running four binaries. **Its platformer half was answered on 2026-09-02** from the Windows
+box, where both "before" builds now stand as well; the shooter half is the whole of what is left.
 
 The right-hand column is the whole point of keeping the procedure: a closed gate protects nothing if
 the code under it moves and nobody re-runs it — and the platformer gate, closed 2026-08-30, sits
@@ -925,7 +926,8 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 ## 7. Gate 9 of #17 — the sample looks the same after the framework move
 
-> **Open.** Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
+> **Open — the platformer half is answered (2026-09-02, Windows), the shooter half is not.**
+> Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
 > platformer's camera, view window, tile drawing and draw order, step B3 took the shooter's
 > particles and the instance buffer under them. Everything mechanical about either move is pinned
 > headless — `game_platformer_view_test` and the untouched route hash `0xfead7a87477a9258` (gate 10)
@@ -938,6 +940,18 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 Two builds of the same level: the commit before the move, and the current one. The old one lives in
 a worktree so your checkout stays where it is.
+
+**The "before" build plays worse, and that is not what this half is asking about** — the shooter
+half below names its deliberate differences up front, and this one has three of its own. `2bdfcb7`
+predates the fixes of 2026-09-01, and the owner's 2026-09-02 pass hit all three: walking left off
+the map leaves the hero outside the world, alive and controllable (`e01908d`); a platform arriving
+from the side drives into him, *"squeezes you upwards like paste out of a tube"* (`d0d4a14`); and
+riding the plate into the overhang sets `crushed`, which the sample answers by teleporting him to
+the spawn point (`43b0ed6`). Not one of the three is a picture — they are the subject of gate 8 of
+#16 in section 6 above, and they are here only because this half's "before" commit sits in front of
+them. Two consequences for the run itself: the ride in question 4 is cut short at the overhang in
+the "before" recording, and the left leg of question 1 is walked out of the map instead of stopping
+at the edge. Compare what is drawn, not how far he gets.
 
 ```sh
 git worktree add ../like-nes-before-platformer 2bdfcb7
@@ -989,6 +1003,17 @@ Send both recordings, or one recording plus a "same as before" per question. A "
 5 points at the view window (`platformer_view.cpp`), a "no" on 3 at the tint table
 (`TileSet::tint`), a "no" on 4 at the layer constants — each of those has a headless gate that
 should have caught it, so the answer also names a hole in `game_platformer_view_test`.
+
+**Answered 2026-09-02** on the Windows box (MSVC 14.44, Release, Intel UHD 620), both builds run
+from their own roots. Questions **2, 3, 4 and 5 came back clean point by point**: the green
+staircase rises left to right with no gap under it, amber sits on the one-way slabs and nowhere
+else, the hero is drawn over the cyan plate with his feet visible, and no half-drawn tile column
+appears at either screen edge. Question 1 rides on the run's blanket verdict rather than a
+side-by-side answer — nothing was reported against the camera, and the "before" run's left leg is
+not comparable anyway for the reason given at the top of this half. The "before" run reproduced the
+three gameplay defects listed there and nothing besides, which is the **first sighting by eye** of
+what `d0d4a14`, `e01908d` and `43b0ed6` fixed: until this run all three were pinned headless only.
+The shooter half below is still unanswered, so the gate itself stays open.
 
 ### The shooter, after step B3
 
