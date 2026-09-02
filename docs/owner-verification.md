@@ -1205,7 +1205,7 @@ a comparison of your machine with itself.
 
 ## Beyond the gates
 
-The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+The seven gates above are what the ADRs waited on, and all seven are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
