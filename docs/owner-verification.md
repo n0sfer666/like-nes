@@ -1053,11 +1053,25 @@ cmake --build ../like-nes-before-shooter/build --target game_sidescroller
 cd ../like-nes-before-shooter && ./build/game_sidescroller          # "before"
 ```
 
-**Check first that the two binaries are not the same file.** Neither build prints anything that
-names it — no version line, no banner — so "I see no difference" is by itself indistinguishable from
-having run one binary twice, which is the vacuous green this repo hunts everywhere else. `ls -l`
-both paths before you start: on the Windows box of 2026-09-02 they were 2 723 328 and 2 817 536
-bytes. Different sizes are the positive control this half has; if they ever match, `md5sum` them.
+**Prove first that the two binaries are not the same one.** Neither build prints anything that
+names itself — no version line, no banner — so "I see no difference" is by itself indistinguishable
+from having run one binary twice, which is the vacuous green this repo hunts everywhere else. The
+positive control needs no code and no eye:
+
+```sh
+./build/game_sidescroller --golden-selftest
+```
+
+`--golden-selftest` was added after `ddd0efa`, and the old build's argument loop ignores what it
+does not know. So the **new** build answers in the console and exits without opening a window —
+`golden control: PASS (blot, scatter and one-pixel shift refused)`, then `golden repeat: PASS` — and
+the **old** build starts the game as if the flag were not there. A window means you are standing in
+the worktree; two PASS lines and a prompt back mean you are standing in your checkout. There is no
+third outcome, and getting the same result from both paths means one of them is not the tree you
+think it is.
+
+The weaker check, if you want it anyway: the two files differ in size — 2 723 328 and 2 817 536
+bytes on the Windows box of 2026-09-02 — and `md5sum` settles it if they ever match.
 
 Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
 in your own checkout, then `git worktree remove ../like-nes-before-shooter`. This worktree and its
@@ -1081,8 +1095,11 @@ layout as the half above.
    exposure of 1.9 that used to be a literal in `fx.cpp`. Flat, unglowing sparks mean the material
    exposure is not reaching the instance.
 6. **Nothing disappears under load.** During the boss fight, no moment where sparks stop being
-   emitted altogether: the pool holds 512 and the gate says the scripted fight never fills it, but
-   the scripted fight is not your fight.
+   emitted altogether: the pool holds 512 and the scripted fight peaks at 113 of them
+   (`game_fx_test`, `alive: 53, peak: 113, dropped: 0`), so it leaves 78% of the pool untouched and
+   says nothing about a fight four times as dense. Yours is the only one that can. This is the one
+   question here your eyes answer weakly by construction — it asks for the ABSENCE of a moment, and
+   not seeing one is not the same as there not being one.
 
 A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at the burst counts in
 `fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
@@ -1096,9 +1113,11 @@ described. Question 6 rides on that verdict instead of answering it: it asks for
 a moment, and the owner reported no anomaly rather than reporting that he watched for one — the pool
 holding under a live boss fight is unrefuted, not tested, and `Fx::dropped()` still prints nothing
 that would have turned it into an assertion. Provenance of the pair rests on the owner's own
-navigation into the worktree, with the file sizes above as its only check; it is corroborated for
-this pass by the platformer half, run the same evening through the same mechanism, which returned
-two **different** results — a mechanism handing back one binary twice could not have done that.
+navigation into the worktree: the `--golden-selftest` control above was written **after** this run,
+in answer to it, so this pass did not use it. What corroborates the pass instead is the platformer
+half, run the same evening through the same mechanism, which returned two **different** results — a
+mechanism handing back one binary twice could not have done that. Every run from here uses the
+control.
 
 With both halves answered, gate 9 is closed.
 
