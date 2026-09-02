@@ -358,14 +358,14 @@ jobs:
       # правка library.mat без перепекания иначе доезжает молча. Печём из КОПИИ: у `--materials` был
       # трёхаргументный вид, где третий путь был выходом, и устаревший бинарь дважды написал бандл
       # поверх `sprite_effects.wgsl` — гейт портил ровно то, что проверяет.
-      - name: Asset — committed library.bundle matches engine/material/library (all OS)
+      - name: Asset — committed library.bundle matches engine/material/library + WGSL validated (all OS)
         shell: bash
         run: |
           A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           mkdir -p libsrc
           cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl libsrc/
-          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle
+          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle | tee libbake.txt
           cmp libsrc/library.bundle example_ugly_game/assets/library.bundle || {
             echo "library.bundle ОТСТАЛ от engine/material/library on ${{ matrix.os }}"; exit 1; }
           # Контроль на КОНЦЫ СТРОК, и он здесь не теоретический: `core.autocrlf=true` на
@@ -386,6 +386,43 @@ jobs:
           if cmp -s libsrc/library.bundle example_ugly_game/assets/library.bundle; then
             echo "СРАВНЕНИЕ НЕ ОТБИВАЕТ ИСПОРЧЕННУЮ КОПИЮ on ${{ matrix.os }}"; exit 1
           fi
+          # Гейт 2 спеки #18. Тот же прогон бейка ВАЛИДИРУЕТ библиотеку на бэкендах этой ОС —
+          # три раннера вместе и дают «кросс-бэкендно», которого одна машина дать не может.
+          # Число проверенных бэкендов ассертится ЧИСЛОМ: код возврата у бейка нулевой и там, где
+          # не поднялся ни один адаптер, то есть «шейдер валиден» и «проверять было негде»
+          # различаются только этой строкой.
+          CHECKED=$(sed -n 's/.*materials: \([0-9][0-9]*\) of [0-9][0-9]* target backend(s) checked/\1/p' libbake.txt)
+          [ -n "$CHECKED" ] || { echo "БЕЙК НЕ СКАЗАЛ, СКОЛЬКО БЭКЕНДОВ ПРОВЕРИЛ on ${{ matrix.os }}"; exit 1; }
+          [ "$CHECKED" -ge 1 ] || { echo "НИ ОДИН БЭКЕНД НЕ ПРОВЕРЕН on ${{ matrix.os }}"; exit 1; }
+          # Имя бэкенда, а не только счётчик: раннер, потерявший свой адаптер, иначе продолжил бы
+          # красить гейт зелёным по соседнему. Родной бэкенд ОС обязан быть среди проверенных.
+          if [ "$RUNNER_OS" = "macOS" ]; then WANT=Metal
+          elif [ "$RUNNER_OS" = "Linux" ]; then WANT=Vulkan
+          else WANT=D3D12; fi
+          grep -q "materials: $WANT validated 7 material(s) in 3 pipeline(s)" libbake.txt || {
+            echo "$WANT НЕ ПРОВЕРИЛ БИБЛИОТЕКУ on ${{ matrix.os }}"; cat libbake.txt; exit 1; }
+          # Позитивный контроль валидации: заведомо битый WGSL обязан быть ОТБИТ тем же путём —
+          # ненулевым кодом, диагностикой file:line:col и НЕ оставленным на диске бандлом. Без него
+          # весь гейт держится на том, что библиотека валидна, и молчал бы при выключенной проверке.
+          python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
+            libsrc/sprite_effects.wgsl libsrc/bad.wgsl
+          if "$A" --materials libsrc/library.mat libsrc/bad.wgsl libsrc/bad.bundle > bad.txt 2>&1; then
+            echo "БИТЫЙ ШЕЙДЕР ПРИНЯТ БЕЙКОМ on ${{ matrix.os }}"; cat bad.txt; exit 1
+          fi
+          grep -q "libsrc/bad.wgsl:[0-9][0-9]*:[0-9][0-9]*: error:" bad.txt || {
+            echo "ОТКАЗ БЕЗ ДИАГНОСТИКИ file:line:col on ${{ matrix.os }}"; cat bad.txt; exit 1; }
+          [ ! -f libsrc/bad.bundle ] || {
+            echo "ОТВЕРГНУТАЯ БИБЛИОТЕКА ОСТАВИЛА БАНДЛ НА ДИСКЕ on ${{ matrix.os }}"; exit 1; }
+
+      # Диагностика гейта 2 обещана спекой #18 «совместимой с панелью #7». Обещание проверяется
+      # утверждением: строку печатает форматтер валидатора, разбирает её парсер редактора.
+      - name: Material — shader diagnostic parses in the editor panel (all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'material_diag_compat_test' -o -name 'material_diag_compat_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "material_diag_compat_test not built"; exit 1; }
+          "$BIN" | tee mdiag.txt
+          grep -q "material-diag: PASS" mdiag.txt || { echo "SHADER DIAGNOSTIC IS NOT PANEL-COMPATIBLE on ${{ matrix.os }}"; exit 1; }
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash

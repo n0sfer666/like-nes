@@ -26,6 +26,12 @@ target_include_directories(diag_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 add_executable(diagnostics_test compile/diagnostics_test.cpp)
 target_link_libraries(diagnostics_test PRIVATE diag_core)
 
+# Гейт 2 спеки #18 обещает диагностику, СОВМЕСТИМУЮ с этой панелью. Обещание проверяется здесь:
+# строку печатает валидатор материалов, разбирает её парсер выше, и обе стороны линкуются в одну
+# цель. Ни webgpu, ни устройства — формат строки от них не зависит.
+add_executable(material_diag_compat_test material_diag_compat_test.cpp)
+target_link_libraries(material_diag_compat_test PRIVATE diag_core material_diag)
+
 add_executable(perf_test perf_test.cpp)
 target_link_libraries(perf_test PRIVATE scene_core platform_core)   # шов: PLATFORM_NOINLINE
 

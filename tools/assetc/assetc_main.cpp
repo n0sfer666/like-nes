@@ -8,6 +8,7 @@
 #include "codec.hpp"
 #include "format.hpp"
 #include "platform_args.hpp"
+#include "validate_materials.hpp"
 #include "verify_game.hpp"
 
 // Headless CLI-бейкер (спека #5): source (png+wgsl+bulk) → детерм. bundle.
@@ -91,6 +92,9 @@ int main(int argc, char** argv) {
         }
         std::vector<AssetInput> massets;
         if (!bakers::materials(argv[2], argv[3], massets)) return 1;
+        // Валидация стоит МЕЖДУ бейком и записью: отвергнутая библиотека не должна оставлять на
+        // диске бандл, которым потом кто-то нарисует кадр (гейт 2 спеки #18).
+        if (!validate_materials(massets, argv[3])) return 1;
         return emit("materials", argv[4], std::move(massets));
     }
 
