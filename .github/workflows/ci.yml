@@ -188,6 +188,17 @@ jobs:
           need "$A" assetc; need "$T" asset_test; need "$C" ach_crash_test
           rm -rf "юникод тест-каталог" && mkdir "юникод тест-каталог"
           cp "$A" "$T" "$C" "юникод тест-каталог/"
+          # `assetc` линкует wgpu-native с гейта 2 спеки #18 (валидация библиотеки эффектов), а
+          # rpath у него `@executable_path`/`$ORIGIN`: копия БЕЗ библиотеки рядом не стартует вовсе —
+          # 127 на Linux и Windows, SIGABRT от dyld на macOS. Имя библиотеки на каждой ОС своё,
+          # поэтому берём глобом, а не строкой, и пустой результат — находка: копия без библиотеки
+          # упала бы дальше диагностикой про юникод, которая тут ни при чём.
+          L=0
+          for f in "$(dirname "$A")"/*wgpu_native*; do
+            [ -f "$f" ] || continue
+            cp "$f" "юникод тест-каталог/" && L=$((L+1))
+          done
+          [ "$L" -gt 0 ] || { echo "wgpu runtime library not found next to assetc"; exit 1; }
           cd "юникод тест-каталог"
           ./"$(basename "$A")" --synthetic "синтетика тест.bundle" | tee syn_u.txt
           grep -q "0xf2255dc74fbdb6bc" syn_u.txt \
