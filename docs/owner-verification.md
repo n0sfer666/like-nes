@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-Five of the seven gates below are **closed** — each of those carries the run that closed it, with
-the evidence; two are **open**. They stay here as the procedure, because each one needs a
+All seven gates below are **closed** — each carries the run that closed it, with the
+evidence. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -11,16 +11,32 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
-| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | **open** | `engine/framework/character`, `engine/framework/tilemap`, query window |
-| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
-| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | **open** | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
+| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
+| The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 
-The open gates are the character tick cost and the look of the sample after the framework move. The
-first, with the physics gate, is one whose answer a runner could *print* but not *judge*: both ask
-whether a number fits a real frame budget on the slowest machine you own. The second a runner cannot
-even print — it is recordings held side by side, one pair per sample. The right-hand column is the whole point of keeping the procedure: a closed
-gate protects nothing if the code under it moves and nobody re-runs it — and the platformer gate,
-closed 2026-08-30, sits directly under the module this round keeps changing.
+The last to close was the look of the sample after the framework move, and it is the kind a runner
+cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
+cost stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
+*judge*, because it asks, as the physics gate does, whether a number fits a real frame budget on the
+slowest machine you own.
+
+**Both sessions ran on 2026-09-01 — Linux first, Windows after — and between them they left one
+gate.** On the Intel UHD 620 box under Nobara: the tick cost measured (§5, `worst` 0.2600 ms —
+1.56% of a frame), the platformer played and its three findings fixed (§6, closed with the
+recording), the reference frame compared against a real Intel Vulkan driver (§8, `blob 1` of an
+allowed 12). On the same box under Windows 11 and MSVC: the tick cost measured again and §5 closed
+on it (`worst` 0.2338–0.6174 ms, the counters identical to the Linux run), and §8 answered twice
+more — once on the discrete NVIDIA MX150 and once, through `LIKENES_GPU_POWER=low`, on the Intel
+driver, a different stack over the same silicon. Gate 9 (§7) was what was left, and it is the one that
+could not be finished from either OS alone in a single pass — it needs your eyes on two pairs of
+recordings. **It was answered on 2026-09-02** from the Windows box: four binaries against the two
+"before" worktrees prepared there, both halves in one evening. Its Linux pass would now be a re-run,
+not a first answer, and both worktrees stand ready on that box too.
+
+The right-hand column is the whole point of keeping the procedure: a closed gate protects nothing if
+the code under it moves and nobody re-runs it — and the platformer gate, closed 2026-08-30, sits
+directly under the module this round keeps changing.
 
 Machine setup (packages, compiler, the right Windows command prompt) is
 [`first-run.md`](first-run.md) — do that first. [`owner-setup.txt`](owner-setup.txt) is the same
@@ -74,6 +90,25 @@ Add-MpPreference -ExclusionPath 'C:\path\to\like-nes'
 
 126 is exec denied, 127 is not found — the latter usually means a DLL next to the `.exe` went
 missing, which is a real finding and not a Defender one.
+
+**The exclusion is not always the answer, and 2026-09-01 found the second mechanism.** On that run
+the tree was already excluded — `Get-MpPreference` listed it — and a subset of freshly built
+binaries still came back 126. Run one through `cmd` instead of the shell and Windows names the real
+blocker: *"blocked by the Device Guard policy of your organisation"*. That is **Smart App Control**,
+user-mode code integrity judged against a reputation service, and it has nothing to do with the
+antivirus exclusion list. It blocks *some* unsigned binaries and not others — on that machine
+`determinism_test.exe` ran and `audio_golden.exe` did not, same build, identical permissions — so
+the symptom reads as a flaky gate rather than as a policy, which is why it is written down here.
+
+```powershell
+Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' |
+  Select-Object VerifiedAndReputablePolicyState   # 0 off, 1 enforcing, 2 evaluation
+```
+
+Turning it off is Settings → Privacy & security → Windows Security → App & browser control → Smart
+App Control. **That switch is one-way** — Windows cannot re-enable it without reinstalling the OS —
+so it is the owner's call, and nothing in this repository touches it. Left on, the targets it
+refuses stay `BLOCKED`, which is the honest verdict: the machine has said nothing about them.
 
 It writes `build/owner-report-<os>.txt`: machine passport (OS, distro, compiler CMake actually used,
 session type, Vulkan device, input nodes), the build gate, the workflow linter, every self-contained
@@ -597,7 +632,8 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
 ## 5. Gate 7 of #16 — the character tick cost (all three OSes)
 
-> **Open.** The counter half of this gate is closed by CI and needs no machine of yours: the same
+> **Closed 2026-09-01** by the Windows run at the foot of this banner. The counter half of this gate
+> is closed by CI and needs no machine of yours: the same
 > scripted route over a 256×32 map and over a 1024×256 one — thirty-two times the area — returns the
 > *same* `queries`, the same `scanned`, the same worst tick and the same trajectory hash, on three
 > OSes and in both configurations (`framework_character_perf_test`). That is invariant 4 of spec
@@ -609,6 +645,36 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 > (macOS 26.5.2, Apple clang, Release) put the target-size level at `worst` 0.087 ms and `mean`
 > 0.0103 ms — 0.06% of a 16.67 ms frame — but the M3 Pro figure describes the M3 Pro, and the
 > machine that decides is the slowest one you have.
+>
+> **The slowest machine answered on 2026-09-01, and it answered Linux.** Nobara (kernel 7.2.0,
+> clang, Release) on the Intel UHD 620 box — the same box that decided the body count in the
+> physics gate one section up — put the target-size level at `worst` **0.2600 ms** and `mean`
+> **0.0242 ms**: **1.56%** and **0.15%** of a 16.67 ms frame. That worst tick is one draw from a
+> spread: five idle runs of the same binary landed between 0.1910 and 0.2785 ms, and the `mean`
+> barely moved at all (0.0226–0.0290). Three times the M3 Pro's worst tick
+> and still sixty-four frames' worth of headroom, so the number that would have changed the spec
+> does not exist here — unlike #15, where the owner's run cut 500 bodies to 350. The counter half agreed
+> with itself across the thirty-two-fold area on this machine too: `queries=5345 scanned=38794`
+> and `hash=5b3bcf0fc03ada62` on both maps, `allocs=0`.
+>
+> **Windows on that same box answered 2026-09-01, and it is what closes the gate.** Windows 11
+> (build 26200), MSVC 14.44.35207, Release, the same i7-8550U: five idle runs put the target-size
+> level at `worst` **0.2338–0.6174 ms** and `mean` **0.0304–0.0310 ms** — 0.18% of a 16.67 ms frame
+> by the mean, 1.7% by a typical worst tick, 3.7% by the longest of the five. The counters came out
+> identical to the Linux run on this silicon down to the digit: `queries=5345 scanned=38794`,
+> `hash=5b3bcf0fc03ada62`, worst tick `20 queries / 156 tiles`, `allocs=0`, `cols=[106, 193]`,
+> `ground=712 air=1088 ceiling=14 slope=123`. Two toolchains agreeing about the arithmetic to the
+> unit and differing only in the clock is the invariant answering on a third OS, not a coincidence.
+> MSVC is about a third slower than clang on this box by `mean` (0.0305 against ~0.0227) and carries
+> a longer tail: the 0.6174 ms draw is one sample of five whose `mean` did not move (0.0310 against
+> 0.0305 beside it), which is the scheduler, not the tick. Three OSes measured, the slowest of them
+> leaving twenty-six frames of headroom — no number here would have changed the spec, unlike #15,
+> where the owner's run cut 500 bodies to 350.
+>
+> The box was **idle** for those five runs, and that is why they are quoted: `LoadPercentage` was
+> held under 12% for five consecutive samples before the first one started. Straight after the build
+> it read 60–63% while Defender finished reading the fresh binaries, and the section below explains
+> what measuring through that would have printed.
 
 This gate is the character half of the frame-cost stage of `owner_check.sh`, so a full report
 already carries it. Alone:
@@ -622,17 +688,26 @@ cmake --build build --target framework_character_perf_test
 `build\framework_character_perf_test.exe`. Both frame-cost measurements at once, physics and
 character, are `bash scripts/owner_perf.sh`.)
 
+**Measure on an idle machine — that is part of the procedure, not a nicety.** On 2026-09-01 this
+same binary on this same box printed `worst=3.7349 ms mean=0.1579 ms` while three builds were
+running beside it, and `worst=0.1910…0.2785 ms mean≈0.0227 ms` with the box quiet: **fourteen times
+apart**, 22% of a frame against 1.5%. Nothing in the output separates the two runs — the counters,
+the worst tick and the hash are pinned in the binary and come out identical either way, so the
+loaded run prints `PASS` and hands you a timing that reads as a finding about the tick. The step
+above this one in `owner_check.sh` builds nothing, but a build you started yourself in another
+window counts. Close them first, then measure.
+
 Expected output. The counters are **not repeated here**, for the reason given one section up: they
 are pinned as constants inside the binary and a copy in a runbook is a copy nothing checks. A
 differing counter prints its own `FAIL: <field> = N, reference says M` line and the run exits
 non-zero.
 
 ```
-framework character perf gate (a target-size level costs a small one's tick)
-  small:  map=256x32 (8192 tiles) queries=<n> scanned=<n>
-  small:  worst tick = <n> queries / <n> tiles, hash=<hash>
-  small:  worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
-  small:  ground=<n> air=<n> ceiling=<n> slope=<n>
+framework character perf gate (1024 x 256 tiles)
+  small: map=256x32 (8192 tiles) queries=<n> scanned=<n>
+  small: worst tick = <n> queries / <n> tiles, hash=<hash>
+  small: worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
+  small: ground=<n> air=<n> ceiling=<n> slope=<n>
   target: map=1024x256 (262144 tiles) queries=<n> scanned=<n>
   target: worst tick = <n> queries / <n> tiles, hash=<hash>
   target: worst=<time> ms mean=<time> ms allocs=0 cols=[<lo>, <hi>]
@@ -664,11 +739,18 @@ shape of a gate that has quietly stopped gating.
 ## 6. Gate 8 of #16 — the platformer sample plays (all three OSes)
 
 > **Closed 2026-08-30** by the owner, who ran the sample and reported the control responsive.
-> **The banner names a confirmation, not artefacts:** the screen recording, the startup line and the
-> six answers below were not handed over, so unlike the four gates above this one carries no
-> evidence anyone else can re-read. That is a weaker close, and it is written down as one — send the
-> recording and the `gamepad:` line whenever convenient and this banner gets the same footing as the
-> others.
+> **Re-closed 2026-09-01 with artefacts,** on Nobara (X11), and this banner now stands on the same
+> footing as the four gates above. The recording is
+> `~/wiki/_meta/attachments/2026-09-01-like-nes-gate8-platformer-linux.mp4`, one pass of the level;
+> the startup line read `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes` and
+> `gamepad: evdev (Linux)`, and the run ended on `[platformer] window clean exit` with nothing else
+> on stderr. Questions **1–6 came back clean** and question **7 clean on both halves** — but only
+> after three findings the two runs produced, each written up below with its numbers and its gate.
+> The last of them was re-checked in a live window on the fix, and the owner's verdict is the
+> boundary of the behaviour, not a shrug: *"the platform no longer throws you out by accident, only
+> when it squeezes you against a wall."* Being squeezed against a wall is the lethal case he chose
+> himself when he picked "shove him along in front of it" over "let him pass through" — so a crush
+> there is the sample obeying its own design, and a crush anywhere else is a finding.
 >
 > The procedure stays, because gate 8 is the one gate of that spec no runner can close, and it says
 > so in its own text: *"subjective check that the control feels responsive"*. Re-run it when the
@@ -687,7 +769,7 @@ cmake --build build --target game_platformer
 ```
 
 Windows: `scripts\win-dev.bat` sets up vcvars, and the binary lands next to the copied WebGPU DLL,
-so run it as `build\example_ugly_game\game_platformer.exe` from the same prompt.
+so run it as `build\game_platformer.exe` from the same prompt.
 
 The window is 960×720 and the view inside it is 320×240 at ×3 — the level is 640×240, that is to
 say **wider than the view on purpose**: a camera that never has to scroll is a camera whose clamp is
@@ -712,9 +794,11 @@ binary is stale, `controls unavailable` means the `input` section lost the `jump
 `surface texture status <n> - frame skipped` repeating every frame means the surface never
 recovered from a resize or a display change.
 
-**Walk the level left to right and answer six questions.** They are the same six moves the scripted
-run makes, which is the point: the hash says the moves came out identical on three machines, and it
-says nothing at all about whether any of them is pleasant.
+**Walk the level left to right and answer seven questions.** The first six are the moves the
+scripted run makes, which is the point: the hash says they came out identical on three machines, and
+it says nothing at all about whether any of them is pleasant. The seventh is here because the
+scripted run did *not* make it — it was added on 2026-09-01 after the live run found three defects
+the hash had been passing over for a month.
 
 1. **Running and stopping.** Does the hero start and stop when you ask, or does he skate past the
    spot you released at?
@@ -733,9 +817,106 @@ says nothing at all about whether any of them is pleasant.
 6. **Walls and ceilings.** Push into the right wall and into the overhang above the pocket. Does he
    stop cleanly, or does he shudder, stick, or slide up the face?
 
+7. **The edges of the level and the platform's flank.** Walk into the left edge of the map and jump
+   at it — the hero must stay on the level. Then stand in the cyan slab's path, in mid-air, and let
+   it arrive: it should shove you along in front of it, not swallow you.
+
 If a pad is connected, answer 1–3 again on the stick: the dead zone is circular (0.18) and shared
 between the two axes, so a diagonal push is where a wrong shape shows up first — a diagonal that
 reads as "drop through" is a bug in the sign of `move_y`, not a matter of taste.
+
+### Run 2026-09-01 (Linux, Nobara): two findings, both fixed and pinned
+
+The owner ran the sample and answered 1–6; questions 1–5 came back clean and question 6 clean for
+walls and the overhang. Two things came back as findings, and question 7 above exists because of
+them — both were reachable by ordinary play and neither was visible from any gate that existed:
+
+* **The level had no left edge.** *"I walked left off the screen and the hero vanished, but the
+  controls stayed — I could still move the stage."* The left wall of the map is three tiles tall
+  and the jump takes four, so hero goes over it, and past column zero the grid holds no tiles at
+  all: he kept walking, kept falling and kept being controlled, outside the level. Fixed in
+  `platformer_scene.cpp` — the sample clamps the hero to the same rectangle the camera is already
+  clamped to (X only; the floor spans the whole width, and catching a fall through it would hide a
+  controller defect instead of closing a hole in the level). The clamp puts him **on** the boundary,
+  which is the edge of the map and not a promise of empty space, so it is followed by a nudge one
+  tile at a time back inside while the hull still stands in solid tiles — on this map the edge
+  column is exactly that, and without the nudge the clamp parked him inside the wall. Pinned by the
+  edge run in `game_platformer_sim_test`, which walks left **with the jump held** — plain walking
+  stops at the wall on 24.125 and would have passed the assertion without ever reaching the edge —
+  and which asserts on the run's **leftmost** position, not its last: the nudge returns him inside,
+  so by the final number "flew over the wall and was returned" and "never left the wall" look the
+  same.
+* **The moving platform went through a character it was not carrying.** *"If you jump neatly just
+  before the blue platform arrives, it keeps moving and squeezes you upwards like paste out of a
+  tube."* The character tick looked at moving bodies only through the support it was standing on, so
+  a platform arriving from the side kept driving into a mid-air character — fifty units deep over
+  half a second — and the only thing pushing back was `move_and_slide` stepping off the contact by
+  `SKIN` along whichever axis he had sunk into **less**, an eighth of a unit per tick, across the
+  platform's travel. Fixed by `character/push.hpp`: a body driving into a character shoves him along
+  its own direction, atomically, and reports `crushed` when the destination is blocked by something
+  other than the pusher. The ladder tick gets the same step 0, because a platform arriving at a
+  character hanging on a ladder is the same event. Pinned by `framework_character_push_test` (six
+  cases; on the pre-fix code the first of them measures a 53.985-unit penetration, and the
+  bystander case — a still body the character merely touches, with a **lower key** than the pusher —
+  is what defeats answering the question with a single nearest-hit sweep). Being crushed stays a
+  statement, not a decision: the engine sets the flag, and the sample answers it by returning the
+  hero to the spawn point, because left where he stands he would be crushed again next frame.
+
+Neither fix moves the route hash `0xfead7a87477a9258`: the scripted route touches neither the map's
+edge nor the platform's flank, which is exactly why it said nothing about either.
+
+### Re-run 2026-09-01 (Linux, Nobara): the platform's flank, third finding
+
+The owner replayed the level on the two fixes above and recorded it. Questions **1–6 came back
+clean, all six**, and question 7 split: *"the edges are clean, the platform is not"*. What he saw
+was not a flag but a teleport — *"it throws me back to the spawn point"* — best visible at **11–13 s**
+of the recording, and the sample only ever teleports for one reason: `crushed` is set and
+`platformer_scene.cpp` answers it with `place_at_spawn`.
+
+Nothing was crushing him. **The carry was atomic across both axes at once.** A rider standing on the
+slab's roof is pushed right along with it; the overhang's left face is at x 592 and the slab's roof
+ends at 592 as well, so the rider ends up flush against that face at x 583.875 with a hull half-width
+of 8 — and there he still has a one-unit carry owed to him every tick. `carry_by_support` asked
+"does the whole displacement fit" in one question, got `false` because the face is in the way, and
+reported failure, which the tick reports as `crushed`. Repro before the fix, one tick:
+`t 1 CRUSHED hero=(40.000, 207.875)` — the coordinates are already the spawn point.
+
+The two axes are not the same event, and folding them into one question is what made the sample
+lethal. Upward, a platform **presses** the rider into the ceiling: nowhere to go is genuinely a
+crush. Sideways, it merely **drives along** under his soles: nowhere to go is a slip, the ordinary
+thing that happens whenever a rider meets a wall. Fixed in `carry_by_support` — the carry stays
+atomic, but **per axis**: a blocked horizontal drops to a slip and `true`, and only a blocked
+vertical is still a refusal. The ceiling case (`test_the_crush_is_a_fact`) is untouched, which is
+the point of the pair.
+
+Pinned twice, both red on the pre-fix code and green after it:
+
+* `framework_character_platform_test` — `test_a_blocked_ride_is_a_slip`, three assertions on a
+  fixture with a pillar planted in the platform's path: the blocked rider is not crushed, keeps his
+  ground, and stops at the last whole carry step before contact (14, the step before 16); the pair
+  without the pillar rides on; and a diagonal carry proves the vertical component is still delivered
+  while the horizontal one is refused. Pre-fix: three FAILs.
+* `game_platformer_sim_test` — `test_the_rider_is_not_crushed_at_the_overhang`, on the shipped
+  bundle, the sample's own numbers: `rider: hero=583.542 plate=555.999 slipped=1 crushed=0`. The
+  `slipped` field is the precondition, not decoration — without it the assertion would also pass for
+  a hero the platform never reached. Pre-fix the same line reads `hero=148.967 slipped=0 crushed=1`,
+  and 148.967 is the fall away from the spawn point the owner watched.
+
+The route hash `0xfead7a87477a9258` is unmoved again, for the same reason as before: the scripted
+route never rides the slab into the overhang.
+
+One thing the run **did not** find, recorded because it was chased and ruled out: the pocket the slab
+crosses is not too low for a standing hero. His crown sits at 191.875 (floor top 224, half-height 16,
+minus the `SKIN` the controller keeps under his soles) and the slab's underside at 192 — a gap of
+1/8, wider than `CONTACT_SLOP`, so nothing touches. A no-jump sweep of every start column from 20 to
+630, both travel directions, reports `crushes=0` after the fix. The crushes that remain all require
+jumping into the slab's band next to the step, which is the lethal case the owner asked for by name
+when he chose "shove him along in front of it" over "let him pass through".
+
+The owner re-ran the level in a live window on the fix and closed question 7: *"the platform no
+longer throws you out by accident, only when it squeezes you against a wall."* That second half is
+not a leftover defect — it is the crush he asked for by name in the finding above, arriving where
+it was designed to arrive.
 
 **Record the screen** (spec #16 asks for it by name — macOS ⌘⇧5, GNOME Ctrl+⌥+⇧+R, Windows Win+G),
 one pass of the level, thirty seconds is enough. Send the recording, the startup line with the
@@ -745,7 +926,8 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 
 ## 7. Gate 9 of #17 — the sample looks the same after the framework move
 
-> **Open.** Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
+> **Closed 2026-09-02** on the Windows box — both halves in one pass, the records at the foot of
+> each half below. Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
 > platformer's camera, view window, tile drawing and draw order, step B3 took the shooter's
 > particles and the instance buffer under them. Everything mechanical about either move is pinned
 > headless — `game_platformer_view_test` and the untouched route hash `0xfead7a87477a9258` (gate 10)
@@ -759,17 +941,40 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 Two builds of the same level: the commit before the move, and the current one. The old one lives in
 a worktree so your checkout stays where it is.
 
+**The "before" build plays worse, and that is not what this half is asking about** — the shooter
+half below names its deliberate differences up front, and this one has three of its own. `2bdfcb7`
+predates the fixes of 2026-09-01, and the owner's 2026-09-02 pass hit all three: walking left off
+the map leaves the hero outside the world, alive and controllable (`e01908d`); a platform arriving
+from the side drives into him, *"squeezes you upwards like paste out of a tube"* (`d0d4a14`); and
+riding the plate into the overhang sets `crushed`, which the sample answers by teleporting him to
+the spawn point (`43b0ed6`). Not one of the three is a picture — they are the subject of gate 8 of
+#16 in section 6 above, and they are here only because this half's "before" commit sits in front of
+them. Two consequences for the run itself: the ride in question 4 is cut short at the overhang in
+the "before" recording, and the left leg of question 1 is walked out of the map instead of stopping
+at the edge. Compare what is drawn, not how far he gets.
+
 ```sh
-git worktree add ../like-nes-before 2bdfcb7
-cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build ../like-nes-before/build --target game_platformer
-cd ../like-nes-before && ./build/game_platformer          # "before"
+git worktree add ../like-nes-before-platformer 2bdfcb7
+cmake -S ../like-nes-before-platformer -B ../like-nes-before-platformer/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before-platformer/build --target game_platformer
+cd ../like-nes-before-platformer && ./build/game_platformer          # "before"
 ```
 
 Run it **from the worktree root**, not from `build/`: the bundle is found relative to the working
 directory. Then the same three commands in your own checkout for the "after" run, and
-`git worktree remove ../like-nes-before` when both recordings are in hand. On Windows both builds go
-through `scripts\win-dev.bat` and the binaries are `build\example_ugly_game\game_platformer.exe`.
+`git worktree remove ../like-nes-before-platformer` when both recordings are in hand.
+**On the Linux box the worktree and its build already exist** (prepared 2026-09-01), so the Linux
+pass is `cd ../like-nes-before-platformer && ./build/game_platformer` and nothing else. **On the
+Windows box they exist too** (prepared 2026-09-02, MSVC 14.44, Release): `cd ..\like-nes-before-platformer`
+and `build\game_platformer.exe`. Targets land flat in `build\`, next to the copied `wgpu_native.dll` —
+there is no `build\example_ugly_game\` binary, that directory holds CMake bookkeeping only. Building
+a worktree yourself goes through **that worktree's own** `scripts\win-dev.bat` (it works from its own
+root, so the checkout's copy would rebuild the checkout), and it builds every target, not one.
+
+The worktree is named after its half on purpose: the shooter half below pins a **different** "before"
+commit, and one shared `../like-nes-before` would have forced the two halves into sequence — build,
+watch, tear down, build again — for no reason other than the name. They are independent runs and the
+text above already says so.
 
 Both runs print the same startup line — the one from section 6, `gamepad:` and all — and end with
 `[platformer] window clean exit`. A difference in either line is a finding before you look at a
@@ -799,6 +1004,17 @@ Send both recordings, or one recording plus a "same as before" per question. A "
 (`TileSet::tint`), a "no" on 4 at the layer constants — each of those has a headless gate that
 should have caught it, so the answer also names a hole in `game_platformer_view_test`.
 
+**Answered 2026-09-02** on the Windows box (MSVC 14.44, Release, Intel UHD 620), both builds run
+from their own roots. Questions **2, 3, 4 and 5 came back clean point by point**: the green
+staircase rises left to right with no gap under it, amber sits on the one-way slabs and nowhere
+else, the hero is drawn over the cyan plate with his feet visible, and no half-drawn tile column
+appears at either screen edge. Question 1 rides on the run's blanket verdict rather than a
+side-by-side answer — nothing was reported against the camera, and the "before" run's left leg is
+not comparable anyway for the reason given at the top of this half. The "before" run reproduced the
+three gameplay defects listed there and nothing besides, which is the **first sighting by eye** of
+what `d0d4a14`, `e01908d` and `43b0ed6` fixed: until this run all three were pinned headless only.
+The shooter half below was answered the same evening.
+
 ### The shooter, after step B3
 
 Step B3 moved the shooter's particles onto the framework emitter and its instances through a new
@@ -818,16 +1034,50 @@ a regression costs an evening:
   a rotated star is the same star. If you can see a difference here, that assertion is wrong and the
   gate has a hole.
 
+**All three sit below the threshold of the eye, and the expected answer to this half is therefore
+"the two are visually the same game".** That sentence was missing until 2026-09-02, and its absence
+was a defect of this runbook, not of the reader: "mistaking one of them for a regression costs an
+evening" reads as a promise that they are *visible*, and sends you hunting for something the port
+was built not to produce. Every number that governs what the eye sees was carried across unchanged —
+the burst counts (4 / 16 / 5 / 46 + 14 / 12) and speeds (120 / 250 / 170 / 340 / 140 / 220 px/s) now
+in `fx_table.hpp` are the literals that stood in `fx.cpp` at `ddd0efa`, and so are the colours, the
+sizes, the lifetimes, the ±5 px trail band and the 0.9 damping. What actually changed is the random
+stream, and one correlation traded for a ±4.8° cone of the same vertical reach. So the six questions
+below are not "spot the difference": they are six named things that had to **survive**, and a
+blanket "same game" answers each of them yes.
+
 ```sh
-git worktree add ../like-nes-before ddd0efa
-cmake -S ../like-nes-before -B ../like-nes-before/build -G Ninja -DCMAKE_BUILD_TYPE=Release
-cmake --build ../like-nes-before/build --target game_sidescroller
-cd ../like-nes-before && ./build/game_sidescroller          # "before"
+git worktree add ../like-nes-before-shooter ddd0efa
+cmake -S ../like-nes-before-shooter -B ../like-nes-before-shooter/build -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build ../like-nes-before-shooter/build --target game_sidescroller
+cd ../like-nes-before-shooter && ./build/game_sidescroller          # "before"
 ```
 
+**Prove first that the two binaries are not the same one.** Neither build prints anything that
+names itself — no version line, no banner — so "I see no difference" is by itself indistinguishable
+from having run one binary twice, which is the vacuous green this repo hunts everywhere else. The
+positive control needs no code and no eye:
+
+```sh
+./build/game_sidescroller --golden-selftest
+```
+
+`--golden-selftest` was added after `ddd0efa`, and the old build's argument loop ignores what it
+does not know. So the **new** build answers in the console and exits without opening a window —
+`golden control: PASS (blot, scatter and one-pixel shift refused)`, then `golden repeat: PASS` — and
+the **old** build starts the game as if the flag were not there. A window means you are standing in
+the worktree; two PASS lines and a prompt back mean you are standing in your checkout. There is no
+third outcome, and getting the same result from both paths means one of them is not the tree you
+think it is.
+
+The weaker check, if you want it anyway: the two files differ in size — 2 723 328 and 2 817 536
+bytes on the Windows box of 2026-09-02 — and `md5sum` settles it if they ever match.
+
 Same shape as above: run from the worktree root so the bundle resolves, then the same three commands
-in your own checkout, then `git worktree remove ../like-nes-before`. On Windows both go through
-`scripts\win-dev.bat` and the binary is `build\example_ugly_game\game_sidescroller.exe`.
+in your own checkout, then `git worktree remove ../like-nes-before-shooter`. This worktree and its
+build are prepared on the Linux box too, from the same 2026-09-01 pass, and on the Windows box from
+the 2026-09-02 one: `cd ..\like-nes-before-shooter` and `build\game_sidescroller.exe`, same flat
+layout as the half above.
 
 **Record one run of each** up to and including the boss fight, then answer:
 
@@ -844,13 +1094,47 @@ in your own checkout, then `git worktree remove ../like-nes-before`. On Windows 
 5. **Glow.** The sparks are visibly BRIGHTER than the sprites around them — that is the `MAT_Glow`
    exposure of 1.9 that used to be a literal in `fx.cpp`. Flat, unglowing sparks mean the material
    exposure is not reaching the instance.
-6. **Nothing disappears under load.** During the boss fight, no moment where sparks stop being
-   emitted altogether: the pool holds 512 and the gate says the scripted fight never fills it, but
-   the scripted fight is not your fight.
+6. **Nothing disappears under load.** This one your eyes answer badly by construction — it asks for
+   the ABSENCE of a moment, and not seeing one is not the same as there not being one. So since
+   2026-09-02 the sample answers it itself: on exit it prints
+
+   ```
+   [game] fx: peak 136 of 512, dropped 0
+   ```
+
+   — the owner's run of 2026-09-02, and the answer to this question. `dropped` **is** the question:
+   anything but `0` means a burst was truncated because the pool was full, which is exactly the
+   "sparks stopped coming" this asks about. `peak` is the headroom that zero sits in. Three measured
+   numbers for scale — 240 frames of idle flying peak at 32, the scripted fight of `game_fx_test` at
+   113, and a played fight through the boss at 136, which is 27% of the pool. Play a dense fight,
+   quit with Esc, read the line. A counter stuck at zero would be the worst outcome here, so both halves of it are pinned:
+   `game_fx_test` asserts `fx.peak()` equals the high-water mark the test measures for itself, and
+   `framework_graphics_particle_refusal_test` asserts `dropped()` counts an overflow one particle at
+   a time.
 
 A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at the burst counts in
-`fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
-counts exactly that case and nothing prints it yet, so a "no" here is also a request for that line.
+`fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — which the
+line on exit now reads out, so that question is no longer judged by eye.
+
+**Answered 2026-09-02** on the Windows box (MSVC 14.44, Release, Intel UHD 620), one run of each
+build up to and through the boss fight: *"no difference at all, two visually identical games"* —
+which is questions 1 through 5 each answered yes, the exhaust band, the muzzle puffs with the
+bullet's trail, the sixteen orange sparks, both waves of the boss's sixty, and the glow, all as
+described. Question 6 rides on that verdict instead of answering it: it asks for the **absence** of
+a moment, and the owner reported no anomaly rather than reporting that he watched for one — the pool
+holding under a live boss fight was unrefuted, not tested. So the exit line was added the same day
+and the fight replayed: **`[game] fx: peak 136 of 512, dropped 0`**, which answers question 6 by
+measurement. What that number settles is this run and the size of its margin — 136 against a
+scripted 113, so a played fight is denser than the script by a fifth and still leaves nearly four
+fifths of the pool unused. What it does not settle is every possible fight; the difference from
+before is that any future one now reports itself instead of being watched for. Provenance of the pair rests on the owner's own
+navigation into the worktree: the `--golden-selftest` control above was written **after** this run,
+in answer to it, so this pass did not use it. What corroborates the pass instead is the platformer
+half, run the same evening through the same mechanism, which returned two **different** results — a
+mechanism handing back one binary twice could not have done that. Every run from here uses the
+control.
+
+With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
@@ -860,6 +1144,32 @@ counts exactly that case and nothing prints it yet, so a "no" here is also a req
 > runners have lavapipe on Linux and DX12-WARP on Windows, both software rasterisers, and the
 > macOS runner is the same Metal the reference was baked on. Your three machines are the only
 > AMD/NVIDIA/Intel in this project.
+>
+> **First real driver answered 2026-09-01: Intel UHD 620 (KBL GT2), Vulkan, Nobara.** The
+> tolerance survives it, and with room to spare — `golden frame: mean 0.00000 max 0.18039
+> over-eps 0.0004% blob 1` against an allowance of `eps 0.020, frac 0.100%, blob 12`. One blob of
+> twelve, four ten-thousandths of a percent of the pixels: the reference baked on Metal is a
+> reference on an Intel Vulkan driver too, which is the thing no runner could say.
+>
+> The strict half came out **exact**: `golden repeat: mean 0.00000 max 0.00000 over-eps 0.0000%
+> blob 0` — two runs on this adapter agree bit for bit, so nothing here is about the engine. The
+> self-test refused blot, scatter and the one-pixel shift, so the comparison that passed is a
+> comparison that can still fail.
+>
+> **NVIDIA and Windows answered 2026-09-01, on that same box.** Windows 11 (build 26200) takes the
+> discrete adapter by default, so the first run was the one no machine in this project had made:
+> `[gpu] NVIDIA GeForce MX150 | Vulkan | BC: yes`, `golden frame: mean 0.00000 max 0.03137 over-eps
+> 0.0002% blob 1` — one blob of an allowed twelve, two ten-thousandths of a percent of the pixels.
+> Forcing the integrated adapter with `LIKENES_GPU_POWER=low` answers the half the silicon alone
+> could not: the *same* Intel UHD 620, under the Windows driver instead of Mesa, came out `max
+> 0.00392 over-eps 0.0000% blob 0` — **not one pixel past eps**, against `max 0.18039 over-eps
+> 0.0004% blob 1` from Mesa on that very card. Two drivers over one GPU differing by a factor of
+> forty-six in peak error, both green, is the measurement that says the tolerance is sized for the
+> stack and not for the silicon. `repeat` was exact on both adapters (`max 0.00000 blob 0`) and the
+> self-test refused blot, scatter and the one-pixel shift on both, so neither number is about the
+> engine.
+>
+> **AMD is still unanswered** — it is the one adapter vendor nothing in this project has run on.
 
 ```sh
 ./build/game_sidescroller --frames 240 \
@@ -915,7 +1225,7 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   be identical to each other and to the other machines; the `worst=` / `mean=` numbers must not.
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.
-- The platformer screen recording per OS, its startup line, and the six answers from section 6.
+- The platformer screen recording per OS, its startup line, and the seven answers from section 6.
 - The three `golden` lines from section 8 per OS, with the GPU name from the `[gpu]` line above
   them — and `golden_actual.png` if `frame` came out red.
 - For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after

@@ -19,18 +19,40 @@ Vec2 support_velocity(const CollisionScene& s, physics::BodyId support) {
     return b.velocity;
 }
 
+namespace {
+
+// Помещается ли персонаж В ТОЧКЕ. Вопрос задаётся НУЛЕВЫМ путём: «пересекаюсь ли я здесь», а не «во
+// что упрусь по дороге». Свип отвечает на него первой же проверкой (`overlapped_at_start` в
+// `cast.cpp`), и длина запроса в неё не входит вовсе — то есть нулевой путь тут не вырожденный
+// случай, а точная формулировка вопроса.
+bool fits(const CollisionScene& s, const CharacterHull& hull, Vec2 at) {
+    SceneHit hit;
+    return !cast_nearest(s, hull, at, {}, hit);
+}
+
+} // namespace
+
 bool carry_by_support(const CollisionScene& s, const CharacterHull& hull, physics::BodyId support,
                       fix32 dt, Vec2& position) {
     const Vec2 carry = support_velocity(s, support) * dt;
     if (carry.x.raw == 0 && carry.y.raw == 0) return true;
-    const Vec2 moved = position + carry;
-    // Вопрос задаётся НУЛЕВЫМ путём: «пересекаюсь ли я здесь», а не «во что упрусь по дороге».
-    // Свип отвечает на него первой же проверкой (`overlapped_at_start` в `cast.cpp`), и длина
-    // запроса в неё не входит вовсе — то есть нулевой путь тут не вырожденный случай, а точная
-    // формулировка вопроса.
-    SceneHit hit;
-    if (cast_nearest(s, hull, moved, {}, hit)) return false;
-    position = moved;
+    if (fits(s, hull, position + carry)) {
+        position = position + carry;
+        return true;
+    }
+    // Горизонталь, которой некуда деться, — это СКОЛЬЖЕНИЕ по опоре, а не тиски, и различие тут не
+    // вкусовое. Вверх платформа персонажа ПРИЖИМАЕТ к потолку: между ними не остаётся места, и
+    // отказ — единственный честный ответ. Вбок она лишь ЕДЕТ у него под ногами: сверху ничего нет,
+    // стена рядом не давит, и упёршийся пассажир означает ровно то, что крыша проехала под
+    // подошвами. Ящик на ленте, доехавший до стены, остаётся стоять, а не гибнет.
+    //
+    // Найдено третьей находкой владельческого прогона §6 (2026-09-01): плита везла персонажа,
+    // прижатого к козырьку, перенос отбивался целиком, `crushed` поднимался, и образец отвечал на
+    // флаг возвратом в точку появления — «сбрасывает в спавн» на ровном месте.
+    if (carry.y.raw == 0) return true;
+    const Vec2 lifted = {position.x, position.y + carry.y};
+    if (!fits(s, hull, lifted)) return false;
+    position = lifted;
     return true;
 }
 

@@ -125,6 +125,7 @@ void test_golden() {
     check(peak > 100, "the bursts of the run actually landed");
     check(peak < game::FX_CAP, "the pool is not saturated");
     check(fx.dropped() == 0, "no burst was truncated");
+    check(fx.peak() == peak, "the emitter's own high-water mark is the one measured here");
 }
 
 // ГЕЙТ 8 на игровом пути: ВЕСЬ игровой кадр (`emit` + `emit_trails` + `update` + `draw`), а не

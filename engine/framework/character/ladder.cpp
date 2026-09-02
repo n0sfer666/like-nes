@@ -1,5 +1,7 @@
 #include "ladder.hpp"
 
+#include "push.hpp"
+
 namespace framework::character {
 namespace {
 
@@ -88,6 +90,13 @@ bool ladder_step(const CollisionScene& s, const CharacterHull& hull, const MoveP
     if (locked) --c.ladder_regrab_left;
     if (c.state != MoveState::Ladder && (locked || !grab(s, hull, p, in, c))) return false;
 
+    // Шаг 0 обычного тика — движение мира под персонажем — идёт и здесь, и по той же причине: он
+    // должен случиться ДО всякой пробы геометрии. Платформа, въехавшая в висящего на лестнице,
+    // убирает его с дороги так же, как всякого другого; без этой строки альтернативный тик был
+    // ровно тем режимом, в котором она по-прежнему проезжала сквозь. Возить тут некого — опоры на
+    // лестнице нет по построению, — поэтому `standing` ложно: половина переноса выключена.
+    const bool shoved = moved_by_world(s, hull, c.support, /*standing=*/false, dt, c.position);
+
     // Прыжок с лестницы. Фронт нажатия выводится здесь по той же памяти, что и в контроллере, —
     // `jump_was_held` пишется в конце КАЖДОГО тика, чей бы он ни был, и второй точки правды у него
     // нет. Горизонталь при этом ноль: разгон считает шаг 2 обычного тика со следующего тика, и
@@ -115,7 +124,7 @@ bool ladder_step(const CollisionScene& s, const CharacterHull& hull, const MoveP
     c.position.y = clamp_fix(c.position.y, -physics::WORLD_HALF, physics::WORLD_HALF);
     c.hit_ceiling = sr.hit_ceiling;
     c.hit_wall = sr.hit_wall;
-    c.crushed = false;
+    c.crushed = !shoved;
 
     if (c.state == MoveState::Ladder) {
         // Лестница кончилась — верх шахты пройден центром. Отпускать в ВОЗДУХ, а не ставить на

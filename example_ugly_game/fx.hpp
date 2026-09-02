@@ -42,9 +42,10 @@ public:
     // что именно уезжает на видеокарту, поднимал бы ради этого целый графический стек. Проталкивает
     // их в батч `push_fx` из `draw.cpp` — там же, где живут остальные подачи кадра.
     uint32_t draw(const Atlas& atlas, Instance* out, uint32_t max);
-    void clear() { em_.clear(); }
+    void clear() { em_.clear(); peak_ = 0; }
 
     uint32_t count() const { return em_.count(); }
+    uint32_t peak() const { return peak_; }
     uint32_t dropped() const { return em_.dropped(); }
     uint32_t stream() const { return em_.stream(); }
     const framework::graphics::Particle& at(uint32_t i) const { return em_.at(i); }
@@ -57,6 +58,7 @@ private:
     uint64_t keys_[FX_CAP];
     framework::graphics::Batch batches_[MAT_Count];
     framework::graphics::DecorEmitter em_;
+    uint32_t peak_ = 0;
 };
 
 } // namespace game

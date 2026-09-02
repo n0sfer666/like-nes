@@ -129,13 +129,10 @@ Camera camera_at(const Stage& st) {
     cfg.half_view = gx::viewport_half_world(stage_viewport());
     // Без сетки клампить не к чему: границ уровня не существует, и выдуманные здесь были бы
     // границами вида, а не карты. Живой путь сюда не доходит — `load_stage` без сетки не стартует.
-    if (st.grid) {
-        const Vec2 o = st.grid->origin();
-        const fix32 ts = st.grid->tile_size();
+    LevelBounds b;
+    if (level_bounds(st, b)) {
         cfg.policies = gx::CAMERA_BOUNDS;
-        cfg.bounds = {o.x, o.y,
-                      o.x + ts * fix32::from_int(static_cast<int32_t>(st.grid->width())),
-                      o.y + ts * fix32::from_int(static_cast<int32_t>(st.grid->height()))};
+        cfg.bounds = {b.min.x, b.min.y, b.max.x, b.max.y};
     }
     // Камера каждый кадр считается ЗАНОВО, поэтому следование берётся с нуля: ни скорости, ни
     // мёртвой зоны у образца не было и раньше, а завести их здесь значило бы менять поведение под

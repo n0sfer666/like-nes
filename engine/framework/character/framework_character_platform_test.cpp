@@ -132,6 +132,51 @@ void test_the_crush_is_a_fact() {
     check(same(f.moved.y, f.platform.y), "pair: and it carries him the whole way");
 }
 
+// Пассажир, которому перенос упирается ВБОК, скользит по опоре, а не давится. Третья находка
+// владельческого прогона §6 (2026-09-01, уже по фиксам первых двух): «сбрасывает в спавн» — плита
+// везла персонажа, прижатого к козырьку, отказ переноса поднимал `crushed`, и образец отвечал на
+// флаг возвратом в точку появления.
+//
+// Атомарность переноса тут ни при чём, и это разные вопросы. Вверх платформа персонажа ПРИЖИМАЕТ к
+// потолку: деваться некуда, и отказ — единственный честный ответ (`test_the_crush_is_a_fact`).
+// Вбок она лишь ЕДЕТ у него под ногами: сверху ничего нет, стена рядом не давит, и остановленный
+// ею перенос означает, что крыша проехала под подошвами, — то есть ровно то, что делает ящик на
+// ленте, упёршийся в стену.
+void test_a_blocked_ride_is_a_slip() {
+    Stage moving = make_stage(physics::BodyType::Kinematic, {CARRY_V, fix32{}}, false);
+    add_pillar(moving);
+    const Run r = go(moving, fix32{}, false, 20);
+    std::printf("  slip: char=%.3f plat=%.3f ground=%d crushed=%d\n", r.moved.x.to_double(),
+                r.platform.x.to_double(), r.kept_ground ? 1 : 0, r.crushed ? 1 : 0);
+    check(fx(35) < r.platform.x, "precondition: the platform travels the whole way");
+    check(r.moved.x < r.platform.x, "precondition: the pillar really holds the rider back");
+    check(!r.crushed, "a rider held by a wall slips on his platform instead of being crushed");
+    check(r.kept_ground, "and keeps standing on it");
+    // Четырнадцать — последний ЦЕЛЫЙ шаг переноса перед касанием: правый бок пассажира встаёт под
+    // столб на 16, шаг переноса — два юнита. Число, а не «меньше платформы»: перенос «сколько
+    // влезло» дал бы 15.9375, то есть пассажира, вжатого в столб по зазор касания.
+    check(same(r.moved.x, fx(14)), "and stops a whole carry step short of it");
+
+    // ПАРА: та же плита без столба увозит его целиком. Без неё «скользит» проходило бы и у
+    // реализации, разучившейся возить вбок вовсе.
+    Stage open = make_stage(physics::BodyType::Kinematic, {CARRY_V, fix32{}}, false);
+    const Run f = go(open, fix32{}, false, 20);
+    check(!f.crushed && same(f.moved.x, f.platform.x), "pair: without the pillar it carries him all the way");
+
+    // Скольжение отбирает у переноса ровно ту составляющую, которой некуда деться. Плита, едущая
+    // ВБОК И ВНИЗ, обязана опустить прижатого пассажира на весь свой путь по вертикали: отброшенный
+    // целиком перенос оставил бы его висеть, и «не раздавило» было бы правдой про персонажа,
+    // которого платформа больше не везёт вовсе.
+    Stage sinking = make_stage(physics::BodyType::Kinematic, {CARRY_V, RISE_V}, false);
+    add_pillar(sinking);
+    const Run s = go(sinking, fix32{}, false, 20);
+    std::printf("  slip down: char=(%.3f, %.3f) plat=(%.3f, %.3f)\n", s.moved.x.to_double(),
+                s.moved.y.to_double(), s.platform.x.to_double(), s.platform.y.to_double());
+    check(fx(15) < s.platform.y, "precondition: the sinking platform really descends");
+    check(!s.crushed && s.moved.x < s.platform.x, "the held rider slips sideways there too");
+    check(same(s.moved.y, s.platform.y), "and is still carried down the whole way");
+}
+
 // Опора помнится через окно coyote и забывается вместе с ним. Прогоном по шагам, а не через `go`:
 // вопрос здесь про ТИК, на котором меняется поле, и усреднённый путь про него не говорит ничего.
 void test_the_support_is_forgotten() {
@@ -197,6 +242,7 @@ int main(int argc, char** argv) {
     test_the_jump_inherits_the_horizontal();
     test_the_jump_does_not_inherit_the_vertical();
     test_the_crush_is_a_fact();
+    test_a_blocked_ride_is_a_slip();
     test_the_support_is_forgotten();
     test_the_support_belongs_to_its_world();
     std::printf("framework-character-platform: %s\n", fails == 0 ? "PASS" : "FAIL");

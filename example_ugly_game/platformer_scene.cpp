@@ -1,31 +1,9 @@
 #include "platformer_scene.hpp"
 
-#include <cstring>
-
-#include "asset_manager.hpp"
-#include "hash.hpp"
-
-// Чтение уровня и кадр уровня. Бандл открывается ОДИН раз и закрывается здесь же: и сетка, и
-// профиль КОПИРУЮТ прочитанное (`TileMapTable::build` копирует блок флагов, `ProfileTable::find` —
-// поля), поэтому переживать mmap-регион им нечем и незачем. Держать менеджер открытым на весь
-// прогон значило бы завести владение сроком в игру ради данных, прочитанных за одну загрузку.
+// КАДР уровня: границы, тайл под точкой, край карты и один шаг игры. Чтение бандла живёт отдельным
+// файлом (`platformer_level.cpp`): оно случается один раз на загрузку, а всё здесь — каждый кадр.
 namespace platformer {
 namespace {
-
-constexpr std::size_t ARENA_CAPACITY = 1024u * 1024u;
-
-// Секция по имени. Имя хешируется тем же `fnv1a`, которым его писал пекарь: guid — это и есть имя,
-// свёрнутое в число, и второй способ его посчитать означал бы второе определение формата.
-bool section(asset::AssetManager& am, const char* name, const void*& data, std::size_t& size) {
-    const uint64_t guid = asset::fnv1a(name, std::strlen(name));
-    am.request(guid);
-    am.sync_point();
-    if (!am.is_ready(guid)) return false;
-    const asset::Loaded a = am.get(guid);
-    data = a.data;
-    size = a.size;
-    return true;
-}
 
 // Тайл в точке. Деление ЦЕЛОЧИСЛЕННОЕ по сырому Q16.16 и с округлением ВНИЗ — по тому же доводу,
 // что в `TileGrid::window`: `fix32::operator/` усекает к нулю, и левее начала координат точка
@@ -42,58 +20,72 @@ tm::TileFlags tile_at(const tm::TileGrid& g, Vec2 p) {
 
 } // namespace
 
+bool level_bounds(const Stage& st, LevelBounds& out) {
+    if (!st.grid) return false;
+    const Vec2 o = st.grid->origin();
+    const fix32 ts = st.grid->tile_size();
+    out.min = o;
+    out.max = {o.x + ts * fix32::from_int(static_cast<int32_t>(st.grid->width())),
+               o.y + ts * fix32::from_int(static_cast<int32_t>(st.grid->height()))};
+    return true;
+}
+
 tm::TileFlags tile_at_point(const Stage& st, Vec2 p) {
     if (!st.grid) return tm::TILE_EMPTY;
     return tile_at(*st.grid, p);
 }
 
-bool load_stage(const std::string& bundle_path, Stage& out) {
-    asset::AssetManager am;
-    if (!am.open(bundle_path, ARENA_CAPACITY, /*trusted=*/false)) return false;
+namespace {
 
-    const void* data = nullptr;
-    std::size_t size = 0;
-    bool ok = section(am, "tilemap", data, size);
-    if (ok) {
-        tm::TileMapTable maps;
-        ok = maps.open(data, size);
-        if (ok) {
-            out.grid = maps.find("field");
-            ok = out.grid.has_value();
-        }
+// Край уровня — свойство ОБРАЗЦА, а не движка: сетка кончается, и за её левой границей нет ни
+// пола, ни стены, поэтому персонаж уходил в пустоту, оставаясь живым и управляемым. Находка
+// владельческого прогона §6 от 2026-09-01 звучала ровно так: «пошёл налево за экран, герой пропал,
+// а управление камерой осталось» — игра продолжалась ВНЕ уровня.
+//
+// Числа те же, которыми ограничена камера, и берутся они одним `level_bounds`. Полуширина корпуса
+// вычитается, потому что ограничивается ТЕЛО, а не точка.
+//
+// Только по X, и это решение, а не недоделка: пол карты идёт во всю ширину, вниз выходить нечем, и
+// поймай мы клампом падение сквозь него — мы спрятали бы дефект контроллера, а не закрыли дыру в
+// уровне. Вверх карта открыта намеренно: прыжок выше верхнего ряда тайлов — это прыжок, а не выход
+// из мира.
+//
+// Кламп ставит персонажа НА границу сетки, а граница — это край карты, а не обещание пустого места:
+// сплошной столбец у самого края поставил бы корпус ВНУТРЬ тайла, и разбирал бы это перекрытие
+// `move_and_slide` уже следующего кадра — то есть с опозданием и в сторону, которую выберет он, а не
+// уровень. Поэтому после клампа персонаж отодвигается ВНУТРЬ уровня по тайлу за раз, пока корпус
+// стоит в сплошном; шагов не больше ширины сетки — карта без единого свободного столбца уровнем не
+// является, и вечного цикла на ней быть не должно.
+void nudge_inside(const Stage& st, fix32 step_x, Vec2& p) {
+    const ch::CollisionScene s = st.view();
+    const ph::Shape hull = st.hull().shape;
+    for (uint32_t i = 0; i < st.grid->width(); ++i) {
+        tm::TileHit t;
+        if (!tm::shapecast(*st.grid, hull, p, fix32{}, Vec2{}, s.tiles, t)) return;
+        p.x = p.x + step_x;
     }
-    if (ok && section(am, "movement", data, size)) {
-        ch::ProfileTable profiles;
-        ok = profiles.open(data, size) && profiles.find("player", out.profile);
-    } else {
-        ok = false;
-    }
-    am.close();
-    if (!ok) return false;
-
-    out.derived = ch::derive(out.profile, tick_dt());
-
-    // Мир без тяготения: единственное его тело кинематическое, а персонаж не тело решателя вовсе —
-    // своё тяготение он берёт из профиля. Тяготение мира тут двигало бы платформу вниз, то есть
-    // означало бы, что уровень собран не из того, из чего он собран.
-    out.world.set_gravity({fix32{}, fix32{}});
-    ph::BodyDesc d;
-    d.key = 1;
-    d.type = ph::BodyType::Kinematic;
-    d.shape = ph::box(LIFT_HALF_W, LIFT_HALF_H);
-    d.position = {LIFT_LEFT, LIFT_TOP + LIFT_HALF_H};
-    d.velocity = {LIFT_SPEED, fix32{}};
-    out.lift = out.world.add(d);
-
-    // Появление на полу с тем же зазором, в котором персонаж и держится после первой пробы опоры.
-    // Ровно на полу его ставить нельзя: свип нулевой длины из касания отвечает долей ноль, и первый
-    // же тик читался бы как «упёрся», а не как «стоит».
-    out.hero = ch::Character{};
-    out.hero.position = {SPAWN_X, FLOOR_TOP - HULL_HALF_H - ch::SKIN};
-    out.hero.on_ground = true;
-    out.hero.state = ch::MoveState::Ground;
-    return true;
 }
+
+void clamp_to_level(Stage& st) {
+    LevelBounds b;
+    if (!level_bounds(st, b)) return;
+    const fix32 left = b.min.x + HULL_HALF_W;
+    const fix32 right = b.max.x - HULL_HALF_W;
+    // Скорость гасится вместе с положением, и только та составляющая, которой персонаж в край и
+    // упёрся: оставленная жить, она копилась бы всё время удержания кнопки и выстреливала бы
+    // персонажем прочь от края в тот тик, когда её наконец разрешат применить.
+    if (st.hero.position.x < left) {
+        st.hero.position.x = left;
+        if (st.hero.velocity.x.raw < 0) st.hero.velocity.x = fix32{};
+        nudge_inside(st, st.grid->tile_size(), st.hero.position);
+    } else if (right < st.hero.position.x) {
+        st.hero.position.x = right;
+        if (st.hero.velocity.x.raw > 0) st.hero.velocity.x = fix32{};
+        nudge_inside(st, fix32{} - st.grid->tile_size(), st.hero.position);
+    }
+}
+
+} // namespace
 
 void step_stage(Stage& st, const ch::MoveInput& in) {
     // Разворот платформы — до шага мира, а не после: скорость, выставленная после интегрирования,
@@ -106,6 +98,20 @@ void step_stage(Stage& st, const ch::MoveInput& in) {
 
     st.world.step(tick_dt());
     ch::step(st.view(), st.hull(), st.profile, st.derived, in, tick_dt(), st.hero);
+    clamp_to_level(st);
+    // `crushed` — ЗАЯВЛЕНИЕ движка, а не решение: давить, выталкивать или терпеть, решает игра
+    // (`push.hpp`). Образец возвращает персонажа в точку появления, потому что оставленный на месте
+    // он остался бы стоять внутри давящей его платформы, и следующий кадр давил бы снова: находка
+    // владельца сменила бы вид («выжимает наверх» → «застрял намертво»), а не закрылась.
+    //
+    // Флаг переживает возврат НАРОЧНО: появление обнуляет персонажа целиком, а прогон
+    // (`platformer_sim.cpp`) читает `crushed` после кадра и обязан увидеть тот кадр, в котором
+    // персонажа раздавило. Погашенный здесь, он сделал бы утверждение «маршрут никого не давит»
+    // вечно верным — то есть вакуумным.
+    if (st.hero.crushed) {
+        place_at_spawn(st);
+        st.hero.crushed = true;
+    }
 }
 
 tm::TileFlags ground_tile(const Stage& st) {

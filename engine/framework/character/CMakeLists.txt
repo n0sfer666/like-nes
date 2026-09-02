@@ -4,7 +4,7 @@
 # грепом по этой самой строке линковки. Обратного ребра нет: ни физика, ни сетка про персонажа не
 # знают.
 add_library(framework_character STATIC controller.cpp collision.cpp profile.cpp slide.cpp
-  assist.cpp support.cpp ladder.cpp trajectory.cpp profile_parse.cpp
+  assist.cpp support.cpp push.cpp ladder.cpp trajectory.cpp profile_parse.cpp
   profile_bake.cpp profile_read.cpp)
 target_include_directories(framework_character PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит профиль, а не файловый шов, которым пекарь
@@ -90,6 +90,13 @@ target_link_libraries(framework_character_wedge_test PRIVATE framework_character
 # в заголовок — здесь обстановка, в гейте утверждения.
 add_executable(framework_character_platform_test framework_character_platform_test.cpp)
 target_link_libraries(framework_character_platform_test PRIVATE framework_character
+  framework_tilemap platform_core)
+
+# Снос движущимся телом (находка владельческого прогона §6). Шестой целью по тому же основанию,
+# что и перенос опорой: раскладка общая с ним, а вопрос другой — не «еду ли я вместе с опорой», а
+# «убирают ли меня с дороги того, на чём я не стою».
+add_executable(framework_character_push_test framework_character_push_test.cpp)
+target_link_libraries(framework_character_push_test PRIVATE framework_character
   framework_tilemap platform_core)
 
 # Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.

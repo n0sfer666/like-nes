@@ -23,7 +23,7 @@ cd "$ROOT" || exit 1
 check_hash() { # имя-цели ожидаемый-хеш [аргументы]
     local bin name="$1" want="$2" out rc
     shift 2
-    bin=$(find build-full -maxdepth 2 -type f -name "$name" | head -1)
+    bin=$(find build-full -maxdepth 2 -type f \( -name "$name" -o -name "$name.exe" \) | head -1)
     if [ -z "$bin" ]; then echo "$name не собран"; return 1; fi
     out=$("$bin" "$@" 2>&1)
     rc=$?
@@ -74,9 +74,9 @@ core_goldens() {
     # проверялся локально вовсе, и перепин `fix32::operator*` в раунде #15 доехал незамеченным до
     # CI, где покраснел разом на трёх ОС. Цена ошибки ровно та, ради которой проверка и заводилась.
     grav=$(find build-full -maxdepth 2 -type f \
-        \( -name 'plugin_gravity.so' -o -name 'plugin_gravity.dylib' \) | head -1)
+        \( -name 'plugin_gravity.so' -o -name 'plugin_gravity.dylib' -o -name 'plugin_gravity.dll' \) | head -1)
     wind=$(find build-full -maxdepth 2 -type f \
-        \( -name 'plugin_wind.so' -o -name 'plugin_wind.dylib' \) | head -1)
+        \( -name 'plugin_wind.so' -o -name 'plugin_wind.dylib' -o -name 'plugin_wind.dll' \) | head -1)
     if [ -n "$grav" ] && [ -n "$wind" ]; then
         check_hash plugin_determinism_test 0x7d9a6e60cbed4156 "$grav" "$wind" || rc=1
     else
@@ -121,7 +121,7 @@ verify_bundle() {
     local bin rc t all=0
     for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test \
         framework_graphics_atlas_bundle_test game_atlas_regions_test; do
-        bin=$(find build-ci build-full -maxdepth 2 -type f -name "$t" 2>/dev/null | head -1)
+        bin=$(find build-ci build-full -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) 2>/dev/null | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi
         out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?
         printf '%s\n' "$out"
