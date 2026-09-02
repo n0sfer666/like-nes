@@ -69,6 +69,18 @@ int run_window(int frame_cap) {
                                         resolve_asset("library.bundle").c_str()) && sfx.bind(&materials);
     std::printf("[game] materials: %s (%u pipeline(s), %u fallback(s))\n", have_fx ? "on" : "off",
                 materials.pipelines_created(), materials.fallbacks());
+    // Гейт 3 спеки #18: правка `.wgsl` доезжает до ЖИВОЙ сцены. Путь к исходнику приходит из
+    // окружения, а не из бандла: в бандле байты, править в них нечего. Отказ наблюдения не мешает
+    // играть — он снимает только горячую замену, о чём и говорит строкой.
+    std::string fx_wgsl;
+    platform::env_var("LIKENES_FX_WGSL", fx_wgsl);
+    if (have_fx && !fx_wgsl.empty()) {
+        if (materials.watch_shader(fx_wgsl))
+            std::printf("[game] shader hot-reload: %s (%s watch)\n", fx_wgsl.c_str(),
+                        materials.watch_backend());
+        else
+            std::fprintf(stderr, "[game] shader hot-reload off: %s\n", materials.watch_error());
+    }
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,
                have_fx ? &materials : nullptr);   // → HDR (bloom)
@@ -123,6 +135,7 @@ int run_window(int frame_cap) {
         ach.observe(gs);                                 // наблюдатель: sim о нём не знает
         if ((t % 60) == 0) ach.pump();                   // доставка — вне тика
         ach.autosave();
+        materials.poll_shader();                         // правка шейдера — между тиком и кадром
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
 
         WGPUSurfaceTexture st = {};

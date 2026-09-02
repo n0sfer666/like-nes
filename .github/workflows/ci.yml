@@ -329,6 +329,36 @@ jobs:
             echo "PARAMETERS SPLIT THE BATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "material-gpu: PASS" mat.txt || { echo "MATERIAL GATES FAILED"; exit 1; }
 
+      # Гейт 3 спеки #18 — горячая замена библиотеки на живой видеокарте, на всех трёх ОС. Утверждение
+      # про БИТУЮ правку («рисует прежний вариант») в одиночку проходит и на кэше, который не
+      # перезагружается вовсе, поэтому гейт первой делает ВЕРНУЮ правку и требует смены объектов
+      # пайплайнов — только после этого «объекты не сменились» говорит о починке, а не о трупе.
+      # Наблюдение за каталогом тут не декорация: у FSEvents задержка около секунды, а на
+      # Windows-раннере правку доставляет ReadDirectoryChangesW — три РАЗНЫЕ реализации шва №8.
+      - name: Materials — hot-reload keeps the previous library on a broken edit (gate 3 of spec #18)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'material_hot_reload' -o -name 'material_hot_reload.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "material_hot_reload not built"; exit 1; }
+          set +e
+          "$BIN" --work hot_reload_ci > hot.txt 2>&1
+          rc=$?
+          set -e
+          cat hot.txt
+          [ "$rc" -eq 0 ] || { echo "HOT-RELOAD EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "hot-reload: PASS" hot.txt || { echo "HOT-RELOAD GATE FAILED on ${{ matrix.os }}"; exit 1; }
+          # Тот же гейт на ПОЛЛИНГОВОМ бэкенде: нативный шов уходит в него сам — на сетевой ФС, в
+          # shared folder виртуалки, на исчерпанном лимите inotify-вотчей, — и путь, которым правка
+          # доезжает у половины владельцев, иначе не проверялся бы вовсе. Одной ОС хватает:
+          # реализация у поллинга одна на все три (platform_watch_poll.cpp), а нативных — три.
+          if [ "$RUNNER_OS" = "Linux" ]; then
+            LIKE_NES_WATCH=poll "$BIN" --work hot_reload_ci_poll > hotp.txt 2>&1 || {
+              cat hotp.txt; echo "HOT-RELOAD FAILED ON THE POLLING BACKEND"; exit 1; }
+            grep -q "watch: polling backend" hotp.txt || {
+              cat hotp.txt; echo "LIKE_NES_WATCH=poll DID NOT SELECT THE POLLING BACKEND"; exit 1; }
+            grep -q "hot-reload: PASS" hotp.txt || { cat hotp.txt; exit 1; }
+          fi
+
       # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---
       # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
       # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,

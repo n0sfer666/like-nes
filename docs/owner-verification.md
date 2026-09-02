@@ -1,8 +1,8 @@
 # Owner verification: the gates a runner cannot close
 
-Seven of the eight gates below are **closed** — each carries the run that closed it, with the
-evidence. The eighth (§9, the effect library) opened with round #18 and waits for a machine with a
-screen. They stay here as the procedure, because each one needs a
+Seven of the nine gates below are **closed** — each carries the run that closed it, with the
+evidence. The two open ones (§9, the effect library; §11, hot-reload in front of a person) opened
+with round #18 and wait for a machine with a screen. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -16,6 +16,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
+| A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1316,9 +1317,83 @@ The offscreen path is deliberately material-free: `--demo` renders the same scen
 library so the render goldens of spec #2 stay byte-identical, and gate 8 of this spec is exactly
 that regression. Seeing no effects there is correct.
 
+## 11. Gate 3 of #18 — hot-reload in front of a person
+
+> **Open.** Everything about hot-reload that a machine can assert is asserted twice and headlessly:
+> `material_hot_reload` proves the cache-level contract on every OS in CI (a valid edit rebuilds all
+> three pipelines; a broken one is refused, counted, and leaves *the same pipeline objects* drawing),
+> and `editor_shell --gate3` proves the panel half by pixels — the preview hash changes on a valid
+> edit and is **byte-identical** after a broken one. What neither can answer is the only question the
+> feature exists for: does the picture on a real screen change while you keep playing, and does a
+> typo leave it alone instead of blanking it.
+
+### The editor half
+
+```sh
+cmake --build build --target editor_shell
+LIKENES_MATERIAL_LIB=engine/material/library ./build/editor_shell --gate3 gate3_work
+```
+
+Expected, and the run must exit `0`:
+
+```
+[editor] materials panel: gate 3 runs its own copy
+[gpu] <adapter> | <backend> | BC: <yes|no>
+[material] hot-reload: gate3_work/sprite_effects.wgsl -> 6 pipeline(s) total
+  rejected: gate3_work/sprite_effects.wgsl:1:1: error: expected global item (…), found 'let'
+gate 3: PASS (failures: 0)
+```
+
+`6 pipeline(s)` is the whole point of the first line: three before the edit, three rebuilt after it.
+A run that prints `3` reloaded nothing, and a run whose `rejected:` line carries no `:line:col:` has
+a diagnostic the panel can show but not click through.
+
+Then the eye, with the window open:
+
+```sh
+LIKENES_MATERIAL_LIB=engine/material/library ./build/editor_shell
+```
+
+The **Shaders** window shows the library preview, the watch backend (`native` on all three desktops;
+`polling` means the native watcher refused and the fallback took over — a finding worth reporting,
+not a failure), and the pipeline/reload/reject counters. With the window on screen, edit
+`engine/material/library/sprite_effects.wgsl` in any editor and save:
+
+1. **A real edit** — change the last line of `fs_flash` to `return vec4f(1.0, 0.0, 1.0, 1.0);` —
+   repaints the preview magenta within about a second, and `reload(s)` goes up by one. No restart,
+   no flicker of the rest of the panel.
+2. **A broken edit** — put `let x: f32 = ;` on the first line — leaves **the picture exactly as it
+   was**, adds one to `rejected`, and prints the file, line and column in red under the counters.
+   The preview must not blank, flash, or fall back to a flat colour: that is the whole claim.
+3. **Fixing the file again** brings the preview back, and `rejected` stops growing. A panel that
+   needs a restart here has kept the broken module somewhere it should not have.
+
+### The game half
+
+The same driver runs inside the sample game, which is where it matters:
+
+```sh
+cmake --build build --target game_sidescroller
+LIKENES_FX_WGSL=engine/material/library/sprite_effects.wgsl ./build/game_sidescroller
+```
+
+Startup names the watch, and it is the line that says the feature is armed at all:
+
+```
+[game] materials: on (3 pipeline(s), 0 fallback(s))
+[game] shader hot-reload: engine/material/library/sprite_effects.wgsl (native watch)
+```
+
+Without `LIKENES_FX_WGSL` the game prints no watch line and hot-reload is off — that is the shipping
+configuration, not a defect. With it, repeat the two edits above **while enemies are on screen**: a
+valid edit changes the flash on live enemies mid-run and prints `-> 6 pipeline(s) total`, a broken
+one prints the diagnostic plus `rejected, previous library still drawing`, and the enemies keep
+flashing the old way. The frame rate must not stumble on either: the rebuild happens between the
+tick and the frame, and a visible hitch on a three-pipeline library is a finding.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; all but the two of spec #18 are closed. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the three of spec #18 are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
@@ -1343,6 +1418,9 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   them — and `golden_actual.png` if `frame` came out red.
 - For §9, the frame `material_golden` writes on the Metal box, with the four answers — and, from
   the Linux and Windows boxes, the `--selftest` output with the `[gpu]` line above it.
+- For §11, the `editor_shell --gate3` output with its `[gpu]` line, plus one recording per half:
+  the editor panel through the three edits (real → broken → fixed) and the game through the same two
+  while enemies are on screen, with the startup `hot-reload:` line visible in the terminal.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

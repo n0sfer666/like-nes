@@ -96,9 +96,14 @@ if(TARGET imgui)
   # WebGPU-бэкенд + оконная обвязка — в imgui-либе (engine/render/wgpu_imgui). GpuContext и
   # capture (снимок кадра для --gate6) — из render_core; glfw3webgpu — surface из GLFW-окна.
   # platform_core нужен режиму гейта: паспорт сессии читает окружение через platform::env_var.
+  # Панель материалов (гейт 3 спеки #18) рисует превью ТЕМ ЖЕ кадром, что сверяет голден, —
+  # отсюда `material_preview`; `material_hot` даёт наблюдение за файлом, `material_bake` —
+  # выпечку библиотеки из текста, `diag_core` — разбор нашей же диагностики в поля панели.
   add_executable(editor_shell
-    editor/editor_shell_main.cpp editor/editor_gate6.cpp editor/editor_gate6_session.cpp)
-  target_link_libraries(editor_shell PRIVATE editor_core imgui render_core platform_core glfw3webgpu webgpu)
+    editor/editor_shell_main.cpp editor/editor_gate6.cpp editor/editor_gate6_session.cpp
+    editor/material_panel.cpp editor/material_panel_gate.cpp)
+  target_link_libraries(editor_shell PRIVATE editor_core diag_core imgui render_core
+    material_preview material_hot material_bake platform_core glfw3webgpu webgpu)
   target_copy_webgpu_binaries(editor_shell)
   reproducible_rpath(editor_shell)
 endif()

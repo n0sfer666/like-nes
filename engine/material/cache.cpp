@@ -60,6 +60,8 @@ void Cache::shutdown() {
     // «3 pipeline(s)» ещё до первого прогрева, а число это стоит утверждением в гейте 8.
     created_ = 0;
     fallbacks_ = 0;
+    reloads_ = 0;
+    owned_wgsl_.clear();
 }
 
 WGPURenderPipeline Cache::find(const PipelineKey& k) const {
