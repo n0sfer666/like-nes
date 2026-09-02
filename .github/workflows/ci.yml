@@ -355,6 +355,14 @@ jobs:
           "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle
           cmp libsrc/library.bundle example_ugly_game/assets/library.bundle || {
             echo "library.bundle ОТСТАЛ от engine/material/library on ${{ matrix.os }}"; exit 1; }
+          # Контроль на КОНЦЫ СТРОК, и он здесь не теоретический: `core.autocrlf=true` на
+          # Windows-раннере уже дал 6192 байта против 6080 — по лишнему на строку, — и гейт покраснел,
+          # ничего не сказав про сами материалы. Байты артефакта обязаны быть функцией содержимого.
+          python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\n', b'\r\n'))" \
+            libsrc/sprite_effects.wgsl libsrc/crlf.wgsl
+          "$A" --materials libsrc/library.mat libsrc/crlf.wgsl libsrc/crlf.bundle
+          cmp libsrc/crlf.bundle example_ugly_game/assets/library.bundle || {
+            echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК on ${{ matrix.os }}"; exit 1; }
           # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита, иначе
           # первая же опечатка в пути делает гейт вечно зелёным (правило vacuous-gate линтера).
           printf 'x' >> libsrc/library.bundle

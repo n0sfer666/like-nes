@@ -183,9 +183,9 @@ python3 scripts/line_budget.py --selftest  # правила проверяютс
 (`scripts/line_budget.py`) → `actionlint` + `shellcheck` (severity `warning`) → `shellcheck` самих
 гейт-скриптов → сборка в конфигурации CI → сборка полного набора опций → три проверки продуктов
 сборки по одной (`scripts/check_goldens.sh debug|core|bundle`, тело Debug-этапа — отдельный
-`scripts/check_debug_golden.sh`: голден физики в Debug, восемь голденов ядра,
-сверка `game.bundle` с исходниками — этап `bundle` несёт ДВА утверждения и требует
-собранного `build-ci`/`build-full`) → сборка gcc, если он установлен. Этапы не
+`scripts/check_debug_golden.sh`, а сверку `library.bundle` — `scripts/check_library_bundle.sh`:
+голден физики в Debug, восемь голденов ядра, сверка `game.bundle` с исходниками — этап `bundle`
+несёт ТРИ утверждения и требует собранного `build-ci`/`build-full`) → сборка gcc, если он установлен. Этапы не
 останавливают друг друга: один прогон обязан выдать все находки разом.
 
 **На Windows этап `actionlint` идёт без своей shellcheck-интеграции** (`-shellcheck=`). Не выбор
@@ -197,7 +197,8 @@ python3 scripts/line_budget.py --selftest  # правила проверяютс
 Висящий гейт хуже падающего: падение читается как находка, а час тишины — как «ещё считает».
 
 Сам `preflight.sh` держит **порядок и условия** этапов, а не их тела: проверки, доросшие до
-собственного имени, вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`, `check_debug_golden.sh`)
+собственного имени, вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`,
+`check_debug_golden.sh`, `check_library_bundle.sh`)
 и зовутся как
 внешние команды. Так каждую можно прогнать по одной, не выбирая между «весь preflight» и «руками из
 истории шелла», и в логе стоит имя упавшей, а не «что-то из трёх разошлось».

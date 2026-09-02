@@ -1,5 +1,6 @@
 #include "bakers.hpp"
 
+#include <algorithm>
 #include <cstdio>
 
 #include "../../engine/achievements/bake.hpp"
@@ -131,6 +132,12 @@ bool materials(const std::string& src, const std::string& wgsl_src,
         report("materials", wgsl_src, 0, "shader module unreadable");
         return false;
     }
+    // CRLF сворачивается в LF: байты бандла обязаны быть функцией СОДЕРЖИМОГО, а не настройки
+    // клона. `core.autocrlf=true` на Windows-раннере даёт по лишнему байту на строку, и сверка
+    // `library.bundle` краснела там на 6192 против 6080, не говоря ни слова про сами материалы
+    // (прогон 192ed67). `.gitattributes` закрывает это для нашего дерева, но артефакт не должен
+    // зависеть и от чужого. WGSL от сворачивания не меняется.
+    wgsl.erase(std::remove(wgsl.begin(), wgsl.end(), static_cast<uint8_t>('\r')), wgsl.end());
     wgsl.push_back(0);   // модуль уезжает в wgpu строкой: терминатор кладёт пекарь, а не читатель
     push_table("effects.wgsl", std::move(wgsl), out);
     return true;
