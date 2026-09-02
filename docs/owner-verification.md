@@ -1094,16 +1094,26 @@ layout as the half above.
 5. **Glow.** The sparks are visibly BRIGHTER than the sprites around them — that is the `MAT_Glow`
    exposure of 1.9 that used to be a literal in `fx.cpp`. Flat, unglowing sparks mean the material
    exposure is not reaching the instance.
-6. **Nothing disappears under load.** During the boss fight, no moment where sparks stop being
-   emitted altogether: the pool holds 512 and the scripted fight peaks at 113 of them
-   (`game_fx_test`, `alive: 53, peak: 113, dropped: 0`), so it leaves 78% of the pool untouched and
-   says nothing about a fight four times as dense. Yours is the only one that can. This is the one
-   question here your eyes answer weakly by construction — it asks for the ABSENCE of a moment, and
-   not seeing one is not the same as there not being one.
+6. **Nothing disappears under load.** This one your eyes answer badly by construction — it asks for
+   the ABSENCE of a moment, and not seeing one is not the same as there not being one. So since
+   2026-09-02 the sample answers it itself: on exit it prints
+
+   ```
+   [game] fx: peak 113 of 512, dropped 0
+   ```
+
+   `dropped` **is** the question — anything but `0` means a burst was truncated because the pool was
+   full, which is exactly the "sparks stopped coming" this asks about. `peak` is the headroom that
+   zero sits in. Two measured numbers for scale: the scripted fight of `game_fx_test` peaks at 113
+   of 512, and 240 frames of idle flying peak at 32. Play a dense fight, quit with Esc, read the
+   line. A counter stuck at zero would be the worst outcome here, so both halves of it are pinned:
+   `game_fx_test` asserts `fx.peak()` equals the high-water mark the test measures for itself, and
+   `framework_graphics_particle_refusal_test` asserts `dropped()` counts an overflow one particle at
+   a time.
 
 A "no" on 1 points at `spawn_half` in the ship's trail description, on 3 or 4 at the burst counts in
-`fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — `Fx::dropped()`
-counts exactly that case and nothing prints it yet, so a "no" here is also a request for that line.
+`fx.cpp`, on 5 at `material_exposure` in `sprite_out.cpp`, and on 6 at `FX_CAP` — which the
+line on exit now reads out, so that question is no longer judged by eye.
 
 **Answered 2026-09-02** on the Windows box (MSVC 14.44, Release, Intel UHD 620), one run of each
 build up to and through the boss fight: *"no difference at all, two visually identical games"* —
@@ -1111,8 +1121,8 @@ which is questions 1 through 5 each answered yes, the exhaust band, the muzzle p
 bullet's trail, the sixteen orange sparks, both waves of the boss's sixty, and the glow, all as
 described. Question 6 rides on that verdict instead of answering it: it asks for the **absence** of
 a moment, and the owner reported no anomaly rather than reporting that he watched for one — the pool
-holding under a live boss fight is unrefuted, not tested, and `Fx::dropped()` still prints nothing
-that would have turned it into an assertion. Provenance of the pair rests on the owner's own
+holding under a live boss fight was unrefuted, not tested. That is what the exit line added the same
+day is for, and question 6 is settled by the first run that reads it, not by this one. Provenance of the pair rests on the owner's own
 navigation into the worktree: the `--golden-selftest` control above was written **after** this run,
 in answer to it, so this pass did not use it. What corroborates the pass instead is the platformer
 half, run the same evening through the same mechanism, which returned two **different** results — a

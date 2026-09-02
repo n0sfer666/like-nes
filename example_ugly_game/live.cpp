@@ -164,6 +164,7 @@ int run_window(int frame_cap) {
     gpu.shutdown();
     glfwDestroyWindow(win);
     glfwTerminate();
+    std::printf("[game] fx: peak %u of %u, dropped %u\n", fx.peak(), FX_CAP, fx.dropped());
     std::printf("[game] window clean exit\n");
     return 0;
 }

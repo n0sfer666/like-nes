@@ -52,7 +52,10 @@ void Fx::emit_trails(const TrailQuery& trails) {
     });
 }
 
-void Fx::update() { em_.advance(fix32::from_int(1)); }
+void Fx::update() {
+    em_.advance(fix32::from_int(1));
+    if (em_.count() > peak_) peak_ = em_.count();
+}
 
 uint32_t Fx::draw(const Atlas& atlas, Instance* out, uint32_t max) {
     framework::graphics::SpriteList list(sprites_, keys_, FX_CAP);
