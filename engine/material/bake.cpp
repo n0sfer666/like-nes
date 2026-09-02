@@ -1,9 +1,9 @@
 #include "bake.hpp"
 
-#include <cstdio>
 #include <cstring>
 
 #include "../asset/hash.hpp"
+#include "../platform/platform_fs.hpp"
 #include "bake_rows.hpp"
 
 namespace mat {
@@ -110,20 +110,15 @@ bool bake_materials(const std::string& text, std::vector<uint8_t>& out, BakeErro
 }
 
 bool bake_materials_file(const std::string& path, std::vector<uint8_t>& out, BakeError& err) {
-    std::FILE* f = std::fopen(path.c_str(), "rb");
-    if (f == nullptr) {
+    // Чтение через платформенный шов, а не `fopen`: на MSVC он депрекирован, и `/W4 /WX` раннера
+    // валит сборку там, где clang молчит (прогон 03a705c, 2026-09-02). Юникод в пути тем же швом
+    // достаётся бесплатно.
+    std::string text;
+    if (!platform::read_text(path, text)) {
         err.line = 0;
         err.message = "cannot open " + path;
         return false;
     }
-    std::string text;
-    char buf[4096];
-    for (;;) {
-        const std::size_t n = std::fread(buf, 1, sizeof(buf), f);
-        if (n == 0) break;
-        text.append(buf, n);
-    }
-    std::fclose(f);
     return bake_materials(text, out, err);
 }
 

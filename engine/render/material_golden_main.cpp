@@ -10,6 +10,7 @@
 #include "material_frame.hpp"
 #include "material_scene.hpp"
 #include "platform_args.hpp"
+#include "platform_fs.hpp"
 #include "table.hpp"
 
 // Первый потребитель материалов (решение 6 спеки #18 — «голден первым»): сцена библиотеки,
@@ -36,15 +37,8 @@ void check(bool ok, const char* what) {
     }
 }
 
-bool read_file(const std::string& path, std::string& out) {
-    std::FILE* f = std::fopen(path.c_str(), "rb");
-    if (!f) return false;
-    char buf[4096];
-    std::size_t n = 0;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) out.append(buf, n);
-    std::fclose(f);
-    return true;
-}
+// Через платформенный шов: `fopen` на MSVC депрекирован, и `/W4 /WX` раннера валит на нём сборку.
+bool read_file(const std::string& path, std::string& out) { return platform::read_text(path, out); }
 
 // Гейт 4: битый материал не роняет прогон и не отдаёт пустоту. Проверяется на СВОЁМ кэше, потому
 // что утверждение о нуле запасных в кэше библиотеки — половина этого гейта: без него «отдали

@@ -5,8 +5,10 @@
 add_library(material_core STATIC param.cpp table.cpp)
 target_include_directories(material_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Файлы пекарь читает ЧЕРЕЗ платформенный шов (`platform_core`), а не `fopen`: MSVC на нём
+# ругается депрекацией, а `/W4 /WX` раннера превращает её в упавшую сборку.
 add_library(material_bake STATIC bake.cpp bake_parse.cpp text.cpp)
-target_link_libraries(material_bake PUBLIC material_core)
+target_link_libraries(material_bake PUBLIC material_core platform_core)
 
 add_executable(material_bake_test material_bake_test.cpp)
 target_link_libraries(material_bake_test PRIVATE material_bake)

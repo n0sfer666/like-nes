@@ -5,6 +5,7 @@
 
 #include "../asset/hash.hpp"
 #include "../platform/platform_args.hpp"
+#include "../platform/platform_fs.hpp"
 #include "bake.hpp"
 #include "param.hpp"
 #include "table.hpp"
@@ -88,15 +89,8 @@ const ResolvePin RESOLVED[] = {
     {"dissolve_ash", "dissolve", {0.6f, 0.6f, 0.62f, 1, 0, 0.16f, 0, 0}},
 };
 
-bool read_file(const std::string& path, std::string& out) {
-    std::FILE* f = std::fopen(path.c_str(), "rb");
-    if (!f) return false;
-    char buf[4096];
-    std::size_t n = 0;
-    while ((n = std::fread(buf, 1, sizeof(buf), f)) > 0) out.append(buf, n);
-    std::fclose(f);
-    return true;
-}
+// Через платформенный шов: `fopen` на MSVC депрекирован, и `/W4 /WX` раннера валит на нём сборку.
+bool read_file(const std::string& path, std::string& out) { return platform::read_text(path, out); }
 
 const mat::ParamRow* find_param(const mat::Table& t, uint32_t m, const char* name) {
     for (uint32_t hops = 0; m < t.count() && hops <= t.count(); ++hops) {
