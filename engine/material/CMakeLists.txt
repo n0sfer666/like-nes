@@ -17,3 +17,10 @@ target_link_libraries(material_source_test PRIVATE material_bake)
 add_executable(material_table_test material_table_test.cpp)
 target_link_libraries(material_table_test PRIVATE material_bake)
 
+# Мирроринг «слот параметра ↔ смещение в шейдере». Отдельной целью от трёх выше по тому же
+# контракту, что развёл гейты профиля в #16: имя упавшей цели обязано называть класс поломки, а
+# здесь он свой — не пекарь и не читатель разъехались, а библиотека разъехалась со своим WGSL.
+# Цель читает файлы библиотеки, поэтому путь к каталогу передаётся аргументом (по умолчанию —
+# относительный от корня дерева, как у бандл-гейтов).
+add_executable(material_library_test material_library_test.cpp)
+target_link_libraries(material_library_test PRIVATE material_bake platform_core)

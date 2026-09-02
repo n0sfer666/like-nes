@@ -7,6 +7,7 @@
 #include "../../engine/framework/graphics/atlas_bake.hpp"
 #include "../../engine/framework/input/preset_bake.hpp"
 #include "../../engine/framework/tilemap/map_bake.hpp"
+#include "../../engine/material/bake.hpp"
 #include "baker_guid.hpp"
 #include "format.hpp"
 
@@ -104,6 +105,21 @@ bool atlas_regions(const std::string& src, std::vector<AssetInput>& out) {
         return false;
     }
     push_table("atlas_regions", std::move(table), out);
+    return true;
+}
+
+// Материалы (спека #18): тот же zero-parse шов, что у нарезки атласа. Пекарь здесь — ЧИСТЫЙ
+// парсер: ни tint, ни basisu он не зовёт, поэтому секция печётся на любой машине и попадает в тот
+// же класс, что сверяет `--verify-game`. Шейдеры библиотеки едут отдельными ассетами через
+// `bakers::shader` — материал ссылается на них guid'ом имени, а не содержимым.
+bool materials(const std::string& src, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    mat::BakeError err;
+    if (!mat::bake_materials_file(src, table, err)) {
+        report("materials", src, err.line, err.message);
+        return false;
+    }
+    push_table("materials", std::move(table), out);
     return true;
 }
 
