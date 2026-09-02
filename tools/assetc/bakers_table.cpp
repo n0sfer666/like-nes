@@ -1,5 +1,6 @@
 #include "bakers.hpp"
 
+#include <algorithm>
 #include <cstdio>
 
 #include "../../engine/achievements/bake.hpp"
@@ -7,8 +8,10 @@
 #include "../../engine/framework/graphics/atlas_bake.hpp"
 #include "../../engine/framework/input/preset_bake.hpp"
 #include "../../engine/framework/tilemap/map_bake.hpp"
+#include "../../engine/material/bake.hpp"
 #include "baker_guid.hpp"
 #include "format.hpp"
+#include "platform_fs.hpp"
 
 // Пекари zero-parse таблиц: текстовый исходник → байты, которые рантайм читает прямо из
 // mmap-региона, без парсинга. От соседей по `bakers.cpp` они отличаются тем, что внешних кодеков не
@@ -104,6 +107,39 @@ bool atlas_regions(const std::string& src, std::vector<AssetInput>& out) {
         return false;
     }
     push_table("atlas_regions", std::move(table), out);
+    return true;
+}
+
+// Материалы (спека #18): тот же zero-parse шов, что у нарезки атласа. Пекарь здесь — ЧИСТЫЙ
+// парсер: ни tint, ни basisu он не зовёт, поэтому секция печётся на любой машине и попадает в тот
+// же класс, что сверяет `--verify-game`. Шейдеры библиотеки едут отдельными ассетами через
+// `bakers::shader` — материал ссылается на них guid'ом имени, а не содержимым.
+bool materials(const std::string& src, const std::string& wgsl_src,
+               std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    mat::BakeError err;
+    if (!mat::bake_materials_file(src, table, err)) {
+        report("materials", src, err.line, err.message);
+        return false;
+    }
+    push_table("materials", std::move(table), out);
+
+    // Текст модуля едет ТЕМ ЖЕ бандлом, отдельным ассетом. Иначе рантайм искал бы исходник рядом с
+    // exe: у таблицы материалов есть имена точек входа и нет модуля, в котором их искать, а
+    // библиотека, чей шейдер лежит вне бандла, работает ровно до первой установленной сборки.
+    std::vector<uint8_t> wgsl;
+    if (!platform::read_bytes(wgsl_src, wgsl) || wgsl.empty()) {
+        report("materials", wgsl_src, 0, "shader module unreadable");
+        return false;
+    }
+    // CRLF сворачивается в LF: байты бандла обязаны быть функцией СОДЕРЖИМОГО, а не настройки
+    // клона. `core.autocrlf=true` на Windows-раннере даёт по лишнему байту на строку, и сверка
+    // `library.bundle` краснела там на 6192 против 6080, не говоря ни слова про сами материалы
+    // (прогон 192ed67). `.gitattributes` закрывает это для нашего дерева, но артефакт не должен
+    // зависеть и от чужого. WGSL от сворачивания не меняется.
+    wgsl.erase(std::remove(wgsl.begin(), wgsl.end(), static_cast<uint8_t>('\r')), wgsl.end());
+    wgsl.push_back(0);   // модуль уезжает в wgpu строкой: терминатор кладёт пекарь, а не читатель
+    push_table("effects.wgsl", std::move(wgsl), out);
     return true;
 }
 

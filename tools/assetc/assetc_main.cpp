@@ -44,7 +44,8 @@ int main(int argc, char** argv) {
         std::fprintf(stderr,
                      "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
-                     "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n");
+                     "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
+                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>  (tools-free)\n");
         return 2;
     }
     // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
@@ -75,6 +76,22 @@ int main(int argc, char** argv) {
         ok = ok && bakers::audio(asrc + "/music.ogg", "music", true, assets);
         if (!ok) return 1;
         return emit("audio", argv[3], std::move(assets));
+    }
+
+    // Библиотека эффектов (спека #18): `library.mat` → секция `materials` отдельным бандлом.
+    // Отдельным, а не внутри `--game`: библиотека принадлежит ДВИЖКУ (решение 4), её потребитель
+    // номер один — golden-харнесс рендера, и класть её в бандл игры-образца значило бы, что гейт
+    // движка не запускается без ассетов примера. Пекарь чистый, внешних кодеков не зовёт, поэтому
+    // режим работает на любой машине, включая раннеры без tint и basisu.
+    if (std::strcmp(argv[1], "--materials") == 0) {
+        if (argc < 5) {
+            std::fprintf(stderr,
+                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>\n");
+            return 2;
+        }
+        std::vector<AssetInput> massets;
+        if (!bakers::materials(argv[2], argv[3], massets)) return 1;
+        return emit("materials", argv[4], std::move(massets));
     }
 
     // Игра-образец (спека #8 шов assetc→билд): плейсхолдер-atlas.png → target-native

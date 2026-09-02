@@ -3,11 +3,15 @@
 
 #include "batch.hpp"
 #include "fx.hpp"
+#include "scene_fx.hpp"
 #include "world.hpp"
 
 namespace game {
 
-void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas);
+// `sfx` не привязан — сцена рисуется базовым пайплайном, как рисовалась. Так ходит offscreen-путь
+// `--demo`: на его кадре стоит голден рендер-гейтов #2, и надеть на него эффекты значило бы
+// перепечь эталон ради косметики (гейт 8 спеки #18 — регресс).
+void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas, const SceneFx& sfx);
 void push_hud(SpriteBatch& batch, flecs::world& world, const Atlas& atlas, const GameState& gs);
 void push_screen(SpriteBatch& batch, const Atlas& atlas, const GameState& gs);
 void push_toast(SpriteBatch& batch, const Atlas& atlas, const char* name, uint32_t left);

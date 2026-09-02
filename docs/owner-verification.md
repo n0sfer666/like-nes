@@ -1,7 +1,8 @@
 # Owner verification: the gates a runner cannot close
 
-All seven gates below are **closed** — each carries the run that closed it, with the
-evidence. They stay here as the procedure, because each one needs a
+Seven of the eight gates below are **closed** — each carries the run that closed it, with the
+evidence. The eighth (§9, the effect library) opened with round #18 and waits for a machine with a
+screen. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -14,6 +15,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1203,9 +1205,120 @@ measurement or stays and the renderer gets fixed. Do **not** re-bake with `--upd
 reference is pinned on Metal deliberately, and a re-bake on another GPU silently turns the gate into
 a comparison of your machine with itself.
 
+## 9. Gate 1 of #18 — the effect library on a real GPU
+
+> **Open.** The numeric half of this seam is machine-side and green on all three runners: how many
+> pipelines the warm-up builds, in how many draw calls the frame is assembled, and whether a frame
+> after the warm-up compiles anything. What no runner can answer is the picture — whether flash,
+> outline and dissolve look like what the material *says*, on a screen.
+
+```sh
+cmake --build build --target material_golden
+./build/material_golden --golden engine/render/golden/materials_640x360.png
+```
+
+Expected, on the Metal machine the reference was baked on:
+
+```
+[material] no entry point `fs_nope` in the library: falling back
+[gpu] <adapter> | Metal | BC: yes
+  warm-up: 3 pipeline(s) for 7 material(s), 0 fallback(s)
+  frame: 28 instance(s) in 3 draw call(s)
+  painted: 30.4% of the frame
+  golden engine/render/golden/materials_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
+material-gpu: PASS
+```
+
+The first line is not a failure: the run deliberately builds a material naming a shader entry that
+does not exist, to prove a broken material still draws with the fallback instead of drawing nothing.
+Its absence would be the finding.
+
+`max=0.00000` means the reference file is bit for bit what your GPU just drew, so opening
+`engine/render/golden/materials_640x360.png` *is* looking at your own frame. If the numbers came out
+non-zero, write yours to a scratch path first — the harness bakes a reference it cannot read —
+and compare the two by eye:
+
+```sh
+./build/material_golden --golden /tmp/mine.png
+```
+
+Do **not** point `--update` at the checked-in reference on another machine: it would replace the
+pinned frame with yours and turn the gate into a comparison of your GPU with itself.
+
+Then open the PNG and answer four questions — this is the half the numbers do not cover:
+
+1. **Seven columns, four rows.** Left to right: `flash`, `flash_red`, `flash_gold`, `outline`,
+   `outline_danger`, `dissolve`, `dissolve_ash`. Bottom row is the material's own value, each row
+   up adds one step. Is every column there?
+2. **Flash** — the tint grows upward, white / red / gold by column. The bottom sprite carries the
+   material's own strength: untouched in `flash` and `flash_red` (0), already half-tinted in
+   `flash_gold` (0.5). Do the colours match the names, and is the ramp the right way up? Strongest
+   at the bottom means the parameter arrives inverted.
+3. **Outline** — a ring OUTSIDE the silhouette, black in column 4 and red in column 5, starting at
+   1 px in the bottom row (2 px for `outline_danger`, its own thickness) and growing a pixel per
+   row. Does it ring the whole sprite, or only an arc? An arc means thickness is converted to UV
+   through the wrong size — the bug this gate caught on 2026-09-02, when the shader offset by a
+   screen-wide texel instead of the instance's own.
+4. **Dissolve** — the bottom sprite is whole (threshold 0) and holes eat it upward, with a coloured
+   rim on the edge: orange in `dissolve`, ash-grey and twice as wide in `dissolve_ash`. Is the rim
+   there, and is it the colour the material names?
+
+**On Linux and Windows run `--selftest`, not `--golden`.** The comparison this harness carries is
+the render-vertical one (`eps 0.02`, `frac 1%`, peak cap 0.35), and it judges the PEAK error — which
+§8 has already measured at 0.73 on a foreign rasteriser, on exactly the sprite edges this scene is
+made of. A red `frame` there would be about the criterion, not about the renderer. The cluster-based
+comparison that survives foreign drivers lives in the sample game (`example_ugly_game/frame_golden.*`)
+and reaching it from the engine needs it moved first — a follow-up, not this round. What `--selftest`
+does say on those machines is portable and worth having: the same counters, plus two runs on that
+adapter agreeing bit for bit.
+
+```sh
+./build/material_golden --selftest
+```
+
+## 10. Gate 9 of #18 — the sample game plays with library materials
+
+> **Open.** The library reaches the game through `library.bundle`, and everything a runner can say
+> about that path it already says: the bundle matches its sources byte for byte on three OSes, and
+> the run-splitting numbers are asserted headlessly. What no runner can answer is whether the
+> effects land on the right objects at the right moment, in a game that is moving.
+
+```sh
+cmake --build build --target game_sidescroller
+./build/game_sidescroller
+```
+
+The first line of stdout is the gate's machine half:
+
+```
+[game] materials: on (3 pipeline(s), 0 fallback(s))
+```
+
+`off` means the bundle was not found next to the binary — the install step copies both
+`game.bundle` and `library.bundle`, so an `off` here after a clean build is a finding, not a
+configuration to fix by hand. A non-zero fallback count means a material named an entry point the
+shader does not carry: the game keeps drawing, which is the point of the fallback, and the number
+is the evidence that it happened.
+
+Then watch the screen and answer three questions:
+
+1. **Enemies flash red as they close in.** The strength is the enemy's own progress across the
+   screen, not a timer: an enemy that just entered from the right is barely tinted, one about to
+   reach the hero is strongly red. A flash that pulses in lockstep across all enemies means the
+   parameter is coming from somewhere shared instead of from the instance.
+2. **The boss is ringed in red while it is healthy.** `outline_danger`, two pixels, around the
+   silhouette and not around its bounding box.
+3. **Below a quarter of its health the boss burns to ash instead.** The ring is replaced by
+   `dissolve_ash`: holes eat the sprite, widening as the health falls, with a grey rim on their
+   edge. The switch happens once, at 25%, and does not flicker back and forth on the boundary.
+
+The offscreen path is deliberately material-free: `--demo` renders the same scene without the
+library so the render goldens of spec #2 stay byte-identical, and gate 8 of this spec is exactly
+that regression. Seeing no effects there is correct.
+
 ## Beyond the gates
 
-The six gates above are what the ADRs wait on. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the two of spec #18 are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
@@ -1228,13 +1341,22 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - The platformer screen recording per OS, its startup line, and the seven answers from section 6.
 - The three `golden` lines from section 8 per OS, with the GPU name from the `[gpu]` line above
   them — and `golden_actual.png` if `frame` came out red.
-- For gate 9, two pairs of recordings and their answer sheets: `game_platformer` before/after
+- For §9, the frame `material_golden` writes on the Metal box, with the four answers — and, from
+  the Linux and Windows boxes, the `--selftest` output with the `[gpu]` line above it.
+- For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.
 
-That closes gate 6 and 8 of spec #13, gate 8 of spec #14, gate 8 of spec #15 and gates 7 and 8 of spec
-#16, which is what ADR
-[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md),
-[0014](../.context/decisions/2026-07-28-framework-input.md) and
-[0015](../.context/decisions/2026-08-08-physics-core.md) are waiting on to move from *Proposed*
-to *Accepted*. Four are sent; the platformer is the outstanding half.
+Every one of those except §9 has been sent, and each ADR that was waiting on one is now *Accepted*:
+[0013](../.context/decisions/2026-07-27-desktop-dev-parity.md) (2026-08-06),
+[0014](../.context/decisions/2026-07-28-framework-input.md) (2026-08-07),
+[0015](../.context/decisions/2026-08-08-physics-core.md) (2026-08-22),
+[0016](../.context/decisions/2026-08-30-character-tilemap.md) and
+[0017](../.context/decisions/2026-08-30-graphics-framework.md) (2026-09-02). The list stays as the
+shape of a re-run: when a commit touches the surface named in the right-hand column of the table at
+the top, this is what the re-run is expected to produce.
+
+One thing on this page is still unanswered, and no gate waits on it: **AMD**. Section 8 has now been
+compared against Metal, lavapipe, DX12-WARP, Intel/Mesa, Intel/Windows and NVIDIA/Vulkan — six
+stacks, three of them real drivers, and not one AMD. It is the only adapter vendor nothing in this
+project has ever run on.

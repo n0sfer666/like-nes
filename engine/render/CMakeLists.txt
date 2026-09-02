@@ -48,3 +48,13 @@ if(PLUGIN_UI)
   target_link_libraries(imgui PUBLIC glfw webgpu)
   target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
 endif()
+
+# Первый потребитель материалов (решение 6 спеки #18): библиотека эффектов, нарисованная через
+# кэш. Живёт в render, а не в material, по направлению зависимости — рисующий знает про материалы,
+# материалы про рисующего не знают (инвариант 1 спеки #14).
+add_executable(material_golden
+  material_golden_main.cpp material_scene.cpp material_textures.cpp material_frame.cpp)
+target_link_libraries(material_golden PRIVATE render_core material_gpu material_bake
+  platform_core webgpu)
+target_copy_webgpu_binaries(material_golden)
+reproducible_rpath(material_golden)

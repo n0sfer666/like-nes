@@ -43,6 +43,13 @@ add_executable(game_atlas_regions_test game_atlas_regions_test.cpp art.cpp atlas
 target_include_directories(game_atlas_regions_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_atlas_regions_test PRIVATE framework_graphics asset_core platform_core)
 
+# Гейт 5 спеки #18 на стороне игры-образца: нарезка кадра на прогоны одного материала. Цель
+# headless и стоит здесь, ДО выхода по IDE_POC, по тому же основанию, что и соседи: ни окна, ни
+# WebGPU нарезке не нужно, а цель, спрятанная за чужой опцией, молча выпадала бы из набора,
+# которым её и гоняют.
+add_executable(game_material_runs_test game_material_runs_test.cpp material_runs.cpp)
+target_include_directories(game_material_runs_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(game_platformer_input_test platformer_input_test.cpp platformer_input.cpp)
 # platform_core тут НЕ в списке библиотек, хотя `platform::Args` цели нужен: и framework_input, и
 # framework_character держат его PRIVATE, то есть каждый дописывает его в замыкание СВОЕЙ строкой,
@@ -76,7 +83,8 @@ set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 add_executable(game_sidescroller
   main.cpp live.cpp demo.cpp draw.cpp
   achievements.cpp backend_host.cpp
-  batch.cpp instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
+  batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp scene_fx.cpp
+  instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
   boss.cpp fx.cpp
   bloom.cpp audio.cpp
   input_setup.cpp capture.cpp frame_golden.cpp
@@ -95,6 +103,10 @@ target_link_libraries(game_sidescroller PRIVATE
 # `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
 # начале строки, и в хвосте замыкания.
 target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
+# Библиотека эффектов (спека #18, второй потребитель). Названа только `material_gpu`: `material_core`
+# он тянет PUBLIC-связью, и второе имя дало бы `warning: ignoring duplicate libraries` на macOS —
+# мимо -Werror, но прямо в лог гейта.
+target_link_libraries(game_sidescroller PRIVATE material_gpu)
 # Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
 # что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
 # предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
@@ -123,8 +135,10 @@ add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp inst
   art.cpp atlas_regions.cpp)
 target_include_directories(game_sprite_out_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+# material_core — из-за `game::Instance = mat::Instance` (спека #18): один вершинный этап на оба
+# потребителя библиотеки. GPU сюда не приезжает, цель как была headless, так и осталась.
 target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
-  framework_alloc_probe_control asset_core platform_core)
+  framework_alloc_probe_control asset_core platform_core material_core)
 
 # Частицы шутера на фреймворке (вертикаль 3, шаг B3): голден сцены + гейт 8 + симметрия звезды.
 # Отдельно от `game_sprite_out_test`, а не случаем внутри него, по двум причинам сразу.
@@ -141,7 +155,7 @@ target_include_directories(game_fx_test PRIVATE
 # дважды — ld на macOS отвечает `warning: ignoring duplicate libraries`, мимо -Werror, но прямо в
 # лог гейта. Тот же случай расписан у game_platformer_input_test выше.
 target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
-  framework_alloc_probe_control flecs_static asset_core)
+  framework_alloc_probe_control flecs_static asset_core material_core)
 
 # --- Симметрия звезды атласа: своя цель, а не третий тест в `game_fx_test`. Она стоит на ПЕЧЁНОМ
 # атласе и не трогает ни `Fx`, ни flecs — в общем файле гейт краснел бы на правке траектории.
@@ -159,7 +173,8 @@ target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 # слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
 add_executable(game_platformer
   platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
-  batch.cpp instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
+  batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp
+  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 # platform_core здесь не назван по тому же основанию, что и в гейте выше: framework_graphics_tiles
 # тянет его PRIVATE-связью своего framework_graphics, и второе имя дало бы `warning: ignoring
@@ -169,7 +184,7 @@ target_include_directories(game_platformer PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
 target_link_libraries(game_platformer PRIVATE
   engine_core framework_character framework_graphics_tiles framework_input asset_core
-  flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+  material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
 if(APPLE)
   target_link_libraries(game_platformer PRIVATE
     "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
@@ -179,42 +194,7 @@ endif()
 target_copy_webgpu_binaries(game_platformer)
 reproducible_rpath(game_platformer)
 
-# --- Packaging per-OS (спека #8, гейт 4): самодостаточный бандл + version-stamp (git-hash).
-# macOS .app (@rpath→Frameworks) / Linux tarball ($ORIGIN, flat) / Windows папка (.exe+DLL).
-# game.bundle (baked ассеты, гейт 2) кладётся в бандл → игра стартует с бейкнутых, не с source.
-# Сборка бандла: cmake --install <build> --prefix <out> (см. scripts/package.sh).
-execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
-  OUTPUT_VARIABLE GAME_GIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-if(NOT GAME_GIT_HASH)
-  set(GAME_GIT_HASH "unknown")
-endif()
-# Версия из тега (release.yml: -DGAME_VERSION=vX.Y.Z), иначе dev-дефолт.
-if(NOT GAME_VERSION)
-  set(GAME_VERSION "0.1.0-dev")
-endif()
-set(GAME_TARGET_TRIPLE "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
-configure_file(packaging/version.txt.in ${CMAKE_BINARY_DIR}/version.txt @ONLY)
-set(GAME_BUNDLE_ASSET ${CMAKE_CURRENT_SOURCE_DIR}/assets/game.bundle)
-
-include(${CMAKE_SOURCE_DIR}/cmake/licenses.cmake)
-
-if(APPLE)
-  set_target_properties(game_sidescroller PROPERTIES
-    INSTALL_RPATH "@executable_path;@executable_path/../Frameworks")
-  configure_file(packaging/Info.plist.in ${CMAKE_BINARY_DIR}/Info.plist @ONLY)
-  set(_app "like-nes.app/Contents")
-  install(TARGETS game_sidescroller RUNTIME DESTINATION ${_app}/MacOS COMPONENT game)
-  install(FILES ${WGPU_RUNTIME_LIB} DESTINATION ${_app}/Frameworks COMPONENT game)
-  install(FILES ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
-          DESTINATION ${_app}/Resources COMPONENT game)
-  install(FILES ${LICENSE_FILES} DESTINATION ${_app}/Resources/licenses COMPONENT game)
-  install(FILES ${CMAKE_BINARY_DIR}/Info.plist DESTINATION ${_app} COMPONENT game)
-else()
-  install(TARGETS game_sidescroller RUNTIME DESTINATION like-nes COMPONENT game)
-  install(FILES ${WGPU_RUNTIME_LIB} ${GAME_BUNDLE_ASSET} ${CMAKE_BINARY_DIR}/version.txt
-          DESTINATION like-nes COMPONENT game)
-  install(FILES ${LICENSE_FILES} DESTINATION like-nes/licenses COMPONENT game)
-endif()
+include(${CMAKE_CURRENT_SOURCE_DIR}/packaging.cmake)
 
 # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
 # всех ОС. Скриптованный combat-сценарий → детерм. golden-хеш (fix32/целочисл. → cross-arch).
