@@ -43,6 +43,11 @@ public:
     uint32_t fallbacks() const { return cache_.fallbacks(); }
 
 private:
+    // Откат частично поднявшегося `init`: кэш гасится, таблица теряет указатели в регион, который
+    // вот-вот снимется вместе с локальным бандлом.
+    // Причина `nullptr` — её уже напечатал вызывающий подробнее, чем может этот шов.
+    bool fail(const char* why);
+
     struct Bundle;
     std::shared_ptr<Bundle> bundle_;
     std::string wgsl_;

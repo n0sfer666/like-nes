@@ -61,26 +61,37 @@ struct MaterialFx::Bundle {
     ~Bundle() { am.close(); }
 };
 
+// Отказ на ЛЮБОМ шаге откатывает всё, что успело подняться. Без этого `table_` переживала
+// mmap: `load` уже прошёл, `cache_.init` вернул false, локальный `Bundle` разрушился и снял
+// регион, — а таблица осталась с пятью указателями в него. `ready_` при этом false, но `count()`,
+// `find()` и `slot()` публичны и с `ready()` ничем не связаны. Заодно закрывается течь: кэш
+// успевает создать layout и fallback-модуль до своей точки отказа.
+bool MaterialFx::fail(const char* why) {
+    if (why) std::fprintf(stderr, "[game] materials: %s\n", why);
+    cache_.shutdown();
+    table_ = mat::Table{};
+    wgsl_.clear();
+    return false;
+}
+
 bool MaterialFx::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat target,
                       const char* bundle_path) {
     auto b = std::make_shared<Bundle>();
     if (!b->am.open(bundle_path, 8u * 1024 * 1024, /*trusted=*/false)) {
         std::fprintf(stderr, "[game] materials: bundle '%s' unreadable\n", bundle_path);
-        return false;
+        return fail(nullptr);
     }
     const uint64_t g_tab = guid_of("materials");
     const uint64_t g_wgsl = guid_of("effects.wgsl");
     b->am.request(g_tab);
     b->am.request(g_wgsl);
-    if (!wait_ready(b->am, g_tab) || !wait_ready(b->am, g_wgsl)) {
-        std::fprintf(stderr, "[game] materials: sections never became ready\n");
-        return false;
-    }
+    if (!wait_ready(b->am, g_tab) || !wait_ready(b->am, g_wgsl))
+        return fail("sections never became ready");
     const asset::Loaded tab = b->am.get(g_tab);
     const mat::LoadResult lr = table_.load(tab.data, tab.size);
     if (lr != mat::LoadResult::Ok) {
         std::fprintf(stderr, "[game] materials: table unusable: %s\n", mat::load_reason(lr));
-        return false;
+        return fail(nullptr);
     }
     const asset::Loaded src = b->am.get(g_wgsl);
     wgsl_.assign(reinterpret_cast<const char*>(src.data), src.size ? src.size - 1 : 0);
@@ -88,10 +99,7 @@ bool MaterialFx::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat targ
     mat::CacheDesc d;
     d.device = device; d.queue = queue; d.target = target;
     d.table = &table_; d.wgsl = wgsl_.c_str();
-    if (!cache_.init(d)) {
-        std::fprintf(stderr, "[game] materials: cache refused to start\n");
-        return false;
-    }
+    if (!cache_.init(d)) return fail("cache refused to start");
     // Прогрев ЗДЕСЬ, а не при первом использовании материала: компиляция в кадре и есть тот фриз,
     // который запрещает инвариант 3 спеки #18, и заметен он ровно там, где эффект включается —
     // в момент удара, взрыва или смерти.

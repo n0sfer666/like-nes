@@ -9,6 +9,11 @@ constexpr float BURN_FROM = 0.25f;   // доля HP босса, ниже кот�
 
 float clamp01(float v) { return v < 0 ? 0 : (v > 1 ? 1 : v); }
 
+uint32_t zero_block(float p[mat::PARAM_BLOCK_FLOATS]) {
+    for (uint32_t f = 0; f < mat::PARAM_BLOCK_FLOATS; ++f) p[f] = 0.0f;
+    return game::NO_SCENE_MATERIAL;
+}
+
 } // namespace
 
 // Имена и слоты берутся ОДИН РАЗ: искать строку в таблице каждый кадр — это разбор в кадре, от
@@ -35,13 +40,19 @@ bool SceneFx::bind(MaterialFx* fx) {
     return true;
 }
 
+// Непривязанный `SceneFx` отвечает НЕ материалом, а не разыменовывает нулевой указатель:
+// `ready()` — соглашение вызывающего, а не защита, и `bind()` штатно оставляет `fx_` нулевым
+// тремя ветками. Блок обнуляется, как это уже делает `MaterialFx::params`, — вызывающий получает
+// «материала нет» и рисует базовым путём.
 uint32_t SceneFx::enemy(float approach, float p[mat::PARAM_BLOCK_FLOATS]) const {
+    if (fx_ == nullptr) return zero_block(p);
     fx_->params(flash_, p);
     p[strength_slot_] = clamp01(approach) * 0.75f;
     return flash_;
 }
 
 uint32_t SceneFx::boss(float hp_frac, float p[mat::PARAM_BLOCK_FLOATS]) const {
+    if (fx_ == nullptr) return zero_block(p);
     if (hp_frac > BURN_FROM) {
         fx_->params(outline_, p);
         return outline_;

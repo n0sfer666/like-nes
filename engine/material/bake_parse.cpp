@@ -93,6 +93,11 @@ bool parse_materials(const std::string& text, std::vector<MaterialSpec>& out, Ba
                             inst ? "instance | name | base" : "material | name | shader | blend");
             if (f[1].empty()) return fail(err, line_no, "empty material name");
             if (find_material(out, f[1]) >= 0) return fail(err, line_no, "duplicate material " + f[1]);
+            // Индекс материала уезжает в `MaterialRow::base` шириной uint16, где `NO_BASE` значит
+            // «базы нет». Без этой отбивки 65535-й материал получил бы ровно этот код — наследование
+            // исчезло бы, а индексы дальше завернулись бы на чужие материалы. Отказа не было бы:
+            // было бы искажение, которое видно только глазами на кадре.
+            if (out.size() >= NO_BASE) return fail(err, line_no, "too many materials: limit is 65535");
             MaterialSpec m;
             m.name = f[1];
             m.line = line_no;

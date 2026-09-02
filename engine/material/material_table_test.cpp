@@ -117,6 +117,44 @@ void test_slot_of() {
     check(t.slot_of(t.count(), "tint") == -1, "a material that is not there has no slots");
 }
 
+// Невыровненный `base` обязан быть отбит кодом, а не UB: выравнивание секций проверяется
+// ОТНОСИТЕЛЬНО базы, поэтому нечётная база даёт невыровненный `reinterpret_cast` до `MaterialRow*`
+// — на strict-align это SIGBUS, а не «немного медленнее».
+void test_unaligned_base() {
+    std::vector<uint8_t> b = baked();
+    std::vector<uint8_t> shifted(b.size() + 1);
+    std::memcpy(shifted.data() + 1, b.data(), b.size());
+    mat::Table t;
+    check(t.load(shifted.data() + 1, b.size()) == mat::LoadResult::BadLayout,
+          "an unaligned base is refused, not read");
+}
+
+// Предел глубины наследования проверяется НА ОБОИХ КОНЦАХ: голден из середины диапазона слеп к
+// дефектам на границе, а здесь граница и есть предмет. Цепь ровно в `MAX_BASE_DEPTH` материалов
+// обязана грузиться и разворачиваться, длиннее — отбиваться `BadBase`, а не терять корни молча.
+void test_base_depth_limit() {
+    for (uint32_t extra = 0; extra <= 1; ++extra) {
+        const uint32_t n = mat::MAX_BASE_DEPTH + extra;
+        std::string src = "material | m0 | sprite_flash | alpha\n"
+                          "param | strength | scalar | raw | 0.5\n";
+        for (uint32_t i = 1; i < n; ++i)
+            src += "instance | m" + std::to_string(i) + " | m" + std::to_string(i - 1) + "\n";
+        std::vector<uint8_t> bytes;
+        mat::BakeError err;
+        if (!mat::bake_materials(src, bytes, err)) { check(false, "depth fixture bakes"); continue; }
+        mat::Table t;
+        const mat::LoadResult r = t.load(bytes.data(), bytes.size());
+        if (extra == 0) {
+            check(r == mat::LoadResult::Ok, "a chain exactly at the depth limit still loads");
+            float p[mat::PARAM_BLOCK_FLOATS];
+            t.resolve(n - 1, p);
+            check(p[0] == 0.5f, "the deepest child still inherits the root's parameter");
+        } else {
+            check(r == mat::LoadResult::BadBase, "a chain past the depth limit is refused");
+        }
+    }
+}
+
 // Каждая причина отказа обязана иметь СВОИ слова: две ветки с одним текстом читаются в логе
 // одинаково, и различить их можно только по коду, которого в логе нет.
 void test_reasons_are_distinct() {
@@ -138,6 +176,8 @@ int main() {
     test_intact();
     test_corruption();
     test_slot_of();
+    test_unaligned_base();
+    test_base_depth_limit();
     test_reasons_are_distinct();
     std::printf(failures == 0 ? "PASS\n" : "FAIL\n");
     return failures == 0 ? 0 : 1;

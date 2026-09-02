@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "instance.hpp"
+#include "table.hpp"
 
 namespace mat::detail {
 namespace {
@@ -13,17 +14,18 @@ void set_blend(uint8_t blend, WGPUBlendState& out) {
     out.alpha.operation = WGPUBlendOperation_Add;
     out.alpha.srcFactor = WGPUBlendFactor_One;
     out.alpha.dstFactor = WGPUBlendFactor_OneMinusSrcAlpha;
-    switch (blend) {
-        case 1:   // Alpha
+    switch (static_cast<Blend>(blend)) {
+        case Blend::Alpha:
             out.color.srcFactor = WGPUBlendFactor_SrcAlpha;
             out.color.dstFactor = WGPUBlendFactor_OneMinusSrcAlpha;
             break;
-        case 2:   // Additive
+        case Blend::Additive:
             out.color.srcFactor = WGPUBlendFactor_SrcAlpha;
             out.color.dstFactor = WGPUBlendFactor_One;
             out.alpha.dstFactor = WGPUBlendFactor_One;
             break;
-        default:  // Opaque
+        case Blend::Opaque:
+        default:
             out.color.srcFactor = WGPUBlendFactor_One;
             out.color.dstFactor = WGPUBlendFactor_Zero;
             out.alpha.dstFactor = WGPUBlendFactor_Zero;
@@ -42,6 +44,18 @@ WGPUShaderModule make_module(WGPUDevice device, const char* wgsl) {
     return wgpuDeviceCreateShaderModule(device, &sd);
 }
 
+// Слева от имени стоит `fn` и ничего кроме пробелов: искалось ОБЪЯВЛЕНИЕ, а совпадение в
+// комментарии или в вызове (`// fs_flash (устарело)`) отдавало true — кэш шёл компилировать
+// несуществующую точку входа, и в stderr печаталось «pipeline refused by the validator» вместо
+// «no entry point in the library». Диагностика называла не того виновника.
+bool preceded_by_fn(const char* wgsl, const char* p) {
+    while (p > wgsl && (p[-1] == ' ' || p[-1] == '\t')) --p;
+    if (p - wgsl < 2 || p[-1] != 'n' || p[-2] != 'f') return false;
+    const char* before = p - 2;
+    return before == wgsl || (!std::isalnum(static_cast<unsigned char>(before[-1])) &&
+                              before[-1] != '_');
+}
+
 bool has_entry(const char* wgsl, const char* entry) {
     if (!wgsl || !entry || !*entry) return false;
     const std::size_t n = std::strlen(entry);
@@ -51,7 +65,7 @@ bool has_entry(const char* wgsl, const char* entry) {
         const bool left = p == wgsl || (!std::isalnum(static_cast<unsigned char>(p[-1])) &&
                                         p[-1] != '_');
         const bool right = p[n] == '(' || p[n] == ' ';
-        if (left && right) return true;
+        if (left && right && preceded_by_fn(wgsl, p)) return true;
     }
     return false;
 }

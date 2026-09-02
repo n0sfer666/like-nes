@@ -1,5 +1,6 @@
 #include "table.hpp"
 
+#include <cstdint>
 #include <cstring>
 
 namespace mat {
@@ -34,7 +35,19 @@ const char* load_reason(LoadResult r) {
 }
 
 LoadResult Table::load(const void* base, std::size_t size) {
+    // Обнуляются ВСЕ пять полей, а не только заголовок: отказавшая загрузка иначе оставляла
+    // указатели предыдущей — `count()` отдавал ноль, но `row()`/`param()`/`name()` границ не
+    // проверяют и читали бы уже снятый регион.
     header_ = nullptr;
+    materials_ = nullptr;
+    params_ = nullptr;
+    textures_ = nullptr;
+    strings_ = nullptr;
+    // Выравнивание СЕКЦИЙ проверяется относительно `base`, поэтому сам `base` обязан быть
+    // выровнен — иначе `reinterpret_cast` до `MaterialRow*` даёт UB, а на strict-align — SIGBUS.
+    // Держалось это на том, что бандл приходит из mmap с `PAYLOAD_ALIGN`; контракт был нигде не
+    // записан, и первый же `load(blob.data() + off, …)` с нечётным `off` вскрыл бы его молча.
+    if (reinterpret_cast<std::uintptr_t>(base) % 8 != 0) return LoadResult::BadLayout;
     if (size < sizeof(TableHeader)) return LoadResult::TooShort;
     const auto* h = static_cast<const TableHeader*>(base);
     if (std::memcmp(h->magic, TABLE_MAGIC, 4) != 0) return LoadResult::BadMagic;
@@ -89,13 +102,14 @@ LoadResult Table::load(const void* base, std::size_t size) {
             used |= mask;
         }
 
-        // Цепочка баз обходится счётчиком, а не пометками: длина цепи ограничена числом
-        // материалов, поэтому шагов больше этого числа быть не может — а если стало, цикл есть.
+        // Цепочка баз обходится счётчиком, а не пометками: предел тот же `MAX_BASE_DEPTH`, что
+        // и у обходов ниже, поэтому цикл и слишком глубокая цепь отбиваются здесь, а `resolve`
+        // никогда не упирается в свой предел на принятой таблице.
         uint32_t hops = 0;
         uint16_t at = m.base;
         while (at != NO_BASE) {
             if (at >= h->material_count) return LoadResult::BadBase;
-            if (++hops > h->material_count) return LoadResult::BadBase;
+            if (++hops >= MAX_BASE_DEPTH) return LoadResult::BadBase;
             at = materials[at].base;
         }
     }
@@ -119,9 +133,9 @@ void Table::resolve(uint32_t i, float out[PARAM_BLOCK_FLOATS]) const {
     if (i >= count()) return;
 
     // База пишется ПЕРВОЙ, потомок поверх неё: переопределение — это последняя запись в слот.
-    uint16_t chain[64];
+    uint16_t chain[MAX_BASE_DEPTH];
     uint32_t depth = 0;
-    for (uint32_t at = i; depth < 64;) {
+    for (uint32_t at = i; depth < MAX_BASE_DEPTH;) {
         chain[depth++] = static_cast<uint16_t>(at);
         const uint16_t next = materials_[at].base;
         if (next == NO_BASE) break;
@@ -139,7 +153,7 @@ void Table::resolve(uint32_t i, float out[PARAM_BLOCK_FLOATS]) const {
 
 int32_t Table::slot_of(uint32_t i, const char* param_name) const {
     if (i >= count()) return -1;
-    for (uint32_t at = i, depth = 0; depth < 64; ++depth) {
+    for (uint32_t at = i, depth = 0; depth < MAX_BASE_DEPTH; ++depth) {
         const MaterialRow& m = materials_[at];
         for (uint32_t p = 0; p < m.param_count; ++p) {
             const ParamRow& row = params_[m.param_first + p];

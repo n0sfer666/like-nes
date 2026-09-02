@@ -81,6 +81,10 @@ void Cache::shutdown() {
     bgl_ = nullptr;
     device_ = nullptr;
     table_ = nullptr;
+    // Счётчики гасятся вместе с объектами, которые они считали: иначе повторный `init` печатал бы
+    // «3 pipeline(s)» ещё до первого прогрева, а число это стоит утверждением в гейте 8.
+    created_ = 0;
+    fallbacks_ = 0;
 }
 
 WGPURenderPipeline Cache::find(const PipelineKey& k) const {

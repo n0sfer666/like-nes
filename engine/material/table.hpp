@@ -14,6 +14,12 @@ constexpr uint32_t TABLE_VERSION = 1;
 
 constexpr uint16_t NO_BASE = 0xffffu;
 
+// Предел глубины наследования. Он ОДИН на читателя и на проверку: `load` отбивает цепь длиннее
+// этого числа кодом `BadBase`, а `resolve`/`slot_of` обходят ровно столько же. Пока предел жил
+// литералом `64` в двух обходах, а `load` мерил цепь числом материалов, таблица с 65-уровневым
+// наследованием считалась валидной и МОЛЧА теряла параметры корней — отказа нет, есть искажение.
+constexpr uint32_t MAX_BASE_DEPTH = 64;
+
 enum class Blend : uint8_t { Opaque = 0, Alpha = 1, Additive = 2 };
 
 struct TableHeader {
