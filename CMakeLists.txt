@@ -200,6 +200,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 add_subdirectory(engine/core)
 add_subdirectory(engine/platform)   # платформенный шов — до потребителей (asset/plugin/hotreload)
+add_subdirectory(engine/material)  # материалы (#18) — до render: golden-харнесс их потребитель
 add_subdirectory(engine/render)
 add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)
