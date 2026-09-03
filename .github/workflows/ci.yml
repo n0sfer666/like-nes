@@ -939,6 +939,11 @@ jobs:
             grep -q "$marker" "$name.txt" || { echo "$name printed no '$marker'"; exit 1; }
           }
           run_gate game_platformer_net_test 'game-platformer-net: PASS'
+          # Гейт 9 той же спеки: пиры находят друг друга по НАЗВАННЫМ адресам, без общего файла.
+          # Идёт тем же шагом и той же функцией, потому что предмет тот же (два процесса над одной
+          # сценой), а раннер даёт ему ровно ту половину, которая ему доступна: адресация
+          # проверяется целиком, реальный лаг двух машин остаётся владельцу (§14 руководства).
+          run_gate game_platformer_net_direct_test 'game-platformer-net-direct: PASS'
 
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash

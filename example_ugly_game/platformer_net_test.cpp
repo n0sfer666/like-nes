@@ -1,6 +1,4 @@
 #include <cstdio>
-#include <cstdlib>
-#include <cstring>
 #include <string>
 #include <vector>
 
@@ -9,6 +7,7 @@
 #include "platform_process.hpp"
 #include "platformer_net_runs.hpp"
 #include "platformer_peer.hpp"
+#include "platformer_peer_argv.hpp"
 #include "platformer_replay_run.hpp"
 
 // Гейты 1 и 7 спеки #22: ДВА ПРОЦЕССА на одном вводе приходят в одно состояние, и пир, оглохший
@@ -202,29 +201,17 @@ void test_the_recorded_run_of_a_peer_verifies(const std::string& exe, const std:
           "and the verifier names the tick it was bent at");
 }
 
-platformer::PeerConfig parse_peer(int argc, char** argv) {
-    platformer::PeerConfig cfg;
-    cfg.sender = std::strcmp(argv[2], "send") == 0;
-    cfg.bundle = argv[3];
-    cfg.prefix = argv[4];
-    for (int i = 5; i < argc; ++i) {
-        if (std::strcmp(argv[i], "--drop") == 0 && i + 1 < argc)
-            cfg.drop_tick = std::atol(argv[++i]);
-        else if (std::strcmp(argv[i], "--deaf") == 0 && i + 2 < argc) {
-            cfg.deaf_at = static_cast<uint32_t>(std::atol(argv[i + 1]));
-            cfg.deaf_ms = static_cast<uint32_t>(std::atol(argv[i + 2]));
-            i += 2;
-        }
-    }
-    return cfg;
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
-    if (argc >= 5 && std::strcmp(argv[1], "--peer") == 0)
-        return platformer::run_peer(parse_peer(argc, argv));
+    // Непонятый аргумент — тот же код 3, что и «сосед не назван»: с точки зрения прогона это одно
+    // и то же событие — пир не знает, с кем и откуда говорить, — а различает их напечатанное слово.
+    if (platformer::is_peer_argv(argc, argv)) {
+        platformer::PeerConfig cfg;
+        if (!platformer::parse_peer(argc, argv, cfg)) return 3;
+        return platformer::run_peer(cfg);
+    }
 
     const std::string bundle = argc >= 2 ? argv[1] : DEFAULT_BUNDLE;
     const std::string exe = platform::exe_path();

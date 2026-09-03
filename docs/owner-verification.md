@@ -4,7 +4,8 @@ Seven of the twelve gates below are **closed** — each carries the run that clo
 evidence. Three of the five open ones (§9, the effect library; §11, hot-reload in front of a person;
 §12, the lit frame) opened with round #18 and wait for a machine with a screen; the other two (§13,
 the network frame cost; §14, a live session) opened with round #22 and wait for two machines on one
-network. They stay here as the procedure, because each one needs a
+network — §14 became runnable on 2026-09-04, when the peers learned to name each other, and it is
+runnable in its convergence half only: the peer still has no window. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -21,7 +22,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 | The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
-| A live session between two machines: two windows, one input, one picture | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
+| A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1595,36 +1596,129 @@ frame into a 20% one.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
 
-> **This gate cannot be run yet, and the reason is in the engine, not in your hardware.** Both
-> peers address `pnet::ADDRESS_LOOPBACK` — the constant is right there in `channel::connect`
-> ([`platformer_peer_channel.hpp`](../example_ugly_game/platformer_peer_channel.hpp)) — and they find
-> each other by writing a port number into `<prefix>-send.port` next to each other on one
-> filesystem. Neither half can name a machine that is not this one. Vertical 2 is headless by
-> design (invariant 2 of the spec: *the same host without a window*), so there is no second window
-> to look at either. Two things are missing before this section becomes a procedure: **an address
-> for the neighbour** (an argument, and a rendezvous that is not a shared directory) and **a peer
-> that draws**. Until they exist, running the loopback pair and calling it a live session would be
-> a gate that measures yesterday's code and comes back vacuously green — the failure this repository
-> keeps writing rules against.
+> **Half of this gate became runnable on 2026-09-04, and the other half did not.** Until that day
+> both peers hard-coded `pnet::ADDRESS_LOOPBACK` and found each other by writing a port number into
+> a file next to each other — one filesystem, one machine, no way to name a neighbour. They now take
+> the neighbour as an argument, so **the convergence half — two processes on two machines, one
+> input, one state, over a wire with real latency — you can run today**. The other half, *does it
+> feel like one game*, still cannot be asked: the peer is headless by design (invariant 2 of the
+> spec: *the same host without a window*), so there is nothing to look at. What follows is the
+> procedure for the half that exists; the drawing peer stays an engine debt, named at the end.
 
-What the gate asks, when it can be asked: two people, two machines, one network, one input, and the
-subjective answer a runner cannot give — *does it play*. Not "do the hashes match": §13's harness
-already answers that, and answers it under injected loss, duplication and reordering. This one asks
-whether the four-tick prediction horizon and the eight-tick rollback depth, chosen against a
-loopback whose latency is zero, still feel like one game when the wire adds 20–60 ms and jitters.
+### What you need
 
-The two constants that this gate exists to challenge are `PEER_PREDICT = 4` and `PEER_DEPTH = 8`
-([`platformer_peer.hpp`](../example_ugly_game/platformer_peer.hpp)). They are the network analogue of
-the 500 bodies spec #15 claimed and the owner's run cut to 350: numbers picked where the measurement
-was cheap, waiting for the machine that decides. A live session that stutters at 60 ms of latency is
-a finding about those two numbers, and it is the only way that finding can be made.
+Two machines on one network — any pair of Linux, Windows and macOS, mixed is better than matched —
+**both built from the same commit**. Not a formality: the whole claim is that identical inputs give
+identical state, and two different commits would answer a question nobody asked. Check with
+`git rev-parse HEAD` on both.
 
-Until the two missing halves land, what *can* be answered on your machines is §13 — the cost of the
-frame itself, on real silicon, on both OSes.
+Note each machine's address (`ip addr` on Linux, `ipconfig` on Windows, `ipconfig getifaddr en0` on
+macOS) and let UDP through the firewall on **both** ports below — each machine listens on one and
+sends to the other, so `7777` and `7778` are each open on one side. Windows will ask on the first
+run, Linux may need `sudo ufw allow 7777/udp` on A and `sudo ufw allow 7778/udp` on B. Measure the
+wire first, because the answer at the end is read against it:
+
+```
+ping -c 20 <the other machine>
+```
+
+### The run
+
+Build the gate on both machines:
+
+```
+cmake --build build --target game_platformer_net_direct_test
+```
+
+Machine **A** owns the input (the sample has one hero, so one side plays it):
+
+```
+./build/game_platformer_net_direct_test --peer send example_ugly_game/assets/game.bundle live \
+  --listen 7777 --at <B>:7778
+```
+
+Machine **B** replays what arrives:
+
+```
+./build/game_platformer_net_direct_test --peer recv example_ugly_game/assets/game.bundle live \
+  --listen 7778 --at <A>:7777
+```
+
+On Windows, `scripts\win-dev.bat` owns the compiler environment; the peer command is the same with
+`build\game_platformer_net_direct_test.exe`. Start B first — it waits, A talks first — and start
+both within twenty seconds of each other: `PEER_DEADLINE_MS` is 20 s, and a peer that never hears
+its neighbour exits `4` rather than hanging.
+
+Both addresses are named on **both** sides on purpose. A peer that learned its neighbour from
+whoever wrote first would hand its acknowledgement window to whoever won that race, on a port that
+— to reach another machine at all — is open on every interface.
+
+### Expected output
+
+Each side prints three lines and writes `live-send.replay` / `live-recv.replay` beside itself:
+
+```
+  peer send: ticks=417 rollbacks=21 replayed=84 forced=0 resent=139 aliens=0
+  peer send: sim worst=0.146 ms mean=0.019 ms over 417 ticks
+  peer send: net worst=0.050 ms mean=0.011 ms over 487 passes
+```
+
+(That is a real pair, run over the loopback on an M3 Pro on 2026-09-04. `resent` is the sender's
+number; the receiver's is normally `0`, because only the sender has input to repeat.)
+
+`aliens=` is the last field and it is printed for this run only — it counts datagrams that arrived
+from an address other than the neighbour named in `--at`, and were dropped for it. On the loopback
+it is always `0`; on a machine with several interfaces (a VPN, `docker0`, two cards) it need not be,
+because the neighbour may answer from an address other than the one you typed. That is why it is
+worth a line here: a pair that dies at the deadline with `aliens` climbing is a routing problem, and
+a pair that dies with `aliens=0` never heard anything at all.
+
+### What to judge, in order
+
+1. **Both sides exited zero and printed `ticks=417`.** A non-zero code is the answer, not a
+   nuisance, and the peer prints a line naming which one before it leaves:
+
+   | code | what it means |
+   |---|---|
+   | `2` | the level did not load — the bundle path is relative to the **current directory**, so run both peers from the repository root or spell the path out in full |
+   | `3` | nobody was named: a typo in `--at`, only half the pair of arguments, or a word the parser did not understand (it prints the word) |
+   | `4` | the deadline passed without the neighbour being heard — a firewall, nine times in ten; if `aliens` is climbing it is routing instead, see the note under the output above |
+   | `5` | the result file could not be written — check the directory the prefix points into |
+   | `6` | the socket is unusable: either the port you passed to `--listen` is already taken (the line says `port N did not open`), or the socket went bad mid-run |
+   | `7` | the recording could not be written, same directory question as `5` |
+   | `9` | the frame was never measured — an engine finding, report it |
+2. **The two recordings are the same file.** This is the gate itself — two machines, one input, one
+   state, byte for byte:
+   `sha256sum live-send.replay` on Linux, `shasum -a 256` on macOS, `certutil -hashfile
+   live-send.replay SHA256` on Windows. Compare A's `live-send.replay` with B's `live-recv.replay`.
+   **They differ only if `forced` is non-zero on one of them** — see 3.
+3. **`forced=` on both sides.** Zero means every tick's input arrived and the rollback converged on
+   it. Non-zero means a peer stopped waiting for an input that never came, played the prediction and
+   kept it — that is the finding. Report the number together with the `ping` figures: `forced > 0`
+   at 20 ms is a defect, `forced > 0` at 200 ms is arithmetic (`HOLE_PATIENCE_MS` is 3 s, but
+   `PEER_PREDICT` is four ticks — 66 ms of play).
+4. **`rollbacks=` and `resent=` against the loopback.** On the loopback pair the sender rolls back
+   about 21 times and resends roughly a hundred of its 417 frames (89–139 across seven runs on an
+   idle M3 Pro — the spread is the machine's scheduler, not the protocol). Over a real wire both
+   must grow, and how much they grow is the number this gate exists to bring back.
+5. **`sim`/`net worst=` against 16.67 ms.** Same reading as §13, and it is worth taking here as
+   well: the network line covers a socket that now carries real datagrams, not loopback ones.
+
+### What is still missing, and why it is not your problem
+
+The subjective half — *does it play* — needs a peer with a window, and there is none. The two
+constants this gate exists to challenge are `PEER_PREDICT = 4` and `PEER_DEPTH = 8`
+([`platformer_peer.hpp`](../example_ugly_game/platformer_peer.hpp)): four ticks of prediction is
+66 ms, chosen against a loopback whose latency is zero. They are the network analogue of the 500
+bodies spec #15 claimed and your run cut to 350 — numbers picked where the measurement was cheap,
+waiting for the machine that decides. Steps 3 and 4 above are what can be said about them without a
+picture; the picture is engine work, not yours.
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22 are closed. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
+are closed — and of those two, §14 lost its blocker on 2026-09-04 and now waits only for a second
+machine. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
@@ -1655,6 +1749,10 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - For §13, the full `owner_net_budget.sh` output per OS — the two `худший кадр` lines and the four
   timing lines above them, with a note that the box was idle. The counters must match the other
   machines; the timings must not, and the spread is the point.
+- For §14, the six lines both peers printed, the `ping` figures between the two machines, and the
+  two SHA-256 sums of `live-send.replay` and `live-recv.replay`. Send them even when everything
+  matched: `forced=0` at a measured latency is the first number this engine has about its prediction
+  horizon, and `forced > 0` is the finding.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.
