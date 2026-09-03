@@ -16,6 +16,15 @@ target_include_directories(game_platformer_sim_test PRIVATE ${CMAKE_CURRENT_SOUR
 target_link_libraries(game_platformer_sim_test PRIVATE framework_character framework_tilemap
   asset_core platform_core)
 
+# Тот же уровень и тот же маршрут, но под откатом (спека #22, вертикаль 1, шаг A3). Отдельной целью
+# от прогона выше, потому что предмет другой: тот утверждает, что маршрут воспроизводим на трёх ОС,
+# этот — что он воспроизводим ПОСЛЕ ОТКАТА, то есть что снимок сцены ничего не теряет.
+add_executable(game_platformer_rollback_test
+  platformer_rollback_test.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
+target_include_directories(game_platformer_rollback_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_platformer_rollback_test PRIVATE framework_character framework_tilemap
+  framework_rollback framework_alloc_probe_control asset_core platform_core)
+
 # Чистая половина ЖИВОЙ цели — камера и сборка квадов (шаг C вертикали 3). Тоже до выхода по
 # IDE_POC и по тому же основанию: рисовать ей нечем, ни окна, ни адаптера она не открывает, и
 # спрятанная за чужой опцией она проверялась бы только там, где собирают всё дерево, — то есть на

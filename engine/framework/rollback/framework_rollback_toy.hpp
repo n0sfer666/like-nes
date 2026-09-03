@@ -30,6 +30,8 @@ struct ToyState {
 struct ToyInput {
     int32_t dx = 0;
     int32_t fire = 0;
+
+    bool operator==(const ToyInput& o) const { return dx == o.dx && fire == o.fire; }
 };
 
 struct ToySim {

@@ -1445,6 +1445,7 @@ jobs:
                    framework_character_profile_refusal_test framework_character_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
                    framework_tilemap_bundle_test game_platformer_sim_test \
+                   game_platformer_rollback_test \
                    game_platformer_view_test game_platformer_input_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -1538,7 +1539,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_rollback_plan_test framework_rollback_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_rollback_plan_test framework_rollback_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -1577,7 +1578,7 @@ jobs:
                    framework_graphics_debug_test framework_graphics_batch_test \
                    framework_graphics_tile_test framework_graphics_particle_test \
                    framework_graphics_viewport_test \
-                   game_platformer_sim_test; do
+                   game_platformer_sim_test game_platformer_rollback_test; do
             B=$(find build-debug -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "dbg_$T.txt"
@@ -1674,6 +1675,14 @@ jobs:
           # Тот же эталон, что и у -O3-сборки выше: санитайзерный прогон обязан не только молчать,
           # но и досчитать до того же состояния.
           grep -q "physics-state-hash = 0xf238d0bc34325db6" physsan.txt
+          # Снимок мира — присваивание векторов поле за полем, то есть ровно то место, где
+          # рассинхрон длин портит кучу молча: без ASan цель печатала бы PASS так же уверенно.
+          # TU позитивного контроля дописан поимённо по тому же основанию, что у гейта 6 ниже:
+          # без него линковка падает на `plain_allocation`, а не на утверждении теста.
+          c++ $SAN $LIB engine/framework/core/framework_alloc_probe_control.cpp \
+            engine/framework/physics/framework_physics_snapshot_test.cpp $PLAT -o phys_snap_san
+          ./phys_snap_san | tee physsnapsan.txt
+          grep -q ": PASS" physsnapsan.txt
           c++ $SAN $LIB engine/framework/physics/framework_physics_order_test.cpp $PLAT -o phys_order_san
           ./phys_order_san | tee physordersan.txt
           grep -q ": PASS" physordersan.txt

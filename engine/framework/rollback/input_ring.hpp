@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#include <cstring>
 #include <type_traits>
 #include <vector>
 
@@ -29,7 +28,16 @@ namespace framework::rollback {
 template <class Input>
 class InputRing {
     static_assert(std::is_trivially_copyable<Input>::value,
-                  "input of a rollback session is copied and compared bytewise");
+                  "input of a rollback session is copied by value into the ring");
+    // Сравнение — ПОЛЯМИ, и это требование к типу, а не удобство. Байтовое сравнение здесь стояло
+    // до 2026-09-03 и лгало: у `character::MoveInput` (fix32 + три bool) есть байт выравнивания, в
+    // него никто не пишет, и два ввода с одинаковыми полями расходились в нём. Следствие видно
+    // только на настоящем вводе — `game_platformer_rollback_test` дал 420 откатов на 420 тиках и
+    // ненулевой счётчик конфликтов, потому что КАЖДОЕ подтверждение читалось как изменение.
+    // Игрушечный ввод гейта рядом набивки не имеет и молчал бы дальше.
+    static_assert(std::is_same<decltype(std::declval<const Input&>() == std::declval<const Input&>()),
+                               bool>::value,
+                  "input of a rollback session is compared field by field, never bytewise");
 
 public:
     // Кольцо выписывается один раз: аллокация в тике запрещена инвариантом 5 фреймворка, а тик
@@ -56,7 +64,7 @@ public:
     }
 
     bool differs(Tick t, uint32_t p, const Input& in) const {
-        return std::memcmp(&slots_[slot(t, p)], &in, sizeof(Input)) != 0;
+        return !(slots_[slot(t, p)] == in);
     }
 
     void write(Tick t, uint32_t p, const Input& in) {
