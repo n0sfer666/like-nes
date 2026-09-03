@@ -9,6 +9,7 @@
 #include "platform_process.hpp"
 #include "platformer_net_runs.hpp"
 #include "platformer_peer.hpp"
+#include "platformer_replay_run.hpp"
 
 // Гейты 1 и 7 спеки #22: ДВА ПРОЦЕССА на одном вводе приходят в одно состояние, и пир, оглохший
 // посреди прогона, догоняет и сходится.
@@ -30,14 +31,37 @@ using platformer::runs::spawn_pair;
 
 int fails = 0;
 
-void check(bool ok, const char* what) {
+// Возвращает свой же ответ: утверждения о ЗАПИСИ идут цепочкой (разобралось → переиграло →
+// сошлось), и продолжать её после первого провала значит читать поток, которого нет.
+bool check(bool ok, const char* what) {
     if (!ok) {
         std::printf("  FAIL: %s\n", what);
         ++fails;
     }
+    return ok;
 }
 
 const char* DEFAULT_BUNDLE = "example_ugly_game/assets/game.bundle";
+
+// Гейт 6, шаг C: прогон, сыгранный ЧУЖИМ процессом, проверяется здесь целиком — тик за тиком, из
+// одного лишь записанного файла и уровня. Эталона состояния у проверяющего нет: он его пересчитывает.
+//
+// Последняя заявка обязана совпасть с маркой ИЗ ОТЧЁТА этого же процесса. Без этого «поток
+// верифицировался» верно и для записи, которую пир сделал не про свой прогон, — например, записав
+// отправленный ввод вместо сыгранного.
+bool recorded_run_verifies(const std::string& bundle, const std::vector<uint8_t>& bytes,
+                           const Mark& mark, platformer::replay_io::Stream& s) {
+    if (!check(platformer::replay_io::parse(bytes, s), "the recorded run of a peer parses"))
+        return false;
+    if (!check(s.ticks() == platformer::script_ticks(), "and it is as long as the script"))
+        return false;
+    framework::replay::Verdict v;
+    if (!check(platformer::replay_run::replay(bundle, s, v), "a fresh level loads to replay it"))
+        return false;
+    check(v.ok(), "the run of the other process verifies tick by tick");
+    return check(s.claim(s.ticks() - 1) == platformer::mark_hash(mark),
+                 "and ends on the very state that process reported");
+}
 
 void test_two_processes_on_one_input_agree(const std::string& exe, const std::string& bundle,
                                            const std::string& prefix, const Mark& alone) {
@@ -89,6 +113,33 @@ void test_a_skipped_input_frame_is_caught(const std::string& exe, const std::str
     // к пропущенному кадру отношения не имеющей. Дыра здесь ОДНА по построению.
     check(o.recv.ticks == platformer::script_ticks(), "and it played the script to the end anyway");
     check(o.recv.forced == 1, "and the receiver says why: it stopped waiting for that one tick");
+
+    // Гейт ОСНОВАНИЮ записи: пир пишет то, что СЫГРАЛ, а не то, что отправил. Разошлись эти два
+    // ровно здесь — дыру получатель доиграл предсказанием, — и его поток обязан верифицироваться
+    // САМ ПО СЕБЕ, кончаясь на его собственной марке, которая с маркой отправителя не совпадает
+    // (утверждение выше). Записывай пир отправленное — поток был бы потоком отправителя, и
+    // последняя заявка не сошлась бы с его отчётом. В честном прогоне это неотличимо: там оба
+    // потока одинаковы по построению, и гейт был бы зелен на обеих реализациях.
+    platformer::replay_io::Stream recv;
+    platformer::replay_io::Stream send;
+    if (!recorded_run_verifies(bundle, o.recv_replay, o.recv_mark, recv)) return;
+    if (!recorded_run_verifies(bundle, o.send_replay, o.send_mark, send)) return;
+    // Утверждается РАСХОЖДЕНИЕ и его нижняя граница, а не номер тика. Точный номер здесь не
+    // инвариант, и прогон это показал: дыра на 139 сыграна предсказанием, которое СОВПАЛО по
+    // значению — тик 139 лежит внутри полосы скрипта `[134,142)`, где ввод не меняется, — а первое
+    // расхождение всплыло на 171, границе следующей полосы. Дальше их 169 при `too_far=257`:
+    // пока получатель ждал дыру, подтверждения отправителя уезжали за `LEAD` от его стоящей головы
+    // и отбрасывались, а форсирование объявило те тики известными навсегда. Сколько их — считает
+    // планировщик машины, поэтому равенству тут взяться неоткуда.
+    //
+    // Нижняя граница СТРУКТУРНА: до пропавшего кадра весь ввод получателя подтверждён, расходиться
+    // нечему. И сломанную реализацию она ловит ту же — пиши пир отправленное вместо сыгранного,
+    // потоки совпали бы целиком и расхождения не нашлось бы вовсе.
+    uint32_t first = platformer::script_ticks();
+    for (uint32_t t = 0; t < send.ticks() && first == platformer::script_ticks(); ++t)
+        if (!(recv.row(t)[0] == send.row(t)[0])) first = t;
+    check(first < send.ticks() && first >= at,
+          "and the recording of the receiver differs from the sender's, never before the gap");
 }
 
 // Гейт 7: получатель перестаёт читать сокет посреди прогона. Отправитель упирается в потолок
@@ -122,6 +173,33 @@ void test_a_deaf_peer_catches_up(const std::string& exe, const std::string& bund
     check(o.recv.deaf_stalls > 0,
           "control: the silence really did stop it: no input, no step");
     check(o.send.resent > 0, "control: and the sender had to say it all again");
+}
+
+void test_the_recorded_run_of_a_peer_verifies(const std::string& exe, const std::string& bundle,
+                                              const std::string& prefix) {
+    Outcome o;
+    if (!spawn_pair(exe, bundle, prefix + "-replay", {}, {}, o)) {
+        check(false, "both peers finished the run and wrote it down");
+        return;
+    }
+    report("recorded", o);
+    platformer::replay_io::Stream s;
+    if (!recorded_run_verifies(bundle, o.send_replay, o.send_mark, s)) return;
+
+    // Подделка БАЙТОМ в приехавшем файле: между процессами едет он, и правит его тот, кто хочет
+    // выдать чужой прогон за свой. Отказ обязан назвать НОМЕР ТИКА — иначе «файл не сошёлся»
+    // сказано про четыреста двадцать тиков разом.
+    const size_t row = platformer::input_wire::BYTES;
+    const uint32_t at = platformer::script_ticks() / 3;
+    const size_t claim_at = platformer::replay_io::HEAD + at * (row + platformer::replay_io::CLAIM);
+    if (!check(claim_at + row < o.send_replay.size(), "the forged tick is inside the file")) return;
+    std::vector<uint8_t> bent = o.send_replay;
+    bent[claim_at + row] ^= 0x40u;
+    platformer::replay_io::Stream b;
+    framework::replay::Verdict v;
+    check(platformer::replay_io::parse(bent, b), "a bent claim is still a well-formed file");
+    check(platformer::replay_run::replay(bundle, b, v) && !v.ok() && v.tick == at,
+          "and the verifier names the tick it was bent at");
 }
 
 platformer::PeerConfig parse_peer(int argc, char** argv) {
@@ -162,6 +240,7 @@ int main(int argc, char** argv) {
         test_two_processes_on_one_input_agree(exe, bundle, prefix, alone);
         test_a_skipped_input_frame_is_caught(exe, bundle, prefix);
         test_a_deaf_peer_catches_up(exe, bundle, prefix, alone);
+        test_the_recorded_run_of_a_peer_verifies(exe, bundle, prefix);
     }
     std::printf("game-platformer-net: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

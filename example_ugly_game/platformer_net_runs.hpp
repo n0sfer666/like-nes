@@ -22,6 +22,10 @@ struct Outcome {
     Mark recv_mark;
     PeerStats send;
     PeerStats recv;
+    // Записанные прогоны забираются БАЙТАМИ, а не путями: файлы рандеву сносятся здесь же, а гейт,
+    // которому оставили путь, читал бы их после уборки — то есть проверял бы порядок вызовов.
+    std::vector<uint8_t> send_replay;
+    std::vector<uint8_t> recv_replay;
 };
 
 inline std::vector<std::string> peer_argv(const std::string& exe, const char* role,
@@ -34,7 +38,8 @@ inline std::vector<std::string> peer_argv(const std::string& exe, const char* ro
 
 inline void forget(const std::string& prefix) {
     for (const char* side : {"-send", "-recv"})
-        for (const char* ext : {".port", ".result"}) platform::remove_file(prefix + side + ext);
+        for (const char* ext : {".port", ".result", ".replay"})
+            platform::remove_file(prefix + side + ext);
 }
 
 // Расшифровка исхода ребёнка. Нужна потому, что stdout пира уходит в никуда (`Child::spawn` отдаёт
@@ -53,6 +58,8 @@ inline const char* peer_said(const platform::ExitStatus& s, bool waited) {
         case 4: return "gave up at the deadline";
         case 5: return "could not write its result";
         case 6: return "the socket went bad";
+        case 7: return "could not write its recorded run";
+        case 8: return "its claim format does not match its own length";
         default: return "an unexpected code";
     }
 }
@@ -88,7 +95,9 @@ inline bool spawn_pair(const std::string& exe, const std::string& bundle, const 
         return false;
     }
     out.ran = peer_result::read_file(prefix + "-send.result", out.send_mark, out.send) &&
-              peer_result::read_file(prefix + "-recv.result", out.recv_mark, out.recv);
+              peer_result::read_file(prefix + "-recv.result", out.recv_mark, out.recv) &&
+              platform::read_bytes(prefix + "-send.replay", out.send_replay) &&
+              platform::read_bytes(prefix + "-recv.replay", out.recv_replay);
     // Файлы сносятся только после УДАВШЕГОСЯ чтения: прочитать их не вышло — значит смотреть в них
     // будет человек, и уборка отобрала бы у него единственную улику.
     if (out.ran) forget(prefix);
