@@ -17,6 +17,7 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
+| Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1391,9 +1392,81 @@ one prints the diagnostic plus `rejected, previous library still drawing`, and t
 flashing the old way. The frame rate must not stumble on either: the rebuild happens between the
 tick and the frame, and a visible hitch on a three-pipeline library is a finding.
 
+## 12. Gate 7 of #18 — the lit frame on a real GPU
+
+> **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
+> pass switched off returns the material frame byte for byte, switched on it changes that frame, and
+> a light set of a DIFFERENT length gives a different picture — so the count really does come out of
+> the table and not out of the shader. What no runner can answer is where the light lands: whether
+> `key` warms the left side and `fill` cools the right, whether `sun` reads as one direction across
+> the whole frame. Five sources at named positions either agree with the picture or they do not, and
+> that comparison is yours.
+
+```sh
+cmake --build build --target light_golden
+./build/light_golden --golden engine/render/golden/lights_640x360.png
+```
+
+Expected, on the Metal machine the reference was baked on:
+
+```
+[gpu] <adapter> | Metal | BC: yes
+  lights: 5 source(s) in the table, 5 uploaded
+  frame: 3 draw call(s) into the albedo target
+  cost: 1.652 ms/frame without the pass, 1.662 ms/frame with it (30 frames each)
+  golden engine/render/golden/lights_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
+light-gpu: PASS
+```
+
+The `cost` line is a measurement, not an assertion: it is printed so the pass has a price on record,
+and a threshold on it would be a statement about your machine rather than about the pass (the
+physics gate learned that in §4). Both numbers on the reference machine sit at about 1.7 ms for a
+640x360 frame, and the pass costs the difference between them.
+
+`max=0.00000` means the checked-in reference is bit for bit what your GPU just drew. If your numbers
+came out non-zero, write yours to a scratch path and compare by eye instead of pointing `--update`
+at the pinned file:
+
+```sh
+./build/light_golden --golden /tmp/mine-lit.png
+```
+
+Then open the PNG and answer four questions — the half the numbers do not cover. The source of
+truth for every one of them is [`engine/light/library/lights.txt`](../engine/light/library/lights.txt),
+and reading it first is the point: the gate asks whether the picture agrees with the DATA.
+
+Normals are flat for now — this is step A of the vertical, sources as data; sprite normal maps are
+step B, and until they land the shading varies with distance, not with surface.
+
+1. **Hold it next to §9's `materials_640x360.png` — the same scene, unlit.** Every sprite must come
+   out dimmer, and dimmer by a DIFFERENT amount depending on where it sits. An evenly darkened copy
+   of that picture means only the ambient term reached the frame and the five sources did not.
+2. **Warm at the top left, cold at the top right.** `key` is orange at `-0.42, 0.28`, `fill` is blue
+   at `0.44, 0.16`; the frame's x runs `-1.78..1.78` and its y runs `-1..1`, y UP. The top-left
+   sprites must pick up the orange and the top-right ones the blue. Swapped is a sign flip in x,
+   upside down is one in y — the defect class the input round hit twice.
+3. **The near-black ground is lit only where a source is close.** Between the lower rows it picks up
+   a faint green haze at the centre — that is `rim`, at `0.06, -0.46`, with a radius of 1.10. An
+   evenly lit background means the falloff is not applied at all; a background that stays pure black
+   everywhere means the pass never reached it.
+4. **`sun` is an even wash, not a pool.** It is directional with `dir = 0.35, -0.94`, and `dir` is
+   where the light TRAVELS, so it arrives from the upper left. Until sprite normal maps land (step B
+   of this vertical) every pixel carries the same flat normal, so a directional source can only add
+   a CONSTANT cool tint over the whole frame — that is what to look for. Any place where the sun's
+   contribution varies with position means it is being attenuated like a point light.
+
+**On Linux and Windows run `--selftest`, not `--golden`** — the same reason as §9: this comparison
+judges the peak error and would be about the rasteriser, not the pass. What it does say there is
+portable and worth having: the three assertions above plus two runs on that adapter agreeing bit for
+bit.
+
+```sh
+./build/light_golden --selftest
+```
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; all but the three of spec #18 are closed. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the four of spec #18 are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.

@@ -23,7 +23,7 @@ std::vector<uint8_t> render_frame(GpuContext& gpu, Scene& scene, uint32_t w, uin
     att.view = view;
     att.loadOp = WGPULoadOp_Clear;
     att.storeOp = WGPUStoreOp_Store;
-    att.clearValue = WGPUColor{0.05, 0.06, 0.09, 1.0};
+    att.clearValue = CLEAR;
     WGPURenderPassDescriptor pd = {};
     pd.colorAttachmentCount = 1;
     pd.colorAttachments = &att;

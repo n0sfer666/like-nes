@@ -359,6 +359,31 @@ jobs:
             grep -q "hot-reload: PASS" hotp.txt || { cat hotp.txt; exit 1; }
           fi
 
+      # Гейт 7 спеки #18 (вертикаль 3) — свет как ДАННЫЕ. Портируемая половина: сверка с эталонным
+      # PNG идёт у владельца на Metal (docs/owner-verification.md), здесь — те утверждения, которые
+      # одинаковы на Metal, lavapipe и WARP. Три из них несут собственный позитивный контроль:
+      # выключенный проход обязан вернуть кадр материалов БАЙТ В БАЙТ (иначе «выключается целиком»
+      # ничем не подтверждено), включённый обязан этот кадр изменить (иначе проход-пустышка
+      # неотличим от рабочего), а набор из ДРУГОГО числа источников обязан дать другой кадр — без
+      # последнего «читаем таблицу» неотличимо от «зашили столько же», и ровно это зашитое число
+      # (`array<vec4f, 6>`) и было прежним трактом.
+      - name: Lights — the count comes from the table, the pass switches off (gate 7 of spec #18)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'light_golden' -o -name 'light_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "light_golden not built"; exit 1; }
+          # Вердикт берётся ДВАЖДЫ — кодом возврата и строкой: оборвавшийся до отчёта прогон и
+          # прогон, напечатавший FAIL с нулём, молчат одинаково, а ломаются по-разному.
+          set +e
+          "$BIN" --selftest > light.txt 2>&1
+          rc=$?
+          set -e
+          cat light.txt
+          [ "$rc" -eq 0 ] || { echo "LIGHT SELFTEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "lights: 5 source(s) in the table, 5 uploaded" light.txt || {
+            echo "LIGHT COUNT CHANGED on ${{ matrix.os }} ($(wc -c < light.txt) bytes)"; exit 1; }
+          grep -q "light-gpu: PASS" light.txt || { echo "LIGHT GATE FAILED"; exit 1; }
+
       # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---
       # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
       # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,

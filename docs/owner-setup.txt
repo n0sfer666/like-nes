@@ -361,6 +361,32 @@ Windows: не открывать проект как папку в самой Vi
   две в живой игре, с ожидаемым поведением каждой) — §11
   docs/owner-verification.md.
 
+  Свет как данные (гейт 7 спеки #18) — на машине с Metal голден, на прочих
+  selftest:
+
+    cmake --build build --target light_golden
+    ./build/light_golden --golden engine/render/golden/lights_640x360.png
+
+  Должно напечатать (код возврата 0):
+    [gpu] <адаптер> | Metal | BC: yes
+      lights: 5 source(s) in the table, 5 uploaded
+      frame: 3 draw call(s) into the albedo target
+      cost: <a> ms/frame without the pass, <b> ms/frame with it (30 frames each)
+      golden engine/render/golden/lights_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
+    light-gpu: PASS
+
+  Пять источников, а не три и не шесть: три было зашито в PoC-сцене, шесть
+  влезало в прежний юниформ. Другое число значит, что кадр пришёл не из
+  таблицы. Строка `cost` — замер, а не порог: на эталонной машине оба числа
+  около 1.7 мс на кадр 640x360.
+
+  На Linux и Windows вместо голдена:
+
+    ./build/light_golden --selftest
+
+  Картинку смотреть глазами — §12 docs/owner-verification.md: четыре вопроса
+  и что значит каждый неверный ответ.
+
 ===========================================================================
 4. РУЧНАЯ ПРОВЕРКА — ГЕЙТЫ РАУНДОВ #13 и #14
 ===========================================================================
