@@ -373,6 +373,11 @@ jobs:
       # где это видно. Знак нормали здесь не проверяется вовсе: `--selftest` к нему слеп по
       # устройству (перевёрнутый Y даёт ДРУГОЙ, но столь же стабильный кадр), его ловит эталонный
       # PNG у владельца на Metal — сценарий 12 в docs/owner-verification.md.
+      # Шаг C — карта перекрытия и мягкие тени. Счётчики перекрывателей ассертятся ЦЕЛИКОМ и
+      # обязаны РАЗОЙТИСЬ со счётчиками нормалей (4/3 против 5/2): проход, читающий чужое имя слота,
+      # нашёл бы карты и дал бы кадр, и различает эти два набора только пара чисел. Сам вердикт про
+      # тени портируем — «тень только гасит» и «мягкость из таблицы меняет кадр» ловят
+      # перевёрнутый марш и константу в шейдере на любом бэкенде.
       - name: Lights — count and normals come from tables, the pass switches off (gate 7 of spec #18)
         shell: bash
         run: |
@@ -390,6 +395,8 @@ jobs:
             echo "LIGHT COUNT CHANGED on ${{ matrix.os }} ($(wc -c < light.txt) bytes)"; exit 1; }
           grep -q "normals: 5 mapped from the table, 2 flat, 0 naming an unknown asset" light.txt || {
             echo "NORMAL SLOTS CHANGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "occluders: 4 mapped from the table, 3 open, 0 naming an unknown asset" light.txt || {
+            echo "OCCLUSION SLOTS CHANGED on ${{ matrix.os }}"; exit 1; }
           grep -q "light-gpu: PASS" light.txt || { echo "LIGHT GATE FAILED"; exit 1; }
 
       # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---

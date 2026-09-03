@@ -30,7 +30,7 @@ target_link_libraries(material_table_test PRIVATE material_bake)
 # здесь он свой — не пекарь и не читатель разъехались, а библиотека разъехалась со своим WGSL.
 # Цель читает файлы библиотеки, поэтому путь к каталогу передаётся аргументом (по умолчанию —
 # относительный от корня дерева, как у бандл-гейтов).
-add_executable(material_library_test material_library_test.cpp)
+add_executable(material_library_test material_library_test.cpp material_slots_test.cpp)
 target_link_libraries(material_library_test PRIVATE material_bake platform_core)
 
 # Шов «материал → пайплайн» (гейты 4/5/6 спеки #18). Третья цель, а не часть `material_core`:

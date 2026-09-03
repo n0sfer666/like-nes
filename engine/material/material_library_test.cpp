@@ -7,6 +7,7 @@
 #include "../platform/platform_args.hpp"
 #include "../platform/platform_fs.hpp"
 #include "bake.hpp"
+#include "material_slots_test.hpp"
 #include "param.hpp"
 #include "table.hpp"
 
@@ -210,26 +211,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Текстура эффекта живёт в СВОЁМ слоте, а не в слоте альбедо: шейдер берёт шум из `aux`
-    // (@binding(3) = слот 1 материала), и слот 0 обязан остаться за спрайтом.
-    const uint32_t d = t.find("dissolve");
-    if (d != t.count()) {
-        check(t.row(d).texture_count == 1, "dissolve declares one texture");
-        if (t.row(d).texture_count == 1) {
-            const mat::TextureRow& tex = t.texture(t.row(d).texture_first);
-            check(tex.binding == 1, "dissolve noise sits in the aux slot, not albedo");
-            check(tex.guid == asset::fnv1a("noise_rgba", 10), "dissolve names the noise asset");
-        }
-    }
-
-    // Слот нормали — шов между `library.mat` и ПРОХОДОМ ОСВЕЩЕНИЯ, а не шейдером библиотеки: его
-    // номер и guid ассета читает другой потребитель, и разъехаться им нечем, кроме этих строк.
-    const uint32_t fg = t.find("flash_gold");
-    const int32_t nrm = fg == t.count() ? -1 : t.texture_of(fg, "normal");
-    check(nrm >= 0 && t.texture(static_cast<uint32_t>(nrm)).binding == 2 &&
-              t.texture(static_cast<uint32_t>(nrm)).guid == asset::fnv1a("sprite_normal", 13),
-          "flash_gold inherits the sprite normal map in slot 2");
-    check(t.texture_of(t.find("dissolve"), "normal") < 0, "dissolve declares no normal slot");
+    fails += matlib::check_texture_slots(t);
 
     std::printf("material-library: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

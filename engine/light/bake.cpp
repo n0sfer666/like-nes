@@ -57,6 +57,7 @@ bool bake_lights(const std::string& text, std::vector<uint8_t>& out, BakeError& 
         r.height = l.height;
         r.intensity = l.intensity;
         r.radius = l.radius;
+        r.shadow = l.shadow;
         rows.push_back(r);
     }
 

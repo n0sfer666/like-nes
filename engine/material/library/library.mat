@@ -11,10 +11,15 @@
 # The instances below exist to prove decision 2 (an instance is cheap): they share the shader and
 # the pipeline of their base and differ only in values that travel in the instance buffer.
 
-# Texture slot 2 is the sprite NORMAL MAP. Slots 0 and 1 belong to the material pass (albedo and
-# the effect's aux texture); slot 2 is read by the normal pass of the lighting graph, which is why
-# no fragment entry point in sprite_effects.wgsl samples it. A material that declares no normal
-# slot is lit as flat (0,0,1) -- absence is a value here, not a gap.
+# Texture slot 2 is the sprite NORMAL MAP and slot 3 is its OCCLUSION MAP. Slots 0 and 1 belong to
+# the material pass (albedo and the effect's aux texture); slots 2 and 3 are read by the normal and
+# the occluder pass of the lighting graph, which is why no fragment entry point in
+# sprite_effects.wgsl samples them. A material that declares no normal slot is lit as flat (0,0,1),
+# and one that declares no occlusion slot blocks no light -- absence is a value here, not a gap.
+#
+# The two sets are deliberately DIFFERENT: flash carries a normal and casts nothing, dissolve casts
+# and is lit flat. A pass that read the wrong slot name would still find maps, and only the counts
+# (5 mapped / 2 flat for normals, 4 / 3 for occluders) tell the two slots apart.
 material | flash | fs_flash | alpha
 param | tint | color | raw | 1, 1, 1, 1
 param | strength | scalar | fraction | 0
@@ -31,6 +36,7 @@ material | outline | fs_outline | alpha
 param | color | color | raw | 0, 0, 0, 1
 param | thickness | scalar | pixels | 1
 tex | normal | outline_normal | 2
+tex | occlusion | sprite_occluder | 3
 
 instance | outline_danger | outline
 set | color | 0.95, 0.1, 0.1, 1
@@ -41,6 +47,7 @@ param | edge_color | color | raw | 1, 0.55, 0.1, 1
 param | threshold | scalar | fraction | 0
 param | edge | scalar | fraction | 0.08
 tex | noise | noise_rgba | 1
+tex | occlusion | grate_occluder | 3
 
 instance | dissolve_ash | dissolve
 set | edge_color | 0.6, 0.6, 0.62, 1

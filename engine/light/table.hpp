@@ -8,7 +8,7 @@ namespace light {
 // материалы (#18), достижения (#10) и пресеты ввода (#14). Раскладка запинена static_assert'ами —
 // это ABI между пекарем и читателем.
 constexpr uint8_t TABLE_MAGIC[4] = {'L', 'N', 'L', 'T'};
-constexpr uint32_t TABLE_VERSION = 2;
+constexpr uint32_t TABLE_VERSION = 3;
 
 enum class Kind : uint8_t { Point = 0, Directional = 1 };
 
@@ -36,11 +36,16 @@ struct LightRow {
     float color[3];     // линейный rgb, 0..1
     float intensity;    // множитель, доля
     float radius;       // мир; у направленного 0 — затухания у него нет
+    // Мягкость тени источника, в мире: радиус полутени на дальнем конце луча. Ноль — резкая
+    // кромка, а не «тени нет»: гасится тень выключением ПРОХОДА, и это разные ручки. Величина
+    // живёт в таблице, а не константой в шейдере, по той же причине, что и ambient: иначе она
+    // менялась бы пересборкой движка, а не правкой строки.
+    float shadow;
     uint32_t name_off;
     uint8_t kind;
     uint8_t reserved[3];
 };
-static_assert(sizeof(LightRow) == 48, "LightRow layout pinned (zero-parse ABI)");
+static_assert(sizeof(LightRow) == 52, "LightRow layout pinned (zero-parse ABI)");
 
 enum class LoadResult : uint32_t {
     Ok = 0,

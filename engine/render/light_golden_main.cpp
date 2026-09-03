@@ -11,8 +11,9 @@
 #include "light_pass.hpp"
 #include "material_frame.hpp"
 #include "material_scene.hpp"
-#include "normal_pass.hpp"
-#include "normal_textures.hpp"
+#include "shadow_checks.hpp"
+#include "slot_pass.hpp"
+#include "slot_textures.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 
@@ -116,30 +117,41 @@ int main(int argc, char** argv) {
 
     // Нормали спрайтов (шаг B): карту выбирает ТЕКСТУРНЫЙ СЛОТ материала, банк отдаёт её по guid
     // ассета — ни номер слота, ни имя карты в проходе не зашиты.
-    normgold::Bank bank;
-    check(bank.init(gpu.device, gpu.queue), "the normal-map bank is ready");
-    normgfx::Pass normals;
-    check(normals.init(gpu.device, gpu.queue, mtable, bank, W, H, scene.albedo_view(),
-                       WGPUTextureFormat_RGBA8Unorm),
+    slotgold::Bank bank;
+    check(bank.init(gpu.device, gpu.queue), "the slot-texture bank is ready");
+    slotgfx::Pass normals;
+    check(normals.init(gpu.device, gpu.queue, mtable, bank, slotgfx::normals_of(bank), W, H,
+                       scene.albedo_view(), WGPUTextureFormat_RGBA8Unorm),
           "the normal pass starts over the shipped material table");
     normals.build(scene);
+    // Перекрыватели (шаг C) — ТОТ ЖЕ класс прохода с другим `Desc`: имя слота, точка входа, цвет
+    // очистки и запасная карта. Вторая реализация разъехалась бы с первой ровно в том, что гейт и
+    // проверяет, — в том, откуда берётся карта.
+    slotgfx::Pass occluders;
+    check(occluders.init(gpu.device, gpu.queue, mtable, bank, slotgfx::occluders_of(bank), W, H,
+                         scene.albedo_view(), WGPUTextureFormat_RGBA8Unorm),
+          "the occluder pass starts over the shipped material table");
+    occluders.build(scene);
 
     uint32_t draws = 0, mdraws = 0;
     const std::vector<uint8_t> off =
-        lightgold::render_frame(gpu, scene, nullptr, &normals, W, H, draws);
+        lightgold::render_frame(gpu, scene, lightgold::Graph{nullptr, &normals, &occluders}, W, H,
+                                draws);
     const std::vector<uint8_t> mat_px = matgold::render_frame(gpu, scene, W, H, mdraws);
     check(!off.empty() && off == mat_px,
           "a switched-off pass returns the previous frame byte for byte");
     check(draws == mdraws, "the graph without the pass draws the scene in the same calls");
 
-    const std::vector<uint8_t> lit =
-        lightgold::render_frame(gpu, scene, &pass, &normals, W, H, draws);
+    const lightgold::Graph graph{&pass, &normals, &occluders};
+    const std::vector<uint8_t> lit = lightgold::render_frame(gpu, scene, graph, W, H, draws);
     check(!lit.empty() && lit != off, "the pass changes the frame it is given");
     std::printf("  frame: %u draw call(s) into the albedo target\n", draws);
 
     lightgold::count_comes_from_data(gpu, scene, W, H);
     lightgold::normals_come_from_slots(gpu, scene, mtable, pass, normals, W, H);
-    lightgold::report_cost(gpu, scene, pass, normals, W, H);
+    lightgold::shadows_come_from_slots(gpu, scene, mtable, pass, normals, occluders, W, H);
+    lightgold::softness_comes_from_the_table(gpu, scene, normals, occluders, W, H);
+    lightgold::report_cost(gpu, scene, pass, normals, occluders, W, H);
 
     if (golden_path) {
         std::vector<uint8_t> ref;
@@ -159,11 +171,11 @@ int main(int argc, char** argv) {
         // Повтор на ОДНОМ бэкенде обязан совпасть ТОЧНО: допуск для чужой видеокарты спрятал бы
         // собственный дрейф тракта, а он и есть то, что видно без эталонного файла.
         uint32_t again = 0;
-        const std::vector<uint8_t> lit2 =
-            lightgold::render_frame(gpu, scene, &pass, &normals, W, H, again);
+        const std::vector<uint8_t> lit2 = lightgold::render_frame(gpu, scene, graph, W, H, again);
         check(lit == lit2, "two runs on one backend give the same lit frame");
     }
 
+    occluders.shutdown();
     normals.shutdown();
     bank.shutdown();
     pass.shutdown();

@@ -21,10 +21,14 @@ enum Field : uint32_t {
     F_COLOR = 1u << 3,
     F_INTENSITY = 1u << 4,
     F_RADIUS = 1u << 5,
+    F_SHADOW = 1u << 6,
 };
 
-constexpr uint32_t POINT_REQUIRED = F_POS | F_HEIGHT | F_COLOR | F_INTENSITY | F_RADIUS;
-constexpr uint32_t DIR_REQUIRED = F_DIR | F_COLOR | F_INTENSITY;
+// Мягкость требуется у ОБОИХ видов: у поля со значением по умолчанию «забыли» и «хотели ноль»
+// неразличимы, а ноль здесь — резкая кромка, то есть видимый выбор, а не отсутствие выбора.
+constexpr uint32_t POINT_REQUIRED =
+    F_POS | F_HEIGHT | F_COLOR | F_INTENSITY | F_RADIUS | F_SHADOW;
+constexpr uint32_t DIR_REQUIRED = F_DIR | F_COLOR | F_INTENSITY | F_SHADOW;
 
 bool fail(BakeError& err, int line, const std::string& msg) {
     err.line = line;
@@ -54,6 +58,7 @@ const char* missing(uint32_t have, uint32_t want) {
     if (!(have & F_COLOR) && (want & F_COLOR)) return "color";
     if (!(have & F_INTENSITY) && (want & F_INTENSITY)) return "intensity";
     if (!(have & F_RADIUS) && (want & F_RADIUS)) return "radius";
+    if (!(have & F_SHADOW) && (want & F_SHADOW)) return "shadow";
     return nullptr;
 }
 
@@ -134,6 +139,7 @@ bool parse_lights(const std::string& text, LightSet& set, BakeError& err) {
         else if (name == "height") { bit = F_HEIGHT; if (!point) return fail(err, line_no, "height is for a point light"); }
         else if (name == "radius") { bit = F_RADIUS; if (!point) return fail(err, line_no, "radius is for a point light"); }
         else if (name == "dir") { bit = F_DIR; if (point) return fail(err, line_no, "dir is for a directional light"); }
+        else if (name == "shadow") bit = F_SHADOW;
         else if (name == "color") bit = F_COLOR;
         else if (name == "intensity") bit = F_INTENSITY;
         else return fail(err, line_no, "unknown field " + name);
@@ -146,11 +152,13 @@ bool parse_lights(const std::string& text, LightSet& set, BakeError& err) {
         if (bit == F_HEIGHT && !numbers(f[2], 1, &cur.height, err, line_no)) return false;
         if (bit == F_INTENSITY && !numbers(f[2], 1, &cur.intensity, err, line_no)) return false;
         if (bit == F_RADIUS && !numbers(f[2], 1, &cur.radius, err, line_no)) return false;
+        if (bit == F_SHADOW && !numbers(f[2], 1, &cur.shadow, err, line_no)) return false;
 
         if (bit == F_COLOR && (cur.color[0] < 0 || cur.color[1] < 0 || cur.color[2] < 0))
             return fail(err, line_no, "colour channel is negative");
         if (bit == F_INTENSITY && cur.intensity < 0) return fail(err, line_no, "intensity is negative");
         if (bit == F_RADIUS && cur.radius <= 0) return fail(err, line_no, "radius must be positive");
+        if (bit == F_SHADOW && cur.shadow < 0) return fail(err, line_no, "shadow softness is negative");
     }
     if (out.empty()) return fail(err, 0, "no lights in the source");
     // Последний свет закрывается ПЕРВЫМ: у его отказа есть номер строки, а у «нет ambient» — нет,

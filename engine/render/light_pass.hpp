@@ -35,10 +35,12 @@ public:
               WGPUTextureFormat fmt, float aspect);
     void shutdown();
 
-    // Рисует в `dst` из `albedo` и `normal`. `normal` может быть nullptr — тогда берётся плоская
-    // нормаль (0,0,1) из собственной текстуры 1x1: нормали спрайтов приходят шагом B.
+    // Рисует в `dst` из `albedo`, `normal` и `occlusion`. Любой из двух последних может быть
+    // nullptr: тогда берётся собственная текстура 1x1 — плоская нормаль (0,0,1) либо «ничего не
+    // перекрывает» (0). Это не запасной путь, а ручки гейта: кадр с картами и кадр без них обязаны
+    // различаться, иначе «пришло из слота материала» неотличимо от «привязали одно и то же всем».
     void run(WGPUCommandEncoder enc, WGPUTextureView dst, WGPUTextureView albedo,
-             WGPUTextureView normal);
+             WGPUTextureView normal, WGPUTextureView occlusion);
 
     uint32_t lights() const { return lights_; }
 
@@ -51,6 +53,8 @@ private:
     WGPUSampler sampler_ = nullptr;
     WGPUTexture flat_normal_ = nullptr;
     WGPUTextureView flat_normal_view_ = nullptr;
+    WGPUTexture open_occ_ = nullptr;
+    WGPUTextureView open_occ_view_ = nullptr;
     uint32_t lights_ = 0;
 };
 

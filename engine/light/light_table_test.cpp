@@ -30,11 +30,13 @@ const char* const SOURCE =
     "set | color     | 1, 0.86, 0.62\n"
     "set | intensity | 1.4\n"
     "set | radius    | 0.80\n"
+    "set | shadow    | 0.05\n"
     "\n"
     "light | sun | directional\n"
     "set | dir       | 3, -4\n"
     "set | color     | 0.55, 0.62, 0.90\n"
-    "set | intensity | 0.6\n";
+    "set | intensity | 0.6\n"
+    "set | shadow    | 0.00\n";
 
 // Отказ обязан назвать СТРОКУ, а не только причину: диагностика без номера строки заставляет
 // искать опечатку глазами, а сообщение без причины — гадать. Каждая фикстура ниже ломает ровно
@@ -47,13 +49,13 @@ struct Bad {
 
 const Bad BAD[] = {
     {"ambient | 0,0,0 | 1\nlight | a | point\nset | pos | 0,0\nset | height | 1\n"
-     "set | color | 1,1,1\nset | intensity | 1\n",
+     "set | color | 1,1,1\nset | intensity | 1\nset | shadow | 0\n",
      2, "point light without radius"},
     {"ambient | 0,0,0 | 1\nlight | a | point\nset | pos | 0,0\nset | color | 1,1,1\n"
-     "set | intensity | 1\nset | radius | 1\n",
+     "set | intensity | 1\nset | radius | 1\nset | shadow | 0\n",
      2, "point light without height"},
     {"ambient | 0,0,0 | 1\nlight | a | directional\nset | dir | 0,0\nset | color | 1,1,1\n"
-     "set | intensity | 1\n",
+     "set | intensity | 1\nset | shadow | 0\n",
      2, "direction with no length"},
     {"light | a | point\nset | pos | 0,0\nset | pos | 1,1\n", 3, "the same field set twice"},
     {"light | a | point\nset | dir | 1,0\n", 2, "dir on a point light"},
@@ -63,8 +65,8 @@ const Bad BAD[] = {
     // Первый свет здесь ПОЛНЫЙ: незакрытый свет отбивается раньше проверки имени, и фикстура
     // с двумя пустыми телами зелена на пекаре, который дубликатов не ищет вовсе.
     {"light | a | point\nset | pos | 0,0\nset | height | 1\nset | color | 1,1,1\n"
-     "set | intensity | 1\nset | radius | 1\nlight | a | point\n",
-     7, "duplicate name"},
+     "set | intensity | 1\nset | radius | 1\nset | shadow | 0\nlight | a | point\n",
+     8, "duplicate name"},
     {"set | pos | 0,0\n", 1, "a field before any light"},
     {"light | a | point\nset | pos | 0,0\nset | height | 1\nset | color | 1,1,1\n"
      "set | intensity | -1\nset | radius | 1\n",
@@ -74,8 +76,14 @@ const Bad BAD[] = {
      6, "radius of zero"},
     {"# only a comment\n", 0, "a source with no lights at all"},
     {"light | a | point\nset | pos | 0,0\nset | height | 1\nset | color | 1,1,1\n"
-     "set | intensity | 1\nset | radius | 1\n",
+     "set | intensity | 1\nset | radius | 1\nset | shadow | 0\n",
      0, "a source with no ambient"},
+    {"ambient | 0,0,0 | 1\nlight | a | point\nset | pos | 0,0\nset | height | 1\n"
+     "set | color | 1,1,1\nset | intensity | 1\nset | radius | 1\n",
+     2, "light without shadow softness"},
+    {"light | a | point\nset | pos | 0,0\nset | height | 1\nset | color | 1,1,1\n"
+     "set | intensity | 1\nset | radius | 1\nset | shadow | -0.1\n",
+     7, "negative shadow softness"},
     {"ambient | 0,0,0 | 1\nambient | 0,0,0 | 1\n", 2, "ambient set twice"},
     {"ambient | 0,0,-1 | 1\n", 1, "a negative ambient channel"},
     {"ambient | 0,0,0 | 1, 2\n", 1, "ambient strength that is not one number"},
@@ -110,6 +118,7 @@ void bakes_and_reads() {
         check(near(key->color[1], 0.86f), "colour survives the bake");
         check(near(key->intensity, 1.4f), "intensity survives the bake");
         check(near(key->radius, 0.80f), "radius survives the bake");
+        check(near(key->shadow, 0.05f), "shadow softness survives the bake");
     }
 
     const light::LightRow* sun = t.row(t.find("sun"));
@@ -119,6 +128,9 @@ void bakes_and_reads() {
         // рантайм платил бы корень на источник, а забытая нормализация тускнела бы молча.
         check(near(sun->dir[0], 0.6f) && near(sun->dir[1], -0.8f), "direction is unit length");
         check(near(sun->radius, 0.0f), "a directional light carries no radius");
+        // Ноль здесь — ЗАПИСАННЫЙ ноль: у поля со значением по умолчанию он был бы
+        // неотличим от забытой строки, поэтому пекарь требует её у обоих видов.
+        check(near(sun->shadow, 0.0f), "a written zero softness survives the bake");
     }
     check(t.find("nope") == t.count(), "an unknown name resolves to count(), not to zero");
     check(t.row(t.count()) == nullptr, "an index past the end has no row");

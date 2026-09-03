@@ -13,6 +13,29 @@ namespace {
 // Плоская нормаль (0,0,1) в кодировке текстуры: нормали спрайтов приходят шагом B, а до него
 // проход обязан работать и без них — иначе «свет как данные» нечем проверить кадром.
 constexpr uint8_t FLAT_NORMAL[4] = {128, 128, 255, 255};
+// «Ничего не перекрывает» в кодировке буфера окклюзии: то же значение, что и его цвет очистки.
+// Проход, которому буфер не дали, обязан светить ровно так, как светил до появления теней.
+constexpr uint8_t OPEN_OCC[4] = {0, 0, 0, 255};
+
+WGPUTexture make_pixel(WGPUDevice device, WGPUQueue queue, const uint8_t rgba[4]) {
+    WGPUTextureDescriptor td = {};
+    td.dimension = WGPUTextureDimension_2D;
+    td.size = WGPUExtent3D{1, 1, 1};
+    td.format = WGPUTextureFormat_RGBA8Unorm;
+    td.mipLevelCount = 1;
+    td.sampleCount = 1;
+    td.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
+    WGPUTexture tex = wgpuDeviceCreateTexture(device, &td);
+    WGPUImageCopyTexture dst = {};
+    dst.texture = tex;
+    dst.aspect = WGPUTextureAspect_All;
+    WGPUTextureDataLayout layout = {};
+    layout.bytesPerRow = 4;
+    layout.rowsPerImage = 1;
+    WGPUExtent3D ext = {1, 1, 1};
+    wgpuQueueWriteTexture(queue, &dst, rgba, 4, &layout, &ext);
+    return tex;
+}
 
 void fill(GpuLight& g, const light::LightRow& r) {
     g.pos_h[0] = r.pos[0]; g.pos_h[1] = r.pos[1]; g.pos_h[2] = r.height; g.pos_h[3] = r.radius;
@@ -20,7 +43,7 @@ void fill(GpuLight& g, const light::LightRow& r) {
     g.color_i[3] = r.intensity;
     g.dir_k[0] = r.dir[0]; g.dir_k[1] = r.dir[1];
     g.dir_k[2] = r.kind == static_cast<uint8_t>(light::Kind::Directional) ? 1.0f : 0.0f;
-    g.dir_k[3] = 0.0f;
+    g.dir_k[3] = r.shadow;
 }
 
 } // namespace
@@ -63,25 +86,12 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const light::Table& table,
     sd.maxAnisotropy = 1;
     sampler_ = wgpuDeviceCreateSampler(device, &sd);
 
-    WGPUTextureDescriptor td = {};
-    td.dimension = WGPUTextureDimension_2D;
-    td.size = WGPUExtent3D{1, 1, 1};
-    td.format = WGPUTextureFormat_RGBA8Unorm;
-    td.mipLevelCount = 1;
-    td.sampleCount = 1;
-    td.usage = WGPUTextureUsage_TextureBinding | WGPUTextureUsage_CopyDst;
-    flat_normal_ = wgpuDeviceCreateTexture(device, &td);
-    WGPUImageCopyTexture dst = {};
-    dst.texture = flat_normal_;
-    dst.aspect = WGPUTextureAspect_All;
-    WGPUTextureDataLayout layout = {};
-    layout.bytesPerRow = 4;
-    layout.rowsPerImage = 1;
-    WGPUExtent3D ext = {1, 1, 1};
-    wgpuQueueWriteTexture(queue, &dst, FLAT_NORMAL, sizeof(FLAT_NORMAL), &layout, &ext);
+    flat_normal_ = make_pixel(device, queue, FLAT_NORMAL);
+    open_occ_ = make_pixel(device, queue, OPEN_OCC);
     flat_normal_view_ = wgpuTextureCreateView(flat_normal_, nullptr);
+    open_occ_view_ = wgpuTextureCreateView(open_occ_, nullptr);
 
-    WGPUBindGroupLayoutEntry e[5] = {};
+    WGPUBindGroupLayoutEntry e[6] = {};
     e[0].binding = 0; e[0].visibility = WGPUShaderStage_Fragment;
     e[0].sampler.type = WGPUSamplerBindingType_Filtering;
     e[1].binding = 1; e[1].visibility = WGPUShaderStage_Fragment;
@@ -94,8 +104,9 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const light::Table& table,
     e[4].binding = 4; e[4].visibility = WGPUShaderStage_Fragment;
     e[4].buffer.type = WGPUBufferBindingType_Uniform;
     e[4].buffer.minBindingSize = sizeof(FrameUniform);
+    e[5] = e[1]; e[5].binding = 5;
     WGPUBindGroupLayoutDescriptor bgld = {};
-    bgld.entryCount = 5; bgld.entries = e;
+    bgld.entryCount = 6; bgld.entries = e;
     bgl_ = wgpuDeviceCreateBindGroupLayout(device, &bgld);
 
     WGPUShaderModule fsm = make_shader(device, light_pass_wgsl());
@@ -105,8 +116,8 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const light::Table& table,
 }
 
 void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst, WGPUTextureView albedo,
-               WGPUTextureView normal) {
-    WGPUBindGroupEntry b[5] = {};
+               WGPUTextureView normal, WGPUTextureView occlusion) {
+    WGPUBindGroupEntry b[6] = {};
     b[0].binding = 0; b[0].sampler = sampler_;
     b[1].binding = 1; b[1].textureView = albedo;
     b[2].binding = 2; b[2].textureView = normal ? normal : flat_normal_view_;
@@ -114,8 +125,9 @@ void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst, WGPUTextureView albe
     b[3].size = sizeof(GpuLight) * lights_;
     b[4].binding = 4; b[4].buffer = frame_ubo_;
     b[4].size = sizeof(FrameUniform);
+    b[5].binding = 5; b[5].textureView = occlusion ? occlusion : open_occ_view_;
     WGPUBindGroupDescriptor bgd = {};
-    bgd.layout = bgl_; bgd.entryCount = 5; bgd.entries = b;
+    bgd.layout = bgl_; bgd.entryCount = 6; bgd.entries = b;
     WGPUBindGroup bg = wgpuDeviceCreateBindGroup(device_, &bgd);
 
     WGPURenderPassColorAttachment att = {};
@@ -137,12 +149,15 @@ void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst, WGPUTextureView albe
 void Pass::shutdown() {
     if (pipe_) wgpuRenderPipelineRelease(pipe_);
     if (bgl_) wgpuBindGroupLayoutRelease(bgl_);
+    if (open_occ_view_) wgpuTextureViewRelease(open_occ_view_);
+    if (open_occ_) wgpuTextureRelease(open_occ_);
     if (flat_normal_view_) wgpuTextureViewRelease(flat_normal_view_);
     if (flat_normal_) wgpuTextureRelease(flat_normal_);
     if (sampler_) wgpuSamplerRelease(sampler_);
     if (frame_ubo_) wgpuBufferRelease(frame_ubo_);
     if (lights_ssbo_) wgpuBufferRelease(lights_ssbo_);
-    pipe_ = nullptr; bgl_ = nullptr; flat_normal_view_ = nullptr; flat_normal_ = nullptr;
+    pipe_ = nullptr; bgl_ = nullptr; open_occ_view_ = nullptr; open_occ_ = nullptr;
+    flat_normal_view_ = nullptr; flat_normal_ = nullptr;
     sampler_ = nullptr; frame_ubo_ = nullptr; lights_ssbo_ = nullptr;
 }
 

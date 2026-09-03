@@ -1,9 +1,9 @@
-#include "normal_pass.hpp"
+#include "slot_pass.hpp"
 
 #include "../material/pipeline.hpp"
-#include "shaders_normal.hpp"
+#include "shaders_slot.hpp"
 
-namespace normgfx {
+namespace slotgfx {
 namespace {
 
 WGPUBuffer make_buffer(WGPUDevice device, WGPUQueue queue, WGPUBufferUsageFlags usage,
@@ -18,19 +18,30 @@ WGPUBuffer make_buffer(WGPUDevice device, WGPUQueue queue, WGPUBufferUsageFlags 
 
 } // namespace
 
+Desc normals_of(const slotgold::Bank& bank) {
+    // Цвет очистки — та же плоская нормаль (0,0,1), что лежит в 1x1 текстуре банка.
+    constexpr double FLAT = 128.0 / 255.0;
+    return Desc{"normal", "fs_normal", WGPUColor{FLAT, FLAT, 1.0, 1.0}, bank.flat()};
+}
+
+Desc occluders_of(const slotgold::Bank& bank) {
+    return Desc{"occlusion", "fs_occluder", WGPUColor{0.0, 0.0, 0.0, 1.0}, bank.open()};
+}
+
 bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
-                const normgold::Bank& bank, uint32_t w, uint32_t h, WGPUTextureView albedo,
-                WGPUTextureFormat fmt) {
+                const slotgold::Bank& bank, const Desc& desc, uint32_t w, uint32_t h,
+                WGPUTextureView albedo, WGPUTextureFormat fmt) {
     device_ = device;
     queue_ = queue;
+    clear_ = desc.clear;
 
     bgl_ = mat::detail::make_bind_group_layout(device);
     WGPUPipelineLayoutDescriptor pld = {};
     pld.bindGroupLayoutCount = 1;
     pld.bindGroupLayouts = &bgl_;
     WGPUPipelineLayout layout = wgpuDeviceCreatePipelineLayout(device, &pld);
-    WGPUShaderModule module = mat::detail::make_module(device, normal_pass_wgsl());
-    pipe_ = mat::detail::make_pipeline(device, layout, module, "fs_normal",
+    WGPUShaderModule module = mat::detail::make_module(device, slot_pass_wgsl());
+    pipe_ = mat::detail::make_pipeline(device, layout, module, desc.entry,
                                        static_cast<uint8_t>(mat::Blend::Alpha), fmt);
     wgpuShaderModuleRelease(module);
     wgpuPipelineLayoutRelease(layout);
@@ -61,11 +72,11 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
     sd.maxAnisotropy = 1;
     sampler_ = wgpuDeviceCreateSampler(device, &sd);
 
-    // Слот адресуется ИМЕНЕМ `normal`, а ассет — guid'ом из той же строки таблицы. Ни номер слота,
-    // ни имя ассета в этот файл не зашиты: обе величины приходят из `library.mat`.
+    // Слот адресуется ИМЕНЕМ из описания, а ассет — guid'ом из той же строки таблицы. Ни номер
+    // слота, ни имя ассета в этот файл не зашиты: обе величины приходят из `library.mat`.
     for (uint32_t m = 0; m < table.count(); ++m) {
         Group g;
-        const int32_t ti = table.texture_of(m, "normal");
+        const int32_t ti = table.texture_of(m, desc.slot);
         WGPUTextureView map = nullptr;
         if (ti < 0) {
             ++flat_;
@@ -80,7 +91,7 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
         b[0].binding = 0; b[0].buffer = vp_ubo_; b[0].size = 16;
         b[1].binding = 1; b[1].sampler = sampler_;
         b[2].binding = 2; b[2].textureView = albedo;
-        b[3].binding = 3; b[3].textureView = map ? map : bank.flat();
+        b[3].binding = 3; b[3].textureView = map ? map : desc.fallback;
         WGPUBindGroupDescriptor bgd = {};
         bgd.layout = bgl_; bgd.entryCount = 4; bgd.entries = b;
         g.bg = wgpuDeviceCreateBindGroup(device, &bgd);
@@ -114,7 +125,7 @@ void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst) {
     att.view = dst;
     att.loadOp = WGPULoadOp_Clear;
     att.storeOp = WGPUStoreOp_Store;
-    att.clearValue = CLEAR;
+    att.clearValue = clear_;
     WGPURenderPassDescriptor pd = {};
     pd.colorAttachmentCount = 1;
     pd.colorAttachments = &att;
@@ -156,4 +167,4 @@ void Pass::shutdown() {
     instances_ = 0;
 }
 
-} // namespace normgfx
+} // namespace slotgfx

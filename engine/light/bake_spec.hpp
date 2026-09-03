@@ -17,6 +17,7 @@ struct LightSpec {
     float color[3] = {0, 0, 0};
     float intensity = 0;
     float radius = 0;
+    float shadow = 0;
     int line = 0;   // строка объявления: отказ о НЕДОСТАЮЩЕМ поле называет её, а не конец файла
 };
 

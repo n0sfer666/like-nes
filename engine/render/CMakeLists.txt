@@ -79,14 +79,14 @@ reproducible_rpath(material_hot_reload)
 # шейдере, и слив их в одну цель, мы бы протащили эту шестёрку в потребителей нового прохода.
 # Зависимость односторонняя — рисующий знает про свет, свет про рисующего не знает.
 add_library(light_render STATIC light_pass.cpp shaders_light.cpp light_frame.cpp
-            normal_pass.cpp shaders_normal.cpp normal_textures.cpp)
+            slot_pass.cpp shaders_slot.cpp slot_textures.cpp)
 target_include_directories(light_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(light_render PUBLIC light_core material_preview render_core webgpu)
 
 # Гейт 7: голден на Metal у владельца, `--selftest` на трёх ОС. Утверждения вынесены в
 # `light_checks.cpp` отдельной целью-исходником: то, что портируемо, обязано читаться отдельно от
 # сверки с эталонным PNG, иначе «selftest прошёл» и «картинка совпала» смешиваются в одном файле.
-add_executable(light_golden light_golden_main.cpp light_checks.cpp)
+add_executable(light_golden light_golden_main.cpp light_checks.cpp shadow_checks.cpp)
 target_link_libraries(light_golden PRIVATE light_render light_bake material_bake platform_core
   webgpu)
 target_copy_webgpu_binaries(light_golden)

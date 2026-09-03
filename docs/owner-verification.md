@@ -1396,9 +1396,13 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 
 > **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
 > pass switched off returns the material frame byte for byte, switched on it changes that frame, a
-> light set of a DIFFERENT length gives a different picture, and the normal pass reports a MIXED set
-> — five materials whose texture slot names a map, two without one — so both the count and the
-> normals really do come out of the tables and not out of the shader.
+> light set of a DIFFERENT length gives a different picture, and both slot passes report a MIXED set
+> — five materials whose texture slot names a normal map and two without one, four naming an
+> occluder and three without one — so the count, the normals and the shadows really do come out of
+> the tables and not out of the shader. The shadow assertions carry their own broken implementations:
+> a march that returns 1 leaves the frame untouched and trips two of them, an INVERTED march trips
+> "a shadow only darkens", and a softness read from a constant instead of the row trips the fixture
+> pair that differs in that one line.
 >
 > What no runner can answer is where the light lands, and one class of defect proves the point
 > exactly: flipping the sign of Y in the dome generator leaves `--selftest` fully green (the frame
@@ -1417,7 +1421,8 @@ Expected, on the Metal machine the reference was baked on:
   lights: 5 source(s) in the table, 5 uploaded
   frame: 3 draw call(s) into the albedo target
   normals: 5 mapped from the table, 2 flat, 0 naming an unknown asset
-  cost: 1.664 ms/frame without the pass, 1.707 ms/frame with it (30 frames each)
+  occluders: 4 mapped from the table, 3 open, 0 naming an unknown asset
+  cost: 1.631 ms/frame without the pass, 1.658 ms/frame with it (30 frames each)
   golden engine/render/golden/lights_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
 light-gpu: PASS
 ```
@@ -1425,15 +1430,18 @@ light-gpu: PASS
 The `cost` line is a measurement, not an assertion: it is printed so the pass has a price on record,
 and a threshold on it would be a statement about your machine rather than about the pass (the
 physics gate learned that in §4). Both numbers on the reference machine sit at about 1.7 ms for a
-640x360 frame, and the pass costs the difference between them — some 40 microseconds, and the price
-is honest: with normal maps the scene is drawn TWICE, once into albedo and once into the normal
-buffer. The alternative was a second render target on the material pass, which would have rewritten
-every fragment entry point of `sprite_effects.wgsl` and moved the closed gates 4-6 with it.
+640x360 frame, and the pass costs the difference between them — some 30 microseconds, and the price
+is honest: the scene is drawn THREE times, once into albedo, once into the normal buffer and once
+into the occlusion buffer. The alternative was extra render targets on the material pass, which
+would have rewritten every fragment entry point of `sprite_effects.wgsl` and moved the closed gates
+4-6 with it.
 
-The `normals` line is an assertion, not a measurement, and CI greps it whole: 5 of the library's 7
-materials declare `tex | normal | ... | 2`, two do not, and a pass that bound one map for everything
-would print `7 mapped, 0 flat` or `0 mapped, 7 flat`. `0 naming an unknown asset` says every slot
-resolved to a map in the bank.
+The `normals` and `occluders` lines are assertions, not measurements, and CI greps both whole: 5 of
+the library's 7 materials declare `tex | normal | ... | 2` and 4 declare `tex | occlusion | ... | 3`,
+and a pass that bound one map for everything would print `7 mapped, 0 flat` or `0 mapped, 7 flat`.
+The two counts DISAGREE on purpose — 5/2 against 4/3: a pass that read the wrong slot name would
+still find maps and still draw a frame, and nothing but this pair of numbers tells the two slots
+apart. `0 naming an unknown asset` says every slot resolved to a map in the bank.
 
 `max=0.00000` means the checked-in reference is bit for bit what your GPU just drew. If your numbers
 came out non-zero, write yours to a scratch path and compare by eye instead of pointing `--update`
@@ -1443,7 +1451,7 @@ at the pinned file:
 ./build/light_golden --golden /tmp/mine-lit.png
 ```
 
-Then open the PNG and answer six questions — the half the numbers do not cover. The source of
+Then open the PNG and answer eight questions — the half the numbers do not cover. The source of
 truth for every one of them is [`engine/light/library/lights.txt`](../engine/light/library/lights.txt),
 and reading it first is the point: the gate asks whether the picture agrees with the DATA.
 
@@ -1476,16 +1484,32 @@ declaration order, four sprites each: `flash`, `flash_red`, `flash_gold` (dome),
    cannot ask. Each `flash*` sprite is a hemisphere: its bright side must face the light that
    reaches it, and with `key` at the top left the highlight sits ABOVE the sprite's centre, the
    shaded crescent below. A dome bright underneath and dark on top is a flipped Y in
-   [`engine/render/normal_textures.cpp`](../engine/render/normal_textures.cpp) — the map stores its
+   [`engine/render/slot_textures.cpp`](../engine/render/slot_textures.cpp) — the map stores its
    normal in the LIGHTING basis (+Y up), and the flip belongs in the generator, in one place.
 6. **The ribs run vertically and answer to left and right.** The `outline` columns must show four
    light-and-dark bands ACROSS the sprite, not up it. Horizontal banding means x and y were swapped
    somewhere between the generator and the pass; no banding at all means the ridge map never reached
    the outline material and the flat clear survived in its place.
+7. **Shadows fall AWAY from the source, and only two materials cast them.** Step C gives the
+   `occlusion` slot to `outline` (a solid disc, the whole sprite blocks) and to `dissolve` (a grate,
+   vertical bars blocking every other one). Their columns must trail a dim streak on the side
+   opposite each source that reaches them — orange-side streaks pointing right and down from `key`,
+   blue-side ones pointing left from `fill`. A streak pointing TOWARDS a source is a sign flip in the
+   march direction of [`shaders_light.cpp`](../engine/render/shaders_light.cpp); a sprite darkened
+   evenly all over instead of trailing a streak means the occluder is shadowing ITSELF — the `here`
+   term under the sample point was dropped. The two shapes must differ: the disc's shadow is a solid
+   band, the grate's is striped, and identical shadows under two different materials mean the map
+   came from somewhere other than that material's own row.
+8. **`flash` casts nothing, `dissolve` is lit flat.** The three `flash*` columns carry a normal and
+   NO occluder; the two `dissolve*` columns carry an occluder and NO normal. So the domes must be
+   shaded and cast no streak, and the dissolve columns must trail a striped shadow while taking the
+   light evenly across their own face. A flash column that casts, or a dissolve column that is
+   shaded, means the two slots were read off one another — exactly what the mismatched 5/2 and 4/3
+   counts exist to prevent, seen from the picture side.
 
 **On Linux and Windows run `--selftest`, not `--golden`** — the same reason as §9: this comparison
 judges the peak error and would be about the rasteriser, not the pass. What it does say there is
-portable and worth having: the three assertions above plus two runs on that adapter agreeing bit for
+portable and worth having: the assertions above plus two runs on that adapter agreeing bit for
 bit.
 
 ```sh
