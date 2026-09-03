@@ -4,7 +4,7 @@
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
   gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp query_index.cpp
-  rest.cpp sat.cpp shape.cpp solver.cpp state_hash.cpp world.cpp)
+  rest.cpp sat.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
 
@@ -136,3 +136,17 @@ target_link_libraries(framework_physics_depth_test PRIVATE framework_physics pla
 add_executable(framework_physics_perf_test framework_physics_perf_test.cpp)
 target_link_libraries(framework_physics_perf_test PRIVATE framework_physics platform_core
   framework_alloc_probe_control)
+
+# Снимок состояния и возврат в него — основание отката вертикали 1 спеки #22. Отдельной целью, а не
+# случаем в общем тесте: он подменяет глобальные `operator new`/`delete`, и контракт пробы — ровно
+# один такой TU на программу.
+add_executable(framework_physics_snapshot_test framework_physics_snapshot_test.cpp)
+target_link_libraries(framework_physics_snapshot_test PRIVATE framework_physics platform_core
+  framework_alloc_probe_control)
+
+# Связность островов в снимке — своей целью, а не случаем в общем тесте: общая сцена её выброс не
+# ловит (обоснование в шапке файла), а имя упавшей цели в логе CI обязано называть сломанный
+# инвариант.
+add_executable(framework_physics_snapshot_islands_test framework_physics_snapshot_islands_test.cpp)
+target_link_libraries(framework_physics_snapshot_islands_test PRIVATE framework_physics
+  platform_core)

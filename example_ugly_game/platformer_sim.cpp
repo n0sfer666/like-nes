@@ -68,6 +68,24 @@ double to_double(fix32 v) { return static_cast<double>(v.raw) / 65536.0; }
 
 } // namespace
 
+uint32_t script_ticks() {
+    uint32_t n = 0;
+    for (const Beat& b : SCRIPT) n += b.ticks;
+    return n;
+}
+
+// Полоса ищется сложением, а не запоминается: таблица в два десятка строк, ручка зовётся раз за
+// тик, и кэш здесь был бы вторым состоянием прогона — тем самым, из-за которого второй прогон в том
+// же процессе оказывается другим.
+ch::MoveInput script_input(uint32_t tick) {
+    uint32_t seen = 0;
+    for (const Beat& b : SCRIPT) {
+        if (tick < seen + b.ticks) return input_of(b);
+        seen += b.ticks;
+    }
+    return ch::MoveInput{};
+}
+
 RunResult run_script(Stage& st, bool trace) {
     ch::TrajectoryHash hash;
     RunResult r;

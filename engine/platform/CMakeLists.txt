@@ -64,3 +64,28 @@ else()
     target_link_libraries(platform_core PUBLIC rt)
   endif()
 endif()
+
+# Шов №8 (спека #22, решение 4): UDP-датаграммы. ОТДЕЛЬНАЯ цель, а не источники в platform_core, —
+# требование спеки «сеть отключается целиком: одиночная игра не платит за сетевой слой ни
+# аллокацией, ни тиком». Winsock и ws2_32 приезжают только тому, кто линкует platform_net.
+add_library(platform_net STATIC platform_net.cpp)
+target_include_directories(platform_net PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+set_target_properties(platform_net PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(WIN32)
+  target_sources(platform_net PRIVATE platform_net_win32.cpp)
+  target_link_libraries(platform_net PUBLIC ws2_32)
+else()
+  target_sources(platform_net PRIVATE platform_net_posix.cpp)
+endif()
+
+# Прогон по петле 127.0.0.1 — вне ветки WIN32 по тому же основанию, что env/shmem/process:
+# обе реализации отдают «работает» одинаково, и расхождение молчит до живого прогона.
+# Threads нужен ожиданию датаграммы: петля быстра, но «быстра» — не утверждение.
+add_executable(platform_net_address_test platform_net_address_test.cpp)
+target_link_libraries(platform_net_address_test PRIVATE platform_net)
+
+add_executable(platform_net_socket_test platform_net_socket_test.cpp)
+target_link_libraries(platform_net_socket_test PRIVATE platform_net)
+
+add_executable(platform_net_test platform_net_test.cpp)
+target_link_libraries(platform_net_test PRIVATE platform_net Threads::Threads)

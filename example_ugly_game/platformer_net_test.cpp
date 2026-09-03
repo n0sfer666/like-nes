@@ -1,0 +1,168 @@
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <string>
+#include <vector>
+
+#include "platform_args.hpp"
+#include "platform_fs.hpp"
+#include "platform_process.hpp"
+#include "platformer_net_runs.hpp"
+#include "platformer_peer.hpp"
+
+// Гейты 1 и 7 спеки #22: ДВА ПРОЦЕССА на одном вводе приходят в одно состояние, и пир, оглохший
+// посреди прогона, догоняет и сходится.
+//
+// Двоичный файл один, а ролей три: без аргументов — распорядитель, `--peer send|recv …` — сам пир.
+// Так требует шов процессов (`platform_process.hpp`): fork'а на Windows нет, и единственный
+// переносимый способ получить второй процесс — перезапустить СОБСТВЕННЫЙ exe со служебным флагом.
+//
+// Почему процессы, а не потоки: гейт утверждает, что состояние симуляции целиком лежит там, где мы
+// думаем. Два потока делят кучу, статику и одно и то же время — то есть ровно те места, где
+// скрытое состояние и прячется, — и молча сошлись бы на нём.
+namespace {
+
+using platformer::Mark;
+using platformer::runs::Outcome;
+using platformer::runs::report;
+using platformer::runs::single_process_mark;
+using platformer::runs::spawn_pair;
+
+int fails = 0;
+
+void check(bool ok, const char* what) {
+    if (!ok) {
+        std::printf("  FAIL: %s\n", what);
+        ++fails;
+    }
+}
+
+const char* DEFAULT_BUNDLE = "example_ugly_game/assets/game.bundle";
+
+void test_two_processes_on_one_input_agree(const std::string& exe, const std::string& bundle,
+                                           const std::string& prefix, const Mark& alone) {
+    Outcome o;
+    if (!spawn_pair(exe, bundle, prefix + "-pair", {}, {}, o)) {
+        check(false, "both peers finished the run");
+        return;
+    }
+    report("lockstep", o);
+    const uint32_t n = platformer::script_ticks();
+    const char* d = platformer::difference(o.send_mark, o.recv_mark);
+    if (d != nullptr) {
+        std::printf("  FAIL: the two processes ended on a different %s\n", d);
+        ++fails;
+    }
+    const char* s = platformer::difference(o.send_mark, alone);
+    if (s != nullptr) {
+        std::printf("  FAIL: the pair ended on a different %s than the single process\n", s);
+        ++fails;
+    }
+    check(o.send.ticks == n && o.recv.ticks == n, "both peers played the whole script");
+    // Порог здесь СТРУКТУРНЫЙ, а не измеренный: число откатов получателя задаёт загруженность
+    // машины (семь прогонов на простаивающей дали 12..19, а соседний прогон с пропущенным кадром —
+    // 4), и любая цифра выше нуля краснела бы на здоровом прогоне под нагрузкой раннера. Ноль же
+    // означал бы, что механизм отката не работал вовсе и «пиры сошлись» сказано про прогон, где
+    // сходиться было нечему.
+    check(o.send.rollbacks > 0 && o.recv.rollbacks > 0, "control: both peers really did roll back");
+    check(o.send.forced == 0 && o.recv.forced == 0, "neither peer gave up waiting for input");
+    check(o.send.conflicts == 0 && o.recv.conflicts == 0, "no tick got two different inputs");
+    check(o.send.too_deep == 0 && o.recv.too_deep == 0, "nothing arrived past the rollback depth");
+    check(o.send.too_far == 0 && o.recv.too_far == 0, "nothing arrived past the input lead");
+}
+
+// Сломанная реализация, которой гейт 1 требует поимённо: один `InputFrame` не уходит в сеть вовсе.
+// Получатель играет тот тик предсказанием и не узнаёт правду никогда — хеши обязаны РАЗОЙТИСЬ.
+void test_a_skipped_input_frame_is_caught(const std::string& exe, const std::string& bundle,
+                                          const std::string& prefix) {
+    Outcome o;
+    const uint32_t at = platformer::script_ticks() / 3;
+    if (!spawn_pair(exe, bundle, prefix + "-drop", {"--drop", std::to_string(at)}, {}, o)) {
+        check(false, "both peers finished the run with a dropped frame");
+        return;
+    }
+    report("dropped", o);
+    check(platformer::difference(o.send_mark, o.recv_mark) != nullptr,
+          "a skipped input frame leaves the two processes in different states");
+    // Ровно один форсированный тик и полный скрипт, а не «хоть что-то разошлось»: утверждение
+    // `марки разошлись + forced > 0` верно и для прогона, оборвавшегося на десятой дыре по причине,
+    // к пропущенному кадру отношения не имеющей. Дыра здесь ОДНА по построению.
+    check(o.recv.ticks == platformer::script_ticks(), "and it played the script to the end anyway");
+    check(o.recv.forced == 1, "and the receiver says why: it stopped waiting for that one tick");
+}
+
+// Гейт 7: получатель перестаёт читать сокет посреди прогона. Отправитель упирается в потолок
+// неподтверждённых и ждёт, надёжный слой переотправляет — и после возврата слуха пир догоняет.
+void test_a_deaf_peer_catches_up(const std::string& exe, const std::string& bundle,
+                                 const std::string& prefix, const Mark& alone) {
+    Outcome o;
+    const uint32_t at = platformer::script_ticks() / 2;
+    if (!spawn_pair(exe, bundle, prefix + "-deaf", {}, {"--deaf", std::to_string(at), "500"}, o)) {
+        check(false, "both peers finished the run with a deaf stretch");
+        return;
+    }
+    report("deafened", o);
+    const char* d = platformer::difference(o.recv_mark, alone);
+    if (d != nullptr) {
+        std::printf("  FAIL: the deafened peer converged on a different %s\n", d);
+        ++fails;
+    }
+    check(o.recv.ticks == platformer::script_ticks(), "the deafened peer played the whole script");
+    check(o.recv.forced == 0, "it caught up by waiting, not by giving up");
+    // Без этих трёх «сошлись по хешу» верно и для прогона, в котором глухоты не случилось вовсе:
+    // окно, не открывшееся или открывшееся на финишной черте, не стоит ничего.
+    check(o.recv.deaf_from >= at, "control: the deaf window opened where it was asked to");
+    // Обе границы, а не одна: `deaf_to` по умолчанию ноль, поэтому «меньше конца скрипта» верно и
+    // для окна, которое НЕ ЗАКРЫЛОСЬ вовсе. Закрытие доказывает вторая половина — у открывшегося
+    // окна `deaf_to` не может быть меньше `deaf_from`, а у неоткрывшегося он ноль при `deaf_from`
+    // не меньше `at`. Требовать РОСТА тика внутри окна нельзя: пир, у которого запас кончился,
+    // честно стоит на месте, и это утверждает счётчик простоя ниже.
+    check(o.recv.deaf_to >= o.recv.deaf_from && o.recv.deaf_to < platformer::script_ticks(),
+          "control: and it closed mid-script, not on the finish line");
+    check(o.recv.deaf_stalls > 0,
+          "control: the silence really did stop it: no input, no step");
+    check(o.send.resent > 0, "control: and the sender had to say it all again");
+}
+
+platformer::PeerConfig parse_peer(int argc, char** argv) {
+    platformer::PeerConfig cfg;
+    cfg.sender = std::strcmp(argv[2], "send") == 0;
+    cfg.bundle = argv[3];
+    cfg.prefix = argv[4];
+    for (int i = 5; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--drop") == 0 && i + 1 < argc)
+            cfg.drop_tick = std::atol(argv[++i]);
+        else if (std::strcmp(argv[i], "--deaf") == 0 && i + 2 < argc) {
+            cfg.deaf_at = static_cast<uint32_t>(std::atol(argv[i + 1]));
+            cfg.deaf_ms = static_cast<uint32_t>(std::atol(argv[i + 2]));
+            i += 2;
+        }
+    }
+    return cfg;
+}
+
+} // namespace
+
+int main(int argc, char** argv) {
+    platform::Args utf8_argv(argc, argv);
+    if (argc >= 5 && std::strcmp(argv[1], "--peer") == 0)
+        return platformer::run_peer(parse_peer(argc, argv));
+
+    const std::string bundle = argc >= 2 ? argv[1] : DEFAULT_BUNDLE;
+    const std::string exe = platform::exe_path();
+    // В имя файлов рандеву входит pid распорядителя: два прогона одного двоичного файла рядом
+    // (ctest -j, две ветки на одном раннере) иначе читали бы порт друг друга и сходились бы
+    // крест-накрест — то есть гейт краснел бы от соседа, а не от дефекта.
+    const std::string prefix = exe + ".net" + std::to_string(platform::process_id());
+    std::printf("platformer sample: two processes over the loopback\n");
+    Mark alone;
+    if (exe.empty()) check(false, "the peer knows its own executable");
+    if (!single_process_mark(bundle, alone)) check(false, "the single-process reference ran");
+    if (fails == 0) {
+        test_two_processes_on_one_input_agree(exe, bundle, prefix, alone);
+        test_a_skipped_input_frame_is_caught(exe, bundle, prefix);
+        test_a_deaf_peer_catches_up(exe, bundle, prefix, alone);
+    }
+    std::printf("game-platformer-net: %s\n", fails == 0 ? "PASS" : "FAIL");
+    return fails == 0 ? 0 : 1;
+}
