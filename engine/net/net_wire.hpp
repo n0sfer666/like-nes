@@ -34,6 +34,13 @@ public:
                               static_cast<uint8_t>((v >> 24) & 0xFFu)};
         return raw(b, 4);
     }
+    // Два `u32` младшим словом вперёд, а не восемь байт вручную: у 64-битного поля раскладка
+    // ровно одна, и жила она копиями в `platformer_mark_io` и `platformer_replay_io` — то есть
+    // формат `.result` и формат `.replay` описывали её каждый сам. Разъехалась бы одна копия — и
+    // файл, записанный одним, читался бы другим как правдоподобные числа.
+    bool u64(uint64_t v) {
+        return u32(static_cast<uint32_t>(v & 0xFFFFFFFFu)) && u32(static_cast<uint32_t>(v >> 32));
+    }
     bool bytes(const void* data, size_t n) { return raw(static_cast<const uint8_t*>(data), n); }
 
     size_t size() const { return size_; }
@@ -76,6 +83,13 @@ public:
         if (!raw(b, 4)) return false;
         *out = static_cast<uint32_t>(b[0]) | (static_cast<uint32_t>(b[1]) << 8) |
                (static_cast<uint32_t>(b[2]) << 16) | (static_cast<uint32_t>(b[3]) << 24);
+        return true;
+    }
+    bool u64(uint64_t* out) {
+        uint32_t lo = 0;
+        uint32_t hi = 0;
+        if (!u32(&lo) || !u32(&hi)) return false;
+        *out = static_cast<uint64_t>(lo) | (static_cast<uint64_t>(hi) << 32);
         return true;
     }
     bool bytes(void* out, size_t n) { return raw(static_cast<uint8_t*>(out), n); }

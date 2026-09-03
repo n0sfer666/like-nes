@@ -45,6 +45,10 @@ struct ToySim {
     void save(Snapshot& out) const { out = state; }
     void restore(const Snapshot& in) { state = in; }
 
+    // Состояние одним числом — то, чего требует верификатор реплея (вертикаль 2). Накопленный
+    // `hash` годится им обоим: он и есть «всё, что случилось», а не срез последнего тика.
+    uint64_t hash() const { return state.hash; }
+
     void step(const Input* in) {
         for (uint32_t p = 0; p < PLAYERS; ++p) {
             state.pos[p] += in[p].dx;

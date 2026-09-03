@@ -25,6 +25,17 @@ target_include_directories(game_platformer_rollback_test PRIVATE ${CMAKE_CURRENT
 target_link_libraries(game_platformer_rollback_test PRIVATE framework_character framework_tilemap
   framework_rollback framework_alloc_probe_control asset_core platform_core)
 
+# Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ДВЕ по числу вопросов — остра
+# ли заявка о состоянии и тотален ли читатель формата, — и обстановка у них общая
+# (`platformer_replay_run.hpp`): второй экземпляр записи был бы второй правдой о том, что такое
+# «тот же прогон».
+foreach(T game_platformer_replay_test game_platformer_replay_io_test)
+  add_executable(${T} ${T}.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
+  target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_link_libraries(${T} PRIVATE framework_character framework_tilemap framework_rollback
+    framework_replay framework_alloc_probe_control net_core asset_core platform_core)
+endforeach()
+
 # Гейты 1 и 7 спеки #22: два ПРОЦЕССА над той же сценой, канал между ними — настоящий сокет.
 # Отдельной целью от гейта отката выше, потому что предмет другой: тот утверждает, что снимок сцены
 # ничего не теряет, этот — что из одного ввода два адресных пространства приходят в одно состояние.
@@ -35,7 +46,7 @@ add_executable(game_platformer_net_test
   platformer_level.cpp)
 target_include_directories(game_platformer_net_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_platformer_net_test PRIVATE framework_character framework_tilemap
-  framework_rollback framework_alloc_probe_control net_core asset_core platform_core
+  framework_rollback framework_replay framework_alloc_probe_control net_core asset_core platform_core
   Threads::Threads)
 
 # Чистая половина ЖИВОЙ цели — камера и сборка квадов (шаг C вертикали 3). Тоже до выхода по

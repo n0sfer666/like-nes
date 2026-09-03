@@ -9,6 +9,7 @@
 #include "platformer_input_wire.hpp"
 #include "platformer_peer_channel.hpp"
 #include "platformer_peer_result.hpp"
+#include "platformer_replay_record.hpp"
 #include "platformer_rollback.hpp"
 #include "platformer_sim.hpp"
 
@@ -43,8 +44,8 @@ std::string side_file(const PeerConfig& c, bool mine, const char* ext) {
 
 struct Peer {
     Stage stage;
-    StageSim sim;
-    StageSession ses;
+    replay_record::RecordingSim sim;
+    replay_record::RecordingSession ses;
     channel::Channel ch;
     std::vector<uint8_t> have;
     uint32_t known = 0;   // тиков подряд с начала, чей ввод известен
@@ -164,14 +165,22 @@ PeerStats tally(const Peer& p) {
 
 int run_peer(const PeerConfig& cfg) {
     auto p = std::make_unique<Peer>();
+    // Формат заявки спрашивается ДО уровня и до сокета: разъехавшись, он сделал бы все заявки пира
+    // одним числом, и записанный прогон верифицировался бы у кого угодно с любым вводом.
+    if (!claim_format_holds()) {
+        std::printf("peer %s: the claim format does not match its own length\n",
+                    role_of(cfg.sender));
+        return 8;
+    }
     if (!load_stage(cfg.bundle, p->stage)) {
         std::printf("peer %s: the level did not load from %s\n", role_of(cfg.sender),
                     cfg.bundle.c_str());
         return 2;
     }
-    p->sim.stage = &p->stage;
+    p->sim.inner.stage = &p->stage;
     p->ses.reset(1, PEER_DEPTH);
     const uint32_t total = script_ticks();
+    p->sim.expect(total);
     p->have.assign(total, 0);
     if (!channel::connect(p->ch, side_file(cfg, true, ".port"), side_file(cfg, false, ".port"),
                           PEER_RENDEZVOUS_MS))
@@ -226,7 +235,13 @@ int run_peer(const PeerConfig& cfg) {
     const PeerStats s = tally(*p);
     std::printf("  peer %s: ticks=%u rollbacks=%u replayed=%u forced=%u resent=%u\n",
                 role_of(cfg.sender), s.ticks, s.rollbacks, s.replayed, s.forced, s.resent);
-    return peer_result::write_file(side_file(cfg, true, ".result"), observe(p->stage), s) ? 0 : 5;
+    if (!peer_result::write_file(side_file(cfg, true, ".result"), observe(p->stage), s)) return 5;
+    // Запись выкладывается ПОСЛЕ `settle` и рядом с отчётом: погашение отката переигрывает тики, то
+    // есть переписывает хвост записи, и файл, выложенный до него, описывал бы предсказание. Гейт
+    // ловит расхождение сверкой последнего хеша с маркой ЭТОГО отчёта — но только когда на выходе
+    // откат действительно висит: в петле он гаснет раньше, и перестановка этих двух строк местами
+    // проходит гейт зелёной. Порядок держится основанием, а не красным прогоном.
+    return replay_record::write_run(side_file(cfg, true, ".replay"), p->sim) ? 0 : 7;
 }
 
 } // namespace platformer

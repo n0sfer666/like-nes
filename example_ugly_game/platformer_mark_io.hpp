@@ -23,33 +23,20 @@ namespace platformer::mark_io {
 // гравитация, флаг сна, две битовые маски и герой.
 constexpr size_t BYTES = 2 * 8 + 5 * 4 + 7 * 8 + 2 * 4 + 1 + 2 * 8 + (9 * 4 + 1);
 
-inline void put64(net::Writer& w, uint64_t v) {
-    w.u32(static_cast<uint32_t>(v & 0xFFFFFFFFu));
-    w.u32(static_cast<uint32_t>(v >> 32));
-}
-
-inline bool get64(net::Reader& r, uint64_t* out) {
-    uint32_t lo = 0;
-    uint32_t hi = 0;
-    if (!r.u32(&lo) || !r.u32(&hi)) return false;
-    *out = static_cast<uint64_t>(lo) | (static_cast<uint64_t>(hi) << 32);
-    return true;
-}
-
 inline void put_counters(net::Writer& w, const ph::WorkCounters& c) {
-    put64(w, c.broad_candidates);
-    put64(w, c.pairs);
-    put64(w, c.narrow_checks);
-    put64(w, c.recalled);
-    put64(w, c.velocity_projections);
-    put64(w, c.position_projections);
-    put64(w, c.active_bodies);
+    w.u64(c.broad_candidates);
+    w.u64(c.pairs);
+    w.u64(c.narrow_checks);
+    w.u64(c.recalled);
+    w.u64(c.velocity_projections);
+    w.u64(c.position_projections);
+    w.u64(c.active_bodies);
 }
 
 inline bool get_counters(net::Reader& r, ph::WorkCounters& c) {
-    return get64(r, &c.broad_candidates) && get64(r, &c.pairs) && get64(r, &c.narrow_checks) &&
-           get64(r, &c.recalled) && get64(r, &c.velocity_projections) &&
-           get64(r, &c.position_projections) && get64(r, &c.active_bodies);
+    return r.u64(&c.broad_candidates) && r.u64(&c.pairs) && r.u64(&c.narrow_checks) &&
+           r.u64(&c.recalled) && r.u64(&c.velocity_projections) &&
+           r.u64(&c.position_projections) && r.u64(&c.active_bodies);
 }
 
 // Флаги пакуются в байт, а не пишутся по одному: `bool` на проводе — это байт, у которого
@@ -99,8 +86,8 @@ inline bool get_hero(net::Reader& r, ch::Character& h) {
 
 inline bool put_mark(net::Writer& w, const Mark& m) {
     const ph::observed::Observed& o = m.world;
-    put64(w, o.state);
-    put64(w, o.events_hash);
+    w.u64(o.state);
+    w.u64(o.events_hash);
     w.u32(o.bodies);
     w.u32(o.contacts);
     w.u32(o.triggers);
@@ -110,8 +97,8 @@ inline bool put_mark(net::Writer& w, const Mark& m) {
     w.u32(static_cast<uint32_t>(o.gravity_x));
     w.u32(static_cast<uint32_t>(o.gravity_y));
     w.u8(o.sleep_enabled ? 1u : 0u);
-    put64(w, o.frozen);
-    put64(w, o.sleeping);
+    w.u64(o.frozen);
+    w.u64(o.sleeping);
     put_hero(w, m.hero);
     return w.ok();
 }
@@ -119,7 +106,7 @@ inline bool put_mark(net::Writer& w, const Mark& m) {
 inline bool get_mark(net::Reader& r, Mark& m) {
     ph::observed::Observed& o = m.world;
     uint8_t sleep_enabled = 0;
-    if (!get64(r, &o.state) || !get64(r, &o.events_hash) || !r.u32(&o.bodies) ||
+    if (!r.u64(&o.state) || !r.u64(&o.events_hash) || !r.u32(&o.bodies) ||
         !r.u32(&o.contacts) || !r.u32(&o.triggers) || !r.u32(&o.recalled) || !r.u32(&o.events))
         return false;
     if (!get_counters(r, o.counters)) return false;
@@ -129,7 +116,7 @@ inline bool get_mark(net::Reader& r, Mark& m) {
     o.gravity_x = static_cast<int32_t>(gx);
     o.gravity_y = static_cast<int32_t>(gy);
     o.sleep_enabled = sleep_enabled != 0;
-    if (!get64(r, &o.frozen) || !get64(r, &o.sleeping)) return false;
+    if (!r.u64(&o.frozen) || !r.u64(&o.sleeping)) return false;
     return get_hero(r, m.hero);
 }
 
