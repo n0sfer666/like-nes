@@ -30,6 +30,11 @@ struct BodyId {
 // пропущенного контакта, поэтому предела здесь нет намеренно.
 constexpr uint32_t PAIR_BUDGET_PER_BODY = 16;
 
+// Снимок состояния для отката (#22) объявлен другом, а не набором методов сериализации на мире:
+// вопрос «что именно составляет состояние» принадлежит откату. Мир от этого не растёт публичным
+// API, который в игре не зовёт никто, кроме одного модуля.
+struct WorldSnapshot;
+
 class World {
 public:
     // `capacity` — размер РЕЗЕРВА тел, по той же логике, что и бюджет пар: это граница, внутри
@@ -167,6 +172,8 @@ public:
     uint64_t hash() const;
 
 private:
+    friend struct WorldSnapshot;
+
     std::vector<Body> bodies_;
     std::vector<Pair> pairs_;
     std::vector<Manifold> manifolds_;
