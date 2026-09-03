@@ -892,6 +892,26 @@ jobs:
           "$BIN" | tee watch_seam.txt
           grep -q "platform-watch: PASS" watch_seam.txt
 
+      # Шов UDP (спека #22, решение 4). На петле 127.0.0.1, поэтому раннеру сети не нужно —
+      # а вот три реализации разойтись успевают: EWOULDBLOCK против WSAEWOULDBLOCK, усечение
+      # чужой датаграммы против WSAEMSGSIZE, ICMP-отказ, делающий UDP-сокет непригодным ровно на
+      # Windows. Гейт 3 спеки (потери, дубли, перестановки) — предмет надёжного слоя, не этого шага.
+      - name: Platform — UDP datagram seam (spec #22 step B1, all OS)
+        shell: bash
+        run: |
+          run_gate() {
+            name="$1"
+            marker="$2"
+            bin=$(find build -maxdepth 2 -type f \( -name "$name" -o -name "$name.exe" \) | head -1)
+            [ -n "$bin" ] || { echo "$name not built on ${{ matrix.os }}"; exit 1; }
+            "$bin" > "$name.txt" || { cat "$name.txt"; echo "$name exited non-zero"; exit 1; }
+            cat "$name.txt"
+            grep -q "$marker" "$name.txt" || { echo "$name printed no '$marker'"; exit 1; }
+          }
+          run_gate platform_net_address_test 'platform-net-address: PASS'
+          run_gate platform_net_socket_test 'platform-net-socket: PASS'
+          run_gate platform_net_test 'platform-net: PASS'
+
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
         run: |
