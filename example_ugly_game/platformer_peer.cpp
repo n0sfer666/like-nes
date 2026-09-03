@@ -7,7 +7,9 @@
 #include <vector>
 
 #include "platformer_input_wire.hpp"
+#include "platformer_peer_budget.hpp"
 #include "platformer_peer_channel.hpp"
+#include "platformer_peer_deafness.hpp"
 #include "platformer_peer_result.hpp"
 #include "platformer_replay_record.hpp"
 #include "platformer_rollback.hpp"
@@ -54,15 +56,11 @@ struct Peer {
     uint32_t queued = 0;
     uint32_t forced = 0;
     Clock::time_point stalled_since{};
-    // Границы окна глухоты в ТИКАХ, а не в миллисекундах: гейт 7 обязан доказать, что молчание
-    // случилось ПОСЕРЕДИНЕ прогона. Окно, открывшееся на финишной черте, не стоило бы ничего, а
-    // «сошлись по хешу» было бы про прогон без глухоты.
-    uint32_t deaf_from = 0;
-    uint32_t deaf_to = 0;
-    // Итераций внутри окна, на которых пир НЕ СМОГ шагнуть. Разность границ этого не говорит:
-    // получатель отстаёт по тикам от собственного известного ввода и за время молчания честно
-    // доигрывает накопленный запас — сколько именно, задаёт загруженность машины, а не глухота.
-    uint32_t deaf_stalls = 0;
+    Deafness deaf;
+    // Цена прохода раздельно: шаг симуляции с откатами и записью против обслуживания сокета
+    // (`platformer_peer_budget.hpp`). Гейт 8 обязан мерить ТОТ ЖЕ бинарь, что ведёт запись.
+    budget::Meter sim_cost;
+    budget::Meter net_cost;
 };
 
 // Курсор монотонный: после отказа ждать дыру он ставится за неё и оттуда же идёт дальше.
@@ -116,7 +114,10 @@ int drain(Peer& p) {
 uint32_t catch_up(Peer& p, uint32_t total) {
     uint32_t moved = 0;
     while (p.tick < total && p.tick < p.known + PEER_PREDICT) {
-        p.ses.advance(p.sim);
+        {
+            const budget::Span span(p.sim_cost);
+            p.ses.advance(p.sim);
+        }
         ++p.tick;
         ++moved;
     }
@@ -155,9 +156,9 @@ PeerStats tally(const Peer& p) {
     s.too_deep = p.ses.too_deep();
     s.too_far = p.ses.too_far();
     s.resent = p.ch.link.resent();
-    s.deaf_from = p.deaf_from;
-    s.deaf_to = p.deaf_to;
-    s.deaf_stalls = p.deaf_stalls;
+    s.deaf_from = p.deaf.from();
+    s.deaf_to = p.deaf.to();
+    s.deaf_stalls = p.deaf.stalls();
     return s;
 }
 
@@ -186,11 +187,9 @@ int run_peer(const PeerConfig& cfg) {
                           PEER_RENDEZVOUS_MS))
         return 3;
 
+    p->deaf.arm(cfg.deaf_at, cfg.deaf_ms);
     const Clock::time_point started = Clock::now();
-    Clock::time_point deaf_since{};
     Clock::time_point linger_since{};
-    bool deaf_armed = cfg.deaf_ms > 0;
-    bool deaf_running = false;
     bool lingering = false;
     for (uint32_t it = 0;; ++it) {
         if (p->tick >= total && p->known >= total && p->ch.link.unacked() == 0) {
@@ -208,18 +207,13 @@ int run_peer(const PeerConfig& cfg) {
             return 4;
         }
         if (cfg.sender) push_input(*p, cfg, total);
-        channel::flush(p->ch, it);
-        if (deaf_armed && !deaf_running && p->tick >= cfg.deaf_at) {
-            deaf_running = true;
-            deaf_since = Clock::now();
-            p->deaf_from = p->tick;
+        int got = 0;
+        {
+            const budget::Span span(p->net_cost);
+            channel::flush(p->ch, it);
+            p->deaf.update(p->tick);
+            if (!p->deaf.running()) got = drain(*p);
         }
-        if (deaf_running && ms_since(deaf_since) >= static_cast<int64_t>(cfg.deaf_ms)) {
-            deaf_running = false;
-            deaf_armed = false;
-            p->deaf_to = p->tick;
-        }
-        const int got = deaf_running ? 0 : drain(*p);
         if (got < 0) {
             std::printf("peer %s: the socket went bad at tick %u of %u\n", role_of(cfg.sender),
                         p->tick, total);
@@ -227,7 +221,7 @@ int run_peer(const PeerConfig& cfg) {
         }
         const bool moved = catch_up(*p, total) != 0;
         if (!moved) give_up_on_a_hole(*p);
-        if (deaf_running && !moved) ++p->deaf_stalls;
+        if (!moved) p->deaf.stalled();
         if (got == 0 && !moved) std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
@@ -235,6 +229,10 @@ int run_peer(const PeerConfig& cfg) {
     const PeerStats s = tally(*p);
     std::printf("  peer %s: ticks=%u rollbacks=%u replayed=%u forced=%u resent=%u\n",
                 role_of(cfg.sender), s.ticks, s.rollbacks, s.replayed, s.forced, s.resent);
+    budget::report(role_of(cfg.sender), p->sim_cost, p->net_cost);
+    // Замер обязан быть СВЕДЁН, а не только напечатан: проба, не сработавшая ни разу, печатает те
+    // же нули, что и мгновенный кадр, и гейт 8 читал бы их как «влезли с запасом».
+    if (!budget::swept(p->sim_cost, p->net_cost, s.ticks)) return 9;
     if (!peer_result::write_file(side_file(cfg, true, ".result"), observe(p->stage), s)) return 5;
     // Запись выкладывается ПОСЛЕ `settle` и рядом с отчётом: погашение отката переигрывает тики, то
     // есть переписывает хвост записи, и файл, выложенный до него, описывал бы предсказание. Гейт
