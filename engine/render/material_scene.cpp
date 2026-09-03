@@ -79,6 +79,7 @@ bool Scene::init(WGPUDevice device, WGPUQueue queue, uint32_t w, uint32_t h,
 
 void Scene::build(const mat::Table& t, mat::Cache& cache) {
     items_.clear();
+    item_material_.clear();
     batches_.clear();
     const uint32_t cols = t.count();
     std::vector<WGPURenderPipeline> pipes;
@@ -112,6 +113,7 @@ void Scene::build(const mat::Table& t, mat::Cache& cache) {
         for (std::size_t j = 0; j < pipes.size(); ++j) {
             if (pipes[j] != pipes[i]) continue;
             items_.push_back(per_material[j]);
+            item_material_.push_back(static_cast<uint32_t>(j) / PER_MATERIAL);
             ++b.count;
         }
         batches_.push_back(b);

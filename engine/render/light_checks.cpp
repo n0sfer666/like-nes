@@ -81,19 +81,47 @@ void count_comes_from_data(GpuContext& gpu, matgold::Scene& scene, uint32_t w, u
           "a pass over three lights starts");
     check(p2.lights() == 2 && p3.lights() == 3, "the pass takes its light count from the table");
     uint32_t d = 0;
-    const std::vector<uint8_t> f2 = lightgold::render_frame(gpu, scene, &p2, w, h, d);
-    const std::vector<uint8_t> f3 = lightgold::render_frame(gpu, scene, &p3, w, h, d);
+    const std::vector<uint8_t> f2 = lightgold::render_frame(gpu, scene, &p2, nullptr, w, h, d);
+    const std::vector<uint8_t> f3 = lightgold::render_frame(gpu, scene, &p3, nullptr, w, h, d);
     check(!f2.empty() && f2 != f3, "one more light in the table changes the frame");
     p3.shutdown();
     p2.shutdown();
 }
 
-void report_cost(GpuContext& gpu, matgold::Scene& scene, lightgfx::Pass& pass, uint32_t w,
-                 uint32_t h) {
+void normals_come_from_slots(GpuContext& gpu, matgold::Scene& scene, const mat::Table& mtable,
+                             lightgfx::Pass& pass, normgfx::Pass& normals, uint32_t w,
+                             uint32_t h) {
+    std::printf("  normals: %u mapped from the table, %u flat, %u naming an unknown asset\n",
+                normals.mapped(), normals.flat(), normals.missing());
+    check(normals.missing() == 0, "every normal slot of the library names an asset that exists");
+    // Смешанный набор — предмет утверждения, а не удобство: проход, привязавший одну карту всем,
+    // дал бы либо ноль плоских, либо ноль сопоставленных, и обе цифры видны здесь.
+    check(normals.mapped() != 0 && normals.flat() != 0,
+          "the library has both materials with a normal slot and materials without one");
+    for (uint32_t m = 0; m < mtable.count(); ++m) {
+        const bool from_table = mtable.texture_of(m, "normal") >= 0;
+        if ((normals.asset(m) != nullptr) == from_table) continue;
+        std::printf("  FAIL: material %s: slot says %s, the pass bound %s\n",
+                    mtable.name(mtable.row(m).name_off),
+                    from_table ? "a normal map" : "nothing",
+                    normals.asset(m) ? normals.asset(m) : "the flat map");
+        check(false, "the pass follows the table for this material");
+    }
+
+    uint32_t d = 0;
+    const std::vector<uint8_t> flat = lightgold::render_frame(gpu, scene, &pass, nullptr, w, h, d);
+    const std::vector<uint8_t> mapped =
+        lightgold::render_frame(gpu, scene, &pass, &normals, w, h, d);
+    check(!mapped.empty() && mapped != flat, "sprite normal maps change the lit frame");
+}
+
+void report_cost(GpuContext& gpu, matgold::Scene& scene, lightgfx::Pass& pass,
+                 normgfx::Pass& normals, uint32_t w, uint32_t h) {
     uint32_t d = 0;
     const auto span = [&](lightgfx::Pass* p) {
         const auto t0 = std::chrono::steady_clock::now();
-        for (int i = 0; i < COST_FRAMES; ++i) lightgold::render_frame(gpu, scene, p, w, h, d);
+        for (int i = 0; i < COST_FRAMES; ++i)
+            lightgold::render_frame(gpu, scene, p, p ? &normals : nullptr, w, h, d);
         const auto t1 = std::chrono::steady_clock::now();
         return std::chrono::duration<double, std::milli>(t1 - t0).count() / COST_FRAMES;
     };

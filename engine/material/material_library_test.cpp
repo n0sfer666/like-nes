@@ -222,6 +222,15 @@ int main(int argc, char** argv) {
         }
     }
 
+    // Слот нормали — шов между `library.mat` и ПРОХОДОМ ОСВЕЩЕНИЯ, а не шейдером библиотеки: его
+    // номер и guid ассета читает другой потребитель, и разъехаться им нечем, кроме этих строк.
+    const uint32_t fg = t.find("flash_gold");
+    const int32_t nrm = fg == t.count() ? -1 : t.texture_of(fg, "normal");
+    check(nrm >= 0 && t.texture(static_cast<uint32_t>(nrm)).binding == 2 &&
+              t.texture(static_cast<uint32_t>(nrm)).guid == asset::fnv1a("sprite_normal", 13),
+          "flash_gold inherits the sprite normal map in slot 2");
+    check(t.texture_of(t.find("dissolve"), "normal") < 0, "dissolve declares no normal slot");
+
     std::printf("material-library: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

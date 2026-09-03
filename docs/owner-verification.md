@@ -1395,12 +1395,15 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 ## 12. Gate 7 of #18 — the lit frame on a real GPU
 
 > **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
-> pass switched off returns the material frame byte for byte, switched on it changes that frame, and
-> a light set of a DIFFERENT length gives a different picture — so the count really does come out of
-> the table and not out of the shader. What no runner can answer is where the light lands: whether
-> `key` warms the left side and `fill` cools the right, whether `sun` reads as one direction across
-> the whole frame. Five sources at named positions either agree with the picture or they do not, and
-> that comparison is yours.
+> pass switched off returns the material frame byte for byte, switched on it changes that frame, a
+> light set of a DIFFERENT length gives a different picture, and the normal pass reports a MIXED set
+> — five materials whose texture slot names a map, two without one — so both the count and the
+> normals really do come out of the tables and not out of the shader.
+>
+> What no runner can answer is where the light lands, and one class of defect proves the point
+> exactly: flipping the sign of Y in the dome generator leaves `--selftest` fully green (the frame
+> is different but just as stable, and every counter still reads 5/2/0) while the reference PNG goes
+> red at `frac=0.129`. Lit from below is a picture question, and the picture is yours.
 
 ```sh
 cmake --build build --target light_golden
@@ -1413,7 +1416,8 @@ Expected, on the Metal machine the reference was baked on:
 [gpu] <adapter> | Metal | BC: yes
   lights: 5 source(s) in the table, 5 uploaded
   frame: 3 draw call(s) into the albedo target
-  cost: 1.652 ms/frame without the pass, 1.662 ms/frame with it (30 frames each)
+  normals: 5 mapped from the table, 2 flat, 0 naming an unknown asset
+  cost: 1.664 ms/frame without the pass, 1.707 ms/frame with it (30 frames each)
   golden engine/render/golden/lights_640x360.png: mean=0.00000 max=0.00000 frac=0.00000
 light-gpu: PASS
 ```
@@ -1421,7 +1425,15 @@ light-gpu: PASS
 The `cost` line is a measurement, not an assertion: it is printed so the pass has a price on record,
 and a threshold on it would be a statement about your machine rather than about the pass (the
 physics gate learned that in §4). Both numbers on the reference machine sit at about 1.7 ms for a
-640x360 frame, and the pass costs the difference between them.
+640x360 frame, and the pass costs the difference between them — some 40 microseconds, and the price
+is honest: with normal maps the scene is drawn TWICE, once into albedo and once into the normal
+buffer. The alternative was a second render target on the material pass, which would have rewritten
+every fragment entry point of `sprite_effects.wgsl` and moved the closed gates 4-6 with it.
+
+The `normals` line is an assertion, not a measurement, and CI greps it whole: 5 of the library's 7
+materials declare `tex | normal | ... | 2`, two do not, and a pass that bound one map for everything
+would print `7 mapped, 0 flat` or `0 mapped, 7 flat`. `0 naming an unknown asset` says every slot
+resolved to a map in the bank.
 
 `max=0.00000` means the checked-in reference is bit for bit what your GPU just drew. If your numbers
 came out non-zero, write yours to a scratch path and compare by eye instead of pointing `--update`
@@ -1431,12 +1443,16 @@ at the pinned file:
 ./build/light_golden --golden /tmp/mine-lit.png
 ```
 
-Then open the PNG and answer four questions — the half the numbers do not cover. The source of
+Then open the PNG and answer six questions — the half the numbers do not cover. The source of
 truth for every one of them is [`engine/light/library/lights.txt`](../engine/light/library/lights.txt),
 and reading it first is the point: the gate asks whether the picture agrees with the DATA.
 
-Normals are flat for now — this is step A of the vertical, sources as data; sprite normal maps are
-step B, and until they land the shading varies with distance, not with surface.
+Sprite normals now come from the material's texture slot (step B of the vertical). The bank ships
+two maps: `sprite_normal` is a DOME — a hemisphere inscribed in the sprite's circle — and
+`outline_normal` is a RIDGE, four vertical ribs across the sprite. Which sprite gets which is
+decided by `library.mat` and nothing else. The scene lays materials out in columns, left to right in
+declaration order, four sprites each: `flash`, `flash_red`, `flash_gold` (dome), `outline`,
+`outline_danger` (ridge), then `dissolve` and `dissolve_ash` — the two RIGHTMOST columns, flat.
 
 1. **Hold it next to §9's `materials_640x360.png` — the same scene, unlit.** Every sprite must come
    out dimmer, and dimmer by a DIFFERENT amount depending on where it sits. An evenly darkened copy
@@ -1449,11 +1465,23 @@ step B, and until they land the shading varies with distance, not with surface.
    a faint green haze at the centre — that is `rim`, at `0.06, -0.46`, with a radius of 1.10. An
    evenly lit background means the falloff is not applied at all; a background that stays pure black
    everywhere means the pass never reached it.
-4. **`sun` is an even wash, not a pool.** It is directional with `dir = 0.35, -0.94`, and `dir` is
-   where the light TRAVELS, so it arrives from the upper left. Until sprite normal maps land (step B
-   of this vertical) every pixel carries the same flat normal, so a directional source can only add
-   a CONSTANT cool tint over the whole frame — that is what to look for. Any place where the sun's
-   contribution varies with position means it is being attenuated like a point light.
+4. **`sun` is an even wash on the flat columns, and shaped on the mapped ones.** It is directional
+   with `dir = 0.35, -0.94`, and `dir` is where the light TRAVELS, so it arrives from the upper
+   left. Over the two rightmost columns, which carry no normal map, every pixel has the same flat
+   normal and the sun can only add a CONSTANT cool tint — a contribution that varies with position
+   THERE means it is being attenuated like a point light. Over the mapped columns it must vary with
+   the surface instead, and the two shapes differ: the domes take the wash across a round face, the
+   ribbed columns break it into vertical bands.
+5. **The domes are lit from the upper left, not the lower left.** This is the question `--selftest`
+   cannot ask. Each `flash*` sprite is a hemisphere: its bright side must face the light that
+   reaches it, and with `key` at the top left the highlight sits ABOVE the sprite's centre, the
+   shaded crescent below. A dome bright underneath and dark on top is a flipped Y in
+   [`engine/render/normal_textures.cpp`](../engine/render/normal_textures.cpp) — the map stores its
+   normal in the LIGHTING basis (+Y up), and the flip belongs in the generator, in one place.
+6. **The ribs run vertically and answer to left and right.** The `outline` columns must show four
+   light-and-dark bands ACROSS the sprite, not up it. Horizontal banding means x and y were swapped
+   somewhere between the generator and the pass; no banding at all means the ridge map never reached
+   the outline material and the flat clear survived in its place.
 
 **On Linux and Windows run `--selftest`, not `--golden`** — the same reason as §9: this comparison
 judges the peak error and would be about the rasteriser, not the pass. What it does say there is

@@ -78,7 +78,8 @@ reproducible_rpath(material_hot_reload)
 # `render_core`: тот держит PoC-тракт с `array<vec4f, 6>`, где число источников — свойство типа в
 # шейдере, и слив их в одну цель, мы бы протащили эту шестёрку в потребителей нового прохода.
 # Зависимость односторонняя — рисующий знает про свет, свет про рисующего не знает.
-add_library(light_render STATIC light_pass.cpp shaders_light.cpp light_frame.cpp)
+add_library(light_render STATIC light_pass.cpp shaders_light.cpp light_frame.cpp
+            normal_pass.cpp shaders_normal.cpp normal_textures.cpp)
 target_include_directories(light_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(light_render PUBLIC light_core material_preview render_core webgpu)
 

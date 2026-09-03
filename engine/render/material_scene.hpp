@@ -38,6 +38,15 @@ public:
 
     uint32_t instances() const { return static_cast<uint32_t>(items_.size()); }
 
+    // Проход нормалей рисует ЭТИ ЖЕ инстансы своим пайплайном, поэтому ему нужны и они, и
+    // материал каждого из них: карту нормали выбирает материал, а порядок инстансов задан
+    // батчингом сцены, и вывести одно из другого делением на `PER_MATERIAL` уже нельзя.
+    const std::vector<mat::Instance>& items() const { return items_; }
+    uint32_t item_material(uint32_t i) const { return item_material_[i]; }
+
+    // Альбедо сцены: проходу нормалей оно нужно как ПОКРЫТИЕ — за кромкой спрайта нормали нет.
+    WGPUTextureView albedo_view() const { return albedo_view_; }
+
 private:
     WGPUDevice device_ = nullptr;
     WGPUQueue queue_ = nullptr;
@@ -52,6 +61,7 @@ private:
     WGPUSampler sampler_ = nullptr;
     WGPUBindGroup bg_ = nullptr;
     std::vector<mat::Instance> items_;
+    std::vector<uint32_t> item_material_;
     std::vector<Batch> batches_;
 };
 

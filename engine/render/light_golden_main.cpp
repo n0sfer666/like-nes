@@ -11,6 +11,8 @@
 #include "light_pass.hpp"
 #include "material_frame.hpp"
 #include "material_scene.hpp"
+#include "normal_pass.hpp"
+#include "normal_textures.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 
@@ -112,19 +114,32 @@ int main(int argc, char** argv) {
     check(ltable.count() != 3 && ltable.count() != 6,
           "the shipped set has neither the hardcoded three nor the uniform-sized six");
 
+    // Нормали спрайтов (шаг B): карту выбирает ТЕКСТУРНЫЙ СЛОТ материала, банк отдаёт её по guid
+    // ассета — ни номер слота, ни имя карты в проходе не зашиты.
+    normgold::Bank bank;
+    check(bank.init(gpu.device, gpu.queue), "the normal-map bank is ready");
+    normgfx::Pass normals;
+    check(normals.init(gpu.device, gpu.queue, mtable, bank, W, H, scene.albedo_view(),
+                       WGPUTextureFormat_RGBA8Unorm),
+          "the normal pass starts over the shipped material table");
+    normals.build(scene);
+
     uint32_t draws = 0, mdraws = 0;
-    const std::vector<uint8_t> off = lightgold::render_frame(gpu, scene, nullptr, W, H, draws);
+    const std::vector<uint8_t> off =
+        lightgold::render_frame(gpu, scene, nullptr, &normals, W, H, draws);
     const std::vector<uint8_t> mat_px = matgold::render_frame(gpu, scene, W, H, mdraws);
     check(!off.empty() && off == mat_px,
           "a switched-off pass returns the previous frame byte for byte");
     check(draws == mdraws, "the graph without the pass draws the scene in the same calls");
 
-    const std::vector<uint8_t> lit = lightgold::render_frame(gpu, scene, &pass, W, H, draws);
+    const std::vector<uint8_t> lit =
+        lightgold::render_frame(gpu, scene, &pass, &normals, W, H, draws);
     check(!lit.empty() && lit != off, "the pass changes the frame it is given");
     std::printf("  frame: %u draw call(s) into the albedo target\n", draws);
 
     lightgold::count_comes_from_data(gpu, scene, W, H);
-    lightgold::report_cost(gpu, scene, pass, W, H);
+    lightgold::normals_come_from_slots(gpu, scene, mtable, pass, normals, W, H);
+    lightgold::report_cost(gpu, scene, pass, normals, W, H);
 
     if (golden_path) {
         std::vector<uint8_t> ref;
@@ -144,10 +159,13 @@ int main(int argc, char** argv) {
         // Повтор на ОДНОМ бэкенде обязан совпасть ТОЧНО: допуск для чужой видеокарты спрятал бы
         // собственный дрейф тракта, а он и есть то, что видно без эталонного файла.
         uint32_t again = 0;
-        const std::vector<uint8_t> lit2 = lightgold::render_frame(gpu, scene, &pass, W, H, again);
+        const std::vector<uint8_t> lit2 =
+            lightgold::render_frame(gpu, scene, &pass, &normals, W, H, again);
         check(lit == lit2, "two runs on one backend give the same lit frame");
     }
 
+    normals.shutdown();
+    bank.shutdown();
     pass.shutdown();
     scene.shutdown();
     cache.shutdown();
