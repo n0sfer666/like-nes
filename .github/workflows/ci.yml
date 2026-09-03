@@ -896,7 +896,7 @@ jobs:
       # а вот три реализации разойтись успевают: EWOULDBLOCK против WSAEWOULDBLOCK, усечение
       # чужой датаграммы против WSAEMSGSIZE, ICMP-отказ, делающий UDP-сокет непригодным ровно на
       # Windows. Гейт 3 спеки (потери, дубли, перестановки) — предмет надёжного слоя, не этого шага.
-      - name: Net — datagram seam and reliability layer (spec #22 gates 3 and 6, all OS)
+      - name: Net — datagram seam and reliability layer (spec #22 gate 3, all OS)
         shell: bash
         run: |
           run_gate() {
@@ -914,6 +914,31 @@ jobs:
           run_gate net_wire_test 'net-wire: PASS'
           run_gate net_link_test 'net-link: PASS'
           run_gate net_loopback_test 'net-loopback: PASS'
+
+      # Гейты 1 и 7 спеки #22: ДВА ПРОЦЕССА над сценой платформера сходятся по наблюдаемому, а пир,
+      # оглохший посреди прогона, догоняет. Отдельным шагом от гейтов выше, потому что предмет
+      # другой: там байты доезжают, здесь из одного ввода получается одно СОСТОЯНИЕ — и в логе CI
+      # обязано быть названо сломанное, а не «что-то из семи».
+      #
+      # Ребёнок запускается перезапуском собственного exe (fork'а на Windows нет), уровень читается
+      # из `example_ugly_game/assets/game.bundle` относительно корня репозитория, а файлы рандеву
+      # ложатся рядом с двоичным файлом и несут в имени pid распорядителя.
+      - name: Net — two processes agree on one input (spec #22 gates 1 and 7, all OS)
+        shell: bash
+        run: |
+          # Та же форма, что у сетевого шага выше, и не из вкуса: `"$BIN" | tee` теряет код возврата
+          # двоичного файла (pipefail в шаге нет), то есть падение ПОСЛЕ печати читалось бы как
+          # чистый прогон, а гейт держался бы на одном grep.
+          run_gate() {
+            name="$1"
+            marker="$2"
+            bin=$(find build -maxdepth 2 -type f \( -name "$name" -o -name "$name.exe" \) | head -1)
+            [ -n "$bin" ] || { echo "$name not built on ${{ matrix.os }}"; exit 1; }
+            "$bin" > "$name.txt" || { cat "$name.txt"; echo "$name exited non-zero"; exit 1; }
+            cat "$name.txt"
+            grep -q "$marker" "$name.txt" || { echo "$name printed no '$marker'"; exit 1; }
+          }
+          run_gate game_platformer_net_test 'game-platformer-net: PASS'
 
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
