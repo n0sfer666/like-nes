@@ -6,10 +6,19 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 #include <winsock2.h>
-// mstcpip.h — ради SIO_UDP_CONNRESET: в winsock2.h/ws2tcpip.h его нет, и сборка вставала бы
-// C2065 ровно на той ОС, которой нет локально. Порядок несущий: заголовок требует winsock2 выше.
-#include <mstcpip.h>
 #include <ws2tcpip.h>
+
+// SIO_UDP_CONNRESET объявляется САМ, а не берётся из заголовка. Не вкус: прогон 33731818317 на
+// windows-latest (MSVC 14.51) отбил `#include <mstcpip.h>` ошибкой C2065 на этом самом имени —
+// в этом SDK макрос живёт не там, куда его кладёт документация, и угадывать заголовок значит
+// узнавать ответ раз в двадцать минут на единственной ОС, которой нет локально.
+//
+// Значение задано протоколом, а не заголовком: это вендорный IOCTL номер 12, и `_WSAIOW` —
+// собственный макрос winsock2.h. Объявление СТОРОЖЁВОЕ: SDK, где имя есть, определит его сам, и
+// наша ветка не сработает вовсе.
+#ifndef SIO_UDP_CONNRESET
+#define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
+#endif
 
 namespace platform {
 namespace net {
