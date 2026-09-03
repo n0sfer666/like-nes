@@ -14,7 +14,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from line_budget_allow import ALLOW, HARD, KINDS, SOFT, VENDORED  # noqa: E402
+from line_budget_allow import ALLOW  # noqa: E402
+from line_budget_rules import HARD, KINDS, SOFT, VENDORED  # noqa: E402
 
 # Область действия названа списком ВКЛЮЧЕНИЯ, и это осознанное сужение: правило 5 — про авторский
 # код, а `.md`, `.txt` и `.yml` под него не попадают по самому его тексту («текст, читаемый целиком
