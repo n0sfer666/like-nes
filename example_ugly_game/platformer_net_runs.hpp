@@ -26,6 +26,11 @@ struct Outcome {
     // которому оставили путь, читал бы их после уборки — то есть проверял бы порядок вызовов.
     std::vector<uint8_t> send_replay;
     std::vector<uint8_t> recv_replay;
+    // Знакомились ли пиры ФАЙЛОМ. Читается гейтом прямой адресации как контроль ПУТИ: пара,
+    // соединившаяся по названным адресам, файлов рандеву не создаёт вовсе, а сломай прямую
+    // адресацию так, что пир тихо уходит знакомиться файлом, — прогон сошёлся бы, гейт остался бы
+    // зелёным и сказал бы про петлю ровно то же, что говорит соседний.
+    bool met_by_file = false;
 };
 
 inline std::vector<std::string> peer_argv(const std::string& exe, const char* role,
@@ -95,6 +100,10 @@ inline bool spawn_pair(const std::string& exe, const std::string& bundle, const 
         forget(prefix);
         return false;
     }
+    // Спрашивается ДО уборки: `forget` сносит те же файлы, и вопрос после него отвечал бы про
+    // порядок вызовов, а не про то, как пиры нашли друг друга.
+    out.met_by_file = platform::file_exists(prefix + "-send.port") ||
+                      platform::file_exists(prefix + "-recv.port");
     out.ran = peer_result::read_file(prefix + "-send.result", out.send_mark, out.send) &&
               peer_result::read_file(prefix + "-recv.result", out.recv_mark, out.recv) &&
               platform::read_bytes(prefix + "-send.replay", out.send_replay) &&

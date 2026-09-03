@@ -24,20 +24,59 @@ struct Channel {
     net::Link link{RESEND_AFTER};
     pnet::Socket socket;
     pnet::Endpoint to;
+    // Сколько датаграмм отбито как чужие. Считается ради ОДНОГО вопроса владельца на живом железе:
+    // машина с несколькими интерфейсами (VPN, docker0, две карты) отвечает соседу не с того адреса,
+    // который тот вписал в `--at`, фильтр ниже отбрасывает всё молча, и пир доходит до дедлайна.
+    // Без счётчика этот исход неотличим от «сосед не запустился» и от фаервола — все трое дают
+    // код 4 и одинаковую тишину, а лечатся по-разному.
+    uint32_t aliens = 0;
 };
 
-// Порт эфемерный: занятый номер на раннере — это отказ, случающийся раз в сто прогонов, и
-// вычислять его из имени роли значило бы менять один класс флейка на другой. Публикуется он
-// файлом, потому что запуск ребёнка знает argv, а не порт, который ядро выдаст ребёнку.
-inline bool connect(Channel& c, const std::string& mine, const std::string& theirs,
+// Чем сосед назван. Пусто — знакомство файлом: порт эфемерный, потому что занятый номер на
+// раннере это отказ, случающийся раз в сто прогонов, а вычислять его из имени роли значило бы
+// менять один класс флейка на другой; публикуется он файлом, потому что запуск ребёнка знает argv,
+// а не порт, который ядро выдаст ребёнку.
+//
+// Знакомство файлом работает ровно до границы машины: сосед на ДРУГОЙ машине этого файла не
+// увидит, и пока имени у соседа не было вовсе, гейт 9 спеки #22 (живая сессия на реальном лаге) не
+// запускался ни на каком железе. Отсюда вторая форма — оба порта названы заранее, руками.
+struct Where {
+    uint16_t listen_port = 0;
+    std::string peer_at;
+};
+
+// Адрес соседа известен ОБОИМ и задаётся с обеих сторон, а не узнаётся из первой датаграммы. Так
+// дороже владельцу на один аргумент и дешевле нам на целый класс дефектов: приёмник продолжает
+// сверять источник каждой датаграммы с известным адресом (`poll` ниже), а «выучу того, кто написал
+// первым» отдало бы окно подтверждений и дедупликацию любому, кто успел раньше соседа, — на порту,
+// который ради не-петли пришлось открыть на ВСЕХ интерфейсах.
+//
+// Исходы знакомства РАЗВЕДЕНЫ, и это не украшение: занятый номер порта — самая вероятная ошибка
+// владельца в двухмашинном прогоне (§14 руководства), а сведённый с «соседа не назвали» он давал бы
+// код 3, то есть отправлял бы владельца искать опечатку в `--at`, которой нет.
+enum class Meet { ok, not_named, socket_bad };
+
+// Приём сужается до петли, когда сосед в петле: `open` берёт адрес параметром именно затем
+// (`platform_net.hpp`), и платить открытым наружу портом за локальный прогон незачем. Отсюда же
+// порядок: адрес соседа разбирается ДО `open`, потому что им и решается, на чём слушать.
+inline Meet connect(Channel& c, const Where& w, const std::string& mine, const std::string& theirs,
                     int64_t timeout_ms) {
-    if (!c.socket.open(pnet::ADDRESS_LOOPBACK, 0)) return false;
-    if (!rendezvous::publish(mine, c.socket.local().port)) return false;
+    const bool direct = w.listen_port != 0 || !w.peer_at.empty();
+    // Половина адресации — отказ, а не откат к файлам: пир, у которого назван только свой порт,
+    // молча ушёл бы знакомиться файлом, и двухмашинный прогон превратился бы в одномашинный,
+    // сказав об этом ровно ничего.
+    if (direct && (w.listen_port == 0 || w.peer_at.empty())) return Meet::not_named;
+    if (direct && !pnet::parse_endpoint(w.peer_at, &c.to)) return Meet::not_named;
+    const uint32_t bind_to =
+        direct && c.to.address != pnet::ADDRESS_LOOPBACK ? pnet::ADDRESS_ANY : pnet::ADDRESS_LOOPBACK;
+    if (!c.socket.open(bind_to, w.listen_port)) return Meet::socket_bad;
+    if (direct) return Meet::ok;
+    if (!rendezvous::publish(mine, c.socket.local().port)) return Meet::not_named;
     uint16_t peer_port = 0;
-    if (!rendezvous::await(theirs, peer_port, timeout_ms)) return false;
+    if (!rendezvous::await(theirs, peer_port, timeout_ms)) return Meet::not_named;
     c.to.address = pnet::ADDRESS_LOOPBACK;
     c.to.port = peer_port;
-    return true;
+    return Meet::ok;
 }
 
 inline void flush(Channel& c, uint32_t now) {
@@ -67,7 +106,10 @@ inline int poll(Channel& c, uint8_t* out, size_t cap, size_t* len) {
     // то есть посторонний молча съел бы реальный ввод — дедуп засчитал бы его принятым, а разошлись
     // бы пиры «по наблюдаемому», без единого слова о причине. Pid в именах файлов рандеву закрывает
     // путаницу ФАЙЛАМИ, но не датаграммами.
-    if (from != c.to) return -1;
+    if (from != c.to) {
+        ++c.aliens;
+        return -1;
+    }
     return c.link.receive(datagram, static_cast<size_t>(n), out, cap, len) ==
                    net::Received::Delivered
                ? 1

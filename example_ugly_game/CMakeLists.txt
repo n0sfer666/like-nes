@@ -36,18 +36,8 @@ foreach(T game_platformer_replay_test game_platformer_replay_io_test)
     framework_replay framework_alloc_probe_control net_core asset_core platform_core)
 endforeach()
 
-# Гейты 1 и 7 спеки #22: два ПРОЦЕССА над той же сценой, канал между ними — настоящий сокет.
-# Отдельной целью от гейта отката выше, потому что предмет другой: тот утверждает, что снимок сцены
-# ничего не теряет, этот — что из одного ввода два адресных пространства приходят в одно состояние.
-# Двоичный файл один на обе роли: `--peer send|recv` перезапускает СОБСТВЕННЫЙ exe, потому что
-# fork'а на Windows нет (`platform_process.hpp`).
-add_executable(game_platformer_net_test
-  platformer_net_test.cpp platformer_peer.cpp platformer_sim.cpp platformer_scene.cpp
-  platformer_level.cpp)
-target_include_directories(game_platformer_net_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(game_platformer_net_test PRIVATE framework_character framework_tilemap
-  framework_rollback framework_replay framework_alloc_probe_control net_core asset_core platform_core
-  Threads::Threads)
+# Цели, которым нужен сокет и второй процесс, живут своим файлом (спека #22, гейты 1, 7 и 9).
+include(${CMAKE_CURRENT_SOURCE_DIR}/net_gates.cmake)
 
 # Чистая половина ЖИВОЙ цели — камера и сборка квадов (шаг C вертикали 3). Тоже до выхода по
 # IDE_POC и по тому же основанию: рисовать ей нечем, ни окна, ни адаптера она не открывает, и
