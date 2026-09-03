@@ -1,8 +1,10 @@
 # Owner verification: the gates a runner cannot close
 
-Seven of the nine gates below are **closed** — each carries the run that closed it, with the
-evidence. The two open ones (§9, the effect library; §11, hot-reload in front of a person) opened
-with round #18 and wait for a machine with a screen. They stay here as the procedure, because each one needs a
+Seven of the twelve gates below are **closed** — each carries the run that closed it, with the
+evidence. Three of the five open ones (§9, the effect library; §11, hot-reload in front of a person;
+§12, the lit frame) opened with round #18 and wait for a machine with a screen; the other two (§13,
+the network frame cost; §14, a live session) opened with round #22 and wait for two machines on one
+network. They stay here as the procedure, because each one needs a
 machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
 re-run when a commit touches what it covers; the right-hand column names that surface.
 
@@ -18,6 +20,8 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
+| The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
+| A live session between two machines: two windows, one input, one picture | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -1516,9 +1520,111 @@ bit.
 ./build/light_golden --selftest
 ```
 
+## 13. Gate 8 of #22 — the network frame cost (Linux and Windows)
+
+The third frame-cost gate, and the first one whose frame contains a *rollback*. Sections 4 and 5
+measure a physics step and a character tick; this one measures the step a networked peer actually
+takes — advance the simulation, roll back and replay when a late input arrives, write the tick into
+the `.replay` stream — and, separately, what the socket costs beside it.
+
+**Two numbers, not one.** A single total says a frame was expensive without saying what made it so,
+and the two halves fail for different reasons: `sim` grows when rollbacks deepen or the recording
+does, `net` grows when the reliable layer resends. Summed, a 0.3 ms frame and a 0.3 ms frame are
+indistinguishable, and the fix for each is in a different file.
+
+**The binary is the one that records.** `--peer` writes the replay stream through `RecordingSim`,
+a line per tick — measuring a build without the recording would describe a frame that does not exist
+in vertical 2. This is why the gate runs the peers themselves and not
+`game_platformer_net_test`: that harness sends its children's stdout to `/dev/null`, so the two
+lines this gate exists for never reach the report.
+
+```sh
+cmake --build build --target game_platformer_net_test
+bash scripts/owner_net_budget.sh
+```
+
+(Windows: `scripts\win-dev.bat check` builds the tree, then the same `bash scripts/owner_net_budget.sh`
+from git-bash. A full `bash scripts/owner_check.sh` already carries this stage, right after the
+physics and character one.)
+
+Expected output. The counters on the first line of each peer are **not repeated here** for the
+reason given in §5 — they are pinned by the scripted route and a copy in a runbook is a copy nothing
+checks; a run that disagrees with them fails inside `game_platformer_net_test`, not here.
+
+```
+--- Цена кадра сетевого прогона (game_platformer_net_test --peer, гейт 8 спеки #22)
+  peer send: ticks=417 rollbacks=<n> replayed=<n> forced=0 resent=<n>
+  peer send: sim worst=<time> ms mean=<time> ms over 417 ticks
+  peer send: net worst=<time> ms mean=<time> ms over <n> passes
+  peer recv: ticks=417 rollbacks=<n> replayed=<n> forced=0 resent=<n>
+  peer recv: sim worst=<time> ms mean=<time> ms over 417 ticks
+  peer recv: net worst=<time> ms mean=<time> ms over <n> passes
+  худший кадр пира recv: <time> мс из 16.67 (<n>% бюджета)
+  худший кадр пира send: <time> мс из 16.67 (<n>% бюджета)
+```
+
+The M3 Pro reference, 2026-09-03 (macOS 26.5.2, Apple clang, Release, idle box): `send` worst
+0.112 + 0.100 = **0.212 ms**, `recv` worst 0.208 + 0.115 = **0.323 ms** — 1.3% and 1.9% of a 16.67 ms
+frame; means 0.017/0.009 and 0.016/0.007. As in §4 and §5, that figure describes the M3 Pro. **The
+machine that decides is the slowest one you own**, and it decides on both OSes.
+
+What to judge, in this order:
+
+1. **A non-zero exit, ahead of every timing.** `FAIL: пиры вышли ненулём: send=<n> recv=<n>` means
+   the run did not finish; `9` there is specifically *"its frame budget was never measured"* — the
+   peer counted fewer samples than ticks, and any timing printed beside it is about a probe that did
+   not fire, not about a fast frame. Same class as a missing counter in §5.
+2. **`sim` `over 417 ticks` on both peers.** One sample per tick is the arithmetic the whole gate
+   rests on; the peer asserts it itself and exits `9` when it does not hold, but the line is worth
+   reading, because it is where you see that the route ran at all.
+3. **The two `худший кадр` percentages against a real budget.** Both halves add inside one frame,
+   which is why the script sums them per peer rather than quoting four numbers. Add the physics
+   `heap: mean=` and the character `target: mean=` from §4 and §5 on top: a real game frame carries
+   all of them.
+4. **`recv` costing more than `send` is expected, not a finding.** The receiver is the one that
+   rolls back — it learns the input late — so its `sim worst` is the deeper one, and its socket
+   makes roughly twice the passes because it spins waiting for input the sender never waits for.
+   The reverse ordering on your machine is worth reporting.
+5. **`resent=` on the sender.** Non-zero is normal on a loopback under load — it is the reliable
+   layer doing its job — but a number in the hundreds beside a large `net worst` is the two halves
+   telling one story, and that story is the socket, not the simulation.
+
+**Measure on an idle machine**, for exactly the reason spelled out in §5: nothing in this output
+separates a loaded run from a quiet one, and a build in another window is enough to turn a 1.9%
+frame into a 20% one.
+
+## 14. Gate 9 of #22 — a live session (two machines)
+
+> **This gate cannot be run yet, and the reason is in the engine, not in your hardware.** Both
+> peers address `pnet::ADDRESS_LOOPBACK` — the constant is right there in `channel::connect`
+> ([`platformer_peer_channel.hpp`](../example_ugly_game/platformer_peer_channel.hpp)) — and they find
+> each other by writing a port number into `<prefix>-send.port` next to each other on one
+> filesystem. Neither half can name a machine that is not this one. Vertical 2 is headless by
+> design (invariant 2 of the spec: *the same host without a window*), so there is no second window
+> to look at either. Two things are missing before this section becomes a procedure: **an address
+> for the neighbour** (an argument, and a rendezvous that is not a shared directory) and **a peer
+> that draws**. Until they exist, running the loopback pair and calling it a live session would be
+> a gate that measures yesterday's code and comes back vacuously green — the failure this repository
+> keeps writing rules against.
+
+What the gate asks, when it can be asked: two people, two machines, one network, one input, and the
+subjective answer a runner cannot give — *does it play*. Not "do the hashes match": §13's harness
+already answers that, and answers it under injected loss, duplication and reordering. This one asks
+whether the four-tick prediction horizon and the eight-tick rollback depth, chosen against a
+loopback whose latency is zero, still feel like one game when the wire adds 20–60 ms and jitters.
+
+The two constants that this gate exists to challenge are `PEER_PREDICT = 4` and `PEER_DEPTH = 8`
+([`platformer_peer.hpp`](../example_ugly_game/platformer_peer.hpp)). They are the network analogue of
+the 500 bodies spec #15 claimed and the owner's run cut to 350: numbers picked where the measurement
+was cheap, waiting for the machine that decides. A live session that stutters at 60 ms of latency is
+a finding about those two numbers, and it is the only way that finding can be made.
+
+Until the two missing halves land, what *can* be answered on your machines is §13 — the cost of the
+frame itself, on real silicon, on both OSes.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; all but the four of spec #18 are closed. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22 are closed. A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
@@ -1546,6 +1652,9 @@ Those scenarios, with the exact commands per platform, are sections A–F of
 - For §11, the `editor_shell --gate3` output with its `[gpu]` line, plus one recording per half:
   the editor panel through the three edits (real → broken → fixed) and the game through the same two
   while enemies are on screen, with the startup `hot-reload:` line visible in the terminal.
+- For §13, the full `owner_net_budget.sh` output per OS — the two `худший кадр` lines and the four
+  timing lines above them, with a note that the box was idle. The counters must match the other
+  machines; the timings must not, and the spread is the point.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.
