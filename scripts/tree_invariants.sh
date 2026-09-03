@@ -95,7 +95,7 @@ $hits"
 
 # --- Инвариант 1 спеки #14: подсистемы не зависят от слоя framework ----------------------------
 inv_deps() {
-    local dirs="engine/render engine/audio engine/input engine/asset engine/plugin engine/material engine/light"
+    local dirs="engine/render engine/audio engine/input engine/asset engine/plugin engine/material engine/light engine/net"
     # Доказательство, что поиск работает: цели линкуются в каждом из этих каталогов.
     # shellcheck disable=SC2086
     grep -rn "target_link_libraries" $dirs >/dev/null \

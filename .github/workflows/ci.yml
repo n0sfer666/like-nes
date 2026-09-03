@@ -896,7 +896,7 @@ jobs:
       # а вот три реализации разойтись успевают: EWOULDBLOCK против WSAEWOULDBLOCK, усечение
       # чужой датаграммы против WSAEMSGSIZE, ICMP-отказ, делающий UDP-сокет непригодным ровно на
       # Windows. Гейт 3 спеки (потери, дубли, перестановки) — предмет надёжного слоя, не этого шага.
-      - name: Platform — UDP datagram seam (spec #22 step B1, all OS)
+      - name: Net — datagram seam and reliability layer (spec #22 gates 3 and 6, all OS)
         shell: bash
         run: |
           run_gate() {
@@ -911,6 +911,9 @@ jobs:
           run_gate platform_net_address_test 'platform-net-address: PASS'
           run_gate platform_net_socket_test 'platform-net-socket: PASS'
           run_gate platform_net_test 'platform-net: PASS'
+          run_gate net_wire_test 'net-wire: PASS'
+          run_gate net_link_test 'net-link: PASS'
+          run_gate net_loopback_test 'net-loopback: PASS'
 
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
