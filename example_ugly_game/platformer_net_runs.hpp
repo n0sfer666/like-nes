@@ -60,6 +60,7 @@ inline const char* peer_said(const platform::ExitStatus& s, bool waited) {
         case 6: return "the socket went bad";
         case 7: return "could not write its recorded run";
         case 8: return "its claim format does not match its own length";
+        case 9: return "its frame budget was never measured";
         default: return "an unexpected code";
     }
 }
