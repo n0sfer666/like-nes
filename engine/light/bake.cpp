@@ -1,5 +1,6 @@
 #include "bake.hpp"
 
+#include <cstdint>
 #include <cstring>
 
 #include "../platform/platform_fs.hpp"
@@ -67,8 +68,17 @@ bool bake_lights(const std::string& text, std::vector<uint8_t>& out, BakeError& 
     std::memcpy(h.ambient, set.ambient, sizeof(h.ambient));
     h.light_count = static_cast<uint32_t>(rows.size());
     h.lights_offset = sizeof(TableHeader);
-    h.strings_offset = h.lights_offset + h.light_count * static_cast<uint32_t>(sizeof(LightRow));
-    h.total_size = h.strings_offset + static_cast<uint32_t>(strings.bytes().size());
+    // Смещения считаются в `size_t` и лишь потом сужаются: арифметика раскладки, переполнившаяся в
+    // uint32, дала бы не отказ, а согласованный сам с собой заголовок — и читатель принял бы его.
+    const std::size_t strings_at = h.lights_offset + rows.size() * sizeof(LightRow);
+    const std::size_t total = strings_at + strings.bytes().size();
+    if (total > UINT32_MAX) {
+        err.line = 0;
+        err.message = "table does not fit a 32-bit layout";
+        return false;
+    }
+    h.strings_offset = static_cast<uint32_t>(strings_at);
+    h.total_size = static_cast<uint32_t>(total);
 
     out.clear();
     out.reserve(h.total_size);

@@ -2,6 +2,7 @@
 
 #include "../material/pipeline.hpp"
 #include "shaders_slot.hpp"
+#include "slot_encoding.hpp"
 
 namespace slotgfx {
 namespace {
@@ -19,18 +20,21 @@ WGPUBuffer make_buffer(WGPUDevice device, WGPUQueue queue, WGPUBufferUsageFlags 
 } // namespace
 
 Desc normals_of(const slotgold::Bank& bank) {
-    // Цвет очистки — та же плоская нормаль (0,0,1), что лежит в 1x1 текстуре банка.
-    constexpr double FLAT = 128.0 / 255.0;
-    return Desc{"normal", "fs_normal", WGPUColor{FLAT, FLAT, 1.0, 1.0}, bank.flat()};
+    // Цвет очистки ВЫВОДИТСЯ из того же пикселя, что лежит в 1x1 текстуре банка: написанный
+    // числами рядом, он был бы второй записью одного значения и разошёлся бы молча.
+    return Desc{"normal", "fs_normal", slotenc::clear_of(slotenc::FLAT_NORMAL), bank.flat()};
 }
 
 Desc occluders_of(const slotgold::Bank& bank) {
-    return Desc{"occlusion", "fs_occluder", WGPUColor{0.0, 0.0, 0.0, 1.0}, bank.open()};
+    return Desc{"occlusion", "fs_occluder", slotenc::clear_of(slotenc::OPEN_OCC), bank.open()};
 }
 
 bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
                 const slotgold::Bank& bank, const Desc& desc, uint32_t w, uint32_t h,
                 WGPUTextureView albedo, WGPUTextureFormat fmt) {
+    // Повторный старт обязан начинаться с чистого состояния: группы удвоились бы, а счётчики
+    // слотов продолжили бы счёт предыдущего прогона — и именно их дословно грепает шаг CI.
+    shutdown();
     device_ = device;
     queue_ = queue;
     clear_ = desc.clear;
@@ -45,7 +49,9 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
                                        static_cast<uint8_t>(mat::Blend::Alpha), fmt);
     wgpuShaderModuleRelease(module);
     wgpuPipelineLayoutRelease(layout);
-    if (!pipe_) return false;
+    // Неуспешный `init` не оставляет за собой ничего: контракт «false ⇒ звать `shutdown()` не
+    // нужно» иначе держался бы на дисциплине вызывающего, а объект выглядел бы живым.
+    if (!pipe_) { shutdown(); return false; }
 
     const float verts[] = {
         -0.5f, -0.5f, 0.0f, 1.0f,
@@ -56,8 +62,8 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
     const uint16_t idx[] = {0, 1, 2, 0, 2, 3};
     quad_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, verts, sizeof(verts));
     quad_ibo_ = make_buffer(device, queue, WGPUBufferUsage_Index, idx, sizeof(idx));
-    inst_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, nullptr,
-                            sizeof(mat::Instance) * 64);
+    inst_bytes_ = sizeof(mat::Instance) * table.count() * matgold::PER_MATERIAL;
+    inst_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, nullptr, inst_bytes_);
     const float vp[4] = {static_cast<float>(w) * 0.5f, static_cast<float>(h) * 0.5f, 0.0f, 0.0f};
     vp_ubo_ = make_buffer(device, queue, WGPUBufferUsage_Uniform, vp, sizeof(vp));
 
@@ -95,8 +101,8 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const mat::Table& table,
         WGPUBindGroupDescriptor bgd = {};
         bgd.layout = bgl_; bgd.entryCount = 4; bgd.entries = b;
         g.bg = wgpuDeviceCreateBindGroup(device, &bgd);
-        if (!g.bg) return false;
         groups_.push_back(g);
+        if (!g.bg) { shutdown(); return false; }
     }
     return true;
 }
@@ -115,9 +121,17 @@ void Pass::build(const matgold::Scene& scene) {
         }
     }
     instances_ = static_cast<uint32_t>(ordered.size());
-    if (instances_ != 0)
-        wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, ordered.data(),
-                             ordered.size() * sizeof(mat::Instance));
+    if (instances_ == 0) return;
+    // Буфер РАСТЁТ под сцену, а не отбивает её: сцена шире выделенной ёмкости иначе писала бы за
+    // границу — WGPU отбил бы запись валидацией, но `build()` вернулся бы молча, а `run()` выставил
+    // бы диапазон за размером буфера, и кадр уехал бы мусором без единой строки в логе.
+    const std::size_t need = ordered.size() * sizeof(mat::Instance);
+    if (need > inst_bytes_) {
+        if (inst_vbo_) wgpuBufferRelease(inst_vbo_);
+        inst_vbo_ = make_buffer(device_, queue_, WGPUBufferUsage_Vertex, nullptr, need);
+        inst_bytes_ = need;
+    }
+    wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, ordered.data(), need);
 }
 
 void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst) {
@@ -164,7 +178,13 @@ void Pass::shutdown() {
     if (bgl_) wgpuBindGroupLayoutRelease(bgl_);
     sampler_ = nullptr; vp_ubo_ = nullptr; inst_vbo_ = nullptr; quad_ibo_ = nullptr;
     quad_vbo_ = nullptr; pipe_ = nullptr; bgl_ = nullptr;
+    // Счётчики слотов обнуляются здесь же: остановленный проход, отдающий числа прошлого прогона,
+    // ассертится шагом CI дословно — и совпал бы по инерции, а не по факту.
+    inst_bytes_ = 0;
     instances_ = 0;
+    mapped_ = 0;
+    flat_ = 0;
+    missing_ = 0;
 }
 
 } // namespace slotgfx

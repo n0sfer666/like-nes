@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -82,6 +83,10 @@ private:
     WGPUSampler sampler_ = nullptr;
     WGPUColor clear_ = {};
     std::vector<Group> groups_;
+    // Ёмкость инстансного буфера в БАЙТАХ. Держится полем, потому что число инстансов — свойство
+    // сцены, а буфер создаётся до неё: константа здесь означала бы, что сцена шире выписанной
+    // ёмкости пишет за границу, а `build()` возвращается молча.
+    std::size_t inst_bytes_ = 0;
     uint32_t instances_ = 0;
     uint32_t mapped_ = 0;
     uint32_t flat_ = 0;

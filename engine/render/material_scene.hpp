@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -53,6 +54,9 @@ private:
     WGPUBuffer quad_vbo_ = nullptr;
     WGPUBuffer quad_ibo_ = nullptr;
     WGPUBuffer inst_vbo_ = nullptr;
+    // Ёмкость инстансного буфера в БАЙТАХ: сцена шире выделенного иначе пишет за границу, а
+    // `build()` возвращается молча (то же поле и по той же причине есть у `slotgfx::Pass`).
+    std::size_t inst_bytes_ = 0;
     WGPUBuffer vp_ubo_ = nullptr;
     WGPUTexture albedo_ = nullptr;
     WGPUTexture aux_ = nullptr;

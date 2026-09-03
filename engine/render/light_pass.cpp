@@ -6,16 +6,16 @@
 #include "gpu_util.hpp"
 #include "renderer_internal.hpp"
 #include "shaders_light.hpp"
+#include "slot_encoding.hpp"
 
 namespace lightgfx {
 namespace {
 
-// Плоская нормаль (0,0,1) в кодировке текстуры: нормали спрайтов приходят шагом B, а до него
-// проход обязан работать и без них — иначе «свет как данные» нечем проверить кадром.
-constexpr uint8_t FLAT_NORMAL[4] = {128, 128, 255, 255};
-// «Ничего не перекрывает» в кодировке буфера окклюзии: то же значение, что и его цвет очистки.
-// Проход, которому буфер не дали, обязан светить ровно так, как светил до появления теней.
-constexpr uint8_t OPEN_OCC[4] = {0, 0, 0, 255};
+// Запасные карты прохода: нормали спрайтов приходят шагом B, тени — шагом C, а до них проход
+// обязан работать и без буфера — иначе «свет как данные» нечем проверить кадром. Значения берутся
+// у `slotenc`, а не пишутся здесь: они же лежат в банке карт и в цвете очистки слотового прохода.
+using slotenc::FLAT_NORMAL;
+using slotenc::OPEN_OCC;
 
 WGPUTexture make_pixel(WGPUDevice device, WGPUQueue queue, const uint8_t rgba[4]) {
     WGPUTextureDescriptor td = {};
@@ -50,21 +50,32 @@ void fill(GpuLight& g, const light::LightRow& r) {
 
 bool Pass::init(WGPUDevice device, WGPUQueue queue, const light::Table& table,
                 WGPUTextureFormat fmt, float aspect) {
+    // Неуспешный `init` не оставляет за собой ни объекта, ни счётчика: контракт «false ⇒ звать
+    // `shutdown()` не нужно» иначе держался бы на дисциплине вызывающего.
+    shutdown();
     device_ = device;
-    lights_ = table.count();
-    if (lights_ == 0 || table.ambient() == nullptr) return false;
+    if (table.count() == 0 || table.ambient() == nullptr) return false;
 
-    std::vector<GpuLight> gpu(lights_);
-    for (uint32_t i = 0; i < lights_; ++i) {
+    std::vector<GpuLight> gpu;
+    gpu.reserve(table.count());
+    for (uint32_t i = 0; i < table.count(); ++i) {
         const light::LightRow* r = table.row(i);
-        if (r == nullptr) return false;
-        fill(gpu[i], *r);
+        if (r == nullptr) { shutdown(); return false; }
+        gpu.emplace_back();
+        fill(gpu.back(), *r);
     }
     WGPUBufferDescriptor bd = {};
     bd.usage = WGPUBufferUsage_Storage | WGPUBufferUsage_CopyDst;
     bd.size = sizeof(GpuLight) * gpu.size();
     lights_ssbo_ = wgpuDeviceCreateBuffer(device, &bd);
+    if (lights_ssbo_ == nullptr) { shutdown(); return false; }
     wgpuQueueWriteBuffer(queue, lights_ssbo_, 0, gpu.data(), static_cast<size_t>(bd.size));
+    // Счётчик выводится из РАЗМЕРА записанного буфера, а не из `table.count()`. Присвоенный
+    // напрямую, он делал утверждение гейта `pass.lights() == table.count()` тождеством
+    // `count() == count()`: цикл, потерявший источник, отказ на полпути и незаписанный буфер —
+    // всё это оставляло его зелёным. Теперь путь от таблицы к счётчику проходит через байты,
+    // которые действительно уехали на GPU.
+    lights_ = static_cast<uint32_t>(bd.size / sizeof(GpuLight));
 
     FrameUniform fu = {};
     std::memcpy(fu.ambient, table.ambient(), sizeof(fu.ambient));
@@ -112,7 +123,8 @@ bool Pass::init(WGPUDevice device, WGPUQueue queue, const light::Table& table,
     WGPUShaderModule fsm = make_shader(device, light_pass_wgsl());
     pipe_ = make_fullscreen_pipe(device, bgl_, fsm, fmt);
     wgpuShaderModuleRelease(fsm);
-    return pipe_ != nullptr;
+    if (pipe_ == nullptr) { shutdown(); return false; }
+    return true;
 }
 
 void Pass::run(WGPUCommandEncoder enc, WGPUTextureView dst, WGPUTextureView albedo,
@@ -159,6 +171,7 @@ void Pass::shutdown() {
     pipe_ = nullptr; bgl_ = nullptr; open_occ_view_ = nullptr; open_occ_ = nullptr;
     flat_normal_view_ = nullptr; flat_normal_ = nullptr;
     sampler_ = nullptr; frame_ubo_ = nullptr; lights_ssbo_ = nullptr;
+    lights_ = 0;
 }
 
 } // namespace lightgfx

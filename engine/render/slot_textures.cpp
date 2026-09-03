@@ -1,6 +1,7 @@
 #include "slot_textures.hpp"
 
 #include "../asset/hash.hpp"
+#include "slot_encoding.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -128,10 +129,11 @@ uint64_t guid_of(const char* name) { return asset::fnv1a(name, std::strlen(name)
 } // namespace
 
 bool Bank::init(WGPUDevice device, WGPUQueue queue) {
-    const uint8_t flat_px[4] = {128, 128, 255, 255};
-    const uint8_t open_px[4] = {0, 0, 0, 255};
-    flat_ = make_single(device, queue, flat_px);
-    open_ = make_single(device, queue, open_px);
+    // Повторный старт без остановки удвоил бы банк и потерял бы текстуры первого набора: у карт
+    // владелец — этот вектор, и ничей больше.
+    shutdown();
+    flat_ = make_single(device, queue, slotenc::FLAT_NORMAL);
+    open_ = make_single(device, queue, slotenc::OPEN_OCC);
     flat_view_ = wgpuTextureCreateView(flat_, nullptr);
     open_view_ = wgpuTextureCreateView(open_, nullptr);
 
@@ -150,8 +152,10 @@ bool Bank::init(WGPUDevice device, WGPUQueue queue) {
         n.guid = guid_of(w.name);
         n.tex = w.make(device, queue);
         n.view = wgpuTextureCreateView(n.tex, nullptr);
-        if (!n.view) return false;
+        // Текстура кладётся в банк ДО проверки вью: владельца у неё иначе нет, и на отказе
+        // `shutdown()` её уже не найдёт.
         maps_.push_back(n);
+        if (!n.view) return false;
     }
     return flat_view_ != nullptr && open_view_ != nullptr;
 }

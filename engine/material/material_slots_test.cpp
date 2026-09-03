@@ -45,7 +45,11 @@ int check_texture_slots(const mat::Table& t) {
     check(nrm >= 0 && t.texture(static_cast<uint32_t>(nrm)).binding == 2 &&
               t.texture(static_cast<uint32_t>(nrm)).guid == asset::fnv1a("sprite_normal", 13),
           "flash_gold inherits the sprite normal map in slot 2");
-    check(t.texture_of(t.find("dissolve"), "normal") < 0, "dissolve declares no normal slot");
+    // Отрицательное утверждение сначала доказывает, что материал ВООБЩЕ ЕСТЬ: `find` пропавшего
+    // отдаёт `count()`, `texture_of` от него — `-1`, и «слота нет» становится неотличимо от
+    // «материал переименовали». Гейт при этом зелен вакуумно.
+    const uint32_t ds = t.find("dissolve");
+    check(ds != t.count() && t.texture_of(ds, "normal") < 0, "dissolve declares no normal slot");
 
     // Слот перекрытия (шаг C гейта 7) — тот же шов и тот же класс дефекта: номер и guid читает
     // проход теней. Набор материалов у него НАМЕРЕННО другой, и это утверждается парой — `outline`
@@ -55,9 +59,11 @@ int check_texture_slots(const mat::Table& t) {
     check(occ >= 0 && t.texture(static_cast<uint32_t>(occ)).binding == 3 &&
               t.texture(static_cast<uint32_t>(occ)).guid == asset::fnv1a("sprite_occluder", 15),
           "outline declares the disc occluder in slot 3");
-    check(t.texture_of(t.find("dissolve_ash"), "occlusion") >= 0,
+    const uint32_t da = t.find("dissolve_ash");
+    check(da != t.count() && t.texture_of(da, "occlusion") >= 0,
           "dissolve_ash inherits the grate occluder of its base");
-    check(t.texture_of(t.find("flash"), "occlusion") < 0, "flash casts nothing");
+    const uint32_t fl = t.find("flash");
+    check(fl != t.count() && t.texture_of(fl, "occlusion") < 0, "flash casts nothing");
     return fails;
 }
 

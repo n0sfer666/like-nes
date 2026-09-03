@@ -36,8 +36,15 @@ LoadResult Table::load(const void* base, std::size_t size) {
 
     const uint64_t rows = static_cast<uint64_t>(h->light_count) * sizeof(LightRow);
     if (h->lights_offset % 8 != 0) return LoadResult::BadLayout;
+    // Секции обязаны идти ЗА заголовком и НЕ пересекаться. Без этих двух правил заголовок, чьи
+    // строки начинаются внутри массива источников (или чьи источники лежат поверх него самого),
+    // проходил все проверки и читался как валидная таблица: UB нет — всё в границах региона, — но
+    // отказ и мусор переставали различаться, а именно это различие таблица и обязана давать.
+    if (h->lights_offset < sizeof(TableHeader)) return LoadResult::BadLayout;
     if (static_cast<uint64_t>(h->lights_offset) + rows > size) return LoadResult::BadLayout;
     if (h->strings_offset > size) return LoadResult::BadLayout;
+    if (h->strings_offset < static_cast<uint64_t>(h->lights_offset) + rows)
+        return LoadResult::BadLayout;
 
     const char* str = static_cast<const char*>(base) + h->strings_offset;
     const std::size_t str_len = size - h->strings_offset;

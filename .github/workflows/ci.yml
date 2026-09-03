@@ -545,7 +545,10 @@ jobs:
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
             cat "$t.txt"
-            if ! grep -q "PASS" "$t.txt"; then
+            # Грепается СТРОКА ВЕРДИКТА, а не слово: голое `PASS` находится в любой строке, где
+            # оно случайно окажется, и «напечатал вердикт» переставало отличаться от «напечатал
+            # слово». Форм две — `<имя>: PASS` и голое `PASS` строкой целиком.
+            if ! grep -qE "^([a-z][a-z0-9-]*: )?PASS( |$)" "$t.txt"; then
               echo "$t exited 0 without printing a verdict on ${{ matrix.os }}"; exit 1
             fi
           done

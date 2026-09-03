@@ -44,8 +44,8 @@ bool Scene::init(WGPUDevice device, WGPUQueue queue, uint32_t w, uint32_t h,
     const uint16_t idx[] = {0, 1, 2, 0, 2, 3};
     quad_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, verts, sizeof(verts));
     quad_ibo_ = make_buffer(device, queue, WGPUBufferUsage_Index, idx, sizeof(idx));
-    inst_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, nullptr,
-                            sizeof(mat::Instance) * 64);
+    inst_bytes_ = sizeof(mat::Instance) * 64;
+    inst_vbo_ = make_buffer(device, queue, WGPUBufferUsage_Vertex, nullptr, inst_bytes_);
 
     const float vp[4] = {static_cast<float>(w) * 0.5f, static_cast<float>(h) * 0.5f, 0.0f, 0.0f};
     vp_ubo_ = make_buffer(device, queue, WGPUBufferUsage_Uniform, vp, sizeof(vp));
@@ -118,8 +118,15 @@ void Scene::build(const mat::Table& t, mat::Cache& cache) {
         }
         batches_.push_back(b);
     }
-    wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, items_.data(),
-                         items_.size() * sizeof(mat::Instance));
+    // Буфер РАСТЁТ под сцену: таблица шире выписанной ёмкости иначе писала бы за границу, и
+    // отбитая валидацией запись не сказала бы об этом ни строки.
+    const std::size_t need = items_.size() * sizeof(mat::Instance);
+    if (need > inst_bytes_) {
+        if (inst_vbo_) wgpuBufferRelease(inst_vbo_);
+        inst_vbo_ = make_buffer(device_, queue_, WGPUBufferUsage_Vertex, nullptr, need);
+        inst_bytes_ = need;
+    }
+    wgpuQueueWriteBuffer(queue_, inst_vbo_, 0, items_.data(), need);
 }
 
 uint32_t Scene::draw(WGPURenderPassEncoder pass) {
@@ -149,7 +156,7 @@ void Scene::shutdown() {
     if (quad_ibo_) wgpuBufferRelease(quad_ibo_);
     if (quad_vbo_) wgpuBufferRelease(quad_vbo_);
     bg_ = nullptr; sampler_ = nullptr; aux_view_ = nullptr; albedo_view_ = nullptr;
-    aux_ = nullptr; albedo_ = nullptr; vp_ubo_ = nullptr; inst_vbo_ = nullptr;
+    aux_ = nullptr; albedo_ = nullptr; vp_ubo_ = nullptr; inst_vbo_ = nullptr; inst_bytes_ = 0;
     quad_ibo_ = nullptr; quad_vbo_ = nullptr;
 }
 

@@ -175,6 +175,18 @@ void rejects_broken_bytes() {
     check(t.load(bad.data(), bad.size()) == light::LoadResult::BadVersion,
           "another version is refused");
 
+    // Раскладка: секции обязаны идти за заголовком и не пересекаться. Оба правила проверяются
+    // ПОЛЕМ заголовка, а не усечением, — усечение ловится `total_size` и говорит о другом.
+    bad = good;
+    bad[12] = 8;   // lights_offset внутрь самого заголовка
+    check(t.load(bad.data(), bad.size()) == light::LoadResult::BadLayout,
+          "sources starting inside the header are refused");
+
+    bad = good;
+    for (int k = 0; k < 4; ++k) bad[16 + k] = bad[12 + k];   // strings_offset ← lights_offset
+    check(t.load(bad.data(), bad.size()) == light::LoadResult::BadLayout,
+          "sections that overlap are refused");
+
     // Отказ обязан ОБНУЛИТЬ читатель: иначе `count()` отдаёт ноль, а `row()` смотрит в снятый
     // регион — та же поломка, что закрыта в таблице материалов.
     check(t.load(good.data(), good.size()) == light::LoadResult::Ok, "the good table opens again");
