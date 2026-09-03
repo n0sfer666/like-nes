@@ -32,36 +32,42 @@ else
     echo "  library.bundle ОТСТАЛ от engine/material/library или engine/light/library"
     rc=1
 fi
-# Второй контроль — на КОНЦЫ СТРОК: ОБА входа с CRLF обязаны дать те же байты. Иначе артефакт
-# зависит от настройки клона, а не от содержимого: `core.autocrlf=true` на Windows-раннере дал
-# 6192 байта против 6080 и покрасил гейт, не сказав ни слова про материалы (прогон 192ed67).
-# Утверждение локальное — красное на любой из трёх ОС, а не только там. `library.mat` берётся
-# вместе с модулем: сейчас таблица CRLF-независима лишь потому, что `text::trim` держит `\r` в
-# наборе, и первая же правка парсера мимо `trim` вернула бы ту же зависимость по второму входу.
+# Второй контроль — на КОНЦЫ СТРОК: вход с LF и вход с CRLF обязаны дать одни и те же байты. Иначе
+# артефакт зависит от настройки клона, а не от содержимого: `core.autocrlf=true` на Windows-раннере
+# дал 6192 байта против 6080 и покрасил гейт, не сказав ни слова про материалы (прогон 192ed67).
+# Оба варианта строятся ИЗ ОДНОГО входа, а не сверяются с тем, что дал checkout: у `lights.txt` нет
+# записи в `.gitattributes`, на Windows он приезжает уже с CRLF, и прежняя форма («подстановка
+# обязана изменить файл») краснела ровно там, где вход и так нёс проверяемые концы строк
+# (прогон 4863a46). Утверждение о ФАЙЛЕ — два его варианта различны — верно на любой ОС.
+# `library.mat` берётся вместе с модулем: сейчас таблица CRLF-независима лишь потому, что
+# `text::trim` держит `\r` в наборе, и первая же правка парсера мимо `trim` вернула бы ту же
+# зависимость по второму входу.
 if ! command -v python3 >/dev/null 2>&1; then
     echo "  контроль концов строк ПРОПУЩЕН: нет python3 — пропуск не вердикт"
     rc=1
 else
-    crlf_ok=1
+    eol_ok=1
     for f in library.mat sprite_effects.wgsl lights.txt; do
         case "$f" in lights.txt) sdir=engine/light/library ;; *) sdir=engine/material/library ;; esac
-        if ! python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))" \
-                "$sdir/$f" "$tmp/crlf-$f"; then
-            echo "  контроль концов строк: подстановка CRLF в $f упала"; rc=1; crlf_ok=0
-        elif cmp -s "$tmp/crlf-$f" "$sdir/$f"; then
-            # Вход, который подстановка не изменила, доказывает не независимость от концов строк, а
-            # собственную неработоспособность — ровно в том сценарии, ради которого гейт и написан.
-            echo "  контроль концов строк НЕ ИЗМЕНИЛ $f — сравнивать нечего"; rc=1; crlf_ok=0
+        if ! python3 -c "import sys; d=open(sys.argv[1],'rb').read().replace(b'\r\n', b'\n'); open(sys.argv[2],'wb').write(d); open(sys.argv[3],'wb').write(d.replace(b'\n', b'\r\n'))" \
+                "$sdir/$f" "$tmp/lf-$f" "$tmp/crlf-$f"; then
+            echo "  контроль концов строк: подстановка в $f упала"; rc=1; eol_ok=0
+        elif cmp -s "$tmp/lf-$f" "$tmp/crlf-$f"; then
+            # Файл, у которого оба варианта совпали, доказывает не независимость от концов строк, а
+            # собственную непригодность для контроля: сравнивать в нём нечего.
+            echo "  контроль концов строк: варианты $f совпали — сравнивать нечего"; rc=1; eol_ok=0
         fi
     done
-    if [ $crlf_ok -eq 1 ]; then
-        if ! build-ci/assetc --materials "$tmp/crlf-library.mat" "$tmp/crlf-sprite_effects.wgsl" \
-                "$tmp/crlf.bundle" --lights "$tmp/crlf-lights.txt" >/dev/null; then
-            echo "  library.bundle: перепекание из копии с CRLF упало"; rc=1
-        elif ! cmp -s "$tmp/crlf.bundle" example_ugly_game/assets/library.bundle; then
-            echo "  library.bundle зависит от концов строк — байты артефакта не функция содержимого"
-            rc=1
-        fi
+    if [ $eol_ok -eq 1 ]; then
+        for v in lf crlf; do
+            if ! build-ci/assetc --materials "$tmp/$v-library.mat" "$tmp/$v-sprite_effects.wgsl" \
+                    "$tmp/$v.bundle" --lights "$tmp/$v-lights.txt" >/dev/null; then
+                echo "  library.bundle: перепекание из копии с $v упало"; rc=1
+            elif ! cmp -s "$tmp/$v.bundle" example_ugly_game/assets/library.bundle; then
+                echo "  library.bundle зависит от концов строк ($v) — байты не функция содержимого"
+                rc=1
+            fi
+        done
     fi
 fi
 # Третье утверждение — ВАЛИДАЦИЯ (гейт 2 спеки #18): тот же прогон бейка собрал библиотеку на

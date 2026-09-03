@@ -439,16 +439,23 @@ jobs:
           # Контроль на КОНЦЫ СТРОК, и он здесь не теоретический: `core.autocrlf=true` на
           # Windows-раннере уже дал 6192 байта против 6080 — по лишнему на строку, — и гейт покраснел,
           # ничего не сказав про сами материалы. Байты артефакта обязаны быть функцией содержимого.
+          # Оба варианта строятся ИЗ ОДНОГО входа, а не сравниваются с тем, что дал checkout: у
+          # `lights.txt` нет записи в `.gitattributes`, на Windows он приезжает уже с CRLF, и прежняя
+          # форма контроля («подстановка обязана изменить файл») краснела там, где вход и так нёс
+          # проверяемые концы строк (прогон 4863a46). Утверждение о ФАЙЛЕ — два его варианта
+          # различны — верно на любой ОС, и печётся теперь каждый из них.
           for f in library.mat sprite_effects.wgsl lights.txt; do
-            python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))" \
-              "libsrc/$f" "libsrc/crlf-$f"
-            cmp -s "libsrc/crlf-$f" "libsrc/$f" && {
-              echo "ПОДСТАНОВКА CRLF НЕ ИЗМЕНИЛА $f on ${{ matrix.os }}"; exit 1; }
+            python3 -c "import sys; d=open(sys.argv[1],'rb').read().replace(b'\r\n', b'\n'); open(sys.argv[2],'wb').write(d); open(sys.argv[3],'wb').write(d.replace(b'\n', b'\r\n'))" \
+              "libsrc/$f" "libsrc/lf-$f" "libsrc/crlf-$f"
+            cmp -s "libsrc/lf-$f" "libsrc/crlf-$f" && {
+              echo "ВАРИАНТЫ КОНЦОВ СТРОК СОВПАЛИ для $f on ${{ matrix.os }}"; exit 1; }
           done
-          "$A" --materials libsrc/crlf-library.mat libsrc/crlf-sprite_effects.wgsl libsrc/crlf.bundle \
-            --lights libsrc/crlf-lights.txt
-          cmp libsrc/crlf.bundle example_ugly_game/assets/library.bundle || {
-            echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК on ${{ matrix.os }}"; exit 1; }
+          for v in lf crlf; do
+            "$A" --materials "libsrc/$v-library.mat" "libsrc/$v-sprite_effects.wgsl" \
+              "libsrc/$v.bundle" --lights "libsrc/$v-lights.txt"
+            cmp "libsrc/$v.bundle" example_ugly_game/assets/library.bundle || {
+              echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК ($v) on ${{ matrix.os }}"; exit 1; }
+          done
           # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита, иначе
           # первая же опечатка в пути делает гейт вечно зелёным (правило vacuous-gate линтера).
           printf 'x' >> libsrc/library.bundle
