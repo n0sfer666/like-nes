@@ -7,6 +7,7 @@
 #include "../platform/platform_args.hpp"
 #include "../platform/platform_fs.hpp"
 #include "bake.hpp"
+#include "material_slots_test.hpp"
 #include "param.hpp"
 #include "table.hpp"
 
@@ -210,17 +211,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    // Текстура эффекта живёт в СВОЁМ слоте, а не в слоте альбедо: шейдер берёт шум из `aux`
-    // (@binding(3) = слот 1 материала), и слот 0 обязан остаться за спрайтом.
-    const uint32_t d = t.find("dissolve");
-    if (d != t.count()) {
-        check(t.row(d).texture_count == 1, "dissolve declares one texture");
-        if (t.row(d).texture_count == 1) {
-            const mat::TextureRow& tex = t.texture(t.row(d).texture_first);
-            check(tex.binding == 1, "dissolve noise sits in the aux slot, not albedo");
-            check(tex.guid == asset::fnv1a("noise_rgba", 10), "dissolve names the noise asset");
-        }
-    }
+    fails += matlib::check_texture_slots(t);
 
     std::printf("material-library: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

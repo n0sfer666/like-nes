@@ -46,7 +46,8 @@ int main(int argc, char** argv) {
                      "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
                      "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
-                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>  (tools-free)\n");
+                     "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
+                     " [--lights L.txt]  (tools-free)\n");
         return 2;
     }
     // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
@@ -87,11 +88,32 @@ int main(int argc, char** argv) {
     if (std::strcmp(argv[1], "--materials") == 0) {
         if (argc < 5) {
             std::fprintf(stderr,
-                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>\n");
+                         "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
+                         " [--lights <lights.txt>]\n");
             return 2;
         }
+        // Светы едут ИМЕНОВАННЫМ флагом, а не четвёртым позиционным путём: у этого режима уже был
+        // трёхаргументный вид, где третий путь был выходом, и устаревший бинарь написал бандл
+        // ПОВЕРХ исходника шейдера. Позиция, меняющая смысл, — тот же капкан по второму разу.
+        const char* lights_src = nullptr;
+        // Хвост разбирается ПО ОДНОМУ аргументу с отказом на неузнанном: шаг через два и условие
+        // `i + 1 < argc` проглатывали и флаг без значения, и флаг, поставленный не на свою
+        // позицию, — молча, кодом 0 и бандлом БЕЗ секции света. Тишина здесь стоит дороже отказа:
+        // отсутствие таблицы всплывает у потребителя, а не у того, кто её не положил.
+        for (int i = 5; i < argc; ++i) {
+            if (std::strcmp(argv[i], "--lights") != 0 || i + 1 >= argc) {
+                std::fprintf(stderr, "assetc --materials: unexpected argument '%s'\n", argv[i]);
+                std::fprintf(stderr,
+                             "usage: assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
+                             " [--lights <lights.txt>]\n");
+                return 2;
+            }
+            lights_src = argv[++i];
+        }
+
         std::vector<AssetInput> massets;
         if (!bakers::materials(argv[2], argv[3], massets)) return 1;
+        if (lights_src && !bakers::lights(lights_src, massets)) return 1;
         // Валидация стоит МЕЖДУ бейком и записью: отвергнутая библиотека не должна оставлять на
         // диске бандл, которым потом кто-то нарисует кадр (гейт 2 спеки #18).
         if (!validate_materials(massets, argv[3])) return 1;

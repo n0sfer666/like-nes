@@ -5,10 +5,16 @@
 add_library(material_core STATIC param.cpp table.cpp)
 target_include_directories(material_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Лексический слой — своей целью БЕЗ material_core: его берёт пекарь светов (`light_bake`,
+# вертикаль 3), а таблица материалов ему не нужна. Третья копия `trim`/`split`/`parse_float` в
+# дереве была бы ровно тем дефектом, который свернул cf94c9d.
+add_library(material_text STATIC text.cpp)
+target_include_directories(material_text PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Файлы пекарь читает ЧЕРЕЗ платформенный шов (`platform_core`), а не `fopen`: MSVC на нём
 # ругается депрекацией, а `/W4 /WX` раннера превращает её в упавшую сборку.
-add_library(material_bake STATIC bake.cpp bake_parse.cpp text.cpp)
-target_link_libraries(material_bake PUBLIC material_core platform_core)
+add_library(material_bake STATIC bake.cpp bake_parse.cpp)
+target_link_libraries(material_bake PUBLIC material_core material_text platform_core)
 
 add_executable(material_bake_test material_bake_test.cpp)
 target_link_libraries(material_bake_test PRIVATE material_bake)
@@ -24,7 +30,7 @@ target_link_libraries(material_table_test PRIVATE material_bake)
 # здесь он свой — не пекарь и не читатель разъехались, а библиотека разъехалась со своим WGSL.
 # Цель читает файлы библиотеки, поэтому путь к каталогу передаётся аргументом (по умолчанию —
 # относительный от корня дерева, как у бандл-гейтов).
-add_executable(material_library_test material_library_test.cpp)
+add_executable(material_library_test material_library_test.cpp material_slots_test.cpp)
 target_link_libraries(material_library_test PRIVATE material_bake platform_core)
 
 # Шов «материал → пайплайн» (гейты 4/5/6 спеки #18). Третья цель, а не часть `material_core`:

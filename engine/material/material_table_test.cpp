@@ -155,6 +155,20 @@ void test_base_depth_limit() {
     }
 }
 
+// Текстурный слот адресуется ИМЕНЕМ и наследуется от базы так же, как параметр: инстанс не
+// перечисляет чужие текстуры заново. Без этого утверждения `texture_of` неотличим от поиска
+// только по собственным строкам материала — а инстансы в библиотеке как раз своих не имеют.
+void test_texture_of() {
+    std::vector<uint8_t> b = baked();
+    mat::Table t;
+    check(t.load(b.data(), b.size()) == mat::LoadResult::Ok, "the fixture opens");
+    const int32_t own = t.texture_of(0, "noise");
+    const int32_t inherited = t.texture_of(1, "noise");
+    check(own >= 0 && own == inherited, "the instance resolves the texture slot of its base");
+    check(t.texture_of(0, "normal") < 0, "a slot the material never declared has no index");
+    check(t.texture_of(t.count(), "noise") < 0, "a material outside the table has no slot");
+}
+
 // Каждая причина отказа обязана иметь СВОИ слова: две ветки с одним текстом читаются в логе
 // одинаково, и различить их можно только по коду, которого в логе нет.
 void test_reasons_are_distinct() {
@@ -176,6 +190,7 @@ int main() {
     test_intact();
     test_corruption();
     test_slot_of();
+    test_texture_of();
     test_unaligned_base();
     test_base_depth_limit();
     test_reasons_are_distinct();

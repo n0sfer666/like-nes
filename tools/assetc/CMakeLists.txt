@@ -8,6 +8,6 @@ add_executable(assetc assetc_main.cpp bakers.cpp bakers_table.cpp validate_mater
 # Бейк от этого не перестаёт работать на машине без GPU: бэкенды, которых нет, честно называются
 # пропущенными, и число проверенных печатается строкой.
 target_link_libraries(assetc PRIVATE asset_core ach_core material_bake material_validate
-  framework_input framework_character framework_tilemap framework_graphics)
+  light_bake framework_input framework_character framework_tilemap framework_graphics)
 target_copy_webgpu_binaries(assetc)
 reproducible_rpath(assetc)

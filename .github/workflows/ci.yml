@@ -359,6 +359,46 @@ jobs:
             grep -q "hot-reload: PASS" hotp.txt || { cat hotp.txt; exit 1; }
           fi
 
+      # Гейт 7 спеки #18 (вертикаль 3) — свет как ДАННЫЕ. Портируемая половина: сверка с эталонным
+      # PNG идёт у владельца на Metal (docs/owner-verification.md), здесь — те утверждения, которые
+      # одинаковы на Metal, lavapipe и WARP. Три из них несут собственный позитивный контроль:
+      # выключенный проход обязан вернуть кадр материалов БАЙТ В БАЙТ (иначе «выключается целиком»
+      # ничем не подтверждено), включённый обязан этот кадр изменить (иначе проход-пустышка
+      # неотличим от рабочего), а набор из ДРУГОГО числа источников обязан дать другой кадр — без
+      # последнего «читаем таблицу» неотличимо от «зашили столько же», и ровно это зашитое число
+      # (`array<vec4f, 6>`) и было прежним трактом.
+      # Шаг B той же вертикали — нормали спрайтов приходят из ТЕКСТУРНОГО СЛОТА материала. Строка
+      # счётчиков ассертится ЦЕЛИКОМ, вместе с числами: проход, привязавший одну карту всем, дал бы
+      # `7 mapped, 0 flat` или `0 mapped, 7 flat`, и смешанный набор — единственное место в логе,
+      # где это видно. Знак нормали здесь не проверяется вовсе: `--selftest` к нему слеп по
+      # устройству (перевёрнутый Y даёт ДРУГОЙ, но столь же стабильный кадр), его ловит эталонный
+      # PNG у владельца на Metal — сценарий 12 в docs/owner-verification.md.
+      # Шаг C — карта перекрытия и мягкие тени. Счётчики перекрывателей ассертятся ЦЕЛИКОМ и
+      # обязаны РАЗОЙТИСЬ со счётчиками нормалей (4/3 против 5/2): проход, читающий чужое имя слота,
+      # нашёл бы карты и дал бы кадр, и различает эти два набора только пара чисел. Сам вердикт про
+      # тени портируем — «тень только гасит» и «мягкость из таблицы меняет кадр» ловят
+      # перевёрнутый марш и константу в шейдере на любом бэкенде.
+      - name: Lights — count and normals come from tables, the pass switches off (gate 7 of spec #18)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'light_golden' -o -name 'light_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "light_golden not built"; exit 1; }
+          # Вердикт берётся ДВАЖДЫ — кодом возврата и строкой: оборвавшийся до отчёта прогон и
+          # прогон, напечатавший FAIL с нулём, молчат одинаково, а ломаются по-разному.
+          set +e
+          "$BIN" --selftest > light.txt 2>&1
+          rc=$?
+          set -e
+          cat light.txt
+          [ "$rc" -eq 0 ] || { echo "LIGHT SELFTEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "lights: 5 source(s) in the table, 5 uploaded" light.txt || {
+            echo "LIGHT COUNT CHANGED on ${{ matrix.os }} ($(wc -c < light.txt) bytes)"; exit 1; }
+          grep -q "normals: 5 mapped from the table, 2 flat, 0 naming an unknown asset" light.txt || {
+            echo "NORMAL SLOTS CHANGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "occluders: 4 mapped from the table, 3 open, 0 naming an unknown asset" light.txt || {
+            echo "OCCLUSION SLOTS CHANGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "light-gpu: PASS" light.txt || { echo "LIGHT GATE FAILED"; exit 1; }
+
       # --- Ассет-вертикаль (спека #5) — tools-free гейты на всех 3 ОС ---
       # Полный бейк (tint+basisu) + шов asset→render — локальный pinned-T4 (тулчейн не на
       # раннерах), как perceptual-golden render-PoC. CI гоняет детерм. синтетик (writer+zstd,
@@ -393,34 +433,44 @@ jobs:
           # с числом: список секций растёт осознанно, вместе с этой строкой.
           grep -q "verify: PASS - 5 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
-      # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: обе его секции пекутся чистыми
-      # парсерами — таблица материалов и текст модуля, — ни tint, ни basisu им не нужно, поэтому он
+      # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: все его секции пекутся чистыми
+      # парсерами — таблица материалов, текст модуля и таблица светов, — ни tint, ни basisu им не нужно, поэтому он
       # перепекается ЦЕЛИКОМ и сравнивается байт в байт. На бандле стоит живой прогон образца, и
       # правка library.mat без перепекания иначе доезжает молча. Печём из КОПИИ: у `--materials` был
       # трёхаргументный вид, где третий путь был выходом, и устаревший бинарь дважды написал бандл
       # поверх `sprite_effects.wgsl` — гейт портил ровно то, что проверяет.
-      - name: Asset — committed library.bundle matches engine/material/library + WGSL validated (all OS)
+      - name: Asset — committed library.bundle matches engine/{material,light}/library + WGSL validated (all OS)
         shell: bash
         run: |
           A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
           [ -n "$A" ] || { echo "assetc not built"; exit 1; }
           mkdir -p libsrc
           cp engine/material/library/library.mat engine/material/library/sprite_effects.wgsl libsrc/
-          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle | tee libbake.txt
+          cp engine/light/library/lights.txt libsrc/
+          "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/library.bundle \
+            --lights libsrc/lights.txt | tee libbake.txt
           cmp libsrc/library.bundle example_ugly_game/assets/library.bundle || {
-            echo "library.bundle ОТСТАЛ от engine/material/library on ${{ matrix.os }}"; exit 1; }
+            echo "library.bundle ОТСТАЛ от engine/material/library или engine/light/library on ${{ matrix.os }}"; exit 1; }
           # Контроль на КОНЦЫ СТРОК, и он здесь не теоретический: `core.autocrlf=true` на
           # Windows-раннере уже дал 6192 байта против 6080 — по лишнему на строку, — и гейт покраснел,
           # ничего не сказав про сами материалы. Байты артефакта обязаны быть функцией содержимого.
-          for f in library.mat sprite_effects.wgsl; do
-            python3 -c "import sys; d=open(sys.argv[1],'rb').read(); open(sys.argv[2],'wb').write(d.replace(b'\r\n', b'\n').replace(b'\n', b'\r\n'))" \
-              "libsrc/$f" "libsrc/crlf-$f"
-            cmp -s "libsrc/crlf-$f" "libsrc/$f" && {
-              echo "ПОДСТАНОВКА CRLF НЕ ИЗМЕНИЛА $f on ${{ matrix.os }}"; exit 1; }
+          # Оба варианта строятся ИЗ ОДНОГО входа, а не сравниваются с тем, что дал checkout: у
+          # `lights.txt` нет записи в `.gitattributes`, на Windows он приезжает уже с CRLF, и прежняя
+          # форма контроля («подстановка обязана изменить файл») краснела там, где вход и так нёс
+          # проверяемые концы строк (прогон 4863a46). Утверждение о ФАЙЛЕ — два его варианта
+          # различны — верно на любой ОС, и печётся теперь каждый из них.
+          for f in library.mat sprite_effects.wgsl lights.txt; do
+            python3 -c "import sys; d=open(sys.argv[1],'rb').read().replace(b'\r\n', b'\n'); open(sys.argv[2],'wb').write(d); open(sys.argv[3],'wb').write(d.replace(b'\n', b'\r\n'))" \
+              "libsrc/$f" "libsrc/lf-$f" "libsrc/crlf-$f"
+            cmp -s "libsrc/lf-$f" "libsrc/crlf-$f" && {
+              echo "ВАРИАНТЫ КОНЦОВ СТРОК СОВПАЛИ для $f on ${{ matrix.os }}"; exit 1; }
           done
-          "$A" --materials libsrc/crlf-library.mat libsrc/crlf-sprite_effects.wgsl libsrc/crlf.bundle
-          cmp libsrc/crlf.bundle example_ugly_game/assets/library.bundle || {
-            echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК on ${{ matrix.os }}"; exit 1; }
+          for v in lf crlf; do
+            "$A" --materials "libsrc/$v-library.mat" "libsrc/$v-sprite_effects.wgsl" \
+              "libsrc/$v.bundle" --lights "libsrc/$v-lights.txt"
+            cmp "libsrc/$v.bundle" example_ugly_game/assets/library.bundle || {
+              echo "library.bundle ЗАВИСИТ ОТ КОНЦОВ СТРОК ($v) on ${{ matrix.os }}"; exit 1; }
+          done
           # Позитивный контроль ТЕМ ЖЕ сравнением: испорченная копия обязана быть отбита, иначе
           # первая же опечатка в пути делает гейт вечно зелёным (правило vacuous-gate линтера).
           printf 'x' >> libsrc/library.bundle
@@ -447,13 +497,26 @@ jobs:
           # весь гейт держится на том, что библиотека валидна, и молчал бы при выключенной проверке.
           python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
             libsrc/sprite_effects.wgsl libsrc/bad.wgsl
-          if "$A" --materials libsrc/library.mat libsrc/bad.wgsl libsrc/bad.bundle > bad.txt 2>&1; then
+          if "$A" --materials libsrc/library.mat libsrc/bad.wgsl libsrc/bad.bundle \
+              --lights libsrc/lights.txt > bad.txt 2>&1; then
             echo "БИТЫЙ ШЕЙДЕР ПРИНЯТ БЕЙКОМ on ${{ matrix.os }}"; cat bad.txt; exit 1
           fi
           grep -q "libsrc/bad.wgsl:[0-9][0-9]*:[0-9][0-9]*: error:" bad.txt || {
             echo "ОТКАЗ БЕЗ ДИАГНОСТИКИ file:line:col on ${{ matrix.os }}"; cat bad.txt; exit 1; }
           [ ! -f libsrc/bad.bundle ] || {
             echo "ОТВЕРГНУТАЯ БИБЛИОТЕКА ОСТАВИЛА БАНДЛ НА ДИСКЕ on ${{ matrix.os }}"; exit 1; }
+          # Тот же контроль по ВТОРОМУ входу: битый источник светов обязан быть отбит на уровне
+          # ПЕКАРЯ — с именем файла и номером строки. Юнит-тест светов проверяет парсер, а шов
+          # assetc печатает диагностику своим `report()`, и разъехаться они могут порознь.
+          printf 'light | broken | point\nset | pos | 0,0\n' > libsrc/bad-lights.txt
+          if "$A" --materials libsrc/library.mat libsrc/sprite_effects.wgsl libsrc/badl.bundle \
+              --lights libsrc/bad-lights.txt > badl.txt 2>&1; then
+            echo "БИТЫЙ ИСТОЧНИК СВЕТА ПРИНЯТ БЕЙКОМ on ${{ matrix.os }}"; cat badl.txt; exit 1
+          fi
+          grep -q "lights libsrc/bad-lights.txt: line 1:" badl.txt || {
+            echo "ОТКАЗ СВЕТОВ БЕЗ ФАЙЛА И СТРОКИ on ${{ matrix.os }}"; cat badl.txt; exit 1; }
+          [ ! -f libsrc/badl.bundle ] || {
+            echo "ОТВЕРГНУТЫЕ СВЕТЫ ОСТАВИЛИ БАНДЛ НА ДИСКЕ on ${{ matrix.os }}"; exit 1; }
 
       # Диагностика гейта 2 обещана спекой #18 «совместимой с панелью #7». Обещание проверяется
       # утверждением: строку печатает форматтер валидатора, разбирает её парсер редактора.
@@ -464,6 +527,31 @@ jobs:
           [ -n "$BIN" ] || { echo "material_diag_compat_test not built"; exit 1; }
           "$BIN" | tee mdiag.txt
           grep -q "material-diag: PASS" mdiag.txt || { echo "SHADER DIAGNOSTIC IS NOT PANEL-COMPATIBLE on ${{ matrix.os }}"; exit 1; }
+
+      # Пять целей, которые дерево СОБИРАЛО и не запускало ни разу: `material_bake_test`,
+      # `material_source_test`, `material_table_test` и `material_library_test` до 2026-09-03 не
+      # назывались ни в одном шаге CI и ни в одном гейте preflight, то есть доказывали ровно
+      # компилируемость своего файла и молчали про то, ради чего написаны. Это тот же класс, что
+      # ловит правило `vacuous-gate` в ci_lint.py, только этажом выше. Свет (#18, вертикаль 3)
+      # заводится сюда с первого своего коммита, а не «потом».
+      # Вердикт берётся ДВАЖДЫ — кодом возврата и напечатанной строкой: тест, упавший до вывода
+      # итога, и тест, выведший FAIL с нулевым кодом, ломаются по-разному, а молчат одинаково.
+      - name: Material/Light — bakers, readers and refusals (all OS)
+        shell: bash
+        run: |
+          for t in material_bake_test material_source_test material_table_test \
+                   material_library_test light_table_test; do
+            B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
+            [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
+            "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
+            cat "$t.txt"
+            # Грепается СТРОКА ВЕРДИКТА, а не слово: голое `PASS` находится в любой строке, где
+            # оно случайно окажется, и «напечатал вердикт» переставало отличаться от «напечатал
+            # слово». Форм две — `<имя>: PASS` и голое `PASS` строкой целиком.
+            if ! grep -qE "^([a-z][a-z0-9-]*: )?PASS( |$)" "$t.txt"; then
+              echo "$t exited 0 without printing a verdict on ${{ matrix.os }}"; exit 1
+            fi
+          done
 
       - name: Asset — gate #2 (zero-copy / no per-frame heap) + gate #3 + hot-reload
         shell: bash

@@ -151,6 +151,21 @@ void Table::resolve(uint32_t i, float out[PARAM_BLOCK_FLOATS]) const {
     }
 }
 
+int32_t Table::texture_of(uint32_t i, const char* slot_name) const {
+    if (i >= count()) return -1;
+    for (uint32_t at = i, depth = 0; depth < MAX_BASE_DEPTH; ++depth) {
+        const MaterialRow& m = materials_[at];
+        for (uint32_t k = 0; k < m.texture_count; ++k) {
+            const TextureRow& row = textures_[m.texture_first + k];
+            if (std::strcmp(strings_ + row.name_off, slot_name) == 0)
+                return static_cast<int32_t>(m.texture_first + k);
+        }
+        if (m.base == NO_BASE) break;
+        at = m.base;
+    }
+    return -1;
+}
+
 int32_t Table::slot_of(uint32_t i, const char* param_name) const {
     if (i >= count()) return -1;
     for (uint32_t at = i, depth = 0; depth < MAX_BASE_DEPTH; ++depth) {

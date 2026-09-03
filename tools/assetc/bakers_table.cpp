@@ -8,6 +8,7 @@
 #include "../../engine/framework/graphics/atlas_bake.hpp"
 #include "../../engine/framework/input/preset_bake.hpp"
 #include "../../engine/framework/tilemap/map_bake.hpp"
+#include "../../engine/light/bake.hpp"
 #include "../../engine/material/bake.hpp"
 #include "baker_guid.hpp"
 #include "format.hpp"
@@ -140,6 +141,21 @@ bool materials(const std::string& src, const std::string& wgsl_src,
     wgsl.erase(std::remove(wgsl.begin(), wgsl.end(), static_cast<uint8_t>('\r')), wgsl.end());
     wgsl.push_back(0);   // модуль уезжает в wgpu строкой: терминатор кладёт пекарь, а не читатель
     push_table("effects.wgsl", std::move(wgsl), out);
+    return true;
+}
+
+// Светы (спека #18, вертикаль 3) — тот же чистый парсер, что у материалов, и по той же причине в
+// том же бандле: их потребитель — golden-харнесс рендера, а не игра-образец. Секция отдельная от
+// `materials`: у света своя ABI и свой читатель, а слитые в одну таблицу они заставляли бы
+// перепекать библиотеку эффектов ради передвинутого источника.
+bool lights(const std::string& src, std::vector<AssetInput>& out) {
+    std::vector<uint8_t> table;
+    light::BakeError err;
+    if (!light::bake_lights_file(src, table, err)) {
+        report("lights", src, err.line, err.message);
+        return false;
+    }
+    push_table("lights", std::move(table), out);
     return true;
 }
 

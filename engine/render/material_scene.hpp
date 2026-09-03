@@ -2,6 +2,7 @@
 
 #include <webgpu/webgpu.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <vector>
 
@@ -38,12 +39,24 @@ public:
 
     uint32_t instances() const { return static_cast<uint32_t>(items_.size()); }
 
+    // Проход нормалей рисует ЭТИ ЖЕ инстансы своим пайплайном, поэтому ему нужны и они, и
+    // материал каждого из них: карту нормали выбирает материал, а порядок инстансов задан
+    // батчингом сцены, и вывести одно из другого делением на `PER_MATERIAL` уже нельзя.
+    const std::vector<mat::Instance>& items() const { return items_; }
+    uint32_t item_material(uint32_t i) const { return item_material_[i]; }
+
+    // Альбедо сцены: проходу нормалей оно нужно как ПОКРЫТИЕ — за кромкой спрайта нормали нет.
+    WGPUTextureView albedo_view() const { return albedo_view_; }
+
 private:
     WGPUDevice device_ = nullptr;
     WGPUQueue queue_ = nullptr;
     WGPUBuffer quad_vbo_ = nullptr;
     WGPUBuffer quad_ibo_ = nullptr;
     WGPUBuffer inst_vbo_ = nullptr;
+    // Ёмкость инстансного буфера в БАЙТАХ: сцена шире выделенного иначе пишет за границу, а
+    // `build()` возвращается молча (то же поле и по той же причине есть у `slotgfx::Pass`).
+    std::size_t inst_bytes_ = 0;
     WGPUBuffer vp_ubo_ = nullptr;
     WGPUTexture albedo_ = nullptr;
     WGPUTexture aux_ = nullptr;
@@ -52,6 +65,7 @@ private:
     WGPUSampler sampler_ = nullptr;
     WGPUBindGroup bg_ = nullptr;
     std::vector<mat::Instance> items_;
+    std::vector<uint32_t> item_material_;
     std::vector<Batch> batches_;
 };
 
