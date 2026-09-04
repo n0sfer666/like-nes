@@ -48,10 +48,10 @@ case "$(uname -s)" in
   Linux) echo "release-check: ПРОПУЩЕНО делегирование linux — на линукс-хосте это своя сборка" ;;
   *) assert_linux_delegated "$ROOT/scripts/release.sh" || FAIL=1 ;;
 esac
-case "$(uname -s)" in
-  MINGW*|MSYS*|CYGWIN*) echo "release-check: ПРОПУЩЕНО отказ по windows — на windows-хосте это своя сборка" ;;
-  *) assert_windows_refused "$ROOT/scripts/release.sh" || FAIL=1 ;;
-esac
+# Ветвления по ОС у этого утверждения больше нет: чужой хост оно делает себе само (заглушка uname),
+# поэтому проверяется на всех трёх одинаково. Раньше ветвление было нужно, потому что предметом был
+# `--only windows`, своя сборка на windows-раннере.
+assert_foreign_platform_refused "$ROOT/scripts/release.sh" || FAIL=1
 
 if [ -z "$LIVE" ]; then
   if [ "$FAIL" = 0 ]; then echo "release-container-check: PASS (правила; живая сборка — с --live)"; fi

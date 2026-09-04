@@ -41,6 +41,20 @@ copy_script() {
   [ -s "$dst" ] || { printf 'refusal-selftest: БРАК копия %s пуста\n' "$name" >&2; exit 1; }
 }
 
+# Подмена, которая ничего не подменила, читается ровно как «утверждение её отбило»: копия остаётся
+# нетронутой, а утверждение честно проходит. Так и вышло — проверка `--platform` переехала выше
+# диспатча и обросла вторым условием, sed по старой строке промахнулся, и фикстура «съеден молча»
+# полгейта проверяла собственный промах. Сравнение с оригиналом отбирает у промаха право быть
+# вердиктом: это тот же класс, что правило vacuous-gate в ci_lint.py.
+mutated() {
+  local dst
+  dst=$(copy_path "$1")
+  if cmp -s "$ROOT/scripts/release.sh" "$dst"; then
+    printf 'refusal-selftest: БРАК подмена %s ничего не изменила\n' "$1" >&2
+    BAD=1
+  fi
+}
+
 expect() {
   local want="$1" name="$2"; shift 2
   local rc=0
@@ -57,7 +71,7 @@ expect() {
 # сломанный близнец. Без этой пары «подмена отбита» неотличимо от «файла нет».
 copy_script "$ROOT/scripts/release.sh" intact.sh
 INTACT=$(copy_path intact.sh)
-expect pass "нетронутая копия · windows код 3" assert_windows_refused "$INTACT"
+expect pass "нетронутая копия · чужая платформа код 3" assert_foreign_platform_refused "$INTACT"
 expect pass "нетронутая копия · --platform отвергнут" assert_platform_rejected_on_host "$INTACT"
 case "$(uname -s)" in
   Linux) echo "refusal-selftest: ПРОПУЩЕНО нетронутая копия · делегирование — на линукс-хосте это своя сборка" ;;
@@ -65,7 +79,7 @@ case "$(uname -s)" in
 esac
 
 # Фикстура воспроизводит НАХОДКУ ревью, а не гипотезу: резолюция версии, поднятая обратно над
-# диспатчем, отбирает у `--only windows` его код 3 на HEAD без тега — отказ выходит кодом 2
+# диспатчем, отбирает у чужой платформы её код 3 на HEAD без тега — отказ выходит кодом 2
 # («укажи --version»), и оркестратор читает незакрытую вертикаль как свою же опечатку. Пока
 # утверждение звало только форму С `--version`, эта правка проходила молча.
 copy_script "$ROOT/scripts/release.sh" hoisted.sh
@@ -77,14 +91,16 @@ s = open(p).read()
 m = 'if [ "$ONLY" != "$HOST" ]; then\n'
 open(p, 'w').write(s.replace(m, 'VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2\n' + m, 1))
 PY
-expect fail "версия резолвится над диспатчем" assert_windows_refused "$HOISTED"
+mutated hoisted.sh
+expect fail "версия резолвится над диспатчем" assert_foreign_platform_refused "$HOISTED"
 
-# Отказ по windows обязан остаться кодом 3 и тогда, когда его подменили кодом 2: без этой фикстуры
-# «windows за CI» прошло бы на скрипте, который перестал различать коды вовсе.
+# Отказ чужой платформе обязан остаться кодом 3 и тогда, когда его подменили кодом 2: без этой
+# фикстуры «linux больше не 3» прошло бы на скрипте, который перестал различать коды вовсе.
 copy_script "$ROOT/scripts/release.sh" code2.sh
 CODE2=$(copy_path code2.sh)
 sed 's|^  exit 3$|  exit 2|' "$CODE2" > "$CODE2.tmp" && mv "$CODE2.tmp" "$CODE2"
-expect fail "чужой платформе чужой код" assert_windows_refused "$CODE2"
+mutated code2.sh
+expect fail "чужой платформе чужой код" assert_foreign_platform_refused "$CODE2"
 
 copy_script "$ROOT/scripts/release.sh" refuse.sh
 REFUSE=$(copy_path refuse.sh)
@@ -97,6 +113,7 @@ j = s.index('      ;;\n', i) + len('      ;;\n')
 s = s[:i] + '    linux) echo "release: linux не здесь" >&2 ;;\n' + s[j:]
 open(p, 'w').write(s)
 PY
+mutated refuse.sh
 case "$(uname -s)" in
   Linux) echo "refusal-selftest: ПРОПУЩЕНО linux снова отказ кодом 3 — на линукс-хосте это своя сборка" ;;
   *) expect fail "linux снова отказ кодом 3" assert_linux_delegated "$REFUSE" ;;
@@ -104,7 +121,9 @@ esac
 
 copy_script "$ROOT/scripts/release.sh" eaten.sh
 EATEN=$(copy_path eaten.sh)
-sed 's|^if \[ -n "\$PLATFORM" \]; then$|if false; then|' "$EATEN" > "$EATEN.tmp" && mv "$EATEN.tmp" "$EATEN"
+sed 's|^if \[ -n "\$PLATFORM" \] && \[ "\$ONLY" != linux \]; then$|if false; then|' \
+  "$EATEN" > "$EATEN.tmp" && mv "$EATEN.tmp" "$EATEN"
+mutated eaten.sh
 expect fail "--platform съеден молча" assert_platform_rejected_on_host "$EATEN"
 
 if [ "$BAD" = 0 ]; then
