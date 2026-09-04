@@ -73,3 +73,25 @@ pack_dir() {
   rm -f "$list"
   return "$rc"
 }
+
+# Версия разрешается ОДНОЙ функцией на оба входа — хостовый release.sh и контейнерный
+# release_container.sh. Копия правила во втором значила бы, что отсутствие тега ловится уже ВНУТРИ
+# контейнера, то есть после сборки образа: пятнадцать минут ожидания ради сообщения, которое
+# известно на первой секунде.
+resolve_version() {
+  local root="$1" version="$2"
+  if [ -z "$version" ]; then
+    version=$(git -C "$root" describe --tags --exact-match HEAD 2>/dev/null || true)
+  fi
+  # Версии нет — отказ. Подстановка "0.0.0" дала бы пакет, чей штамп не отличает релиз от
+  # случайного состояния дерева, а узнаётся это только у того, кто его уже скачал.
+  if [ -z "$version" ]; then
+    echo "release: на HEAD нет тега и версия не названа — укажи --version vX.Y.Z" >&2
+    return 1
+  fi
+  if ! printf '%s' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$'; then
+    echo "release: версия '$version' не похожа на тег vX.Y.Z" >&2
+    return 1
+  fi
+  printf '%s\n' "$version"
+}

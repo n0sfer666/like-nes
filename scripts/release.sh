@@ -16,6 +16,8 @@ VERSION=""
 ONLY=""
 OUT="$ROOT/release"
 BUILD="$ROOT/build-release"
+BUILD_SET=""
+PLATFORM=""
 
 usage() {
   cat <<'USAGE'
@@ -25,6 +27,8 @@ usage: scripts/release.sh [--version vX.Y.Z] [--only host|linux|windows] [--out 
   --out      куда класть пакеты (умолчание release/, он в .gitignore)
   --build    каталог сборки, СВОЙ у релиза (умолчание build-release/): конфигурация здесь
              релизная, и чужой каталог она бы переписала
+  --platform платформа контейнера для --only linux (умолчание — архитектура хоста); чужая
+             архитектура идёт через эмуляцию и стоит часы, поэтому она называется явно
 USAGE
 }
 
@@ -40,7 +44,8 @@ while [ $# -gt 0 ]; do
     --version) need_value $# "$1"; VERSION="$2"; shift 2 ;;
     --only) need_value $# "$1"; ONLY="$2"; shift 2 ;;
     --out) need_value $# "$1"; OUT="$2"; shift 2 ;;
-    --build) need_value $# "$1"; BUILD="$2"; shift 2 ;;
+    --build) need_value $# "$1"; BUILD="$2"; BUILD_SET=1; shift 2 ;;
+    --platform) need_value $# "$1"; PLATFORM="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "release: непонятый аргумент: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -63,30 +68,43 @@ case "$ONLY" in
   linux|windows|macos) ;;
   *) echo "release: --only принимает host|linux|windows, получено: $ONLY" >&2; exit 2 ;;
 esac
-# Код 3 — «эта платформа собирается не здесь», отдельный от кода 2 («ошибка употребления»): первый
-# ждёт оркестратор, чтобы отличить незакрытую вертикаль от опечатки в своей же команде.
+
+# Чужая платформа не собирается хостом, но и не отвергается одинаково: Linux уезжает в контейнер
+# на этой же машине (вертикаль 2), Windows остаётся за CI. Код 3 — «эта платформа собирается не
+# здесь», отдельный от кода 2 («ошибка употребления»): первый ждёт оркестратор, чтобы отличить
+# незакрытую вертикаль от опечатки в своей же команде.
 if [ "$ONLY" != "$HOST" ]; then
   case "$ONLY" in
-    linux) echo "release: пакет Linux собирается в контейнере (вертикаль 2 спеки #20), не хостом $HOST" >&2 ;;
+    linux)
+      # Версия резолвится ЗДЕСЬ, а не над `case`: общая точка стоила отказу по windows его кода.
+      # Пока `resolve_version` жил выше диспатча, `--only windows` на HEAD без тега умирал кодом 2
+      # («укажи --version») вместо обещанного кода 3 со словами про CI — то есть оркестратор читал
+      # незакрытую вертикаль как свою же опечатку. Контейнерной ветке ранняя резолюция нужна:
+      # сборка образа стоит четверть часа, и узнавать про отсутствующий тег после неё поздно.
+      VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2
+      # Делегирование, а не вторая реализация: контейнер даёт линукс-ХОСТ, внутри которого работает
+      # ЭТОТ ЖЕ скрипт. Пакет, собранный вторым упаковщиком, отличался бы от хостового составом или
+      # нормализацией архива, и узнали бы об этом по расхождению сумм у того, кто его скачал.
+      set -- --version "$VERSION" --out "$OUT"
+      # `[ … ] && set --` здесь был бы миной: под `set -e` ложное условие само становится
+      # ненулевым кодом строки, и прогон БЕЗ --platform умирал бы молча, ровно на главном пути.
+      if [ -n "$PLATFORM" ]; then set -- "$@" --platform "$PLATFORM"; fi
+      if [ -n "$BUILD_SET" ]; then set -- "$@" --build "$BUILD"; fi
+      exec bash "$ROOT/scripts/release_container.sh" "$@"
+      ;;
     windows) echo "release: пакет Windows собирается задачей CI (.github/workflows/release.yml) и забирается gh run download, не хостом $HOST" >&2 ;;
     *) echo "release: пакет $ONLY собирается не хостом $HOST" >&2 ;;
   esac
   exit 3
 fi
+# --platform относится к контейнеру и на хостовой сборке не значит ничего. Молча съеденный флаг
+# читается как выполненный: «собрал под linux/amd64» вышло бы из прогона, собравшего под хост.
+if [ -n "$PLATFORM" ]; then
+  echo "release: --platform относится к --only linux (контейнер), а этот прогон собирает $ONLY хостом" >&2
+  exit 2
+fi
+VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2
 
-if [ -z "$VERSION" ]; then
-  VERSION=$(git -C "$ROOT" describe --tags --exact-match HEAD 2>/dev/null || true)
-fi
-# Версии нет — отказ. Подстановка "0.0.0" дала бы пакет, чей штамп не отличает релиз от случайного
-# состояния дерева, а узнаётся это только у того, кто его уже скачал.
-if [ -z "$VERSION" ]; then
-  echo "release: на HEAD нет тега и версия не названа — укажи --version vX.Y.Z" >&2
-  exit 2
-fi
-if ! printf '%s' "$VERSION" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+([-.][A-Za-z0-9.]+)?$'; then
-  echo "release: версия '$VERSION' не похожа на тег vX.Y.Z" >&2
-  exit 2
-fi
 
 NAME="like-nes-engine-$VERSION-$TRIPLE"
 STAGE="$BUILD/stage/$NAME"
@@ -103,7 +121,7 @@ rm -rf "$STAGE"
 # Поэтому чужой каталог — отказ, а не молчаливая перенастройка. Это тот же класс, что чинит
 # LIKE_NES_BUILD_TYPE в build_check.sh, только пойманный с другой стороны.
 if [ -f "$BUILD/CMakeCache.txt" ] && ! grep -q '^LIKE_NES_RELEASE:BOOL=ON$' "$BUILD/CMakeCache.txt"; then
-  echo "release: каталог $BUILD сконфигурирован не релизом — назови свой через --build" >&2
+  echo "release: каталог $BUILD сконфигурирован не релизом (или недоконфигурирован упавшим прогоном) — назови свой через --build или удали его" >&2
   exit 2
 fi
 

@@ -1716,11 +1716,12 @@ picture; the picture is engine work, not yours.
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
 
-> **One third of this gate is runnable today.** Vertical 1 of spec #20 builds the **macOS** engine
-> package and nothing else: `scripts/release.sh --only linux` and `--only windows` refuse with a
-> sentence naming the container and the CI job that will build them in the next verticals. That
-> refusal is the honest state, not a bug to report — what needs your machines now is the other half
-> of the claim: a package built here has to run **there**, on a box that never saw this source tree.
+> **Two thirds of this gate are runnable today.** Verticals 1 and 2 of spec #20 build the **macOS**
+> package on the host and the **Linux** package in a container on that same host;
+> `scripts/release.sh --only windows` still refuses with a sentence naming the CI job that will
+> build it in the next vertical. That refusal is the honest state, not a bug to report — what needs
+> your machines now is the other half of the claim: a package built here has to run **there**, on a
+> box that never saw this source tree.
 
 ### The run (macOS)
 
@@ -1780,6 +1781,46 @@ Everything above except point 3 is also asserted mechanically by `bash scripts/c
 which **packages twice out of one build** (in its own `build-release` directory) and compares the
 runs — contents file by file, the stamp, the archive's normalisation and the sums. What it cannot
 ask is whether the thing runs on a machine that is not this one.
+
+### The run (Linux package, built on macOS)
+
+Needs docker or podman with a **live** daemon — Docker Desktop actually running. With neither, the
+script exits 4 and prints what to install (`brew install --cask docker` or `brew install podman`);
+that is a refusal, not a crash, and it is a different code from the 3 that means "this platform is
+not built here".
+
+```
+bash scripts/release.sh --version v0.1.0 --only linux
+```
+
+```
+release: контейнер docker, платформа linux/arm64, образ like-nes-release:33ceb71981b6-aarch64
+release: база ubuntu@sha256:33ceb719...517
+<docker build output; CACHED once the layer exists>
+release: like-nes-engine-v0.1.0-linux-aarch64
+
+package                                            size  files  sha256
+like-nes-engine-v0.1.0-linux-aarch64.tar.gz     <bytes>     11  <64 hex>
+
+внутри: like-nes/bin/assetc like-nes/bin/editor_shell like-nes/bin/libwgpu_native.so ...
+release: пакет Linux собран: release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz
+```
+
+The container runs **the same `release.sh`** — it supplies a Linux host, not a second packer — so
+the table and the contents match the macOS run except for the runtime name (`libwgpu_native.so`).
+The tree is mounted read-only and the build directory lives outside it, so `git status` is clean
+afterwards. The base image is pinned by **digest**, not by the `ubuntu:24.04` tag: a tag moves to a
+new image silently, and a package built by "the same command" would stop being the same package.
+
+Then copy `release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz` to a Linux box with no source
+tree and no toolchain, and run the same four steps as above. Point 3 is where the clean distro's
+X11/Wayland dependencies surface — that is gate 5 of this spec, and no runner can answer it.
+
+`bash scripts/check_release_container.sh --live` asserts everything except points 2-3 **on a foreign
+machine**: it builds the package in the container twice and compares composition, stamp, runtime
+name, archive normalisation and sums across the two runs. Without `--live` the same gate checks only
+the rules (digest pin, read-only mount, refusal codes) and needs no daemon — that is the form that
+runs inside `scripts/preflight.sh`.
 
 ## Beyond the gates
 
