@@ -47,12 +47,15 @@ assert_composition() {
 
 # Отдельно от состава, потому что имя файла и его содержимое — разные утверждения: лицензия,
 # ужавшаяся до нуля байт, проходит проверку по имени и нарушает регресс спеки #9 ровно так же.
+# Подкаталог лицензий — АРГУМЕНТ с умолчанием: у tar.gz это `like-nes/licenses`, у бандла macOS —
+# `like-nes.app/Contents/Resources/licenses`, а утверждение про регресс спеки #9 одно и то же.
+# Вторая копия правила для второго формата разошлась бы с первой ровно на седьмом файле.
 assert_licenses() {
-  local root="$1" pkg_root="$2" n=0 lic
+  local root="$1" pkg_root="$2" sub="${3:-like-nes/licenses}" n=0 lic
   while read -r lic; do
     [ -n "$lic" ] || continue
     local f
-    f="$pkg_root/like-nes/licenses/$(basename "$lic")"
+    f="$pkg_root/$sub/$(basename "$lic")"
     if [ ! -s "$f" ]; then bad "лицензия пуста или отсутствует: $(basename "$lic")"; return 1; fi
     n=$((n + 1))
   done < "$root/cmake/licenses.manifest"
@@ -69,9 +72,9 @@ assert_licenses() {
 # что архив с именем `…-macos-arm64` мог нести внутри `target Darwin-arm64`, а на Linux — вообще
 # чужую платформу, и ни одно утверждение этого не видело: старое принимало ЛЮБУЮ строку.
 assert_stamp() {
-  local pkg_root="$1" want="$2" triple="$3"
+  local pkg_root="$1" want="$2" triple="$3" rel="${4:-like-nes/version.txt}"
   local f n l1 l2 l3
-  f="$pkg_root/like-nes/version.txt"
+  f="$pkg_root/$rel"
   [ -f "$f" ] || { bad "нет version.txt"; return 1; }
   n=$(wc -l < "$f" | tr -d ' ')
   if [ "$n" != 3 ]; then bad "в штампе $n строк, а их ровно три"; return 1; fi
@@ -92,13 +95,20 @@ assert_stamp() {
 # нашим списком: expected_files ветвится по ОС руками, и самопроверка строит фикстуру из него же —
 # ошибись имя `wgpu_native.dll`, и обе половины ошиблись бы одинаково, оставшись зелёными. Источник
 # здесь независимый, поэтому утверждение работает на той ОС, где гейт гоняется по-настоящему.
-assert_runtime_named() {
-  local cache="$1" pkg_root="$2" lib base
+# Имя рантайма читается из кеша ОДНОЙ функцией: его спрашивают и утверждение о составе, и
+# утверждение о rpath, а две копии разбора разъехались бы с кешем поодиночке и молча.
+runtime_lib_name() {
+  local cache="$1" lib
   [ -f "$cache" ] || { bad "нет $cache — имя рантайма сверить не с чем"; return 1; }
   lib=$(grep -m1 '^WGPU_RUNTIME_LIB:' "$cache" | sed 's/^[^=]*=//')
   [ -n "$lib" ] || { bad "в кеше CMake нет WGPU_RUNTIME_LIB"; return 1; }
-  base=$(basename "$lib")
-  if [ ! -f "$pkg_root/like-nes/bin/$base" ]; then
+  basename "$lib"
+}
+
+assert_runtime_named() {
+  local cache="$1" pkg_root="$2" bin="${3:-like-nes/bin}" base
+  base=$(runtime_lib_name "$cache") || return 1
+  if [ ! -f "$pkg_root/$bin/$base" ]; then
     bad "рантайм CMake зовётся $base, а в пакете его нет"
     return 1
   fi

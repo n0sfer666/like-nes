@@ -11,6 +11,8 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # shellcheck source=scripts/release_lib.sh
 . "$ROOT/scripts/release_lib.sh"
+# shellcheck source=scripts/release_dmg_lib.sh
+. "$ROOT/scripts/release_dmg_lib.sh"
 
 VERSION=""
 ONLY=""
@@ -150,6 +152,22 @@ STAMP=$(release_stamp "$ROOT")
 manifest_of "$STAGE" > "$DEST/$NAME.manifest"
 pack_dir "$STAGE" "$PKG" "$STAMP"
 
+# macOS получает ВДОБАВОК образ с бандлом (решение 2 спеки #20). Именно вдобавок: «переносимый
+# вариант есть всегда» — то же решение, и tar.gz остаётся способом поставить движок без монтирования
+# и перетаскивания. Бандл раскладывается из УЖЕ УСТАНОВЛЕННОГО стейджа, поэтому вторым списком
+# файлов состав здесь не задаётся и разъехаться ему не с чем.
+DMG=""
+if [ "$HOST" = macos ]; then
+  DMG="$DEST/$NAME.dmg"
+  VOL="$BUILD/stage/$NAME.vol"
+  rm -rf "$VOL"
+  mkdir -p "$VOL"
+  dmg_make_app "$STAGE" "$VOL/$DMG_APP_NAME" "$VERSION"
+  dmg_seal_volume "$VOL" "$STAMP"
+  manifest_of "$VOL" > "$DEST/$NAME.dmg.manifest"
+  dmg_pack "$VOL" "$DMG" "like-nes $VERSION"
+fi
+
 SUM=$(sha256_of "$PKG")
 # Пересчёт по фактическому содержимому каталога, а не дописывание строки этого прогона: правило
 # живёт в release_lib.sh, потому что тот же каталог наполняет и оркестратор CI (release_ci.sh).
@@ -163,5 +181,19 @@ SIZE=$(wc -c < "$PKG" | tr -d ' ')
 # docs/owner-setup.txt как ожидаемый вывод.
 printf '\n%-46s %10s %6s  %s\n' "package" "size" "files" "sha256"
 printf '%-46s %10s %6s  %s\n' "$(basename "$PKG")" "$SIZE" "$FILES" "$SUM"
+# Число файлов у образа считается по ЕГО манифесту, а не арифметикой от архива: «стейдж плюс один
+# Info.plist» верно ровно до первого файла, который бандл добавит от себя (иконка), и с этого дня
+# напечатанное число врало бы молча — а владелец сверяет прогоны именно по этой таблице.
+if [ -n "$DMG" ]; then
+  printf '%-46s %10s %6s  %s\n' "$(basename "$DMG")" "$(wc -c < "$DMG" | tr -d ' ')" \
+    "$(wc -l < "$DEST/$NAME.dmg.manifest" | tr -d ' ')" "$(sha256_of "$DMG")"
+fi
 printf '\nвнутри: %s\n' "$(cd "$STAGE" && find . -type f | LC_ALL=C sort | sed 's|^\./||' | tr '\n' ' ')"
 printf 'манифест: %s\nсуммы:    %s\n' "$DEST/$NAME.manifest" "$DEST/SHA256SUMS"
+# Сказано ВСЛУХ и там, где стоит меняющееся число: владелец сверяет два прогона по этой самой
+# таблице, и строка .dmg, разная в каждом, без объяснения читается как находка.
+if [ -n "$DMG" ]; then
+  printf 'манифест образа: %s\n' "$DEST/$NAME.dmg.manifest"
+  printf 'сумма И РАЗМЕР .dmg от прогона к прогону разные (hdiutil пишет в UDIF время и UUID);\n'
+  printf 'воспроизводится СОДЕРЖИМОЕ образа — его сверяет scripts/check_release_dmg.sh\n'
+fi
