@@ -11,15 +11,18 @@ bad() { printf 'release-check: FAIL %s\n' "$1" >&2; }
 # Ожидаемый состав считается из ТЕХ ЖЕ источников, что и сам пакет: список лицензий — из
 # cmake/licenses.manifest (его читает cmake/licenses.cmake), имя рантайма — из ОС. Рукописная копия
 # разъехалась бы с install_engine.cmake молча, и гейт продолжал бы утверждать вчерашний состав.
+# Целевая ОС — АРГУМЕНТ, а не всегда `uname`: контейнерный пакет собирается под Linux с macOS, и
+# состав, посчитанный по хосту, ждал бы там `libwgpu_native.dylib`. Умолчание оставлено хостом,
+# потому что у хостового гейта другого источника платформы и нет.
 expected_files() {
-  local root="$1" lic
+  local root="$1" os="${2:-$(uname -s)}" lic
   # Незнакомая ОС — отказ, как и в release.sh: ветка `*)` молча раздавала Linux-именование, и на
   # FreeBSD самопроверка проходила бы вакуумно, утверждая состав, которого там не бывает.
-  case "$(uname -s)" in
+  case "$os" in
     Darwin) printf 'like-nes/bin/assetc\nlike-nes/bin/editor_shell\nlike-nes/bin/libwgpu_native.dylib\n' ;;
     MINGW*|MSYS*|CYGWIN*) printf 'like-nes/bin/assetc.exe\nlike-nes/bin/editor_shell.exe\nlike-nes/bin/wgpu_native.dll\n' ;;
     Linux) printf 'like-nes/bin/assetc\nlike-nes/bin/editor_shell\nlike-nes/bin/libwgpu_native.so\n' ;;
-    *) bad "незнакомая ОС $(uname -s) — ожидаемый состав пакета неизвестен"; return 1 ;;
+    *) bad "незнакомая ОС $os — ожидаемый состав пакета неизвестен"; return 1 ;;
   esac
   while read -r lic; do
     [ -n "$lic" ] && printf 'like-nes/licenses/%s\n' "$(basename "$lic")"
@@ -31,9 +34,9 @@ expected_files() {
 # названный здесь, обязан валить гейт. Проверка «ожидаемое ⊆ фактическому» пропускала бы и лишний
 # файл, и целый чужой каталог, заехавший в пакет вместе с ним.
 assert_composition() {
-  local root="$1" pkg_root="$2" got exp
+  local root="$1" pkg_root="$2" os="${3:-}" got exp
   got=$( cd "$pkg_root" && find . -type f | sed 's|^\./||' | LC_ALL=C sort )
-  exp=$( expected_files "$root" | LC_ALL=C sort )
+  exp=$( expected_files "$root" ${os:+"$os"} | LC_ALL=C sort )
   if [ "$got" != "$exp" ]; then
     bad "состав пакета разошёлся с ожидаемым"
     diff <(printf '%s\n' "$exp") <(printf '%s\n' "$got") | sed 's/^/       /' >&2 || true

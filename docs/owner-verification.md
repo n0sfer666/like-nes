@@ -1716,11 +1716,11 @@ picture; the picture is engine work, not yours.
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
 
-> **One third of this gate is runnable today.** Vertical 1 of spec #20 builds the **macOS** engine
-> package and nothing else: `scripts/release.sh --only linux` and `--only windows` refuse with a
-> sentence naming the container and the CI job that will build them in the next verticals. That
-> refusal is the honest state, not a bug to report — what needs your machines now is the other half
-> of the claim: a package built here has to run **there**, on a box that never saw this source tree.
+> **All three packages are runnable from one machine today.** Verticals 1–3 of spec #20 build the
+> **macOS** package on the host, the **Linux** package in a container on that same host, and the
+> **Windows** package in a CI job whose artifact the script downloads and verifies. What needs your
+> machines is the other half of the claim: a package built here has to run **there**, on a box that
+> never saw this source tree.
 
 ### The run (macOS)
 
@@ -1781,6 +1781,112 @@ which **packages twice out of one build** (in its own `build-release` directory)
 runs — contents file by file, the stamp, the archive's normalisation and the sums. What it cannot
 ask is whether the thing runs on a machine that is not this one.
 
+### The run (Linux package, built on macOS)
+
+Needs docker or podman with a **live** daemon — Docker Desktop actually running. With neither, the
+script exits 4 and prints what to install (`brew install --cask docker` or `brew install podman`);
+that is a refusal, not a crash, and it is a different code from the 3 that means "this platform is
+not built here".
+
+```
+bash scripts/release.sh --version v0.1.0 --only linux
+```
+
+```
+release: контейнер docker, платформа linux/arm64, образ like-nes-release:33ceb71981b6-aarch64
+release: база ubuntu@sha256:33ceb719...517
+<docker build output; CACHED once the layer exists>
+release: like-nes-engine-v0.1.0-linux-aarch64
+
+package                                            size  files  sha256
+like-nes-engine-v0.1.0-linux-aarch64.tar.gz     <bytes>     11  <64 hex>
+
+внутри: like-nes/bin/assetc like-nes/bin/editor_shell like-nes/bin/libwgpu_native.so ...
+release: пакет Linux собран: release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz
+```
+
+The container runs **the same `release.sh`** — it supplies a Linux host, not a second packer — so
+the table and the contents match the macOS run except for the runtime name (`libwgpu_native.so`).
+The tree is mounted read-only and the build directory lives outside it, so `git status` is clean
+afterwards. The base image is pinned by **digest**, not by the `ubuntu:24.04` tag: a tag moves to a
+new image silently, and a package built by "the same command" would stop being the same package.
+
+Then copy `release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz` to a Linux box with no source
+tree and no toolchain, and run the same four steps as above. Point 3 is where the clean distro's
+X11/Wayland dependencies surface — that is gate 5 of this spec, and no runner can answer it.
+
+`bash scripts/check_release_container.sh --live` asserts everything except points 2-3 **on a foreign
+machine**: it builds the package in the container twice and compares composition, stamp, runtime
+name, archive normalisation and sums across the two runs. Without `--live` the same gate checks only
+the rules (digest pin, read-only mount, refusal codes) and needs no daemon — that is the form that
+runs inside `scripts/preflight.sh`.
+
+### The Windows package (from CI)
+
+Needs `gh`, authenticated against this repository. No client or no login is refusal code 4 naming
+which of the two to fix — "install it" and "log in" are different actions.
+
+```
+bash scripts/release.sh --version v0.1.0 --only windows
+```
+
+```
+release: жду прогон release_engine.yml на коммите <12 hex> (артефакт like-nes-engine-windows)
+release: прогон <id> зелёный (опросов <N>)
+release-check: OK  архив доехал целым (сумма совпала с SHA256SUMS артефакта)
+release-check: OK  цепочка сошлась: прогон на <commit>, тот же коммит в штампе, версия v0.1.0
+release: пакет Windows приехал: release/v0.1.0/like-nes-engine-v0.1.0-windows-x86_64.tar.gz
+```
+
+The run needs the tag pushed: the run is located **by the commit the tag points at**, never by the
+tag name — a tag is moved by one command, and a run found by it could have been built from another
+tree. With no tag on HEAD, dispatch it by hand:
+`bash scripts/release_ci.sh --dispatch --version v0.1.0-check`.
+
+A manual dispatch only works once `release_engine.yml` has landed in `main`: GitHub reads
+`workflow_dispatch` from the **default branch**, not from the branch the run is asked for. While the
+file lives only in `dev`, `gh` answers `could not find any workflows named release_engine.yml` —
+that is a statement about the branch, not about the machine. The orchestrator checks earlier still
+that the local commit is on the remote, and refuses with «the run would build another tree» when it
+is not.
+
+Inside the job the **same `release.sh`** runs: CI supplies a Windows host, not a second packer. The
+chain assertion is the whole point of the path — the run must be on our commit, the artifact must
+come from that run, and the stamp inside the package must name that same commit. All three agree
+and *that* package arrived; they disagree and *some* package arrived, and the difference is
+everything a foreign machine costs. The sum is compared against the `SHA256SUMS` that travelled in
+the same artifact, which is a claim about **delivery, not authenticity** — the artifact carries no
+signature, and calling that check a defence would be a lie.
+
+The package is then asserted the way a locally built one is — **composition by name, licences, stamp
+with the triple** — because the chain says nothing about contents: a package with no
+`editor_shell.exe`, no `wgpu_native.dll` or a zero-byte licence agreed on both stamp lines and
+arrived as a success. The run itself asserts nothing either: it is `release.sh` and an upload.
+
+A red run is a refusal with a link (`gh run view <id> --log-failed`), not a hang: green, red and
+still-running are three outcomes, and a red one does not wait out the deadline.
+
+Then copy `like-nes-engine-v0.1.0-windows-x86_64.tar.gz` to a Windows box with no source tree and no
+MSVC:
+
+```
+tar -xzf like-nes-engine-v0.1.0-windows-x86_64.tar.gz
+type like-nes\version.txt
+like-nes\bin\assetc.exe --synthetic %TEMP%\probe.bundle
+like-nes\bin\editor_shell.exe
+```
+
+1. `version.txt` names the version, the commit and the `windows-x86_64` triple.
+2. `assetc` prints its bake line; a missing-DLL error is a finding — the wgpu runtime ships beside
+   the binaries.
+3. `editor_shell` opens a window. A demand for the Visual C++ Redistributable, if it appears, is
+   gate 5 of this spec.
+4. `like-nes\licenses\` holds seven files, none empty (regression of spec #9).
+
+`bash scripts/check_release_ci.sh` asserts the rules of the path (what the job builds, that it
+publishes nothing, how the run is picked) without touching the network — that is the form inside
+`scripts/preflight.sh`. `--live` runs the whole orchestrator: dispatch, wait, download, chain.
+
 ## Beyond the gates
 
 The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
@@ -1822,7 +1928,10 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   horizon, and `forced > 0` is the finding.
 - For §15, `like-nes/version.txt` from the unpacked package on the other machine, the `assetc`
   output there, and one line saying whether `editor_shell` opened a window — plus the two `sha256`
-  numbers from the two `release.sh` runs, which must be the same.
+  numbers from the two `release.sh` runs, which must be the same. Send the same three for the Linux
+  package on a Linux box (naming the system libraries `editor_shell` missed, if it did not open) and
+  for the Windows package that came back from CI (naming whether the Visual C++ Redistributable was
+  demanded).
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

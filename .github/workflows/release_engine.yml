@@ -1,0 +1,94 @@
+name: release-engine
+
+# Пакет ДВИЖКА под Windows (спека #20, вертикаль 3, решение 1: «Windows — задачей в CI-матрице с
+# последующим скачиванием артефакта»). Собрать нативный Windows-пакет на macOS честно нельзя —
+# нужен MSVC, — поэтому CI здесь даёт Windows-ХОСТ, а не второй упаковщик: внутри работает тот же
+# scripts/release.sh, что на macOS и в контейнере Linux. Тот же инвариант, что у вертикали 2, и по
+# той же причине: пакет, собранный второй реализацией, разошёлся бы с хостовым составом или
+# нормализацией архива, а узнали бы об этом по расхождению сумм у того, кто его уже скачал.
+#
+# Отдельный workflow, а НЕ job внутри release.yml, ровно по одной причине: release.yml создаёт
+# публичный GitHub Release, и каждая проверка оркестратора (`release_ci.sh --live`, dispatch без
+# тега) публиковала бы релиз. Здесь `permissions: contents: read` — прогон не пишет наружу ничего,
+# кроме артефакта.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Версия пакета (напр. v0.0.1-rc)'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  # cancel-in-progress НЕ включён намеренно: оркестратор ждёт КОНКРЕТНЫЙ прогон по своему коммиту,
+  # и отменённый прогон он читал бы как «CI не досчитал» — то есть как недоступность CI вместо
+  # чужого пуша. Прогоны эти редкие, экономить на них нечего.
+  group: release-engine-${{ github.ref }}
+
+jobs:
+  package:
+    name: engine package (windows)
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      # Экшены запиннуты на commit SHA (правило ci.md); тег в комменте.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          # Штамп пакета несёт время последнего коммита и его sha (release_lib.sh::release_stamp),
+          # а на shallow-клоне `git log -1` есть, но `describe --tags` — нет: версия без тега
+          # резолвилась бы отказом ровно в прогоне по тегу.
+          fetch-depth: 0
+
+      # Вход диспатча приходит в шаг ОКРУЖЕНИЕМ, а не подстановкой `${{ }}` внутрь тела: подстановка
+      # склеивается с текстом скрипта ДО запуска шелла, поэтому строка версии, набранная в форме
+      # запуска, там не данные, а код. Валидация ниже этого не лечит — она идёт уже после склейки.
+      - name: Resolve version
+        id: ver
+        shell: bash
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            V="$INPUT_VERSION"
+          else
+            V="${GITHUB_REF_NAME}"
+          fi
+          case "$V" in v[0-9]*) ;; *) echo "::error::version '$V' != vX.Y.Z[-suffix]"; exit 1 ;; esac
+          # Алфавит проверяется ОТДЕЛЬНО: `v[0-9]*` пропускает всё, что стоит после цифры, включая
+          # пробел и `;`, а версия едет дальше в имя каталога, в имя архива и в штамп.
+          case "$V" in
+            *[!A-Za-z0-9.+_-]*) echo "::error::version '$V' содержит недопустимые символы"; exit 1 ;;
+          esac
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
+
+      - name: MSVC env
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+
+      # Тот же скрипт, что на машине владельца. Ни одного собственного cmake/tar/gzip в этом
+      # workflow нет — гейт check_release_ci.sh это и утверждает, предварительно доказав, что
+      # видит здесь вызов release.sh.
+      - name: Package engine (the same scripts/release.sh)
+        shell: bash
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: bash scripts/release.sh --version "$VERSION" --only host
+
+      # Имя артефакта читает ОТСЮДА сам оркестратор (release_ci_lib.sh::ci_artifact_name), а не
+      # держит второй копией: имя, записанное в двух местах, разъезжается молча, и скачивание
+      # отдаёт «артефакта нет» на успешном прогоне.
+      - name: Upload engine package
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: like-nes-engine-windows
+          path: release/${{ steps.ver.outputs.version }}/*
+          retention-days: 7
+          if-no-files-found: error

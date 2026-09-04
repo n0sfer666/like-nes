@@ -58,6 +58,15 @@ stage "Бюджет длины файлов — самопроверка пра�
     python3 scripts/line_budget.py --selftest
 stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py
 stage "Гейт релизного пакета — самопроверка правил" bash scripts/check_release_selftest.sh
+stage "Гейт контейнерного релиза — самопроверка правил" \
+    bash scripts/check_release_container_selftest.sh
+# Правила контейнерного пути читают ФАЙЛЫ (пин базы, монтирование, коды отказа) и демона не требуют.
+# Живая сборка осталась за `--live`: она поднимает docker и качает базу, а preflight — перед push.
+stage "Правила контейнерного релиза (#20, вертикаль 2)" bash scripts/check_release_container.sh
+stage "Гейт релиза через CI — самопроверка правил" bash scripts/check_release_ci_selftest.sh
+# Правила пути через CI читают workflow и ветку диспатча, сети не требуют. Живой прогон (dispatch,
+# ожидание, скачивание артефакта) стоит до часа раннерского времени и остался за `--live`.
+stage "Правила релиза через CI (#20, вертикаль 3)" bash scripts/check_release_ci.sh
 # Обход perf_sweep.sh руками не гоняют, и его контроль шума живьём не воспроизвести — чужой процесс
 # по заказу машину не займёт. Значит, единственное, что стоит между «правило работает» и
 # «правило молчит всегда», это фикстуры, и место им там же, где остальным самопроверкам.
@@ -117,10 +126,11 @@ if command -v shellcheck >/dev/null; then
                    scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
                    scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
                    scripts/perf_sweep_selftest.sh \
-                   scripts/release.sh scripts/release_lib.sh scripts/release_check_lib.sh \
-                   scripts/release_check_hygiene.sh \
-                   scripts/check_release.sh scripts/check_release_selftest.sh \
-                   scripts/check_release_pack_selftest.sh
+                   scripts/release*.sh scripts/check_release*.sh
+    # Семейство релиза берётся ШАБЛОНОМ, а не списком: за две вертикали спеки #20 оно выросло с
+    # трёх файлов до четырнадцати, и каждый новый гейт приходилось дописывать сюда руками. Забытая
+    # строка не падает — она молча выводит скрипт из-под проверки, ровно тот класс, ради которого
+    # в `ci_lint.py` заведено правило `list-drift`. Шаблон покрывает и ненаписанный ещё файл.
 else
     skip "shellcheck" "не установлен ($(install_hint shellcheck ShellCheck shellcheck 'пакет shellcheck вашего дистрибутива'))"
 fi
