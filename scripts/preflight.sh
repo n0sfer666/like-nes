@@ -7,27 +7,16 @@
 #
 # Здесь живёт ПОРЯДОК и условия этапов, а не сами проверки: тела, доросшие до собственного имени,
 # вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`, `check_debug_golden.sh`,
-# `check_library_bundle.sh`) и зовутся как
-# внешние команды. Так
+# `check_library_bundle.sh`), а выросшее семейство — в свою группу (`preflight_release_rules.sh`);
+# помощник этапа общий с ней (`preflight_stage_lib.sh`). Всё это зовётся внешними командами. Так
 # каждую можно прогнать по одной, не выбирая между «весь preflight» и «руками из истории шелла».
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
 
-FAILED=()
-stage() {
-    local title=$1; shift
-    printf '\n\033[1m=== %s\033[0m\n' "$title"
-    if "$@"; then
-        printf '\033[32m--- OK: %s\033[0m\n' "$title"
-    else
-        printf '\033[31m--- ПРОВАЛ: %s\033[0m\n' "$title"
-        FAILED+=("$title")
-    fi
-}
-
-skip() { printf '\n\033[1m=== %s\033[0m\n\033[33m--- пропущено: %s\033[0m\n' "$1" "$2"; }
+# shellcheck source=scripts/preflight_stage_lib.sh
+. "$ROOT/scripts/preflight_stage_lib.sh"
 
 # Конфигурация headless повторяет шаг Configure в CI дословно: набор опций меняет состав целей,
 # и предупреждение, живущее в выключенной цели, локально бы не всплыло.
@@ -57,16 +46,10 @@ stage "Статические инварианты дерева (швы, зав�
 stage "Бюджет длины файлов — самопроверка правил" \
     python3 scripts/line_budget.py --selftest
 stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py
-stage "Гейт релизного пакета — самопроверка правил" bash scripts/check_release_selftest.sh
-stage "Гейт контейнерного релиза — самопроверка правил" \
-    bash scripts/check_release_container_selftest.sh
-# Правила контейнерного пути читают ФАЙЛЫ (пин базы, монтирование, коды отказа) и демона не требуют.
-# Живая сборка осталась за `--live`: она поднимает docker и качает базу, а preflight — перед push.
-stage "Правила контейнерного релиза (#20, вертикаль 2)" bash scripts/check_release_container.sh
-stage "Гейт релиза через CI — самопроверка правил" bash scripts/check_release_ci_selftest.sh
-# Правила пути через CI читают workflow и ветку диспатча, сети не требуют. Живой прогон (dispatch,
-# ожидание, скачивание артефакта) стоит до часа раннерского времени и остался за `--live`.
-stage "Правила релиза через CI (#20, вертикаль 3)" bash scripts/check_release_ci.sh
+# Правила релиза (самопроверки и гейты, читающие файлы) вынесены группой: семейство выросло до пяти
+# скриптов, а порядок внутри него — забота самого семейства. Гейты, которым нужна сборка, остались
+# ниже, после сборок.
+stage "Правила релизного пакета (#20, вертикали 1-4)" bash scripts/preflight_release_rules.sh
 # Обход perf_sweep.sh руками не гоняют, и его контроль шума живьём не воспроизвести — чужой процесс
 # по заказу машину не займёт. Значит, единственное, что стоит между «правило работает» и
 # «правило молчит всегда», это фикстуры, и место им там же, где остальным самопроверкам.
@@ -117,6 +100,7 @@ if command -v shellcheck >/dev/null; then
     # шаг выглядит сломанным ДЕРЕВОМ, а не сломанным скриптом.
     stage "shellcheck скриптов гейтов" \
         shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
+                   scripts/preflight_stage_lib.sh scripts/preflight_release_rules.sh \
                    scripts/check_dco.sh scripts/check_goldens.sh scripts/check_debug_golden.sh \
                    scripts/check_library_bundle.sh \
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
@@ -155,6 +139,11 @@ stage "Бандл игры сверен с исходниками (tool-free с�
 # следующий прогон этапа «Сборка полного набора опций» тех же флагов уже не передаёт и молча
 # собирает не то, что заявляет, штампуя игру-образец версией гейта. Минута сборки этого не стоит.
 stage "Релизный пакет: состав, штамп, воспроизводимость (#20)" bash scripts/check_release.sh
+# Образ идёт следом за архивом и по тому же каталогу build-release: `release.sh` кладёт .dmg рядом
+# с .tar.gz одним прогоном, так что второй сборки этап не стоит. На Linux и Windows пропускается
+# ВСЛУХ самим гейтом — hdiutil есть только на macOS.
+stage "Образ macOS: бандл, права, Info.plist, воспроизводимость содержимого (#20)" \
+    bash scripts/check_release_dmg.sh
 
 # Диагностики компиляторов не совпадают: -Wformat-truncation есть у gcc и нет у clang, и именно
 # он поймал усечение snprintf, которое трижды прошло локальную сборку. Если gcc в системе есть —

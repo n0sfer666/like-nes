@@ -1738,11 +1738,21 @@ release: like-nes-engine-v0.1.0-macos-arm64
 
 package                                             size  files  sha256
 like-nes-engine-v0.1.0-macos-arm64.tar.gz       <bytes>     11  <64 hex>
+like-nes-engine-v0.1.0-macos-arm64.dmg          <bytes>     12  <64 hex>
 
 внутри: like-nes/bin/assetc like-nes/bin/editor_shell like-nes/bin/libwgpu_native.dylib …
 манифест: release/v0.1.0/like-nes-engine-v0.1.0-macos-arm64.manifest
 суммы:    release/v0.1.0/SHA256SUMS
+манифест образа: release/v0.1.0/like-nes-engine-v0.1.0-macos-arm64.dmg.manifest
+сумма И РАЗМЕР .dmg от прогона к прогону разные (hdiutil пишет в UDIF время и UUID);
+воспроизводится СОДЕРЖИМОЕ образа — его сверяет scripts/check_release_dmg.sh
 ```
+
+The `.dmg` row is the one line in that table that **changes between runs**, and that is not a
+finding: UDIF carries a build timestamp and a UUID, so the image's bytes cannot repeat. What repeats
+is the image's **contents** — names, modes, per-file sums — and that is what the gate compares. Do
+not eyeball the two `.dmg` sums. The image holds one file more than the archive: the bundle's
+`Info.plist`.
 
 The byte size is deliberately not written down here: it follows the toolchain that built the
 package, and a number pinned once would go stale with the next Xcode update, turning this step
@@ -1780,6 +1790,35 @@ Everything above except point 3 is also asserted mechanically by `bash scripts/c
 which **packages twice out of one build** (in its own `build-release` directory) and compares the
 runs — contents file by file, the stamp, the archive's normalisation and the sums. What it cannot
 ask is whether the thing runs on a machine that is not this one.
+
+### The `.dmg` — how people actually install it
+
+The tarball is delivery for someone who already lives in a terminal. A normal macOS install looks
+different, and that path needs your hands too:
+
+```
+open release/v0.1.0/like-nes-engine-v0.1.0-macos-arm64.dmg
+```
+
+6. A volume window opens holding `like-nes.app` next to an `Applications` shortcut.
+7. Drag `like-nes.app` onto `Applications`, eject the volume, then launch
+   `/Applications/like-nes.app` by double-clicking it in Finder.
+8. The editor window opens. A `Library not loaded` error here means what it meant in point 2, with
+   an addition: the dylib has to sit **next to** the executable, in `Contents/MacOS`, because our
+   rpath is `@executable_path` — a bundle that hides it in `Contents/Frameworks` looks assembled and
+   starts nothing.
+9. Gatekeeper will say it "cannot verify the developer" on an unsigned bundle. That is **expected**
+   — there is no signing or notarisation in this round. Open it through the context menu → Open.
+   It is its own point because without it step 7 reads as the package refusing to run.
+
+Points 6–9 are the part no runner can assert: there is nothing there to click with. Everything else
+about the image is asserted by `bash scripts/check_release_dmg.sh` — the bundle's contents by name,
+its contents against the installed stage, modes (executable under `Contents/MacOS`, not under
+`Contents/Resources`), the `/Applications` symlink, `Info.plist` (entry point, version, commit),
+licenses, the stamp, how the bundle finds the runtime (`@rpath/libwgpu_native.dylib` in the
+executable plus a relative `LC_RPATH` — the two halves of point 8, read with `otool`), and that
+**two runs produce the same contents**. On Linux and Windows it skips
+out loud: `hdiutil` exists only on macOS.
 
 ### The run (Linux package, built on macOS)
 
