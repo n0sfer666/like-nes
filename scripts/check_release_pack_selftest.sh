@@ -51,8 +51,8 @@ pack_dir "$SRC" "$PKG_LATER" "$STAMP"
 expect pass "иное время файлов — та же сумма" \
   assert_same_sum "$(sha256_of "$PKG")" "$(sha256_of "$PKG_LATER")"
 
-# Три ПОДМЕННЫХ упаковщика: каждый отличается от настоящего ровно одной снятой мерой, и набор обязан
-# отбить всех троих. Без этого «детерминированный архив» держалось бы на чтении кода: два прогона на
+# Три ПОДМЕНЫ: каждая отличается от настоящего архива ровно одной снятой мерой, и набор обязан
+# отбить все три. Без этого «детерминированный архив» держалось бы на чтении кода: два прогона на
 # одной машине из одного стейджа дают ту же сумму и с невыключенными мерами, и с выключенными.
 pack_owner_left() {
   ( cd "$1" && find . -type f | LC_ALL=C sort | tar --format=ustar -cf - -T - ) | gzip -n -9 > "$2"
@@ -61,26 +61,29 @@ pack_unsorted() {
   tar_pack_flags
   ( cd "$1" && find . -type f | LC_ALL=C sort -r | tar "${TAR_PACK[@]}" -cf - -T - ) | gzip -n -9 > "$2"
 }
-pack_gzip_dated() {
-  tar_pack_flags
-  ( cd "$1" && find . -type f | LC_ALL=C sort | tar "${TAR_PACK[@]}" -cf - -T - ) | gzip -9 > "$2"
-}
 pack_owner_left "$SRC" "$TMP/owner.tar.gz"
 pack_unsorted "$SRC" "$TMP/unsorted.tar.gz"
-pack_gzip_dated "$SRC" "$TMP/dated.tar.gz"
-# Подмена обязана СОБРАТЬ архив: отбитая по его отсутствию неотличима от отбитой по дефекту, а
+
+# Третья подмена собирается ПРАВКОЙ БАЙТОВ, а не снятием `gzip -n`: у GNU gzip из stdin флаг —
+# пустышка (нечего записывать: ни имени файла, ни его mtime), время в заголовок пишет только gzip
+# Apple, и подмена «без -n» отбивалась бы на macOS и молчала на Linux и в git-bash — тестируя
+# платформу вместо утверждения. Здесь у хорошего архива MTIME заполняется прямо в заголовке
+# (байты 4..7, вне gzip-CRC — распаковка цела), то есть меняется ровно то, что утверждение читает.
+cp "$PKG" "$TMP/dated.tar.gz"
+printf '____' | dd of="$TMP/dated.tar.gz" bs=1 seek=4 count=4 conv=notrunc 2>/dev/null
+# Подмена обязана БЫТЬ архивом: отбитая по отсутствию файла неотличима от отбитой по дефекту, а
 # git-bash показал, что это не гипотеза — нераспознанный флаг оставлял пустой файл, и набор считал
 # его находкой. Утверждение отдельное, потому что вердикт `assert_pack_normalized` тут молчит.
 for decoy in owner unsorted dated; do
   if [ ! -s "$TMP/$decoy.tar.gz" ]; then
-    printf 'pack-selftest: БРАК подменный упаковщик %s не собрал архив — отбивать нечего\n' "$decoy" >&2
+    printf 'pack-selftest: БРАК подмена %s не собрана — отбивать нечего\n' "$decoy" >&2
     BAD=1
   fi
 done
 
 expect fail "упаковщик без зануления владельца" assert_pack_normalized "$TMP/owner.tar.gz"
 expect fail "упаковщик без сортировки имён" assert_pack_normalized "$TMP/unsorted.tar.gz"
-expect fail "упаковщик без gzip -n" assert_pack_normalized "$TMP/dated.tar.gz"
+expect fail "время в заголовке gzip" assert_pack_normalized "$TMP/dated.tar.gz"
 
 # Симлинк и пустой каталог `find -type f` не видит ОДИНАКОВО у упаковщика и у манифеста, поэтому
 # сверка архива с манифестом на них слепа: единственная защита — отказ до упаковки.
