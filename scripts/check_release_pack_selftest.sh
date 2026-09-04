@@ -58,24 +58,42 @@ pack_owner_left() {
   ( cd "$1" && find . -type f | LC_ALL=C sort | tar --format=ustar -cf - -T - ) | gzip -n -9 > "$2"
 }
 pack_unsorted() {
-  ( cd "$1" && find . -type f | LC_ALL=C sort -r | tar --uid 0 --gid 0 --numeric-owner \
-      --format=ustar -cf - -T - ) | gzip -n -9 > "$2"
+  tar_pack_flags
+  ( cd "$1" && find . -type f | LC_ALL=C sort -r | tar "${TAR_PACK[@]}" -cf - -T - ) | gzip -n -9 > "$2"
 }
 pack_gzip_dated() {
-  ( cd "$1" && find . -type f | LC_ALL=C sort | tar --uid 0 --gid 0 --numeric-owner \
-      --format=ustar -cf - -T - ) | gzip -9 > "$2"
+  tar_pack_flags
+  ( cd "$1" && find . -type f | LC_ALL=C sort | tar "${TAR_PACK[@]}" -cf - -T - ) | gzip -9 > "$2"
 }
 pack_owner_left "$SRC" "$TMP/owner.tar.gz"
 pack_unsorted "$SRC" "$TMP/unsorted.tar.gz"
 pack_gzip_dated "$SRC" "$TMP/dated.tar.gz"
+# Подмена обязана СОБРАТЬ архив: отбитая по его отсутствию неотличима от отбитой по дефекту, а
+# git-bash показал, что это не гипотеза — нераспознанный флаг оставлял пустой файл, и набор считал
+# его находкой. Утверждение отдельное, потому что вердикт `assert_pack_normalized` тут молчит.
+for decoy in owner unsorted dated; do
+  if [ ! -s "$TMP/$decoy.tar.gz" ]; then
+    printf 'pack-selftest: БРАК подменный упаковщик %s не собрал архив — отбивать нечего\n' "$decoy" >&2
+    BAD=1
+  fi
+done
+
 expect fail "упаковщик без зануления владельца" assert_pack_normalized "$TMP/owner.tar.gz"
 expect fail "упаковщик без сортировки имён" assert_pack_normalized "$TMP/unsorted.tar.gz"
 expect fail "упаковщик без gzip -n" assert_pack_normalized "$TMP/dated.tar.gz"
 
 # Симлинк и пустой каталог `find -type f` не видит ОДИНАКОВО у упаковщика и у манифеста, поэтому
 # сверка архива с манифестом на них слепа: единственная защита — отказ до упаковки.
-LINKED="$TMP/linked"; cp -R "$SRC" "$LINKED"; ln -s bin/tool "$LINKED/alias"
-expect fail "в стейдже симлинк" pack_dir "$LINKED" "$TMP/linked.tar.gz" "$STAMP"
+LINKED="$TMP/linked"; cp -R "$SRC" "$LINKED"; ln -s bin/tool "$LINKED/alias" 2>/dev/null
+if [ -L "$LINKED/alias" ]; then
+  expect fail "в стейдже симлинк" pack_dir "$LINKED" "$TMP/linked.tar.gz" "$STAMP"
+else
+  # git-bash без прав на симлинки делает КОПИЮ, и фикстура перестаёт быть собой: «отбито» вышло бы
+  # из обычного файла, которого утверждение и не обязано отбивать. Пропуск назван вслух — молчаливый
+  # неотличим от пройденного, а на macOS и Linux эта ветка не берётся вовсе.
+  printf 'pack-selftest: ПРОПУЩЕНО в стейдже симлинк — ln -s дал не симлинк (нет прав на этой ФС)\n'
+  rm -f "$LINKED/alias"
+fi
 HOLLOW="$TMP/hollow"; cp -R "$SRC" "$HOLLOW"; mkdir -p "$HOLLOW/empty"
 expect fail "в стейдже пустой каталог" pack_dir "$HOLLOW" "$TMP/hollow.tar.gz" "$STAMP"
 

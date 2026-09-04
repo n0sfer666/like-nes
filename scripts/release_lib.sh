@@ -48,18 +48,26 @@ stage_is_plain() {
 # обхода каталога, uid машины и время установки — три источника, каждого из которых достаточно,
 # чтобы два прогона одного кода дали разные байты. `gzip -n` убирает четвёртый (имя и время в
 # заголовке). Диалект tar разный на macOS и Linux, поэтому флаги выбираются по факту, а не по вере.
+# Диалект отдаётся наружу глобалью, а не выбирается внутри упаковщика: подменные упаковщики
+# самопроверки обязаны отличаться от настоящего РОВНО снятой мерой. Прошитый в них `--uid 0` падал
+# на git-bash с `unrecognized option` (там tar — GNU), архив не появлялся вовсе, и «подмена отбита»
+# выходило из отсутствия предмета, а не из дефекта — ровно тот класс, что ловит `vacuous-gate`.
+tar_pack_flags() {
+  if tar --version 2>/dev/null | grep -q GNU; then
+    TAR_PACK=(--owner=0 --group=0 --numeric-owner --format=ustar)
+  else
+    TAR_PACK=(--uid 0 --gid 0 --numeric-owner --format=ustar)
+  fi
+}
+
 pack_dir() {
-  local root="$1" out="$2" stamp="$3" own=() list rc=0
+  local root="$1" out="$2" stamp="$3" list rc=0
   stage_is_plain "$root" || return 1
   list="$(mktemp)"
-  if tar --version 2>/dev/null | grep -q GNU; then
-    own=(--owner=0 --group=0 --numeric-owner --format=ustar)
-  else
-    own=(--uid 0 --gid 0 --numeric-owner --format=ustar)
-  fi
+  tar_pack_flags
   ( cd "$root" && find . -type f | LC_ALL=C sort > "$list" \
     && TZ=UTC0 xargs -I{} touch -h -t "$stamp" {} < "$list" \
-    && tar "${own[@]}" -cf - -T "$list" ) | gzip -n -9 > "$out" || rc=$?
+    && tar "${TAR_PACK[@]}" -cf - -T "$list" ) | gzip -n -9 > "$out" || rc=$?
   # Код прогона перехвачен, поэтому уборка идёт и на падении: `rm` последней строкой под `set -e` у
   # вызывающего пропускался бы ровно в тех прогонах, после которых мусор и остаётся.
   rm -f "$list"
