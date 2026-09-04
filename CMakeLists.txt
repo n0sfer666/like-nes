@@ -214,3 +214,6 @@ add_subdirectory(engine/hotreload)
 add_subdirectory(tools/assetc)
 add_subdirectory(tools/ide)
 add_subdirectory(example_ugly_game)
+
+# Компонент установки движка (#20) — после tools/, чьи цели он ставит.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_engine.cmake)
