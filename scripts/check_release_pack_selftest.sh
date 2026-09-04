@@ -13,9 +13,13 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_check_lib.sh"
 # shellcheck source=scripts/release_check_hygiene.sh
 . "$ROOT/scripts/release_check_hygiene.sh"
+# shellcheck source=scripts/gate_wiring_lib.sh
+. "$ROOT/scripts/gate_wiring_lib.sh"
+# shellcheck source=scripts/selftest_sub_lib.sh
+. "$ROOT/scripts/selftest_sub_lib.sh"
 
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+trap 'rm -rf "$TMP" "$ROOT"/scripts/.selftest_wiring_*' EXIT
 BAD=0
 
 expect() {
@@ -112,12 +116,53 @@ expect pass "снимки дерева совпали" assert_tree_unchanged " M
 expect fail "снимки дерева разошлись" assert_tree_unchanged " M a.txt" " M a.txt
 ?? b.txt"
 
+# Каталог прогона: гейты пишут первый прогон прямо в `release/<версия>` дерева и сносят его `rm -rf`,
+# а версию берут из окружения — прогон с версией настоящего релиза удалял бы готовый пакет вместе с
+# его SHA256SUMS. Утверждение общее на три гейта, потому что дефект у них был общий.
+expect pass "каталог прогона свободен" assert_run_dir_absent "$TMP/no-such-dir"
+mkdir -p "$TMP/occupied"
+expect fail "каталог прогона занят чужим пакетом" assert_run_dir_absent "$TMP/occupied"
+
 # Незнакомая ОС обязана быть отказом, а не Linux-именованием по умолчанию: подменяем `uname`
 # функцией — единственный способ пройти веткой, которой на этой машине не бывает.
 uname() { if [ "${1:-}" = -s ]; then echo FreeBSD; else command uname "$@"; fi; }
 expect fail "незнакомая ОС · ожидаемый состав" expected_files "$ROOT"
 unset -f uname
 expect pass "своя ОС · ожидаемый состав" expected_files "$ROOT"
+
+# Обе меры ниже общие для ВСЕХ гейтов релиза, и до этого раунда у них был только положительный
+# контроль: фикстуры, где они падают, не существовало, то есть отличить их от отсутствующих было
+# нечем — ровно то, что они сами и стерегут.
+expect pass "живой гейт · имена утверждений определены" \
+  assert_gate_asserts_defined "$ROOT/scripts/check_release.sh"
+printf 'assert_такого_нет "$1"\n' > "$TMP/ghost.sh"
+expect fail "гейт зовёт неопределённое утверждение" assert_gate_asserts_defined "$TMP/ghost.sh"
+printf 'echo без утверждений\n' > "$TMP/mute.sh"
+expect fail "в гейте нет ни одного assert_*" assert_gate_asserts_defined "$TMP/mute.sh"
+
+# Фикстуры проводки лежат В scripts/: имена резолвятся в ЧИСТОМ bash, куда сорсится только то, что
+# сорсит сам гейт, а корень дерева считается от его расположения — копия в $TMP не нашла бы ни одной
+# библиотеки, и «отбито» выходило бы из чужого корня, а не из вырезанной строки source. Пара из двух,
+# потому что порознь они ничего не значат: первая доказывает, что корень найден и утверждение
+# резолвится, вторая — что снятый source его ломает.
+WIRED="$ROOT/scripts/.selftest_wiring_ok.sh"
+printf '. "$ROOT/scripts/release_check_hygiene.sh"\nassert_tree_unchanged "$a" "$b"\n' > "$WIRED"
+expect pass "гейт сорсит то, что зовёт" assert_gate_asserts_defined "$WIRED"
+# Та же фикстура БЕЗ строки source: утверждение определено, но не тем, что гейт сорсит сам. Пока
+# имена резолвились `declare -F` в процессе НАБОРА, она проходила зелёной — библиотеку сорсил сам
+# набор, — то есть проверка была вакуумна ровно к сценарию, ради которого написана
+# (`assert_pack_normalized: command not found` в ветке --live вертикали 3). Находка ревью шага B.
+UNWIRED="$ROOT/scripts/.selftest_wiring_gap.sh"
+printf 'assert_tree_unchanged "$a" "$b"\n' > "$UNWIRED"
+expect fail "утверждение есть, но гейт его не сорсит" assert_gate_asserts_defined "$UNWIRED"
+
+# `subbed` сравнивает ТЕЛО функции с телом до подмены: промах по имени заводит новую функцию,
+# оригинал остаётся в силе, и сценарий, который на него опирается, проверяет собственный промах.
+probe_fn() { echo первый; }
+PROBE=$(declare -f probe_fn)
+expect fail "подмена ничего не подменила" subbed probe_fn "$PROBE"
+probe_fn() { echo второй; }
+expect pass "подмена состоялась" subbed probe_fn "$PROBE"
 
 if [ "$BAD" = 0 ]; then
   echo "release-pack-selftest: PASS"

@@ -113,3 +113,13 @@ if [ -z "$PKG" ]; then
   exit 1
 fi
 printf 'release: пакет Linux собран: %s\n' "$PKG"
+
+# Второй продукт линукс-хоста — AppImage (шаг B вертикали 4), и утверждается он ОТДЕЛЬНО и по тому
+# же основанию, что архив: appimagetool отказывает КОДОМ НОЛЬ (без иконки он просто не создаёт
+# файл), поэтому прогон без образа выглядит успешным до самого момента, когда пакет ищет владелец.
+IMG="$OUT/$VERSION/like-nes-engine-$VERSION-linux-$ARCH.AppImage"
+if [ ! -f "$IMG" ]; then
+  echo "release: контейнер собрал архив, но .AppImage в $OUT/$VERSION нет" >&2
+  exit 1
+fi
+printf 'release: образ AppImage собран: %s\n' "$IMG"

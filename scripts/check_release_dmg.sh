@@ -42,8 +42,13 @@ NAME="like-nes-engine-$VER"
 FAIL=0
 # Уборка снимает тома ПЕРВОЙ строкой: `rm -rf` по каталогу, на котором висит смонтированный образ,
 # на macOS не удаляет ничего и оставляет том в системе — след, которого `git status` не видит.
-trap 'dmg_umount "$MNT1"; dmg_umount "$MNT2"; rm -rf "$TMP" "$OUT1/$VER"; rmdir "$OUT1" 2>/dev/null || true' EXIT
 BEFORE=$(git -C "$ROOT" status --porcelain)
+# Утверждение идёт ДО установки trap, и это несущий порядок: первый прогон пишет прямо в `release/`
+# дерева, а убирает за собой `rm -rf`. Версия берётся из окружения, поэтому прогон с версией
+# настоящего релиза затирал бы готовый пакет и удалял его вместе с SHA256SUMS — то есть проверка
+# ломала бы предмет проверки. Находка ревью шага B вертикали 4.
+assert_run_dir_absent "$OUT1/$VER" || exit 1
+trap 'dmg_umount "$MNT1"; dmg_umount "$MNT2"; rm -rf "$TMP" "$OUT1/$VER"; rmdir "$OUT1" 2>/dev/null || true' EXIT
 
 echo "=== прогон 1: $OUT1"
 bash "$ROOT/scripts/release.sh" --version "$VER" --out "$OUT1" --build "$BUILD" >/dev/null || {
@@ -78,7 +83,7 @@ assert_dmg_mirrors_stage "$MNT1" "$STAGE" || FAIL=1
 assert_dmg_applications_link "$MNT1" || FAIL=1
 assert_dmg_modes "$MNT1" || FAIL=1
 assert_dmg_plist "$MNT1" "$VER" "$COMMIT" || FAIL=1
-assert_dmg_matches "$MNT1" "$MAN1" || FAIL=1
+assert_dir_matches "$MNT1" "$MAN1" || FAIL=1
 assert_licenses "$ROOT" "$MNT1" "$DMG_APP_NAME/Contents/Resources/licenses" || FAIL=1
 assert_runtime_named "$BUILD/CMakeCache.txt" "$MNT1" "$DMG_APP_NAME/Contents/MacOS" || FAIL=1
 assert_stamp "$MNT1" "$VER" "$TRIPLE" "$DMG_APP_NAME/Contents/Resources/version.txt" || FAIL=1
@@ -90,7 +95,7 @@ dmg_umount "$MNT1"
 # шага не осматривает вообще никто.
 assert_same_manifest "$MAN1" "$MAN2" || FAIL=1
 dmg_mount "$DMG2" "$MNT2" || { bad "образ второго прогона не монтируется"; FAIL=1; }
-assert_dmg_matches "$MNT2" "$MAN2" || FAIL=1
+assert_dir_matches "$MNT2" "$MAN2" || FAIL=1
 dmg_umount "$MNT2"
 
 assert_sums_listed "$OUT1/$VER/SHA256SUMS" "$DMG1" "$(sha256_of "$DMG1")" || FAIL=1

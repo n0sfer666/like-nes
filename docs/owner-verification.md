@@ -1839,10 +1839,21 @@ release: like-nes-engine-v0.1.0-linux-aarch64
 
 package                                            size  files  sha256
 like-nes-engine-v0.1.0-linux-aarch64.tar.gz     <bytes>     11  <64 hex>
+like-nes-engine-v0.1.0-linux-aarch64.AppImage   <bytes>     15  <64 hex>
 
 внутри: like-nes/bin/assetc like-nes/bin/editor_shell like-nes/bin/libwgpu_native.so ...
+манифест образа: release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.AppImage.manifest
+сумма .AppImage ПОВТОРЯЕТСЯ между прогонами (squashfs зависит только от содержимого и
+mtime, а mtime выравнен штампом коммита) — её сверяет scripts/check_release_appimage.sh
 release: пакет Linux собран: release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz
+release: образ AppImage собран: release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.AppImage
 ```
+
+Note how this reads **against** the macOS table above: there the `.dmg` row is the one line that
+changes between runs and you are told not to compare it; here the `.AppImage` row is expected to
+repeat byte for byte, and two runs disagreeing **is** the finding. The difference is the format, not
+our diligence — UDIF carries a timestamp and a UUID, squashfs carries neither. The image holds four
+files more than the archive: `AppRun`, the `.desktop` entry, the icon and its `.DirIcon` copy.
 
 The container runs **the same `release.sh`** — it supplies a Linux host, not a second packer — so
 the table and the contents match the macOS run except for the runtime name (`libwgpu_native.so`).
@@ -1853,6 +1864,46 @@ new image silently, and a package built by "the same command" would stop being t
 Then copy `release/v0.1.0/like-nes-engine-v0.1.0-linux-aarch64.tar.gz` to a Linux box with no source
 tree and no toolchain, and run the same four steps as above. Point 3 is where the clean distro's
 X11/Wayland dependencies surface — that is gate 5 of this spec, and no runner can answer it.
+
+### The `.AppImage` — how people actually run it on Linux
+
+The tarball is again delivery for a terminal; the one-file form is what gets handed to everyone
+else, and it needs your hands on a real distro:
+
+```
+chmod +x like-nes-engine-v0.1.0-linux-aarch64.AppImage
+./like-nes-engine-v0.1.0-linux-aarch64.AppImage
+```
+
+6. The editor window opens with no unpacking, no install and no source tree. A `libwgpu_native.so:
+   cannot open shared object file` error is the Linux twin of point 8 above: the runtime has to sit
+   **next to** the executable in `usr/bin`, because our rpath is `$ORIGIN` — the same mechanism
+   `@executable_path` gives us on macOS.
+7. On a system with no FUSE (`dlopen(): error loading libfuse.so.2`), `./…AppImage
+   --appimage-extract-and-run` is the documented fallback — that is the AppImage runtime speaking
+   about the box, not our package failing. The same variable, `APPIMAGE_EXTRACT_AND_RUN=1`, is what
+   the container uses, since FUSE there would need `--privileged`.
+8. The desktop integration is deliberately minimal: the image carries a `.desktop` entry and an
+   icon, but nothing installs them — no `appimaged`, no writes to `~/.local/share/applications`. A
+   launcher entry appearing on its own is not expected in this round.
+
+On a Linux box **with no `appimagetool`** (the host build, not the container one) the `.AppImage`
+row is absent and a named reason stands in its place — the run still succeeds and the `.tar.gz` is
+complete:
+
+```
+release: appimagetool не найден — .AppImage НЕ собран, в каталоге только .tar.gz.
+```
+
+Silence there is a finding: a skip nobody announced reads exactly like "the image was built".
+
+Points 6–8 are the part no runner can assert. Everything else about the image is asserted by
+`bash scripts/check_release_appimage.sh` — composition by name, contents against the installed
+stage, modes, licences, the stamp with its triple, `AppRun`, the `.desktop` fields, how the image
+finds its runtime (`DT_NEEDED` plus a `$ORIGIN` search path, read with `readelf`), and that **two
+runs produce the same bytes**. On macOS and Windows it skips out loud, and so it does on a Linux box
+with no `appimagetool`: the tool is pinned by sha256 inside the container image, not installed into
+your system.
 
 `bash scripts/check_release_container.sh --live` asserts everything except points 2-3 **on a foreign
 machine**: it builds the package in the container twice and compares composition, stamp, runtime

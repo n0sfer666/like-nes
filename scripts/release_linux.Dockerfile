@@ -18,13 +18,48 @@ FROM ubuntu@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987
 # Набор — ровно тот, что ставит себе Linux-шаг CI (xorg-dev), плюс Wayland-заголовки: каталог
 # сборки выбирает бэкенд окна ОДИН раз (LINUX_WAYLAND в CMakeLists), и образ, у которого есть
 # только X11, молча запрещал бы вторую конфигурацию — а её требует гейт 6 спеки #13.
+#
+# squashfs-tools здесь ради ГЕЙТА, а не сборки: владелец и права каталогов уезжают в squashfs, то
+# есть в сумму образа, и прочитать их можно только из самого образа — `appimagetool --list` отвечает
+# «To be implemented», а `--appimage-extract` накладывает на распакованное umask распаковщика.
+# Без `unsquashfs -ll` утверждение о нормализации образа было бы утверждением о намерении.
 RUN apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
       build-essential cmake ninja-build git ca-certificates pkg-config python3 \
-      xorg-dev libwayland-dev wayland-protocols libxkbcommon-dev \
+      xorg-dev libwayland-dev wayland-protocols libxkbcommon-dev squashfs-tools \
  && rm -rf /var/lib/apt/lists/*
 
 # Репозиторий монтируется в /src ТОЛЬКО ДЛЯ ЧТЕНИЯ, каталог сборки — в /build, готовый пакет
 # уезжает в /out. Разведены они потому, что гейт 10 требует чистого `git status` после релиза:
 # сборка, которой позволили писать в /src, оставила бы там свой каталог и чужие права на файлы.
 WORKDIR /src
+
+# Упаковщик AppImage (шаг B вертикали 4) пиннут СУММОЙ файла, а не именем тега: ассеты релиза на
+# GitHub переписываются — файл, лежащий по адресу `download/continuous/`, представился сборкой от
+# 2025-12-04, то есть «та же ссылка» через месяц отдаёт другой инструмент и другую сумму пакета.
+# Сумма фиксирует именно файл, а не обещание того, кто его выложил.
+#
+# Архитектура читается `uname -m`, а не аргументом сборки: TARGETARCH populate'ится только BuildKit'ом,
+# и на движке без него он оказался бы пустым — то есть незнакомая архитектура выглядела бы как
+# «не задано», а не как отказ. Незнакомая архитектура здесь отказ: пакет, собранный упаковщиком не
+# той платформы, не запускается ни у кого, и узнать об этом можно только у пользователя.
+ARG APPIMAGETOOL_VERSION=1.9.1
+RUN set -eu; \
+    apt-get update; \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends curl file; \
+    rm -rf /var/lib/apt/lists/*; \
+    arch=$(uname -m); \
+    case "$arch" in \
+      aarch64) sum=f0837e7448a0c1e4e650a93bb3e85802546e60654ef287576f46c71c126a9158 ;; \
+      x86_64)  sum=ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0 ;; \
+      *) echo "release: appimagetool не пиннут для архитектуры $arch" >&2; exit 1 ;; \
+    esac; \
+    url="https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-${arch}.AppImage"; \
+    curl -fsSL "$url" -o /usr/local/bin/appimagetool; \
+    echo "$sum  /usr/local/bin/appimagetool" | sha256sum -c -; \
+    chmod 0755 /usr/local/bin/appimagetool
+
+# FUSE в контейнере нет и быть не должно (это требовало бы --privileged), поэтому и сам упаковщик,
+# и собранный им образ распаковывают себя вместо монтирования. Переменная стоит В ОБРАЗЕ, а не в
+# вызове: её нужны обе стороны — и упаковщик, и гейт, осматривающий готовый .AppImage.
+ENV APPIMAGE_EXTRACT_AND_RUN=1

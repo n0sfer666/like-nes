@@ -144,6 +144,11 @@ stage "Релизный пакет: состав, штамп, воспроизв
 # ВСЛУХ самим гейтом — hdiutil есть только на macOS.
 stage "Образ macOS: бандл, права, Info.plist, воспроизводимость содержимого (#20)" \
     bash scripts/check_release_dmg.sh
+# AppImage — тот же прогон release.sh на линукс-хосте, поэтому и этап тот же по устройству. На
+# macOS и Windows гейт пропускается ВСЛУХ (упаковщик линуксовый), и на Linux без appimagetool —
+# тоже: инструмент пиннут в образе контейнера, а не в системе владельца.
+stage "AppImage: состав, AppRun, .desktop, \$ORIGIN, байт-равенство (#20)" \
+    bash scripts/check_release_appimage.sh
 
 # Диагностики компиляторов не совпадают: -Wformat-truncation есть у gcc и нет у clang, и именно
 # он поймал усечение snprintf, которое трижды прошло локальную сборку. Если gcc в системе есть —

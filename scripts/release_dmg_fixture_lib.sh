@@ -38,7 +38,7 @@ dmg_fixture_vol() {
 }
 
 # Манифест тома считается ТОЙ ЖЕ функцией, что в release.sh, и пишется рядом: утверждение
-# assert_dmg_matches иначе нечем было бы ни провести, ни уронить.
+# assert_dir_matches иначе нечем было бы ни провести, ни уронить.
 dmg_fixture_manifest() {
   manifest_of "$1/vol" > "$1/vol.manifest"
 }
