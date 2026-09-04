@@ -17,6 +17,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_container_lib.sh"
 # shellcheck source=scripts/release_container_check_lib.sh
 . "$ROOT/scripts/release_container_check_lib.sh"
+# shellcheck source=scripts/release_refusal_check_lib.sh
+. "$ROOT/scripts/release_refusal_check_lib.sh"
 
 BAD=0
 # Копии лежат В scripts/: release.sh считает корень дерева от своего расположения и оттуда же
@@ -46,12 +48,17 @@ copy_script() {
 # диспатча и обросла вторым условием, sed по старой строке промахнулся, и фикстура «съеден молча»
 # полгейта проверяла собственный промах. Сравнение с оригиналом отбирает у промаха право быть
 # вердиктом: это тот же класс, что правило vacuous-gate в ci_lint.py.
+# Промах ОСТАНАВЛИВАЕТ сценарий, а не только помечает прогон: непорченая копия проходит утверждение,
+# то есть следующий `expect fail` печатает вторую строку БРАК про совсем другое — про утверждение,
+# которое на самом деле в порядке. Отсюда форма `mutated X && expect …`: не подменилось — проверять
+# нечего.
 mutated() {
   local dst
   dst=$(copy_path "$1")
   if cmp -s "$ROOT/scripts/release.sh" "$dst"; then
     printf 'refusal-selftest: БРАК подмена %s ничего не изменила\n' "$1" >&2
     BAD=1
+    return 1
   fi
 }
 
@@ -91,16 +98,16 @@ s = open(p).read()
 m = 'if [ "$ONLY" != "$HOST" ]; then\n'
 open(p, 'w').write(s.replace(m, 'VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2\n' + m, 1))
 PY
-mutated hoisted.sh
-expect fail "версия резолвится над диспатчем" assert_foreign_platform_refused "$HOISTED"
+mutated hoisted.sh &&
+  expect fail "версия резолвится над диспатчем" assert_foreign_platform_refused "$HOISTED"
 
 # Отказ чужой платформе обязан остаться кодом 3 и тогда, когда его подменили кодом 2: без этой
 # фикстуры «linux больше не 3» прошло бы на скрипте, который перестал различать коды вовсе.
 copy_script "$ROOT/scripts/release.sh" code2.sh
 CODE2=$(copy_path code2.sh)
 sed 's|^  exit 3$|  exit 2|' "$CODE2" > "$CODE2.tmp" && mv "$CODE2.tmp" "$CODE2"
-mutated code2.sh
-expect fail "чужой платформе чужой код" assert_foreign_platform_refused "$CODE2"
+mutated code2.sh &&
+  expect fail "чужой платформе чужой код" assert_foreign_platform_refused "$CODE2"
 
 copy_script "$ROOT/scripts/release.sh" refuse.sh
 REFUSE=$(copy_path refuse.sh)
@@ -113,18 +120,52 @@ j = s.index('      ;;\n', i) + len('      ;;\n')
 s = s[:i] + '    linux) echo "release: linux не здесь" >&2 ;;\n' + s[j:]
 open(p, 'w').write(s)
 PY
-mutated refuse.sh
+mutated refuse.sh || REFUSE=""
 case "$(uname -s)" in
   Linux) echo "refusal-selftest: ПРОПУЩЕНО linux снова отказ кодом 3 — на линукс-хосте это своя сборка" ;;
-  *) expect fail "linux снова отказ кодом 3" assert_linux_delegated "$REFUSE" ;;
+  *) [ -z "$REFUSE" ] || expect fail "linux снова отказ кодом 3" assert_linux_delegated "$REFUSE" ;;
 esac
 
+# Строка проверки правится ОДНИМ местом на две фикстуры и подставляется КАК СТРОКА, а не шаблоном:
+# она уже переезжала, и sed по старому тексту промахивался молча — фикстура тогда проверяла
+# собственный промах. Про сам промах отвечает `mutated` ниже.
+COND='if [ -n "$PLATFORM" ] && { [ "$ONLY" != linux ] || [ "$HOST" = linux ]; }; then'
+swap_cond() {
+  local dst
+  dst=$(copy_path "$1")
+  python3 -c 'import sys;p,a,b=sys.argv[1:4];s=open(p).read();open(p,"w").write(s.replace(a,b,1))' \
+    "$dst" "$COND" "$2"
+}
+
 copy_script "$ROOT/scripts/release.sh" eaten.sh
-EATEN=$(copy_path eaten.sh)
-sed 's|^if \[ -n "\$PLATFORM" \] && \[ "\$ONLY" != linux \]; then$|if false; then|' \
-  "$EATEN" > "$EATEN.tmp" && mv "$EATEN.tmp" "$EATEN"
-mutated eaten.sh
-expect fail "--platform съеден молча" assert_platform_rejected_on_host "$EATEN"
+swap_cond eaten.sh "if false; then"
+mutated eaten.sh &&
+  expect fail "--platform съеден молча" assert_platform_rejected_on_host "$(copy_path eaten.sh)"
+
+# Фикстура воспроизводит НАХОДКУ первого прогона на настоящем Linux, а не гипотезу: условие
+# `$ONLY != linux` сравнивает УЖЕ развёрнутое значение, поэтому на линукс-машине `--only host`
+# становится `linux` и флаг чужого этажа съедается молча — ровно на той ОС, где гейт не гонялся.
+# Утверждение обязано валить её на всех трёх: линукс-хост оно делает себе заглушкой само.
+copy_script "$ROOT/scripts/release.sh" oldcond.sh
+swap_cond oldcond.sh 'if [ -n "$PLATFORM" ] && [ "$ONLY" != linux ]; then'
+mutated oldcond.sh &&
+  expect fail "--platform съеден на линукс-хосте" assert_platform_rejected_on_host "$(copy_path oldcond.sh)"
+
+# Фикстура доказывает, что утверждение читает ОТКАЗ, а не общий код: у release.sh код 2 отдают пять
+# разных веток, и копия без разбора `--platform` вовсе отвечает «непонятый аргумент» тем же кодом 2.
+# Пока утверждение сравнивало только код, оно принимало такую копию за исправную — то есть говорило
+# «флаг отвергается» о скрипте, который про флаг не знает.
+copy_script "$ROOT/scripts/release.sh" unknownflag.sh
+python3 - "$(copy_path unknownflag.sh)" <<'PY2'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+m = '    --platform) need_value $# "$1"; PLATFORM="$2"; shift 2 ;;\n'
+assert m in s
+open(p, 'w').write(s.replace(m, '', 1))
+PY2
+mutated unknownflag.sh &&
+  expect fail "--platform не разбирается вовсе" assert_platform_rejected_on_host "$(copy_path unknownflag.sh)"
 
 if [ "$BAD" = 0 ]; then
   echo "refusal-selftest: PASS"

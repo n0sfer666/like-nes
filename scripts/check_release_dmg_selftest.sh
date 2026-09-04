@@ -75,7 +75,7 @@ expect pass "нетронутый том · зеркало стейджа" asser
 expect pass "нетронутый том · симлинк" assert_dmg_applications_link "$G/vol"
 expect pass "нетронутый том · права" assert_dmg_modes "$G/vol"
 expect pass "нетронутый том · plist" assert_dmg_plist "$G/vol" "$VER" "$SHA"
-expect pass "нетронутый том · манифест" assert_dmg_matches "$G/vol" "$G/vol.manifest"
+expect pass "нетронутый том · манифест" assert_dir_matches "$G/vol" "$G/vol.manifest"
 expect pass "нетронутый том · лицензии" assert_licenses "$ROOT" "$G/vol" "$LICS"
 expect pass "нетронутый том · рантайм" assert_runtime_named "$CACHE" "$G/vol" "$BINS"
 expect pass "нетронутый том · штамп" assert_stamp "$G/vol" "$VER" "$TRIPLE" "$STAMPF"
@@ -100,7 +100,7 @@ expect fail "в бандле нет рантайма" assert_runtime_named "$CAC
 V=$(vol tampered); printf 'подмена\n' > "$V/vol/$BINS/assetc"
 expect pass "подменённый байт · состав слеп" assert_dmg_composition "$ROOT" "$V/vol"
 expect fail "подменённый байт · зеркало стейджа" assert_dmg_mirrors_stage "$V/vol" "$V/stage"
-expect fail "подменённый байт · манифест" assert_dmg_matches "$V/vol" "$V/vol.manifest"
+expect fail "подменённый байт · манифест" assert_dir_matches "$V/vol" "$V/vol.manifest"
 
 V=$(vol twoextra)
 printf 'a\n' > "$V/vol/$DMG_APP_NAME/Contents/Resources/a.txt"

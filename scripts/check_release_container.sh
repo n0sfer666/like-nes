@@ -18,6 +18,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_container_lib.sh"
 # shellcheck source=scripts/release_container_check_lib.sh
 . "$ROOT/scripts/release_container_check_lib.sh"
+# shellcheck source=scripts/release_refusal_check_lib.sh
+. "$ROOT/scripts/release_refusal_check_lib.sh"
 
 LIVE=""
 case "${1:-}" in

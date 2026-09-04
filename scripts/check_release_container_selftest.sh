@@ -19,6 +19,11 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_container_lib.sh"
 # shellcheck source=scripts/release_container_check_lib.sh
 . "$ROOT/scripts/release_container_check_lib.sh"
+# Утверждения о диспатче переехали в свою библиотеку (предмет — ветвление release.sh, не правила
+# контейнерного пути), но проверку «каждое имя, которое гейт зовёт, определено» они не покидали:
+# набор обязан видеть ровно то, что видит гейт.
+# shellcheck source=scripts/release_refusal_check_lib.sh
+. "$ROOT/scripts/release_refusal_check_lib.sh"
 
 TMP=$(mktemp -d)
 DOCKERFILE="$ROOT/scripts/release_linux.Dockerfile"
@@ -124,6 +129,13 @@ copy_script "$ROOT/scripts/release_container.sh" packer.sh
 PACKER=$(copy_path packer.sh)
 printf 'tar -czf /out/pkg.tar.gz .\n' >> "$PACKER"
 expect fail "контейнер пакует сам" assert_no_second_packer "$PACKER"
+
+# Второй продукт линукс-хоста — образ, и «своего упаковщика» для него зовут другим именем: пока
+# утверждение искало только tar с gzip, половина того, что контейнер отдаёт, жила без него вовсе.
+copy_script "$ROOT/scripts/release_container.sh" imgpacker.sh
+IMGPACKER=$(copy_path imgpacker.sh)
+printf 'appimagetool --no-appstream "$DIR" /out/like-nes.AppImage\n' >> "$IMGPACKER"
+expect fail "контейнер сам собирает AppImage" assert_no_second_packer "$IMGPACKER"
 
 copy_script "$ROOT/scripts/release_container.sh" nodeleg.sh
 NODELEG=$(copy_path nodeleg.sh)

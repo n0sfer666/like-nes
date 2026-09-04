@@ -26,6 +26,10 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # assert_* определено» иначе называла бы браком набор, а не гейт.
 # shellcheck source=scripts/release_check_hygiene.sh
 . "$ROOT/scripts/release_check_hygiene.sh"
+# shellcheck source=scripts/gate_wiring_lib.sh
+. "$ROOT/scripts/gate_wiring_lib.sh"
+# shellcheck source=scripts/selftest_sub_lib.sh
+. "$ROOT/scripts/selftest_sub_lib.sh"
 
 if [ "$(uname -s)" != Darwin ]; then
   echo "dmg-impl-selftest: ПРОПУСК — предмет набора есть бандл и образ macOS (здесь $(uname -s))"
@@ -57,12 +61,6 @@ expect() {
     printf 'dmg-impl-selftest: БРАК %s: ожидали %s, получили код %s\n' "$name" "$want" "$rc" >&2
     BAD=1
   fi
-}
-
-# Подмена, которая ничего не подменила, читается как «утверждение её отбило»: опечатка в имени
-# заводит НОВУЮ функцию, оригинал остаётся в силе, и сценарий полгейта проверяет собственный промах.
-subbed() {
-  [ "$(declare -f "$1")" != "$2" ] || { bad "подмена $1 ничего не подменила"; return 1; }
 }
 
 # Фикстура строится ВНУТРИ подмены и один раз на сценарий: утверждение о составе обязано считать
@@ -184,16 +182,8 @@ expect fail "запечатывание без симлинка Applications" ca
 # файлы), и он единственный оставляет за собой то, что нужно снимать.
 bash "$ROOT/scripts/check_release_dmg_live_selftest.sh" || BAD=1
 
-# Каждое имя assert_*, которое зовёт гейт, обязано быть определено: ветка --live вертикали 3 уже
-# падала на `command not found` у утверждения, которого этап правил не касался вовсе.
-NAMES=$(grep -oE '\bassert_[a-z_]+' "$ROOT/scripts/check_release_dmg.sh" | LC_ALL=C sort -u)
-if [ -z "$NAMES" ]; then
-  echo "dmg-impl-selftest: БРАК в гейте не нашлось ни одного assert_* — проверка вакуумна" >&2
-  BAD=1
-fi
-for n in $NAMES; do
-  declare -F "$n" >/dev/null || { printf 'dmg-impl-selftest: БРАК гейт зовёт %s, а такой функции нет\n' "$n" >&2; BAD=1; }
-done
+expect pass "имена утверждений гейта определены" \
+  assert_gate_asserts_defined "$ROOT/scripts/check_release_dmg.sh"
 
 if [ "$BAD" != 0 ]; then echo "dmg-impl-selftest: FAIL" >&2; exit 1; fi
 echo "dmg-impl-selftest: PASS"
