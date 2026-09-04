@@ -7,16 +7,12 @@
 # macOS .app (@rpath→Frameworks) / Linux tarball ($ORIGIN, flat) / Windows папка (.exe+DLL).
 # game.bundle (baked ассеты, гейт 2) кладётся в бандл → игра стартует с бейкнутых, не с source.
 # Сборка бандла: cmake --install <build> --prefix <out> (см. scripts/package.sh).
-execute_process(COMMAND git -C ${CMAKE_SOURCE_DIR} rev-parse --short HEAD
-  OUTPUT_VARIABLE GAME_GIT_HASH OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
-if(NOT GAME_GIT_HASH)
-  set(GAME_GIT_HASH "unknown")
-endif()
-# Версия из тега (release.yml: -DGAME_VERSION=vX.Y.Z), иначе dev-дефолт.
-if(NOT GAME_VERSION)
-  set(GAME_VERSION "0.1.0-dev")
-endif()
-set(GAME_TARGET_TRIPLE "${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}")
+# Версия, короткий хеш и целевая тройка считаются ОДИН раз на дерево (cmake/version_stamp.cmake):
+# второй потребитель штампа — пакет движка (#20), и два места, считающие версию по-своему, дают
+# релиз, называющий себя двумя именами. Имена GAME_* остаются: их читает packaging/version.txt.in.
+include(${CMAKE_SOURCE_DIR}/cmake/version_stamp.cmake)
+set(GAME_GIT_HASH "${LIKE_NES_GIT_HASH}")
+set(GAME_TARGET_TRIPLE "${LIKE_NES_TARGET_TRIPLE}")
 configure_file(packaging/version.txt.in ${CMAKE_BINARY_DIR}/version.txt @ONLY)
 set(GAME_BUNDLE_ASSET ${CMAKE_CURRENT_SOURCE_DIR}/assets/game.bundle)
 # Библиотека эффектов едет ОТДЕЛЬНЫМ бандлом, рядом с audio.bundle: перепечь `game.bundle` целиком

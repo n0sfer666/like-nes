@@ -1714,6 +1714,73 @@ bodies spec #15 claimed and your run cut to 350 — numbers picked where the mea
 waiting for the machine that decides. Steps 3 and 4 above are what can be said about them without a
 picture; the picture is engine work, not yours.
 
+## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
+
+> **One third of this gate is runnable today.** Vertical 1 of spec #20 builds the **macOS** engine
+> package and nothing else: `scripts/release.sh --only linux` and `--only windows` refuse with a
+> sentence naming the container and the CI job that will build them in the next verticals. That
+> refusal is the honest state, not a bug to report — what needs your machines now is the other half
+> of the claim: a package built here has to run **there**, on a box that never saw this source tree.
+
+### The run (macOS)
+
+```
+bash scripts/release.sh --version v0.1.0
+```
+
+`--only host` says the same thing explicitly; without the flag the script packages the host OS
+anyway, and naming it spells out that the refusal on a foreign OS cannot be reached by a typo.
+
+Expected — the table, then the same numbers again on a second run of the same command:
+
+```
+release: like-nes-engine-v0.1.0-macos-arm64
+
+package                                             size  files  sha256
+like-nes-engine-v0.1.0-macos-arm64.tar.gz       <bytes>     11  <64 hex>
+
+внутри: like-nes/bin/assetc like-nes/bin/editor_shell like-nes/bin/libwgpu_native.dylib …
+манифест: release/v0.1.0/like-nes-engine-v0.1.0-macos-arm64.manifest
+суммы:    release/v0.1.0/SHA256SUMS
+```
+
+The byte size is deliberately not written down here: it follows the toolchain that built the
+package, and a number pinned once would go stale with the next Xcode update, turning this step
+permanently red. The claim is that the **two runs agree with each other**, not that either agrees
+with this page. (The headers are Latin because `printf` measures column width in bytes, and
+Cyrillic ones shift the columns.)
+
+The package lands in `release/v0.1.0/` together with its `.manifest` and `SHA256SUMS`.
+
+### What to judge
+
+Copy `release/v0.1.0/like-nes-engine-v0.1.0-macos-arm64.tar.gz` to a machine (or a fresh user
+account) **without** this repository and without a toolchain, unpack it anywhere, and run both
+binaries from the unpacked tree:
+
+```
+tar -xzf like-nes-engine-v0.1.0-macos-arm64.tar.gz
+cat like-nes/version.txt
+./like-nes/bin/assetc --synthetic /tmp/probe.bundle
+./like-nes/bin/editor_shell
+```
+
+1. `version.txt` names the version you asked for, the commit it was built from and the target
+   triple — three lines, no `unknown`.
+2. `assetc` prints its baking line and writes the bundle. A dynamic-loader error instead
+   (`Library not loaded: …libwgpu_native.dylib`) is the finding: the runtime travels **next to** the
+   binaries and is found through `@executable_path`, so it failing here means the package is not
+   self-contained on a machine that has no wgpu anywhere else.
+3. `editor_shell` opens a window on a box with no build tree. This is the part no gate on a runner
+   can assert: the editor needs a real GPU and a real display server.
+4. `like-nes/licenses/` holds seven files, none of them empty (regression of spec #9).
+5. Unpacking twice into two directories and comparing (`diff -r`) gives no differences.
+
+Everything above except point 3 is also asserted mechanically by `bash scripts/check_release.sh`,
+which **packages twice out of one build** (in its own `build-release` directory) and compares the
+runs — contents file by file, the stamp, the archive's normalisation and the sums. What it cannot
+ask is whether the thing runs on a machine that is not this one.
+
 ## Beyond the gates
 
 The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
@@ -1753,6 +1820,9 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   two SHA-256 sums of `live-send.replay` and `live-recv.replay`. Send them even when everything
   matched: `forced=0` at a measured latency is the first number this engine has about its prediction
   horizon, and `forced > 0` is the finding.
+- For §15, `like-nes/version.txt` from the unpacked package on the other machine, the `assetc`
+  output there, and one line saying whether `editor_shell` opened a window — plus the two `sha256`
+  numbers from the two `release.sh` runs, which must be the same.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

@@ -57,6 +57,7 @@ stage "Статические инварианты дерева (швы, зав�
 stage "Бюджет длины файлов — самопроверка правил" \
     python3 scripts/line_budget.py --selftest
 stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py
+stage "Гейт релизного пакета — самопроверка правил" bash scripts/check_release_selftest.sh
 # Обход perf_sweep.sh руками не гоняют, и его контроль шума живьём не воспроизвести — чужой процесс
 # по заказу машину не займёт. Значит, единственное, что стоит между «правило работает» и
 # «правило молчит всегда», это фикстуры, и место им там же, где остальным самопроверкам.
@@ -115,7 +116,11 @@ if command -v shellcheck >/dev/null; then
                    scripts/ci_watch_wait_selftest.sh \
                    scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
                    scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
-                   scripts/perf_sweep_selftest.sh
+                   scripts/perf_sweep_selftest.sh \
+                   scripts/release.sh scripts/release_lib.sh scripts/release_check_lib.sh \
+                   scripts/release_check_hygiene.sh \
+                   scripts/check_release.sh scripts/check_release_selftest.sh \
+                   scripts/check_release_pack_selftest.sh
 else
     skip "shellcheck" "не установлен ($(install_hint shellcheck ShellCheck shellcheck 'пакет shellcheck вашего дистрибутива'))"
 fi
@@ -135,6 +140,11 @@ stage "8 голденов ядра целы (гейт 2 спеки #11, все �
     bash scripts/check_goldens.sh core
 stage "Бандл игры сверен с исходниками (tool-free секции)" \
     bash scripts/check_goldens.sh bundle
+# У релиза СВОЙ каталог сборки (build-release), и одолжить ему build-full нельзя, хотя состав целей
+# тот же: конфигурация релиза несёт LIKE_NES_RELEASE=ON и версию пакета, а кеш CMake её переживает —
+# следующий прогон этапа «Сборка полного набора опций» тех же флагов уже не передаёт и молча
+# собирает не то, что заявляет, штампуя игру-образец версией гейта. Минута сборки этого не стоит.
+stage "Релизный пакет: состав, штамп, воспроизводимость (#20)" bash scripts/check_release.sh
 
 # Диагностики компиляторов не совпадают: -Wformat-truncation есть у gcc и нет у clang, и именно
 # он поймал усечение snprintf, которое трижды прошло локальную сборку. Если gcc в системе есть —

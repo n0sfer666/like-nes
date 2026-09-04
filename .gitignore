@@ -4,6 +4,7 @@ build*/
 **/build*/
 dist/
 stage/
+release/
 vdf/
 **/dist/
 .DS_Store

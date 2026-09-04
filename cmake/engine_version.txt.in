@@ -1,0 +1,3 @@
+like-nes engine @LIKE_NES_VERSION@
+commit @LIKE_NES_GIT_HASH@
+target @LIKE_NES_TARGET_TRIPLE@

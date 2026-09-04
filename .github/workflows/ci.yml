@@ -75,6 +75,19 @@ jobs:
           python3 scripts/line_budget.py --selftest
           python3 scripts/line_budget.py
 
+      # Гейт релизного пакета (спека #20) идёт в CI САМОПРОВЕРКОЙ и на всех трёх ОС. Сам пакет
+      # требует полной сборки с PLUGIN_UI и собирается на машине владельца.
+      # Предмет шага — ПЕРЕНОСИМОСТЬ утверждений, а не имена файлов: диалект tar (BSD против GNU),
+      # sha256sum против shasum, `touch -t`, `od` над заголовком gzip, поведение git-bash. Имена
+      # `assetc.exe` и `wgpu_native.dll` этим шагом НЕ проверяются: фикстуру строит тот же
+      # expected_files, поэтому ошибись он в имени — ошиблась бы и фикстура, и обе половины остались
+      # бы зелёными. Имя рантайма сверяет с независимым источником (WGPU_RUNTIME_LIB из кеша CMake)
+      # assert_runtime_named, и работает оно в настоящем гейте на машине владельца.
+      # Фикстура синтетическая, сборки не требует — стоит секунды.
+      - name: Release-package gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: bash scripts/check_release_selftest.sh
+
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
       # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
       # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
