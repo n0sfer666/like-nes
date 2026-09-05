@@ -14,6 +14,14 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_check_lib.sh"
 # shellcheck source=scripts/release_ci_check_lib.sh
 . "$ROOT/scripts/release_ci_check_lib.sh"
+# shellcheck source=scripts/release_msi_lib.sh
+. "$ROOT/scripts/release_msi_lib.sh"
+# shellcheck source=scripts/release_msi_check_lib.sh
+. "$ROOT/scripts/release_msi_check_lib.sh"
+# shellcheck source=scripts/release_msi_behavior_lib.sh
+. "$ROOT/scripts/release_msi_behavior_lib.sh"
+# shellcheck source=scripts/release_msi_ci_lib.sh
+. "$ROOT/scripts/release_msi_ci_lib.sh"
 
 WORKFLOW="$ROOT/.github/workflows/release_engine.yml"
 VERSION=""
@@ -163,10 +171,16 @@ fi
 assert_download_intact "$STAGE" "$PKG" || exit 1
 assert_ci_chain "$PKG" "$VERSION" "$SHA" || exit 1
 assert_ci_package "$ROOT" "$PKG" "$VERSION" || exit 1
+# Установщик приезжает тем же артефактом, и о нём утверждается то же, что о собранном здесь: без
+# этого пакет без editor_shell.exe сходился бы по версии и коммиту и доезжал как успех.
+assert_ci_msi "$ROOT" "$PKG" "$VERSION" || exit 1
 
 DEST="$OUT/$VERSION"
 mkdir -p "$DEST"
 cp "$PKG" "$DEST/"
+# Установщик кладётся рядом с архивом: пакет Windows — это оба файла, и оставить .msi в стейдже
+# значило бы отдать владельцу треть релиза без того, чем на Windows ставят софт.
+cp "${PKG%.tar.gz}.msi" "$DEST/"
 # Манифест кладётся рядом, если прогон его положил: он не обязателен для пакета, но им проверяется
 # содержимое архива, и терять его при переносе значило бы отдавать Windows-треть без того, что есть
 # у двух других.
@@ -176,4 +190,5 @@ MANIFEST="$STAGE/$(basename "$PKG" .tar.gz).manifest"
 # не файлом из артефакта: тот знает про одну треть релиза.
 write_sums "$DEST"
 printf 'release: пакет Windows приехал: %s\n' "$DEST/$(basename "$PKG")"
+printf 'установщик: %s\n' "$DEST/$(basename "${PKG%.tar.gz}.msi")"
 printf 'суммы:    %s\n' "$DEST/SHA256SUMS"

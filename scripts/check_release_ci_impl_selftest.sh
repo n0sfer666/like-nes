@@ -19,6 +19,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_ci_check_lib.sh"
 # shellcheck source=scripts/release_ci_rules_lib.sh
 . "$ROOT/scripts/release_ci_rules_lib.sh"
+# shellcheck source=scripts/release_msi_ci_lib.sh
+. "$ROOT/scripts/release_msi_ci_lib.sh"
 # shellcheck source=scripts/release_ci_fixture_lib.sh
 . "$ROOT/scripts/release_ci_fixture_lib.sh"
 

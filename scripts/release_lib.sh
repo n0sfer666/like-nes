@@ -108,6 +108,6 @@ resolve_version() {
 # UUID), у .AppImage она повторяется — но утверждают это гейты (check_release_dmg.sh по манифесту
 # тома, check_release_appimage.sh по самим байтам образа), а не наличие строки в этом файле.
 write_sums() {
-  ( cd "$1" && find . -maxdepth 1 \( -name '*.tar.gz' -o -name '*.dmg' -o -name '*.AppImage' \) | sed 's|^\./||' | LC_ALL=C sort \
+  ( cd "$1" && find . -maxdepth 1 \( -name '*.tar.gz' -o -name '*.dmg' -o -name '*.AppImage' -o -name '*.msi' \) | sed 's|^\./||' | LC_ALL=C sort \
     | while read -r f; do printf '%s  %s\n' "$(sha256_of "$f")" "$f"; done > SHA256SUMS )
 }

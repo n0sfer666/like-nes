@@ -1720,7 +1720,9 @@ picture; the picture is engine work, not yours.
 > **macOS** package on the host, the **Linux** package in a container on that same host, and the
 > **Windows** package in a CI job whose artifact the script downloads and verifies. What needs your
 > machines is the other half of the claim: a package built here has to run **there**, on a box that
-> never saw this source tree.
+> never saw this source tree. Vertical 4 adds the form people actually install from — the `.dmg`,
+> the `.AppImage` and the `.msi` — and each of those has its own subsection below, because a gate
+> can assert what is inside a package but not what happens when someone double-clicks it.
 
 ### The run (macOS)
 
@@ -1976,6 +1978,51 @@ like-nes\bin\editor_shell.exe
 `bash scripts/check_release_ci.sh` asserts the rules of the path (what the job builds, that it
 publishes nothing, how the run is picked) without touching the network — that is the form inside
 `scripts/preflight.sh`. `--live` runs the whole orchestrator: dispatch, wait, download, chain.
+
+### The `.msi` — how people actually install it on Windows
+
+The tarball is delivery for someone who already lives in a terminal. A normal Windows install is a
+double click on an installer, and the CI run now hands one over beside the archive:
+
+```
+release/v0.1.0/like-nes-engine-v0.1.0-windows-x86_64.msi
+```
+
+5. Double-click the `.msi` on a Windows box with no source tree and no MSVC. It must install
+   **without an administrator prompt**: the install root is `LocalAppDataFolder` and `ALLUSERS` is
+   not set, so it is a per-user install. A UAC prompt here is a finding, not a formality.
+6. SmartScreen will say the publisher is unknown on an unsigned package. That is **expected** —
+   there is no code signing in this round, for the same reason there is no notarisation on macOS.
+   Choose "More info" → "Run anyway". It is its own point because without it step 5 reads as the
+   installer refusing to work.
+7. A Start-menu shortcut appears and opens the editor. The shortcut points at `editor_shell.exe`,
+   not at the baker.
+8. Installing the same version again, and then a **newer** version on top, must leave **one**
+   entry in "Installed apps", not two: the `UpgradeCode` is constant across the product line and the
+   `ProductCode` is derived from the version, so the installer recognises its own earlier build and
+   removes it. Then try the other direction — an **older** package on top of a newer install. It
+   must refuse with "A newer version of like-nes engine is already installed", not install and
+   silently replace the newer one. The direction matters: the removing range in the `Upgrade` table
+   ends at this version, and a range left open above it makes the downgrade look like a normal
+   upgrade.
+9. Uninstall from "Installed apps", then look at
+   `%LOCALAPPDATA%\like-nes` — the directory must be **gone**, not left behind empty. This is gate 7
+   of spec #20, and it is the whole reason the format is MSI rather than a hand-written script.
+
+Points 5–9 are the part no runner can assert: there is nothing there to click with, and the
+Windows runner has no `msitools` to look inside a package with. Everything else about the installer
+is asserted by `bash scripts/check_release_msi.sh`, which builds the package **twice** and compares
+the two runs' **contents** — every table plus the extracted tree. Its sum changes between runs while
+its byte size stays the same, and that is not a finding: an MSI carries a random package code and a
+build timestamp written in place,
+the same boundary the `.dmg` has and the opposite of the `.AppImage`. On top of the contents it
+asserts what the extracted tree cannot show — the per-user install of point 5, the shortcut target
+of point 7, the upgrade line of point 8 — both of its ranges, the one that removes and the one that only
+detects — and the completeness of the uninstall of point 9
+(`RemoveFolder` on every directory we create, plus every file living in a component that is actually
+part of the installed feature). The installer that arrives from CI is inspected the same way by
+`scripts/check_release_ci.sh`. Where the MSI compiler or `msitools` is missing, both skip **out
+loud** with code 0: `brew install msitools` on the owner's machine.
 
 ## Beyond the gates
 

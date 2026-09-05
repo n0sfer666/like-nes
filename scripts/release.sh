@@ -15,6 +15,10 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_dmg_lib.sh"
 # shellcheck source=scripts/release_appimage_lib.sh
 . "$ROOT/scripts/release_appimage_lib.sh"
+# shellcheck source=scripts/release_msi_lib.sh
+. "$ROOT/scripts/release_msi_lib.sh"
+# shellcheck source=scripts/release_msi_pack_lib.sh
+. "$ROOT/scripts/release_msi_pack_lib.sh"
 # shellcheck source=scripts/release_extra_lib.sh
 . "$ROOT/scripts/release_extra_lib.sh"
 
@@ -163,10 +167,11 @@ STAMP=$(release_stamp "$ROOT")
 manifest_of "$STAGE" > "$DEST/$NAME.manifest"
 pack_dir "$STAGE" "$PKG" "$STAMP"
 
-# Родной установщик ВДОБАВОК к архиву (решение 2 спеки #20): образ на macOS, AppImage на Linux.
+# Родной установщик ВДОБАВОК к архиву (решение 2 спеки #20): образ на macOS, AppImage на Linux,
+# MSI на Windows.
 # Какой именно и чем он делается — знает release_extra_lib.sh; здесь только место в порядке
 # действий: строго ПОСЛЕ установки стейджа, из которого он и раскладывается.
-extra_build "$HOST" "$STAGE" "$DEST" "$NAME" "$VERSION" "$STAMP" "$BUILD" "$ROOT/packaging/$APPIMAGE_ICON"
+extra_build "$HOST" "$STAGE" "$DEST" "$NAME" "$VERSION" "$STAMP" "$BUILD" "$ROOT/packaging"
 
 SUM=$(sha256_of "$PKG")
 # Пересчёт по фактическому содержимому каталога, а не дописывание строки этого прогона: правило

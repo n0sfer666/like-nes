@@ -17,6 +17,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_ci_lib.sh"
 # shellcheck source=scripts/release_ci_rules_lib.sh
 . "$ROOT/scripts/release_ci_rules_lib.sh"
+# shellcheck source=scripts/release_msi_ci_lib.sh
+. "$ROOT/scripts/release_msi_ci_lib.sh"
 
 WF="$ROOT/.github/workflows/release_engine.yml"
 BAD=0
@@ -73,6 +75,7 @@ expect pass "нетронутая копия · упаковщик" assert_ci_no
 expect pass "нетронутая копия · имя артефакта" assert_ci_artifact_named "$INTACT_WF"
 expect pass "нетронутая копия · запуск руками" assert_ci_dispatchable "$INTACT_WF"
 expect pass "нетронутая копия · ничего не публикует" assert_ci_publishes_nothing "$INTACT_WF"
+expect pass "нетронутая копия · WiX пиннут" assert_ci_wix_pinned "$INTACT_WF"
 INTACT_R=$(copy_release intact.sh)
 expect pass "нетронутая копия · windows делегируется" assert_windows_delegated "$INTACT_R"
 
@@ -145,7 +148,48 @@ PY
 mutated "$REFUSED" "$ROOT/scripts/release.sh"
 expect fail "windows снова отказывает кодом 3" assert_windows_delegated "$REFUSED"
 
+# Компилятор установщика — второй упаковщик ровно в том же смысле, что собственный tar: свой
+# список файлов, разъезжающийся с install_engine.cmake молча.
+OWNMSI=$(copy_wf "$WF" ownmsi.yml)
+printf '      - name: own msi\n        run: wixl -o pkg.msi src.wxs\n' >> "$OWNMSI"
+mutated "$OWNMSI" "$WF"
+expect fail "workflow собирает MSI сам" assert_ci_no_second_packer "$OWNMSI"
+
+# Пин WiX: без установки утверждать нечего, «latest» отдаёт другой инструмент через месяц, а без
+# суммы ассет по той же ссылке переписывается молча.
+NOWIX=$(copy_wf "$WF" nowix.yml)
+sed -i.bak 's|https://github.com/wixtoolset/wix3/releases/download|https://example.invalid/wix|' "$NOWIX" && rm -f "$NOWIX.bak"
+mutated "$NOWIX" "$WF"
+expect fail "WiX не ставится вовсе" assert_ci_wix_pinned "$NOWIX"
+
+LATEST=$(copy_wf "$WF" latest.yml)
+sed -i.bak 's|releases/download/wix3141rtm|releases/latest/download|' "$LATEST" && rm -f "$LATEST.bak"
+mutated "$LATEST" "$WF"
+expect fail "WiX качается по latest" assert_ci_wix_pinned "$LATEST"
+
+NOSUM=$(copy_wf "$WF" nosum.yml)
+sed -i.bak "s|'6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'|''|" "$NOSUM" && rm -f "$NOSUM.bak"
+mutated "$NOSUM" "$WF"
+expect fail "скачанный WiX не сверяется суммой" assert_ci_wix_pinned "$NOSUM"
+
+# Сумма ищется в теле ТОГО ЖЕ шага: греп по всему файлу принимал за пин WiX любой чужой 64-hex —
+# пин образа, ключ кеша, — и шаг без сверки проезжал зелёным. Находка ревью.
+ALIENSUM=$(copy_wf "$WF" aliensum.yml)
+sed -i.bak "s|'6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'|''|" "$ALIENSUM" && rm -f "$ALIENSUM.bak"
+printf '      - name: cache key\n        run: echo 1111111111111111111111111111111111111111111111111111111111111111\n' >> "$ALIENSUM"
+mutated "$ALIENSUM" "$WF"
+expect fail "сумма стёрта, рядом чужой 64-hex" assert_ci_wix_pinned "$ALIENSUM"
+
+# И обязана участвовать в СРАВНЕНИИ: строка, которая просто лежит в шаге, ничего не проверяет.
+NOCMP=$(copy_wf "$WF" nocmp.yml)
+sed -i.bak 's|.*if (\$got -ne \$want).*|          $null = $got|' "$NOCMP" && rm -f "$NOCMP.bak"
+mutated "$NOCMP" "$WF"
+expect fail "сумма WiX ни с чем не сравнивается" assert_ci_wix_pinned "$NOCMP"
+
 bash "$ROOT/scripts/check_release_ci_impl_selftest.sh" || BAD=1
+# Утверждение о ПРИЕХАВШЕМ установщике проверяется своим набором: предмет там пакет, а не файлы
+# конфигурации, и строить его нужно настоящим компилятором.
+bash "$ROOT/scripts/check_release_msi_ci_selftest.sh" || BAD=1
 
 if [ "$BAD" != 0 ]; then echo "ci-selftest: FAIL" >&2; exit 1; fi
 echo "ci-selftest: PASS"

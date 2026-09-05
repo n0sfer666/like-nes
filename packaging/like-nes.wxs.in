@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Скелет установщика Windows (спека #20, вертикаль 4, шаг C). Диалект — WiX v3
+  (`http://schemas.microsoft.com/wix/2006/wi`), и выбран он не по возрасту: тот же файл понимают ДВА
+  компилятора — WiX v3 на раннере, который собирает поставляемый пакет, и `wixl` из msitools на
+  машине владельца, который собирает фикстуры гейта. Фикстура, собранная не тем генератором, что
+  продакшн, проверяет свойства фикстуры; здесь генератор один и тот же.
+
+  Списка файлов здесь НЕТ и быть не может: блок компонентов подставляется из уже установленного
+  стейджа (scripts/release_msi_lib.sh) — по тому же основанию, по которому его нет у `.dmg` и
+  `.AppImage`. Второй список разъезжается с `cmake/install_engine.cmake` молча. Имена полей
+  подстановки в этом комментарии не называются нарочно: генератор валит прогон на ЛЮБОМ оставшемся
+  поле, и упомянутое в тексте выглядело бы как незакрытая подстановка.
+
+  Установка ПОЛЬЗОВАТЕЛЬСКАЯ: корень в LocalAppDataFolder, свойство ALLUSERS не задано вовсе.
+  Инвариант 3 спеки — не требовать администратора там, где можно без него; проверяется это по
+  таблице Directory готового пакета, а не по намерению.
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Product Id="@PRODUCT_CODE@" Name="like-nes engine" Language="1033"
+           Version="@PRODUCT_VERSION@" Manufacturer="like-nes"
+           UpgradeCode="@UPGRADE_CODE@">
+    <Package InstallerVersion="500" Compressed="yes" Manufacturer="like-nes"
+             Description="like-nes engine @FULL_VERSION@" />
+    <Media Id="1" Cabinet="engine.cab" EmbedCab="yes" />
+
+    <!-- Установка поверх прежней: свою же линейку по UpgradeCode пакет находит и сносит ДО того,
+         как разложит новую. Без этого вторая версия легла бы рядом, и в списке программ висели бы
+         обе — а деинсталляция (гейт 7) обязана убирать установленное, а не одну из копий.
+         Диапазонов ДВА, и верхняя граница у первого несущая: без неё «своя линейка» включает и
+         БОЛЕЕ НОВЫЕ версии, то есть установка старой поверх новой молча сносит новую и кладёт
+         вчерашнюю сборку — даунгрейд без единого слова. Поэтому сносится только то, что не новее
+         (равное тоже: переустановка той же версии обязана оставлять ОДНУ запись), а более новое
+         лишь ОБНАРУЖИВАЕТСЯ и отбивается условием ниже.
+         MajorUpgrade сюда не годится: wixl из msitools его не понимает, а исходник обязан
+         читаться обоими компиляторами — WiX v3 на раннере и wixl на машине владельца. -->
+    <Upgrade Id="@UPGRADE_CODE@">
+      <UpgradeVersion Minimum="0.0.0" IncludeMinimum="yes"
+                      Maximum="@PRODUCT_VERSION@" IncludeMaximum="yes"
+                      OnlyDetect="no" Property="LIKENESOLD" />
+      <UpgradeVersion Minimum="@PRODUCT_VERSION@" IncludeMinimum="no"
+                      OnlyDetect="yes" Property="LIKENESNEWER" />
+    </Upgrade>
+    <Condition Message="A newer version of like-nes engine is already installed.">NOT LIKENESNEWER</Condition>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallValidate" />
+    </InstallExecuteSequence>
+
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="INSTALLFOLDER" Name="like-nes">
+          <Directory Id="BINFOLDER" Name="bin" />
+          <Directory Id="LICENSEFOLDER" Name="licenses" />
+        </Directory>
+      </Directory>
+      <Directory Id="ProgramMenuFolder" />
+    </Directory>
+
+@COMPONENTS@
+
+    <!-- Ярлык живёт в СВОЁМ компоненте с ключом в HKCU: у пользовательской установки ключом
+         компонента файл быть не может — он лежит в чужом каталоге меню, и деинсталляция снимала бы
+         его по чужому следу. RemoveFolder тут не нужен: ProgramMenuFolder не наш. -->
+    <DirectoryRef Id="ProgramMenuFolder">
+      <Component Id="c_shortcut" Guid="@GUID_SHORTCUT@">
+        <RegistryValue Root="HKCU" Key="Software\like-nes\engine" Name="shortcut"
+                       Type="string" Value="installed" KeyPath="yes" />
+        <Shortcut Id="s_editor" Name="like-nes engine" Target="[BINFOLDER]editor_shell.exe"
+                  WorkingDirectory="BINFOLDER" Description="like-nes engine @FULL_VERSION@" />
+      </Component>
+    </DirectoryRef>
+
+    <Feature Id="Engine" Title="like-nes engine" Level="1">
+@COMPONENT_REFS@
+      <ComponentRef Id="c_shortcut" />
+    </Feature>
+  </Product>
+</Wix>
