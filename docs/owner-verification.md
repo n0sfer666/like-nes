@@ -1971,8 +1971,9 @@ like-nes\bin\editor_shell.exe
 1. `version.txt` names the version, the commit and the `windows-x86_64` triple.
 2. `assetc` prints its bake line; a missing-DLL error is a finding — the wgpu runtime ships beside
    the binaries.
-3. `editor_shell` opens a window. A demand for the Visual C++ Redistributable, if it appears, is
-   gate 5 of this spec.
+3. `editor_shell` opens a window. A demand for the Visual C++ Redistributable is **gate 4** of this
+   spec and, since vertical 5, a finding rather than an open question — §16 says what the package
+   now carries and what asserts it.
 4. `like-nes\licenses\` holds seven files, none empty (regression of spec #9).
 
 `bash scripts/check_release_ci.sh` asserts the rules of the path (what the job builds, that it
@@ -2024,6 +2025,138 @@ part of the installed feature). The installer that arrives from CI is inspected 
 `scripts/check_release_ci.sh`. Where the MSI compiler or `msitools` is missing, both skip **out
 loud** with code 0: `brew install msitools` on the owner's machine.
 
+## 16. Gate 4 of #20 — no Visual C++ Redistributable, and a silent install
+
+> **This is the half of gate 4 that a gate can prepare but not close.** Vertical 5 made the Windows
+> package self-contained: our binaries are built with the **static** CRT
+> (`cmake/msvc_runtime.cmake`), and the one dependency we do not compile — the prebuilt
+> `wgpu_native.dll`, built by a foreign toolchain against the dynamic CRT — gets its
+> `VCRUNTIME140.dll` shipped **beside it** in the package (`cmake/msvc_redist.cmake`). The UCRT
+> (`api-ms-win-crt-*`, `ucrtbase.dll`) is deliberately *not* shipped: it is an OS component from
+> Windows 10 on, and carrying it would be substituting for the operating system. Windows 8.1 and
+> older are out of scope, and that is a statement, not an oversight.
+
+The machine half runs anywhere, with no Windows and no package:
+
+```
+bash scripts/check_release_crt.sh
+```
+
+Expected on a macOS box with no Windows package in `release/` — five lines, and the fifth is a
+skip said **out loud**, because a silent zero would read exactly like a passed gate:
+
+```
+crt-check: OK   статический CRT задаётся до зависимостей (строка 47 против 67)
+crt-check: OK   копии закрытого списка redist-имён совпадают (8 префиксов)
+crt-check: OK   якорь читателя: настоящий wgpu_native.dll разобран (13 импортов)
+crt-check: OK   app-local DLL в ожидаемом составе совпадают с импортами рантайма (1)
+crt-check: ПРОПУСК — пакета Windows в release/ нет (собирается в CI), осматривать нечего
+crt-check: PASS
+```
+
+With a Windows package present (after `bash scripts/release.sh --only windows --version v0.1.0`)
+the skip line is **replaced**, not appended to — the gate names the package it chose and then makes
+the two assertions the skip stood for, so seven lines come back instead of five:
+
+```
+crt-check: OK   статический CRT задаётся до зависимостей (строка 47 против 67)
+crt-check: OK   копии закрытого списка redist-имён совпадают (8 префиксов)
+crt-check: OK   якорь читателя: настоящий wgpu_native.dll разобран (13 импортов)
+crt-check: OK   app-local DLL в ожидаемом составе совпадают с импортами рантайма (1)
+crt-check: осматривается like-nes-engine-v0.1.0-windows-x86_64.tar.gz
+crt-check: OK   ни одной недостающей DLL из VC++ Redistributable (4 бинарей осмотрено, 2 исполняемых)
+crt-check: OK   наши бинари не просят VC++ Redistributable (2 осмотрено, чужие исключены поимённо)
+crt-check: PASS
+```
+
+The counts in the last two lines depend on the package, so read them as shape, not as a golden: what
+matters is that neither is zero. Those are two assertions, not one — while `vcruntime140.dll` is in
+the package, anything may point at it, so losing `CMAKE_MSVC_RUNTIME_LIBRARY` would be a silent fall
+back to a file that is already there. The first one looks for each DLL in the directory of the
+**executable**, not next to whoever imports it: app-local search on Windows goes by the process
+directory, and today both are the same `bin/` — after the first file moves, "somewhere in the
+package" would pass a package that does not start.
+
+The fourth line runs with no package at all, and its subject is the one name in this vertical still
+written by hand: `like-nes/bin/vcruntime140.dll` in `expected_files` (`scripts/release_check_lib.sh`).
+Nothing mechanical tied it to what the runtime actually imports, so it is tied here — the expected
+composition is compared, case-folded, against the import table of the real `wgpu_native.dll`. Zero
+redist imports on that side is a **failure**, not "the lists agree": empty equals empty, and the
+subject of the app-local measure would have quietly disappeared (the `mirrors-group` shape from
+`ci_lint.py`). No distribution checked out, no comparison — and the gate says so out loud.
+
+### The box half — a Windows that never had a compiler
+
+The point of this section is a machine on which the redistributable was never installed, so check
+that first; the answer is part of the result:
+
+```
+where vcruntime140.dll
+```
+
+Expected: `INFO: Could not find files for the given pattern(s).` A path under `C:\Windows\System32`
+means some other product installed the redistributable, and this box cannot answer gate 4 —
+the package would start there whether or not it carried its own copy. Say so rather than sending a
+green line from a dirty box.
+
+Then, from the unpacked archive of §15:
+
+```
+dir like-nes\bin
+like-nes\bin\assetc.exe --synthetic %TEMP%\probe.bundle
+like-nes\bin\editor_shell.exe
+like-nes\bin\editor_shell.exe --gate6 %TEMP%\crt-boundary.png
+```
+
+1. `like-nes\bin` holds **four** files: `assetc.exe`, `editor_shell.exe`, `wgpu_native.dll` and
+   `vcruntime140.dll`. The last one is the package carrying its own dependency; its absence is the
+   finding, not its presence.
+2. Both binaries start. A dialog saying *"The code execution cannot proceed because VCRUNTIME140.dll
+   was not found"*, or any prompt to install the *Microsoft Visual C++ 2015–2022 Redistributable*,
+   is a finding — and worth a screenshot, because it means the copy step or the static CRT was lost
+   somewhere between here and the runner.
+3. `--gate6` writes `%TEMP%\crt-boundary.png` and the process exits `0`. This is the one step that
+   actually walks the **mixed-CRT boundary** vertical 5 creates: our binaries went to `/MT`, the
+   prebuilt `wgpu_native.dll` stays on `/MD`, so two heaps live in one process. That is safe only
+   because no *ownership* crosses — every wgpu object is released by its own `wgpu*Release`, the
+   frame is read between `wgpuBufferGetConstMappedRange` and `wgpuBufferUnmap`, and the PNG is
+   written by the stb compiled into **our** build (`engine/render/capture.cpp`). A crash inside a
+   free, a hang on unmap, or a zero-byte PNG is the finding this step exists for: no gate on any
+   machine can see it, because both halves are only ever in one process on Windows (ADR 0019,
+   decision 41).
+
+### The silent install
+
+`/qn` is not a convenience here, it is the assertion. Under it there is nobody to answer a UAC
+prompt, so a package that asks for elevation does not install at all — which is exactly what a
+corporate rollout would hit:
+
+```
+msiexec /i like-nes-engine-v0.1.0-windows-x86_64.msi /qn /l*v %TEMP%\like-nes-msi.log
+echo %ERRORLEVEL%
+dir %LOCALAPPDATA%\like-nes\bin
+msiexec /x like-nes-engine-v0.1.0-windows-x86_64.msi /qn
+dir %LOCALAPPDATA%\like-nes
+```
+
+4. The install prints nothing and shows **no window at all** — no progress bar, no UAC prompt —
+   and `%ERRORLEVEL%` is `0`.
+5. `%LOCALAPPDATA%\like-nes\bin` holds the same four files.
+6. The uninstall is equally silent, and the last `dir` answers `File Not Found`: the directory is
+   gone, not left behind empty. That is gate 7 of the spec again, this time without a single click.
+7. `1603` from step 4 with `Error 1925. You do not have sufficient privileges` in the log is the
+   failure this section exists for: `msiexec` decides whether to ask for elevation by **bit 8 of the
+   summary stream**, which the *compiler* writes from `InstallScope="perUser"` in
+   `packaging/like-nes.wxs.in` — not by the install root. A package rooted in `LocalAppDataFolder`
+   without that attribute installs into the same directory and still raises UAC.
+
+That bit is asserted on both sides — on the fixture built here (`bash scripts/check_release_msi.sh`,
+line `тихая установка: прав не требует (Source=10)`) and on the installer that **arrives from CI**
+(`bash scripts/check_release_ci.sh --live`). Two assertions rather than one, because the bit is
+written by the compiler and there are two compilers: `wixl` here, WiX v3 on the runner. Their
+*input* is the same file; their *behaviour* on this bit is not proven by anything, and the way that
+divergence would surface is a UAC prompt under `/qn` on your box, not a red gate.
+
 ## Beyond the gates
 
 The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
@@ -2067,8 +2200,11 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   output there, and one line saying whether `editor_shell` opened a window — plus the two `sha256`
   numbers from the two `release.sh` runs, which must be the same. Send the same three for the Linux
   package on a Linux box (naming the system libraries `editor_shell` missed, if it did not open) and
-  for the Windows package that came back from CI (naming whether the Visual C++ Redistributable was
-  demanded).
+  for the Windows package that came back from CI.
+- For §16, the answer to `where vcruntime140.dll` on the clean box (it decides whether the rest of
+  the section counts), the `dir like-nes\bin` listing, `%ERRORLEVEL%` from the `/qn` install, and
+  the `dir` after the `/qn` uninstall. A screenshot if any dialog appeared at all — under `/qn`
+  there should be none.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

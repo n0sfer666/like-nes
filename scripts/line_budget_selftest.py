@@ -56,8 +56,31 @@ VENDORED_CASES = [
 ]
 
 
+# Слияние двух половин allowlist: путь, попавший в обе, обязан валить прогон. (метка, tools, code,
+# ждём ли отказ)
+MERGE_CASES = [
+    ("запись попала в обе половины", {"a.sh": GOOD}, {"a.sh": GOOD}, True),
+    ("половины не пересекаются", {"a.sh": GOOD}, {"b.cpp": GOOD}, False),
+]
+
+
 def selftest(audit, audit_vendored, verbose=True):
+    from line_budget_allow import merge_allow
+
     failures = 0
+    for title, tools, code, want in MERGE_CASES:
+        try:
+            merge_allow(tools, code)
+            refused = ""
+        except SystemExit as exc:
+            refused = str(exc)
+        got = "в обеих половинах" in refused
+        status = "PASS" if got == want else "FAIL"
+        failures += status == "FAIL"
+        if verbose or status == "FAIL":
+            print(f"  [{status}] merge: {title}")
+        if status == "FAIL":
+            print(f"         ожидали отказ={want}, получили: {refused or 'слияние прошло'}")
     for title, bad, ok, vendored in VENDORED_CASES:
         fired = audit_vendored(bad, vendored)
         silent = audit_vendored(ok, vendored)
@@ -90,5 +113,6 @@ def selftest(audit, audit_vendored, verbose=True):
             print(f"         лишняя находка: {finding}")
     if verbose or failures:
         print(f"line-budget selftest: {'FAIL' if failures else 'PASS'} — "
-              f"{len(CASES) + len(QUIET) + len(VENDORED_CASES)} кейсов, провалов: {failures}")
+              f"{len(CASES) + len(QUIET) + len(VENDORED_CASES) + len(MERGE_CASES)} кейсов, "
+              f"провалов: {failures}")
     return 1 if failures else 0

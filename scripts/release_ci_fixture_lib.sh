@@ -14,14 +14,17 @@
 ci_make_pkg() {
   local root="$1" dir="$2" version="$3" commit="$4" triple="$5"
   local damage="${6:-}" stamp_triple="${7:-$5}"
-  local os stage f pkg mode target
+  local os stage f pkg mode target imp
   os=$(ci_os_of_triple "$triple") || { printf 'фикстура: незнакомая тройка %s\n' "$triple" >&2; return 1; }
   mode=${damage%%:*}
   target=${damage#*:}
   [ -n "$damage" ] || { mode=""; target=""; }
   stage="$dir/stage"
   mkdir -p "$stage"
-  expected_files "$root" "$os" | while read -r f; do
+  # Цикл кормится подстановкой процесса, а не пайпом: у пайпа тело идёт в ПОДОБОЛОЧКЕ, её код
+  # возврата отбрасывается, и фабрика, не создавшая ни одного валидного PE, отдавала бы «честный»
+  # пакет — то есть позитивный контроль вертикали становился бы вакуумным.
+  while read -r f; do
     [ "$mode" != drop ] || [ "$f" != "$target" ] || continue
     mkdir -p "$stage/$(dirname "$f")"
     if [ "$mode" = zero ] && [ "$f" = "$target" ]; then : > "$stage/$f"; continue; fi
@@ -31,9 +34,23 @@ ci_make_pkg() {
       */version.txt)
         [ "$commit" != - ] || continue
         printf 'like-nes engine %s\ncommit %s\ntarget %s\n' "$version" "$commit" "$stamp_triple" > "$stage/$f" ;;
+      # Фикстурный бинарь Windows — НАСТОЯЩИЙ PE с заданной таблицей импортов: утверждения о CRT
+      # читают формат, и текстовая заглушка проверяла бы их отказ разобрать файл, а не пакет.
+      # Импорты повторяют жизнь: наши exe статичны, чужой рантайм просит VCRUNTIME140.dll, и она
+      # едет рядом.
+      *.exe|*.dll)
+        imp="--import KERNEL32.dll"
+        case "$f" in
+          */wgpu_native.dll) imp="$imp --import VCRUNTIME140.dll" ;;
+        esac
+        [ "$mode" != crt ] || [ "$f" != "$target" ] || imp="$imp --import msvcp140.dll"
+        [ "$mode" != dyncrt ] || [ "$f" != "$target" ] || imp="$imp --import VCRUNTIME140.dll"
+        [ "$mode" != delaycrt ] || [ "$f" != "$target" ] || imp="$imp --delay msvcp140.dll"
+        # shellcheck disable=SC2086
+        python3 "$root/scripts/pe_fixture.py" "$stage/$f" $imp || return 1 ;;
       *) printf 'fixture %s\n' "$f" > "$stage/$f" ;;
     esac
-  done
+  done < <(expected_files "$root" "$os")
   pkg="$dir/like-nes-engine-$version-$triple.tar.gz"
   # Тем же упаковщиком, что настоящий релиз: фикстура, собранная своим tar, проверяла бы формат,
   # которого в природе нет.

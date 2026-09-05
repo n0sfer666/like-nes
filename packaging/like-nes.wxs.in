@@ -20,7 +20,12 @@
   <Product Id="@PRODUCT_CODE@" Name="like-nes engine" Language="1033"
            Version="@PRODUCT_VERSION@" Manufacturer="like-nes"
            UpgradeCode="@UPGRADE_CODE@">
+    <!-- InstallScope="perUser" — не синоним корня в LocalAppDataFolder, а ЕДИНСТВЕННОЕ, что читает
+         msiexec, решая, спрашивать ли права: он ставит в сводном потоке бит 8 («elevated privileges
+         are not required»). Без него пакет ставится в пользовательский каталог и всё равно
+         поднимает запрос UAC, а под `/qn` запрос показать некому — установка обрывается. -->
     <Package InstallerVersion="500" Compressed="yes" Manufacturer="like-nes"
+             InstallScope="perUser"
              Description="like-nes engine @FULL_VERSION@" />
     <Media Id="1" Cabinet="engine.cab" EmbedCab="yes" />
 
