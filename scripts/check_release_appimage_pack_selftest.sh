@@ -130,7 +130,7 @@ case_extra() {
       command -v appimagetool >/dev/null 2>&1 && exit 1
     fi
     extra_build linux "$base/stage" "$base/dest" like-nes "$VER" 202601010000.00 "$base/build" \
-      "$ROOT/packaging/$APPIMAGE_ICON" || rc=$?
+      "$ROOT/packaging" || rc=$?
     [ "$rc" = 0 ] || exit 1
     case "$arm" in
       present) [ -n "$EXTRA" ] && [ -s "$EXTRA" ] && [ -z "$EXTRA_SKIP" ] ;;

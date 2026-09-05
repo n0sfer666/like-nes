@@ -17,7 +17,12 @@ assert_ci_no_second_packer() {
   # Комментарии выбрасываются ДО поиска: строка «ни одного собственного tar в этом workflow» —
   # не упаковка, а ложное срабатывание на самой себе, и гейт, который врёт, перестают читать
   # раньше, чем он поймает настоящую находку.
-  own=$(grep -vE '^[[:space:]]*#' "$wf" | grep -nE '(^|[^_a-z])(tar |Compress-Archive|cmake --install|gzip )' || true)
+  # Компиляторы MSI здесь по тому же основанию, что tar: установщик Windows собирает release.sh
+  # через extra_build, и шаг, зовущий wixl или candle/light сам, был бы вторым упаковщиком — с
+  # собственным списком файлов, который разъедется с install_engine.cmake молча. Ловится ФОРМА
+  # ВЫЗОВА (имя, за ним флаг), иначе проверка наличия candle.exe в шаге установки сама срабатывала бы.
+  own=$(grep -vE '^[[:space:]]*#' "$wf" \
+    | grep -nE '(^|[^_a-z])(tar |Compress-Archive|cmake --install|gzip |(wixl|candle|light)(\.exe)? -)' || true)
   if [ -n "$own" ]; then
     bad "workflow пакует сам, а обязан делегировать release.sh:"
     printf '%s\n' "$own" | sed 's/^/       /' >&2

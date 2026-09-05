@@ -21,6 +21,22 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 # shellcheck source=scripts/release_ci_fixture_lib.sh
 . "$ROOT/scripts/release_ci_fixture_lib.sh"
+# shellcheck source=scripts/release_msi_lib.sh
+. "$ROOT/scripts/release_msi_lib.sh"
+# shellcheck source=scripts/release_msi_pack_lib.sh
+. "$ROOT/scripts/release_msi_pack_lib.sh"
+# shellcheck source=scripts/release_dmg_lib.sh
+. "$ROOT/scripts/release_dmg_lib.sh"
+# shellcheck source=scripts/release_appimage_lib.sh
+. "$ROOT/scripts/release_appimage_lib.sh"
+# shellcheck source=scripts/release_extra_lib.sh
+. "$ROOT/scripts/release_extra_lib.sh"
+# shellcheck source=scripts/release_msi_check_lib.sh
+. "$ROOT/scripts/release_msi_check_lib.sh"
+# shellcheck source=scripts/release_msi_behavior_lib.sh
+. "$ROOT/scripts/release_msi_behavior_lib.sh"
+# shellcheck source=scripts/release_msi_ci_lib.sh
+. "$ROOT/scripts/release_msi_ci_lib.sh"
 
 WF="$ROOT/.github/workflows/release_engine.yml"
 RELEASE="$ROOT/scripts/release.sh"
@@ -39,6 +55,7 @@ assert_ci_artifact_named "$WF" || BAD=1
 assert_ci_dispatchable "$WF" || BAD=1
 assert_ci_publishes_nothing "$WF" || BAD=1
 assert_windows_delegated "$RELEASE" || BAD=1
+assert_ci_wix_pinned "$WF" || BAD=1
 assert_gh_hint_split || BAD=1
 assert_run_picked_by_commit || BAD=1
 assert_verdict_split || BAD=1
@@ -61,6 +78,19 @@ PKG=$(ci_make_pkg "$ROOT" "$FIX" v0.0.0-check "$SHORT" windows-x86_64) || {
 assert_download_intact "$FIX" "$PKG" || BAD=1
 assert_ci_chain "$PKG" v0.0.0-check "$(git -C "$ROOT" rev-parse HEAD)" || BAD=1
 assert_ci_package "$ROOT" "$PKG" v0.0.0-check || BAD=1
+
+# Установщик приезжает тем же артефактом, поэтому и фикстура несёт его рядом с архивом. Собрать его
+# нечем без компилятора, а осмотреть — без msitools (на Windows их нет вовсе), и пропуск здесь
+# ВСЛУХ: молчаливый читался бы как осмотренный пакет.
+if msi_tool_name >/dev/null 2>&1 && command -v msiinfo >/dev/null 2>&1; then
+  mkdir -p "$FIX/dest" "$FIX/build/stage"
+  extra_build windows "$FIX/stage" "$FIX/dest" pkg v0.0.0-check 202601010000.00 "$FIX/build" \
+    "$ROOT/packaging" || { echo "release-ci-check: фикстурный .msi не собрался" >&2; exit 1; }
+  cp "$FIX/dest/pkg.msi" "${PKG%.tar.gz}.msi"
+  assert_ci_msi "$ROOT" "$PKG" v0.0.0-check || BAD=1
+else
+  echo "release-ci-check: ПРОПУСК утверждения о .msi — нет компилятора MSI или msitools"
+fi
 
 if [ -n "$LIVE" ]; then
   echo "--- живой прогон: dispatch, ожидание, скачивание"

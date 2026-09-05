@@ -73,6 +73,31 @@ jobs:
       - name: MSVC env
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
 
+      # WiX v3 — компилятор установщика (candle + light), и он пиннут ВЕРСИЕЙ и СУММОЙ ФАЙЛА, как
+      # appimagetool в scripts/release_linux.Dockerfile: ассеты релизов на GitHub переписываются, и
+      # «та же ссылка» через месяц отдаёт другой инструмент. Образ раннера свой WiX тоже несёт — но
+      # его версия меняется без нашего ведома, а осматривает пакет гейт на машине владельца, где
+      # компилятор другой (wixl). Диалект исходника при этом один, v3: два компилятора читают ОДИН
+      # packaging/like-nes.wxs.in.
+      #
+      # Проверяется ИСХОД, а не код возврата: сумма сверяется до распаковки, а после неё
+      # утверждается наличие обоих исполняемых — распаковка чужого архива успешна ровно так же.
+      - name: Install WiX v3 (pinned by version and sha256)
+        shell: pwsh
+        run: |
+          $url = 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip'
+          $want = '6ac824e1642d6f7277d0ed7ea09411a508f6116ba6fae0aa5f2c7daa2ff43d31'
+          $zip = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
+          $dir = Join-Path $env:RUNNER_TEMP 'wix314'
+          Invoke-WebRequest -Uri $url -OutFile $zip
+          $got = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          if ($got -ne $want) { throw "WiX: sha256 $got вместо $want — ассет по ссылке переписан" }
+          Expand-Archive -Path $zip -DestinationPath $dir -Force
+          foreach ($exe in 'candle.exe','light.exe') {
+            if (-not (Test-Path (Join-Path $dir $exe))) { throw "в архиве WiX нет $exe" }
+          }
+          $dir | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
       # Тот же скрипт, что на машине владельца. Ни одного собственного cmake/tar/gzip в этом
       # workflow нет — гейт check_release_ci.sh это и утверждает, предварительно доказав, что
       # видит здесь вызов release.sh.
