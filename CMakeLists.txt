@@ -42,6 +42,10 @@ set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
 # Включается ДО add_subdirectory: add_compile_options/add_link_options наследуются вниз.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/determinism.cmake)
 
+# Статический CRT на MSVC. Строго ДО зависимостей: выбор рантайма — свойство каждой цели, и glfw,
+# imgui, flecs, basisu и miniaudio обязаны получить тот же, иначе в одном образе живут две кучи.
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc_runtime.cmake)
+
 option(AUDIO_MINIAUDIO "Real audio device via miniaudio (local; OFF в headless CI)" ON)
 option(INPUT_NATIVE "Build native input demo (GLFW + platform gamepad backend)" ON)
 option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW + WebGPU)" ON)

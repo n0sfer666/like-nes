@@ -20,7 +20,11 @@ expected_files() {
   # FreeBSD самопроверка проходила бы вакуумно, утверждая состав, которого там не бывает.
   case "$os" in
     Darwin) printf 'like-nes/bin/assetc\nlike-nes/bin/editor_shell\nlike-nes/bin/libwgpu_native.dylib\n' ;;
-    MINGW*|MSYS*|CYGWIN*) printf 'like-nes/bin/assetc.exe\nlike-nes/bin/editor_shell.exe\nlike-nes/bin/wgpu_native.dll\n' ;;
+    # `vcruntime140.dll` — app-local CRT: её просит предсобранный wgpu_native.dll, наши цели
+    # статичны (cmake/msvc_runtime.cmake). Здесь она названа ПОИМЁННО, а НАБОР недостающих DLL
+    # выводит из таблицы импортов assert_crt_self_contained: сменится дистрибуция — состав
+    # разойдётся с этой строкой, и это находка, а не тишина.
+    MINGW*|MSYS*|CYGWIN*) printf 'like-nes/bin/assetc.exe\nlike-nes/bin/editor_shell.exe\nlike-nes/bin/wgpu_native.dll\nlike-nes/bin/vcruntime140.dll\n' ;;
     Linux) printf 'like-nes/bin/assetc\nlike-nes/bin/editor_shell\nlike-nes/bin/libwgpu_native.so\n' ;;
     *) bad "незнакомая ОС $os — ожидаемый состав пакета неизвестен"; return 1 ;;
   esac

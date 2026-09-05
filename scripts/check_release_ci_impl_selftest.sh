@@ -185,6 +185,32 @@ expect fail "в пакете нет рантайма wgpu" assert_ci_package "$R
 OTHERTRIPLE=$(make_pkg othertriple v0.0.0-check "$SHORT" "" linux-x86_64)
 expect fail "штамп называет чужую тройку" assert_ci_package "$ROOT" "$OTHERTRIPLE" v0.0.0-check
 
+# Зависимость от VC++ Redistributable (вертикаль 5) — та же цепочка её не видит: пакет, который на
+# чистой Windows не стартует, сходится по версии, коммиту, составу и лицензиям. Ветка внутри
+# assert_ci_package без этих трёх фикстур зелена и с вырезанными строками — то есть неотличима от
+# отсутствующей.
+CRTMISS=$(make_pkg crtmiss v0.0.0-check "$SHORT" "crt:like-nes/bin/wgpu_native.dll")
+expect fail "рантайм просит DLL, которой в пакете нет" assert_ci_package "$ROOT" "$CRTMISS" v0.0.0-check
+
+# Пропажа самой vcruntime140.dll сюда НЕ дописана: её ловит assert_composition (файл назван в
+# expected_files), то есть фикстура падала бы и с вырезанной CRT-веткой — «утверждение отбило
+# подмену» вышло бы из соседнего утверждения. Обе оставшиеся падают ровно на этой ветке: проверено
+# прогоном с вырезанными строками.
+
+CRTDYN=$(make_pkg crtdyn v0.0.0-check "$SHORT" "dyncrt:like-nes/bin/editor_shell.exe")
+expect fail "наш exe приехал с динамическим CRT" assert_ci_package "$ROOT" "$CRTDYN" v0.0.0-check
+
+# Обратная половина той же ветки: на пакете НЕ для Windows утверждения о CRT неприменимы (PE-файлов
+# нет вовсе, счётчик осмотренных нулевой), и пропуск обязан быть ВСЛУХ — молчаливый ноль здесь
+# неотличим от пройденных утверждений.
+case_ci_pkg_linux() {
+  local pkg out
+  pkg=$(ci_make_pkg "$ROOT" "$FIX/lin" v0.0.0-check "$SHORT" linux-x86_64 "" linux-x86_64) || return 1
+  out=$(assert_ci_package "$ROOT" "$pkg" v0.0.0-check) || return 1
+  printf '%s' "$out" | grep -q 'ПРОПУСК' || return 1
+}
+expect pass "пакет не для Windows · о CRT сказано ВСЛУХ" case_ci_pkg_linux
+
 # Про сам гейт: имя assert_*, которое он зовёт, обязано быть определено. В контейнерном наборе это
 # утверждение поймало настоящий дефект (`assert_pack_normalized: command not found` в ветке --live)
 # до всякой сборки — ветка правил его не касалась вовсе.

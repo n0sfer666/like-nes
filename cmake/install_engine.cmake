@@ -35,6 +35,12 @@ install(TARGETS assetc RUNTIME DESTINATION ${ENGINE_ROOT}/bin COMPONENT engine)
 # бита исполнения. Права идут В АРХИВ, то есть в его сумму, — «переставим потом» тут значит «другой
 # пакет».
 install(PROGRAMS ${WGPU_RUNTIME_LIB} DESTINATION ${ENGINE_ROOT}/bin COMPONENT engine)
+# Рядом с ЧУЖИМ рантаймом ложится та часть CRT, которую просит он сам: наши цели статичны, а его
+# пересобрать нечем. Список выводится из его же таблицы импортов — см. cmake/msvc_redist.cmake.
+include(${CMAKE_CURRENT_LIST_DIR}/msvc_redist.cmake)
+if(LIKE_NES_APP_LOCAL_CRT)
+  install(PROGRAMS ${LIKE_NES_APP_LOCAL_CRT} DESTINATION ${ENGINE_ROOT}/bin COMPONENT engine)
+endif()
 install(FILES ${LICENSE_FILES} DESTINATION ${ENGINE_ROOT}/licenses COMPONENT engine)
 install(FILES ${CMAKE_BINARY_DIR}/engine_version.txt
         DESTINATION ${ENGINE_ROOT} RENAME version.txt COMPONENT engine)

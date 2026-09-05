@@ -23,6 +23,15 @@ msi_table() {
   printf '%s\n' "$out" | tail -n +4 | tr -d '\r'
 }
 
+# Сводный поток читается отдельной строкой: «Source» в выводе msiinfo и есть Word Count — битовое
+# поле, которым msiexec решает в том числе, спрашивать ли повышение прав (бит 8 — «не требуется»).
+# В таблицах его нет вовсе, поэтому и читалка своя.
+msi_wordcount() {
+  local out
+  out=$(msiinfo suminfo "$1" 2>/dev/null) || return 1
+  printf '%s\n' "$out" | awk -F'[: ]+' '/^Source:/ { print $2; found = 1 } END { exit !found }'
+}
+
 msi_prop() { msi_table "$1" Property | awk -F'\t' -v k="$2" '$1 == k { print $2 }'; }
 
 msi_extract_to() {

@@ -87,6 +87,7 @@ assert_composition "$ROOT" "$EX" MINGW || FAIL=1
 assert_licenses "$ROOT" "$EX" || FAIL=1
 assert_stamp "$EX" "$VER" "$TRIPLE" || FAIL=1
 assert_msi_per_user "$MSI1" || FAIL=1
+assert_msi_silent "$MSI1" || FAIL=1
 assert_msi_uninstall "$MSI1" || FAIL=1
 assert_msi_upgrade "$MSI1" "$VER" || FAIL=1
 assert_msi_version "$MSI1" "$VER" || FAIL=1

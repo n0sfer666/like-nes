@@ -33,6 +33,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_msi_fixture_lib.sh"
 # shellcheck source=scripts/release_msi_ci_lib.sh
 . "$ROOT/scripts/release_msi_ci_lib.sh"
+# shellcheck source=scripts/selftest_sub_lib.sh
+. "$ROOT/scripts/selftest_sub_lib.sh"
 
 # Пропуск ВСЛУХ, а не молчаливый ноль: собрать фикстурный установщик нечем на машине без компилятора,
 # а осмотреть — без msitools, и «набор не гонялся» обязано отличаться от «находок нет».
@@ -48,6 +50,8 @@ fi
 VER=v0.0.0-check
 SHA=abc1234def5678
 BAD=0
+ORIG_SOURCE=$(declare -f msi_make_source)
+eval "msi_make_source_real() $(declare -f msi_make_source | tail -n +2)"
 FIX=$(mktemp -d)
 trap 'rm -rf "$FIX"' EXIT
 
@@ -123,6 +127,30 @@ expect fail "нет редактора" case_msi noeditor drop:like-nes/bin/edit
 expect fail "нет рантайма" case_msi nortl drop:like-nes/bin/wgpu_native.dll
 expect fail "лицензия в нуль байт" case_msi zerolic zero:like-nes/licenses/LICENSE
 expect fail "чужая тройка в штампе" case_msi badtriple "" linux-x86_64
+
+# Тихая установка — единственное утверждение набора, чей предмет ставит КОМПИЛЯТОР, а не раскладка:
+# бит 8 сводного потока пишет он сам по атрибуту исходника. Компиляторов у одного исходника два
+# (wixl здесь, WiX v3 на раннере), их совпадение по этому биту ничем не доказано, и приехавший
+# пакет — единственное место, где выход настоящего WiX вообще осматривается. Порча делается тем же
+# приёмом, что в impl-наборе: настоящий генератор, затем строка из готового .wxs.
+case_no_scope() {
+  local base="$FIX/noscope"
+  local pkg="$base/like-nes-engine-$VER-$MSI_FIXTURE_TRIPLE.tar.gz"
+  (
+    msi_make_source() {
+      msi_make_source_real "$@" || return 1
+      sed '/InstallScope="perUser"/d' "$3" > "$3.t" && mv "$3.t" "$3"
+    }
+    subbed msi_make_source "$ORIG_SOURCE" || exit 1
+    if [ ! -f "$pkg" ]; then
+      msi_fixture_stage "$ROOT" "$base" "$VER" "$SHA" >/dev/null || exit 1
+      msi_fixture_pack "$ROOT" "$base" "$VER" || exit 1
+      cp "$base/dest/pkg.msi" "${pkg%.tar.gz}.msi" || exit 1
+    fi
+    assert_ci_msi "$ROOT" "$pkg" "$VER"
+  )
+}
+expect fail "приехавший пакет спросит права под /qn" case_no_scope
 
 if [ "$BAD" != 0 ]; then echo "msi-ci-selftest: FAIL" >&2; exit 1; fi
 echo "msi-ci-selftest: PASS"

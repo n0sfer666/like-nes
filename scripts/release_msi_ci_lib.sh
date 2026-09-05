@@ -94,6 +94,11 @@ assert_ci_msi() {
   assert_stamp "$tmp" "$version" "$triple" || rc=1
   rm -rf "$tmp"
   assert_msi_per_user "$msi" || rc=1
+  # Тихая установка утверждается ИМЕННО ЗДЕСЬ, а не только на своей машине: бит 8 сводного потока
+  # ставит КОМПИЛЯТОР, а компиляторов у одного исходника два (wixl у фикстур, WiX v3 у поставляемого
+  # пакета). Совпадение их поведения ничем не доказано — доказано совпадение ВХОДА, — и разойдись
+  # они на этом бите, увидел бы это владелец запросом UAC под `/qn`, а не гейт.
+  assert_msi_silent "$msi" || rc=1
   assert_msi_uninstall "$msi" || rc=1
   assert_msi_upgrade "$msi" "$version" || rc=1
   assert_msi_version "$msi" "$version" || rc=1

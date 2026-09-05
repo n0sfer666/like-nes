@@ -85,6 +85,7 @@ run_assert() {
     stamp)       assert_stamp "$base/ex" "$VER" "$TRIPLE" ;;
     uninstall)   assert_msi_uninstall "$base/dest/pkg.msi" ;;
     per_user)    assert_msi_per_user "$base/dest/pkg.msi" ;;
+    silent)      assert_msi_silent "$base/dest/pkg.msi" ;;
     upgrade)     assert_msi_upgrade "$base/dest/pkg.msi" "$VER" ;;
     version)     assert_msi_version "$base/dest/pkg.msi" "$VER" ;;
     shortcut)    assert_msi_shortcut "$base/dest/pkg.msi" ;;
@@ -107,6 +108,9 @@ case_wxs() {
       nodetect) EXPR='/IncludeMinimum="no"/{N;d;}' ;;
       version)  EXPR='s/Version="0.0.0"/Version="9.9.9"/' ;;
       shortcut) EXPR='s|\[BINFOLDER\]editor_shell.exe|[BINFOLDER]assetc.exe|' ;;
+      noscope)  EXPR='/InstallScope="perUser"/d' ;;
+      privcond) EXPR='s|<InstallExecuteSequence>|<Condition Message="admin required">Privileged</Condition><InstallExecuteSequence>|' ;;
+      custom)   EXPR='s|<InstallExecuteSequence>|<CustomAction Id="ca_hi" Property="LIKENESHI" Value="1" /><InstallExecuteSequence>|' ;;
       *) exit 1 ;;
     esac
     msi_make_source() {
@@ -139,6 +143,15 @@ expect fail "диапазон без верхней границы · стара
 expect fail "более новая версия не обнаруживается · даунгрейд молча" case_wxs nodetect upgrade
 expect fail "чужая ProductVersion в исходнике" case_wxs version version
 expect fail "ярлык ведёт не в редактор" case_wxs shortcut shortcut
+
+# Тихий режим (`/qn`) — вторая половина инварианта 3, и все три подмены оставляют состав, корень
+# установки и ярлык нетронутыми: по развёрнутому дереву они неотличимы от честного пакета, а на
+# машине владельца дают либо запрос UAC, которому под /qn некому ответить, либо чужой код посреди
+# установки.
+expect pass "нет InstallScope · пользовательская установка слепа" case_wxs noscope per_user
+expect fail "нет InstallScope · msiexec спросит права" case_wxs noscope silent
+expect fail "условие запуска требует администратора" case_wxs privcond silent
+expect fail "в пакете появился CustomAction" case_wxs custom silent
 
 # Гейт 7 спеки даётся не обещанием, а записью RemoveFolder на каждом каталоге. Без неё пакет
 # ставится и удаляется, оставляя пустые каталоги, — и состав такой пакет устраивает целиком.
