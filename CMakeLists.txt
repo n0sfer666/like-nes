@@ -62,7 +62,7 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 # По умолчанию X11-only: wayland-scanner и libwayland-dev на раннере не стоят, а рендер в CI —
 # xvfb/X11. Wayland включается ЯВНО (`-DLINUX_WAYLAND=ON`), и без этого гейт 6 спеки #13 проверить
 # нечем: под Wayland-сессией собранный без него GLFW живёт клиентом XWayland, то есть отвечает на
-# вопрос про X11 второй раз. Системные зависимости — docs/first-run.md.
+# вопрос про X11 второй раз. Системные зависимости — docs/en/getting-started/build.md.
 set(GLFW_BUILD_WAYLAND ${LINUX_WAYLAND} CACHE BOOL "" FORCE)
 FetchContent_Declare(glfw
   GIT_REPOSITORY https://github.com/glfw/glfw

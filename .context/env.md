@@ -33,7 +33,7 @@
 `LINUX_WAYLAND` — не переменная окружения, а CMake-опция (умолчание `OFF`). `ON` собирает GLFW ещё
 и с Wayland-бэкендом; нужны `wayland-protocols` (даёт `wayland-scanner`), `libwayland-dev`,
 `libxkbcommon-dev`. Без неё бинарь под Wayland-сессией работает клиентом XWayland — см.
-`docs/first-run.md`.
+`docs/en/getting-started/build.md`.
 
 `PLUGIN_FORCE_DLCLOSE` — не переменная окружения, а define компилятора (`-DPLUGIN_FORCE_DLCLOSE`).
 Под ASan `host.cpp` по умолчанию не зовёт `dlclose` (иначе теряются символы), и сценарий

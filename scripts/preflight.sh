@@ -7,7 +7,8 @@
 #
 # Здесь живёт ПОРЯДОК и условия этапов, а не сами проверки: тела, доросшие до собственного имени,
 # вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`, `check_debug_golden.sh`,
-# `check_library_bundle.sh`), а выросшее семейство — в свою группу (`preflight_release_rules.sh`);
+# `check_library_bundle.sh`), а выросшие семейства — в свои группы
+# (`preflight_tree_rules.sh`, `preflight_release_rules.sh`);
 # помощник этапа общий с ней (`preflight_stage_lib.sh`). Всё это зовётся внешними командами. Так
 # каждую можно прогнать по одной, не выбирая между «весь preflight» и «руками из истории шелла».
 set -uo pipefail
@@ -35,17 +36,11 @@ build_config() {
 # переписыванием SHA всей ветки, и узнавать про него в конце раунда дороже всего остального здесь.
 stage "Подпись DCO на коммитах ветки" bash scripts/check_dco.sh
 
-stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
-stage "Линтер workflow — .github/workflows" python3 scripts/ci_lint.py
-
-# Те же скрипты, что и шаги CI. Гейты статические, знание о нарушении полностью доступно
-# локально — узнавать про него из красного раннера значило платить двадцать минут за находку
-# на полсекунды.
-stage "Статические инварианты дерева (швы, зависимости, ASCII-вывод)" \
-    bash scripts/tree_invariants.sh
-stage "Бюджет длины файлов — самопроверка правил" \
-    python3 scripts/line_budget.py --selftest
-stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py
+# Правила, читающие дерево как текст (линтер workflow, инварианты, бюджет длины, документация),
+# вынесены группой по тому же признаку, что и релизные: сборки и сети им не нужно, а порядок
+# внутри группы — забота самой группы.
+stage "Статические правила дерева (workflow, инварианты, бюджет, документация)" \
+    bash scripts/preflight_tree_rules.sh
 # Правила релиза (самопроверки и гейты, читающие файлы) вынесены группой: семейство выросло до пяти
 # скриптов, а порядок внутри него — забота самого семейства. Гейты, которым нужна сборка, остались
 # ниже, после сборок.
@@ -101,6 +96,7 @@ if command -v shellcheck >/dev/null; then
     stage "shellcheck скриптов гейтов" \
         shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
                    scripts/preflight_stage_lib.sh scripts/preflight_release_rules.sh \
+                   scripts/preflight_tree_rules.sh \
                    scripts/check_dco.sh scripts/check_goldens.sh scripts/check_debug_golden.sh \
                    scripts/check_library_bundle.sh \
                    scripts/owner_check.sh scripts/gate8_e2e.sh \
@@ -110,7 +106,8 @@ if command -v shellcheck >/dev/null; then
                    scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
                    scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
                    scripts/perf_sweep_selftest.sh \
-                   scripts/release*.sh scripts/check_release*.sh
+                   scripts/release*.sh scripts/check_release*.sh \
+                   scripts/docs_*.sh scripts/check_docs*.sh
     # Семейство релиза берётся ШАБЛОНОМ, а не списком: за две вертикали спеки #20 оно выросло с
     # трёх файлов до четырнадцати, и каждый новый гейт приходилось дописывать сюда руками. Забытая
     # строка не падает — она молча выводит скрипт из-под проверки, ровно тот класс, ради которого
