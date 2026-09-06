@@ -66,6 +66,14 @@ inline const char* peer_said(const platform::ExitStatus& s, bool waited) {
         case 7: return "could not write its recorded run";
         case 8: return "its claim format does not match its own length";
         case 9: return "its frame budget was never measured";
+        // Живой цели (гейт 9) — Esc или закрытое окно. У headless-пары он не встречается, но назван
+        // здесь же: коды расшифровывает РОДИТЕЛЬ, и «an unexpected code» на прогоне, прерванном
+        // человеком, читалось бы как поломка гейта.
+        case 10: return "stopped by hand";
+        // Кода 11 сам пир не возвращает никогда: он принадлежит заглушке гейта 9 и означает «режим
+        // `--hooks` не разобран». Назван здесь же, потому что расшифровывает коды РОДИТЕЛЬ, и
+        // «an unexpected code» на отказе разбора читалось бы как поломка оснастки.
+        case 11: return "did not understand its --hooks mode";
         default: return "an unexpected code";
     }
 }

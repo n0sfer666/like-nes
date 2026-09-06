@@ -1,13 +1,15 @@
 #include "platformer_peer.hpp"
 
+#include "platformer_peer_hooks.hpp"
+
 #include <chrono>
 #include <cstdio>
 #include <memory>
 #include <thread>
 
-#include "platformer_input_wire.hpp"
 #include "platformer_peer_budget.hpp"
 #include "platformer_peer_channel.hpp"
+#include "platformer_peer_queue.hpp"
 #include "platformer_peer_result.hpp"
 #include "platformer_peer_step.hpp"
 #include "platformer_replay_record.hpp"
@@ -25,43 +27,6 @@ const char* role_of(bool sender) { return sender ? "send" : "recv"; }
 
 std::string side_file(const PeerConfig& c, bool mine, const char* ext) {
     return c.prefix + "-" + role_of(mine == c.sender) + ext;
-}
-
-void push_input(Peer& p, const PeerConfig& cfg, uint32_t total) {
-    if (p.queued >= total || p.ch.link.unacked() >= PEER_INFLIGHT) return;
-    const uint32_t t = p.queued;
-    const ch::MoveInput in = script_input(t);
-    const bool skip = cfg.drop_tick >= 0 && static_cast<uint32_t>(cfg.drop_tick) == t;
-    if (!skip) {
-        uint8_t body[input_wire::BYTES];
-        if (!input_wire::put(body, t, in) || !p.ch.link.send(body, sizeof(body))) return;
-    }
-    p.ses.deliver(t, 0, in);
-    p.have[t] = 1;
-    ++p.queued;
-    advance_known(p);
-}
-
-// Исходы те же, что у `poll`, свёрнутые по всей очереди: `1` что-то приехало, `0` очередь пуста,
-// `-2` сокет непригоден. Последний не сводится к первым двум: отказ шва и молчание собеседника
-// лечатся по-разному, и пир, перепутавший их, дождался бы дедлайна вместо своего кода.
-int drain(Peer& p) {
-    uint8_t payload[net::MAX_PAYLOAD];
-    int any = 0;
-    for (;;) {
-        size_t len = 0;
-        const int got = channel::poll(p.ch, payload, sizeof(payload), &len);
-        if (got == -2) return -2;
-        if (got == 0) return any;
-        any = 1;
-        uint32_t t = 0;
-        ch::MoveInput in;
-        if (got < 0 || !input_wire::get(payload, len, t, in) || t >= p.have.size()) continue;
-        p.ses.deliver(t, 0, in);
-        p.have[t] = 1;
-        if (t + 1 > p.highest) p.highest = t + 1;
-        advance_known(p);
-    }
 }
 
 PeerStats tally(const Peer& p) {
@@ -98,7 +63,10 @@ int run_peer(const PeerConfig& cfg) {
     }
     p->sim.inner.stage = &p->stage;
     p->ses.reset(1, PEER_DEPTH);
-    const uint32_t total = script_ticks();
+    // Длину сессии и потолок прогона называет живая половина: headless-дедлайн (20 с) короче самой
+    // живой сессии (60 с), и оставленный прежним он отказывал бы кодом 4 на третьей секунде игры.
+    const uint32_t total = cfg.hooks ? cfg.hooks->horizon() : script_ticks();
+    const int64_t deadline_ms = cfg.hooks ? cfg.hooks->deadline_ms() : PEER_DEADLINE_MS;
     p->sim.expect(total);
     p->have.assign(total, 0);
     const channel::Where where{cfg.listen_port, cfg.peer_at};
@@ -124,15 +92,34 @@ int run_peer(const PeerConfig& cfg) {
                 break;
             }
         }
-        if (ms_since(started) > PEER_DEADLINE_MS) {
+        if (ms_since(started) > deadline_ms) {
             std::printf("peer %s: gave up at tick %u of %u (known=%u)\n", role_of(cfg.sender),
                         p->tick, total, p->known);
             return 4;
         }
-        if (cfg.sender) push_input(*p, cfg, total);
         int got = 0;
         {
+            // Отдача своего тика идёт ВНУТРИ замера сети: `push_input` кодирует заявку и отдаёт её
+            // надёжному слою, то есть тратит ровно то, что гейт 8 и мерит. Снаружи она была бы
+            // недоучтена вся, а с циклом-догоном — до `PEER_INFLIGHT` вызовов за проход, и бюджет
+            // сети читался бы тем меньшим, чем больше пир на самом деле шлёт. Проба одна на проход,
+            // потому что `report` считает средним по ПРОХОДАМ, а не по вызовам.
             const budget::Span span(p->net_cost);
+            // Долг по тикам отдаётся ЦИКЛОМ, пока шов отдаёт ввод и пусто место в окне отправки
+            // (`PEER_INFLIGHT`): один тик за проход есть темп КАДРА, а не стенных часов, потому что
+            // проход живой половины блокируется на `show`, ждущем vsync, и на мониторе 30 Гц минута
+            // сессии растянулась бы на две, то есть ровно в дедлайн. У скрипта отдавать нечего — он
+            // готов всегда, поэтому headless-пир остаётся один-тик-за-проход БУКВАЛЬНО, и написано
+            // это ветвлением, а не порядком операндов `&&`: инвариант «без шва ровно один вызов»
+            // держался бы тогда правилом сокращённого вычисления, а читается как «пока отдаёт».
+            if (cfg.sender) {
+                if (cfg.hooks == nullptr) {
+                    push_input(*p, cfg, total);
+                } else {
+                    while (push_input(*p, cfg, total)) {
+                    }
+                }
+            }
             channel::flush(p->ch, it);
             p->deaf.update(p->tick);
             if (!p->deaf.running()) got = drain(*p);
@@ -145,6 +132,13 @@ int run_peer(const PeerConfig& cfg) {
         const bool moved = catch_up(*p, total) != 0;
         if (!moved) give_up_on_a_hole(*p);
         if (!moved) p->deaf.stalled();
+        // Кадр показывается ПОСЛЕ догона, а не до: состояние, которое сейчас же переиграет откат,
+        // на экране было бы кадром, которого в записи прогона нет.
+        if (cfg.hooks != nullptr && !cfg.hooks->show(p->stage)) {
+            std::printf("peer %s: stopped by hand at tick %u of %u\n", role_of(cfg.sender),
+                        p->tick, total);
+            return 10;
+        }
         if (got == 0 && !moved) std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 

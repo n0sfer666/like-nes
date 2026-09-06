@@ -1040,6 +1040,11 @@ jobs:
           # сценой), а раннер даёт ему ровно ту половину, которая ему доступна: адресация
           # проверяется целиком, реальный лаг двух машин остаётся владельцу (§14 руководства).
           run_gate game_platformer_net_direct_test 'game-platformer-net-direct: PASS'
+          # Шов живой половины того же гейта 9: окна на раннере нет, но проводка шва headless
+          # проверяема целиком — прогон ЧЕРЕЗ хуки обязан дать ту же марку и ту же запись побайтно,
+          # что прогон без них. Без этой строки первой проверкой шва за всю жизнь движка был бы
+          # ручной прогон владельца на двух машинах.
+          run_gate game_platformer_net_hooks_test 'game-platformer-net-hooks: PASS'
 
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash

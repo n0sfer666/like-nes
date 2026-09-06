@@ -1596,14 +1596,15 @@ frame into a 20% one.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
 
-> **Half of this gate became runnable on 2026-09-04, and the other half did not.** Until that day
-> both peers hard-coded `pnet::ADDRESS_LOOPBACK` and found each other by writing a port number into
-> a file next to each other — one filesystem, one machine, no way to name a neighbour. They now take
-> the neighbour as an argument, so **the convergence half — two processes on two machines, one
-> input, one state, over a wire with real latency — you can run today**. The other half, *does it
-> feel like one game*, still cannot be asked: the peer is headless by design (invariant 2 of the
-> spec: *the same host without a window*), so there is nothing to look at. What follows is the
-> procedure for the half that exists; the drawing peer stays an engine debt, named at the end.
+> **Both halves of this gate became runnable on 2026-09-06.** The convergence half — two processes
+> on two machines, one input, one state, over a wire with real latency — has been runnable since
+> 2026-09-04, when the peers stopped hard-coding `pnet::ADDRESS_LOOPBACK` and started taking the
+> neighbour as an argument. The other half, *does it feel like one game*, could not be asked at all:
+> the peer was headless by design and there was nothing to look at. It now has a window on **both**
+> sides — `game_platformer_net_live`, a second target over the **same** `run_peer` loop, reached
+> through a seam (`PeerHooks`) rather than a second copy of the rollback cycle. A copy would have
+> drifted from the original in silence: the gates would keep agreeing on theirs while you played
+> another. So there are two runs below, and step B is the one nobody but you can do.
 
 ### What you need
 
@@ -1611,6 +1612,10 @@ Two machines on one network — any pair of Linux, Windows and macOS, mixed is b
 **both built from the same commit**. Not a formality: the whole claim is that identical inputs give
 identical state, and two different commits would answer a question nobody asked. Check with
 `git rev-parse HEAD` on both.
+
+Run **B** needs a screen, a GPU and a keyboard on each of them; run **A** needs neither and is the
+one to start with, because a pair that cannot converge headless will not converge with a window in
+front of it either.
 
 Note each machine's address (`ip addr` on Linux, `ipconfig` on Windows, `ipconfig getifaddr en0` on
 macOS) and let UDP through the firewall on **both** ports below — each machine listens on one and
@@ -1622,7 +1627,7 @@ wire first, because the answer at the end is read against it:
 ping -c 20 <the other machine>
 ```
 
-### The run
+### Run A — convergence, no window
 
 Build the gate on both machines:
 
@@ -1653,7 +1658,7 @@ Both addresses are named on **both** sides on purpose. A peer that learned its n
 whoever wrote first would hand its acknowledgement window to whoever won that race, on a port that
 — to reach another machine at all — is open on every interface.
 
-### Expected output
+### Expected output of run A
 
 Each side prints three lines and writes `live-send.replay` / `live-recv.replay` beside itself:
 
@@ -1673,7 +1678,7 @@ because the neighbour may answer from an address other than the one you typed. T
 worth a line here: a pair that dies at the deadline with `aliens` climbing is a routing problem, and
 a pair that dies with `aliens=0` never heard anything at all.
 
-### What to judge, in order
+### What to judge in run A, in order
 
 1. **Both sides exited zero and printed `ticks=417`.** A non-zero code is the answer, not a
    nuisance, and the peer prints a line naming which one before it leaves:
@@ -1687,6 +1692,7 @@ a pair that dies with `aliens=0` never heard anything at all.
    | `6` | the socket is unusable: either the port you passed to `--listen` is already taken (the line says `port N did not open`), or the socket went bad mid-run |
    | `7` | the recording could not be written, same directory question as `5` |
    | `9` | the frame was never measured — an engine finding, report it |
+   | `10` | somebody pressed Esc or closed the window — run B only, and it is an answer, not a failure |
 2. **The two recordings are the same file.** This is the gate itself — two machines, one input, one
    state, byte for byte:
    `sha256sum live-send.replay` on Linux, `shasum -a 256` on macOS, `certutil -hashfile
@@ -1704,15 +1710,113 @@ a pair that dies with `aliens=0` never heard anything at all.
 5. **`sim`/`net worst=` against 16.67 ms.** Same reading as §13, and it is worth taking here as
    well: the network line covers a socket that now carries real datagrams, not loopback ones.
 
-### What is still missing, and why it is not your problem
+### Run B — a live session, a window on each side
 
-The subjective half — *does it play* — needs a peer with a window, and there is none. The two
-constants this gate exists to challenge are `PEER_PREDICT = 4` and `PEER_DEPTH = 8`
-([`platformer_peer.hpp`](../example_ugly_game/platformer_peer.hpp)): four ticks of prediction is
-66 ms, chosen against a loopback whose latency is zero. They are the network analogue of the 500
-bodies spec #15 claimed and your run cut to 350 — numbers picked where the measurement was cheap,
-waiting for the machine that decides. Steps 3 and 4 above are what can be said about them without a
-picture; the picture is engine work, not yours.
+Build the live peer on both machines:
+
+```
+cmake --build build --target game_platformer_net_live
+```
+
+The arguments are the ones you already typed in run A — same parser, same strictness, because these
+are typed by hand on two machines and a silently accepted `--lisen 7777` would send a peer off to
+meet a neighbour through a file that does not exist on the other box:
+
+```
+./build/game_platformer_net_live --peer send example_ugly_game/assets/game.bundle live \
+  --listen 7777 --at <B>:7778
+```
+
+```
+./build/game_platformer_net_live --peer recv example_ugly_game/assets/game.bundle live \
+  --listen 7778 --at <A>:7777
+```
+
+Machine **A** plays; **B** watches the same hero move under the same physics. Both windows open
+before the rendezvous — the neighbour is waiting on a deadline, and a side that spent those seconds
+creating a wgpu device would eat them out of somebody else's eight.
+
+**The session is exactly 3600 ticks — one minute at 60 Hz — and both sides know that number in
+advance.** It is not negotiated over the wire: the peer waits for acknowledgements up to `total`,
+so a side that decided to play longer would run into its neighbour's deadline, and the end of the
+session would look like a dropped connection. The tick is paced by the **wall clock**, not by the
+screen: `Fifo` waits for vsync, so a minute measured in frames would be thirty seconds on a 120 Hz
+monitor and two on a 30 Hz one.
+
+**Esc, or closing the window, ends the run with code `10`** and a line saying so. That is a refusal,
+not a crash — but it is one-sided: the neighbour keeps waiting and leaves on its own deadline
+(`4`) two minutes in. That deadline is twice the session and is derived from it, not written down
+as a number: written down, it once came out equal to a 30 Hz session, so an intact pair would have
+been read as "the neighbour walked away". Quitting early means both sides quit early.
+
+Each side prints one line before the session and the same three afterwards. The two sides do not
+print the same line — only the sender opens a gamepad, because input travels one way:
+
+```
+peer send: 3600 ticks, gamepad backend <name>, Esc quits
+peer recv: 3600 ticks, watching the other side, Esc quits
+```
+
+**One more line may appear mid-session**, and it is not an error:
+
+```
+live: <n> ticks behind the wall clock, that debt is dropped (<total> total)
+```
+
+The machine slept, or the window was dragged, and wall-clock time passed without ticks being
+played. Anything past a dozen ticks of debt is dropped rather than played out at once — a dozen
+ticks played without a single keyboard poll is a hero moving by itself. Seeing this line once when
+you dragged the window is expected; seeing it while you play, on a machine doing nothing else, is a
+finding: write down what the number was and what was on screen.
+
+**The second number is the running total, and it is what tells code `4` apart from a dead
+neighbour.** Dropping debt gives back the *pace*, not the ticks: the session still owes 3600 of
+them, while the deadline is measured on the wall clock. A machine that has dropped, in total, more
+than a session's worth of ticks will leave on code `4` with an intact network and a neighbour that
+never went anywhere — and step 5 below tells you to read that as "the neighbour walked away". So
+when either side ends on `4`, read the totals first: a large one means the finding is about this
+machine, not about the wire.
+
+### What to judge in run B, in order
+
+1. **Both windows opened and both showed the same hero in the same place.** Exit code `1` means the
+   window or the wgpu device did not come up, and the reason is on stderr; that is a local problem,
+   not a network one, and worth reporting with the GPU and driver.
+2. **Whether it plays.** This is the whole reason the run exists and no gate can ask it: press left
+   on A and watch B. Does the input feel attached to the hero, or does it arrive late? Does the
+   picture on B stutter, snap back, or slide? Rubber-banding on B is a rollback you can see — write
+   down roughly how often and after what (a jump, a direction change, standing still).
+3. **The same two constants, now with a picture.** `PEER_PREDICT = 4` and `PEER_DEPTH = 8`
+   ([`platformer_peer.hpp`](../example_ugly_game/platformer_peer.hpp)): four ticks of prediction is
+   66 ms, chosen against a loopback whose latency is zero. They are the network analogue of the 500
+   bodies spec #15 claimed and your run cut to 350 — numbers picked where the measurement was cheap,
+   waiting for the machine that decides. Judge them against the `ping` figure you took at the start:
+   if the play feels attached at 20 ms and detached at 80 ms, that is the finding, and the numbers
+   from step 4 of run A say which of the two constants to move.
+4. **`ticks=3600` and `forced=` on both sides at the end.** Same reading as run A, on a run whose
+   input came from a person instead of a script — which is the one thing the automated gate cannot
+   produce. `forced > 0` here with `forced == 0` in run A over the same wire is worth reporting on
+   its own: it would mean human input has a shape the script does not.
+5. **If a side ended on code `4`, read the `live:` totals before blaming the wire.** Code `4` is
+   "the neighbour walked away", and that is the right reading when the other side is gone — Esc,
+   a closed window, a killed process. It is the wrong reading when this machine spent the session
+   dropping debt: the deadline is wall-clock, the dropped ticks are not, and enough of them ends
+   an intact pair on `4`. No `live:` line and a `4` is a network finding; a large total and a `4`
+   is a finding about the machine, and the total is the number to write down.
+
+### What the automated half already says about this seam
+
+The seam itself — that the live half feeds input and shows frames through `PeerHooks` without
+changing the run — is not left to this page. `game_platformer_net_hooks_test` runs the same pair
+twice, once through the seam with a script behind it and once without, and requires the same mark
+and the same recording byte for byte. Eight stand-in live halves prove the assertions can fail and
+that every branch of the seam is really asked: a sender that never moves, one that answers "not yet"
+every other question, one that names half a script as the session, one that names a one-millisecond
+deadline, a display that refuses on its first frame, a mode nobody implemented (which must be
+refused with its own code `11`, not run without the seam), and a pair whose sender is refused one
+send — the sample it already took from the seam has to survive that refusal, because a person
+cannot be asked twice about the same tick, and the same pair with that cache broken has to play a
+different run. What none of them can do is look at a screen, which is why run B is here.
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
 
