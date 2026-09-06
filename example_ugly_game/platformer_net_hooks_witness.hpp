@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <cstring>
 #include <string>
 
 #include "platform_fs.hpp"
@@ -33,11 +34,29 @@ inline bool write_witness(const std::string& prefix, bool sender, const Witness&
     return std::fclose(f) == 0;
 }
 
+// Своя цифра вместо `sscanf`: MSVC объявляет его небезопасным (C4996), а `/WX` делает из этого
+// ошибку — то есть на единственной ОС, которую владелец проверить не может, файл просто не
+// собирается. Тот же выбор и по той же причине, что в `platform_net.cpp`: разбор здесь на три поля
+// фиксированного вида, и глушить диагностику `_CRT_SECURE_NO_WARNINGS` значило бы снимать её со
+// ВСЕГО дерева ради одной строки.
+inline bool read_field(const char*& p, const char* name, uint32_t& out) {
+    const std::size_t n = std::strlen(name);
+    while (*p == ' ') ++p;
+    if (std::strncmp(p, name, n) != 0 || p[n] != '=') return false;
+    p += n + 1;
+    if (*p < '0' || *p > '9') return false;
+    uint32_t v = 0;
+    while (*p >= '0' && *p <= '9') v = v * 10 + static_cast<uint32_t>(*p++ - '0');
+    out = v;
+    return true;
+}
+
 inline bool read_witness(const std::string& prefix, bool sender, Witness& out) {
     std::string text;
     if (!platform::read_text(witness_path(prefix, sender), text)) return false;
-    return std::sscanf(text.c_str(), "asked=%u refused=%u shown=%u", &out.asked, &out.refused,
-                       &out.shown) == 3;
+    const char* p = text.c_str();
+    return read_field(p, "asked", out.asked) && read_field(p, "refused", out.refused) &&
+           read_field(p, "shown", out.shown);
 }
 
 // Улика убирается СВОЕЙ уборкой, а не вместе с файлами прогона (`runs::forget`): ту `spawn_pair`
