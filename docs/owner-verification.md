@@ -2157,6 +2157,47 @@ written by the compiler and there are two compilers: `wixl` here, WiX v3 on the 
 *input* is the same file; their *behaviour* on this bit is not proven by anything, and the way that
 divergence would surface is a UAC prompt under `/qn` on your box, not a red gate.
 
+## 17. Gate 5 of #19 — the install page read by someone who did not write it
+
+> **This is the gate the machine half of round #19 cannot touch at all.** `scripts/check_docs.sh`
+> asserts that the two language trees mirror each other, that every translation carries the sha256
+> of the English source it was made from, that every internal link and every heading anchor
+> resolves, and that both READMEs state `MIT OR Apache-2.0` and point at the licence texts. The
+> count is not written down here on purpose: it is derived by the walk, it moves with every page
+> added, and a number frozen into prose is a claim about the tree of the day it was typed. None of
+> that says the instructions *work*: a page can be perfectly mirrored, perfectly linked and wrong on
+> every command.
+
+The page under test is [`docs/en/getting-started/`](en/getting-started/) — `build.md` (prerequisites
+and the build) and `first-run.md` (the editor, the two sample games, hot-reload, and what a failure
+looks like). The Russian pair is [`docs/ru/getting-started/`](ru/getting-started/).
+
+**A clean box is one where this engine has never been built** — not a wiped one, and not a
+container. The container would answer for Linux only, and only for the half of the page that has no
+window in it: the editor, the GPU adapter and the hot-reload loop are exactly what it cannot show.
+Nobara and the Windows box both qualify only until the first run — so if you are going to do this,
+do it before anything else on that machine.
+
+1. Read the page **as written**, top to bottom, and type only what it says. Do not fill in a missing
+   package from memory, do not add a CMake flag it does not mention, do not use `win-dev.bat` if the
+   page did not tell you to. The whole value of the gate is in what you have to add for yourself.
+2. Note every place where you had to. Each one is a defect in the documentation, not in your
+   patience — the page promises a stranger can follow it.
+3. Stop where the page stops: `editor_shell` open on a window, `game_platformer` playing, and the
+   hot-reload edit from `first-run.md` visible.
+
+Expected: nothing but the commands on the page, in order, and the last one leaves a window open.
+The failures worth writing down are the quiet ones — a package the page forgot (the build stops with
+a header not found), a Windows shell that is not the x64 prompt (`cl` is not on `PATH`), a first
+`cmake` run that asks about X11 a second time, a path in the text that no longer exists in the tree.
+
+**Gate 6 of the same spec is not runnable yet, and that is a statement.** It asks for the tutorial —
+"first game", from an empty project to a playable character — to be reproducible step by step, and
+that section is deliberately unwritten: `docs/en/index.md` names `tutorial/`, `guide/`,
+`reference/` and the rest **without links**, because a link into nothing is a finding of the link
+gate and a lie to the reader either way. When the tutorial is written, this gate is run the same way
+as §17 — by typing what the page says and noting everything you had to add.
+
 ## Beyond the gates
 
 The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
@@ -2205,6 +2246,10 @@ Those scenarios, with the exact commands per platform, are sections A–F of
   the section counts), the `dir like-nes\bin` listing, `%ERRORLEVEL%` from the `/qn` install, and
   the `dir` after the `/qn` uninstall. A screenshot if any dialog appeared at all — under `/qn`
   there should be none.
+- For §17, the list of everything you had to add that the page did not say — package names,
+  flags, the shell you had to open — and the point where you stopped. An empty list is the result
+  the gate is hoping for and the one that needs saying out loud; "it worked" without the list is
+  indistinguishable from not having run it.
 - For gate 9 of #17, two pairs of recordings and their answer sheets: `game_platformer` before/after
   `2bdfcb7` with the five answers, and `game_sidescroller` before/after `ddd0efa` with the six.
   One pair without the other is still worth sending — the halves are independent.

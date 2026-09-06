@@ -75,6 +75,21 @@ jobs:
           python3 scripts/line_budget.py --selftest
           python3 scripts/line_budget.py
 
+      # Документация (спека #19): en — источник, ru — перевод, и расхождение между ними есть
+      # находка. Сам гейт статический и дерево одно — хватает одной ОС; правки текста ломают его
+      # чаще, чем правки кода, а узнавать об этом на раннере через двадцать минут дороже всего.
+      - name: Docs gate — mirrored tree, fresh translations, live links, license
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/check_docs.sh
+
+      # Самопроверка идёт на ВСЕХ ТРЁХ ОС, и предмет у неё другой: не имена наших файлов, а
+      # ПЕРЕНОСИМОСТЬ самих утверждений — sha256_of (shasum против sha256sum), `sed -i` в git-bash,
+      # `find` и порядок `sort` под разными локалями. Фикстуры синтетические, сборки не требуют.
+      - name: Docs gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: bash scripts/check_docs_selftest.sh
+
       # Гейт релизного пакета (спека #20) идёт в CI САМОПРОВЕРКОЙ и на всех трёх ОС. Сам пакет
       # требует полной сборки с PLUGIN_UI и собирается на машине владельца.
       # Предмет шага — ПЕРЕНОСИМОСТЬ утверждений, а не имена файлов: диалект tar (BSD против GNU),
