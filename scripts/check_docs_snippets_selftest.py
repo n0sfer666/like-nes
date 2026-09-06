@@ -5,86 +5,15 @@
 находка разбора ломается своим деревом: источника нет, источник вне `docs/examples/`, маркера нет,
 маркер не закрыт, маркер объявлен дважды, тело разошлось, форма врезки испорчена, врезок нет вовсе.
 
-Гейт зовётся ВНЕШНИМ процессом, а не импортом: предмет здесь — вердикт целиком, вместе с вычиткой
-списка документов со стдина и кодом возврата, и половина находок живёт именно там.
+Файл — ПЕРЕЧЕНЬ кейсов; то, чем каждый из них запускается, живёт в `docs_snippets_case_lib.py`.
 """
-import atexit
-import os
-import shutil
-import subprocess
 import sys
-import tempfile
 
 import py_utf8
-
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GATE = os.path.join(ROOT, "scripts", "check_docs_snippets.py")
-
-SRC_OK = """// docs:begin(hello)
-int hello() { return 1; }
-// docs:end(hello)
-"""
-
-DOC_OK = """# doc
-
-<!-- snippet: docs/examples/sample.cpp#hello -->
-```cpp
-int hello() { return 1; }
-```
-<!-- /snippet -->
-"""
+from docs_snippets_case_lib import (DOC_OK, ROOT, SRC_OK, STATE, case, expect,
+                                    real_docs, verdict)
 
 py_utf8.enable()
-BAD = 0
-
-
-def build(files):
-    """Фикстурное дерево из словаря «путь -> текст». Каталоги создаются по пути файла: список
-    каталогов, написанный отдельно, разъехался бы с самими файлами."""
-    root = tempfile.mkdtemp()
-    # Каталоги убираются за собой: прогон, оставляющий два десятка деревьев во временном каталоге,
-    # приучает не смотреть на них вовсе, а гейт 4 спеки #11 требует чистого следа от локального
-    # прогона (git status их не видит, поэтому напомнить о них некому).
-    atexit.register(shutil.rmtree, root, True)
-    for rel, text in files.items():
-        path = os.path.join(root, rel)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(text)
-    return root
-
-
-def gate(root, docs):
-    """Код возврата гейта на дереве `root` со списком документов на стдине — и его вывод."""
-    p = subprocess.run([sys.executable, GATE, root], input="\n".join(docs),
-                       capture_output=True, text=True, encoding="utf-8")
-    return p.returncode, (p.stdout or "") + (p.stderr or "")
-
-
-def expect(want, name, root, docs):
-    global BAD
-    rc, out = gate(root, docs)
-    ok = (want == "pass" and rc == 0) or (want == "fail" and rc != 0)
-    if ok:
-        print("docs-snippets-selftest: OK   %s (%s)" % (name, want))
-    else:
-        # Вывод гейта печатается ЦЕЛИКОМ: контроль, назвавший только код возврата, сообщает ФАКТ
-        # отказа и молчит о причине. На своей ОС это лечится повторным запуском руками, а на чужом
-        # раннере причина не восстанавливается вовсе — и стоит полного круга CI.
-        sys.stderr.write("docs-snippets-selftest: БРАК %s: ожидали %s, код %d\n" % (name, want, rc))
-        for line in out.splitlines():
-            sys.stderr.write("docs-snippets-selftest:      | %s\n" % line)
-        BAD = 1
-
-
-def case(want, name, doc=DOC_OK, src=SRC_OK, docs=("doc.md",), extra=None):
-    files = {"doc.md": doc}
-    if src is not None:
-        files["docs/examples/sample.cpp"] = src
-    if extra:
-        files.update(extra)
-    expect(want, name, build(files), list(docs))
-
 
 case("pass", "исправная врезка совпадает с телом маркера")
 
@@ -223,25 +152,20 @@ case("fail", "названного документа нет в дереве", d
 # Фикстура игрушечная по построению, и утверждение, случайно заточенное под неё, выглядело бы
 # здоровым ровно до первого прогона гейта. Список документов настоящего дерева берётся у той же
 # docs_all_files, которой пользуется сам гейт.
-real = subprocess.run(["bash", "-c", ". scripts/docs_content_lib.sh; docs_all_files ."],
-                      cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
-real_docs = [d for d in real.stdout.splitlines() if d.strip()]
+real, docs = real_docs()
 # Список приходит от ЧУЖОГО процесса, и его отказ отдаёт пустой список, на котором гейт отказывает
 # по СВОЕЙ вакуумной ветке: кейс падал бы по чужой причине, неотличимо от сломанного разбора врезок.
-if real.returncode != 0 or not real_docs:
+if real.returncode != 0 or not docs:
     sys.stderr.write("docs-snippets-selftest: БРАК docs_all_files не отдала списка: код %d, "
-                     "документов %d\n" % (real.returncode, len(real_docs)))
+                     "документов %d\n" % (real.returncode, len(docs)))
     # Список печатается ЦЕЛИКОМ: отказ обхода опознаётся по ТОМУ, ГДЕ он оборвался, а одно
     # число документов об этом молчит — на чужом раннере восстановить границу больше нечем.
-    for line in real_docs:
+    for line in docs:
         sys.stderr.write("docs-snippets-selftest:      > %s\n" % line)
     for line in (real.stderr or "").splitlines():
         sys.stderr.write("docs-snippets-selftest:      | %s\n" % line)
-    BAD = 1
+    STATE["bad"] = 1
 else:
-    expect("pass", "настоящее дерево проходит гейт", ROOT, real_docs)
+    expect("pass", "настоящее дерево проходит гейт", ROOT, docs)
 
-if BAD:
-    sys.stderr.write("docs-snippets-selftest: FAIL\n")
-    sys.exit(1)
-print("docs-snippets-selftest: PASS")
+sys.exit(verdict())

@@ -92,6 +92,14 @@ jobs:
         shell: bash
         run: bash scripts/check_docs.sh
 
+      # Выбор bash по ОТВЕТУ кандидата, а не по имени в PATH: на windows-раннере первым `bash`
+      # стоит мост в WSL, и набор врезок прочитал его сообщение как список документов дерева.
+      # Порча живёт только здесь — сам гейт видит лишь исход выбора, — и на трёх ОС потому, что
+      # предмет её тот же, что у соседних: переносимость утверждений.
+      - name: POSIX bash resolution selftest (WSL bridge stub, broken candidates)
+        shell: bash
+        run: python3 scripts/posix_bash_selftest.py
+
       # Самопроверка — на ВСЕХ ТРЁХ ОС, и предмет у неё тот же, что у соседней: переносимость самих
       # утверждений (перевод строки в git-bash, порядок обхода, локаль). Фикстуры синтетические.
       - name: Docs snippets gate selftest (broken fixtures, portability of the assertions)
