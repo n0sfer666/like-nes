@@ -17,7 +17,12 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.." || exit 1
 
 EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
      --include=*.hpp --include=*.mm --include=*.m --include=*.inl"
-ROOTS="engine tools example_ugly_game platform"
+# Корни перечислены ОДНИМ местом: до этого их писали руками в трёх, и новый корень с кодом
+# (docs/examples — примеры документации, спека #19) молча остался бы вне швов и вне ASCII-проверки.
+# Ровно list-drift из ci_lint.py, только список тут не файлов, а поддеревьев. Половин две, потому
+# что platform САМ и есть шов: искать в нём нарушение шва нечего.
+ROOTS_CODE="engine tools example_ugly_game docs/examples"
+ROOTS="$ROOTS_CODE platform"
 
 fail() { echo "$@"; exit 1; }
 
@@ -37,7 +42,7 @@ inv_seam() {
     # не прочитав ни файла.
     [ "$seam" -ge 3 ] || fail "ifdef gate: search itself is broken (seam hits: $seam)"
     # shellcheck disable=SC2086
-    local hits; hits=$(grep -rnE "$pat" $EXT engine tools example_ugly_game \
+    local hits; hits=$(grep -rnE "$pat" $EXT $ROOTS_CODE \
                        | grep -v '^engine/platform/' || true)
     [ -z "$hits" ] || fail "OS #ifdef leaked outside the platform seam:
 $hits"
@@ -54,7 +59,7 @@ inv_argv() {
     local files; files=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \
         --include='*.c' --include='*.cc' --include='*.cxx' --include='*.cpp' \
         --include='*.mm' --include='*.m' \
-        engine tools example_ugly_game platform | grep -vE "$exclude" || true)
+        $ROOTS | grep -vE "$exclude" || true)
     local count; count=$(printf '%s\n' "$files" | grep -c . || true)
     [ "$count" -ge 15 ] || fail "argv gate matched only $count main() files — the search itself is broken"
     local bad=""

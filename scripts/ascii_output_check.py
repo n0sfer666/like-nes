@@ -26,7 +26,7 @@ import re
 import sys
 
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
-ROOTS = ("engine", "tools", "example_ugly_game", "platform")
+ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples")
 ALLOW = re.compile(r"ascii:\s*allow\b(.*)")
 RAW_OPEN = re.compile(r'R"([^("\\ ]*)\(')
 # Префиксы символьного литерала. Пустой — обычный `'x'`; остальные это `L'x'`, `u'x'`, `U'x'`,
