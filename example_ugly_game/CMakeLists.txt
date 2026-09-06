@@ -1,9 +1,11 @@
-# backend_host.cpp собирается прямо сюда: порядок разрушения backend→dlclose иначе не покрыт
-# ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это единственный способ его проверить.
+# backend_host.cpp и половина прогона, которой нужен ХОСТ игры, собираются прямо сюда: порядок
+# разрушения backend→dlclose иначе не покрыт ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это
+# единственный способ его проверить. Вторая половина лежала в engine/achievements и включала
+# ../../example_ugly_game/backend_host.hpp — стрелку вверх инвариант 1 спеки #14 теперь отбивает.
 set(ACH_TEST_DIR ${CMAKE_SOURCE_DIR}/engine/achievements)
 add_executable(ach_plugin_test
   ${ACH_TEST_DIR}/plugin_test.cpp ${ACH_TEST_DIR}/plugin_test_common.cpp
-  ${ACH_TEST_DIR}/plugin_host_test.cpp backend_host.cpp)
+  ach_plugin_host_test.cpp backend_host.cpp)
 target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 
 # --- Образец-платформер, машинная половина (шаг C вертикали 3 спеки #16): скриптованный прогон по

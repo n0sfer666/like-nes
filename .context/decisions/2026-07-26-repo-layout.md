@@ -52,12 +52,14 @@
 
 ## Известный долг
 
-- **`engine/achievements/plugin_host_test.cpp` включает `example_ugly_game/backend_host.hpp`** —
-  единственное ребро `engine → game` в дереве. Тестируемый `BackendHost` принадлежит игре, поэтому
-  таргет `ach_plugin_test` объявлен в `example_ugly_game/CMakeLists.txt`, а исходник остался в
-  `engine/achievements/`. Переносить файл внутри механического раунда не стали: это меняет список
-  исходников таргета и задевает ASan-гейт с `-DPLUGIN_FORCE_DLCLOSE`, который именно порядок
-  разрушения `backend → dlclose` и покрывает. Закрывается в #20 вместе с публичным интерфейсом.
+- ~~**`engine/achievements/plugin_host_test.cpp` включает `example_ugly_game/backend_host.hpp`**~~ —
+  единственное ребро `engine → game` в дереве. **Погашен аудитом #21** (находка 4): файл перенесён в
+  `example_ugly_game/ach_plugin_host_test.cpp`, включения переписаны на стиль игры, список исходников
+  цели и ASan-шаг `-DPLUGIN_FORCE_DLCLOSE` названы новым путём, а половина прогона, которой нужен
+  ХОСТ игры, собирается прямо в `example_ugly_game/CMakeLists.txt` — порядок разрушения
+  `backend → dlclose` покрыт по-прежнему. Долг дожил до #21 ровно потому, что механической проверки
+  у него не было: инвариант 1 спеки #14 судил только ребро подсистема→слой. Теперь обе половины
+  направления судит `inv_deps`, а порчу держит `scripts/tree_invariants_deps_selftest.sh`.
 - **Модули экспортируют свой каталог целиком** (`target_include_directories(... PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR})`), и игра включает заголовки движка напрямую (`fixed.hpp`,
   `gpu.hpp`, `asset_manager.hpp`, `action_map.hpp`, …) — ровно как в монолите. Разделение

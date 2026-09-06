@@ -1,14 +1,14 @@
-#include "plugin_test.hpp"
+#include "../engine/achievements/plugin_test.hpp"
 
 #include <cstdint>
 
-#include "../../example_ugly_game/backend_host.hpp"
-#include "../plugin/registry.hpp"
-#include "backend.hpp"
-#include "delivery.hpp"
-#include "plugin_backend.hpp"
-#include "registry.hpp"
-#include "tracker.hpp"
+#include "../engine/achievements/backend.hpp"
+#include "../engine/achievements/delivery.hpp"
+#include "../engine/achievements/plugin_backend.hpp"
+#include "../engine/achievements/registry.hpp"
+#include "../engine/achievements/tracker.hpp"
+#include "../engine/plugin/registry.hpp"
+#include "backend_host.hpp"
 
 namespace ach_test {
 namespace {

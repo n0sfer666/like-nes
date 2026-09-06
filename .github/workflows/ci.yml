@@ -2179,7 +2179,7 @@ jobs:
             engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
             engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
-            engine/achievements/plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
+            example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san
           # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
           # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»

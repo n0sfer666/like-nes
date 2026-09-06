@@ -9,10 +9,12 @@
 # вердикте аудита. Фикстуре под них пришлось бы нести полтора десятка `main` и живые швы platform,
 # то есть половину дерева.
 #
-# Ключевая порча — ребро к слою из `engine/achievements`: до этого раунда список подсистем был
-# написан руками и перечислял восемь каталогов из двенадцати, поэтому она проезжала ЗЕЛЁНОЙ. Что
-# порча различает реализации, доказано подменой: копия с прежним рукописным списком обязана её
-# пропустить.
+# Ключевых порч ДВЕ, по числу половин направления, и каждая до аудита #21 проезжала ЗЕЛЁНОЙ.
+# Первая — ребро к СЛОЮ из `engine/achievements`: список подсистем был написан руками и перечислял
+# восемь каталогов из двенадцати. Вторая — ребро к ПОТРЕБИТЕЛЮ: его не проверял никто, и
+# `engine/achievements/plugin_host_test.cpp` включал `../../example_ugly_game/backend_host.hpp`.
+# Что каждая порча различает реализации, доказано подменой: копия с прежним рукописным списком и
+# копия без второй половины обязаны свою порчу ПРОПУСТИТЬ.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -25,8 +27,18 @@ tree_for() {
   local d
   d=$(mktemp -d "${TMPDIR:-/tmp}/tree-inv.XXXXXX")
   mkdir -p "$d/scripts" "$d/engine/framework/core" "$d/engine/render" "$d/engine/achievements" \
-           "$d/engine/light" "$d/engine/material"
+           "$d/engine/light" "$d/engine/material" "$d/tools/ide" "$d/example_ugly_game" \
+           "$d/docs/examples"
   cp "$ROOT/scripts/tree_invariants.sh" "$d/scripts/tree_invariants.sh"
+  # Включения в engine нужны не для красоты: вторая половина инварианта утверждает, что поиск по
+  # этому корню вообще что-то видит, и дерево без единого include делало бы её вакуумной.
+  local m
+  for m in render achievements light material framework/core; do
+      printf '#include "../platform/platform_fs.hpp"\n' > "$d/engine/$m/probe_src.cpp"
+  done
+  # Разрешённое направление: потребитель читает engine. Оно же — позитивный контроль альтернации.
+  printf '#include "../engine/achievements/registry.hpp"\n' > "$d/example_ugly_game/game.cpp"
+  printf '#include "../../engine/asset/bundle_view.hpp"\n' > "$d/tools/ide/panel.cpp"
   printf 'add_library(framework_core STATIC schedule.cpp)\n' > "$d/engine/framework/core/CMakeLists.txt"
   printf 'add_library(render_core STATIC device.cpp)\ntarget_link_libraries(render_core PUBLIC platform_core)\n' \
       > "$d/engine/render/CMakeLists.txt"
@@ -50,6 +62,41 @@ edge_to_layer() {
   printf '#include "../framework/core/text_fields.hpp"\n' > "$d/$rel"
   [ -s "$d/$rel" ] || {
     printf '%s: FAIL порча не создала %s — проверяли бы собственный промах\n' "$NAME" "$rel" >&2
+    fail=$((fail + 1))
+  }
+}
+
+# Порча второй половины: подсистема читает заголовок ПОТРЕБИТЕЛЯ. Ровно то ребро, что до аудита
+# #21 лежало в дереве живым (engine/achievements/plugin_host_test.cpp).
+edge_to_consumer() {
+  local d="$1" rel="$2" inc="$3"
+  [ -e "$d/$rel" ] && {
+    printf '%s: FAIL порча %s уже была в фикстуре\n' "$NAME" "$rel" >&2
+    fail=$((fail + 1))
+  }
+  printf '#include "%s"\n' "$inc" > "$d/$rel"
+  [ -s "$d/$rel" ] || {
+    printf '%s: FAIL порча не создала %s — проверяли бы собственный промах\n' "$NAME" "$rel" >&2
+    fail=$((fail + 1))
+  }
+}
+
+# Прежняя реализация второй половины: её не было вовсе. Обязана ПРОПУСТИТЬ ребро к потребителю —
+# иначе кейс выше падал бы на любой реализации и ничего не говорил о выросшем покрытии.
+no_consumer_half() {
+  local f="$1/scripts/tree_invariants.sh" before after
+  before=$(cksum < "$f")
+  python3 - "$f" <<'PY2'
+import pathlib, sys
+p = pathlib.Path(sys.argv[1])
+s = p.read_text(encoding="utf-8")
+a = s.index("    # Вторая половина того же направления")
+b = s.index('    echo "framework dependency direction: PASS"')
+p.write_text(s[:a] + s[b:], encoding="utf-8")
+PY2
+  after=$(cksum < "$f")
+  [ "$before" != "$after" ] || {
+    printf '%s: FAIL подмена реализации ничего не подменила\n' "$NAME" >&2
     fail=$((fail + 1))
   }
 }
@@ -132,6 +179,30 @@ expect fail 'framework layer has no modules' 'слой без модулей —
 d=$(tree_for)
 for f in "$d"/engine/*/CMakeLists.txt; do : > "$f"; done
 expect fail 'search found no link edges' 'ни одного ребра линковки — гейт вакуумен' "$d"
+
+# Опорный pass второй границы: потребитель читает engine — направление РАЗРЕШЁННОЕ, и запрет на
+# него сжал бы дерево до бессмыслицы. Кейс стоит рядом с порчами ниже, иначе «отбито ребро вверх»
+# неотличимо от «запрещены включения между корнями вообще».
+d=$(tree_for)
+printf '#include "../engine/plugin/host.hpp"\n' > "$d/example_ugly_game/host_use.cpp"
+expect pass '' 'потребитель читает engine — разрешённое направление' "$d"
+
+d=$(tree_for); edge_to_consumer "$d" engine/achievements/probe.hpp ../../example_ugly_game/backend_host.hpp
+expect fail 'includes a consumer header' 'подсистема читает заголовок игры-образца' "$d"
+
+d=$(tree_for); edge_to_consumer "$d" engine/render/probe.hpp ../../tools/ide/panel.hpp
+expect fail 'includes a consumer header' 'подсистема читает заголовок tools' "$d"
+
+# Та же порча на реализации БЕЗ второй половины: обязана проехать зелёной.
+d=$(tree_for); no_consumer_half "$d"
+edge_to_consumer "$d" engine/achievements/probe.hpp ../../example_ugly_game/backend_host.hpp
+expect pass '' 'реализация без второй половины ту же порчу ПРОПУСКАЕТ' "$d"
+
+d=$(tree_for); mv "$d/tools" "$d/tools_renamed"
+expect fail "consumer root 'tools' does not exist" 'корень-потребитель переименован — гейт смотрит в никуда' "$d"
+
+d=$(tree_for); rm -f "$d"/engine/*/probe_src.cpp "$d/engine/framework/core/probe_src.cpp"
+expect fail 'include search itself is broken' 'в engine ни одного включения — поиск вакуумен' "$d"
 
 printf '%s: %s — опорных pass %d, отбито порч %d\n' "$NAME" \
   "$( [ "$fail" = 0 ] && echo PASS || echo FAIL )" "$pass" "$mut"
