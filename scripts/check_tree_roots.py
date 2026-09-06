@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Список корней дерева живёт в ДВУХ копиях, и сверять их между собой некому.
+"""Список корней дерева живёт в ТРЁХ копиях, и сверять их между собой некому.
 
 `scripts/tree_invariants.sh` перечисляет корни в `ROOTS_CODE`/`ROOTS`, `scripts/ascii_output_check.py`
-— в своём `ROOTS`. Внешнего эталона у списка нет: «все каталоги дерева» тут неверно (`deps`,
+и `scripts/check_hash_seam.py` — в своих `ROOTS`. Внешнего эталона у списка нет: «все каталоги дерева» тут неверно (`deps`,
 `packaging`, `docs/ru` кода не несут), поэтому равенство проверяется МЕЖДУ КОПИЯМИ — ровно форма
 `mirrors-group` из `ci_lint.py`, та же, что у пары списков redist-имён в гейте CRT.
 
@@ -24,6 +24,7 @@ import py_utf8
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SH = "scripts/tree_invariants.sh"
 PY = "scripts/ascii_output_check.py"
+SEAM = "scripts/check_hash_seam.py"
 
 SH_ASSIGN = re.compile(r'^\s*(ROOTS|ROOTS_CODE)="([^"]*)"\s*$', re.M)
 PY_ASSIGN = re.compile(r'^ROOTS\s*=\s*\(([^)]*)\)', re.M)
@@ -45,25 +46,40 @@ def python_roots(text):
     return set(PY_ITEM.findall(m.group(1))) if m else set()
 
 
+# Копий столько, сколько мест обходит дерево по этому списку. Третья приехала со швом хешей
+# (находка 5 аудита #21): корень, добавленный в две копии из трёх, проходит инварианты швов и
+# ASCII-проверку и молча остаётся вне гейта констант FNV.
+COPIES = ((SH, "shell"), (PY, "python"), (SEAM, "python"))
+
+
+def copy_roots(root):
+    """{путь копии: множество корней}. OSError наружу — читает вызывающий."""
+    out = {}
+    for rel, kind in COPIES:
+        text = open(os.path.join(root, rel), encoding="utf-8").read()
+        out[rel] = shell_roots(text) if kind == "shell" else python_roots(text)
+    return out
+
+
 def check(root):
     """Находки словами. Пустая копия — ОТКАЗ: пустое равно пустому, и разбор, промахнувшийся мимо
-    обоих файлов, иначе печатал бы «копии совпадают» (тот же класс, что vacuous-gate в ci_lint.py)."""
+    файла, иначе печатал бы «копии совпадают» (тот же класс, что vacuous-gate в ci_lint.py)."""
     bad = []
     try:
-        sh = shell_roots(open(os.path.join(root, SH), encoding="utf-8").read())
-        py = python_roots(open(os.path.join(root, PY), encoding="utf-8").read())
+        roots = copy_roots(root)
     except OSError as e:
         return ["копию списка не прочитать: %s" % e]
-    if not sh:
-        bad.append("%s: ROOTS не разобран — сверять не с чем" % SH)
-    if not py:
-        bad.append("%s: ROOTS не разобран — сверять не с чем" % PY)
+    for rel, names in roots.items():
+        if not names:
+            bad.append("%s: ROOTS не разобран — сверять не с чем" % rel)
     if bad:
         return bad
-    for name in sorted(sh - py):
-        bad.append("корень %s есть в %s и отсутствует в %s" % (name, SH, PY))
-    for name in sorted(py - sh):
-        bad.append("корень %s есть в %s и отсутствует в %s" % (name, PY, SH))
+    for name in sorted(set().union(*roots.values())):
+        lack = [rel for rel, names in roots.items() if name not in names]
+        if lack:
+            have = [rel for rel, names in roots.items() if name in names]
+            bad.append("корень %s есть в %s и отсутствует в %s"
+                       % (name, ", ".join(have), ", ".join(lack)))
     return bad
 
 
@@ -76,8 +92,8 @@ def gate(root, quiet=False):
             sys.stderr.write("tree-roots: FAIL (%d находок)\n" % len(bad))
         return 1
     if not quiet:
-        print("tree-roots: ok (%d корней в обеих копиях)"
-              % len(shell_roots(open(os.path.join(root, SH), encoding="utf-8").read())))
+        roots = copy_roots(root)
+        print("tree-roots: ok (%d корней в %d копиях)" % (len(roots[SH]), len(roots)))
     return 0
 
 
@@ -89,7 +105,7 @@ def selftest():
         d = tempfile.mkdtemp()
         os.makedirs(os.path.join(d, "scripts"))
         changed = False
-        for rel in (SH, PY):
+        for rel, _ in COPIES:
             text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
             new = mutate(rel, text)
             changed = changed or new != text
@@ -121,6 +137,12 @@ def selftest():
         if rel == SH else t)
     run("fail", "разбор не нашёл копию в python",
         lambda rel, t: t.replace("ROOTS = (", "ROOTS_ALL = (") if rel == PY else t)
+    run("fail", "корень пропал из копии шва хешей",
+        lambda rel, t: t.replace(', "docs/examples"', "") if rel == SEAM else t)
+    run("fail", "лишний корень в копии шва хешей",
+        lambda rel, t: t.replace('"platform",', '"platform", "deps",') if rel == SEAM else t)
+    run("fail", "разбор не нашёл копию шва хешей",
+        lambda rel, t: t.replace("ROOTS = (", "ROOTS_ALL = (") if rel == SEAM else t)
 
     if bad:
         sys.stderr.write("tree-roots-selftest: FAIL\n")

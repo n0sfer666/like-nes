@@ -49,6 +49,7 @@ bool file_stamp(const std::string& path, int64_t& out) {
 #endif
     // Композит mtime+size: правка видна даже при грубой (1с) mtime-гранулярности ФС, если сменился
     // размер. (Тот же размер в ту же секунду — редкий промах; nsec-mtime на APFS/ext4 его снимает.)
+    // hash-seam: allow просто большой нечётный множитель, хеша FNV тут нет
     const uint64_t mix = static_cast<uint64_t>(ns) * 1099511628211ull +
                          static_cast<uint64_t>(st.st_size);
     out = static_cast<int64_t>(mix);

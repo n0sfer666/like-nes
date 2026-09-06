@@ -56,8 +56,7 @@ uint64_t hash_world(const World& w) {
     uint64_t h = FNV_OFFSET;
     auto mix = [&](const fix32* a) {
         for (int i = 0; i < N_ENTITIES; ++i) {
-            uint32_t u = static_cast<uint32_t>(a[i].raw);
-            for (int bt = 0; bt < 4; ++bt) { h ^= (u >> (8 * bt)) & 0xFFu; h *= FNV_PRIME; }
+            h = fnv1a_u32(h, static_cast<uint32_t>(a[i].raw));
         }
     };
     mix(w.px); mix(w.py); mix(w.vx); mix(w.vy);

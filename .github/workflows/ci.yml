@@ -233,6 +233,23 @@ jobs:
         shell: bash
         run: python3 scripts/check_py_utf8.py
 
+      # Шов хешей (находка 5 аудита #21): тот же цикл FNV-1a был переписан по дереву около
+      # четырнадцати раз ДВУМЯ семьями констант, и расхождение ничем себя не проявляло — оба хеша
+      # просто считались, оба перепиниваются голденами. Копии сведены к двум примитивам, но
+      # пятнадцатая пишется по памяти за десять секунд и проходит все прочие гейты дерева, значит
+      # мера обязана быть механической. Сравнение идёт по ЗНАЧЕНИЮ, а не по написанию, и
+      # комментарии снимаются перед поиском: число, названное в объяснении, мерой не является.
+      # Гейт читает ОДНО дерево — одна ОС; самопроверка едет на всех трёх: её предмет —
+      # переносимость самих утверждений, а не имена наших файлов.
+      - name: Hash seam gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_hash_seam.py --selftest
+
+      - name: FNV-1a constants live in the two primitives, not in hand-written copies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_hash_seam.py
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 

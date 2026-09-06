@@ -30,7 +30,9 @@ target_link_libraries(framework_rt_test PRIVATE framework_input platform_core
   framework_alloc_probe_control)
 
 add_executable(framework_golden_test framework_golden_test.cpp)
-target_link_libraries(framework_golden_test PRIVATE framework_input platform_core)
+# framework_physics — только за `hash_mix.hpp`: голден ввода сравним с физическим ровно потому,
+# что свёртка у них одна (находка 5 аудита #21). Ребро направлено вниз, инвариант 1 спеки #14 цел.
+target_link_libraries(framework_golden_test PRIVATE framework_input framework_physics platform_core)
 
 # Живой probe гейта 8: реальный пад и реальная клавиатура, поэтому только там, где собран
 # нативный ввод (INPUT_NATIVE). В headless CI цели нет — её нечем кормить.

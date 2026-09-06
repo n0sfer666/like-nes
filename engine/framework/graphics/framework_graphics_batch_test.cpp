@@ -1,5 +1,6 @@
 #include <cstdio>
 
+#include "hash_mix.hpp"
 #include "nine_slice.hpp"
 #include "platform_args.hpp"
 #include "sprite.hpp"
@@ -132,9 +133,11 @@ void test_nine_slice() {
     check(list.count() == 4 && list.dropped() == 0, "a panel of pure corners is four pieces, not a loss");
 }
 
+// Константы — из `hash_mix.hpp` физики (находка 5 аудита #21). Форма «целым словом» оставлена как
+// есть: сведение к байтовой дало бы ДРУГОЕ число, то есть перештамповало бы голден ради косметики.
 uint64_t fold(const SpriteList& list, const Batch* b, uint32_t n) {
-    uint64_t h = 0xcbf29ce484222325ull;
-    const auto mix = [&h](uint64_t v) { h = (h ^ v) * 0x100000001b3ull; };
+    uint64_t h = framework::physics::FNV_OFFSET;
+    const auto mix = [&h](uint64_t v) { framework::physics::mix_word(h, v); };
     for (uint32_t i = 0; i < n; ++i) {
         mix(b[i].first);
         mix(b[i].count);

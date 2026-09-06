@@ -1,4 +1,5 @@
 #include "fixed.hpp"
+#include "../asset/hash.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
@@ -44,20 +45,16 @@ static void tick(World& w) {
     }
 }
 
-static constexpr uint64_t FNV_OFFSET = 1469598103934665603ull;
-static constexpr uint64_t FNV_PRIME = 1099511628211ull;
-
 // Хеш int32 по байтам в ФИКСИРОВАННОМ little-endian порядке (через сдвиги) —
 // не зависит от endianness машины, поэтому тест проверяет именно арифметику fix32,
-// а не byte-order памяти.
+// а не byte-order памяти. До аудита #21 цикл был здесь пятой копией FNV семьи A: тест сверял
+// голден со СВОИМ смешиванием, то есть расхождение с sim_hash он бы и не заметил.
 static uint64_t hash_i32(uint64_t h, int32_t v) {
-    uint32_t u = static_cast<uint32_t>(v);
-    for (int b = 0; b < 4; ++b) { h ^= (u >> (8 * b)) & 0xFFu; h *= FNV_PRIME; }
-    return h;
+    return asset::fnv1a_u32(h, static_cast<uint32_t>(v));
 }
 
 static uint64_t hash_world(const World& w) {
-    uint64_t h = FNV_OFFSET;
+    uint64_t h = asset::FNV_OFFSET;
     auto mix = [&](const fix32* a) {
         for (int i = 0; i < N_ENTITIES; ++i) h = hash_i32(h, a[i].raw);
     };

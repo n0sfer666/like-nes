@@ -2,28 +2,17 @@
 #include <algorithm>
 #include <limits>
 
+#include "../asset/hash.hpp"
+
 namespace ach {
 namespace {
 
-constexpr uint64_t FNV_OFFSET = 1469598103934665603ull;
-constexpr uint64_t FNV_PRIME = 1099511628211ull;
+// Обе были рукописными копиями FNV семьи A (находка 5 аудита #21): байт-в-байт тот же цикл с теми
+// же константами, что в asset/hash.hpp. Обёртки оставлены, потому что порядок аргументов у
+// asset::fnv1a обратный, а дайджест событий складывается длинной цепочкой вызовов.
+uint64_t fnv_bytes(uint64_t h, const void* p, std::size_t n) { return asset::fnv1a(p, n, h); }
 
-uint64_t fnv_bytes(uint64_t h, const void* p, std::size_t n) {
-    const uint8_t* b = static_cast<const uint8_t*>(p);
-    for (std::size_t i = 0; i < n; ++i) {
-        h ^= b[i];
-        h *= FNV_PRIME;
-    }
-    return h;
-}
-
-uint64_t fnv_u64(uint64_t h, uint64_t v) {
-    for (int i = 0; i < 8; ++i) {
-        h ^= static_cast<uint8_t>(v >> (i * 8));
-        h *= FNV_PRIME;
-    }
-    return h;
-}
+uint64_t fnv_u64(uint64_t h, uint64_t v) { return asset::fnv1a_u64(h, v); }
 
 } // namespace
 
@@ -172,7 +161,7 @@ std::size_t Tracker::restore(const Snapshot& snap) {
 }
 
 uint64_t Tracker::progress_hash() const {
-    uint64_t h = FNV_OFFSET;
+    uint64_t h = asset::FNV_OFFSET;
     for (std::size_t i = 0; i < stat_ids_.size(); ++i) {
         h = fnv_u64(fnv_u64(h, stat_ids_[i]), stat_values_[i]);
     }

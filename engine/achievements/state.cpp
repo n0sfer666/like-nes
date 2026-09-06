@@ -1,20 +1,13 @@
 #include "state.hpp"
 #include <cstring>
 
+#include "../asset/hash.hpp"
+
 namespace ach {
 namespace {
 
-constexpr uint64_t FNV_OFFSET = 1469598103934665603ull;
-constexpr uint64_t FNV_PRIME = 1099511628211ull;
-
-uint64_t fnv(const uint8_t* p, std::size_t n) {
-    uint64_t h = FNV_OFFSET;
-    for (std::size_t i = 0; i < n; ++i) {
-        h ^= p[i];
-        h *= FNV_PRIME;
-    }
-    return h;
-}
+// Была третьей копией FNV семьи A (находка 5 аудита #21) — тот же цикл с теми же константами.
+uint64_t fnv(const uint8_t* p, std::size_t n) { return asset::fnv1a(p, n); }
 
 void put_u32(std::vector<uint8_t>& out, uint32_t v) {
     for (int i = 0; i < 4; ++i) out.push_back(static_cast<uint8_t>(v >> (i * 8)));

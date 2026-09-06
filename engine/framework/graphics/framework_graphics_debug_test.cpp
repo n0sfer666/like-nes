@@ -4,6 +4,7 @@
 
 #include "atlas_bake.hpp"
 #include "debug_draw.hpp"
+#include "hash_mix.hpp"
 #include "platform_args.hpp"
 
 // Отладочная отрисовка (шаг E вертикали 1 спеки #17): примитивы -> поток квадов. Гейт спрашивает
@@ -55,11 +56,12 @@ std::string atlas_source() {
     return s;
 }
 
+// Свёртка берётся из `hash_mix.hpp` физики: до аудита #21 (находка 5) этот цикл был здесь
+// рукописной копией с ТЕМИ ЖЕ константами. Обёртка оставлена ради знакового аргумента — `.raw`
+// приходит целым со знаком, и приведение лучше видеть один раз тут, чем в двадцати вызовах.
 uint64_t hash_quads(const DebugQuad* q, uint32_t n) {
-    uint64_t h = 0xcbf29ce484222325ull;
-    const auto mix = [&h](int64_t v) {
-        for (int i = 0; i < 8; ++i) h = (h ^ static_cast<uint8_t>(v >> (i * 8))) * 0x100000001b3ull;
-    };
+    uint64_t h = framework::physics::FNV_OFFSET;
+    const auto mix = [&h](int64_t v) { framework::physics::mix_u64(h, static_cast<uint64_t>(v)); };
     for (uint32_t i = 0; i < n; ++i) {
         mix(q[i].center.x.raw); mix(q[i].center.y.raw);
         mix(q[i].half.x.raw);   mix(q[i].half.y.raw);

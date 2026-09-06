@@ -1,4 +1,5 @@
 #pragma once
+#include "../../../engine/asset/hash.hpp"
 #include <atomic>
 #include <cstdint>
 
@@ -37,18 +38,15 @@ struct MirrorBuffer {
 static_assert(std::atomic<uint64_t>::is_always_lock_free,
               "mirror seq must be lock-free for cross-process shared memory");
 
-constexpr uint64_t fnv_mix(uint64_t h, uint64_t v) {
-    for (int i = 0; i < 8; ++i) { h ^= (v >> (8 * i)) & 0xFFu; h *= 1099511628211ull; }
-    return h;
-}
-
-// Хеш layout'а — reader сверяет со своим; несовпадение → reject (layout-drift).
+// Хеш layout'а — reader сверяет со своим; несовпадение → reject (layout-drift). Смешивание было
+// шестой рукописной копией FNV семьи A (находка 5 аудита #21) с теми же константами; значение
+// хеша от сведения не сдвинулось, то есть уже собранные game-процессы остаются совместимыми.
 constexpr uint64_t mirror_schema_hash() {
-    uint64_t h = 1469598103934665603ull;
-    h = fnv_mix(h, sizeof(MirrorEntity));
-    h = fnv_mix(h, sizeof(MirrorHeader));
-    h = fnv_mix(h, MIRROR_LAYOUT_VERSION);
-    h = fnv_mix(h, MIRROR_CAPACITY);
+    uint64_t h = asset::FNV_OFFSET;
+    h = asset::fnv1a_u64(h, sizeof(MirrorEntity));
+    h = asset::fnv1a_u64(h, sizeof(MirrorHeader));
+    h = asset::fnv1a_u64(h, MIRROR_LAYOUT_VERSION);
+    h = asset::fnv1a_u64(h, MIRROR_CAPACITY);
     return h;
 }
 

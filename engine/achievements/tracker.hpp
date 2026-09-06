@@ -1,6 +1,7 @@
 #pragma once
 #include "registry.hpp"
 #include "state.hpp"
+#include "../asset/hash.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <vector>
@@ -53,7 +54,7 @@ private:
     void carry_unlocked(Id id);
 
     uint64_t tick_ = 0;
-    uint64_t event_digest_ = 1469598103934665603ull;
+    uint64_t event_digest_ = asset::FNV_OFFSET;
     std::size_t unlocked_count_ = 0;
 
     std::vector<Id> stat_ids_;

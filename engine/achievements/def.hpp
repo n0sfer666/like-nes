@@ -1,18 +1,15 @@
 #pragma once
 #include <cstdint>
 
+#include "../asset/hash.hpp"
+
 namespace ach {
 
 using Id = uint64_t;
 
-constexpr Id hash_key(const char* s) {
-    uint64_t h = 1469598103934665603ull;
-    while (*s) {
-        h ^= static_cast<uint8_t>(*s++);
-        h *= 1099511628211ull;
-    }
-    return h;
-}
+// Свой цикл здесь и был одной из восьми копий FNV семьи A (находка 5 аудита #21). Значения Id от
+// сведения не изменились — константы и порядок байт те же, — поэтому голдены достижений целы.
+constexpr Id hash_key(const char* s) { return asset::fnv1a_str(s); }
 
 enum class Kind : uint32_t {
     Boolean = 0,
