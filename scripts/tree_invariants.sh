@@ -100,7 +100,20 @@ $hits"
 
 # --- Инвариант 1 спеки #14: подсистемы не зависят от слоя framework ----------------------------
 inv_deps() {
-    local dirs="engine/render engine/audio engine/input engine/asset engine/plugin engine/material engine/light engine/net"
+    # Список подсистем ВЫВОДИТСЯ из дерева — тем же приёмом, каким ниже берутся модули слоя.
+    # Рукописный отстаёт от первого же нового каталога: до аудита #21 он перечислял восемь
+    # подсистем из двенадцати и молча не смотрел на engine/achievements, engine/hotreload,
+    # engine/core и engine/platform — то есть ребро к слою оттуда не отбивалось ничем.
+    # Исключение ровно одно и это САМ слой: его CMakeLists называет цели framework_* по делу.
+    local layer=engine/framework
+    [ -d "$layer" ] || fail "the framework layer is not where the gate looks: $layer"
+    local dirs="" d
+    for d in engine/*/; do
+        d="${d%/}"
+        [ "$d" = "$layer" ] && continue
+        dirs="$dirs $d"
+    done
+    [ -n "$dirs" ] || fail "no subsystem directories found — the gate is vacuous"
     # Доказательство, что поиск работает: цели линкуются в каждом из этих каталогов.
     # shellcheck disable=SC2086
     grep -rn "target_link_libraries" $dirs >/dev/null \

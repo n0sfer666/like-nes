@@ -1582,6 +1582,14 @@ jobs:
       # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только
       # циклом в CMake через полгода. Сначала доказываем, что поиск вообще ищет, — иначе опечатка
       # в пути дала бы вечно зелёный гейт.
+      # Сам гейт идёт на одной ОС — дерево одно; его самопроверка на всех трёх, предмет у неё
+      # другой: переносимость самих утверждений (mktemp, cksum, порядок обхода engine/*/).
+      # Ключевая порча — ребро к слою из каталога, которого рукописный список подсистем не знал:
+      # на прежней реализации она проезжала зелёной, и это утверждается подменой.
+      - name: "Dependency direction selftest (broken implementation, portability of the fixture)"
+        shell: bash
+        run: bash scripts/tree_invariants_deps_selftest.sh
+
       - name: "Framework — subsystems do not depend on the layer (invariant 1, Linux)"
         if: runner.os == 'Linux'
         shell: bash
