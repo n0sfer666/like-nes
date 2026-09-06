@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from line_budget_allow import ALLOW  # noqa: E402
 from line_budget_rules import HARD, KINDS, SOFT, VENDORED  # noqa: E402
+import py_utf8  # noqa: E402
 
 # Область действия названа списком ВКЛЮЧЕНИЯ, и это осознанное сужение: правило 5 — про авторский
 # код, а `.md`, `.txt` и `.yml` под него не попадают по самому его тексту («текст, читаемый целиком
@@ -113,9 +114,7 @@ def scan(root):
 
 
 def main(argv):
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8")
+    py_utf8.enable()
     from line_budget_selftest import selftest
     if "--selftest" in argv:
         return selftest(audit, audit_vendored)

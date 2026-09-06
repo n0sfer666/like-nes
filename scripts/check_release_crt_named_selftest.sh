@@ -17,6 +17,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 . "$ROOT/scripts/release_check_lib.sh"
 # shellcheck source=scripts/selftest_sub_lib.sh
 . "$ROOT/scripts/selftest_sub_lib.sh"
+# shellcheck source=scripts/release_crt_fixture_lib.sh
+. "$ROOT/scripts/release_crt_fixture_lib.sh"
 
 BAD=0
 FIX=$(mktemp -d)
@@ -54,7 +56,7 @@ named_tree() {
   local sub
   sub="$d/build-fix/$(crt_dist_subdir)"
   mkdir -p "$sub" "$d/scripts" "$d/cmake"
-  cp "$ROOT/scripts/pe_imports.py" "$d/scripts/" || return 1
+  crt_copy_reader "$ROOT" "$d" || return 1
   cp "$ROOT/cmake/licenses.manifest" "$d/cmake/" || return 1
   printf '%s\n' "$d"
 }
@@ -97,6 +99,21 @@ else
   }
   expect fail "в составе названа лишняя app-local DLL" case_named_extra
 fi
+
+# Фикстурный читатель обязан ЗАПУСКАТЬСЯ: обе порчи ниже ждут ОТКАЗА утверждения, и отказ по чужой
+# причине — ImportError из-за незаскопированной зависимости читателя — читался бы здесь как
+# «утверждение отбило порчу». Так и вышло: решение 23 спеки #19 дало читателю соседний модуль, а
+# копировали только его самого, и увидел это единственный кейс соседнего набора, который ждёт
+# успеха, — якорь на настоящем рантайме.
+case_named_reader_runs() {
+  local d; d=$(named_tree readerok) || return 1
+  local dll; dll=$(named_fixture_dll "$d")
+  python3 "$ROOT/scripts/pe_fixture.py" "$dll" --import vcruntime140.dll || return 1
+  local out
+  out=$(python3 "$d/scripts/pe_imports.py" "$dll") || return 1
+  printf '%s\n' "$out" | grep -qi 'vcruntime140'
+}
+expect pass "фикстурный читатель запускается" case_named_reader_runs
 
 # Рантайм без единого redist-импорта: списки пусты с обеих сторон и равны сами себе — читатель,
 # промахнувшийся мимо таблицы, выдал бы за согласие ровно ту тишину, ради которой заведена вертикаль.

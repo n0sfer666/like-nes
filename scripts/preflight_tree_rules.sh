@@ -28,6 +28,11 @@ stage "Статические инварианты дерева (швы, зав�
 # туда положат потом.
 stage "Корни дерева — самопроверка правил" python3 scripts/check_tree_roots.py --selftest
 stage "Корни дерева: обе копии списка совпадают" python3 scripts/check_tree_roots.py
+# Вывод скрипта: locale-дефолт Windows — cp1252, и русская строка там роняет print, а не портится.
+# Гейт требует py_utf8.enable() у каждого скрипта с не-ASCII выводом: мера жила тремя копиями, и
+# четыре новых файла её не взяли — тот же list-drift, что стережёт ci_lint.py.
+stage "Вывод скриптов в UTF-8 — самопроверка правил" python3 scripts/check_py_utf8.py --selftest
+stage "Каждый скрипт с не-ASCII выводом переключает поток" python3 scripts/check_py_utf8.py
 stage "Бюджет длины файлов — самопроверка правил" \
     python3 scripts/line_budget.py --selftest
 stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py

@@ -20,6 +20,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import docs_snippets_lib as lib  # noqa: E402
+import py_utf8  # noqa: E402
 
 
 def body_for(root, src, name):
@@ -61,6 +62,7 @@ def sync(root, doc):
 
 
 def main():
+    py_utf8.enable()
     if len(sys.argv) != 2:
         sys.stderr.write("usage: docs_all_files <root> | %s <root>\n" % sys.argv[0])
         return 2

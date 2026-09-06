@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Фикстуры и самопроверка правил `ascii_output_check.py`.
 
 Отдельным файлом по тому же основанию, что `ci_lint_selftest.py` рядом с `ci_lint.py`: разборщик

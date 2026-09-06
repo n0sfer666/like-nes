@@ -19,6 +19,8 @@ import shutil
 import sys
 import tempfile
 
+import py_utf8
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SH = "scripts/tree_invariants.sh"
 PY = "scripts/ascii_output_check.py"
@@ -128,6 +130,7 @@ def selftest():
 
 
 if __name__ == "__main__":
+    py_utf8.enable()
     if len(sys.argv) > 1 and sys.argv[1] == "--selftest":
         sys.exit(selftest())
     sys.exit(gate(ROOT))

@@ -25,6 +25,8 @@ import pathlib
 import re
 import sys
 
+import py_utf8
+
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
 ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples")
 ALLOW = re.compile(r"ascii:\s*allow\b(.*)")
@@ -138,12 +140,7 @@ def tree_files(root):
 
 
 def main():
-    # Тот же приём, что в ci_lint.py: вывод здесь русский, с «—» и «≥», а locale-дефолт Windows —
-    # cp1251. Перенаправь вердикт в файл на машине владельца — и вместо него приедет трейсбек
-    # UnicodeEncodeError. Ни на одном раннере CI это не воспроизводится: там локаль UTF-8.
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8")
+    py_utf8.enable()
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()

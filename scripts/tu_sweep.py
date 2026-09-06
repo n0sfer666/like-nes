@@ -31,6 +31,8 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+import py_utf8
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Пропуск по умолчанию — не «шумные» файлы, а те, где чужой компилятор падает на языке, а не на
@@ -97,6 +99,7 @@ def compile_one(job, extra):
 
 
 def main():
+    py_utf8.enable()
     ap = argparse.ArgumentParser(description="обход compile_commands.json по одному TU")
     ap.add_argument("build_dir", help="каталог сборки, сконфигурированный целевым компилятором")
     ap.add_argument("-j", "--jobs", type=int, default=os.cpu_count() or 4)

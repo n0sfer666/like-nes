@@ -15,6 +15,8 @@ import subprocess
 import sys
 import tempfile
 
+import py_utf8
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GATE = os.path.join(ROOT, "scripts", "check_docs_snippets.py")
 
@@ -32,6 +34,7 @@ int hello() { return 1; }
 <!-- /snippet -->
 """
 
+py_utf8.enable()
 BAD = 0
 
 
