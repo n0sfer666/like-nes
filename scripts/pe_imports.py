@@ -13,6 +13,8 @@
 import struct
 import sys
 
+import py_utf8
+
 
 class NotPE(Exception):
     pass
@@ -162,6 +164,7 @@ def imports(path):
 
 
 def main(argv):
+    py_utf8.enable()
     if len(argv) != 2:
         sys.stderr.write('usage: pe_imports.py <file.exe|file.dll>\n')
         return 2

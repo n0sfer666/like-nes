@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ci_lint_lists import check as check_lists  # noqa: E402
 from ci_lint_rules import RULES  # noqa: E402
 from ci_workflow import parse  # noqa: E402
+import py_utf8  # noqa: E402
 
 
 def lint(path, text):
@@ -23,14 +24,10 @@ def lint(path, text):
 
 def main(argv):
     from ci_lint_selftest import selftest
-    # Кодировка задаётся явно с обоих концов, потому что на Windows locale-дефолт — cp1251, а не
-    # UTF-8, и оба конца ломались по-разному: чтение workflow падало `UnicodeDecodeError` на первом
-    # же не-ASCII байте (гейт не отработал вовсе), а вывод в перенаправленный отчёт уезжал в
-    # cp1251 и читался кракозябрами. Ни то, ни другое не воспроизводится ни на одном раннере CI:
-    # там локаль UTF-8.
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8")
+    # Кодировка задаётся явно с обоих концов: чтение workflow падало `UnicodeDecodeError` на
+    # первом же не-ASCII байте (гейт не отрабатывал вовсе) — за это отвечает `encoding="utf-8"` у
+    # чтения; за вывод отвечает `py_utf8`, и почему locale-дефолт тут не годится, написано там.
+    py_utf8.enable()
     if "--selftest" in argv:
         return selftest(lint)
     # Самопроверка перед каждым прогоном: сломанное правило молчит ровно так же, как чистый

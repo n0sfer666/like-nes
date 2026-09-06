@@ -13,6 +13,10 @@ nothing here assumes you have read them.
   - [Prerequisites](getting-started/prerequisites.md)
   - [Build](getting-started/build.md)
   - [First run](getting-started/first-run.md)
+- **Guide** — one subsystem per page, with every snippet taken from a program in
+  [`docs/examples/`](../examples/) that CI builds and runs on three operating systems.
+  - [The tick and the schedule](guide/tick-and-schedule.md)
+  - [Determinism and fixed-point arithmetic](guide/determinism.md)
 - **[Contributing](../../CONTRIBUTING.md)** — branches, DCO sign-off, what to run before a PR.
 - **[License and third-party components](../../LICENSE)** — `MIT OR Apache-2.0`, and the inventory
   of what the engine links.
@@ -25,9 +29,9 @@ documentation gate treats a dead link as a failure.
 
 - **Tutorial** — "your first game", from an empty project to a playable character on a tilemap with
   animation, sound and an achievement.
-- **Guide** — per subsystem: ECS and the tick, assets and baking, input and rebinding, physics, the
-  character controller and tilemaps, sprites/animation/camera/particles, materials and shaders,
-  audio, plugins, achievements, packaging and release.
+- **Guide**, the rest of it: assets and baking, input and rebinding, physics, the character
+  controller and tilemaps, sprites/animation/camera/particles, materials and shaders, audio,
+  plugins, achievements, packaging and release.
 - **Architecture** — the engine's invariants (determinism, layer boundaries, failure isolation) and
   why they are what they are, with links to the ADRs.
 - **Reference** — API reference generated from the headers.

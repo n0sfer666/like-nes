@@ -75,6 +75,15 @@ jobs:
           python3 scripts/line_budget.py --selftest
           python3 scripts/line_budget.py
 
+      # Самопроверка стоит ПЕРЕД гейтом, а не после: сломанное правило молчит неотличимо от чистого
+      # дерева, и зелёный гейт до неё не значит ничего — тот же порядок, что у линтера workflow и
+      # бюджета длины выше. Идёт она на ВСЕХ ТРЁХ ОС, и предмет у неё другой: не имена наших файлов, а
+      # ПЕРЕНОСИМОСТЬ самих утверждений — sha256_of (shasum против sha256sum), `sed -i` в git-bash,
+      # `find` и порядок `sort` под разными локалями. Фикстуры синтетические, сборки не требуют.
+      - name: Docs gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: bash scripts/check_docs_selftest.sh
+
       # Документация (спека #19): en — источник, ru — перевод, и расхождение между ними есть
       # находка. Сам гейт статический и дерево одно — хватает одной ОС; правки текста ломают его
       # чаще, чем правки кода, а узнавать об этом на раннере через двадцать минут дороже всего.
@@ -83,12 +92,27 @@ jobs:
         shell: bash
         run: bash scripts/check_docs.sh
 
-      # Самопроверка идёт на ВСЕХ ТРЁХ ОС, и предмет у неё другой: не имена наших файлов, а
-      # ПЕРЕНОСИМОСТЬ самих утверждений — sha256_of (shasum против sha256sum), `sed -i` в git-bash,
-      # `find` и порядок `sort` под разными локалями. Фикстуры синтетические, сборки не требуют.
-      - name: Docs gate selftest (broken fixtures, portability of the assertions)
+      # Выбор bash по ОТВЕТУ кандидата, а не по имени в PATH: на windows-раннере первым `bash`
+      # стоит мост в WSL, и набор врезок прочитал его сообщение как список документов дерева.
+      # Порча живёт только здесь — сам гейт видит лишь исход выбора, — и на трёх ОС потому, что
+      # предмет её тот же, что у соседних: переносимость утверждений.
+      - name: POSIX bash resolution selftest (WSL bridge stub, broken candidates)
         shell: bash
-        run: bash scripts/check_docs_selftest.sh
+        run: python3 scripts/posix_bash_selftest.py
+
+      # Самопроверка — на ВСЕХ ТРЁХ ОС, и предмет у неё тот же, что у соседней: переносимость самих
+      # утверждений (перевод строки в git-bash, порядок обхода, локаль). Фикстуры синтетические.
+      - name: Docs snippets gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_docs_snippets_selftest.py
+
+      # Гейт 3 спеки #19: код, показанный в тексте, обязан совпадать с помеченным куском
+      # компилируемого примера, а пропавший маркер — быть ошибкой, а не пустой врезкой. Дерево
+      # одно, сборки гейту не нужно — отсюда один раннер, рядом с гейтом документации.
+      - name: Docs snippets — every fenced block matches its marked source (gate 3 of spec #19)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/check_docs_snippets.sh
 
       # Гейт релизного пакета (спека #20) идёт в CI САМОПРОВЕРКОЙ и на всех трёх ОС. Сам пакет
       # требует полной сборки с PLUGIN_UI и собирается на машине владельца.
@@ -141,6 +165,36 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh ascii
 
+      # Список корней дерева живёт в ДВУХ копиях — `ROOTS` в tree_invariants.sh и `ROOTS` в
+      # ascii_output_check.py, — и внешнего эталона у него нет: «все каталоги дерева» тут неверно.
+      # Поэтому копии сверяются МЕЖДУ СОБОЙ, ровно форма mirrors-group из ci_lint.py. Расхождение
+      # молчит: корень, добавленный в одну копию, проходит инварианты швов и остаётся вне
+      # ASCII-проверки. Самопроверка идёт ПЕРЕД гейтом и на всех трёх ОС — предмет у неё
+      # переносимость разбора, а не имена наших каталогов.
+      - name: Tree roots gate selftest (broken copies of the list)
+        shell: bash
+        run: python3 scripts/check_tree_roots.py --selftest
+
+      - name: Tree roots — both copies of the roots list agree (mirrors-group)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_tree_roots.py
+
+      # Python берёт кодировку у локали, и на ЭТОМ раннере она cp1252. Швов два, и упали они по
+      # очереди на одном и том же шаге: русская строка не «портится», а роняет print (ee75955), а
+      # вывод дочернего процесса той же локалью роняет поток-читатель уже при ЧТЕНИИ (3381a95).
+      # Оба раза скрипт возвращал ненулевой код на исправном дереве, то есть «гейт нашёл нарушение»
+      # было неотличимо от «гейт не смог прочитать или напечатать». Самопроверка гейта идёт на всех
+      # трёх ОС: её предмет — переносимость разбора; сам гейт читает дерево, а дерево одно.
+      - name: Process-boundary encoding gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_py_utf8.py --selftest
+
+      - name: Our stdout is switched to UTF-8, foreign stdout is decoded explicitly
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_py_utf8.py
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
 
@@ -164,6 +218,20 @@ jobs:
         env:
           LIKE_NES_BUILD_SUBSET: "1"
         run: bash scripts/build_check.sh
+
+      # Самопроверка получает ТОТ ЖЕ каталог: с умолчанием build-full её единственный кейс на
+      # настоящих бинарях пропускался бы здесь вслух, и на трёх ОС набор проверял бы только фикстуры.
+      - name: Docs examples gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: bash scripts/check_docs_examples_selftest.sh build
+
+      # Гейт 2 спеки #19: каждый файл docs/examples/*.cpp собран целью doc_example_<имя>, запускается
+      # с нулевым кодом и печатает ровно свой .out. На ВСЕХ ТРЁХ ОС, потому что предмет здесь и есть
+      # платформа: пример, печатающий разное на macOS и Windows, — это врезка в документации, врущая
+      # части читателей. Каталог сборки — `build` (шаг Configure выше), а не умолчание скрипта.
+      - name: Docs examples — build and print their goldens (gate 2 of spec #19)
+        shell: bash
+        run: bash scripts/check_docs_examples.sh build
 
       - name: Determinism — golden-hash must match across OS/compilers
         shell: bash

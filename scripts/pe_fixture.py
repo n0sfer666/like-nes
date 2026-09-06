@@ -12,6 +12,8 @@
 import struct
 import sys
 
+import py_utf8
+
 SEC_RVA = 0x1000
 SEC_OFF = 0x200
 IMAGE_BASE64 = 0x180000000
@@ -113,6 +115,7 @@ def build(plain, delay, pe32=False, short_size=False, unmapped=False, noterm=Fal
 
 
 def main(argv):
+    py_utf8.enable()
     out, plain, delay, pe32, va, short = None, [], [], False, False, False
     unmapped, noterm, nrva = False, False, 16
     i = 1

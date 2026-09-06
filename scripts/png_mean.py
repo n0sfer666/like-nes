@@ -13,6 +13,8 @@
 import sys
 import zlib
 
+import py_utf8
+
 SIG = b"\x89PNG\r\n\x1a\n"
 
 
@@ -92,6 +94,7 @@ def mean_rgb(path):
 
 
 def main(argv):
+    py_utf8.enable()
     if len(argv) != 2:
         print("usage: png_mean.py <file.png>   # печатает 'R G B' в шкале 0..255", file=sys.stderr)
         return 2

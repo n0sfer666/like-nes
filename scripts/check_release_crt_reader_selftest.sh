@@ -12,6 +12,8 @@ set -uo pipefail
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 # shellcheck source=scripts/release_crt_lib.sh
 . "$ROOT/scripts/release_crt_lib.sh"
+# shellcheck source=scripts/release_crt_fixture_lib.sh
+. "$ROOT/scripts/release_crt_fixture_lib.sh"
 
 BAD=0
 FIX=$(mktemp -d)
@@ -124,7 +126,7 @@ else
     local sub
     sub="$d/build-fix/$(crt_dist_subdir)"
     mkdir -p "$sub" "$d/scripts"
-    cp "$ROOT/scripts/pe_imports.py" "$d/scripts/" || return 1
+    crt_copy_reader "$ROOT" "$d" || return 1
     cp "$REAL" "$sub/wgpu_native.dll" || return 1
     printf '%s\n' "$d"
   }

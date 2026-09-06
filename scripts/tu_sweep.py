@@ -31,6 +31,8 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 
+import py_utf8
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Пропуск по умолчанию — не «шумные» файлы, а те, где чужой компилятор падает на языке, а не на
@@ -92,11 +94,16 @@ def compile_one(job, extra):
     except (ValueError, IndexError):
         return rel, None, "tu-sweep: в команде нет пары -o <файл>, TU пропущен\n"
     argv += extra
-    proc = subprocess.run(argv, cwd=entry["directory"], capture_output=True, text=True)
+    # Кодировка ЗАДАЁТСЯ, а не берётся у локали: на windows-раннере это cp1252, и чтение вывода
+    # падало бы UnicodeDecodeError в потоке-читателе. Замена вместо отказа — вывод чужого
+    # компилятора UTF-8 не обязан, а аудит не должен умирать на его диагностике.
+    proc = subprocess.run(argv, cwd=entry["directory"], capture_output=True, text=True,
+                          encoding="utf-8", errors="replace")
     return rel, proc.returncode, proc.stderr
 
 
 def main():
+    py_utf8.enable()
     ap = argparse.ArgumentParser(description="обход compile_commands.json по одному TU")
     ap.add_argument("build_dir", help="каталог сборки, сконфигурированный целевым компилятором")
     ap.add_argument("-j", "--jobs", type=int, default=os.cpu_count() or 4)

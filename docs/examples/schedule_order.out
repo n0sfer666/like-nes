@@ -1,0 +1,3 @@
+order: read_pad aim resolve_hits apply_damage move_camera
+reversed registration gives the same order: yes
+trace after two ticks: iahdciahdc
