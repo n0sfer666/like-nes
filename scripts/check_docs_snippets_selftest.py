@@ -230,7 +230,13 @@ real_docs = [d for d in real.stdout.splitlines() if d.strip()]
 # по СВОЕЙ вакуумной ветке: кейс падал бы по чужой причине, неотличимо от сломанного разбора врезок.
 if real.returncode != 0 or not real_docs:
     sys.stderr.write("docs-snippets-selftest: БРАК docs_all_files не отдала списка: код %d, "
-                     "документов %d\n%s" % (real.returncode, len(real_docs), real.stderr))
+                     "документов %d\n" % (real.returncode, len(real_docs)))
+    # Список печатается ЦЕЛИКОМ: отказ обхода опознаётся по ТОМУ, ГДЕ он оборвался, а одно
+    # число документов об этом молчит — на чужом раннере восстановить границу больше нечем.
+    for line in real_docs:
+        sys.stderr.write("docs-snippets-selftest:      > %s\n" % line)
+    for line in (real.stderr or "").splitlines():
+        sys.stderr.write("docs-snippets-selftest:      | %s\n" % line)
     BAD = 1
 else:
     expect("pass", "настоящее дерево проходит гейт", ROOT, real_docs)
