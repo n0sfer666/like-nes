@@ -1616,9 +1616,13 @@ What to judge, in this order:
    rests on; the peer asserts it itself and exits `9` when it does not hold, but the line is worth
    reading, because it is where you see that the route ran at all.
 3. **The two `худший кадр` percentages against a real budget.** Both halves add inside one frame,
-   which is why the script sums them per peer rather than quoting four numbers. Add the physics
-   `heap: mean=` and the character `target: mean=` from §4 and §5 on top: a real game frame carries
-   all of them.
+   which is why the script sums them per peer rather than quoting four numbers. Since the #21 audit
+   the script *compares* that sum with the budget itself and exits non-zero on
+   `FAIL: кадр пира <role> не влезает в бюджет 16.67 мс` — before it, the comparison was announced
+   in a comment and never made, so a frame at 200% of the budget printed its percentage and reached
+   this report green. What is still yours to judge is what the script cannot see: add the physics
+   `heap: mean=` and the character `target: mean=` from §4 and §5 on top, because a real game frame
+   carries all of them and the budget is shared.
 4. **`recv` costing more than `send` is expected, not a finding.** The receiver is the one that
    rolls back — it learns the input late — so its `sim worst` is the deeper one, and its socket
    makes roughly twice the passes because it spins waiting for input the sender never waits for.

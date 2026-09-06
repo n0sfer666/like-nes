@@ -18,6 +18,8 @@ set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
+# shellcheck source=scripts/owner_net_budget_lib.sh
+. "$ROOT/scripts/owner_net_budget_lib.sh"
 
 BUILD_DIR=${BUILD_DIR:-build}
 BUNDLE=${BUNDLE:-example_ugly_game/assets/game.bundle}
@@ -65,21 +67,12 @@ for side in send recv; do
 done
 
 # Судится СУММА худших: кадр пира — это шаг симуляции плюс обслуживание сокета, и порознь каждая
-# половина влезает в бюджет даже тогда, когда вместе они его пробивают.
+# половина влезает в бюджет даже тогда, когда вместе они его пробивают. Сравнение делает
+# `net_budget_verdict`, и её код читается: до аудита #21 блок печатал проценты и уходил в `sort`,
+# чей код и становился кодом пайпа, — «200.4% бюджета» доезжало до владельца зелёным.
 if [ "$rc" -eq 0 ]; then
-    grep -h 'worst=' "$WORK/send.out" "$WORK/recv.out" |
-        awk -v frame="$FRAME_MS" '
-            match($0, /worst=[0-9.]+/) {
-                w = substr($0, RSTART + 6, RLENGTH - 6) + 0
-                role = $2; sub(":", "", role)
-                worst[role] += w
-            }
-            END {
-                for (r in worst)
-                    printf "  худший кадр пира %s: %.3f мс из %.2f (%.1f%% бюджета)\n",
-                        r, worst[r], frame, 100 * worst[r] / frame
-            }' | sort
-    printf '  бюджет 16.67 мс — тот же, что у гейта 8 спеки #15 и гейта 7 спеки #16\n'
+    grep -h 'worst=' "$WORK/send.out" "$WORK/recv.out" | net_budget_verdict "$FRAME_MS" || rc=1
+    printf '  бюджет %s мс — тот же, что у гейта 8 спеки #15 и гейта 7 спеки #16\n' "$FRAME_MS"
     printf '  сон петли (1 мс, когда шагнуть нечем) в замер не входит: он не работа кадра\n'
 fi
 

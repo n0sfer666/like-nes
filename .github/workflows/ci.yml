@@ -210,6 +210,14 @@ jobs:
         shell: bash
         run: bash scripts/check_owner_gates.sh
 
+      # Вердикт о цене сетевого кадра — чистая функция от строк замера, и проверяется он фикстурами
+      # без пиров и без сборки. На всех трёх ОС, потому что предмет — диалект awk: на Ubuntu это
+      # mawk, на macOS BSD awk, в git-bash gawk. Сам гейт требует прогона пары пиров и живёт у
+      # владельца (§13 руководства), поэтому шага для него тут нет.
+      - name: Net frame budget verdict selftest (broken implementations, portability of the awk)
+        shell: bash
+        run: bash scripts/owner_net_budget_selftest.sh
+
       # Python берёт кодировку у локали, и на ЭТОМ раннере она cp1252. Швов два, и упали они по
       # очереди на одном и том же шаге: русская строка не «портится», а роняет print (ee75955), а
       # вывод дочернего процесса той же локалью роняет поток-читатель уже при ЧТЕНИИ (3381a95).
