@@ -1,4 +1,4 @@
-<!-- en-sha256: 21773312652d858a90058ccdb56e64ec5aec67705b0bf83b6622863ba72d054d -->
+<!-- en-sha256: fe9d11cf3a6aa4587cd8df4d7f8227f7faedc0d3c244749900b46ed1d0c73e24 -->
 
 # Первый запуск
 
@@ -9,6 +9,7 @@
 
 ## Открыть редактор
 
+<!-- container: run -->
 ```sh
 ./build/editor_shell          # Windows: build\editor_shell.exe
 ```
@@ -24,6 +25,7 @@
 
 Образцов два, и они нагружают разные половины движка.
 
+<!-- container: run -->
 ```sh
 cmake --build build --target game_sidescroller
 ./build/game_sidescroller     # Windows: build\game_sidescroller.exe
@@ -37,6 +39,7 @@ cmake --build build --target game_sidescroller
 [game] materials: on (3 pipeline(s), 0 fallback(s))
 ```
 
+<!-- container: run -->
 ```sh
 cmake --build build --target game_platformer
 ./build/game_platformer       # Windows: build\game_platformer.exe
@@ -50,6 +53,7 @@ cmake --build build --target game_platformer
 
 Цикл, который водит редактор, целиком закрыт гейтом, и его можно прогнать самому:
 
+<!-- container: check ide-build-loop: PASS -->
 ```sh
 ./build/build_loop_test       # Windows: build\build_loop_test.exe
 ```

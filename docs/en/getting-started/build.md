@@ -4,6 +4,7 @@ English · [Русский](../../ru/getting-started/build.md)
 
 [Prerequisites](prerequisites.md) first — on Windows, from an *x64 Native Tools* prompt.
 
+<!-- container: build -->
 ```sh
 git clone https://github.com/n0sfer666/like-nes.git
 cd like-nes

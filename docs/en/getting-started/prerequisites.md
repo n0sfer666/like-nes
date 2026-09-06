@@ -16,6 +16,7 @@ follow in the second one-liner.
 
 One line for Ubuntu:
 
+<!-- container: install -->
 ```sh
 sudo apt-get install -y build-essential cmake ninja-build git xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools
 ```

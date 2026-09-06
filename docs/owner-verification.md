@@ -2263,24 +2263,41 @@ divergence would surface is a UAC prompt under `/qn` on your box, not a red gate
 
 ## 17. Gate 5 of #19 — the install page read by someone who did not write it
 
-> **This is the gate the machine half of round #19 cannot touch at all.** `scripts/check_docs.sh`
-> asserts that the two language trees mirror each other, that every translation carries the sha256
-> of the English source it was made from, that every internal link and every heading anchor
-> resolves, and that both READMEs state `MIT OR Apache-2.0` and point at the licence texts. The
-> count is not written down here on purpose: it is derived by the walk, it moves with every page
-> added, and a number frozen into prose is a claim about the tree of the day it was typed. None of
-> that says the instructions *work*: a page can be perfectly mirrored, perfectly linked and wrong on
-> every command.
+> **The machine half of round #19 now runs the page, but it cannot judge it.**
+> `scripts/check_docs_start.sh` takes the commands out of the marked blocks of
+> `docs/en/getting-started/` — `<!-- container: install|build|run|check -->` — asserts that the two
+> languages carry them byte for byte, that the clone address is this repository, that every block
+> promising output says so in the prose the reader actually sees, and then (`--live`) replays them
+> on a **bare Ubuntu pinned by digest**, with the clone swapped for a copy of this tree. What
+> survives that is a page whose commands install, configure, build and print on a machine that has
+> never seen this engine. What does not survive it is everything a container has no way to show: a
+> window, an adapter, a game that plays, an edit that reloads — and the two operating systems the
+> image is not. `scripts/check_docs.sh` still holds the other half of the pair: mirrored trees,
+> sha256 stamps, links, anchors, licence texts in both READMEs. None of it says the page is
+> *followable*: a page can build clean in a container and still send a stranger to a package it
+> never named on the OS you are sitting at.
 
-The page under test is [`docs/en/getting-started/`](en/getting-started/) — `build.md` (prerequisites
-and the build) and `first-run.md` (the editor, the two sample games, hot-reload, and what a failure
-looks like). The Russian pair is [`docs/ru/getting-started/`](ru/getting-started/).
+The page under test is [`docs/en/getting-started/`](en/getting-started/) — `prerequisites.md` (what
+the OS has to have), `build.md` (clone and build) and `first-run.md` (the editor, the two sample
+games, hot-reload, and what a failure looks like). The Russian pair is
+[`docs/ru/getting-started/`](ru/getting-started/).
 
-**A clean box is one where this engine has never been built** — not a wiped one, and not a
-container. The container would answer for Linux only, and only for the half of the page that has no
-window in it: the editor, the GPU adapter and the hot-reload loop are exactly what it cannot show.
-Nobara and the Windows box both qualify only until the first run — so if you are going to do this,
-do it before anything else on that machine.
+Run the machine half first, from this machine — it needs a container engine, which no runner here
+has:
+
+```sh
+bash scripts/check_docs_start.sh --live
+```
+
+It ends with `check-docs-start: PASS чистая машина прошла getting-started`. A failure there is a
+defect in the page, and finding it costs a quarter of an hour instead of a clean box — so do not
+start the manual pass until it is green.
+
+**A clean box is one where this engine has never been built** — not a wiped one, and not the
+container above. That container has already answered for Linux, and only for the half of the page
+that has no window in it: the editor, the GPU adapter and the hot-reload loop are exactly what it
+cannot show, and macOS and Windows are not it at all. Nobara and the Windows box both qualify only
+until the first run — so if you are going to do this, do it before anything else on that machine.
 
 1. Read the page **as written**, top to bottom, and type only what it says. Do not fill in a missing
    package from memory, do not add a CMake flag it does not mention, do not use `win-dev.bat` if the
