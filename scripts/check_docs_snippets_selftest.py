@@ -55,20 +55,25 @@ def build(files):
 
 
 def gate(root, docs):
-    """Код возврата гейта на дереве `root` со списком документов на стдине."""
+    """Код возврата гейта на дереве `root` со списком документов на стдине — и его вывод."""
     p = subprocess.run([sys.executable, GATE, root], input="\n".join(docs),
                        capture_output=True, text=True, encoding="utf-8")
-    return p.returncode
+    return p.returncode, (p.stdout or "") + (p.stderr or "")
 
 
 def expect(want, name, root, docs):
     global BAD
-    rc = gate(root, docs)
+    rc, out = gate(root, docs)
     ok = (want == "pass" and rc == 0) or (want == "fail" and rc != 0)
     if ok:
         print("docs-snippets-selftest: OK   %s (%s)" % (name, want))
     else:
+        # Вывод гейта печатается ЦЕЛИКОМ: контроль, назвавший только код возврата, сообщает ФАКТ
+        # отказа и молчит о причине. На своей ОС это лечится повторным запуском руками, а на чужом
+        # раннере причина не восстанавливается вовсе — и стоит полного круга CI.
         sys.stderr.write("docs-snippets-selftest: БРАК %s: ожидали %s, код %d\n" % (name, want, rc))
+        for line in out.splitlines():
+            sys.stderr.write("docs-snippets-selftest:      | %s\n" % line)
         BAD = 1
 
 
@@ -220,8 +225,15 @@ case("fail", "названного документа нет в дереве", d
 # docs_all_files, которой пользуется сам гейт.
 real = subprocess.run(["bash", "-c", ". scripts/docs_content_lib.sh; docs_all_files ."],
                       cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
-expect("pass", "настоящее дерево проходит гейт", ROOT,
-       [d for d in real.stdout.splitlines() if d.strip()])
+real_docs = [d for d in real.stdout.splitlines() if d.strip()]
+# Список приходит от ЧУЖОГО процесса, и его отказ отдаёт пустой список, на котором гейт отказывает
+# по СВОЕЙ вакуумной ветке: кейс падал бы по чужой причине, неотличимо от сломанного разбора врезок.
+if real.returncode != 0 or not real_docs:
+    sys.stderr.write("docs-snippets-selftest: БРАК docs_all_files не отдала списка: код %d, "
+                     "документов %d\n%s" % (real.returncode, len(real_docs), real.stderr))
+    BAD = 1
+else:
+    expect("pass", "настоящее дерево проходит гейт", ROOT, real_docs)
 
 if BAD:
     sys.stderr.write("docs-snippets-selftest: FAIL\n")
