@@ -14,6 +14,8 @@ set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
+# shellcheck source=scripts/owner_gates_lib.sh
+. "$ROOT/scripts/owner_gates_lib.sh"
 
 BUILD_DIR=${BUILD_DIR:-build}
 OS_TAG=$(uname -s | tr '[:upper:]' '[:lower:]' | tr -d ' ')
@@ -222,12 +224,12 @@ head_ "Цена кадра сети (owner_net_budget.sh: пара пиров п
 BUILD_DIR="$BUILD_DIR" bash scripts/owner_net_budget.sh 2>&1 | tee -a "$REPORT"
 [ "${PIPESTATUS[0]}" -eq 0 ] || STAGES_FAILED+=("Цена кадра сети (owner_net_budget.sh)")
 
+# Список выводится ИЗ документа (сверяет check_owner_gates.sh), а не пишется здесь: рукописная копия
+# уже разъехалась — звала гейт 9 спеки #17 открытым четыре дня после закрытия и молчала о шести.
 head_ "Ручная половина"
-say "Осталось глазами и руками — docs/owner-verification.md:"
-say "  #17 гейт 9 ОТКРЫТ — образцы после переезда на графику: две записи против двух «до» (§7 руководства)"
-say "  #22 гейт 8 ОТКРЫТ — цифру выше сверить с бюджетом на САМОЙ МЕДЛЕННОЙ машине владельца (§13 руководства)"
-say "  #22 гейт 9 ОТКРЫТ — ДВЕ машины, один коммит: прогон A сходимость по проводу (--listen/--at), прогон B живая сессия с окном на обеих сторонах (game_platformer_net_live, 3600 тиков, Esc = код 10) — «играется ли» судит человек (§14 руководства)"
-say "  закрытые (#13 гейты 6 и 8, #14 гейт 8, #15 гейт 8, #16 гейты 7 и 8) — перепрогон, когда коммит тронул их поверхность"
+say "Осталось глазами и руками — $OWNER_DOC:"
+owner_gates_open_lines "$ROOT/$OWNER_DOC" | tee -a "$REPORT"
+owner_gates_closed_lines "$ROOT/$OWNER_DOC" | tee -a "$REPORT"
 
 printf '\n' | tee -a "$REPORT"
 # Незапущенное считается наравне с провалившимся, и в вердикте названо СВОИМ числом. Зелёный при

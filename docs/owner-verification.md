@@ -1,13 +1,18 @@
 # Owner verification: the gates a runner cannot close
 
-Seven of the twelve gates below are **closed** — each carries the run that closed it, with the
-evidence. Three of the five open ones (§9, the effect library; §11, hot-reload in front of a person;
-§12, the lit frame) opened with round #18 and wait for a machine with a screen; the other two (§13,
-the network frame cost; §14, a live session) opened with round #22 and wait for two machines on one
-network — §14 became runnable on 2026-09-04, when the peers learned to name each other, and it is
-runnable in its convergence half only: the peer still has no window. They stay here as the procedure, because each one needs a
-machine a CI runner is not: a real desktop session, a real GPU driver, a real gamepad. A gate is
-re-run when a commit touches what it covers; the right-hand column names that surface.
+**7 of the 18 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
+real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
+never built this tree.
+
+Which gate is which is **not prose kept in sync by hand**. Every section below carries a
+machine-readable `<!-- gate: open | what to do -->` or `<!-- gate: closed <date> -->` right under
+its heading, the table below is checked against those marks, the closing banner of a closed one is
+checked against its date, and `scripts/owner_check.sh` prints the open list — with the step, not
+just the address — by reading them instead of holding a copy. That check is `scripts/check_owner_gates.sh`; before it
+existed, the script called gate 9 of #17 open for four days after it closed, and never mentioned six
+of the open ones at all. A gate is re-run when a commit touches what it covers; the right-hand column
+names that surface.
 
 | Gate | Spec | Where | Closed | Re-run when a commit touches |
 |---|---|---|---|---|
@@ -18,11 +23,17 @@ re-run when a commit touches what it covers; the right-hand column names that su
 | A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
+| The reference frame holds against a real GPU driver, not a software rasteriser | [#17](../.context/specs/2026-07-26-graphics-framework.md) 2 | **all three** (a real AMD/NVIDIA/Intel driver each) | — | `engine/render/*`, `example_ugly_game/golden/scene_960x540.png`, shader sources |
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
+| The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | — | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 | The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
+| An engine package built here runs on a box that never saw this source tree | [#20](../.context/specs/2026-07-26-release-installers.md) 1 | **all three**, each a box that never built this tree | — | `cmake/install_engine.cmake`, `scripts/release*.sh`, `packaging/` |
+| The forms people actually install from — `.dmg`, `.AppImage`, `.msi` — install and start | [#20](../.context/specs/2026-07-26-release-installers.md) 3 | **all three** | — | `scripts/release_dmg*`, `scripts/release_appimage*`, `packaging/like-nes.wxs.in` |
+| No Visual C++ Redistributable on the box, and a silent install still lands | [#20](../.context/specs/2026-07-26-release-installers.md) 4 | **Windows** | — | `cmake/msvc_runtime.cmake`, `cmake/msvc_redist.cmake`, `packaging/like-nes.wxs.in` |
+| The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -143,7 +154,9 @@ Use a separate build directory, as above. A tree configured with `LIKE_NES_WERRO
 the gate green by not enforcing anything, so `build_check.sh` puts the flag back to `ON` and
 rebuilds when it finds it off — pointing it at `build-warn` costs you that rebuild for nothing.
 
-## 1. Gate 6 — X11 and Wayland (Linux)
+## 1. Gate 6 of #13 — X11 and Wayland (Linux)
+
+<!-- gate: closed 2026-08-05 -->
 
 > **Closed 2026-08-05** on Nobara 44 (Intel UHD 620 / Vulkan): Wayland under GNOME and X11 under i3,
 > one run each, both PASS. Kept as the procedure — it is what a new machine or a change to the
@@ -209,6 +222,8 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 
 ## 2. Gate 8 of #13 — the end-to-end loop (Linux and Windows)
 
+<!-- gate: closed 2026-08-05/06 -->
+
 > **Closed 2026-08-05/06** on commit `0e4294c`: Linux (Nobara 44, GCC) and Windows (MSVC 14.44),
 > both PASS, dR=+89.705 against a +4 threshold, sim-golden intact. Kept as the procedure.
 
@@ -249,6 +264,8 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 — the exec bit does not survive the index there, so the interpreter is always named explicitly.
 
 ## 3. Gate 8 of #14 — live input (Linux and Windows)
+
+<!-- gate: closed 2026-08-07 -->
 
 > **Closed 2026-08-07** on Linux (Nobara 44, evdev, pad passport `vid=045e pid=0b12`) and Windows
 > (MSVC, XInput, `vid=045e pid=02ff`): both resolved the Xbox profile, all four stick directions
@@ -410,6 +427,8 @@ it was forgotten, and a gate whose precondition is only a habit is not a gate.
    is the whole diagnosis.
 
 ## 4. Gate 8 of #15 — the physics frame cost (Linux and Windows)
+
+<!-- gate: closed 2026-08-22 -->
 
 > **Closed 2026-08-22** on the Intel UHD 620 box under both OS, at the declared **350 bodies** and
 > 16 iterations: `heap` mean 3.560 ms (21.4% of the 16.67 ms frame) on Windows/MSVC and 2.931 ms
@@ -641,6 +660,8 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 
 ## 5. Gate 7 of #16 — the character tick cost (all three OSes)
 
+<!-- gate: closed 2026-09-01 -->
+
 > **Closed 2026-09-01** by the Windows run at the foot of this banner. The counter half of this gate
 > is closed by CI and needs no machine of yours: the same
 > scripted route over a 256×32 map and over a 1024×256 one — thirty-two times the area — returns the
@@ -746,6 +767,8 @@ ceiling or the air would go on measuring an easier level and printing PASS, whic
 shape of a gate that has quietly stopped gating.
 
 ## 6. Gate 8 of #16 — the platformer sample plays (all three OSes)
+
+<!-- gate: closed 2026-08-30 -->
 
 > **Closed 2026-08-30** by the owner, who ran the sample and reported the control responsive.
 > **Re-closed 2026-09-01 with artefacts,** on Nobara (X11), and this banner now stands on the same
@@ -934,6 +957,8 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 `default_profile()` that the gate exists to find.
 
 ## 7. Gate 9 of #17 — the sample looks the same after the framework move
+
+<!-- gate: closed 2026-09-02 -->
 
 > **Closed 2026-09-02** on the Windows box — both halves in one pass, the records at the foot of
 > each half below. Vertical 3 moved both samples onto `engine/framework/graphics`: step A took the
@@ -1147,6 +1172,8 @@ With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
+<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остались AMD и NVIDIA -->
+
 > **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
 > frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
 > pinned on Metal. What CI cannot say is whether the tolerance survives a *real* driver — the
@@ -1213,6 +1240,8 @@ reference is pinned on Metal deliberately, and a re-bake on another GPU silently
 a comparison of your machine with itself.
 
 ## 9. Gate 1 of #18 — the effect library on a real GPU
+
+<!-- gate: open | material_golden на живом GPU: вспышка, обводка и растворение выглядят тем, что говорит материал -->
 
 > **Open.** The numeric half of this seam is machine-side and green on all three runners: how many
 > pipelines the warm-up builds, in how many draw calls the frame is assembled, and whether a frame
@@ -1285,6 +1314,8 @@ adapter agreeing bit for bit.
 
 ## 10. Gate 9 of #18 — the sample game plays with library materials
 
+<!-- gate: open | game_sidescroller: эффекты ложатся на те объекты и в тот момент, в движущейся игре -->
+
 > **Open.** The library reaches the game through `library.bundle`, and everything a runner can say
 > about that path it already says: the bundle matches its sources byte for byte on three OSes, and
 > the run-splitting numbers are asserted headlessly. What no runner can answer is whether the
@@ -1324,6 +1355,8 @@ library so the render goldens of spec #2 stay byte-identical, and gate 8 of this
 that regression. Seeing no effects there is correct.
 
 ## 11. Gate 3 of #18 — hot-reload in front of a person
+
+<!-- gate: open | hot-reload на живом экране: правка меняет картинку не останавливая игру, опечатка её не гасит -->
 
 > **Open.** Everything about hot-reload that a machine can assert is asserted twice and headlessly:
 > `material_hot_reload` proves the cache-level contract on every OS in CI (a valid edit rebuilds all
@@ -1398,6 +1431,8 @@ flashing the old way. The frame rate must not stumble on either: the rebuild hap
 tick and the frame, and a visible hitch on a three-pipeline library is a finding.
 
 ## 12. Gate 7 of #18 — the lit frame on a real GPU
+
+<!-- gate: open | освещённый кадр на живом GPU: куда падает свет и где ложится тень -->
 
 > **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
 > pass switched off returns the material frame byte for byte, switched on it changes that frame, a
@@ -1523,6 +1558,8 @@ bit.
 
 ## 13. Gate 8 of #22 — the network frame cost (Linux and Windows)
 
+<!-- gate: open | цена кадра сети: два числа (sim и net) сверить с бюджетом на САМОЙ МЕДЛЕННОЙ машине владельца -->
+
 The third frame-cost gate, and the first one whose frame contains a *rollback*. Sections 4 and 5
 measure a physics step and a character tick; this one measures the step a networked peer actually
 takes — advance the simulation, roll back and replay when a late input arrives, write the tick into
@@ -1595,6 +1632,8 @@ separates a loaded run from a quiet one, and a build in another window is enough
 frame into a 20% one.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
+
+<!-- gate: open | ДВЕ машины, один коммит: прогон A сходимость по проводу (--listen/--at), прогон B живая сессия с окном на обеих сторонах (game_platformer_net_live, 3600 тиков, Esc = код 10) -->
 
 > **Both halves of this gate became runnable on 2026-09-06.** The convergence half — two processes
 > on two machines, one input, one state, over a wire with real latency — has been runnable since
@@ -1819,6 +1858,8 @@ cannot be asked twice about the same tick, and the same pair with that cache bro
 different run. What none of them can do is look at a screen, which is why run B is here.
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
+
+<!-- gate: open | пакет движка запускается там, где не собирался: .dmg, .AppImage и .msi двойным щелчком на машине без этого дерева -->
 
 > **All three packages are runnable from one machine today.** Verticals 1–3 of spec #20 build the
 > **macOS** package on the host, the **Linux** package in a container on that same host, and the
@@ -2131,6 +2172,8 @@ loud** with code 0: `brew install msitools` on the owner's machine.
 
 ## 16. Gate 4 of #20 — no Visual C++ Redistributable, and a silent install
 
+<!-- gate: open | Windows без VC++ Redistributable: тихая установка .msi и editor_shell --gate6 на чистой машине -->
+
 > **This is the half of gate 4 that a gate can prepare but not close.** Vertical 5 made the Windows
 > package self-contained: our binaries are built with the **static** CRT
 > (`cmake/msvc_runtime.cmake`), and the one dependency we do not compile — the prebuilt
@@ -2263,6 +2306,8 @@ divergence would surface is a UAC prompt under `/qn` on your box, not a red gate
 
 ## 17. Gate 5 of #19 — the install page read by someone who did not write it
 
+<!-- gate: open | getting-started дословно на macOS и Windows: окно, адаптер, играющая игра — того контейнер не покажет -->
+
 > **The machine half of round #19 now runs the page, but it cannot judge it.**
 > `scripts/check_docs_start.sh` takes the commands out of the marked blocks of
 > `docs/en/getting-started/` — `<!-- container: install|build|run|check -->` — asserts that the two
@@ -2321,9 +2366,10 @@ as §17 — by typing what the page says and noting everything you had to add.
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; all but the three of spec #18 and the two of spec #22
-are closed — and of those two, §14 lost its blocker on 2026-09-04 and now waits only for a second
-machine. A machine with a screen, speakers and a pad can
+The gates above are what the ADRs waited on; 7 of the 18 are closed, and the open 11 are listed by
+`scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
+Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
+A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.

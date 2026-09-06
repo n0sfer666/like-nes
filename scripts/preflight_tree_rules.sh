@@ -63,4 +63,11 @@ stage "Проход getting-started — самопроверка правил" \
     bash scripts/check_docs_start_selftest.sh
 stage "Разметка и подмены прогона на чистой машине (#19)" \
     bash scripts/check_docs_start.sh
+# Список ручных гейтов (правило 15): статус каждого живёт МЕТКОЙ под заголовком раздела, а таблица
+# шапки, вводный абзац и перечень в owner_check.sh выводятся из него. Три рукописных копии одного
+# факта уже разъехались втроём — перечень звал закрытый гейт открытым четыре дня и молчал о шести.
+stage "Список ручных гейтов — самопроверка правил" \
+    bash scripts/check_owner_gates_selftest.sh
+stage "Ручные гейты выведены из docs/owner-verification.md" \
+    bash scripts/check_owner_gates.sh
 stages_verdict "правила дерева"

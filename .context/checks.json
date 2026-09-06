@@ -1,4 +1,4 @@
 {
   "types": "bash scripts/build_check.sh",
-  "lint": "python3 scripts/ci_lint.py && bash scripts/tree_invariants.sh && python3 scripts/check_tree_roots.py && python3 scripts/check_py_utf8.py && python3 scripts/line_budget.py && bash scripts/check_docs.sh && bash scripts/check_docs_snippets.sh && bash scripts/check_docs_start.sh"
+  "lint": "python3 scripts/ci_lint.py && bash scripts/tree_invariants.sh && python3 scripts/check_tree_roots.py && python3 scripts/check_py_utf8.py && python3 scripts/line_budget.py && bash scripts/check_docs.sh && bash scripts/check_docs_snippets.sh && bash scripts/check_docs_start.sh && bash scripts/check_owner_gates.sh"
 }

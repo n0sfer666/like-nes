@@ -198,6 +198,18 @@ jobs:
         shell: bash
         run: python3 scripts/check_tree_roots.py
 
+      # Список ручных гейтов выводится из docs/owner-verification.md. Гейт читает ОДНО дерево —
+      # значит идёт на одной ОС; самопроверка едет на всех трёх, потому что предмет у неё другой:
+      # переносимость самих утверждений (диалект awk, sed с hold-space, cksum, порядок sort).
+      - name: Owner gates list selftest (broken copies of the doc and of owner_check.sh)
+        shell: bash
+        run: bash scripts/check_owner_gates_selftest.sh
+
+      - name: Owner gates — the manual list is derived from the doc, not hand-written
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/check_owner_gates.sh
+
       # Python берёт кодировку у локали, и на ЭТОМ раннере она cp1252. Швов два, и упали они по
       # очереди на одном и том же шаге: русская строка не «портится», а роняет print (ee75955), а
       # вывод дочернего процесса той же локалью роняет поток-читатель уже при ЧТЕНИИ (3381a95).
