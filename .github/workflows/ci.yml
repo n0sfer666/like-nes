@@ -172,16 +172,17 @@ jobs:
         shell: bash
         run: python3 scripts/check_tree_roots.py
 
-      # Python берёт кодировку stdout у локали, и на ЭТОМ раннере она cp1252: русская строка не
-      # «портится», а роняет print — то есть скрипт возвращает ненулевой код на исправном дереве, и
-      # «гейт нашёл нарушение» становится неотличимо от «гейт не смог напечатать вердикт». Ровно так
-      # 2026-09-06 упала самопроверка врезок. Самопроверка гейта идёт на всех трёх ОС: её предмет —
-      # переносимость разбора; сам гейт читает дерево, а дерево одно.
-      - name: Stdout encoding gate selftest (broken fixtures, portability of the assertions)
+      # Python берёт кодировку у локали, и на ЭТОМ раннере она cp1252. Швов два, и упали они по
+      # очереди на одном и том же шаге: русская строка не «портится», а роняет print (ee75955), а
+      # вывод дочернего процесса той же локалью роняет поток-читатель уже при ЧТЕНИИ (3381a95).
+      # Оба раза скрипт возвращал ненулевой код на исправном дереве, то есть «гейт нашёл нарушение»
+      # было неотличимо от «гейт не смог прочитать или напечатать». Самопроверка гейта идёт на всех
+      # трёх ОС: её предмет — переносимость разбора; сам гейт читает дерево, а дерево одно.
+      - name: Process-boundary encoding gate selftest (broken fixtures, portability of the assertions)
         shell: bash
         run: python3 scripts/check_py_utf8.py --selftest
 
-      - name: Every script printing non-ASCII switches its stdout to UTF-8
+      - name: Our stdout is switched to UTF-8, foreign stdout is decoded explicitly
         if: runner.os == 'Linux'
         shell: bash
         run: python3 scripts/check_py_utf8.py

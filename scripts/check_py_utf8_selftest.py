@@ -4,6 +4,10 @@
 находка ломается своим деревом: кандидат без вызова, вызов в комментарии, импорт без вызова, вызов
 без импорта, дерево без кандидатов вовсе и дерево, где собственный исходник гейта скрыт от обхода.
 
+У второго правила (чужой вывод декодируется явно) свои шесть: текстовый вызов без `encoding`,
+старая форма `universal_newlines`, обход правила алиасом импорта, вызов в модуле БЕЗ шебанга — то
+есть там, где первое правило молчит по построению, — и дерево, где текстовых вызовов нет вовсе.
+
 Дерево фикстуры — НАСТОЯЩИЙ git-репозиторий: обход берёт файлы у git, и подмена его на os.walk
 означала бы, что набор проверяет не тот механизм, которым гейт пользуется на дереве.
 """
@@ -14,11 +18,17 @@ import sys
 SHEBANG = "#!/usr/bin/env python3\n"
 CYR = 'print("вывод по-русски")\n'
 GOOD = SHEBANG + "import py_utf8\n\n\ndef main():\n    py_utf8.enable()\n    " + CYR
+CALL = 'subprocess.run(["git", "status"], capture_output=True, text=True%s)\n'
+# Дерево без единого текстового вызова гейт отвергает (vacuous-gate), поэтому исправный вызов лежит
+# в КАЖДОЙ фикстуре: иначе опорные `pass` первого правила падали бы по чужой причине.
+RUNNER = "import subprocess\n\n\n" + CALL % ', encoding="utf-8"'
 
 
-def build(mkdtemp, files):
+def build(mkdtemp, files, runner=True):
     """Git-репозиторий из словаря «путь -> текст». Файлы добавляются ПОИМЁННО."""
     root = mkdtemp()
+    if runner:
+        files = dict(files, **{"scripts/runner.py": RUNNER})
     for rel, text in files.items():
         path = os.path.join(root, rel)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -37,9 +47,9 @@ def build(mkdtemp, files):
 def selftest(gate, mkdtemp):
     bad = 0
 
-    def case(want, name, files):
+    def case(want, name, files, runner=True):
         nonlocal bad
-        rc = gate(build(mkdtemp, files), quiet=True)
+        rc = gate(build(mkdtemp, files, runner), quiet=True)
         ok = (want == "pass" and rc == 0) or (want == "fail" and rc != 0)
         if ok:
             print("py-utf8-selftest: OK   %s (%s)" % (name, want))
@@ -70,6 +80,32 @@ def selftest(gate, mkdtemp):
     case("fail", "исходник гейта скрыт от обхода",
          {"scripts/a.py": GOOD, "scripts/check_py_utf8.py": GOOD,
           ".gitignore": "scripts/check_py_utf8.py\n"})
+
+    # Область второго правила — ВСЕ файлы .py: чужой вывод декодирует тот, кто его читает, и
+    # молчание на модуле означало бы, что правило проверяет шебанг вместо чтения.
+    case("pass", "модуль без шебанга задаёт кодировку",
+         {"scripts/a.py": GOOD, "scripts/lib.py": "import subprocess\n" + CALL % ', encoding="utf-8"'})
+    # Без этого `pass` правило неотличимо от «encoding обязателен всегда»: байтовый вызов ничего не
+    # декодирует, и требовать у него кодировку не с чего.
+    case("pass", "вызов не в текстовом режиме кодировки не требует",
+         {"scripts/a.py": GOOD,
+          "scripts/lib.py": 'import subprocess\nsubprocess.run(["git"], capture_output=True)\n'})
+    case("fail", "текстовый вызов берёт кодировку у локали",
+         {"scripts/a.py": GOOD, "scripts/lib.py": "import subprocess\n" + CALL % ""})
+    # Старая форма того же режима: пропусти её — и правило обходится словом, а не смыслом.
+    case("fail", "старая форма universal_newlines без encoding",
+         {"scripts/a.py": GOOD,
+          "scripts/lib.py": 'import subprocess\nsubprocess.run(["git"], universal_newlines=True)\n'})
+    # Имя модуля берётся из импорта: прибитая строка «subprocess» делала бы правило обходимым.
+    case("fail", "правило обходится алиасом импорта",
+         {"scripts/a.py": GOOD,
+          "scripts/lib.py": 'import subprocess as sp\nsp.run(["git"], text=True)\n'})
+    case("fail", "нарушение в самой точке входа",
+         {"scripts/a.py": GOOD.replace("import py_utf8", "import py_utf8\nimport subprocess")
+          + CALL % ""})
+    # Пустое равно пустому и здесь: обход, не нашедший ни одного текстового вызова, обязан
+    # отличаться от чистого прогона.
+    case("fail", "в дереве нет ни одного текстового вызова", {"scripts/a.py": GOOD}, runner=False)
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     rc = gate(root, quiet=True)

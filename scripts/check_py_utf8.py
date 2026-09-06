@@ -18,6 +18,13 @@ Python берёт кодировку stdout у локали, и на windows-р�
 его запустил) и не-ASCII в СТРОКОВЫХ ЛИТЕРАЛАХ. Литералах, а не в файле: комментарии по-русски —
 стиль репозитория, и до вывода они не доезжают. Отсюда разбор `ast`, а не греп: `py_utf8.enable()`,
 написанное в комментарии, гейт обязан отбить наравне с отсутствующим.
+
+Правил ДВА, потому что у шва процесса две стороны, и первое ничего не говорит о второй. Наш вывод
+переключает `py_utf8.enable()`; вывод ДОЧЕРНЕГО процесса родитель декодирует той же локалью, и
+`subprocess.run(..., text=True)` без `encoding` умирает `UnicodeDecodeError` в потоке-читателе —
+ровно это и случилось на прогоне 3381a95, уже ПОСЛЕ того, как первое правило закрыло запись.
+Область второго правила — ВСЕ файлы .py, а не кандидаты: шебанг отделяет точку входа только у
+своего вывода, а чужой декодирует тот, кто его читает, будь то точка входа или модуль.
 """
 import ast
 import os
@@ -30,13 +37,15 @@ import py_utf8
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SELF = "scripts/check_py_utf8.py"
 MODULE = "py_utf8"
+PROC_CALLS = ("run", "Popen", "check_output", "check_call", "call")
+TEXT_KW = ("text", "universal_newlines")
 
 
 def tracked(root):
     """Файлы .py у git ВМЕСТЕ с ненаписанными в индекс: свежесозданный скрипт иначе проходил бы
     локальный прогон молча и падал бы только на коммит-гейте, когда под него уже написан код."""
     out = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard", "*.py"],
-                         cwd=root, capture_output=True, text=True)
+                         cwd=root, capture_output=True, text=True, encoding="utf-8")
     return sorted(p for p in out.stdout.splitlines() if p.strip())
 
 
@@ -69,14 +78,45 @@ def calls_enable(text):
     return imported and called
 
 
+def reads_locale(text):
+    """Текстовые вызовы subprocess: сколько их всего и какие берут кодировку у локали.
+
+    Имя модуля берётся из ИМПОРТА, а не прибито строкой: `import subprocess as sp` иначе делал бы
+    правило обходимым переименованием.
+    """
+    try:
+        tree = ast.parse(text)
+    except SyntaxError:
+        return 0, []
+    mods = {a.asname or a.name
+            for n in ast.walk(tree) if isinstance(n, ast.Import)
+            for a in n.names if a.name == "subprocess"}
+    seen, bad = 0, []
+    for n in ast.walk(tree):
+        if not (isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)
+                and n.func.attr in PROC_CALLS and isinstance(n.func.value, ast.Name)
+                and n.func.value.id in mods):
+            continue
+        kw = {k.arg: k.value for k in n.keywords if k.arg}
+        if not any(isinstance(kw.get(a), ast.Constant) and kw[a].value is True for a in TEXT_KW):
+            continue
+        seen += 1
+        if "encoding" not in kw:
+            bad.append(n.lineno)
+    return seen, bad
+
+
 def gate(root, quiet=False):
-    bad, seen = [], 0
+    bad, seen, reads, locale_bad = [], 0, 0, []
     files = tracked(root)
     for rel in files:
         path = os.path.join(root, rel)
         if not os.path.isfile(path):
             continue
         text = open(path, encoding="utf-8").read()
+        found, lines = reads_locale(text)
+        reads += found
+        locale_bad += ["%s:%d" % (rel, line) for line in lines]
         if not needs_utf8(text):
             continue
         seen += 1
@@ -84,9 +124,9 @@ def gate(root, quiet=False):
             bad.append(rel)
     # Пустое равно пустому: обход, промахнувшийся мимо дерева, обязан отличаться от чистого
     # прогона — тот же класс, что правило vacuous-gate в ci_lint.py.
-    if not seen:
-        sys.stderr.write("py-utf8: FAIL — ни одного скрипта с не-ASCII выводом не найдено, "
-                         "проверять нечего\n")
+    if not seen or not reads:
+        sys.stderr.write("py-utf8: FAIL — обход ничего не нашёл (скриптов с не-ASCII выводом: %d, "
+                         "текстовых вызовов subprocess: %d), проверять нечего\n" % (seen, reads))
         return 1
     # Гейт, не нашедший собственного исходника, описывает не то дерево, по которому его запустили.
     if os.path.isfile(os.path.join(root, SELF)) and SELF not in files:
@@ -95,11 +135,17 @@ def gate(root, quiet=False):
     for rel in bad:
         sys.stderr.write("%s: печатает не-ASCII и не зовёт py_utf8.enable() — на windows-раннере "
                          "вывод уйдёт в cp1252 и скрипт умрёт трейсбеком в print\n" % rel)
-    if bad:
-        sys.stderr.write("py-utf8: FAIL — скриптов осмотрено: %d, находок: %d\n" % (seen, len(bad)))
+    for place in locale_bad:
+        sys.stderr.write("%s: subprocess в текстовом режиме без encoding — вывод дочернего процесса "
+                         "будет разобран локалью и на windows-раннере убьёт поток-читатель "
+                         "UnicodeDecodeError\n" % place)
+    if bad or locale_bad:
+        sys.stderr.write("py-utf8: FAIL — скриптов осмотрено: %d, вызовов: %d, находок: %d\n"
+                         % (seen, reads, len(bad) + len(locale_bad)))
         return 1
     if not quiet:
-        print("py-utf8: ok (%d скрипт(ов) с не-ASCII выводом, все переключают поток)" % seen)
+        print("py-utf8: ok (%d скрипт(ов) с не-ASCII выводом переключают поток, "
+              "%d текстовых вызов(ов) subprocess задают кодировку)" % (seen, reads))
     return 0
 
 

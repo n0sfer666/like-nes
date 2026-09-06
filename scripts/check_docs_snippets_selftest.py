@@ -57,7 +57,7 @@ def build(files):
 def gate(root, docs):
     """Код возврата гейта на дереве `root` со списком документов на стдине."""
     p = subprocess.run([sys.executable, GATE, root], input="\n".join(docs),
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8")
     return p.returncode
 
 
@@ -219,7 +219,7 @@ case("fail", "названного документа нет в дереве", d
 # здоровым ровно до первого прогона гейта. Список документов настоящего дерева берётся у той же
 # docs_all_files, которой пользуется сам гейт.
 real = subprocess.run(["bash", "-c", ". scripts/docs_content_lib.sh; docs_all_files ."],
-                      cwd=ROOT, capture_output=True, text=True)
+                      cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
 expect("pass", "настоящее дерево проходит гейт", ROOT,
        [d for d in real.stdout.splitlines() if d.strip()])
 

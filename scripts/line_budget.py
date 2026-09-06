@@ -97,7 +97,7 @@ def scan(root):
     """
     out = subprocess.run(
         ["git", "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
-        capture_output=True, text=True, check=True).stdout
+        capture_output=True, text=True, encoding="utf-8", check=True).stdout
     listing = {name for name in out.split("\0") if name}
     files = {}
     for name in listing:
