@@ -26,6 +26,7 @@ import re
 import sys
 
 import py_utf8
+from cpp_text import marker_lines, split_code_comments
 
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
 ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples")
@@ -100,17 +101,6 @@ def literals(text):
     return out
 
 
-def allowed(lines, no):
-    """Подавление действует на строке литерала и на предыдущей — многострочный printf иначе
-    заставлял бы вешать маркер на каждый кусок."""
-    for cand in (no, no - 1):
-        if 1 <= cand <= len(lines):
-            m = ALLOW.search(lines[cand - 1])
-            if m is not None and len(m.group(1).split()) >= 3:
-                return True
-    return False
-
-
 def scan(files):
     """→ (находки, число файлов, число литералов). Находка: (путь, строка, литерал)."""
     found, seen_files, seen_lits = [], 0, 0
@@ -122,10 +112,16 @@ def scan(files):
             found.append((path, 0, f"<не прочитан: {exc}>"))
             continue
         seen_files += 1
-        lines = text.splitlines()
+        # Маркер ищется в КОММЕНТАРИЯХ, а не в строках файла: разбор один на три гейта дерева
+        # (`cpp_text.marker_lines`), и своя копия этих десяти строк разъехалась бы с ним молча —
+        # ровно то, ради чего вынесен сам примитив. Заодно закрывается класс, который у двух швов
+        # закрыт с рождения: `puts("ascii: allow причина в три слова")` подавлял находку, оставаясь
+        # строковым литералом.
+        _, com = split_code_comments(text)
+        ok = marker_lines(com, ALLOW)
         for no, lit in literals(text):
             seen_lits += 1
-            if any(ord(c) > 127 for c in lit) and not allowed(lines, no):
+            if any(ord(c) > 127 for c in lit) and no not in ok:
                 found.append((path, no, lit))
     return found, seen_files, seen_lits
 

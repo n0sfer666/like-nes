@@ -74,7 +74,7 @@ void test_codec() {
 }
 
 void test_roundtrip_through_tracker() {
-    std::remove(SAVE_PATH);
+    platform::remove_file(SAVE_PATH);
     ach::Registry reg;
     build(reg);
     const ach::Id kills = ach::hash_key("stat_kills");
@@ -114,7 +114,7 @@ void test_roundtrip_through_tracker() {
 }
 
 void test_retroactive_threshold() {
-    std::remove(SAVE_PATH);
+    platform::remove_file(SAVE_PATH);
     ach::Registry reg;
     build(reg);
     const ach::Id kills = ach::hash_key("stat_kills");
@@ -134,7 +134,7 @@ void test_retroactive_threshold() {
 }
 
 void test_stale_temp() {
-    std::remove(SAVE_PATH);
+    platform::remove_file(SAVE_PATH);
     ach::Registry reg;
     build(reg);
     const ach::LocalStore store(SAVE_PATH);
@@ -153,7 +153,7 @@ void test_stale_temp() {
     check(store.load(b), "stale temp does not affect load");
     check(b.stat(ach::hash_key("stat_kills")) == 11, "previous snapshot intact");
     check(store.save(b), "save over stale temp");
-    std::remove(store.temp_path().c_str());
+    platform::remove_file(store.temp_path());
 }
 
 } // namespace
@@ -164,8 +164,8 @@ int main() {
     test_roundtrip_through_tracker();
     test_retroactive_threshold();
     test_stale_temp();
-    std::remove(SAVE_PATH);
-    std::remove((std::string(SAVE_PATH) + ".tmp").c_str());
+    platform::remove_file(SAVE_PATH);
+    platform::remove_file(std::string(SAVE_PATH) + ".tmp");
     std::printf(failures == 0 ? "PASS\n" : "FAIL\n");
     return failures == 0 ? 0 : 1;
 }

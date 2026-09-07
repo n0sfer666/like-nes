@@ -5,6 +5,7 @@
 #include "achievements.hpp"
 #include "combat.hpp"
 #include "platform_args.hpp"
+#include "platform_fs.hpp"
 #include "sim.hpp"
 #include "world.hpp"
 
@@ -57,7 +58,7 @@ int main(int argc, char** argv) {
     const std::string bundle = argc > 1 ? argv[1] : "";
     const std::string plugin = argc > 2 ? argv[2] : "";
     const std::string save = "ach_sim_test.save";
-    std::remove(save.c_str());
+    platform::remove_file(save);
 
     game::GameState bare_state{};
     const uint64_t bare = scripted(1200, nullptr, &bare_state);
@@ -85,7 +86,7 @@ int main(int argc, char** argv) {
                 static_cast<unsigned long long>(bare), static_cast<unsigned long long>(observed),
                 static_cast<unsigned long long>(with_plugin));
     std::printf("  achievements: %zu/%zu unlocked\n", b.unlocked_count(), b.defined_count());
-    std::remove(save.c_str());
+    platform::remove_file(save);
     std::printf(failures == 0 ? "game-achievements: PASS\n" : "game-achievements: FAIL\n");
     return failures == 0 ? 0 : 1;
 }

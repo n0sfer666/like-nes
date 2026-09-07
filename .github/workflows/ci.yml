@@ -193,7 +193,7 @@ jobs:
         shell: bash
         run: python3 scripts/check_tree_roots.py --selftest
 
-      - name: Tree roots — both copies of the roots list agree (mirrors-group)
+      - name: Tree walk — every copy agrees on both roots and extensions (mirrors-group)
         if: runner.os == 'Linux'
         shell: bash
         run: python3 scripts/check_tree_roots.py
@@ -249,6 +249,21 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: python3 scripts/check_hash_seam.py
+
+      # Шов файлового ввода-вывода (находка 6 того же аудита): .context/conventions.md называет
+      # требование прямо, а проверял его никто, и обходили его девять раз. Причина конвенции не
+      # стилистическая — узкие CRT-функции на Windows идут через ANSI-кодовую страницу и не
+      # открывают путь через профиль вида C:\Users\Пётр\, а выглядит это как «файла нет».
+      # Грепом это не делается: файловая форма `remove` отличается от алгоритма <algorithm>
+      # ЧИСЛОМ аргументов верхнего уровня, то есть требует разбора скобок.
+      - name: File I/O seam gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_fs_seam.py --selftest
+
+      - name: File I/O goes through the platform seam, not through narrow CRT calls
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_fs_seam.py
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5

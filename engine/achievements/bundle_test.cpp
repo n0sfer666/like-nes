@@ -7,6 +7,7 @@
 #include "bundle_fixture.hpp"
 #include "bundle_source.hpp"
 #include "platform_args.hpp"
+#include "platform_fs.hpp"
 #include "registry.hpp"
 #include "tracker.hpp"
 
@@ -141,7 +142,7 @@ int main(int argc, char** argv) {
     test_runtime_merge();
     test_missing_sources();
     test_partial_failure_rolls_back();
-    std::remove(BUNDLE_PATH);
+    platform::remove_file(BUNDLE_PATH);
     std::printf(failures == 0 ? "PASS\n" : "FAIL\n");
     return failures == 0 ? 0 : 1;
 }

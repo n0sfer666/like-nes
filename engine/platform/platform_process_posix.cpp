@@ -28,8 +28,11 @@ pid_t fork_exec(const std::vector<std::string>& argv, int out_fd = -1) {
         // писать в родительский stdout, а читателю канала — пустой вывод и «ошибок нет».
         if (dup2(out_fd, STDOUT_FILENO) < 0 || dup2(out_fd, STDERR_FILENO) < 0) _exit(127);
     } else {
-        if (std::freopen("/dev/null", "w", stdout)) { /* best-effort */ }
-        if (std::freopen("/dev/null", "w", stderr)) { /* best-effort */ }
+        // Шов platform::open_file здесь не при делах: это не открытие файла по пути пользователя,
+        // а переприсваивание уже существующего потока ребёнка устройству. Шов возвращает FILE*,
+        // а нужно заменить сам stdout — форма, которой у него нет и быть не должно.
+        if (std::freopen("/dev/null", "w", stdout)) { /* fs-seam: allow переназначение потока ребёнка устройством */ }
+        if (std::freopen("/dev/null", "w", stderr)) { /* fs-seam: allow переназначение потока ребёнка устройством */ }
     }
     execvp(c[0], c.data());
     _exit(127);
