@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <optional>
 #include <string>
 
@@ -27,6 +28,13 @@ namespace ph = framework::physics;
 using framework::Vec2;
 
 inline fix32 tick_dt() { return fix32::from_int(1) / fix32::from_int(60); }
+
+// Стенной близнец `tick_dt()`: столько ждёт живой прогон между тиками. Выводится ИЗ шага
+// симуляции, а не пишется вторым числом рядом: разойдись они — игра шла бы быстрее или
+// медленнее собственной физики, и заметил бы это только человек за клавиатурой.
+inline int64_t tick_period_ns() {
+    return static_cast<int64_t>(tick_dt().to_double() * 1e9);
+}
 
 // Персонаж ростом в два тайла и шириной в один: карта рисовалась под эти полуразмеры, и проходы в
 // ней считаны от них. Совпадение с фикстурой гейтов (`framework_character_scene.hpp`) не случайно,

@@ -1,4 +1,4 @@
-<!-- en-sha256: 6907a3a250a400b1f9113d6a2a3e9a3114f1aebfb80c623119770fc195f795e3 -->
+<!-- en-sha256: f40705ebc1ff75c38c940661120dee69c8ffc316aa08693c78eca25283b52101 -->
 
 # Сборка
 
@@ -6,6 +6,7 @@
 
 Сначала [системные требования](prerequisites.md) — на Windows из приглашения *x64 Native Tools*.
 
+<!-- container: build -->
 ```sh
 git clone https://github.com/n0sfer666/like-nes.git
 cd like-nes

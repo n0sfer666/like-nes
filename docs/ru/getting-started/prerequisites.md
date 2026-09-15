@@ -1,4 +1,4 @@
-<!-- en-sha256: 89032647df82c21c35e84ab4fac531ec45624e08225136d691706fbad2803a05 -->
+<!-- en-sha256: c94791677b54f9ee11cc6240b1c85f45f70ccc7e88c7214a24d51d1dabef785a -->
 
 # Системные требования
 
@@ -18,6 +18,7 @@
 
 Одной строкой для Ubuntu:
 
+<!-- container: install -->
 ```sh
 sudo apt-get install -y build-essential cmake ninja-build git xorg-dev mesa-vulkan-drivers libvulkan1 vulkan-tools
 ```

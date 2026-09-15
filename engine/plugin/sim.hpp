@@ -1,4 +1,5 @@
 #pragma once
+#include "../asset/hash.hpp"
 #include "../core/fixed.hpp"
 #include <cstdint>
 
@@ -21,17 +22,14 @@ inline void sim_init(SimWorld& w) {
     w.tick = 0;
 }
 
-static constexpr uint64_t SIM_FNV_OFFSET = 1469598103934665603ull;
-static constexpr uint64_t SIM_FNV_PRIME = 1099511628211ull;
-
+// Свой цикл здесь был четвёртой копией FNV семьи A (находка 5 аудита #21): те же константы, тот же
+// фиксированный little-endian порядок байт. Голден sim_hash от сведения не сдвинулся.
 inline uint64_t sim_hash_i32(uint64_t h, int32_t v) {
-    uint32_t u = static_cast<uint32_t>(v);
-    for (int b = 0; b < 4; ++b) { h ^= (u >> (8 * b)) & 0xFFu; h *= SIM_FNV_PRIME; }
-    return h;
+    return asset::fnv1a_u32(h, static_cast<uint32_t>(v));
 }
 
 inline uint64_t sim_hash(const SimWorld& w) {
-    uint64_t h = SIM_FNV_OFFSET;
+    uint64_t h = asset::FNV_OFFSET;
     auto mix = [&](const fix32* a) {
         for (int i = 0; i < SimWorld::N; ++i) h = sim_hash_i32(h, a[i].raw);
     };

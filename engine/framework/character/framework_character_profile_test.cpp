@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "hash_mix.hpp"
 #include "platform_args.hpp"
 #include "profile_bake.hpp"
 #include "profile_read.hpp"
@@ -77,9 +78,12 @@ ladder_regrab_ticks | 4
 // пиннута static_assert'ами, а этот хеш пинит ещё и порядок полей и содержимое блоба имён.
 constexpr uint64_t GOLDEN = 0xa554e52327f8d33dull;
 
+// Свёртка берётся из `hash_mix.hpp` физики: до аудита #21 (находка 5) этот цикл был здесь
+// рукописной копией с ТЕМИ ЖЕ константами, то есть голден считался СВОИМ смешиванием и сравнить его
+// с соседним было нечем. Байт-в-байт та же арифметика — значение голдена не сдвинулось.
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
-    uint64_t h = 0xcbf29ce484222325ull;
-    for (uint8_t x : b) h = (h ^ x) * 0x100000001b3ull;
+    uint64_t h = framework::physics::FNV_OFFSET;
+    framework::physics::mix_bytes(h, b.data(), b.size());
     return h;
 }
 

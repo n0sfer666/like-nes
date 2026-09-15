@@ -5,6 +5,7 @@
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
 #include "fx.hpp"
+#include "physics/hash_mix.hpp"
 
 // Частицы шутера НА ФРЕЙМВОРКЕ (спека #17, вертикаль 3, шаг B3). Два утверждения, и одно не
 // заменяет другое: сцена повторяется числом (голден) и установившийся кадр не ходит в кучу
@@ -32,17 +33,16 @@ const game::Atlas& game_atlas() {
     return a;
 }
 
+// Свёртка берётся из `hash_mix.hpp` физики: до аудита #21 (находка 5) этот цикл был здесь
+// рукописной копией с ТЕМИ ЖЕ константами. Обёртка оставлена ради знакового аргумента.
 void mix(uint64_t& h, int64_t v) {
-    for (int32_t i = 0; i < 8; ++i) {
-        h ^= static_cast<uint64_t>((v >> (i * 8)) & 0xff);
-        h *= 0x100000001b3ull;
-    }
+    framework::physics::mix_u64(h, static_cast<uint64_t>(v));
 }
 
 // Поля перечислены ПОИМЁННО, а не байтами структуры: `Particle` дополнялся в этом же раунде
 // (`life`, `scale`), и голден по байтам краснел бы от вставки поля, ничего не сказав про поведение.
 uint64_t fold(const game::Fx& e) {
-    uint64_t h = 0xcbf29ce484222325ull;
+    uint64_t h = framework::physics::FNV_OFFSET;
     mix(h, e.count());
     mix(h, e.dropped());
     mix(h, e.stream());

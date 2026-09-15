@@ -1,6 +1,7 @@
 #include <cstdio>
 
 #include "framework_graphics_particle_scene.hpp"
+#include "hash_mix.hpp"
 #include "platform_args.hpp"
 
 // Гейт 3 спеки #17: прогон с декоративными эффектами и без даёт БИТ В БИТ один sim-хеш. Решение
@@ -60,7 +61,11 @@ uint64_t sim_run(uint32_t ticks, uint32_t frames_per_tick, uint32_t* fx_count) {
         for (uint32_t f = 0; f < frames_per_tick; ++f) decorate(fx, frame++, dt);
         scene::feed(sim, t);
         sim.step();
-        game = game * 0x100000001b3ull ^ sim.stream();
+        // Единственная в дереве форма, где умножение идёт ПЕРЕД xor: это вообще не FNV, и свести
+        // её к `hash_mix.hpp` нельзя — вышло бы другое число. Константа взята именованной: голый
+        // литерал здесь неотличим от новой рукописной копии (находка 5 аудита #21).
+        // hash-seam: allow умножение перед xor, формы такой у примитивов нет
+        game = game * framework::physics::FNV_PRIME ^ sim.stream();
     }
     if (fx_count != nullptr) *fx_count = fx.count();
     uint64_t h = scene::fold(sim);

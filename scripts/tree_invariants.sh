@@ -100,7 +100,20 @@ $hits"
 
 # --- Инвариант 1 спеки #14: подсистемы не зависят от слоя framework ----------------------------
 inv_deps() {
-    local dirs="engine/render engine/audio engine/input engine/asset engine/plugin engine/material engine/light engine/net"
+    # Список подсистем ВЫВОДИТСЯ из дерева — тем же приёмом, каким ниже берутся модули слоя.
+    # Рукописный отстаёт от первого же нового каталога: до аудита #21 он перечислял восемь
+    # подсистем из двенадцати и молча не смотрел на engine/achievements, engine/hotreload,
+    # engine/core и engine/platform — то есть ребро к слою оттуда не отбивалось ничем.
+    # Исключение ровно одно и это САМ слой: его CMakeLists называет цели framework_* по делу.
+    local layer=engine/framework
+    [ -d "$layer" ] || fail "the framework layer is not where the gate looks: $layer"
+    local dirs="" d
+    for d in engine/*/; do
+        d="${d%/}"
+        [ "$d" = "$layer" ] && continue
+        dirs="$dirs $d"
+    done
+    [ -n "$dirs" ] || fail "no subsystem directories found — the gate is vacuous"
     # Доказательство, что поиск работает: цели линкуются в каждом из этих каталогов.
     # shellcheck disable=SC2086
     grep -rn "target_link_libraries" $dirs >/dev/null \
@@ -123,6 +136,29 @@ inv_deps() {
     if grep -rnE "framework_($mods)|include .*framework/" $dirs; then
         fail "a subsystem depends on the framework layer — direction broken"
     fi
+    # Вторая половина того же направления: подсистема не читает заголовки ПОТРЕБИТЕЛЯ. До аудита
+    # #21 её не проверял никто, и engine/achievements/plugin_host_test.cpp включал
+    # ../../example_ugly_game/backend_host.hpp — стрелка, развёрнутая вверх, в каталоге подсистемы.
+    # Список потребителей ВЫВОДИТСЯ из ROOTS_CODE: рукописный отстал бы от первого нового корня
+    # ровно так же, как отстал список подсистем выше.
+    local alt=""
+    for d in $ROOTS_CODE; do
+        [ "$d" = engine ] && continue
+        [ -d "$d" ] || fail "consumer root '$d' does not exist — the gate looks at nothing"
+        alt="$alt|$d"
+    done
+    alt="${alt#|}"
+    [ -n "$alt" ] || fail "no consumer roots derived — the gate is vacuous"
+    # Позитивный контроль: тот же поиск по ТОМУ ЖЕ корню обязан видеть включения вообще. Пустая
+    # альтернация проверялась бы иначе — она сматчила бы всё подряд, — а вот промах по корню или по
+    # расширениям молчит: ровно тот вакуумный гейт, что стережёт ci_lint.py.
+    # shellcheck disable=SC2086
+    local incs; incs=$(grep -rhE '#include "' $EXT engine | wc -l | tr -d '[:space:]')
+    [ "$incs" -ge 5 ] || fail "include search itself is broken (hits: $incs)"
+    # shellcheck disable=SC2086
+    local up; up=$(grep -rnE "#include \"[^\"]*($alt)/" $EXT engine || true)
+    [ -z "$up" ] || fail "a subsystem includes a consumer header — direction broken:
+$up"
     echo "framework dependency direction: PASS"
 }
 

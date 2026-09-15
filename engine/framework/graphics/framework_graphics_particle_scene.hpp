@@ -1,4 +1,5 @@
 #pragma once
+#include "hash_mix.hpp"
 #include "particles.hpp"
 
 // Таблица описаний и свёртка состояния — общие для трёх целей шага C. Отдельным заголовком по тому
@@ -57,17 +58,17 @@ inline const EmitDesc* table() {
     return d;
 }
 
+// Свёртка берётся из `hash_mix.hpp` физики: до аудита #21 (находка 5) этот цикл был здесь
+// рукописной копией с ТЕМИ ЖЕ константами, то есть голден частиц считался СВОИМ смешиванием.
+// Обёртка оставлена ради знакового аргумента: `.raw` приходит целым со знаком.
 inline void mix(uint64_t& h, int64_t v) {
-    for (int32_t i = 0; i < 8; ++i) {
-        h ^= static_cast<uint64_t>((v >> (i * 8)) & 0xff);
-        h *= 0x100000001b3ull;
-    }
+    framework::physics::mix_u64(h, static_cast<uint64_t>(v));
 }
 
 // Свёртка берёт и ЧАСТИЦЫ, и поток, и потери: два прогона, совпавшие частицами при разошедшемся
 // потоке, разойдутся на первой же следующей подаче, и хеш обязан сказать об этом сразу.
 inline uint64_t fold(const ParticleStore& e) {
-    uint64_t h = 0xcbf29ce484222325ull;
+    uint64_t h = framework::physics::FNV_OFFSET;
     mix(h, e.count());
     mix(h, e.dropped());
     mix(h, e.stream());

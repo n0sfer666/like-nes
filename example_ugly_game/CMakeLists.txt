@@ -1,9 +1,11 @@
-# backend_host.cpp собирается прямо сюда: порядок разрушения backend→dlclose иначе не покрыт
-# ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это единственный способ его проверить.
+# backend_host.cpp и половина прогона, которой нужен ХОСТ игры, собираются прямо сюда: порядок
+# разрушения backend→dlclose иначе не покрыт ничем, а под ASan-гейтом (-DPLUGIN_FORCE_DLCLOSE) это
+# единственный способ его проверить. Вторая половина лежала в engine/achievements и включала
+# ../../example_ugly_game/backend_host.hpp — стрелку вверх инвариант 1 спеки #14 теперь отбивает.
 set(ACH_TEST_DIR ${CMAKE_SOURCE_DIR}/engine/achievements)
 add_executable(ach_plugin_test
   ${ACH_TEST_DIR}/plugin_test.cpp ${ACH_TEST_DIR}/plugin_test_common.cpp
-  ${ACH_TEST_DIR}/plugin_host_test.cpp backend_host.cpp)
+  ach_plugin_host_test.cpp backend_host.cpp)
 target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 
 # --- Образец-платформер, машинная половина (шаг C вертикали 3 спеки #16): скриптованный прогон по
@@ -187,35 +189,7 @@ target_include_directories(game_star_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
 target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 
-# --- Образец-платформер, ЖИВАЯ половина (гейт 8 спеки #16): окно, часы и ввод поверх той же сцены,
-# которую гоняет sim-голден. Отдельная цель, а не режим `game_sidescroller`: у шутера нет ни
-# гравитации, ни тайлов, и общего у них ровно два куска — спрайт-батч и шов ввода.
-#
-# flecs приезжает сюда транзитивно и не по нужде: `batch.cpp` включает `world.hpp` ради двух
-# констант вида. Платформер их перекрывает своим `set_viewport`, но цель всё равно обязана
-# слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
-add_executable(game_platformer
-  platformer_live.cpp platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
-  batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp
-  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
-  ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
-# platform_core здесь не назван по тому же основанию, что и в гейте выше: framework_graphics_tiles
-# тянет его PRIVATE-связью своего framework_graphics, и второе имя дало бы `warning: ignoring
-# duplicate libraries` на macOS — мимо -Werror, но прямо в лог гейта. Заголовки платформы такая
-# связь не несёт, поэтому её каталог назван руками.
-target_include_directories(game_platformer PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
-target_link_libraries(game_platformer PRIVATE
-  engine_core framework_character framework_graphics_tiles framework_input asset_core
-  material_hot flecs_static webgpu glfw3webgpu glfw Threads::Threads)
-if(APPLE)
-  target_link_libraries(game_platformer PRIVATE
-    "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
-elseif(WIN32)
-  target_link_libraries(game_platformer PRIVATE Xinput9_1_0)
-endif()
-target_copy_webgpu_binaries(game_platformer)
-reproducible_rpath(game_platformer)
+include(${CMAKE_CURRENT_SOURCE_DIR}/live_targets.cmake)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/packaging.cmake)
 

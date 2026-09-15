@@ -94,7 +94,7 @@ like-nes/
 | 2 | **8 golden-хешей целы** | `0x6c4b121dbb47d13b` (ядро), `0xf2255dc74fbdb6bc` (asset), `0x2cf5b5597afa3241` (audio mix), `0xcc26a1897a326f6f` (input), `0x7d9a6e60cbed4156` (plugin), `0x2de54a36e54e0684` (IDE scene), `0x32a094e89eacf2f2` (game sim), `0xe728fef199e87fc9` (achievements) |
 | 3 | CI зелёный на 3 ОС | `ci.yml` целиком, без изъятых шагов; сравнение списка шагов до/после |
 | 4 | Корень очищен | бинарники и `.bundle` удалены из индекса (`git rm --cached`), `.gitignore` не даёт вернуться: повторный локальный прогон гейтов не порождает изменений в `git status` |
-| 5 | Граница движок→игра | ни один таргет `engine/*` и `tools/*` не включает и не линкует ничего из `example_ugly_game/` — машинная проверка по CMake-графу и `grep` по include. Известный долг: `engine/achievements/plugin_host_test.cpp` — единственное нарушение, зафиксировано в ADR #11 |
+| 5 | Граница движок→игра | ни один таргет `engine/*` и `tools/*` не включает и не линкует ничего из `example_ugly_game/` — машинная проверка по CMake-графу и `grep` по include. Долг `engine/achievements/plugin_host_test.cpp` погашен аудитом #21: файл перенесён в `example_ugly_game/`, а само ребро теперь отбивает вторая половина `inv_deps` (`tree_invariants.sh`) |
 | 6 | Паковка жива | `scripts/package.sh` собирает `.app` на macOS, tarball на Linux; smoke-запуск из чужого `cwd` проходит |
 | 7 | Релизный путь жив | `release.yml` проходит dry-run (без публикации) с новыми путями |
 

@@ -1,5 +1,6 @@
 #include <cstdio>
 
+#include "hash_mix.hpp"
 #include "platform_args.hpp"
 #include "tile_draw.hpp"
 
@@ -147,9 +148,10 @@ void test_one_material_is_one_draw_call() {
     check(batches[0].count == a.emitted, "every emitted tile is inside that one draw call");
 }
 
+// Константы — из `hash_mix.hpp` (находка 5 аудита #21): байтовая форма сменила бы голден.
 uint64_t fold(const SpriteList& list) {
-    uint64_t h = 0xcbf29ce484222325ull;
-    const auto mix = [&h](uint64_t v) { h = (h ^ v) * 0x100000001b3ull; };
+    uint64_t h = framework::physics::FNV_OFFSET;
+    const auto mix = [&h](uint64_t v) { framework::physics::mix_word(h, v); };
     for (uint32_t i = 0; i < list.count(); ++i) {
         const Sprite& s = list.drawn(i);
         mix(static_cast<uint64_t>(static_cast<uint32_t>(s.center.x.raw)));

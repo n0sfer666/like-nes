@@ -3,6 +3,7 @@
 
 #include "codes.hpp"
 #include "engine.hpp"
+#include "hash_mix.hpp"
 #include "platform_args.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
@@ -52,12 +53,19 @@ const Ev SCRIPT[] = {
     {::input::RawKind::KeyUp, ::input::code::A, 0},
 };
 
-uint64_t mix(uint64_t h, uint64_t v) { return (h ^ v) * 0x100000001b3ull; }
+// Константы берутся из `hash_mix.hpp` физики: до аудита #21 (находка 5) они стояли здесь голыми
+// литералами, то есть голден ввода считался СВОИМ смешиванием и сравнить его с соседним было нечем.
+// Форма — «целым словом», и она НЕ сведена к байтовой: та дала бы другое число, то есть
+// перештамповала бы голден ради косметики.
+uint64_t mix(uint64_t h, uint64_t v) {
+    framework::physics::mix_word(h, v);
+    return h;
+}
 
 uint64_t run(const ::input::ActionMap& map) {
     ::input::InputEngine e(map);
     e.device().pad_connected[0] = true;
-    uint64_t h = 0xcbf29ce484222325ull;
+    uint64_t h = framework::physics::FNV_OFFSET;
     const int n = static_cast<int>(sizeof(SCRIPT) / sizeof(SCRIPT[0]));
     int i = 0;
     for (uint32_t t = 0; i < n || t < 16; ++t) {

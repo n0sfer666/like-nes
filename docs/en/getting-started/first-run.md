@@ -7,6 +7,7 @@ screen, plus what the common failures look like.
 
 ## Open the editor
 
+<!-- container: run -->
 ```sh
 ./build/editor_shell          # Windows: build\editor_shell.exe
 ```
@@ -22,6 +23,7 @@ the tree was configured headless — reconfigure with `-DPLUGIN_UI=ON`.
 
 Two samples ship with the engine, and they exercise different halves of it.
 
+<!-- container: run -->
 ```sh
 cmake --build build --target game_sidescroller
 ./build/game_sidescroller     # Windows: build\game_sidescroller.exe
@@ -35,6 +37,7 @@ what came up, and each of them is a check in itself —
 [game] materials: on (3 pipeline(s), 0 fallback(s))
 ```
 
+<!-- container: run -->
 ```sh
 cmake --build build --target game_platformer
 ./build/game_platformer       # Windows: build\game_platformer.exe
@@ -48,6 +51,7 @@ nothing about its clamp. There is no art in it, only flat quads.
 
 The loop the editor drives is covered end to end by a gate you can run yourself:
 
+<!-- container: check ide-build-loop: PASS -->
 ```sh
 ./build/build_loop_test       # Windows: build\build_loop_test.exe
 ```

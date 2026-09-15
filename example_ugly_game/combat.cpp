@@ -1,5 +1,6 @@
 #include "combat.hpp"
 #include "boss.hpp"
+#include "../engine/asset/hash.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -195,8 +196,10 @@ uint64_t sim_hash(flecs::world& world, const GameState& gs) {
     });
     std::sort(ents.begin(), ents.end(), [](const Item& a, const Item& b) { return a.seq < b.seq; });
 
-    uint64_t h = 1469598103934665603ull;
-    auto mix = [&](uint64_t v) { h = (h ^ v) * 1099511628211ull; };
+    // Смешивание ЦЕЛЫМ СЛОВОМ, а не побайтно: свести его к байтовой форме значило бы получить
+    // ДРУГОЕ число и перештамповать голден игры ради косметики (находка 5 аудита #21).
+    uint64_t h = asset::FNV_OFFSET;
+    auto mix = [&](uint64_t v) { h = asset::fnv1a_word(h, v); };
     mix(gs.tick); mix(gs.seq); mix(gs.score); mix((uint32_t)gs.lives); mix(gs.rng);
     mix(gs.fire_cd); mix(gs.spawn_cd); mix(gs.phase); mix(gs.phase_t); mix(gs.kills);
     for (const Item& it : ents) {

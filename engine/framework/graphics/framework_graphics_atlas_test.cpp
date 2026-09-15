@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "atlas_bake.hpp"
+#include "hash_mix.hpp"
 #include "atlas_read.hpp"
 #include "platform_args.hpp"
 
@@ -65,9 +66,12 @@ const Expect EXPECT[] = {
 };
 constexpr uint16_t REGION_COUNT = sizeof(EXPECT) / sizeof(EXPECT[0]);
 
+// Свёртка берётся из `hash_mix.hpp` физики: до аудита #21 (находка 5) этот цикл был здесь
+// рукописной копией с ТЕМИ ЖЕ константами, то есть голден считался СВОИМ смешиванием и сравнить его
+// с соседним было нечем. Байт-в-байт та же арифметика — значение голдена не сдвинулось.
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
-    uint64_t h = 0xcbf29ce484222325ull;
-    for (uint8_t x : b) h = (h ^ x) * 0x100000001b3ull;
+    uint64_t h = framework::physics::FNV_OFFSET;
+    framework::physics::mix_bytes(h, b.data(), b.size());
     return h;
 }
 

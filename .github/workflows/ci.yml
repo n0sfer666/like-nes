@@ -114,6 +114,24 @@ jobs:
         shell: bash
         run: bash scripts/check_docs_snippets.sh
 
+      # Самопроверка гейта 5 — на ВСЕХ ТРЁХ ОС, и предмет у неё тот же, что у соседей: переносимость
+      # самих утверждений (mktemp с чужим TMPDIR, `tar --null -T -` в git-bash, запуск файла без
+      # расширения из PATH, регистронезависимая ФС), а не содержимое дерева. Ни демона, ни сети.
+      - name: Docs start gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: bash scripts/check_docs_start_selftest.sh
+
+      # Гейт 5 спеки #19, статическая половина: разметка исполнимых блоков getting-started и то, чем
+      # прогон их исполняет. Дерево одно — отсюда один раннер, рядом с гейтом врезок. Прогон на
+      # чистой машине (--live) требует движка контейнеров и идёт с машины владельца.
+      # Охранник — про ОТДЕЛЬНЫЙ шаг, а не про охват правил: опорный кейс самопроверки выше гоняет
+      # тот же гейт по настоящему дереву на всех трёх ОС. Здесь он стоит своим шагом ради имени в
+      # логе — «упало что-то из сорока порч» не говорит, что разошлось само дерево.
+      - name: Docs start — getting-started is executable as written (gate 5 of spec #19)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/check_docs_start.sh
+
       # Гейт релизного пакета (спека #20) идёт в CI САМОПРОВЕРКОЙ и на всех трёх ОС. Сам пакет
       # требует полной сборки с PLUGIN_UI и собирается на машине владельца.
       # Предмет шага — ПЕРЕНОСИМОСТЬ утверждений, а не имена файлов: диалект tar (BSD против GNU),
@@ -175,10 +193,30 @@ jobs:
         shell: bash
         run: python3 scripts/check_tree_roots.py --selftest
 
-      - name: Tree roots — both copies of the roots list agree (mirrors-group)
+      - name: Tree walk — every copy agrees on both roots and extensions (mirrors-group)
         if: runner.os == 'Linux'
         shell: bash
         run: python3 scripts/check_tree_roots.py
+
+      # Список ручных гейтов выводится из docs/owner-verification.md. Гейт читает ОДНО дерево —
+      # значит идёт на одной ОС; самопроверка едет на всех трёх, потому что предмет у неё другой:
+      # переносимость самих утверждений (диалект awk, sed с hold-space, cksum, порядок sort).
+      - name: Owner gates list selftest (broken copies of the doc and of owner_check.sh)
+        shell: bash
+        run: bash scripts/check_owner_gates_selftest.sh
+
+      - name: Owner gates — the manual list is derived from the doc, not hand-written
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/check_owner_gates.sh
+
+      # Вердикт о цене сетевого кадра — чистая функция от строк замера, и проверяется он фикстурами
+      # без пиров и без сборки. На всех трёх ОС, потому что предмет — диалект awk: на Ubuntu это
+      # mawk, на macOS BSD awk, в git-bash gawk. Сам гейт требует прогона пары пиров и живёт у
+      # владельца (§13 руководства), поэтому шага для него тут нет.
+      - name: Net frame budget verdict selftest (broken implementations, portability of the awk)
+        shell: bash
+        run: bash scripts/owner_net_budget_selftest.sh
 
       # Python берёт кодировку у локали, и на ЭТОМ раннере она cp1252. Швов два, и упали они по
       # очереди на одном и том же шаге: русская строка не «портится», а роняет print (ee75955), а
@@ -194,6 +232,38 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: python3 scripts/check_py_utf8.py
+
+      # Шов хешей (находка 5 аудита #21): тот же цикл FNV-1a был переписан по дереву около
+      # четырнадцати раз ДВУМЯ семьями констант, и расхождение ничем себя не проявляло — оба хеша
+      # просто считались, оба перепиниваются голденами. Копии сведены к двум примитивам, но
+      # пятнадцатая пишется по памяти за десять секунд и проходит все прочие гейты дерева, значит
+      # мера обязана быть механической. Сравнение идёт по ЗНАЧЕНИЮ, а не по написанию, и
+      # комментарии снимаются перед поиском: число, названное в объяснении, мерой не является.
+      # Гейт читает ОДНО дерево — одна ОС; самопроверка едет на всех трёх: её предмет —
+      # переносимость самих утверждений, а не имена наших файлов.
+      - name: Hash seam gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_hash_seam.py --selftest
+
+      - name: FNV-1a constants live in the two primitives, not in hand-written copies
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_hash_seam.py
+
+      # Шов файлового ввода-вывода (находка 6 того же аудита): .context/conventions.md называет
+      # требование прямо, а проверял его никто, и обходили его девять раз. Причина конвенции не
+      # стилистическая — узкие CRT-функции на Windows идут через ANSI-кодовую страницу и не
+      # открывают путь через профиль вида C:\Users\Пётр\, а выглядит это как «файла нет».
+      # Грепом это не делается: файловая форма `remove` отличается от алгоритма <algorithm>
+      # ЧИСЛОМ аргументов верхнего уровня, то есть требует разбора скобок.
+      - name: File I/O seam gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_fs_seam.py --selftest
+
+      - name: File I/O goes through the platform seam, not through narrow CRT calls
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_fs_seam.py
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@v5
@@ -1040,6 +1110,11 @@ jobs:
           # сценой), а раннер даёт ему ровно ту половину, которая ему доступна: адресация
           # проверяется целиком, реальный лаг двух машин остаётся владельцу (§14 руководства).
           run_gate game_platformer_net_direct_test 'game-platformer-net-direct: PASS'
+          # Шов живой половины того же гейта 9: окна на раннере нет, но проводка шва headless
+          # проверяема целиком — прогон ЧЕРЕЗ хуки обязан дать ту же марку и ту же запись побайтно,
+          # что прогон без них. Без этой строки первой проверкой шва за всю жизнь движка был бы
+          # ручной прогон владельца на двух машинах.
+          run_gate game_platformer_net_hooks_test 'game-platformer-net-hooks: PASS'
 
       - name: IDE — IPC seqlock self-test (consistent snapshot under contention, all OS)
         shell: bash
@@ -1539,6 +1614,14 @@ jobs:
       # грепом, а не сборкой: обратное включение компилируется прекрасно и всплыло бы только
       # циклом в CMake через полгода. Сначала доказываем, что поиск вообще ищет, — иначе опечатка
       # в пути дала бы вечно зелёный гейт.
+      # Сам гейт идёт на одной ОС — дерево одно; его самопроверка на всех трёх, предмет у неё
+      # другой: переносимость самих утверждений (mktemp, cksum, порядок обхода engine/*/).
+      # Ключевая порча — ребро к слою из каталога, которого рукописный список подсистем не знал:
+      # на прежней реализации она проезжала зелёной, и это утверждается подменой.
+      - name: "Dependency direction selftest (broken implementation, portability of the fixture)"
+        shell: bash
+        run: bash scripts/tree_invariants_deps_selftest.sh
+
       - name: "Framework — subsystems do not depend on the layer (invariant 1, Linux)"
         if: runner.os == 'Linux'
         shell: bash
@@ -2128,7 +2211,7 @@ jobs:
             engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
             engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
-            engine/achievements/plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
+            example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san
           # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
           # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»

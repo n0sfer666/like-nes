@@ -45,6 +45,7 @@ bool file_stamp(const std::string& path, int64_t& out) {
     const uint64_t mtime = (static_cast<uint64_t>(d.ftLastWriteTime.dwHighDateTime) << 32) |
                            d.ftLastWriteTime.dwLowDateTime;
     const uint64_t size = (static_cast<uint64_t>(d.nFileSizeHigh) << 32) | d.nFileSizeLow;
+    // hash-seam: allow просто большой нечётный множитель, хеша FNV тут нет
     out = static_cast<int64_t>(mtime * 1099511628211ull + size);
     return true;
 }

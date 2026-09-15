@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "action_map.hpp"
@@ -19,6 +20,11 @@ struct Controls {
 
 // Бандл → пресет `default` → накладка игрока из каталога сейвов. false = раскладки нет: играть
 // без управления нечем, и молчаливый пустой ActionMap выглядел бы как «игра не реагирует».
-bool load_controls(Controls& out);
+//
+// Пустой `bundle_path` — «найди бандл рядом с исполняемым»: так зовёт одиночный прогон, которому
+// путь неоткуда взять. Сетевой (гейт 9 спеки #22) называет его ЯВНО, потому что бандл ему уже
+// назван в argv: разойдись эти два пути — симуляция шла бы по одному уровню, а кнопки приезжали бы
+// из другого, и виновата на вид была бы сеть.
+bool load_controls(Controls& out, const std::string& bundle_path = std::string());
 
 } // namespace game

@@ -26,9 +26,11 @@ target_link_libraries(framework_graphics_clip_test PRIVATE framework_graphics pl
 add_executable(framework_graphics_event_test framework_graphics_event_test.cpp)
 target_link_libraries(framework_graphics_event_test PRIVATE framework_graphics platform_core)
 
-# framework_physics — только здесь и только за `hash_mix.hpp`: свёртка обязана быть общей с
-# физическим голденом (два голдена на разных константах несравнимы), а тянуть её в саму библиотеку
-# значило бы связать анимацию с телами. Ребро направлено вниз, инвариант 1 спеки #14 цел.
+# framework_physics — только за `hash_mix.hpp` и только у целей, считающих ГОЛДЕН: свёртка обязана
+# быть общей с физическим голденом (два голдена на разных константах несравнимы), а тянуть её в саму
+# библиотеку значило бы связать анимацию с телами. Ребро направлено вниз, инвариант 1 спеки #14 цел.
+# До аудита #21 (находка 5) ребро было у трёх целей, а остальные шесть держали ту же свёртку
+# рукописными копиями с теми же константами — то есть считали голден СВОИМ смешиванием.
 add_executable(framework_graphics_anim_test framework_graphics_anim_test.cpp)
 target_link_libraries(framework_graphics_anim_test PRIVATE framework_graphics framework_physics
   platform_core)
@@ -66,7 +68,8 @@ target_link_libraries(framework_graphics_path_test PRIVATE framework_graphics fr
 #   * ..._atlas_bundle_test  — секция из ЛЕЖАЩЕГО В GIT game.bundle против разбора atlas.txt: доехало
 #     ли испечённое до читателя и перепечён ли бандл после правки исходника.
 add_executable(framework_graphics_atlas_test framework_graphics_atlas_test.cpp)
-target_link_libraries(framework_graphics_atlas_test PRIVATE framework_graphics platform_core)
+target_link_libraries(framework_graphics_atlas_test PRIVATE framework_graphics framework_physics
+  platform_core)
 
 add_executable(framework_graphics_atlas_refusal_test framework_graphics_atlas_refusal_test.cpp)
 target_link_libraries(framework_graphics_atlas_refusal_test PRIVATE framework_graphics
@@ -83,7 +86,8 @@ target_link_libraries(framework_graphics_atlas_bundle_test PRIVATE framework_gra
 # голден потока квадов отдельно от ОТКАЗОВ (переполнение буфера, вырожденный отрезок, атлас без
 # шрифта). Обе headless: построитель не знает ни про RHI, ни про батч.
 add_executable(framework_graphics_debug_test framework_graphics_debug_test.cpp)
-target_link_libraries(framework_graphics_debug_test PRIVATE framework_graphics platform_core)
+target_link_libraries(framework_graphics_debug_test PRIVATE framework_graphics framework_physics
+  platform_core)
 
 add_executable(framework_graphics_debug_refusal_test framework_graphics_debug_refusal_test.cpp)
 target_link_libraries(framework_graphics_debug_refusal_test PRIVATE framework_graphics platform_core)
@@ -95,7 +99,8 @@ target_link_libraries(framework_graphics_debug_refusal_test PRIVATE framework_gr
 # Третья отделена от первых двух вынужденно, а не по вкусу: `framework_alloc_probe.hpp` подменяет
 # глобальные operator new/delete всей программе и допустим ровно в одной цели.
 add_executable(framework_graphics_batch_test framework_graphics_batch_test.cpp)
-target_link_libraries(framework_graphics_batch_test PRIVATE framework_graphics platform_core)
+target_link_libraries(framework_graphics_batch_test PRIVATE framework_graphics framework_physics
+  platform_core)
 
 add_executable(framework_graphics_batch_refusal_test framework_graphics_batch_refusal_test.cpp)
 target_link_libraries(framework_graphics_batch_refusal_test PRIVATE framework_graphics platform_core)
@@ -120,6 +125,10 @@ target_link_libraries(framework_graphics_tiles PUBLIC framework_graphics framewo
 # libraries` и уронить сборочный гейт предупреждением, к нашему коду отношения не имеющим. Тело
 # `platform::Args` приезжает по любому из двух рёбер, а PRIVATE-ребро не несёт каталога включений —
 # его и дописываем.
+# По той же причине здесь НЕ названа `framework_physics`, хотя голден считается её `hash_mix.hpp`
+# (находка 5 аудита #21): `framework_tilemap` держит физику PUBLIC, то есть и библиотека, и её
+# каталог включений приезжают сюда транзитивно, а поимённое упоминание дало бы третью копию в
+# списке и то же `duplicate libraries`. Проверено прогоном, а не рассуждением.
 add_executable(framework_graphics_tile_test framework_graphics_tile_test.cpp)
 target_link_libraries(framework_graphics_tile_test PRIVATE framework_graphics_tiles)
 target_include_directories(framework_graphics_tile_test PRIVATE
@@ -137,13 +146,15 @@ target_include_directories(framework_graphics_tile_refusal_test PRIVATE
 # Сцена у первых двух общая (`framework_graphics_particle_scene.hpp`) вынужденно: гейт 3 сравнивает
 # ДВА прогона, и сцена, написанная в каждой цели заново, сравнивала бы разные сцены молча.
 add_executable(framework_graphics_particle_test framework_graphics_particle_test.cpp)
-target_link_libraries(framework_graphics_particle_test PRIVATE framework_graphics platform_core)
+target_link_libraries(framework_graphics_particle_test PRIVATE framework_graphics framework_physics
+  platform_core)
 
 add_executable(framework_graphics_particle_split_test framework_graphics_particle_split_test.cpp)
-target_link_libraries(framework_graphics_particle_split_test PRIVATE framework_graphics platform_core)
+target_link_libraries(framework_graphics_particle_split_test PRIVATE framework_graphics framework_physics
+  platform_core)
 
 add_executable(framework_graphics_particle_refusal_test framework_graphics_particle_refusal_test.cpp)
-target_link_libraries(framework_graphics_particle_refusal_test PRIVATE framework_graphics
+target_link_libraries(framework_graphics_particle_refusal_test PRIVATE framework_graphics framework_physics
   platform_core)
 
 # Зум (вертикаль 2, шаг D) — ТРИ цели, граница та же, что у частиц: класс поломки.
