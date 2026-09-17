@@ -1498,10 +1498,12 @@ jobs:
           INC="$INC -Iengine/framework/character -Iengine/framework/tilemap"
           INC="$INC -Iengine/framework/physics -Iengine/core -Iengine/input -Iengine/asset"
           INC="$INC -Iengine/platform"
-          COMMON=$(ls engine/framework/input/*.cpp engine/framework/core/*.cpp \
-            engine/platform/*.cpp | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos')
-          FW=$(ls engine/framework/graphics/*.cpp engine/framework/character/*.cpp \
-            engine/framework/tilemap/*.cpp engine/framework/physics/*.cpp | grep -vE '_test\.cpp$')
+          COMMON=$(find engine/framework/input engine/framework/core engine/platform \
+            -maxdepth 1 -name '*.cpp' \
+            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos')
+          FW=$(find engine/framework/graphics engine/framework/character \
+            engine/framework/tilemap engine/framework/physics \
+            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$')
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
