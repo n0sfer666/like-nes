@@ -5,9 +5,9 @@
 (`check_fs_seam_selftest.py`), разбор литералов и комментариев берётся у `cpp_text.py`.
 
 Конвенция названа в `.context/conventions.md`: файловый ввод-вывод идёт через
-`platform::open_file`/`read_text`/`read_bytes`/`remove_file`, а не через узкие CRT-функции. Причина
-не стилистическая: `std::fopen` на Windows принимает ANSI, поэтому путь через профиль
-`C:\\Users\\Пётр\\` он не открывает ВОВСЕ — а выглядит это как «файла нет». Ровно тем же обманом
+`platform::open_file`/`read_text`/`read_bytes`/`read_bytes_capped`/`remove_file`, а не через узкие
+CRT-функции. Причина не стилистическая: `std::fopen` на Windows принимает ANSI, поэтому путь через
+профиль `C:\\Users\\Пётр\\` он не открывает ВОВСЕ — а выглядит это как «файла нет». Ровно тем же обманом
 ломаются `std::rename`, `std::remove` и конструктор `std::ifstream` от `std::string`.
 
 Для argv и переменных окружения такие греп-гейты заведены давно (`tree_invariants.sh argv|env`),
@@ -73,8 +73,8 @@ WIN_CALL = re.compile(r"(?<![\w.>])(" + _names(WIN) + r")\s*\(")
 TYPE = re.compile(r"(?<![\w])(?:std\s*::\s*)?(" + _names(TYPES) + r")(?![\w])")
 ALLOW = re.compile(r"fs-seam:\s*allow\b(.*)")
 
-FIX = ("Возьми шов (`platform::open_file`/`read_text`/`read_bytes`/`remove_file`/`replace_file`) "
-       "или объясни маркером `// fs-seam: allow <причина в три слова>`.")
+FIX = ("Возьми шов (`platform::open_file`/`read_text`/`read_bytes`/`read_bytes_capped`/"
+       "`remove_file`/`replace_file`) или объясни маркером `// fs-seam: allow <причина в три слова>`.")
 
 
 def top_level_args(code, open_paren):

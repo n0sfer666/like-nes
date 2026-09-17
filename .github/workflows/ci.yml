@@ -1753,6 +1753,7 @@ jobs:
                    game_platformer_rollback_test \
                    game_platformer_replay_test game_platformer_replay_io_test \
                    game_platformer_replay_refusal_test \
+                   game_platformer_replay_ceiling_test \
                    game_platformer_view_test game_platformer_input_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
