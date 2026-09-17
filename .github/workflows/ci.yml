@@ -1448,7 +1448,7 @@ jobs:
           for T in framework_schedule_test framework_stick_test framework_preset_test \
                    framework_preset_refusal_test framework_preset_reader_test \
                    framework_preset_axes_test \
-                   framework_pad_test framework_rebind_test \
+                   framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1461,7 +1461,7 @@ jobs:
           grep -q "preset-input-hash = 0x416969081dcf230d" fw_framework_golden_test.txt \
             || { echo "PRESET INPUT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
-      # Читатель секции принимает чужие байты, и ровно там санитайзер говорит то, чего не говорит
+      # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
       # случилось чтения мимо буфера. Ровно так и была поймана нижняя граница `name_fits`: без
       # ASan тот же набор был зелёным. Список TU — целиком каталоги библиотек, а не выборка «что
@@ -1469,7 +1469,7 @@ jobs:
       # руками — `engine/input/action_map.cpp`: каталог `engine/input` целиком не собирается без
       # GLFW и evdev (`source_glfw.cpp`, `source_gamepad_linux.cpp`), а `input_core` — ровно один
       # TU, и добавление второго увидит компоновщик.
-      - name: Framework — section readers ASan/UBSan (gates A·2·1/A·2·1b, Linux)
+      - name: Framework — section readers ASan/UBSan (gates A·2·1/A·2·1b/A·2·6, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -1480,6 +1480,8 @@ jobs:
           INC="$INC -Iengine/platform"
           COMMON=$(ls engine/framework/input/*.cpp engine/framework/core/*.cpp \
             engine/platform/*.cpp | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos')
+          FW=$(ls engine/framework/graphics/*.cpp engine/framework/character/*.cpp \
+            engine/framework/tilemap/*.cpp engine/framework/physics/*.cpp | grep -vE '_test\.cpp$')
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
@@ -1501,6 +1503,11 @@ jobs:
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_axes_san
           ./preset_axes_san | tee preset_axes_san.txt
           grep -q "framework-preset-axes: PASS" preset_axes_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/framework_section_align_test.cpp \
+            engine/input/action_map.cpp $COMMON $FW -ldl -lpthread -o section_align_san
+          ./section_align_san | tee align_san.txt
+          grep -q "framework-section-align: PASS" align_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —

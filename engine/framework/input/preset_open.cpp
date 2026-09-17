@@ -99,6 +99,9 @@ bool slices_fit(const PresetHeader& h, const PresetRow* presets, const ActionRow
 bool PresetTable::open(const void* data, std::size_t size) {
     header_ = nullptr;
     if (data == nullptr || size < sizeof(PresetHeader)) return false;
+    // База выровнена не по контракту, а по проверке: буфер со сдвигом дал бы невыровненное чтение
+    // заголовка — UB, на strict-align SIGBUS (аудит #21, A·2·6). Строки сверяет `view<T>()`.
+    if (reinterpret_cast<std::uintptr_t>(data) % alignof(PresetHeader) != 0) return false;
     const auto* base = static_cast<const uint8_t*>(data);
     const auto* h = reinterpret_cast<const PresetHeader*>(base);
     if (std::memcmp(h->magic, PRESET_MAGIC, sizeof(h->magic)) != 0) return false;
