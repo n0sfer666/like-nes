@@ -8,11 +8,18 @@
 #include <vector>
 
 #include "asset_manager.hpp"
+#include "bundle_writer.hpp"
 #include "hash.hpp"
 #include "platform_args.hpp"
 
 // Headless-гейт #2 (спека #5): zero-copy mmap-резидент + async-стрим→декомпрессия в арену,
 // БЕЗ per-frame heap в submit-пути. Гоняется под ASan/UBSan (CI). Не требует GPU.
+//
+// Вторым предметом здесь стоит КОНВЕРТ бандла: сверка штампа целостности и имя отказа `open()`
+// (аудит #21, A·2·5). Место — решение владельца: гейт резидентности и так открывает бандл первым
+// делом, а третья цель на `BundleView` (рядом с `asset_align_test`) стоила бы своей записи в CI на
+// трёх ОС ради двадцати строк. Предмета два, и шапка называет оба, чтобы файл не описывал молча
+// половину себя.
 
 using namespace asset;
 
@@ -36,6 +43,91 @@ int fail(const char* msg) {
     return 1;
 }
 
+// Штамп конверта против байтов и имя отказа (аудит #21, A·2·5). Зачем штамп вообще сверяется и
+// почему его ценность диагностическая, а не защитная, — сказано у `BundleView::hash_reason`; здесь
+// утверждается поведение.
+//
+// Гейт стоит на бандле, собранном ПИСАТЕЛЕМ, а не на фикстуре из байт: штамп здесь — тот самый,
+// который пекарь и кладёт, иначе прогон сверял бы хеш с собственным представлением о раскладке.
+// Бандлы остальных наборов приезжают mmap'ом и всегда выровнены постранично, поэтому база тут
+// выравнивается руками — по той же причине, что в `asset_align_test`.
+int test_a_bent_byte_is_named_corruption() {
+    AssetInput a{};
+    a.guid = 0x5a5a;
+    a.type = AssetType::Raw;
+    a.codec = Codec::Raw;
+    a.residency = Residency::Mmap;
+    a.payload = {9, 8, 7, 6, 5, 4, 3, 2};
+    a.uncompressed_size = static_cast<uint32_t>(a.payload.size());
+    const std::vector<uint8_t> baked = write_bundle({a});
+
+    constexpr size_t SLACK = 64;
+    std::vector<uint8_t> room(baked.size() + BASE_ALIGN + SLACK);
+    const auto addr = reinterpret_cast<std::uintptr_t>(room.data());
+    uint8_t* base = room.data() + (BASE_ALIGN - addr % BASE_ALIGN) % BASE_ALIGN;
+    std::memcpy(base, baked.data(), baked.size());
+
+    BundleView v;
+    if (!v.open(base, baked.size(), /*trusted=*/false)) return fail("control: the baked bundle opens");
+    const AssetEntry* e = v.find(a.guid);
+    if (e == nullptr) return fail("the baked asset is in the table");
+    const uint32_t at = e->payload_offset;
+
+    // Чем меряются байты: штамп считается по ЗАЯВЛЕННОМУ бандлу (`total_size`), а не по всему
+    // отданному региону. На точном регионе эти два числа совпадают, то есть реализация, считающая
+    // по длине региона, прошла бы побайтно так же — а файл, добитый до страницы, это штатный
+    // случай mmap, и отказ ему означал бы отказ честному бандлу по чужому хвосту.
+    std::memset(base + baked.size(), 0xCD, SLACK);
+    if (!v.open(base, baked.size() + SLACK, /*trusted=*/false))
+        return fail("control: a region with junk past the end of the bundle still opens");
+
+    // Недокачанный файл назван СВОИМ словом, а не общей «раскладкой»: заголовок в нём цел и честен,
+    // байтов за ним меньше, чем он обещает, и совет вызывающему тут «перекачай», а не «пересобери».
+    if (v.open(base, baked.size() - 1, /*trusted=*/false)) return fail("a short region is refused");
+    if (v.open_reason() != OpenResult::Truncated) return fail("and the refusal is named truncation");
+
+    // И обратная половина той же пары: недокачан — это про ЦЕЛУЮ подпись и нехватку байт за ней, а
+    // не про короткий регион как таковой. Спроси читатель длину раньше подписи — один и тот же
+    // присланный не-бандл получал бы разный совет в зависимости от размера мусора.
+    std::memcpy(base, "NOPE", 4);
+    if (v.open(base, 20, /*trusted=*/false)) return fail("a short region that is no bundle is refused");
+    if (v.open_reason() != OpenResult::WrongVersion)
+        return fail("and a broken signature is named a foreign format, however few bytes came");
+    std::memcpy(base, baked.data(), baked.size());
+
+    // Байт ПАЙЛОАДА, а не конверта: подпись, версия, границы и выравнивания после него сходятся
+    // ровно как раньше, то есть проверка границ такой файл пропускает по построению — и до сверки
+    // штампа его не ловило вообще ничто.
+    base[at] ^= 0x01u;
+    if (v.open(base, baked.size(), /*trusted=*/false)) return fail("a bent payload byte is refused");
+    if (v.open_reason() != OpenResult::Corrupted) return fail("and the refusal is named corruption");
+    if (v.valid()) return fail("the rejected view keeps no base");
+
+    // Свой pak открывается mmap'ом каждый старт, и сверка штампа — это чтение ВСЕГО файла: в
+    // доверенном режиме её нет, как нет и проверки раскладки (подпись и версию он смотрит всё
+    // равно). Это решение о цене, а не забытая ветка, и утверждается оно поведением — иначе
+    // завтрашнее «включим везде» проехало бы гейт молча, унеся с собой ленивую подкачку страниц.
+    if (!v.open(base, baked.size(), /*trusted=*/true)) return fail("trusted opens the bent bundle");
+
+    // Причины отказа обязаны РАЗЛИЧАТЬСЯ: без этого «файл испорчен» и «чужая версия формата»
+    // приезжали бы вызывающему одним словом, а чинятся они разным — перекачкой мода и пересборкой.
+    base[at] ^= 0x01u;
+    base[0] = 'X';
+    if (v.open(base, baked.size(), /*trusted=*/false)) return fail("a foreign envelope is refused");
+    if (v.open_reason() != OpenResult::WrongVersion)
+        return fail("and it is named a foreign version, not corruption");
+
+    // Контроль наоборот: отказы выше — про ШТАМП и про подпись, а не про то, что виду не нравится
+    // любой переписанный буфер. Те же байты обратно — и он их принимает.
+    std::memcpy(base, baked.data(), baked.size());
+    if (!v.open(base, baked.size(), /*trusted=*/false)) return fail("control: the restored bundle opens");
+    // Причина — про ПОСЛЕДНИЙ `open()`, а не про худший из бывших: успех обязан её сбросить.
+    // Спрошено ПОСЛЕ отказа и только здесь: сразу после первого открытия тот же вопрос отвечал бы
+    // про начальное значение поля, то есть не проверял бы ничего.
+    if (v.open_reason() != OpenResult::Ok) return fail("and the reason no longer names the refusal");
+    return 0;
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -43,6 +135,8 @@ int main(int argc, char** argv) {
     if (argc < 2) return fail("usage: asset_test <bundle> [--selftest]");
     const std::string bundle = argv[1];
     const unsigned delay = (argc >= 3 && std::strcmp(argv[2], "--slow") == 0) ? 3000 : 0;
+
+    if (const int bad = test_a_bent_byte_is_named_corruption()) return bad;
 
     AssetManager am;
     // validated-режим (bounds-check offset'ов) — строже, чем trusted.

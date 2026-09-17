@@ -68,7 +68,10 @@ struct BundleHeader {
     uint32_t table_offset;   // от базы бандла
     uint32_t total_size;     // весь бандл в байтах
     uint32_t _pad;           // выравнивание таблицы
-    uint64_t bundle_hash;    // FNV-1a64 всех байт бандла с обнулённым этим полем
+    // FNV-1a64 всех байт бандла с обнулённым этим полем. Сверяется `BundleView::open` при
+    // `trusted == false` (аудит #21, A·2·5); до него поле писали и печатали, но не читал никто.
+    // Защитой от подделки не является: FNV не MAC, и подменивший байты пересчитает штамп сам.
+    uint64_t bundle_hash;
 };
 static_assert(sizeof(BundleHeader) == 40, "BundleHeader layout pinned (zero-parse ABI)");
 
