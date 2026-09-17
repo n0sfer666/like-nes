@@ -1,5 +1,6 @@
 #include "bundle_view.hpp"
 
+#include <cstdint>
 #include <cstring>
 
 #include "hash.hpp"
@@ -33,6 +34,11 @@ bool BundleView::bounds_ok(size_t size) const {
 bool BundleView::open(const uint8_t* base, size_t size, bool trusted) {
     base_ = nullptr;
     if (!base) return false;
+    // Смещения таблицы и payload'ов сверяются ОТНОСИТЕЛЬНО базы, а сама база до сих пор бралась
+    // какой дали: сдвинутый буфер давал `reinterpret_cast` заголовка и таблицы мимо границы — UB, а
+    // на strict-align SIGBUS (аудит #21, попутная находка к A·2·6). Проверка стоит и для trusted:
+    // цель `header()` читает тем же приведением, а сдвиг — свойство буфера, а не доверия к нему.
+    if (reinterpret_cast<std::uintptr_t>(base) % BASE_ALIGN != 0) return false;
     base_ = base;
     size_ = size;
     if (!trusted && !bounds_ok(size)) {

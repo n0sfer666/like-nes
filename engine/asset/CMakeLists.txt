@@ -18,6 +18,11 @@ target_link_libraries(asset_test PRIVATE asset_core)
 add_executable(asset_determinism_test asset_determinism_test.cpp)
 target_link_libraries(asset_determinism_test PRIVATE asset_core)
 
+# Выравнивание базы бандла (аудит #21): своя цель — остальные наборы ходят через mmap и сдвига
+# базы не видят по построению.
+add_executable(asset_align_test asset_align_test.cpp)
+target_link_libraries(asset_align_test PRIVATE asset_core)
+
 # Hot-reload roundtrip (свап бандла, стабильный guid). Self-contained — CI на всех ОС.
 add_executable(asset_hot_reload_test asset_hot_reload_test.cpp)
 target_link_libraries(asset_hot_reload_test PRIVATE asset_core)

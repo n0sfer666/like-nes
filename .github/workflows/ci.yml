@@ -725,6 +725,12 @@ jobs:
           T=$(find build -maxdepth 2 -type f \( -name 'asset_test' -o -name 'asset_test.exe' \) | head -1); "$T" syn.bundle
           D=$(find build -maxdepth 2 -type f \( -name 'asset_determinism_test' -o -name 'asset_determinism_test.exe' \) | head -1); "$D" syn.bundle
           H=$(find build -maxdepth 2 -type f \( -name 'asset_hot_reload_test' -o -name 'asset_hot_reload_test.exe' \) | head -1); "$H" .
+          # Вердикт читается, а не подразумевается: нулевой код возврата есть и у прогона, который
+          # не напечатал ничего.
+          L=$(find build -maxdepth 2 -type f \( -name 'asset_align_test' -o -name 'asset_align_test.exe' \) | head -1)
+          [ -n "$L" ] || { echo "asset_align_test not built on ${{ matrix.os }}"; exit 1; }
+          "$L" | tee asset_align.txt
+          grep -q "asset-align: PASS" asset_align.txt
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
@@ -738,7 +744,21 @@ jobs:
             engine/platform/platform_io_posix.cpp engine/asset/bundle_view.cpp \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
             "$ZLIB" -lpthread -o asset_test_san
-          ./asset_test_san syn.bundle
+          # Вердикт читается, а не подразумевается: нулевой код возврата есть и у прогона, который
+          # не напечатал ничего, — так гейт зеленел бы на бинарнике, упавшем до первой проверки.
+          ./asset_test_san syn.bundle | tee asset_test_san.txt
+          grep -q "\[asset_test\] PASS" asset_test_san.txt
+          # Выравнивание базы бандла — тот же гейт памяти, и без санитайзера он проверяет только
+          # отказ: невыровненное чтение на x86 молча работает, а сообщает о нём ровно UBSan
+          # (`misaligned address ... which requires N byte alignment`).
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+            -Iengine/asset -Iengine/platform -I"$ZINC" \
+            engine/asset/asset_align_test.cpp engine/asset/bundle_view.cpp \
+            engine/asset/bundle_writer.cpp \
+            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+            "$ZLIB" -lpthread -o asset_align_san
+          ./asset_align_san | tee asset_align_san.txt
+          grep -q "asset-align: PASS" asset_align_san.txt
 
       # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех трёх ОС ---
       # Реальное устройство (miniaudio --play) — локальный pinned-T4 (как perceptual-golden
