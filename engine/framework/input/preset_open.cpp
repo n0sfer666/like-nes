@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "preset_axes.hpp"
+
 namespace framework::input {
 namespace {
 
@@ -15,6 +17,10 @@ const T* view(const uint8_t* base, uint32_t offset, uint32_t count, std::size_t 
     if (static_cast<uint64_t>(offset) + static_cast<uint64_t>(count) * sizeof(T) > limit)
         return nullptr;
     return reinterpret_cast<const T*>(base + offset);
+}
+
+bool slice_fits(uint32_t begin, uint32_t count, uint32_t total) {
+    return static_cast<uint64_t>(begin) + count <= total;
 }
 
 // Имя обязано кончаться нулём в пределах потолка. Проверка двойная по смыслу: смещение за концом
@@ -46,6 +52,48 @@ bool names_fit(const PresetHeader& h, const PresetRow* presets, const ActionRow*
     return true;
 }
 
+// Пара хранится номером ОСИ, а не строки (`preset_validate.cpp`), поэтому верхняя граница —
+// число логических осей. Считается оно общей функцией (`preset_axes.hpp`), той же, что у пекаря и
+// у рантайма: собственная копия здесь молча разошлась бы с ними. Доступ к имени — сырой, потому
+// что `header_` ещё не присвоен и аксессоры сторожатся им; за границы блоба отвечает `names_fit`,
+// а за цену обхода — потолки `MAX_PRESETS`, `MAX_AXIS_ROWS` и `MAX_NAME`.
+auto axis_names(const PresetRow& p, const AxisRow* axes, const char* strings) {
+    return [&p, axes, strings](uint32_t i) { return strings + axes[p.axis_begin + i].name_offset; };
+}
+
+// Строки ссылаются друг на друга курсорами-срезами, а запросы и `bind` ходят по ним без проверок:
+// каждый срез сверяется с итогом заголовка здесь, один раз и в uint64 — в uint32 `begin + count`
+// заворачивается и честно проходит (аудит #21, A·2·1). Потолок строк стоит первым: обход пар
+// ниже линеен только под ним.
+bool slices_fit(const PresetHeader& h, const PresetRow* presets, const ActionRow* actions,
+                const AxisRow* axes, const char* strings) {
+    for (uint32_t i = 0; i < h.preset_count; ++i) {
+        const PresetRow& p = presets[i];
+        if (p.axis_count > MAX_AXIS_ROWS) return false;
+        if (!slice_fits(p.action_begin, p.action_count, h.action_count) ||
+            !slice_fits(p.axis_begin, p.axis_count, h.axis_count))
+            return false;
+        const auto name_of = axis_names(p, axes, strings);
+        // Номера всех строк берутся ОДНИМ проходом: спрашивать их построчно значит платить куб по
+        // строкам, а на потолках формата это 5,6 млн сравнений имён за одно открытие (аудит #21,
+        // ревью A·2). Буфер по потолку строк — его проверил `p.axis_count > MAX_AXIS_ROWS` выше.
+        uint32_t logical_of[MAX_AXIS_ROWS];
+        const uint32_t logical = logical_axis_map(p.axis_count, name_of, logical_of);
+        for (uint32_t k = 0; k < p.axis_count; ++k) {
+            const uint32_t pair = axes[p.axis_begin + k].pair_axis;
+            if (pair == NO_PAIR) continue;
+            // Ось, спаренная сама с собой, — радиальная зона из одной оси, то есть бессмыслица,
+            // которую пекарь отбивает номером строки, а читатель обязан не пустить из чужого
+            // бандла (аудит #21, ревью A·2).
+            if (pair >= logical || pair == logical_of[k]) return false;
+        }
+    }
+    for (uint32_t i = 0; i < h.action_count; ++i)
+        if (!slice_fits(actions[i].binding_begin, actions[i].binding_count, h.binding_count))
+            return false;
+    return true;
+}
+
 } // namespace
 
 bool PresetTable::open(const void* data, std::size_t size) {
@@ -55,8 +103,8 @@ bool PresetTable::open(const void* data, std::size_t size) {
     const auto* h = reinterpret_cast<const PresetHeader*>(base);
     if (std::memcmp(h->magic, PRESET_MAGIC, sizeof(h->magic)) != 0) return false;
     if (h->version != PRESET_VERSION || h->total_size > size) return false;
-    // Потолок пресетов стоит до любого обхода: за ним идёт проверка имён, линейная по строкам
-    // ВСЕХ пресетов, и без потолка отказа не будет — будет работа (аудит #21, ревью A·2).
+    // Потолок пресетов стоит до любого обхода: за ним идёт проверка срезов, линейная по строкам
+    // КАЖДОГО пресета, и без потолка отказа не будет — будет 764 мс работы (аудит #21, ревью A·2).
     if (h->preset_count > MAX_PRESETS) return false;
 
     // Потолок таблиц — ИТОГ заголовка, а не размер буфера: буфер бывает длиннее секции (общий
@@ -71,10 +119,6 @@ bool PresetTable::open(const void* data, std::size_t size) {
     if (presets_ == nullptr || actions_ == nullptr || axes_ == nullptr || bindings_ == nullptr ||
         pads_ == nullptr)
         return false;
-    // Потолок строк осей у ЧИТАТЕЛЯ: срез пресета честно лежит в таблице осей, и отбить пресет,
-    // растянутый на строки соседа, может только он (аудит #21, A·2·1b).
-    for (uint32_t i = 0; i < h->preset_count; ++i)
-        if (presets_[i].axis_count > MAX_AXIS_ROWS) return false;
     // Блоб имён — единственная таблица мимо `view<T>()`: у него нет ни типа, ни счёта строк,
     // поэтому обе границы ставятся здесь руками. Нижняя не декоративная: со смещением 0 имена
     // начинаются на магии и версии, `strings_size_` захватывает заголовок целиком, а имя длиной
@@ -85,7 +129,9 @@ bool PresetTable::open(const void* data, std::size_t size) {
     strings_ = reinterpret_cast<const char*>(base + h->strings_offset);
     strings_size_ = h->total_size - h->strings_offset;
     if (strings_[strings_size_ - 1] != '\0') return false;   // обход имён обязан упереться в ноль
+    // Имена сверяются ДО срезов: счёт логических осей в `slices_fit` ходит по ним `strcmp`.
     if (!names_fit(*h, presets_, actions_, axes_, pads_, strings_, strings_size_)) return false;
+    if (!slices_fit(*h, presets_, actions_, axes_, strings_)) return false;
     header_ = h;
     return true;
 }

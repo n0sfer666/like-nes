@@ -11,6 +11,11 @@
 // Грамматика строки живёт в `preset_parse.cpp` и о них ничего не знает — зовёт по имени.
 namespace framework::input {
 
+// Потолок строк осей обязан быть не ниже предела движка: иначе пресет, который движок ещё биндит,
+// пекарь отбивал бы раньше — и отказ ссылался бы на читателя там, где мешает сам потолок.
+static_assert(MAX_AXIS_ROWS >= static_cast<uint32_t>(::input::MAX_AXES),
+              "the axis row cap must leave room for every axis the engine binds");
+
 namespace {
 
 std::string row_name(const BindingRow& r) {
@@ -123,6 +128,12 @@ bool preset_close(PresetBuild& b, PresetBakeError& err, int line) {
         b.axes[i].outer_raw = it->second.outer_raw;
         b.axes[i].curve_exp = it->second.curve_exp;
         if (it->second.pair.empty()) continue;
+        // Ось, спаренная сама с собой, — радиальная зона по одной оси, то есть бессмыслица:
+        // `pair` получил бы собственный номер, и проверка читателя `pair < logical` такую
+        // таблицу пропустила бы (аудит #21, ревью A·2).
+        if (it->second.pair == b.axis_names[i])
+            return preset_fail(err, it->second.line, "shape pairs axis '" + it->second.pair +
+                                   "' with itself; a radial zone needs two different axes");
         // Пара хранится ЛОГИЧЕСКИМ номером оси, а не номером строки: одна ось объявляется
         // несколькими строками (клавиши, стрелки, стик), и номер строки указывал бы на
         // альтернативный биндинг вместо самой оси.

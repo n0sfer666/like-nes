@@ -68,13 +68,22 @@ int main(int argc, char** argv) {
     // Имя ровно в потолок, и в блобе за ним лежит ЕЩЁ одна строка: без второй порча имени ловилась
     // бы хвостовым нулём блоба, то есть не потолком.
     const std::string long_name = "preset | " + std::string(MAX_NAME, 'p') + "\n";
+    // Три строки на две логические оси плюс второй пресет: и число строк пресета, и число строк
+    // таблицы больше числа логических осей, так что каждая из этих границ пропустила бы номер пары,
+    // которого у пресета нет. Пара приезжает формой: `pair` пекарь пишет ЛОГИЧЕСКИМ номером.
+    const std::string pair_text =
+        "preset | p\naxis | move_x | key:d | key:a\naxis | move_x | key:l | key:j\n"
+        "axis | move_y | key:w | key:s\nshape | move_x | 0.0 | 1.0 | 1 | move_y\n"
+        "preset | q\naxis | move_z | key:e | key:q\n";
     // Пад с сопоставлением по имени: у его строки ДВА имени в блобе, и оба читатель обязан мерить.
     const std::string pad_text =
         "preset | p\naxis | move_x | key:d | key:a\npad | Some Pad | - | - | Some | xbox | 0.18 | 0.12\n";
-    std::vector<uint8_t> blob, cap, name, pad, many;
+    std::vector<uint8_t> blob, cap, cur, name, pr, pad, many;
     if (!baked("preset | p\naxis | move_x | key:d | key:a\n", blob) ||
         !baked(cap_text + "preset | q\naxis | y | key:w | key:s\n", cap) ||
-        !baked(long_name + "axis | move_x | key:d | key:a\n", name) ||
+        !baked("preset | p\naction | jump | key:space\n"
+               "axis | move_x | key:d | key:a\naxis | move_y | key:w | key:s\n", cur) ||
+        !baked(long_name + "axis | move_x | key:d | key:a\n", name) || !baked(pair_text, pr) ||
         !baked(pad_text, pad) || !baked(many_presets(MAX_PRESETS), many)) {
         std::printf("framework-preset-reader: FAIL\n");
         return 1;
@@ -136,6 +145,31 @@ int main(int argc, char** argv) {
     put32(cap, field_at<PresetRow>(cap, presets, 0, offsetof(PresetRow, axis_count)),
           MAX_AXIS_ROWS + 1);
     check(!bad.open(cap.data(), cap.size()), "a preset one axis row over the cap is rejected");
+
+    // Курсоры-срезы (A·2·1): заголовок честен и массивы влезают, врёт одна строка — ровно на единицу
+    // за границей. `begin = 0xFFFFFFFF` при `count = 1` в uint32 заворачивается в ноль и проходит
+    // проверку, которая считает не в uint64.
+    check(good.open(cur.data(), cur.size()), "the cursor fixture opens untouched");
+    check(!opens_with(cur, field_at<PresetRow>(cur, presets, 0, offsetof(PresetRow, action_begin)),
+                      0xFFFFFFFFu),
+          "an action slice wrapping around uint32 is rejected");
+    check(!opens_with(cur, field_at<PresetRow>(cur, presets, 0, offsetof(PresetRow, axis_begin)), 1),
+          "an axis slice one row past the table is rejected");
+    check(!opens_with(cur, field_at<ActionRow>(cur, offsetof(PresetHeader, actions_offset), 0,
+                                               offsetof(ActionRow, binding_begin)), 1),
+          "a binding slice one row past the table is rejected");
+
+    // Номер пары (A·2·1) считается по ЛОГИЧЕСКИМ осям пресета, а не по его строкам: у первого
+    // пресета фикстуры три строки, две оси, и номер 2 указывает на ось, которой нет, — по нему
+    // радиальная зона читала бы соседнюю строку как вторую половину стика.
+    check(good.open(pr.data(), pr.size()), "the pair fixture opens untouched");
+    const std::size_t pair0 = field_at<AxisRow>(pr, offsetof(PresetHeader, axes_offset), 0,
+                                                offsetof(AxisRow, pair_axis));
+    check(!opens_with(pr, pair0, 2), "a pair axis past the preset's logical axes is rejected");
+    check(opens_with(pr, pair0, 1), "a pair axis naming the preset's last logical axis still opens");
+    // Ось, спаренная САМА С СОБОЙ, проходит границу `pair < число логических осей` насквозь: номер
+    // законный, смысла нет — радиальная зона считалась бы по одной оси дважды (аудит #21, ревью A·2).
+    check(!opens_with(pr, pair0, 0), "a pair axis naming its own axis is rejected");
 
     // Потолок имени (A·2·1b): у имени ровно в потолок затирается его ноль, и первый ноль уезжает за
     // потолок, потому что следом в блобе лежит имя оси. Читатель обязан отбить такую таблицу: имена

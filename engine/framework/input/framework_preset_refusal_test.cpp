@@ -131,6 +131,11 @@ int main(int argc, char** argv) {
     check(!bake_presets(many_presets(MAX_PRESETS + 1), ignored, err) &&
               err.line == static_cast<int>(MAX_PRESETS) * 2 + 1,
           "a manifest declaring more presets than the reader accepts is refused at the bake");
+    // Ось, спаренная сама с собой: `pair` получил бы собственный номер оси, и проверка читателя
+    // `pair < число логических осей` такую таблицу пропустила бы (аудит #21, ревью A·2).
+    check(!bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
+                        "shape | move_x | 0.1 | 1.0 | 1 | move_x\n", ignored, err) && err.line == 3,
+          "a shape pairing an axis with itself is refused: a radial zone needs two axes");
 
     // Позитивный контроль тех же отказов: отбивать ЧЕСТНЫЙ манифест они не должны, а часть из них
     // отличается от нарушения одной деталью — направлением, порядком строк, единицей счёта.
@@ -154,6 +159,9 @@ int main(int argc, char** argv) {
           "a manifest filling the preset capacity exactly still bakes");
     check(bake_presets(pad_named(MAX_NAME, MAX_NAME), ignored, err),
           "pad names filling the cap exactly still bake");
+    check(bake_presets("preset | p\naxis | move_x | key:d | key:a\naxis | move_y | key:w | key:s\n"
+                       "shape | move_x | 0.1 | 1.0 | 1 | move_y\n", ignored, err),
+          "a shape pairing two DIFFERENT axes still bakes: only the self-pair is nonsense");
 
     const bool pass = (fails == 0);
     std::printf("framework-preset-refusal: %s\n", pass ? "PASS" : "FAIL");
