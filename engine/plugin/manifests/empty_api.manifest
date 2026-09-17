@@ -1,0 +1,7 @@
+# Fixture: the key is there, the value is not (audit #21, A.2.7 review).
+# Without this file nothing in the tree pins the quotes around the value: a refusal that ended
+# on a colon would still read as a sentence, and no gate would notice.
+plugin hush 1.0 api=
+
+panel hush "Hush" dock=left
+  text "this panel must never be born"

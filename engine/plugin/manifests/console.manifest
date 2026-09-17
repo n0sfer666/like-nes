@@ -1,4 +1,4 @@
-plugin console 1.0 api=1
+plugin console 1.0 api=2
 
 panel console "Console" dock=bottom
   text "[host] plugin system 'gravity' registered"
