@@ -10,14 +10,19 @@ target_link_libraries(framework_input PUBLIC framework_core input_core PRIVATE p
 add_executable(framework_stick_test framework_stick_test.cpp)
 target_link_libraries(framework_stick_test PRIVATE framework_input platform_core)
 
-# Пресеты — ДВЕ цели. Первая спрашивает «доехало ли написанное до InputFrame», вторая — «названо ли
+# Пресеты — ТРИ цели. Первая спрашивает «доехало ли написанное до InputFrame», вторая — «названо ли
 # ненаписуемое»: отказ бейка падает не неверным кадром, а манифестом, испёкшимся молча и разошедшимся
-# с текстом. Имя упавшей цели в логе CI обязано отличать эти случаи.
+# с текстом. Третья — «отбита ли порченая секция»: сломанная проверка читателя даёт не отказ с номером
+# строки, а бандл, читаемый как чужая память (аудит #21, ревью A·2). Имя упавшей цели отличает эти
+# случаи.
 add_executable(framework_preset_test framework_preset_test.cpp)
 target_link_libraries(framework_preset_test PRIVATE framework_input platform_core)
 
 add_executable(framework_preset_refusal_test framework_preset_refusal_test.cpp)
 target_link_libraries(framework_preset_refusal_test PRIVATE framework_input platform_core)
+
+add_executable(framework_preset_reader_test framework_preset_reader_test.cpp)
+target_link_libraries(framework_preset_reader_test PRIVATE framework_input platform_core)
 
 add_executable(framework_pad_test framework_pad_test.cpp)
 target_link_libraries(framework_pad_test PRIVATE framework_input platform_core)
