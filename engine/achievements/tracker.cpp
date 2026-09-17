@@ -100,7 +100,17 @@ void Tracker::drain(std::size_t n) {
 // Записи вне каталога переживают загрузку: каталог бывает урезанным (нет бандла, стаб-сборка,
 // откат версии), а перезапись снимка тем, что удалось разобрать, стирала бы прогресс игрока
 // целиком. Их не применяют, но возвращают в следующий snapshot() дословно.
+// Потолок спрашивается ДО поиска дубликата, а не на вставке, и это и есть предмет находки A·2·4
+// (разбор самого потолка — у Tracker::MAX_CARRIED, здесь только про ПОРЯДОК): после него лишняя
+// запись стоит одно сравнение, а не проход по всему накопленному вектору — иначе миллион
+// неизвестных идентификаторов всё равно стоил бы миллион × MAX_CARRIED сравнений, то есть квадрат
+// был бы срезан ровно наполовину. Цена порядка названа: запись с УЖЕ перенесённым идентификатором,
+// пришедшая после исчерпания потолка, теряет своё обновление и считается отброшенной.
 void Tracker::carry_stat(const StatRecord& rec) {
+    if (carried_.stats.size() >= MAX_CARRIED) {
+        ++dropped_;
+        return;
+    }
     for (StatRecord& s : carried_.stats) {
         if (s.id == rec.id) {
             s.value = rec.value;
@@ -111,6 +121,10 @@ void Tracker::carry_stat(const StatRecord& rec) {
 }
 
 void Tracker::carry_unlocked(Id id) {
+    if (carried_.unlocked.size() >= MAX_CARRIED) {
+        ++dropped_;
+        return;
+    }
     for (Id v : carried_.unlocked) {
         if (v == id) return;
     }
@@ -132,11 +146,13 @@ void Tracker::snapshot(Snapshot& out) const {
 }
 
 std::size_t Tracker::restore(const Snapshot& snap) {
-    std::size_t carried = 0;
+    // Имя по тому, что считается: ВСЕ неизвестные каталогу записи, а не только перенесённые. Их
+    // число расходится с carried_count() ровно на dropped_count().
+    std::size_t unknown = 0;
     for (Id id : snap.unlocked) {
         const std::size_t a = ach_slot(id);
         if (a == Registry::npos) {
-            ++carried;
+            ++unknown;
             carry_unlocked(id);
             continue;
         }
@@ -148,7 +164,7 @@ std::size_t Tracker::restore(const Snapshot& snap) {
     for (const StatRecord& s : snap.stats) {
         const std::size_t i = stat_slot(s.id);
         if (i == Registry::npos) {
-            ++carried;
+            ++unknown;
             carry_stat(s);
             continue;
         }
@@ -157,7 +173,7 @@ std::size_t Tracker::restore(const Snapshot& snap) {
     for (std::size_t i = 0; i < stat_ids_.size(); ++i) {
         for (uint32_t d : by_stat_[i]) evaluate(d, stat_values_[i]);
     }
-    return carried;
+    return unknown;
 }
 
 uint64_t Tracker::progress_hash() const {
