@@ -60,6 +60,9 @@ bool preset_check_axis_row(const PresetBuild& b, const std::string& name, int li
                            PresetBakeError& err);
 bool preset_parse_pad(PresetBuild& b, const std::vector<std::string>& fields, int line,
                       PresetBakeError& err);
+// Потолок длины имени один на весь блоб: имена пресетов, действий, осей и падов лежат в нём рядом,
+// и читатель меряет их одной меркой.
+bool preset_name_fits(const std::string& name, int line, PresetBakeError& err);
 // Отказ бейка — установка полей, а не логика, поэтому inline здесь, а не отдельным TU: файла с
 // одной этой функцией не осталось, когда текстовый слой уехал в `framework/core`.
 inline bool preset_fail(PresetBakeError& err, int line, const std::string& message) {

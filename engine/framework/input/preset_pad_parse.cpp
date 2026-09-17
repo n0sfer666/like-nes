@@ -39,6 +39,10 @@ bool preset_parse_pad(PresetBuild& b, const std::vector<std::string>& f, int lin
         return preset_fail(err, line,
                     "pad needs a name, a vid, a pid, a name match, a label set, a deadzone and "
                     "a trigger threshold");
+    // Имя пада и его подстрока-сопоставление — те же имена блоба, что и у пресета: читатель меряет
+    // их тем же потолком и отвергает таблицу целиком (аудит #21, ревью A·2).
+    if (!preset_name_fits(f[1], line, err)) return false;
+    if (f[4] != "-" && !preset_name_fits(f[4], line, err)) return false;
     PadRow r{};
     r.name_offset = b.blob.add(f[1]);
     if (!parse_hex16(f[2], r.vid) || !parse_hex16(f[3], r.pid))
