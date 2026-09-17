@@ -49,6 +49,7 @@ public:
 private:
     const char* string_at(uint32_t offset) const;
     const PresetRow* preset_at(uint32_t index) const;
+    const char* axis_name(const PresetRow& p, uint32_t row) const;
     bool row_is_first(const PresetRow& p, uint32_t row) const;
     uint32_t logical_axis(const PresetRow& p, uint32_t row) const;
     int first_row_of_axis(const PresetRow& p, uint32_t axis) const;

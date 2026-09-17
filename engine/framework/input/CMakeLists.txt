@@ -3,7 +3,7 @@
 add_library(framework_input STATIC
   stick.cpp source_names.cpp preset_parse.cpp preset_validate.cpp preset_strings.cpp
   preset_pad_parse.cpp preset_bake.cpp
-  presets.cpp pad_profile.cpp pad_registry.cpp rebind_store.cpp rebind_session.cpp)
+  presets.cpp preset_open.cpp pad_profile.cpp pad_registry.cpp rebind_store.cpp rebind_session.cpp)
 target_include_directories(framework_input PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_input PUBLIC framework_core input_core PRIVATE platform_core)
 
