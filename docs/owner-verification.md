@@ -2380,6 +2380,14 @@ mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for 
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt).
 
+Two gates that are neither owner hardware nor CI live in the same file, as section Q: `plugin-wasm`
+(the escape gate and the `native == WASM` golden) and `plugin-wasm-host` (what the host object says
+about itself). They need the wasmtime C-API from `deps/`, which is not in git, so `PLUGIN_WASM=OFF`
+in all six configurations of `ci.yml` and no runner has ever executed them — `scripts/check_goldens.sh`
+says so where it stops short of the WASM golden. A machine with `deps/` unpacked runs both in a
+second, and section Q carries the commands with their output line by line. Re-run them when a commit
+touches `engine/plugin/wasm_*`.
+
 ## What to send back
 
 - `build/owner-report-<os>.txt` from each machine.

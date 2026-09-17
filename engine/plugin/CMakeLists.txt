@@ -70,20 +70,32 @@ endif()
 
 # WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
 # (i32 fix32, детерм.), грузится через wasmtime_wat2wasm (без wasm-ld). Local pinned-T4 (C-API
-# prebuilt в deps/, не в git; CI — follow-up). Гейты: native≡WASM sim-hash + OOB/cap escape→trap.
+# prebuilt в deps/, не в git; CI — follow-up). Слово «untrusted» держится на ТРЁХ ресурсах сразу:
+# память хоста (OOB→trap, чужой импорт→отказ линковки), его RAM (store limiter 16 МиБ, один
+# инстанс) и его время (топливо на каждый вызов) — до аудита #21 A·2·2 последних двух не было, и
+# гость с бесконечным циклом вешал кадр, а memory.grow забирал адресное пространство целиком.
+# Гейты: native≡WASM sim-hash + OOB/cap/loop/grow escape→trap + позитивный контроль роста.
 if(PLUGIN_WASM)
   file(GLOB WASMTIME_DIR ${CMAKE_SOURCE_DIR}/deps/wasmtime-*-c-api)
   if(WASMTIME_DIR AND EXISTS ${WASMTIME_DIR}/include/wasmtime.h)
-    add_executable(plugin_wasm_test plugin_wasm_test.cpp wasm_host.cpp)
-    target_include_directories(plugin_wasm_test PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR} ${WASMTIME_DIR}/include)
-    target_link_libraries(plugin_wasm_test PRIVATE plugin_core engine_core ${WASMTIME_DIR}/lib/libwasmtime.a)
-    if(APPLE)
-      target_link_libraries(plugin_wasm_test PRIVATE
-        "-framework CoreFoundation" "-framework Security" "-framework SystemConfiguration")
-    elseif(UNIX)
-      target_link_libraries(plugin_wasm_test PRIVATE pthread dl m)
-    endif()
+    # Три сущности — три файла: песочница с потолками (wasm_sandbox), хозяин игрового пути
+    # (wasm_host) и зонд побега (wasm_escape). Песочницу делят двое: потолок, поставленный только
+    # на игровом пути, оставил бы гейт мерить другую конфигурацию (аудит #21, ревью A·2).
+    set(WASM_SRC wasm_host.cpp wasm_sandbox.cpp wasm_error.cpp wasm_escape.cpp)
+    add_executable(plugin_wasm_test plugin_wasm_test.cpp ${WASM_SRC})
+    # Контракт объекта WasmGravity — своя цель и свой вердикт: гейт побега спрашивает у ЧУЖОГО
+    # модуля, что ему разрешили, а этот — у хозяина, что он говорит о себе (аудит #21, ревью A·2).
+    add_executable(plugin_wasm_host_test plugin_wasm_host_test.cpp ${WASM_SRC})
+    foreach(T plugin_wasm_test plugin_wasm_host_test)
+      target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${WASMTIME_DIR}/include)
+      target_link_libraries(${T} PRIVATE plugin_core engine_core ${WASMTIME_DIR}/lib/libwasmtime.a)
+      if(APPLE)
+        target_link_libraries(${T} PRIVATE
+          "-framework CoreFoundation" "-framework Security" "-framework SystemConfiguration")
+      elseif(UNIX)
+        target_link_libraries(${T} PRIVATE pthread dl m)
+      endif()
+    endforeach()
   else()
     message(STATUS "PLUGIN_WASM: wasmtime C-API не найден в deps/ — gate #5 пропущен")
   endif()
