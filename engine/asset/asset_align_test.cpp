@@ -40,6 +40,13 @@ int main(int argc, char** argv) {
     a.uncompressed_size = 4;
     const std::vector<uint8_t> bundle = write_bundle({a});
 
+    // Требование к базе сверяется с требованиями ФОРМАТА, а не берётся у самой константы: шаги
+    // цикла ниже считаются по `BASE_ALIGN`, и ослабь её кто-нибудь до `alignof(BundleHeader)` —
+    // прогон согласился бы с ней молча, проверяя ровно ту границу, которую и ослабили.
+    check(BASE_ALIGN % PAYLOAD_ALIGN == 0, "the base requirement covers the payload alignment");
+    check(BASE_ALIGN % alignof(BundleHeader) == 0, "the base requirement covers the header");
+    check(BASE_ALIGN % alignof(AssetEntry) == 0, "the base requirement covers a table entry");
+
     // Точка отсчёта выравнивается здесь же, а не берётся у аллокатора на веру: иначе «сдвиг 0» был
     // бы выровнен так, как повезло куче, и половина прогона молча проверяла бы не тот адрес.
     std::vector<uint8_t> room(bundle.size() + 2 * BASE_ALIGN);
