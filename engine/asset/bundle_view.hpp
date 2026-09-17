@@ -18,10 +18,34 @@ namespace asset {
 constexpr size_t BASE_ALIGN =
     std::max({alignof(BundleHeader), alignof(AssetEntry), static_cast<size_t>(PAYLOAD_ALIGN)});
 
+// Причина отказа `open()`. Библиотека ассетов не печатает ни строки — ни в stderr, ни в лог, — и
+// до сих пор «не открылось» было единственным, что она умела сказать: битый диск, чужая версия
+// формата и сдвинутый буфер приезжали вызывающему одним и тем же `false`. Со сверкой штампа
+// (аудит #21, A·2·5) различать их стало обязательно: «файл испорчен» — это чинится перекачкой
+// мода, а «чужая версия формата» — пересборкой бандла, и совет вызывающего зависит от того, какая
+// из двух причин сработала.
+//
+// Оборванная закачка стоит СВОИМ значением, а не внутри `Malformed` (решение владельца по ревью
+// A·2·5): это ровно тот сценарий, ради которого находка и заведена, и в общем «раскладка не
+// сошлась» недокачанный мод получал бы совет «пересобери бандл» вместо «перекачай». Причина
+// известна ровно там, где проверка падает, — на возврате `bool` она терялась.
+enum class OpenResult : uint32_t {
+    Ok,
+    NoRegion,      // указателя на регион не дали вовсе
+    Misaligned,    // база слабее BASE_ALIGN — приведение заголовка было бы UB
+    WrongVersion,  // подпись, версия формата, порядок байт, размер заголовка → пересобрать
+    Truncated,     // байтов меньше, чем обещает заголовок → перекачать
+    Malformed,     // остальная раскладка: границы и выравнивание смещений таблицы и payload'ов
+    Corrupted,     // конверт цел, но bundle_hash не сошёлся с байтами
+};
+
 class BundleView {
 public:
     // base/size — mmap-регион. trusted=false → жёсткая валидация раскладки.
     bool open(const uint8_t* base, size_t size, bool trusted);
+    // Почему отказал последний `open()`. Спрашивается ПОСЛЕ него: до первого вызова здесь `Ok`,
+    // и это не утверждение «регион открыт» — на него отвечает `valid()`.
+    OpenResult open_reason() const { return reason_; }
 
     const BundleHeader& header() const {
         return *reinterpret_cast<const BundleHeader*>(base_);
@@ -44,10 +68,12 @@ public:
     bool valid() const { return base_ != nullptr; }
 
 private:
-    bool bounds_ok(size_t size) const;
+    OpenResult envelope_reason(size_t size) const;
+    OpenResult hash_reason() const;
 
     const uint8_t* base_ = nullptr;
     size_t size_ = 0;
+    OpenResult reason_ = OpenResult::Ok;
 };
 
 } // namespace asset

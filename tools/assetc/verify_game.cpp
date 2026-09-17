@@ -80,6 +80,21 @@ bool rejects_forgeries(const AssetInput& baked, const AssetEntry& e, const uint8
     return compare(swapped, e, payload) == Verdict::Meta;
 }
 
+// Имя причины отказа живёт у ИНСТРУМЕНТА, а не у вида: движок про stderr не знает и знать не
+// должен, а таблица строк рядом с `printf` — это ровно то место, где её правят вместе с сообщением.
+const char* reason_name(OpenResult r) {
+    switch (r) {
+    case OpenResult::Ok: return "ok";
+    case OpenResult::NoRegion: return "no region";
+    case OpenResult::Misaligned: return "misaligned base";
+    case OpenResult::WrongVersion: return "foreign format version, rebake it";
+    case OpenResult::Truncated: return "truncated, download it again";
+    case OpenResult::Malformed: return "malformed layout";
+    case OpenResult::Corrupted: return "bundle_hash does not match the bytes";
+    }
+    return "unknown";
+}
+
 } // namespace
 
 bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_path) {
@@ -97,7 +112,12 @@ bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_pa
     // trusted=false: проверяющему полагается валидированный режим — битая таблица обязана быть
     // названа отказом, а не прочитана мимо границ.
     if (!view.open(raw.data(), raw.size(), false)) {
-        std::fprintf(stderr, "[assetc] verify: %s is not a valid bundle\n", bundle_path.c_str());
+        // Причина печатается, потому что печатать её больше некому: движок не пишет ни строки, а
+        // отказы `open()` чинятся РАЗНЫМ — испорченный файл перекачивают, чужую версию пересобирают
+        // (аудит #21, A·2·5). Общее «is not a valid bundle» на пять причин отправляло читателя
+        // выяснять это самому, хотя вид уже знает ответ.
+        std::fprintf(stderr, "[assetc] verify: %s is not a valid bundle (%s)\n", bundle_path.c_str(),
+                     reason_name(view.open_reason()));
         return false;
     }
 
