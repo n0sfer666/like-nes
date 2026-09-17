@@ -886,12 +886,16 @@ jobs:
           "$IT" "$(mod plugin_gravity)" "$(mod plugin_wind)" "$(mod plugin_crash)" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 
-      - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
+      - name: Plugin — configurable UI manifest gate (data->panels/docking + ABI verdict, all OS)
         shell: bash
         run: |
           MT=$(find build -maxdepth 2 -type f \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
           [ -n "$MT" ] || { echo "plugin_manifest_test not built"; exit 1; }
-          "$MT" engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest | tee pm.txt
+          MF=engine/plugin/manifests
+          "$MT" "$MF/inspector.manifest" "$MF/console.manifest" "$MF/bad.manifest" "$MF/stale.manifest" \
+            "$MF/no_api.manifest" "$MF/empty_api.manifest" "$MF/overflow.manifest" \
+            "$MF/dup_plugin.manifest" "$MF/dup_api.manifest" "$MF/no_panels.manifest" \
+            "$MF/api_typo.manifest" | tee pm.txt
           grep -q "plugin-manifest: PASS" pm.txt
 
       - name: Plugin — ASan/UBSan (loader/registry/probe + manifest robustness, Linux)
@@ -907,8 +911,14 @@ jobs:
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          MF=engine/plugin/manifests
           c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp $PLAT_FS $PLAT_ARGS -o plugin_manifest_san
-          ./plugin_manifest_san engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest
+          UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+            ./plugin_manifest_san "$MF/inspector.manifest" "$MF/console.manifest" "$MF/bad.manifest" "$MF/stale.manifest" \
+            "$MF/no_api.manifest" "$MF/empty_api.manifest" "$MF/overflow.manifest" \
+            "$MF/dup_plugin.manifest" "$MF/dup_api.manifest" "$MF/no_panels.manifest" \
+            "$MF/api_typo.manifest" 2>&1 | tee pmsan.txt
+          grep -q "plugin-manifest: PASS" pmsan.txt
           c++ $SAN -shared -fPIC engine/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
           c++ $SAN -shared -fPIC engine/plugin/plugins/wind.cpp -o plugin_wind_san.so
           c++ $SAN engine/plugin/registry.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp \

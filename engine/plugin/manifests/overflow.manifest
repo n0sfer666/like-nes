@@ -1,0 +1,7 @@
+# Fixture: digits, all of them, and none of them fit an int (audit #21, A.2.7 review).
+# This is the ONLY file in the tree that reaches the catch around std::stoi, which is why this
+# target must never be built with exceptions disabled.
+plugin huge 1.0 api=99999999999999999999
+
+panel huge "Huge" dock=right
+  text "this panel must never be born"
