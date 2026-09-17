@@ -1447,6 +1447,7 @@ jobs:
           # причину.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
                    framework_preset_refusal_test framework_preset_reader_test \
+                   framework_preset_axes_test \
                    framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_rt_test; do
@@ -1462,12 +1463,13 @@ jobs:
 
       # Читатель секции принимает чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
-      # случилось чтения мимо буфера. Список TU — целиком каталоги библиотек, а не выборка «что
+      # случилось чтения мимо буфера. Ровно так и была поймана нижняя граница `name_fits`: без
+      # ASan тот же набор был зелёным. Список TU — целиком каталоги библиотек, а не выборка «что
       # зовёт прогон»: рукописное подмножество расходится с целью молча. Одно исключение названо
       # руками — `engine/input/action_map.cpp`: каталог `engine/input` целиком не собирается без
       # GLFW и evdev (`source_glfw.cpp`, `source_gamepad_linux.cpp`), а `input_core` — ровно один
       # TU, и добавление второго увидит компоновщик.
-      - name: Framework — preset reader ASan/UBSan (gate A·2, Linux)
+      - name: Framework — section readers ASan/UBSan (gates A·2·1/A·2·1b, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
@@ -1483,6 +1485,22 @@ jobs:
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
           ./preset_reader_san | tee reader_san.txt
           grep -q "framework-preset-reader: PASS" reader_san.txt
+          # Сквозной прогон «манифест → InputFrame» под тем же санитайзером: карта «строка → ось»
+          # пишет в стековый массив по потолку формата, и вызывающих у неё ДВОЕ — читатель бандла
+          # (`preset_open.cpp`) и тест согласия; пекарь и рантайм спрашивают только счётчики.
+          # Под ASan обязаны быть оба, а не один.
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_preset_test.cpp \
+            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_san
+          ./preset_san | tee preset_san.txt
+          grep -q "framework-preset: PASS" preset_san.txt
+          # Второй её вызывающий — прямой вопрос счётчикам, и ровно он бьёт по буферу ШИРИНОЙ
+          # РОВНО В ПОТОЛОК формата: запись на единицу мимо обычный прогон не заметит (ревью A·2).
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_preset_axes_test.cpp \
+            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_axes_san
+          ./preset_axes_san | tee preset_axes_san.txt
+          grep -q "framework-preset-axes: PASS" preset_axes_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —
