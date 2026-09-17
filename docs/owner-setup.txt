@@ -1440,6 +1440,74 @@ owner_check.sh гоняет это отдельным этапом сразу п
   ВХОД — один файл, их ПОВЕДЕНИЕ на этом бите не доказано ничем, и разошлись
   бы они запросом UAC под /qn на твоей машине, а не красным гейтом.
 
+--- Q. WASM-песочница: гейты plugin-wasm и plugin-wasm-host ----------------
+
+  Этих двух гейтов в CI НЕТ: PLUGIN_WASM=OFF во всех шести конфигурациях
+  .github/workflows/ci.yml, потому что wasmtime C-API лежит в deps/, а не в
+  git. Гоняются они на машине владельца и больше нигде — scripts/check_goldens.sh
+  про native==WASM так и говорит. Перепрогон — когда коммит тронул
+  engine/plugin/wasm_*.
+
+  Сборка (C-API уже распакован в deps/wasmtime-<версия>-c-api):
+
+      cmake -S . -B build -G Ninja -DPLUGIN_WASM=ON
+      cmake --build build --target plugin_wasm_test plugin_wasm_host_test plugin_wind
+
+  Гейт побега и голден native==WASM:
+
+      ./build/plugin_wasm_test engine/plugin/wasm/gravity.wat build/plugin_wind.so
+
+  Должен напечатать (на Windows — build\plugin_wind.dll):
+    [plugin] wind registered
+    [plugin-wasm] native golden = 0x7d9a6e60cbed4156
+    [plugin-wasm] WASM golden   = 0x7d9a6e60cbed4156
+    [plugin-wasm] native == WASM (bit-exact fix32 across ABI): YES
+    [plugin-wasm] limits: memory 16777216 bytes, table 65536 elements, fuel 10000000 per call
+    [plugin-wasm] fuel per call: 9499 of 10000000 spent by the gravity tick
+    [plugin-wasm] escape OOB linear-memory -> trap (host alive): YES
+    [plugin-wasm] escape ungranted host import -> link rejected: YES
+    [plugin-wasm] escape endless loop -> out of fuel -> trap: YES
+    [plugin-wasm] escape memory.grow one page past the memory limit -> refused: YES
+    [plugin-wasm] control: memory.grow exactly to the limit still grows: YES
+    [plugin-wasm] escape a declared memory past the memory limit -> refused: YES
+    [plugin-wasm] escape table one element past the table limit -> refused: YES
+    [plugin-wasm] control: a table exactly at the limit still instantiates: YES
+    [plugin-wasm] escape a second table -> refused: YES
+    [plugin-wasm] escape a second memory -> refused: YES
+    [plugin-wasm] control: a module with a finite (start) instantiates: YES
+    [plugin-wasm] escape endless (start) at instantiation -> refused: YES
+    [plugin-wasm] a store without a fuel counter -> host error, not guest: YES
+    [plugin-wasm] a call the host got wrong -> host error, not a guest trap: YES
+    plugin-wasm: PASS
+
+  Расход топлива (9499) — цифра ЭТОЙ фикстуры: другой gravity.wat или другое
+  число тел её меняют, и гейт судит не её саму, а процент бака. Красная строка
+  побега печатает под собой «cause: <текст wasmtime>» — присылать вместе с ней.
+
+  Контракт объекта-хозяина (аргументов нет):
+
+      ./build/plugin_wasm_host_test
+
+  Должен напечатать:
+    [plugin-wasm-host] the reason of a failed init survives to error(): YES
+    [plugin-wasm-host] a failed init can be retried, no false 'already initialized': YES
+    [plugin-wasm-host] a successful init clears the previous reason: YES
+    [plugin-wasm-host] a trapped call names its OWN spend (6011, good call 9): YES
+    [plugin-wasm-host] an endless guest drains the tank (10000000 of 10000000): YES
+    [plugin-wasm-host] a good call clears the reason, a trapped one names itself: YES
+    [plugin-wasm-host] a call that never happened measures no fuel (0): YES
+    [plugin-wasm-host] a refusal that kills nobody names itself twice: YES
+    [plugin-wasm-host] a missing export is told apart from a refused instantiation: YES
+    [plugin-wasm-host] the refusal names itself: no export 'nope'
+    plugin-wasm-host: PASS
+
+  Числа 6011 и 9 — расход гостя из фикстуры, а не константа движка: гейт
+  утверждает про них ровно «трапнувший вызов потратил больше удачного», то
+  есть что после трапа счётчик читают, а не оставляют нулём. Ноль в скобках
+  строкой ниже — вторая половина того же контракта: вызова не было, значит и
+  измерения нет.
+
+
 ===========================================================================
 5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================
