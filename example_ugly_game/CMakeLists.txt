@@ -27,16 +27,19 @@ target_include_directories(game_platformer_rollback_test PRIVATE ${CMAKE_CURRENT
 target_link_libraries(game_platformer_rollback_test PRIVATE framework_character framework_tilemap
   framework_rollback framework_alloc_probe_control asset_core platform_core)
 
-# Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ТРИ по числу вопросов — остра ли
-# заявка о состоянии, доносит ли файл ТОТ ЖЕ прогон и тотален ли читатель формата, — и обстановка у
-# них общая (`platformer_replay_run.hpp` для первых двух, `platformer_replay_fixture.hpp` для двух
-# файловых): второй экземпляр записи был бы второй правдой о том, что такое «тот же прогон».
+# Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ЧЕТЫРЕ по числу вопросов — остра
+# ли заявка о состоянии, доносит ли файл ТОТ ЖЕ прогон, тотален ли читатель формата по раскладке и
+# что он отказывается ВЫДЕЛИТЬ по чужому заголовку, — и обстановка у них общая
+# (`platformer_replay_run.hpp` для первых двух, `platformer_replay_fixture.hpp` для двух последних):
+# второй экземпляр записи был бы второй правдой о том, что такое «тот же прогон».
 #
-# Третья цель отделилась от второй по решению владельца (ревью аудита #21, A·2·3), когда
-# перечисление порч переросло мягкий лимит длины: у неё нет ни бандла, ни переигровки, эталон она
-# собирает руками, и предмет у неё ровно раскладка файла.
+# Две последние отделились по решению владельца (ревью аудита #21, A·2·3), когда перечисление порч
+# переросло лимит длины: у них нет ни бандла, ни переигровки, эталон они собирают руками. Разрез
+# между ними по предмету отказа — раскладка чужих байт против размера выделения по чужому
+# заголовку, — а не по длине файла: у потолков своя граница, свой позитивный контроль на ней и
+# прогон в 8 МБ, которого перечислению порч не нужно вовсе.
 foreach(T game_platformer_replay_test game_platformer_replay_io_test
-          game_platformer_replay_refusal_test)
+          game_platformer_replay_refusal_test game_platformer_replay_ceiling_test)
   add_executable(${T} ${T}.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
   target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(${T} PRIVATE framework_character framework_tilemap framework_rollback

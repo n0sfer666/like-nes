@@ -8,17 +8,22 @@
 #include "platform_process.hpp"
 #include "platformer_replay_io.hpp"
 
-// Тотальность ЧИТАТЕЛЯ формата реплея: чужой файл, порченный шестью разными способами, обязан быть
-// отбит, а не разобран во что-нибудь правдоподобное.
+// Тотальность ЧИТАТЕЛЯ формата реплея по РАСКЛАДКЕ: чужой файл, испорченный так, что байты в нём
+// лежат не там, где обещает заголовок, обязан быть отбит, а не разобран во что-нибудь
+// правдоподобное.
 //
 // Отдельной целью от `game_platformer_replay_io_test` по предмету: там спрашивают, доносит ли файл
 // ТОТ ЖЕ прогон до верификатора, и потому нужны бандл, сцена и переигровка; здесь не нужно ничего,
 // кроме байт. Разделение — решение владельца по ревью аудита #21 (A·2·3), когда перечисление порч
 // перевалило мягкий лимит длины.
 //
+// Потолки ВЫДЕЛЕНИЯ стоят своей целью (`game_platformer_replay_ceiling_test`) и по тому же
+// основанию: там заголовок не лжёт ни о чём, и отбивается файл не за раскладку, а за то, сколько
+// памяти он просит. Порчи ниже все про раскладку.
+//
 // Эталон здесь СОБИРАЕТСЯ, а не записывается прогоном образца: второй вызов `replay_run::record`
 // был бы второй правдой о том, что такое «тот же прогон», и тянул бы сюда бандл ради фикстуры,
-// у которой предмет — раскладка, а не маршрут. Порчи ниже все про раскладку.
+// у которой предмет — раскладка, а не маршрут.
 namespace {
 
 using platformer::replay_fixture::check;
@@ -27,8 +32,11 @@ using platformer::replay_fixture::write_head;
 
 using platformer::replay_io::Stream;
 
+// Длина записи берётся у формата, а не пересчитывается: та же формула, набранная здесь второй
+// раз, разошлась бы с `replay_io` молча — и гейт продолжил бы утверждать про раскладку, которой
+// в дереве уже нет.
 constexpr size_t ROW = platformer::input_wire::BYTES;
-constexpr size_t STRIDE = ROW + platformer::replay_io::CLAIM;
+constexpr size_t STRIDE = static_cast<size_t>(platformer::replay_io::row_bytes(1));
 constexpr uint32_t TICKS = 8;
 
 // Строки РАЗНЫЕ между собой: гейт перестановки утверждает, что две соседние строки нельзя поменять
@@ -128,46 +136,6 @@ void test_a_header_that_lies_about_its_size_is_refused(const std::string& file) 
     }
 }
 
-// Ширина прогона против своего потолка, а не против ширины uint32. Сверка длины выше связывает
-// `players` с размером файла только через тело, а у пустого тела этой связи нет, то есть предыдущий
-// гейт этот файл пропускает по построению: заголовок не ЛЖЁТ о размере, он честно заказывает 34 ГиБ.
-//
-// Граница утверждается обоими концами и обеими сторонами: ровно потолок — читается, потолок плюс
-// один — отказ, и писатель такой файл не производит вовсе. Без позитивного контроля ровно на границе
-// утверждение о потолке закрывалось бы любым более строгим числом, вплоть до единицы.
-void test_the_width_of_a_run_has_a_ceiling(const std::string& file) {
-    constexpr uint32_t MAX = platformer::replay_io::MAX_PLAYERS;
-    check(write_head(file, MAX + 1, 0), "the header one player over the ceiling is written");
-    Stream over;
-    check(!platformer::replay_io::read_file(file, over),
-          "an empty run one player wider than the ceiling is refused");
-
-    check(write_head(file, MAX, 0), "the header exactly at the ceiling is written");
-    Stream edge;
-    check(platformer::replay_io::read_file(file, edge),
-          "control: an empty run exactly at the ceiling is read");
-    check(edge.players() == MAX && edge.ticks() == 0, "and it is the width its header named");
-
-    // Писатель утверждается ОБОИМИ концами так же, как читатель: без контроля ровно на потолке
-    // проверку в писателе можно было бы ужесточить до «шире одного игрока не пишем», и гейт остался
-    // бы зелёным — ровно та вакуозность, от которой контроль читателя уже защищён. Контроль берётся
-    // с записанным тиком, а не на пустом прогоне: иначе он держался бы ещё и на том, что писать
-    // пустой прогон вообще позволено, и покраснел бы от запрета, к потолку отношения не имеющего.
-    Stream at;
-    at.reset(MAX);
-    std::vector<platformer::ch::MoveInput> row(MAX);
-    check(at.record(row.data(), 0), "a run exactly at the ceiling records a tick");
-    check(at.players() == MAX, "and it is that wide");
-    check(platformer::replay_io::write_file(file, at),
-          "control: the writer accepts a run exactly at the ceiling");
-
-    Stream wide;
-    wide.reset(MAX + 1);
-    check(wide.players() == MAX + 1, "a run one player over the ceiling is that wide");
-    check(!platformer::replay_io::write_file(file, wide),
-          "and the writer refuses that width, just as it refuses a run with no players");
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
@@ -186,7 +154,6 @@ int main(int argc, char** argv) {
             test_a_foreign_file_is_refused(file, bytes);
             test_a_file_with_a_tail_is_refused(file, bytes);
             test_a_header_that_lies_about_its_size_is_refused(file);
-            test_the_width_of_a_run_has_a_ceiling(file);
         } else {
             check(false, "the written file reads as bytes");
         }
