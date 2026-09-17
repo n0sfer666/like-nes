@@ -26,6 +26,21 @@ constexpr size_t HEAD = 4 + 4 + 4;
 constexpr size_t CLAIM = 8;
 constexpr uint8_t MAGIC[4] = {'R', 'P', 'L', '1'};
 
+// Потолок ширины сессии (аудит #21, A·2·3). Сверка длины ниже связывает `players` с размером
+// файла только через тело, а у ПУСТОГО тела этой связи нет вовсе: заголовок в двенадцать байт с
+// `players = 0xFFFFFFFF` сходился сам с собой, и `parse` выписывал под одну строку 34 ГиБ —
+// `std::bad_alloc`, которое здесь никто не ловит, либо OOM-киллер на Linux с overcommit. Реплеями
+// обмениваются, то есть это ровно тот файл, который присылают «посмотри мой прогон».
+//
+// Откуда 64. Число ограничивает ВЫДЕЛЕНИЕ по чужому заголовку, а не моделирует игру: живой ввод
+// упирается в `input::MAX_PLAYERS = 4` (engine/input/input_types.hpp), и все законные производители
+// в дереве пишут ширину 1. Потолок взят с запасом на порядок от достижимого, чтобы он не стал
+// вторым местом, где чинится ширина сессии, и при этом самый широкий заголовок, который читатель
+// согласится исполнить, просит под строку 584 байта вместо 34 ГиБ. Это ДРУГАЯ величина, чем
+// `input::MAX_PLAYERS`, и совпадать им незачем: та считает живые устройства, эта — доверие к числу
+// из чужого файла.
+constexpr uint32_t MAX_PLAYERS = 64;
+
 inline uint64_t row_bytes(uint64_t players) { return players * input_wire::BYTES + CLAIM; }
 
 // Длина СВОЕГО потока: числа здесь наши и малы по построению (ширина сессии, длина скрипта).
@@ -40,7 +55,7 @@ inline uint64_t bytes_for(uint64_t players, uint64_t ticks) {
 // переполняется никогда: `row` ограничен шириной `players` (uint32 · 9 + 8), а остаток и частное
 // от РЕАЛЬНОГО размера файла заведомо не больше него самого.
 inline bool size_matches(uint32_t players, uint32_t ticks, size_t size) {
-    if (players == 0 || size < HEAD) return false;
+    if (players == 0 || players > MAX_PLAYERS || size < HEAD) return false;
     const uint64_t body = static_cast<uint64_t>(size) - HEAD;
     const uint64_t row = row_bytes(players);
     if (ticks == 0) return body == 0;
@@ -48,7 +63,7 @@ inline bool size_matches(uint32_t players, uint32_t ticks, size_t size) {
 }
 
 inline bool write_file(const std::string& path, const Stream& s) {
-    if (s.players() == 0) return false;
+    if (s.players() == 0 || s.players() > MAX_PLAYERS) return false;
     std::vector<uint8_t> buf(static_cast<size_t>(bytes_for(s.players(), s.ticks())));
     net::Writer w(buf.data(), buf.size());
     w.bytes(MAGIC, sizeof(MAGIC));
