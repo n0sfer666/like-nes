@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
 
@@ -8,6 +9,14 @@
 // (target-native раскладка). trusted — свои pak'и; validate() — validated-режим для
 // внешних/мод-pak'ов (bounds-check всех offset'ов, reject НЕ crash — спека #5 безопасность).
 namespace asset {
+
+// Выравнивание БАЗЫ региона. Вид читает заголовок и таблицу приведением, а payload отдаёт
+// указателем внутрь того же региона — и выравнивание payload'а проверяется ОТ БАЗЫ. Поэтому база
+// обязана быть не слабее самого строгого из трёх требований: заголовка, строки таблицы и
+// `PAYLOAD_ALIGN`. База по заголовку (8) пропускала бы регион, у которого каждый payload оказался
+// бы невыровненным на 16, — а его читают как uint32* и как SIMD (аудит #21, ревью A·2).
+constexpr size_t BASE_ALIGN =
+    std::max({alignof(BundleHeader), alignof(AssetEntry), static_cast<size_t>(PAYLOAD_ALIGN)});
 
 class BundleView {
 public:

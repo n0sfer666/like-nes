@@ -88,6 +88,11 @@ bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_pa
         std::fprintf(stderr, "[assetc] verify: cannot read %s\n", bundle_path.c_str());
         return false;
     }
+    // Буфер чтения — обычный вектор, и его база обязана удовлетворять требованию вида: иначе
+    // проверяющий отказывал бы ЧЕСТНОМУ бандлу по адресу, а не по содержимому. Гарантия даётся
+    // платформой (`operator new`), поэтому она проверяется компилятором, а не в рантайме.
+    static_assert(__STDCPP_DEFAULT_NEW_ALIGNMENT__ >= BASE_ALIGN,
+                  "a heap buffer must satisfy the bundle base alignment");
     BundleView view;
     // trusted=false: проверяющему полагается валидированный режим — битая таблица обязана быть
     // названа отказом, а не прочитана мимо границ.
