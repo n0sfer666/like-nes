@@ -39,6 +39,27 @@ std::string rows(const char* kind, const char* tail, int n) {
     return m;
 }
 
+// Одна ось строками-дубликатами: упирается в потолок строк, не задевая предел логических осей.
+std::string one_axis(uint32_t n) {
+    std::string m = "preset | p\n";
+    for (uint32_t i = 0; i < n; ++i) m += "axis | x | key:d | key:a\n";
+    return m;
+}
+
+// Пресеты по счёту: каждый занимает РОВНО две строки, поэтому номер отказа считается, а не пишется.
+std::string many_presets(uint32_t n) {
+    std::string m;
+    for (uint32_t i = 0; i < n; ++i)
+        m += "preset | p" + std::to_string(i) + "\naxis | x | key:d | key:a\n";
+    return m;
+}
+
+// Пад с именами заданной длины: манифест обязан объявить пресет, иначе бейк откажет не за имя.
+std::string pad_named(std::size_t name, std::size_t match) {
+    return "preset | p\naxis | x | key:d | key:a\npad | " + std::string(name, 'n') +
+           " | - | - | " + std::string(match, 'm') + " | xbox | 0.18 | 0.12\n";
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -63,7 +84,9 @@ int main(int argc, char** argv) {
     check(!bake_presets("preset | p\nwiggle | x\n", ignored, err) && err.line == 2,
           "an unknown row kind is refused with its line");
 
-    // Шесть строк ниже однажды пеклись МОЛЧА и давали раскладку, отличную от написанной.
+    // Строки ниже однажды пеклись МОЛЧА: одни давали раскладку, отличную от написанной, другие —
+    // бандл, который потом отвергает читатель. Предел движка и потолки секции здесь та же
+    // грамматика, только выраженная числом.
     check(!bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
                         "shape | move_ex | 0.18 | 1.0 | 1 | -\n", ignored, err) && err.line == 3,
           "a shape naming an undeclared axis is refused, and by its own line");
@@ -84,19 +107,53 @@ int main(int argc, char** argv) {
     check(!bake_presets(rows("axis", " | key:d | key:a\n", ::input::MAX_AXES + 1), ignored, err) &&
               err.line == ::input::MAX_AXES + 2,
           "a preset declaring more axes than the engine binds is refused at the bake");
+    check(!bake_presets(one_axis(MAX_AXIS_ROWS + 1), ignored, err) &&
+              err.line == static_cast<int>(MAX_AXIS_ROWS) + 2,
+          "a preset declaring more axis rows than the reader accepts is refused at the bake");
+    check(!bake_presets("preset | " + std::string(MAX_NAME + 1, 'p') + "\n", ignored, err) &&
+              err.line == 1,
+          "a preset name longer than the reader's cap is refused at the bake");
+    check(!bake_presets("preset | p\naction | " + std::string(MAX_NAME + 1, 'a') + " | key:d\n",
+                        ignored, err) && err.line == 2,
+          "an action name longer than the reader's cap is refused at the bake");
+    check(!bake_presets("preset | p\naxis | " + std::string(MAX_NAME + 1, 'x') + " | key:d | key:a\n",
+                        ignored, err) && err.line == 2,
+          "an axis name longer than the reader's cap is refused at the bake");
+    // Длина имени в сообщении: обрезок «первые 16 байт и многоточие» у длинных имён общий, и по
+    // нему не понять ни какое имя виновато, ни насколько его резать (аудит #21, ревью A·2).
+    check(err.message.find(std::to_string(MAX_NAME + 1)) != std::string::npos,
+          "the refusal names the length of the offending name, not its first bytes");
+    // Имена пада — те же имена блоба: и само имя профиля, и подстрока сопоставления.
+    check(!bake_presets(pad_named(MAX_NAME + 1, 4), ignored, err) && err.line == 3,
+          "a pad name longer than the reader's cap is refused at the bake");
+    check(!bake_presets(pad_named(4, MAX_NAME + 1), ignored, err) && err.line == 3,
+          "a pad name match longer than the reader's cap is refused at the bake");
+    check(!bake_presets(many_presets(MAX_PRESETS + 1), ignored, err) &&
+              err.line == static_cast<int>(MAX_PRESETS) * 2 + 1,
+          "a manifest declaring more presets than the reader accepts is refused at the bake");
 
-    // Позитивный контроль тех же шести: отбивать ЧЕСТНЫЙ манифест они не должны, а три из них
-    // отличаются от нарушения одной деталью — направлением, порядком строк, единицей счёта.
+    // Позитивный контроль тех же отказов: отбивать ЧЕСТНЫЙ манифест они не должны, а часть из них
+    // отличается от нарушения одной деталью — направлением, порядком строк, единицей счёта.
     check(bake_presets(rows("action", " | key:d\n", ::input::MAX_ACTIONS), ignored, err),
           "a preset filling the action capacity exactly still bakes");
     check(bake_presets(rows("axis", " | key:d | key:a\n", ::input::MAX_AXES), ignored, err),
           "a preset filling the axis capacity exactly still bakes");
+    check(bake_presets(one_axis(MAX_AXIS_ROWS), ignored, err),
+          "a preset filling the axis row capacity exactly still bakes");
+    check(bake_presets("preset | " + std::string(MAX_NAME, 'p') + "\naction | " +
+                           std::string(MAX_NAME, 'a') + " | key:d\naxis | " +
+                           std::string(MAX_NAME, 'x') + " | key:d | key:a\n", ignored, err),
+          "names filling the cap exactly still bake");
     check(bake_presets("preset | p\naxis | move_x | key:d | key:a\n"
                        "axis | move_x | key:d | key:a\n", ignored, err),
           "an exact duplicate axis row is not a contradiction: it names the same direction");
     check(bake_presets("preset | p\nshape | move_x | 0.1 | 1.0 | 1 | -\n"
                        "axis | move_x | key:d | key:a\n", ignored, err),
           "a shape written before its axis still attaches: shapes are applied at the preset's end");
+    check(bake_presets(many_presets(MAX_PRESETS), ignored, err),
+          "a manifest filling the preset capacity exactly still bakes");
+    check(bake_presets(pad_named(MAX_NAME, MAX_NAME), ignored, err),
+          "pad names filling the cap exactly still bake");
 
     const bool pass = (fails == 0);
     std::printf("framework-preset-refusal: %s\n", pass ? "PASS" : "FAIL");

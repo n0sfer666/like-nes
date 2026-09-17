@@ -78,6 +78,10 @@ bool preset_check_action_row(const PresetBuild& b, int line, PresetBakeError& er
 
 bool preset_check_axis_row(const PresetBuild& b, const std::string& name, int line,
                            PresetBakeError& err) {
+    if (b.presets.back().axis_count > MAX_AXIS_ROWS)
+        return preset_fail(err, line, "the preset declares more than " +
+                               std::to_string(MAX_AXIS_ROWS) +
+                               " axis rows; the reader refuses such a table");
     std::string clash;
     if (axis_pulls_both_ways(b, b.presets.back(), name, clash))
         return preset_fail(err, line, "axis '" + name + "' takes '" + clash + "' in both directions; "
