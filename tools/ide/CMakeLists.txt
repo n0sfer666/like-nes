@@ -5,12 +5,23 @@ if(NOT IDE_POC)
   return()
 endif()
 
-add_library(scene_core STATIC scene.cpp serialize.cpp)
+add_library(scene_core STATIC scene.cpp serialize.cpp deserialize.cpp parse_component.cpp)
 target_include_directories(scene_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(scene_core PUBLIC flecs_static engine_core)
 
 add_executable(scene_roundtrip_test scene_roundtrip_test.cpp)
 target_link_libraries(scene_roundtrip_test PRIVATE scene_core)
+
+# Гейты отказа загрузчика (аудит #21, A·2·8) — СВОИ цели, а не приписка к round-trip: там предмет
+# «целый текст читается байт-в-байт», здесь «битый не читается вовсе». Целей две, потому что
+# текстов два: ФАЙЛ сцены (четырнадцать причин, своя шапка) и ТЕЛО СНИМКА undo (без шапки, без строк
+# `E`, исход уходит в шину команд). Один гейт на оба не сказал бы, который из текстов сломался;
+# фикстуры и счёт провалов у них общие и живут в refusal_fixture.hpp.
+add_executable(scene_refusal_test scene_refusal_test.cpp)
+target_link_libraries(scene_refusal_test PRIVATE scene_core)
+
+add_executable(scene_undo_refusal_test scene_undo_refusal_test.cpp)
+target_link_libraries(scene_undo_refusal_test PRIVATE scene_core)
 
 add_executable(command_test command_test.cpp)
 target_link_libraries(command_test PRIVATE scene_core)

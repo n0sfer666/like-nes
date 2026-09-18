@@ -100,7 +100,7 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
 
     Position dragged{}, undone{};
     size_t depth_after_drag = 0;
-    bool grid_followed = false, built = false;
+    bool grid_followed = false, built = false, undo_ok = false;
     int presented = 0;
 
     for (int f = 0; f < kFrames && !glfwWindowShouldClose(win); ++f) {
@@ -114,7 +114,12 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
             depth_after_drag = st.bus.undo_depth();
             grid_followed = grid_shows(st, gid, dragged.x.raw);
         }
-        if (f == kUndo) { st.bus.undo(); undone = *st.scene.get(gid).try_get<Position>(); }
+        // Гейт читает позицию СРАЗУ после отмены: молча не состоявшаяся отмена дала бы ему
+        // позицию после drag под видом позиции до, и голден закрепил бы её (A·2·8).
+        if (f == kUndo) {
+            undo_ok = st.bus.undo();
+            undone = *st.scene.get(gid).try_get<Position>();
+        }
 
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -131,6 +136,7 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
     check(dragged.x.raw != before.x.raw, "gizmo drag moved the entity");
     check(depth_after_drag == 1, "drag = one undo transaction, not fifty");
     check(grid_followed, "inspector shows the new value (property grid from meta)");
+    check(undo_ok, "the undo reported that it happened");
     check(undone.x.raw == before.x.raw && undone.y.raw == before.y.raw, "undo restored the position");
 
     std::printf("\n=== gate 6: %s (failures: %d)\n", failures ? "FAIL" : "PASS", failures);
