@@ -36,18 +36,19 @@ int main() {
     check(S2 != S1, "group changed state");
     check(bus.undo_depth() == 4, "4 undo units (create+name+pos+group)");
 
-    // undo группы → S1 (одним undo, не тремя)
-    bus.undo();
+    // undo группы → S1 (одним undo, не тремя). Исход отмены УТВЕРЖДАЕТСЯ, а не выбрасывается:
+    // отмена, не состоявшаяся молча, оставила бы состояние верным по случайности (A·2·8).
+    check(bus.undo(), "undo of the group reports that it happened");
     check(serialize(s) == S1, "undo group -> S1 (single unit)");
     // redo группы → S2
     bus.redo();
     check(serialize(s) == S2, "redo group -> S2");
 
     // полный откат до пустого
-    bus.undo(); // group
-    bus.undo(); // pos-set (initial 0,0) -> remove Position
-    bus.undo(); // name-set -> remove Name
-    bus.undo(); // create -> destroy
+    check(bus.undo(), "undo group");
+    check(bus.undo(), "undo pos-set (initial 0,0) -> remove Position");
+    check(bus.undo(), "undo name-set -> remove Name");
+    check(bus.undo(), "undo create -> destroy");
     check(serialize(s) == S0, "undo all -> empty S0");
     check(!bus.can_undo(), "undo stack empty");
     check(!s.exists(1), "entity 1 gone");
@@ -58,7 +59,7 @@ int main() {
     check(!bus.can_redo(), "redo stack empty");
 
     // обрубание redo-хвоста: undo → S1, затем новая команда
-    bus.undo();
+    check(bus.undo(), "undo before truncation happened");
     check(serialize(s) == S1, "undo -> S1 before truncation");
     check(bus.can_redo(), "redo available before new cmd");
     bus.create_entity(2);
@@ -68,7 +69,7 @@ int main() {
     const std::string ent1_before = serialize_entity(s, 1);
     bus.destroy_entity(1);
     check(!s.exists(1), "entity 1 destroyed");
-    bus.undo();
+    check(bus.undo(), "undo of a destroy reports that the snapshot was read back");
     check(s.exists(1), "entity 1 restored");
     check(serialize_entity(s, 1) == ent1_before, "restored components identical");
 

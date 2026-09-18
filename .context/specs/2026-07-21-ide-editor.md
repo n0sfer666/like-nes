@@ -95,6 +95,8 @@ Editor process (монолит-ядро)                    Game process (Play, 
 | Гейт | Что доказывает | Валидация |
 |---|---|---|
 | 1 Scene round-trip | save→reload→save байт-идентичны; bake детерм. golden | CI 3 OS |
+| 1b Scene refusal | битый файл отказывает ЦЕЛИКОМ и НЕ трогает сцену вызывающего + диагностика строка · сущность · компонент; четырнадцать причин отказа (список — в `serialize.hpp`), включая «значение не то, что пишет формат» и дубли — номера сущности и имени компонента; разбор ОДНОЙ строки `C` вынесен в `parse_component.cpp` (причины 9–14), тексты — в `deserialize.cpp` (причины 1–8); цель `scene_refusal_test` | CI 3 OS + ASan/UBSan |
+| 1c Snapshot refusal | тот же разбор на ТЕЛЕ СНИМКА undo: без шапки и без строк `E`, свой префикс `snapshot line N`, сцена при отказе НЕ ТРОНУТА (двойной проход, как у файла: занятый guid переживает битое тело целиком), а исход отказа доходит до шины команд (`Command::undo` → `bool`, `CommandBus::undo` → `[[nodiscard]] bool`, отказ накатывает назад уже отменённые команды группы); цель `scene_undo_refusal_test` | CI 3 OS + ASan/UBSan |
 | 2 Undo/redo | command do/undo/redo корректность + группировка | CI |
 | 3 Play spawn+IPC | spawn игры-процесса + read-only зеркало 10k сущностей | CI (headless) + live |
 | 4 Крэш-изоляция | крэш игры → редактор жив (граница процессов) | *nix live+CI; Win код+CI-build |

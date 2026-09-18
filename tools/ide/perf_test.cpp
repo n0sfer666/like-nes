@@ -1,69 +1,23 @@
 #include "command.hpp"
+#include "perf_fixture.hpp"
 #include "scene.hpp"
-#include "platform_noinline.hpp"
+#include "serialize.hpp"
 #include <algorithm>
-#include <atomic>
-#include <chrono>
 #include <cstdint>
 #include <cstdio>
-#include <cstdlib>
-#include <new>
 #include <vector>
 
 // Гейт 7 (спека #7): отзывчивость на большой сцене (10k+). Выделение / property-grid / undo /
-// виртуализация ≤ бюджет + БЕЗ per-frame heap в hot-UI. Счётчик C++-аллокаций (override operator
-// new) доказывает zero-alloc в per-frame пути (ловит std::vector/string/function — доминирующий
-// UI-риск; flecs try_get — table-lookup C-API без malloc/new). Масштаб-инвариантность (10k↔50k)
-// доказывает O(1)/O(видимого), а не O(N).
+// виртуализация ≤ бюджет + БЕЗ per-frame heap в hot-UI. Счётчик C++-аллокаций (замена operator
+// new, см. perf_fixture.hpp) доказывает zero-alloc в per-frame пути (ловит std::vector/string/
+// function — доминирующий UI-риск; flecs try_get — table-lookup C-API без malloc/new).
+// Масштаб-инвариантность (10k↔50k) доказывает O(1)/O(видимого), а не O(N).
 using namespace ide;
+using namespace ide::perf;
 
 namespace {
 
-std::atomic<size_t> g_allocs{0};
-bool g_count = false;
 volatile uint64_t g_sink = 0;   // материализация hot-loop результатов (защита от DCE в Release)
-
-// Timing-бюджеты валидны только в оптимизированной сборке без санитайзеров (ASan/UBSan/TSan дают
-// ×2-3 оверхед → флейки). Под санитайзером проверяем только zero-alloc + корректность.
-// __has_feature нельзя звать в одном #if с defined() — GCC токенизирует всю строку и
-// падает на __has_feature(...) (missing binary operator). Вкладываем в #ifdef.
-#if defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_THREAD__)
-#define IDE_PERF_TIMING 0
-#elif defined(__has_feature)
-#  if __has_feature(address_sanitizer) || __has_feature(thread_sanitizer)
-#    define IDE_PERF_TIMING 0
-#  else
-#    define IDE_PERF_TIMING 1
-#  endif
-#else
-#define IDE_PERF_TIMING 1
-#endif
-
-using Clock = std::chrono::steady_clock;
-double us_since(Clock::time_point t) {
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now() - t).count() / 1000.0;
-}
-
-int failures = 0;
-void check(bool c, const char* w) { if (!c) { std::printf("  FAIL: %s\n", w); ++failures; } }
-void check_time(bool c, const char* w) { if (IDE_PERF_TIMING) check(c, w); }
-
-// Раннер — общая виртуалка, её планировщик отбирает слайс прямо посреди замера. Одиночный прогон
-// отличить кражу от регрессии не может в принципе, повтор — может: preemption бьёт по ОДНОМУ
-// прогону, регрессия по всем трём. Минимум измеряет способность машины, а не её загруженность в
-// конкретную секунду. Бюджеты при этом НЕ трогаются: прогон 31255611521 упал на macOS с
-// undo=21.52us/оп при бюджете 15, тогда как здоровые прогоны той же ревизии дают 0.35 (macOS),
-// 0.31 (Linux), 0.43 (Windows) — выброс в шестьдесят раз, а не «macOS медленнее». Поднять бюджет
-// под такое значило бы ослепнуть к настоящему O(N)-регрессу, видимому сейчас с 40-кратным запасом.
-template <class Body>
-double best_of_three(Body&& body) {
-    double best = body();
-    for (int rep = 1; rep < 3; ++rep) {
-        const double us = body();
-        if (us < best) best = us;
-    }
-    return best;
-}
 
 void populate(Scene& s, uint32_t n, std::vector<uint64_t>& flat) {
     flat.clear();
@@ -98,20 +52,6 @@ int grid_read(flecs::entity e, char* buf, size_t cap) {
 }
 
 } // namespace
-
-// Запрет инлайна обязателен, а не косметика — почему, см. platform_noinline.hpp.
-
-PLATFORM_NOINLINE void* operator new(size_t n) {
-    if (g_count) g_allocs.fetch_add(1, std::memory_order_relaxed);
-    void* p = std::malloc(n ? n : 1);
-    if (!p) throw std::bad_alloc();
-    return p;
-}
-PLATFORM_NOINLINE void operator delete(void* p) noexcept { std::free(p); }
-PLATFORM_NOINLINE void operator delete(void* p, size_t) noexcept { std::free(p); }
-PLATFORM_NOINLINE void* operator new[](size_t n) { return ::operator new(n); }
-PLATFORM_NOINLINE void operator delete[](void* p) noexcept { std::free(p); }
-PLATFORM_NOINLINE void operator delete[](void* p, size_t) noexcept { std::free(p); }
 
 int main() {
     const uint32_t N = 10000;
@@ -189,7 +129,7 @@ int main() {
             for (int i = 0; i < ops; ++i) {
                 bus.set_component<Position>(selection[i % selection.size()],
                                             {fix32::from_int(i), fix32()});
-                bus.undo();
+                (void)bus.undo();   // предмет замера — время, исход проверяет command_test
             }
             return us_since(t) / ops;
         });
@@ -219,15 +159,35 @@ int main() {
             auto t = Clock::now();
             for (int i = 0; i < 1000; ++i) {
                 bus2.set_component<Position>(1000 + static_cast<uint64_t>((i % 40000) * 2), {fix32::from_int(i), fix32()});
-                bus2.undo();
+                (void)bus2.undo();
             }
             return us_since(t) / 1000.0;
         });
         check_time(undo50 < undo_us * 4.0 + 1.0, "undo O(1) in scene size (50k <= 4x 10k)");
     }
 
-    std::printf("perf: selection=%.1fus grid=%.3fus/f virt=%.3fus/f undo=%.2fus/op (timing-asserts=%d) sink=%llu\n",
-                sel_us, grid_us, virt_us, undo_us, IDE_PERF_TIMING,
+    // --- Bench E: загрузка файла 10k-сцены — цена ДВУХ проходов ---
+    // Разбор идёт во временную сцену и только потом в сцену вызывающего: инвариант «пусто или
+    // целое» стоит ровно одного лишнего прохода, и цена эта обязана быть ИЗМЕРЕНА, а не
+    // предположена (решение владельца, A·2·8). Порог — на открытие сейва реального размера.
+    const std::string text_10k = serialize(s);
+    // Контроль — через `check`, а не `check_time`: под санитайзером бюджет времени выключен, и
+    // замер, чей загрузчик молча отказал, прошёл бы там вовсе не проверенным. Утверждение о ЧИСЛЕ
+    // сущностей: положительное время есть и у отказа на первой же строке (ревью, A·2·8).
+    size_t loaded = 0;
+    double load_ms = best_of_three([&] {
+        auto t = Clock::now();
+        Scene into;
+        loaded = deserialize(into, text_10k) ? into.entities().size() : 0;
+        const double ms = us_since(t) / 1000.0;
+        g_sink += loaded;
+        return ms;
+    });
+    check(loaded == N, "the load bench loaded the whole scene, not a refusal on line one");
+    check_time(load_ms < 400.0, "loading a 10k scene file (two passes) <= 400ms budget");
+
+    std::printf("perf: selection=%.1fus grid=%.3fus/f virt=%.3fus/f undo=%.2fus/op load=%.1fms (timing-asserts=%d) sink=%llu\n",
+                sel_us, grid_us, virt_us, undo_us, load_ms, IDE_PERF_TIMING,
                 static_cast<unsigned long long>(g_sink));
     bool pass = (failures == 0);
     std::printf("ide-perf: %s\n", pass ? "PASS" : "FAIL");

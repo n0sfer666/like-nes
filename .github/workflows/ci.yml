@@ -1030,6 +1030,22 @@ jobs:
           grep -q "0x2de54a36e54e0684" ide_rt.txt || { echo "IDE SCENE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "scene-roundtrip: PASS" ide_rt.txt
 
+      - name: IDE — scene loader refuses a malformed file whole (audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'scene_refusal_test' -o -name 'scene_refusal_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "scene_refusal_test not built"; exit 1; }
+          "$BIN" | tee ide_refusal.txt
+          grep -q "scene-refusal: PASS" ide_refusal.txt
+
+      - name: IDE — an undo snapshot that does not parse refuses too (audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'scene_undo_refusal_test' -o -name 'scene_undo_refusal_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "scene_undo_refusal_test not built"; exit 1; }
+          "$BIN" | tee ide_undo_refusal.txt
+          grep -q "scene-undo-refusal: PASS" ide_undo_refusal.txt
+
       - name: "IDE — undo/redo command bus (gate 2: do/undo/redo + grouping + redo-truncation)"
         shell: bash
         run: |
@@ -1046,12 +1062,32 @@ jobs:
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           [ -n "$FLECSLIB" ] || { echo "libflecs_static.a not found"; exit 1; }
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
-          c++ $SAN tools/ide/scene_roundtrip_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_rt_san
+          # Судят эти шаги по СТРОКЕ из stdout, а UBSan по умолчанию печатает `runtime error:` в
+          # stderr и возвращает 0 — то есть без `halt_on_error` найденное им UB оставляло бы шаг
+          # зелёным. Ровно тот же промах закрыт в этом аудите для гейта манифеста (ревью, A·2·8).
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Список исходников библиотеки сцены — рукописный, потому что санитайзерная сборка идёт
+          # мимо CMake. Такой список расходится с целью молча: файл, добавленный в scene_core,
+          # просто не попадает под санитайзер, и шаг остаётся зелёным, ничего про него не сказав —
+          # ровно так deserialize.cpp дописывался в пять мест руками. Маркер отдаёт сверку гейту
+          # list-drift (ревью аудита #21, A·2·8).
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/scene_roundtrip_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_rt_san
           ./ide_rt_san | tee ide_rt_san.txt
           grep -q "scene-roundtrip: PASS" ide_rt_san.txt
-          c++ $SAN tools/ide/command_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
+          c++ $SAN tools/ide/command_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_cmd_san
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
+          # Отказ на битом вводе — путь, которого до A·2·8 не было вовсе: чужой текст доходит до
+          # `from_json` и до `substr` по найденному пробелу, и обе границы обязан щупать санитайзер.
+          # Оба текста: у файла сцены и у тела снимка undo разные ветки разбора.
+          c++ $SAN tools/ide/scene_refusal_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_refusal_san
+          ./ide_refusal_san | tee ide_refusal_san.txt
+          grep -q "scene-refusal: PASS" ide_refusal_san.txt
+          c++ $SAN tools/ide/scene_undo_refusal_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_undo_san
+          ./ide_undo_san | tee ide_undo_san.txt
+          grep -q "scene-undo-refusal: PASS" ide_undo_san.txt
 
       # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. Разделяемую память даёт
       # шов platform_shmem (спека #13, решение 1); fork в play_spawn_test — остаток POSIX-поверхности.
@@ -1268,7 +1304,15 @@ jobs:
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           # -Iengine/platform: perf_test берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/platform -I$FLECSINC"
-          c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
+          # Тот же довод, что в срезе 1: судят по строке из stdout, а UBSan без
+          # `halt_on_error` пишет `runtime error:` в stderr и возвращает 0 — шаг остаётся
+          # зелёным на найденном UB. Разбор сцены тут под санитайзером на обоих проходах.
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Тот же рукописный список, что и в срезе 1, и та же беда: разойдись он с целью —
+          # шаг остался бы зелёным, просто не проверив нового файла. Сверку ведёт list-drift.
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/perf_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
 
@@ -1291,7 +1335,15 @@ jobs:
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
-          c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
+          # Тот же довод, что в срезе 1: судят по строке из stdout, а UBSan без
+          # `halt_on_error` пишет `runtime error:` в stderr и возвращает 0 — шаг остаётся
+          # зелёным на найденном UB. Разбор сцены тут под санитайзером на обоих проходах.
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Тот же рукописный список, что и в срезе 1, и та же беда: разойдись он с целью —
+          # шаг остался бы зелёным, просто не проверив нового файла. Сверку ведёт list-drift.
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_editor_san
           ./ide_editor_san | tee ide_editor_san.txt
           grep -q "ide-editor-data: PASS" ide_editor_san.txt
 
