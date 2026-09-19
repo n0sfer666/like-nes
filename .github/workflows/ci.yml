@@ -731,18 +731,53 @@ jobs:
           [ -n "$L" ] || { echo "asset_align_test not built on ${{ matrix.os }}"; exit 1; }
           "$L" | tee asset_align.txt
           grep -q "asset-align: PASS" asset_align.txt
+          # Потолок уровня KTX2 (A·2·9). Бандл берётся ГОТОВЫЙ из дерева, а не синтетический:
+          # положительный контроль обязан стоять на атласе, испечённом нашим же `assetc`, —
+          # синтетика подтвердила бы только сама себя.
+          K=$(find build -maxdepth 2 -type f \( -name 'asset_transcode_test' -o -name 'asset_transcode_test.exe' \) | head -1)
+          [ -n "$K" ] || { echo "asset_transcode_test not built on ${{ matrix.os }}"; exit 1; }
+          "$K" example_ugly_game/assets/game.bundle | tee asset_transcode.txt
+          grep -q "\[transcode_test\] PASS" asset_transcode.txt
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
+          # Жёсткий режим — всему шагу, а не последнему прогону: UBSan по умолчанию печатает
+          # находку и возвращает 0, то есть гейт проглотил бы её молча. Разная строгость у трёх
+          # прогонов одного шага была бы различием без причины (ревью A·2·9).
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
           ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            -Iengine/asset -Iengine/platform -I"$ZINC" \
-            engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
-            engine/platform/platform_io_posix.cpp engine/asset/bundle_view.cpp \
-            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+          SINC=$(find build -maxdepth 4 -type d -name 'stb-src' | head -1)
+          # Сторож на КАЖДОМ найденном пути, а не на одном: пустая подстановка после `-isystem`
+          # съедает следующий флаг как свой аргумент, и пропажа каталога читается как невнятная
+          # ошибка компиляции на чужом пути вместо честного отказа шага (ревью A·2·9).
+          [ -n "$ZLIB" ] || { echo "libzstd.a not built on ${{ matrix.os }}"; exit 1; }
+          [ -n "$ZINC" ] || { echo "zstd sources not found on ${{ matrix.os }}"; exit 1; }
+          [ -n "$SINC" ] || { echo "stb sources not found on ${{ matrix.os }}"; exit 1; }
+          # Список исходников модуля здесь СВОЙ, не CMake-овский, и он равняется ЦЕЛИ, а не тому,
+          # что звалось вчера. До ревью A·2·9 шаг нёс два прогона с ДВУМЯ разными подмножествами
+          # `asset_core`, а добавляемый тут третий принёс бы своё, и это не стилистика: `b025741`
+          # добавил вызов `write_bundle` в тест, не
+          # добавив `bundle_writer.cpp` в первый из списков, и шаг падал на линковке
+          # (`undefined reference to asset::write_bundle`) пять прогонов подряд. CI это видел —
+          # не смотрел никто. Поэтому состав теперь один на все три прогона, а сторожит его гейт
+          # `list-drift`: он краснеет на этой машине, ДО пуша, а не вместо прогона CI.
+          # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_core
+          ASRC="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp"
+          # ci-lint: mirrors-group seam-fs
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
+          # ci-lint: mirrors-group seam-args
+          PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
+          # Эти два шва в группы выше не входят по составу потребителей: `platform_io_posix.cpp`
+          # нужен mmap-загрузчику, `platform_process_posix.cpp` — `codec.cpp`, который зовёт
+          # внешнего пекаря. Своей группы им не завести: группа из одного списка сверяется сама с
+          # собой, и гейт справедливо считает такое находкой, а не молчанием.
+          PLAT_IO="engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp"
+          SAN="-std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
+          INC="-Iengine/asset -Iengine/platform -isystem $ZINC -isystem $SINC"
+          c++ $SAN $INC engine/asset/asset_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
             "$ZLIB" -lpthread -o asset_test_san
           # Вердикт читается, а не подразумевается: нулевой код возврата есть и у прогона, который
           # не напечатал ничего, — так гейт зеленел бы на бинарнике, упавшем до первой проверки.
@@ -751,14 +786,54 @@ jobs:
           # Выравнивание базы бандла — тот же гейт памяти, и без санитайзера он проверяет только
           # отказ: невыровненное чтение на x86 молча работает, а сообщает о нём ровно UBSan
           # (`misaligned address ... which requires N byte alignment`).
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            -Iengine/asset -Iengine/platform -I"$ZINC" \
-            engine/asset/asset_align_test.cpp engine/asset/bundle_view.cpp \
-            engine/asset/bundle_writer.cpp \
-            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+          c++ $SAN $INC engine/asset/asset_align_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
             "$ZLIB" -lpthread -o asset_align_san
           ./asset_align_san | tee asset_align_san.txt
           grep -q "asset-align: PASS" asset_align_san.txt
+          # Потолок уровня KTX2 под санитайзерами (A·2·9). Проверяется здесь не «выход за конец» —
+          # в отгружаемом коде отказ случается ДО `transcode_image_level`, и транскодер во
+          # враждебную шапку не пишет вовсе. Проверяется, что отказ происходит до выделения памяти
+          # и что сама фикстура (копия ассета, подмена сторон, три вызова basisu) чиста. Выход за
+          # конец даёт ровно одна мутация — «буфер выделен короче, чем обещано транскодеру»
+          # (`resize(blocks * 16 - 16)`), и ловит её именно ASan этого шага.
+          BINC=$(find build -maxdepth 4 -path '*basisu-src/transcoder' -type d | head -1)
+          [ -n "$BINC" ] || { echo "basisu transcoder sources not found on ${{ matrix.os }}"; exit 1; }
+          # Вендорный TU собирается ОТДЕЛЬНЫМ объектом и только с ASan — это решение, а не экономия
+          # времени. UBSan на чужом коде находит чужие дефекты, чинить которые мы не вправе (basisu
+          # тянется FetchContent'ом), а `halt_on_error=1` выше превращает любую такую находку в
+          # красный гейт про не наш баг. Развод этот ЧАСТИЧНЫЙ, и заявлять большее нечестно: вне
+          # инструментации остаётся основной массив вендорного кода, а шаблоны и инлайн-функции из
+          # `basisu_transcoder.h` (конструкторы `ktx2_transcoder`, `basisu::vector<>`)
+          # инстанцируются в НАШИХ двух TU и приезжают под UBSan вместе с ними. Полностью развести
+          # это можно было бы только обёрткой над транскодером, а она — отдельная задача.
+          # ASan при этом остаётся обязательным, и это измерено, а не
+          # предположено: на мутации `resize(blocks * 16 - 16)` запись за конец делает САМ этот TU,
+          # и с ним под ASan прогон даёт `heap-buffer-overflow ... in memset`, а с ним же без
+          # санитайзера — ни одной строки санитайзера, только несовпадение размера. Инструментация
+          # чужого TU здесь и есть весь вердикт о памяти.
+          # `-DNDEBUG` не косметика: без него отладочные ветки `basisu_containers.h` не собираются
+          # g++ 13 (`safe_shift_left` неоднозначен). Сборка дерева этого не показывает не потому,
+          # что цель вендорная (`like_nes_vendored_target` трогает только уровень предупреждений),
+          # а потому, что все конфигурации, где basisu вообще собирается, — Release или
+          # RelWithDebInfo, то есть уже с `NDEBUG`; Debug-шаг CI собирает лишь `STATE_TARGETS` и до
+          # basisu не доходит. Проверено в контейнере ubuntu:24.04.
+          BASIS="-DBASISD_SUPPORT_KTX2=1 -DBASISD_SUPPORT_KTX2_ZSTD=0"
+          c++ -std=gnu++20 -fsanitize=address -fno-omit-frame-pointer -g -O1 -DNDEBUG $BASIS \
+            -isystem "$BINC" -c "$BINC/basisu_transcoder.cpp" -o basisu_transcoder_san.o
+          # Наши два TU, включающие заголовки basisu, — тоже отдельными объектами, и `-DNDEBUG`
+          # висит РОВНО на них. Повесить его на всю команду было бы проще, но тогда `asset_core` и
+          # платформенный шов собирались бы в этом прогоне иначе, чем в двух соседних прогонах того
+          # же шага, — различие без причины, ровно то, против чего написан `UBSAN_OPTIONS` выше.
+          # Первый же `assert()` в `asset_core` оказался бы выключен именно здесь (ревью A·2·9).
+          c++ $SAN -DNDEBUG $BASIS $INC -isystem "$BINC" -c engine/asset/transcode.cpp \
+            -o san_transcode.o
+          c++ $SAN -DNDEBUG $BASIS $INC -isystem "$BINC" -c engine/asset/transcode_test.cpp \
+            -o san_transcode_test.o
+          c++ $SAN $INC san_transcode.o san_transcode_test.o \
+            $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            basisu_transcoder_san.o "$ZLIB" -lpthread -o transcode_san
+          ./transcode_san example_ugly_game/assets/game.bundle | tee transcode_san.txt
+          grep -q "\[transcode_test\] PASS" transcode_san.txt
 
       # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех трёх ОС ---
       # Реальное устройство (miniaudio --play) — локальный pinned-T4 (как perceptual-golden

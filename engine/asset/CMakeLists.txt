@@ -40,6 +40,16 @@ target_link_libraries(asset_gpu PUBLIC basis_transcoder)
 target_compile_options(asset_gpu PRIVATE
   $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-unknown-warning-option>)   # basisu.h GCC-pragma
 
+# Потолок уровня KTX2 (аудит #21, A·2·9). Своя цель, а не строки в `asset_test`: та не линкует
+# транскодер, а тянуть basisu в гейт резидентности значило бы тянуть его и в его санитайзерную
+# сборку, собираемую руками.
+add_executable(asset_transcode_test transcode_test.cpp)
+target_link_libraries(asset_transcode_test PRIVATE asset_core asset_gpu)
+# Тот же глушитель, что у `asset_gpu` выше, и по той же причине: тест включает
+# `basisu_transcoder.h` НАПРЯМУЮ, а опция у цели PRIVATE и по линковке не наследуется.
+target_compile_options(asset_transcode_test PRIVATE
+  $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-unknown-warning-option>)   # basisu.h GCC-pragma
+
 add_executable(asset_render asset_render_main.cpp)
 target_include_directories(asset_render PRIVATE ${CMAKE_SOURCE_DIR}/engine/render)
 target_link_libraries(asset_render PRIVATE asset_core asset_gpu render_core webgpu)

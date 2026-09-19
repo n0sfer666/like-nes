@@ -137,7 +137,7 @@ for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
     case "$key" in
         *_probe*|*_bench*|input_demo*)
             SKIPPED+=("$name — интерактивный / замер"); continue;;
-        ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|play_spawn_test|plugin_*)
+        ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|asset_transcode_test|play_spawn_test|plugin_*)
             SKIPPED+=("$name — нужны пути к плагинам/бандлам, вызов живёт в ci.yml"); continue;;
     esac
     if stale "$key"; then
