@@ -2,7 +2,7 @@
 # sim-системы (спека #6). Загрузка модуля и крэш-изоляция — за швами platform_core (#12):
 # dlopen/siglongjmp на POSIX, LoadLibraryExW+копия/SEH на Windows. Гейты determinism/seam/
 # isolation — на всех 3 OS. platform_core PUBLIC: Module — поле PluginHost.
-add_library(plugin_core STATIC registry.cpp host.cpp builtin.cpp manifest.cpp)
+add_library(plugin_core STATIC registry.cpp host_api.cpp host.cpp builtin.cpp manifest.cpp)
 target_include_directories(plugin_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(plugin_core PUBLIC engine_core platform_core)
 
@@ -14,6 +14,11 @@ target_link_libraries(plugin_seam_test PRIVATE plugin_core)
 
 add_executable(plugin_isolation_test plugin_isolation_test.cpp)
 target_link_libraries(plugin_isolation_test PRIVATE plugin_core)
+
+# Гейт границы C-ABI (аудит #21, A·2·10): враждебные аргументы в восемь входов `HostApi`. Своя
+# цель, а не ассерты внутри соседей: те зовут танки как ДОБРОСОВЕСТНЫЙ плагин и врут про границу.
+add_executable(plugin_abi_test plugin_abi_test.cpp)
+target_link_libraries(plugin_abi_test PRIVATE plugin_core)
 
 # Headless-гейт конфигурируемого интерфейса: манифест (данные) → панели/докинг. Без окна, в CI.
 add_executable(plugin_manifest_test plugin_manifest_test.cpp)

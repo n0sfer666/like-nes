@@ -14,9 +14,24 @@ void Registry::add_ecs_system(const std::string& id, std::vector<std::string> af
 }
 
 void Registry::add_asset_codec(const std::string& fourcc, AssetDecodeFn fn) {
+    for (const auto& c : codecs_) {
+        if (c.fourcc == fourcc) {
+            std::fprintf(stderr, "[host] duplicate asset codec '%s' (owner=%s) rejected (already owned by %s)\n",
+                         fourcc.c_str(), current_owner_.c_str(), c.owner.c_str());
+            return;
+        }
+    }
     codecs_.push_back(AssetCodec{fourcc, fn, current_owner_});
 }
 
+// Единственный учёт БЕЗ отказа по дубликату, и это записано, а не забыто. Три соседа выше и ниже
+// (`add_ecs_system`, `add_asset_codec`, `add_backend`) вторую регистрацию того же имени отбивают:
+// у них имя — ключ, по которому запись потом ищут (топосорт, выбор кодека, доставка достижения), и
+// два владельца одного ключа означают молчаливую подмену. У named-слотов имя — только подпись в
+// логе и в панели: проход рендера или шина звука ВЫЗЫВАЮТСЯ все подряд, и второй с тем же id — не
+// подмена, а вторая работа. Заводить здесь отказ значит менять счётчики четырёх чужих гейтов
+// (`plugin_seam_test`, UI-манифест, hot-reload, `remove_owner`) ради симметрии, а не ради дефекта;
+// решение владельца 2026-09-21 — асимметрию оставить и объяснить, а не выровнять заодно.
 void Registry::add_named(ExtKind kind, const std::string& id, const std::string& extra, void* fn) {
     if (!ext_in_range(kind) || ext_has_own_storage(kind)) {
         std::fprintf(stderr, "[host] ext kind %d is not a named slot, '%s' (owner=%s) rejected\n",
@@ -96,53 +111,4 @@ std::size_t Registry::count(ExtKind kind) const {
         case EXT_ACHIEVEMENT_BACKEND: return backends_.size();
         default: return ext_in_range(kind) ? named_[kind].size() : 0;
     }
-}
-
-static Registry* self(void* ctx) { return static_cast<Registry*>(ctx); }
-
-static void thunk_ecs(void* ctx, const char* id, const char* const* after, int32_t n, SimSystemFn fn) {
-    std::vector<std::string> deps;
-    for (int32_t i = 0; i < n; ++i) deps.emplace_back(after[i]);
-    self(ctx)->add_ecs_system(id, std::move(deps), fn);
-}
-static void thunk_codec(void* ctx, const char* fourcc, AssetDecodeFn fn) {
-    self(ctx)->add_asset_codec(fourcc, fn);
-}
-static void thunk_render(void* ctx, const char* id, OpaqueFn fn) {
-    self(ctx)->add_named(EXT_RENDER_PASS, id, "", reinterpret_cast<void*>(fn));
-}
-static void thunk_input(void* ctx, const char* id, OpaqueFn fn) {
-    self(ctx)->add_named(EXT_INPUT_SOURCE, id, "", reinterpret_cast<void*>(fn));
-}
-static void thunk_audio(void* ctx, const char* id, OpaqueFn fn) {
-    self(ctx)->add_named(EXT_AUDIO_BUS, id, "", reinterpret_cast<void*>(fn));
-}
-static void thunk_ui(void* ctx, const char* id, const char* title, UiDrawFn fn) {
-    self(ctx)->add_named(EXT_UI_PANEL, id, title, reinterpret_cast<void*>(fn));
-}
-static void thunk_ach_backend(void* ctx, const char* id, const AchBackendApi* backend) {
-    if (id == nullptr || backend == nullptr) return;
-    if (backend->unlock == nullptr) {
-        std::fprintf(stderr, "[host] achievement backend '%s' rejected: unlock is mandatory\n", id);
-        return;
-    }
-    self(ctx)->add_backend(id, backend);
-}
-static void thunk_log(void*, const char* msg) {
-    std::fprintf(stderr, "[plugin] %s\n", msg);
-}
-
-HostApi Registry::make_host_api() {
-    HostApi api{};
-    api.ctx = this;
-    api.api_version = PLUGIN_API_VERSION;
-    api.register_ecs_system = thunk_ecs;
-    api.register_asset_codec = thunk_codec;
-    api.register_render_pass = thunk_render;
-    api.register_input_source = thunk_input;
-    api.register_audio_bus = thunk_audio;
-    api.register_ui_panel = thunk_ui;
-    api.register_achievement_backend = thunk_ach_backend;
-    api.log = thunk_log;
-    return api;
 }

@@ -961,6 +961,21 @@ jobs:
           "$IT" "$(mod plugin_gravity)" "$(mod plugin_wind)" "$(mod plugin_crash)" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 
+      # Граница C-ABI (аудит #21, A·2·10): восемь входов хоста зовут враждебными аргументами —
+      # nullptr вместо контекста и строки, отрицательный и запредельный счётчик зависимостей, дыра
+      # посреди массива, строка без терминатора в пределах потолка. На трёх ОС не ради симметрии:
+      # эту границу собирают три тулчейна тремя разными стандартными библиотеками, и `std::string`,
+      # поиск терминатора и `noexcept`-путь к `std::terminate` — их, а не наши. Сторож, доказанный
+      # под libc++, про STL от MSVC не говорит ничего, а `/W4 /WX` судит тот же код своей меркой.
+      # Санитайзерная половина гейта живёт отдельным шагом ниже, только на Linux.
+      - name: "Plugin — C-ABI boundary (hostile args into HostApi, gate A·2·10)"
+        shell: bash
+        run: |
+          AT=$(find build -maxdepth 2 -type f \( -name 'plugin_abi_test' -o -name 'plugin_abi_test.exe' \) | head -1)
+          [ -n "$AT" ] || { echo "plugin_abi_test not built"; exit 1; }
+          "$AT" 2>&1 | tee pa.txt
+          grep -q "\[plugin-abi\] PASS" pa.txt
+
       - name: Plugin — configurable UI manifest gate (data->panels/docking + ABI verdict, all OS)
         shell: bash
         run: |
@@ -986,6 +1001,8 @@ jobs:
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          # ci-lint: mirrors-target engine/plugin/CMakeLists.txt plugin_core
+          PLUGIN_CORE="engine/plugin/registry.cpp engine/plugin/host_api.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp"
           MF=engine/plugin/manifests
           c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp $PLAT_FS $PLAT_ARGS -o plugin_manifest_san
           UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
@@ -996,10 +1013,16 @@ jobs:
           grep -q "plugin-manifest: PASS" pmsan.txt
           c++ $SAN -shared -fPIC engine/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
           c++ $SAN -shared -fPIC engine/plugin/plugins/wind.cpp -o plugin_wind_san.so
-          c++ $SAN engine/plugin/registry.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp \
+          c++ $SAN $PLUGIN_CORE \
             engine/plugin/plugin_determinism_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
+          # Гейт границы C-ABI под санитайзерами: ассерт видит «реестр не вырос», но не видит
+          # чтения мимо конца `after[]`, которым обернулся бы снятый потолок `n_after`.
+          c++ $SAN $PLUGIN_CORE engine/plugin/plugin_abi_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
+            -ldl -o plugin_abi_san
+          UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./plugin_abi_san 2>&1 | tee pasan.txt
+          grep -q "\[plugin-abi\] PASS" pasan.txt
 
       # Гейт 7 спеки #12: санитайзеры на Windows. Решение владельца — MSVC основной, санитарит
       # clang-cl: у него MSVC-ABI (линкуется с тем же деревом), а рантайм ASan идёт вместе с ним.
@@ -2378,6 +2401,8 @@ jobs:
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          # ci-lint: mirrors-target engine/plugin/CMakeLists.txt plugin_core
+          PLUGIN_CORE="engine/plugin/registry.cpp engine/plugin/host_api.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp"
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp $PLAT_FS -o ach_san
@@ -2419,8 +2444,7 @@ jobs:
           c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Iengine/plugin engine/achievements/registry.cpp \
             engine/achievements/tracker.cpp engine/achievements/state.cpp engine/achievements/store.cpp \
             engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
-            engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
-            engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
+            engine/achievements/plugin_backend.cpp $PLUGIN_CORE example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
             example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san

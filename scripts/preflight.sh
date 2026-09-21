@@ -99,7 +99,7 @@ if command -v shellcheck >/dev/null; then
                    scripts/preflight_tree_rules.sh \
                    scripts/check_dco.sh scripts/check_goldens.sh scripts/check_debug_golden.sh \
                    scripts/check_library_bundle.sh \
-                   scripts/owner_check.sh scripts/gate8_e2e.sh \
+                   scripts/owner_*.sh scripts/gate8_e2e.sh \
                    scripts/tree_invariants.sh \
                    scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh \
                    scripts/ci_watch_wait_selftest.sh \
@@ -108,6 +108,7 @@ if command -v shellcheck >/dev/null; then
                    scripts/perf_sweep_selftest.sh \
                    scripts/release*.sh scripts/check_release*.sh \
                    scripts/docs_*.sh scripts/check_docs*.sh
+    # Семейство владельца — шаблоном: разрез `owner_check.sh` 2026-09-21 снял 63 строки с проверки.
     # Семейство релиза берётся ШАБЛОНОМ, а не списком: за две вертикали спеки #20 оно выросло с
     # трёх файлов до четырнадцати, и каждый новый гейт приходилось дописывать сюда руками. Забытая
     # строка не падает — она молча выводит скрипт из-под проверки, ровно тот класс, ради которого
