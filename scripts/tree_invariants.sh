@@ -21,7 +21,7 @@ EXT="--include=*.c --include=*.cc --include=*.cxx --include=*.cpp --include=*.h
 # (docs/examples — примеры документации, спека #19) молча остался бы вне швов и вне ASCII-проверки.
 # Ровно list-drift из ci_lint.py, только список тут не файлов, а поддеревьев. Половин две, потому
 # что platform САМ и есть шов: искать в нём нарушение шва нечего.
-ROOTS_CODE="engine tools example_ugly_game docs/examples"
+ROOTS_CODE="engine tools example_ugly_game docs/examples tests"
 ROOTS="$ROOTS_CODE platform"
 
 fail() { echo "$@"; exit 1; }

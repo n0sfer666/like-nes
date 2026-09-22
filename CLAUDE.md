@@ -74,6 +74,7 @@ decisions, notes). Читать перед началом любой задач�
 | список ручных гейтов | `bash scripts/check_owner_gates.sh` | коммит | [owner-gates](.context/gates/owner-gates.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
+| читатели секций держат битый файл | `./build-full/fuzz_readers` | preflight | [fuzz-readers](.context/gates/fuzz-readers.md) |
 | инварианты дерева, копии признака обхода | `bash scripts/tree_invariants.sh` · `python3 scripts/check_tree_roots.py` | коммит | [preflight](.context/gates/preflight.md) |
 | релизный пакет | `bash scripts/check_release.sh` | preflight | [release](.context/gates/release.md) |
 | пакет Linux с машины macOS | `bash scripts/check_release_container.sh [--live]` | preflight · `--live` руками | [release-container](.context/gates/release-container.md) |

@@ -10,11 +10,21 @@ permissions:
 jobs:
   build-and-determinism:
     name: build+determinism (${{ matrix.os }})
-    # 60, а не 30: у джоба четыре build-каталога (headless `build`, `build-audio`, `build-ui`,
-    # `build-asan` под clang-cl) — каждый со своим configure и своим FetchContent. Самый дорогой
-    # из них `build-ui`: только там собираются glfw и шесть TU imgui, и только там сборочный гейт
-    # видит вендоренные объекты MSVC.
-    timeout-minutes: 60
+    # 60, а не 30: джоб конфигурирует и собирает дерево много раз. На всех трёх ОС — headless
+    # `build`, `build-audio`, `build-ui` и `build-debug` (голден уровней оптимизации); на Windows
+    # добавляется `build-asan` под clang-cl, на Linux — `build-fuzz-san` под ASan/UBSan и ЕЩЁ ДВЕ
+    # полные сборки в шаге воспроизводимости (`/tmp/repro-a`, `/tmp/repro-bbbb…`). Каждая со своим
+    # configure и своим FetchContent. Самый дорогой одиночный каталог — `build-ui`: только там
+    # собираются glfw и шесть TU imgui, и только там сборочный гейт видит вендоренные объекты MSVC.
+    # Замером названа только БАЗА: последний зелёный прогон до фаззинга под санитайзером — Linux 33
+    # минуты, macOS 12, Windows 22. Добавка (configure со своим FetchContent, сборка замыкания
+    # читателей под ASan/UBSan и два прогона гейта) не измерена на раннере ни разу, поэтому лимит
+    # поднят ЗАРАНЕЕ: упёршись в 60, Linux отдал бы голый таймаут задачи без имени цели, seed'а и
+    # номера случая — ровно тот исход, ради отмены которого гейт и писался. Зависание при этом не
+    # маскируется: настоящее убивает сторож за 3 секунды, а не лимит задачи. Первый прогон ветки
+    # назовёт настоящую длительность, и тогда число вернётся к замеру. Следующий каталог в этом
+    # джобе поднимает лимит, а не дописывается молча.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -1102,7 +1112,8 @@ jobs:
             -DCMAKE_MODULE_LINKER_FLAGS="$LINK_ASAN" \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
           cmake --build build-asan --target asset_test asset_determinism_test \
-            audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind
+            audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind \
+            fuzz_readers
           find build-asan -maxdepth 2 \( -name '*.exe' -o -name '*.dll' \) | sort
           S=build-asan
           "$S/asset_test.exe" syn.bundle
@@ -1114,6 +1125,28 @@ jobs:
           "$S/plugin_determinism_test.exe" "$S/plugin_gravity.dll" "$S/plugin_wind.dll" | tee asan_plugin.txt
           grep -q "0x7d9a6e60cbed4156" asan_plugin.txt
           grep -q "plugin-determinism: PASS" asan_plugin.txt
+          # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
+          # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
+          # код. targets=9, а не 10, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
+          "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=9 " asan_fuzz.txt
+          # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
+          # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
+          # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
+          # не работал. Судит СТРОКА: «the canary survived» печатается ровно тогда, когда прогон
+          # дошёл до конца, то есть ASan здесь не вооружён и зелёная строка выше не доказывает
+          # ничего. `|| true` — потому что ожидаемый исход как раз ненулевой код.
+          "$S/fuzz_readers.exe" --selftest --cases 200 > asan_fuzz_self.txt 2>&1 || true
+          if grep -q "the canary survived" asan_fuzz_self.txt; then
+            echo "fuzz selftest: the canary survived — the sanitizer is not armed here"; exit 1
+          fi
+          # Класс ошибки назван поимённо: `grep AddressSanitizer` удовлетворяется и отчётом
+          # LeakSanitizer («N byte(s) leaked»), который про выход за границу не говорит ничего,
+          # — позитивный контроль утверждал бы любое упоминание санитайзера вместо СВОЕГО
+          # события. Классов два, потому что аннотации контейнеров libc++/MSVC STL дают
+          # `container-overflow` там, где голый буфер дал бы `heap-buffer-overflow`.
+          grep -qE "AddressSanitizer: (heap-buffer-overflow|container-overflow)" asan_fuzz_self.txt
 
       # --- IDE-вертикаль (спека #7), срез 1 — фундамент редактора: flecs scene-doc + детерм.
       # round-trip + undo/redo. Гейт 1 golden (fix32 целочисл., текст ASCII → cross-OS байт-golden,
@@ -2457,3 +2490,49 @@ jobs:
               ./plugin_ach_v1_san.so | tee achpsan.txt
             grep -q "PASS" achpsan.txt
           done
+
+      # --- Гейт 9 аудита #21: ни один читатель секции не падает на мутированном файле. Прогон
+      # релизный и идёт на всех трёх ОС, потому что предмет тут ещё и ПОРТИРУЕМОСТЬ разбора:
+      # выравнивание, знак char и порядок полей на macOS/Windows свои. Число целей в строке PASS
+      # закреплено грепом — выпавшая из таблицы цель иначе уехала бы зелёной.
+      - name: Fuzz — section readers survive mutated input (gate 9 of audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
+          "$BIN" | tee fuzz.txt
+          grep -q "\[fuzz\] PASS targets=10 " fuzz.txt
+
+      # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
+      # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
+      # Отдельный каталог, а не флаги поверх `build`: одна цель со своими зависимостями вместо
+      # пересборки дерева.
+      - name: Fuzz — readers under ASan/UBSan (gate 9 of audit #21, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # -fno-sanitize-recover обязателен: по умолчанию UBSan ПЕЧАТАЕТ находку и продолжает,
+          # процесс возвращает ноль, и шаг зеленеет с undefined-behavior в логе. Так и случилось
+          # на первом же прогоне этого гейта — переполнение int32 нашлось, а гейт промолчал.
+          SAN="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g -O1"
+          cmake -S . -B build-fuzz-san -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
+          cmake --build build-fuzz-san --target fuzz_readers
+          ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=10 " fuzz_san.txt
+          # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
+          # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
+          # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
+          # гейта. Судит СТРОКА: «the canary survived» печатается ровно тогда, когда прогон дошёл
+          # до конца, то есть ASan в этой сборке не вооружён и зелёная строка выше не доказывает
+          # ничего. `|| true` — потому что ожидаемый исход как раз ненулевой код.
+          ./build-fuzz-san/fuzz_readers --selftest --cases 200 > fuzz_self.txt 2>&1 || true
+          if grep -q "the canary survived" fuzz_self.txt; then
+            echo "fuzz selftest: the canary survived — the sanitizer is not armed here"; exit 1
+          fi
+          # Класс ошибки назван поимённо, а не одним словом «AddressSanitizer»: ему
+          # удовлетворяет и отчёт LeakSanitizer, который про выход за границу не говорит
+          # ничего. Классов два — аннотации контейнеров дают `container-overflow` там, где
+          # голый буфер дал бы `heap-buffer-overflow`.
+          grep -qE "AddressSanitizer: (heap-buffer-overflow|container-overflow)" fuzz_self.txt

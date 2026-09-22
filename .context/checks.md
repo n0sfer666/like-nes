@@ -104,17 +104,22 @@ CLAUDE.md (`data` / `text` / `single`) и причина словами, не к
 бюджет длины файлов (`scripts/line_budget.py`, самопроверка и дерево) → гейт документации en/ru
 (`scripts/check_docs.sh`, обе самопроверки перед ним) → `actionlint` + `shellcheck`
 (severity `warning`) → `shellcheck` самих гейт-скриптов → сборка в конфигурации CI (`build-ci`) →
-сборка полного набора опций (`build-full`) → три проверки продуктов сборки по одной
-(`scripts/check_goldens.sh debug|core|bundle`: голден физики в Debug — телом ему служит отдельный
-`scripts/check_debug_golden.sh`, там же список целей `STATE_TARGETS`, — восемь голденов ядра, сверка
-`game.bundle` с исходниками и сверка `library.bundle` отдельным `scripts/check_library_bundle.sh`) →
+сборка полного набора опций (`build-full`) → продукты сборки группой
+`preflight_build_rules.sh`, по одному этапу на гейт (`scripts/check_goldens.sh debug|core|bundle`:
+голден физики в Debug — телом ему служит отдельный `scripts/check_debug_golden.sh`, там же список
+целей `STATE_TARGETS`, — восемь голденов ядра, сверка `game.bundle` с исходниками и сверка
+`library.bundle` отдельным `scripts/check_library_bundle.sh`; четвёртым — `./build-full/fuzz_readers`,
+читатели секций на битом вводе) →
 релизный пакет (`scripts/check_release.sh` — состав поимённо, лицензии, штамп, нормализация архива
 и воспроизводимость двух упаковок; каталог сборки у него СВОЙ, `build-release`: релизная
 конфигурация, попав в общий каталог, переживает в кеше следующий прогон и молча подменяет ему
 набор опций) → образ macOS (`scripts/check_release_dmg.sh`) → AppImage
-(`scripts/check_release_appimage.sh`) → сборка gcc, если он есть. Статические правила дерева и
-релизные правила, которым сборка не нужна, вынесены группами — `preflight_tree_rules.sh` и
-`preflight_release_rules.sh`: сам `preflight.sh` держит порядок и условия этапов, а не их тела. Этапы не прерывают друг друга: смысл скрипта — выдать
+(`scripts/check_release_appimage.sh`) → сборка gcc, если он есть. Группами вынесены три семейства. Статические
+правила дерева и релизные правила (`preflight_tree_rules.sh`, `preflight_release_rules.sh`) делят
+один признак — сборки и сети им не нужно; у продуктов сборки (`preflight_build_rules.sh`) признак
+ОБРАТНЫЙ: группа судит собранное и потому идёт только ПОСЛЕ этапов сборки (голден Debug при этом
+собирает свой `build-debug` сам — уровни оптимизации сверяются только так). Сам `preflight.sh`
+держит порядок и условия этапов, а не их тела. Этапы не прерывают друг друга: смысл скрипта — выдать
 все находки за один заход, а не воспроизвести ту же серию кругов локально. Каталог `build`
 preflight не трогает: это умолчание коммит-гейта, и оставлять его в урезанном наборе опций значит
 выключить гейт для imgui, miniaudio и wasm до следующей ручной настройки.

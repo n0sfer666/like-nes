@@ -47,7 +47,9 @@ void encode(const Snapshot& snap, std::vector<uint8_t>& out) {
     for (Id id : snap.unlocked) put_u64(out, id);
 
     const uint64_t h = fnv(out.data() + STATE_HEADER_SIZE, out.size() - STATE_HEADER_SIZE);
-    for (int i = 0; i < 8; ++i) out[16 + static_cast<std::size_t>(i)] = static_cast<uint8_t>(h >> (i * 8));
+    for (std::size_t i = 0; i < STATE_HASH_SIZE; ++i) {
+        out[STATE_HASH_OFFSET + i] = static_cast<uint8_t>(h >> (i * 8));
+    }
 }
 
 DecodeResult decode(const uint8_t* data, std::size_t size, Snapshot& out) {
@@ -60,7 +62,7 @@ DecodeResult decode(const uint8_t* data, std::size_t size, Snapshot& out) {
     const uint64_t want = static_cast<uint64_t>(STATE_HEADER_SIZE) +
                           stat_count * STATE_STAT_SIZE + ach_count * STATE_ACH_SIZE;
     if (want != size) return DecodeResult::BadSize;
-    if (fnv(data + STATE_HEADER_SIZE, size - STATE_HEADER_SIZE) != get_u64(data + 16)) {
+    if (fnv(data + STATE_HEADER_SIZE, size - STATE_HEADER_SIZE) != get_u64(data + STATE_HASH_OFFSET)) {
         return DecodeResult::BadHash;
     }
 

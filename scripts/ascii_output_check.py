@@ -29,7 +29,7 @@ import py_utf8
 from cpp_text import marker_lines, split_code_comments
 
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
-ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples")
+ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples", "tests")
 ALLOW = re.compile(r"ascii:\s*allow\b(.*)")
 RAW_OPEN = re.compile(r'R"([^("\\ ]*)\(')
 # Префиксы символьного литерала. Пустой — обычный `'x'`; остальные это `L'x'`, `u'x'`, `U'x'`,
