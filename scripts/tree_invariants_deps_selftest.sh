@@ -26,9 +26,12 @@ pass=0; mut=0; fail=0
 tree_for() {
   local d
   d=$(mktemp -d "${TMPDIR:-/tmp}/tree-inv.XXXXXX")
+  # Каталоги потребителей — ВСЕ корни из ROOTS_CODE гейта, а не только нужные порчам: список
+  # потребителей гейт выводит из ROOTS_CODE и на отсутствующем корне отказывает ДО суда. Гейт 9
+  # аудита #21 дописал туда `tests`, и фикстура без него положила набор вместе с опорным pass.
   mkdir -p "$d/scripts" "$d/engine/framework/core" "$d/engine/render" "$d/engine/achievements" \
            "$d/engine/light" "$d/engine/material" "$d/tools/ide" "$d/example_ugly_game" \
-           "$d/docs/examples"
+           "$d/docs/examples" "$d/tests/fuzz"
   cp "$ROOT/scripts/tree_invariants.sh" "$d/scripts/tree_invariants.sh"
   # Включения в engine нужны не для красоты: вторая половина инварианта утверждает, что поиск по
   # этому корню вообще что-то видит, и дерево без единого include делало бы её вакуумной.
@@ -39,6 +42,7 @@ tree_for() {
   # Разрешённое направление: потребитель читает engine. Оно же — позитивный контроль альтернации.
   printf '#include "../engine/achievements/registry.hpp"\n' > "$d/example_ugly_game/game.cpp"
   printf '#include "../../engine/asset/bundle_view.hpp"\n' > "$d/tools/ide/panel.cpp"
+  printf '#include "../../engine/asset/bundle_view.hpp"\n' > "$d/tests/fuzz/probe.cpp"
   printf 'add_library(framework_core STATIC schedule.cpp)\n' > "$d/engine/framework/core/CMakeLists.txt"
   printf 'add_library(render_core STATIC device.cpp)\ntarget_link_libraries(render_core PUBLIC platform_core)\n' \
       > "$d/engine/render/CMakeLists.txt"
