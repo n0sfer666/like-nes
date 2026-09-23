@@ -6,11 +6,27 @@
 второму списку). Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
 """
 import os
+import re
 import shutil
 import sys
 import tempfile
 
 from check_tree_roots import COPIES, FS, PY, ROOT, SEAM, SH, gate
+
+
+def sh_without_root(text, name="docs/examples"):
+    """Убирает корень из `ROOTS_CODE`, где бы он в списке ни стоял.
+
+    Раньше порча была текстовой заменой ` docs/examples"` на `"`, то есть молча полагалась на то,
+    что этот корень в списке ПОСЛЕДНИЙ. Гейт 9 дописал `tests` — подстроки не стало, порча
+    перестала что-либо менять, и контроль остался без предмета (красный CI 2026-09-22). Разбор
+    списка словами от позиции не зависит: дописать корень в конец больше не значит обезоружить
+    контроль.
+    """
+    def strip(m):
+        return m.group(1) + " ".join(w for w in m.group(2).split() if w != name) + '"'
+
+    return re.sub(r'^(ROOTS_CODE=")([^"]*)"', strip, text, count=1, flags=re.M)
 
 
 def selftest():
@@ -44,7 +60,7 @@ def selftest():
 
     run("pass", "нетронутые копии совпадают", lambda rel, t: t)
     run("fail", "корень пропал из копии в шелле",
-        lambda rel, t: t.replace(' docs/examples"', '"') if rel == SH else t)
+        lambda rel, t: sh_without_root(t) if rel == SH else t)
     run("fail", "разбор не нашёл копию в шелле",
         lambda rel, t: t.replace("ROOTS_CODE=", "ROOTS_SRC=").replace("ROOTS=", "ROOTS_ALL=")
         if rel == SH else t)
