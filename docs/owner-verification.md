@@ -1172,7 +1172,7 @@ With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
-<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остались AMD и NVIDIA -->
+<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остался AMD -->
 
 > **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
 > frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
