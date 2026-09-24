@@ -741,6 +741,10 @@ jobs:
           [ -n "$L" ] || { echo "asset_align_test not built on ${{ matrix.os }}"; exit 1; }
           "$L" | tee asset_align.txt
           grep -q "asset-align: PASS" asset_align.txt
+          F=$(find build -maxdepth 2 -type f \( -name 'asset_fail_test' -o -name 'asset_fail_test.exe' \) | head -1)
+          [ -n "$F" ] || { echo "asset_fail_test not built on ${{ matrix.os }}"; exit 1; }
+          "$F" . | tee asset_fail.txt
+          grep -q "asset-fail: PASS" asset_fail.txt
           # Потолок уровня KTX2 (A·2·9). Бандл берётся ГОТОВЫЙ из дерева, а не синтетический:
           # положительный контроль обязан стоять на атласе, испечённом нашим же `assetc`, —
           # синтетика подтвердила бы только сама себя.
@@ -800,6 +804,10 @@ jobs:
             "$ZLIB" -lpthread -o asset_align_san
           ./asset_align_san | tee asset_align_san.txt
           grep -q "asset-align: PASS" asset_align_san.txt
+          c++ $SAN $INC engine/asset/asset_fail_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            "$ZLIB" -lpthread -o asset_fail_san
+          ./asset_fail_san . | tee asset_fail_san.txt
+          grep -q "asset-fail: PASS" asset_fail_san.txt
           # Потолок уровня KTX2 под санитайзерами (A·2·9). Проверяется здесь не «выход за конец» —
           # в отгружаемом коде отказ случается ДО `transcode_image_level`, и транскодер во
           # враждебную шапку не пишет вовсе. Проверяется, что отказ происходит до выделения памяти

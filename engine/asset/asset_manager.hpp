@@ -6,6 +6,7 @@
 #include <queue>
 #include <thread>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "bundle_view.hpp"
@@ -55,6 +56,7 @@ public:
     // Публикация завершённых загрузок в видимый sim/render ready-set (детерм. gate тика).
     void sync_point();
     bool is_ready(uint64_t guid) const;
+    bool is_failed(uint64_t guid) const;
     Loaded get(uint64_t guid) const;
 
     // Диагностика (лог, не гейт): пик арены, число арен-аллокаций, завершённые загрузки.
@@ -68,6 +70,7 @@ private:
         bool pinned = false;
         std::atomic<bool> completed{false};
         std::atomic<bool> inflight{false}; // уже в очереди worker'а → без дубля-задачи
+        std::atomic<bool> failed{false};
         Loaded loaded;
     };
 
@@ -76,6 +79,7 @@ private:
     void stop_worker();
     void worker_loop();
     void do_load(Slot& s);
+    bool fill(Slot& s);
 
     platform::MappedFile file_;
     BundleView view_;
@@ -86,6 +90,7 @@ private:
     mutable std::mutex mu_;
     std::unordered_map<uint64_t, Slot> slots_;
     std::unordered_map<uint64_t, Loaded> visible_; // published ready-set
+    std::unordered_set<uint64_t> failed_visible_;
     std::queue<uint64_t> jobs_;
     std::condition_variable cv_;
     std::thread worker_;

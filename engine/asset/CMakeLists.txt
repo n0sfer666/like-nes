@@ -27,6 +27,9 @@ target_link_libraries(asset_align_test PRIVATE asset_core)
 add_executable(asset_hot_reload_test asset_hot_reload_test.cpp)
 target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
 
+add_executable(asset_fail_test asset_fail_test.cpp)
+target_link_libraries(asset_fail_test PRIVATE asset_core)
+
 # --- Шов asset→render (спека #5 гейт): baked BC7 tex + baked Tint SPIR-V → GPU → offscreen ---
 # basis транскодер — один файл; KTX2 без zstd-суперкомпрессии → BASISD_SUPPORT_KTX2_ZSTD=0
 # (не тянем вендорный zstd, нет конфликта символов с нашим libzstd).
