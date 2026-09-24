@@ -103,7 +103,7 @@ CLAUDE.md (`data` / `text` / `single`) и причина словами, не к
 направление зависимостей подсистем; тот же скрипт зовут четыре шага CI по одной подкоманде) →
 бюджет длины файлов (`scripts/line_budget.py`, самопроверка и дерево) → гейт документации en/ru
 (`scripts/check_docs.sh`, обе самопроверки перед ним) → `actionlint` + `shellcheck`
-(severity `warning`) → `shellcheck` самих гейт-скриптов → сборка в конфигурации CI (`build-ci`) →
+(severity `warning`) → `shellcheck` всех `.sh` из `git ls-files` → сборка в конфигурации CI (`build-ci`) →
 сборка полного набора опций (`build-full`) → продукты сборки группой
 `preflight_build_rules.sh`, по одному этапу на гейт (`scripts/check_goldens.sh debug|core|bundle`:
 голден физики в Debug — телом ему служит отдельный `scripts/check_debug_golden.sh`, там же список

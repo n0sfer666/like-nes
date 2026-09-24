@@ -6,9 +6,9 @@ workflow, инварианты `scripts/tree_invariants.sh` — тот же ск
 признака обхода `scripts/check_tree_roots.py`, переключение вывода
 `scripts/check_py_utf8.py`, бюджет длины `scripts/line_budget.py`, гейт документации
 `scripts/check_docs.sh`, выбор bash `scripts/posix_bash_selftest.py` и гейт врезок
-`scripts/check_docs_snippets.sh`, каждый со своей самопроверкой ПЕРЕД ним) → `actionlint` + `shellcheck` (severity `warning`) → `shellcheck` самих
-гейт-скриптов → сборка в конфигурации CI → сборка полного набора опций → продукты
-сборки группой `preflight_build_rules.sh` (четыре этапа: `scripts/check_goldens.sh debug|core|bundle`
+`scripts/check_docs_snippets.sh`, каждый со своей самопроверкой ПЕРЕД ним) → `actionlint` + `shellcheck` (severity `warning`) →
+`shellcheck` всех `.sh` из `git ls-files` → сборка в конфигурации CI → сборка полного набора опций →
+продукты сборки группой `preflight_build_rules.sh` (четыре этапа: `scripts/check_goldens.sh debug|core|bundle`
 по одному этапу на голден — тело Debug-этапа отдельный `scripts/check_debug_golden.sh`, а сверку
 `library.bundle` ведёт `scripts/check_library_bundle.sh`; голден физики в Debug, восемь голденов
 ядра, сверка `game.bundle` с исходниками — этап `bundle` несёт ТРИ утверждения; четвёртым идёт
