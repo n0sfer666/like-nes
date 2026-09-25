@@ -346,6 +346,17 @@ jobs:
           "$Q" | tee cmdline.txt
           grep -q "PASS" cmdline.txt
 
+      # A·1·2 аудита #21: зависимость плагина не ищется в рабочем каталоге. Тест сам доказывает,
+      # что его фикстура ловит дефект: старый флаг обязан найти ту же DLL в CWD.
+      - name: Platform — plugin DLL dependencies are not searched in the CWD
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          Q=$(find build -maxdepth 2 -type f -name 'win32_dll_search_test.exe' | head -1)
+          [ -n "$Q" ] || { echo "win32_dll_search_test not built"; exit 1; }
+          "$Q" | tee dll_search.txt
+          grep -q "win32-dll-search\] PASS" dll_search.txt
+
       # Гейт 8 спеки #12: кириллица и пробел в пути — не косметика, а другие API. Узкий fopen на
       # Windows идёт через ANSI-кодовую страницу и на кириллице открывает не тот файл или ничего,
       # поэтому весь ввод-вывод уведён в шов platform_io (_wfopen/CreateFileW по UTF-16). Пробел

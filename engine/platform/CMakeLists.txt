@@ -44,6 +44,19 @@ if(WIN32)
   # CommandLineToArgvW → тест только под Windows.
   add_executable(win32_cmdline_test win32_cmdline_test.cpp)
   target_link_libraries(win32_cmdline_test PRIVATE platform_core)
+  # Порядок поиска зависимостей плагина (A·1·2 аудита #21): зависимость уезжает в подкаталог,
+  # потому что каталог exe входит в LOAD_LIBRARY_SEARCH_DEFAULT_DIRS и нашёл бы её там.
+  add_library(dll_search_dep SHARED win32_dll_search_dep.cpp)
+  set_target_properties(dll_search_dep PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dll_search_dep)
+  add_library(dll_search_plugin SHARED win32_dll_search_plugin.cpp)
+  target_link_libraries(dll_search_plugin PRIVATE dll_search_dep)
+  add_executable(win32_dll_search_test win32_dll_search_test.cpp)
+  target_link_libraries(win32_dll_search_test PRIVATE platform_core)
+  add_dependencies(win32_dll_search_test dll_search_plugin)
+  target_compile_definitions(win32_dll_search_test PRIVATE
+    DLL_SEARCH_PLUGIN="$<TARGET_FILE:dll_search_plugin>"
+    DLL_SEARCH_DEP="$<TARGET_FILE:dll_search_dep>")
 else()
   target_sources(platform_core PRIVATE
     platform_io_posix.cpp platform_fs_posix.cpp platform_path_posix.cpp platform_env_posix.cpp
