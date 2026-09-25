@@ -28,10 +28,10 @@ a public-domain dedication with no attribution duty at all.
 | [flecs](https://github.com/SanderMertens/flecs) | v4.1.6 | MIT | ECS core (#1), editor reflection (#7) |
 | [Dear ImGui](https://github.com/ocornut/imgui) | v1.91.5-docking | MIT | IDE shell (#7), plugin panels (#6) |
 | [GLFW](https://github.com/glfw/glfw) | 3.4 | Zlib | desktop windowing / input (#4) |
-| [wgpu-native](https://github.com/gfx-rs/wgpu-native) | v0.19.4.1 | MIT **OR** Apache-2.0 | WebGPU backend (#2) |
+| [wgpu-native](https://github.com/gfx-rs/wgpu-native) | v0.19.4.1 release binaries, sha256 of each pinned in [`cmake/wgpu_native.sha256`](cmake/wgpu_native.sha256) and verified at configure time | MIT **OR** Apache-2.0 | WebGPU backend (#2) |
 | wgpu-native's Rust crate graph | 138 crates, pinned by its `Cargo.lock` | permissive mix — full per-crate list in [`THIRD-PARTY-NOTICES-RUST.txt`](THIRD-PARTY-NOTICES-RUST.txt) | statically linked into the iOS/Android binary; inside `libwgpu_native` on desktop |
 | [webgpu-headers](https://github.com/webgpu-native/webgpu-headers) | vendored in wgpu-native | BSD-3-Clause | WebGPU C API headers |
-| [WebGPU-distribution](https://github.com/eliemichel/WebGPU-distribution) | main-v0.2.0 | MIT | desktop wgpu packaging (#2) |
+| [WebGPU-distribution](https://github.com/eliemichel/WebGPU-distribution) | main-v0.2.0 (`f2b81861`); its backend commit `ac055bef` ("wgpu-v0.19.4.1 + fix") carries the upstream release binaries byte-for-byte | MIT | desktop wgpu packaging (#2) |
 | [glfw3webgpu](https://github.com/eliemichel/glfw3webgpu) | v1.2.0 | MIT | GLFW↔WebGPU surface glue (#2) |
 | [stb](https://github.com/nothings/stb) | pinned SHA | MIT **OR** Unlicense | `stb_image` — image decode in assetc (#5); `stb_vorbis` — audio decode (#3, `engine/audio/stb_vorbis_impl.c`); `stb_image_write` — golden screenshots (`engine/render/capture.cpp`) |
 | [Basis Universal](https://github.com/BinomialLLC/basis_universal) | v1.60 | Apache-2.0 | BC7/ETC transcode (#5) — **only `transcoder/` is compiled**; the encoder components, which upstream carries under BSD-3-Clause / MIT / Zlib, are not linked |

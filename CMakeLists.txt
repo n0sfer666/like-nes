@@ -82,6 +82,7 @@ FetchContent_Declare(webgpu
   GIT_TAG f2b81861a0c1889ef51b79fc777da8e11c37bdb3  # main-v0.2.0
 )
 FetchContent_MakeAvailable(webgpu)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/wgpu_native_check.cmake)
 
 # --- glfw3webgpu (surface creation glue) ---
 FetchContent_Declare(glfw3webgpu
