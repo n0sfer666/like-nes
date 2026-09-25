@@ -47,6 +47,15 @@ public:
         mixer_.post(c);
     }
 
+    // Громкость всего вывода поверх шин — ручка игрока (аудит #21 A·3·3), доля в [0,1].
+    void set_master_gain(fix32 gain, uint64_t sample_time) {
+        AudioCommand c{};
+        c.type = static_cast<uint32_t>(CmdType::SetMasterGain);
+        c.gain = gain.raw;
+        c.sample_time = sample_time;
+        mixer_.post(c);
+    }
+
     void set_listener(fix32 x, fix32 y, uint64_t sample_time) {
         AudioCommand c{};
         c.type = static_cast<uint32_t>(CmdType::SetListener);

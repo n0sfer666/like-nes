@@ -93,6 +93,9 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
         case CmdType::SetListener:
             listener_x_ = fix32::from_raw(c.x); listener_y_ = fix32::from_raw(c.y);
             break;
+        case CmdType::SetMasterGain:
+            master_ = fix_clamp01(fix32::from_raw(c.gain));
+            break;
     }
 }
 

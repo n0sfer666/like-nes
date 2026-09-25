@@ -1,5 +1,7 @@
 #include "audio.hpp"
 
+#include <algorithm>
+
 #ifdef AUDIO_HAVE_MINIAUDIO
 
 #include <atomic>
@@ -101,6 +103,13 @@ void GameAudio::on_events(const FxSink& sink) {
     }
 }
 
+int GameAudio::step_volume(int delta) {
+    volume_ = std::clamp(volume_ + delta, 0, 10);
+    if (impl_ && impl_->live)
+        impl_->eng.set_master_gain(fix32::from_raw(volume_ * 65536 / 10), impl_->sample_time);
+    return volume_;
+}
+
 void GameAudio::shutdown() {
     Impl* p = impl_;
     if (!p) return;
@@ -119,6 +128,7 @@ struct GameAudio::Impl {};
 GameAudio::~GameAudio() { shutdown(); }
 bool GameAudio::init(const std::string&) { return false; }
 void GameAudio::on_events(const FxSink&) {}
+int GameAudio::step_volume(int delta) { return volume_ = std::clamp(volume_ + delta, 0, 10); }
 // impl_ здесь всегда nullptr — но освобождение симметрично живой ветке, а не «поле, которого
 // в этой сборке будто нет»: иначе -Wunused-private-field справедливо ругается на заголовок.
 void GameAudio::shutdown() { delete impl_; impl_ = nullptr; }

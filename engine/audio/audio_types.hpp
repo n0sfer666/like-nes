@@ -19,7 +19,7 @@ enum class Bus : uint32_t { Music = 0, Sfx = 1, Ambience = 2, Ui = 3, Count = 4 
 constexpr uint32_t CMD_FLAG_LOOP = 1u;
 constexpr uint32_t CMD_FLAG_DUCK = 2u; // голос пригашает music-шину (sidechain-lite)
 
-enum class CmdType : uint32_t { Play = 0, Stop = 1, SetBusGain = 2, SetListener = 3 };
+enum class CmdType : uint32_t { Play = 0, Stop = 1, SetBusGain = 2, SetListener = 3, SetMasterGain = 4 };
 
 // POD-команда в lock-free SPSC (sim→mixer). Все поля по значению → детерминизм.
 struct AudioCommand {
@@ -27,7 +27,7 @@ struct AudioCommand {
     uint64_t guid;        // Play: ассет-источник
     uint32_t type;        // CmdType
     uint32_t voice_id;    // Play: назначенный продюсером хэндл; Stop: какой голос
-    int32_t gain;         // fix32.raw (Play: громкость; SetBusGain: gain)
+    int32_t gain;         // fix32.raw (Play: громкость; SetBusGain, SetMasterGain: gain)
     int32_t x;            // fix32.raw (Play: pos.x; SetListener: x)
     int32_t y;            // fix32.raw (Play: pos.y; SetListener: y)
     uint32_t bus;         // Bus

@@ -98,7 +98,7 @@ int run_window(int frame_cap) {
     install_glfw_input(win, engine);
     input::GamepadSource* pad = input::make_gamepad_source();
     bool have_pad = pad && pad->init();
-    std::printf("[game] WASD/arrows/LStick = move | gamepad: %s | Esc = quit\n",
+    std::printf("[game] WASD/arrows/LStick = move | gamepad: %s | -/= = volume | Esc = quit\n",
                 have_pad ? pad->backend_name() : "none");
 
     const fix32 dt = fix32::from_float(1.0 / 60);
@@ -106,6 +106,7 @@ int run_window(int frame_cap) {
     auto next = std::chrono::steady_clock::now();
     const SurfaceSpec spec{surface, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh)};
     int frames = 0;
+    bool vol_down = false, vol_up = false;
     bool surface_warned = false, lost = false;
     for (uint32_t t = 0; !glfwWindowShouldClose(win); ++t) {
         next += period;
@@ -124,6 +125,12 @@ int run_window(int frame_cap) {
         ach.autosave();
         materials.poll_shader();                         // правка шейдера — между тиком и кадром
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
+        const bool down = glfwGetKey(win, GLFW_KEY_MINUS) == GLFW_PRESS;
+        const bool up = glfwGetKey(win, GLFW_KEY_EQUAL) == GLFW_PRESS;
+        if ((down && !vol_down) || (up && !vol_up))
+            std::printf("[game] volume %d/10\n", audio.step_volume(down && !vol_down ? -1 : 1));
+        vol_down = down;
+        vol_up = up;
 
         const SurfaceFrame frame = acquire_frame(spec, gpu, "game", surface_warned);
         if (frame.quit) { lost = true; break; }
