@@ -14,13 +14,14 @@ fail=0
 
 expect() {
     local label=$1 home=$2 input=$3 want=$4 got
-    printf '%s' "$input" > "$tmp/r.txt"
+    printf '%s\n' "$input" > "$tmp/r.txt"
+    printf '%s\n' "$want" > "$tmp/want.txt"
     HOME=$home redact_home_file "$tmp/r.txt"
-    got=$(cat "$tmp/r.txt")
-    if [ "$got" = "$want" ]; then
+    got=$(od -c "$tmp/r.txt" | sed -n '1,4p')
+    if cmp -s "$tmp/r.txt" "$tmp/want.txt"; then
         echo "ok   $label"
     else
-        echo "FAIL ${label}: «${got}», ждали «${want}»"; fail=1
+        echo "FAIL ${label}: байты разошлись, ждали «${want}», получено:"; echo "$got"; fail=1
     fi
 }
 
