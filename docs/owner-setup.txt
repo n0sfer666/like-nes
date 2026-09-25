@@ -1448,7 +1448,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
   про native==WASM так и говорит. Перепрогон — когда коммит тронул
   engine/plugin/wasm_*.
 
-  Сборка (C-API уже распакован в deps/wasmtime-<версия>-c-api):
+  C-API в deps/ кладёт скрипт — пиннутая версия, сверка sha256; чужая версия
+  в deps/ валит конфигурацию FATAL_ERROR'ом с её именем:
+
+      bash scripts/fetch_wasmtime.sh
+
+  Последняя строка: «fetch_wasmtime: wasmtime-v26.0.0-<тройка>-c-api
+  распакован в deps/ (sha256 …)» или «… уже в deps/ (sha256 сверена)».
+  «deps/wasmtime-… есть, но не сверен с пином» — каталог распакован руками
+  или до штампа .sha256 (аудит #21 A·3·9): удалить его и запустить снова;
+  конфигурация с таким каталогом падает FATAL_ERROR'ом «не сверен с пином».
+
+  На Windows пина нет (у wasmtime там .zip, а пин и fetch знают только .tar.xz):
+  конфигурация печатает «PLUGIN_WASM: wasmtime для x86_64-Windows не пиннут —
+  gate #5 пропущен», fetch_wasmtime.sh отказывает, и раздел на Windows НЕ
+  гоняется — это известный пробел, а не провал. Каталог соседней тройки,
+  скачанный тем же скриптом (WASMTIME_TRIPLE=x86_64-macos под Rosetta),
+  конфигурации не мешает.
+
+  Сборка:
 
       cmake -S . -B build -G Ninja -DPLUGIN_WASM=ON
       cmake --build build --target plugin_wasm_test plugin_wasm_host_test plugin_wind
@@ -1457,7 +1475,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
       ./build/plugin_wasm_test engine/plugin/wasm/gravity.wat build/plugin_wind.so
 
-  Должен напечатать (на Windows — build\plugin_wind.dll):
+  Должен напечатать:
     [plugin] wind registered
     [plugin-wasm] native golden = 0x7d9a6e60cbed4156
     [plugin-wasm] WASM golden   = 0x7d9a6e60cbed4156

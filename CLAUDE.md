@@ -87,6 +87,7 @@ decisions, notes). Читать перед началом любой задач�
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
 | читатели секций держат битый файл | `./build-full/fuzz_readers` | preflight | [fuzz-readers](.context/gates/fuzz-readers.md) |
 | инварианты дерева, копии признака обхода | `bash scripts/tree_invariants.sh` · `python3 scripts/check_tree_roots.py` | коммит | [preflight](.context/gates/preflight.md) |
+| пин wasmtime C-API в deps/ | `bash scripts/check_wasmtime_pin.sh` | preflight | [wasmtime-pin](.context/gates/wasmtime-pin.md) |
 | релизный пакет | `bash scripts/check_release.sh` | preflight | [release](.context/gates/release.md) |
 | пакет Linux с машины macOS | `bash scripts/check_release_container.sh [--live]` | preflight · `--live` руками | [release-container](.context/gates/release-container.md) |
 | пакет Windows задачей CI | `bash scripts/check_release_ci.sh [--live]` | preflight · `--live` руками | [release-ci](.context/gates/release-ci.md) |

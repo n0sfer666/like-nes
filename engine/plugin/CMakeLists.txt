@@ -81,8 +81,16 @@ endif()
 # гость с бесконечным циклом вешал кадр, а memory.grow забирал адресное пространство целиком.
 # Гейты: native≡WASM sim-hash + OOB/cap/loop/grow escape→trap + позитивный контроль роста.
 if(PLUGIN_WASM)
-  file(GLOB WASMTIME_DIR ${CMAKE_SOURCE_DIR}/deps/wasmtime-*-c-api)
-  if(WASMTIME_DIR AND EXISTS ${WASMTIME_DIR}/include/wasmtime.h)
+  include(${CMAKE_SOURCE_DIR}/cmake/wasmtime_pin.cmake)
+  # На Apple целевая архитектура — CMAKE_OSX_ARCHITECTURES, а не процессор хоста; универсальная
+  # сборка (две архитектуры) тройки не имеет, и гейт пропускается.
+  set(WASMTIME_CPU "${CMAKE_SYSTEM_PROCESSOR}")
+  if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+    string(REPLACE ";" "+" WASMTIME_CPU "${CMAKE_OSX_ARCHITECTURES}")
+  endif()
+  like_nes_wasmtime_triple("${CMAKE_SYSTEM_NAME}" "${WASMTIME_CPU}" WASMTIME_TRIPLE)
+  like_nes_wasmtime_dir(${CMAKE_SOURCE_DIR}/deps "${WASMTIME_TRIPLE}" WASMTIME_DIR)
+  if(WASMTIME_DIR)
     # Три сущности — три файла: песочница с потолками (wasm_sandbox), хозяин игрового пути
     # (wasm_host) и зонд побега (wasm_escape). Песочницу делят двое: потолок, поставленный только
     # на игровом пути, оставил бы гейт мерить другую конфигурацию (аудит #21, ревью A·2).
@@ -101,7 +109,5 @@ if(PLUGIN_WASM)
         target_link_libraries(${T} PRIVATE pthread dl m)
       endif()
     endforeach()
-  else()
-    message(STATUS "PLUGIN_WASM: wasmtime C-API не найден в deps/ — gate #5 пропущен")
   endif()
 endif()

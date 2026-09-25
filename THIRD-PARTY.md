@@ -118,9 +118,11 @@ not follow that shape:
   (`_deps/webgpu-backend-wgpu-src/bin/`) plus the *wrapper's* MIT license; the
   library's own notice comes from `LICENSE.MIT` in the `gfx-rs/wgpu-native`
   repository at the tag recorded in `wgpu-native-git-tag.txt`.
-- **Wasmtime** — not fetched by CMake; it is a manually downloaded SDK under
-  `deps/wasmtime-<version>-<triple>-c-api/` (gitignored, currently
-  `aarch64-macos` only), with its license at `LICENSE` inside that directory.
+- **Wasmtime** — not fetched by CMake; `scripts/fetch_wasmtime.sh` downloads the
+  C-API release archive, checks it against the version and sha256 pinned in
+  `cmake/wasmtime.sha256` (`x86_64|aarch64` × `linux|macos`; Windows is not
+  pinned) and unpacks it to `deps/wasmtime-<version>-<triple>-c-api/`
+  (gitignored), with its license at `LICENSE` inside that directory.
 - **Android NDK components** — `android_native_app_glue.c` and
   `libc++_shared.so` come from the NDK install referenced by
   `platform/android/build_apk.sh`. The notices are
