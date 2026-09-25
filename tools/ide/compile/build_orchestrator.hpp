@@ -13,6 +13,7 @@ struct BuildResult {
     int exit_code = -1;
     std::vector<Diagnostic> diagnostics;   // → build-панель редактора
     std::string raw_output;
+    bool truncated = false; // вывод упёрся в platform::CAPTURE_LIMIT, компилятор убит
 };
 
 // Запускает argv (напр. {"c++","-shared","-fPIC","src.cpp","-o","out.so"}), захватывает

@@ -1,4 +1,6 @@
 #include "platform_process.hpp"
+#include "platform_capture.hpp"
+#include "platform_spawn_posix.hpp"
 
 #include <csignal>
 #include <fcntl.h>
@@ -6,36 +8,61 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <cstdio>
 
 namespace platform {
 namespace {
 
+// Держатель действий и атрибутов posix_spawn: обе структуры обязаны быть разрушены на любом
+// выходе из spawn_child.
+struct SpawnSetup {
+    posix_spawn_file_actions_t fa;
+    posix_spawnattr_t attr;
+    bool ok = false;
+
+    SpawnSetup() {
+        if (posix_spawn_file_actions_init(&fa) != 0) return;
+        if (posix_spawnattr_init(&attr) != 0) {
+            posix_spawn_file_actions_destroy(&fa);
+            return;
+        }
+        ok = true;
+    }
+    ~SpawnSetup() {
+        if (!ok) return;
+        posix_spawnattr_destroy(&attr);
+        posix_spawn_file_actions_destroy(&fa);
+    }
+    SpawnSetup(const SpawnSetup&) = delete;
+    SpawnSetup& operator=(const SpawnSetup&) = delete;
+};
+
 // out_fd >= 0 — stdout и stderr ребёнка уезжают туда; иначе оба в /dev/null.
-pid_t fork_exec(const std::vector<std::string>& argv, int out_fd = -1) {
+//
+// posix_spawn, а не fork + execvp: между ними исполнялся бы наш код в копии многопоточного
+// процесса (freopen там берёт блокировку stdio, которую чужой поток родителя мог унести с собой),
+// и ребёнок наследовал бы каждый дескриптор без CLOEXEC — привязанный сокет держал порт занятым,
+// пока жив ребёнок. Ребёнку достаются только 0, 1 и 2, как на Windows.
+pid_t spawn_child(const std::vector<std::string>& argv, int out_fd = -1) {
     std::vector<char*> c;
     c.reserve(argv.size() + 1);
     for (const auto& s : argv) c.push_back(const_cast<char*>(s.c_str()));
     c.push_back(nullptr);
-    // fork копирует и буферы stdio. Не слив их, ребёнок при первом же flush повторно выплюнет
-    // всё, что родитель ещё не дописал, — и вывод теста двоится, когда stdout не терминал.
-    std::fflush(nullptr);
-    const pid_t pid = fork();
-    if (pid != 0) return pid;
-    if (out_fd >= 0) {
-        // dup2 снимает CLOEXEC с копии — эти два fd обязаны пережить exec, в отличие от исходного
-        // конца канала, который в exec'нутый компилятор не течёт. Провал молча оставил бы ребёнка
-        // писать в родительский stdout, а читателю канала — пустой вывод и «ошибок нет».
-        if (dup2(out_fd, STDOUT_FILENO) < 0 || dup2(out_fd, STDERR_FILENO) < 0) _exit(127);
-    } else {
-        // Шов platform::open_file здесь не при делах: это не открытие файла по пути пользователя,
-        // а переприсваивание уже существующего потока ребёнка устройству. Шов возвращает FILE*,
-        // а нужно заменить сам stdout — форма, которой у него нет и быть не должно.
-        if (std::freopen("/dev/null", "w", stdout)) { /* fs-seam: allow переназначение потока ребёнка устройством */ }
-        if (std::freopen("/dev/null", "w", stderr)) { /* fs-seam: allow переназначение потока ребёнка устройством */ }
-    }
-    execvp(c[0], c.data());
-    _exit(127);
+
+    SpawnSetup setup;
+    if (!setup.ok) return -1;
+    posix_spawn_file_actions_t& fa = setup.fa;
+    const bool routed =
+        out_fd >= 0
+            ? posix_spawn_file_actions_adddup2(&fa, out_fd, STDOUT_FILENO) == 0 &&
+                  posix_spawn_file_actions_adddup2(&fa, out_fd, STDERR_FILENO) == 0
+            : posix_spawn_file_actions_addopen(&fa, STDOUT_FILENO, "/dev/null", O_WRONLY, 0) == 0 &&
+                  posix_spawn_file_actions_adddup2(&fa, STDOUT_FILENO, STDERR_FILENO) == 0;
+    if (!routed || !posix::inherit_only_std(setup.attr, fa)) return -1;
+
+    pid_t pid = -1;
+    if (posix_spawnp(&pid, c[0], &fa, &setup.attr, c.data(), posix::current_environment()) != 0)
+        return -1;
+    return pid;
 }
 
 int reap(pid_t pid) {
@@ -71,7 +98,7 @@ uint32_t process_id() { return static_cast<uint32_t>(getpid()); }
 
 bool run_tool(const std::vector<std::string>& argv) {
     if (argv.empty()) return false;
-    const pid_t pid = fork_exec(argv);
+    const pid_t pid = spawn_child(argv);
     if (pid < 0) return false;
     const int status = reap(pid);
     return status >= 0 && WIFEXITED(status) && WEXITSTATUS(status) == 0;
@@ -92,7 +119,7 @@ Child& Child::operator=(Child&& o) noexcept {
 
 bool Child::spawn(const std::vector<std::string>& argv) {
     if (argv.empty() || raw_ != 0) return false;
-    const pid_t pid = fork_exec(argv);
+    const pid_t pid = spawn_child(argv);
     if (pid < 0) return false;
     raw_ = static_cast<intptr_t>(pid);
     return true;
@@ -106,7 +133,8 @@ bool Child::wait(ExitStatus& out) {
     return classify(reap(pid), out);
 }
 
-bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status) {
+bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status,
+                 size_t max_output) {
     output.clear();
     status = ExitStatus{};
     if (argv.empty()) return false;
@@ -133,19 +161,27 @@ bool run_capture(const std::vector<std::string>& argv, std::string& output, Exit
         return false;
     }
 
-    const pid_t pid = fork_exec(argv, fds[1]);
+    const pid_t pid = spawn_child(argv, fds[1]);
     ::close(fds[1]);
     if (pid < 0) { ::close(fds[0]); return false; }
 
     char buf[4096];
+    bool truncated = false;
     for (;;) {
         const ssize_t n = read(fds[0], buf, sizeof(buf));
-        if (n > 0) { output.append(buf, static_cast<size_t>(n)); continue; }
+        if (n > 0) {
+            if (append_capped(output, buf, static_cast<size_t>(n), max_output)) continue;
+            truncated = true;
+            break;
+        }
         if (n < 0 && errno == EINTR) continue;   // EINTR-safe: не терять диагностики
         break;                                    // EOF (0) либо реальная ошибка
     }
     ::close(fds[0]);
-    return classify(reap(pid), status);
+    if (truncated) ::kill(pid, SIGKILL);
+    const bool reaped = classify(reap(pid), status);
+    if (reaped && truncated) status.kind = ExitKind::Truncated;
+    return reaped;
 }
 
 bool Child::kill_and_wait() {

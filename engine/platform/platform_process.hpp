@@ -1,10 +1,11 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
 
 // Шов №2 платформы (спека #12, решение 2): запуск дочернего процесса. Реализации —
-// platform_process_posix.cpp (fork/execvp) и platform_process_win32.cpp (CreateProcessW),
+// platform_process_posix.cpp (posix_spawnp) и platform_process_win32.cpp (CreateProcessW),
 // выбор делает CMake, условной компиляции внутри нет.
 //
 // Потребители: пекарь (assetc дёргает пиннутые кодеки), build-loop и Play-spawn (#13).
@@ -39,6 +40,7 @@ enum class ExitKind {
     Exited,   // вернулся из main / вызвал exit — code осмыслен
     Crashed,  // нарушение доступа, недопустимая инструкция, abort
     Killed,   // остановлен через kill_and_wait этого же объекта
+    Truncated, // run_capture: вывод превысил потолок, ребёнок убит, output — его первые байты
     Unknown,  // ожидание не удалось: код возврата брать неоткуда
 };
 
@@ -60,7 +62,16 @@ struct ExitStatus {
 // сборка, а не шов. Расхождение ровно одно и намеренное: после EOF Windows отводит на само
 // завершение 30 с (упавший процесс там способен неопределённо долго висеть в WerFault), POSIX
 // ждёт waitpid столько, сколько нужно.
-bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status);
+//
+// Ограничен не срок, а объём: компилятор в бесконечном потоке диагностик (рекурсивная
+// инстанциация) иначе копил бы строку до OOM редактора с несохранённой сценой. Превысив
+// max_output, ребёнок убивается, канал закрывается (его внуки получают EPIPE, а не ждут читателя),
+// status.kind = Truncated, output хранит ровно первые max_output байт. Ровно max_output байт
+// до EOF — ещё не усечение.
+constexpr size_t CAPTURE_LIMIT = size_t{16} << 20;
+
+bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status,
+                 size_t max_output = CAPTURE_LIMIT);
 
 class Child {
 public:

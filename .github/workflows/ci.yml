@@ -788,7 +788,7 @@ jobs:
           # нужен mmap-загрузчику, `platform_process_posix.cpp` — `codec.cpp`, который зовёт
           # внешнего пекаря. Своей группы им не завести: группа из одного списка сверяется сама с
           # собой, и гейт справедливо считает такое находкой, а не молчанием.
-          PLAT_IO="engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp"
+          PLAT_IO="engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp"
           SAN="-std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
           INC="-Iengine/asset -Iengine/platform -isystem $ZINC -isystem $SINC"
           c++ $SAN $INC engine/asset/asset_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
@@ -1364,7 +1364,7 @@ jobs:
           c++ $SAN tools/ide/game_child.cpp $SEAM \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp -pthread -lrt -o ide_gc_san
           c++ $SAN tools/ide/play_spawn_test.cpp $SEAM \
-            engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
             -pthread -lrt -o ide_play_san
           # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 несущий: с включённым
@@ -1417,7 +1417,7 @@ jobs:
             tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
             engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
-            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/platform/platform_module_posix.cpp engine/platform/platform_watch_linux.cpp \
             engine/platform/platform_watch_poll.cpp \
             -ldl -lpthread -o ide_bl_san
@@ -2467,7 +2467,7 @@ jobs:
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
             engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
-            engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp $PLAT_FS $PLAT_ARGS \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt

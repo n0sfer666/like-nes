@@ -1,4 +1,5 @@
 #include "platform_process.hpp"
+#include "platform_capture.hpp"
 
 #include <windows.h>
 
@@ -81,7 +82,8 @@ bool Child::wait(ExitStatus& out) {
     return true;
 }
 
-bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status) {
+bool run_capture(const std::vector<std::string>& argv, std::string& output, ExitStatus& status,
+                 size_t max_output) {
     output.clear();
     status = ExitStatus{};
     if (argv.empty()) return false;
@@ -109,9 +111,14 @@ bool run_capture(const std::vector<std::string>& argv, std::string& output, Exit
 
     char buf[4096];
     DWORD n = 0;
-    while (ReadFile(rd, buf, static_cast<DWORD>(sizeof(buf)), &n, nullptr) != 0 && n > 0)
-        output.append(buf, n);
+    bool truncated = false;
+    while (ReadFile(rd, buf, static_cast<DWORD>(sizeof(buf)), &n, nullptr) != 0 && n > 0) {
+        if (append_capped(output, buf, n, max_output)) continue;
+        truncated = true;
+        break;
+    }
     CloseHandle(rd);
+    if (truncated) TerminateProcess(pi.hProcess, KILL_CODE);
 
     // Вывод дочитан до EOF, то есть ребёнок уже закрыл свои концы — ждать здесь по сути нечего.
     // Конечный таймаут остаётся страховкой от единственного сценария, где это не так: упавший
@@ -123,6 +130,7 @@ bool run_capture(const std::vector<std::string>& argv, std::string& output, Exit
     CloseHandle(pi.hProcess);
     if (!got) return false;
     classify(code, status);
+    if (truncated) status.kind = ExitKind::Truncated;
     return true;
 }
 

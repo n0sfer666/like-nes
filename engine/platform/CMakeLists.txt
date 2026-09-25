@@ -21,7 +21,7 @@ target_link_libraries(platform_shmem_test PRIVATE platform_core)
 # Шов запуска процесса с захватом вывода (спека #13): перезапускает сам себя со служебным
 # режимом, потому отдельной цели-ребёнка не нужно. Тоже вне ветки WIN32 — гоняется на трёх ОС.
 add_executable(platform_process_test platform_process_test.cpp)
-target_link_libraries(platform_process_test PRIVATE platform_core)
+target_link_libraries(platform_process_test PRIVATE platform_core platform_net)
 
 # Шов наблюдения за каталогом (спека #13, решение 4): три РАЗНЫЕ по устройству реализации
 # (опрос дескриптора / колбэк с потока run loop / асинхронное чтение) под одним опросным API —
@@ -53,10 +53,10 @@ else()
   # Наблюдение — единственный шов, где POSIX не общий: inotify есть только на Linux, FSEvents
   # только на macOS, и «POSIX-реализация» тут была бы фикцией из двух #ifdef.
   if(APPLE)
-    target_sources(platform_core PRIVATE platform_watch_macos.cpp)
+    target_sources(platform_core PRIVATE platform_watch_macos.cpp platform_spawn_macos.cpp)
     target_link_libraries(platform_core PUBLIC "-framework CoreServices")
   else()
-    target_sources(platform_core PRIVATE platform_watch_linux.cpp)
+    target_sources(platform_core PRIVATE platform_watch_linux.cpp platform_spawn_linux.cpp)
   endif()
   # shm_open на Linux живёт в librt (на macOS — в libc). Раньше эту зависимость тянул ipc_core
   # из tools/ide; после переезда шва в платформу она принадлежит platform_core.
