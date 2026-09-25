@@ -482,6 +482,22 @@ jobs:
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
 
+      # Аудит #21 A·3·13: у арены транзитных целей нет вытеснения, и потолок превращает рост VRAM на
+      # каждый новый размер цели в отказ вслух. На живом устройстве, как материалы ниже: предмет —
+      # создание текстур. Код возврата и вывод разведены по той же причине, что там.
+      - name: Render — target arena refuses descriptors over its cap on a real GPU
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'render_arena_test' -o -name 'render_arena_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "render_arena_test not built"; exit 1; }
+          set +e
+          "$BIN" > arena.txt 2>&1
+          rc=$?
+          set -e
+          cat arena.txt
+          [ "$rc" -eq 0 ] || { echo "ARENA TEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "arena-cap: PASS - 32 slot(s), 2 refusal(s)" arena.txt
+
       # Гейты 4/5/6 спеки #18 — шов «материал → пайплайн» на живой видеокарте, на всех трёх ОС и
       # БЕЗ эталонной картинки. Утверждения здесь числовые, и потому портируемые: сколько пайплайнов
       # дал разогрев (семь материалов делят три точки входа), во сколько вызовов собрался кадр

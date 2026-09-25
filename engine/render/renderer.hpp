@@ -10,15 +10,15 @@
 // в render() НЕТ per-frame heap/GPU-аллокаций (инвариант #5).
 class Renderer {
 public:
-    void init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
-              WGPUTextureFormat out_format, uint32_t w, uint32_t h);
+    [[nodiscard]] bool init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
+                            WGPUTextureFormat out_format, uint32_t w, uint32_t h);
     void render(const SceneSnapshot& snap, WGPUTextureView out_view);
     void shutdown();
 
     const TargetArena& arena() const { return arena_; }
 
 private:
-    void build_targets();
+    bool build_targets();
     void build_gbuffer();
     void build_lighting();
     void build_forward();

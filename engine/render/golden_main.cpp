@@ -22,7 +22,10 @@ constexpr double MAX_CAP = 0.35;     // жёсткий кап пиковой о�
 std::vector<uint8_t> render_frame(GpuContext& gpu) {
     Sprite sprite; sprite.init(gpu.device, gpu.queue);
     Renderer r;
-    r.init(gpu.device, gpu.queue, sprite, WGPUTextureFormat_RGBA8Unorm, W, H);
+    if (!r.init(gpu.device, gpu.queue, sprite, WGPUTextureFormat_RGBA8Unorm, W, H)) {
+        r.shutdown(); sprite.shutdown();
+        return {};
+    }
     Scene scene;
     for (uint32_t i = 0; i < FRAME; ++i) scene.advance();
     std::vector<uint8_t> px = capture::render_offscreen(gpu.device, gpu.queue, r,

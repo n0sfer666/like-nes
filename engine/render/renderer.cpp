@@ -53,7 +53,7 @@ void fullscreen_pass(WGPUCommandEncoder enc, WGPUTextureView view, WGPURenderPip
 
 } // namespace
 
-void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
+bool Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
                     WGPUTextureFormat out_format, uint32_t w, uint32_t h) {
     device_ = device; queue_ = queue; sprite_ = &sprite;
     out_format_ = out_format; w_ = w; h_ = h;
@@ -74,7 +74,7 @@ void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
     bld.size = uniform_stride_ * 2;
     blur_ubo_ = wgpuDeviceCreateBuffer(device, &bld);
 
-    build_targets();
+    if (!build_targets()) return false;
 
     // Направления blur — константны для фикс. разрешения: пишем один раз (не per-frame).
     BlurUniform bh = {}; bh.dir[0] = 1.0f / bloom_w_; bh.dir[1] = 0.0f;
@@ -87,9 +87,10 @@ void Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
     build_forward();
     build_bloom();
     build_tonemap();
+    return true;
 }
 
-void Renderer::build_targets() {
+bool Renderer::build_targets() {
     arena_.begin_frame();
     const WGPUTextureUsage rt = (WGPUTextureUsage)(WGPUTextureUsage_RenderAttachment |
                                                    WGPUTextureUsage_TextureBinding);
@@ -99,6 +100,7 @@ void Renderer::build_targets() {
     bloom_w_ = w_ / 2; bloom_h_ = h_ / 2;
     bloom_a_ = arena_.acquire(TargetDesc{bloom_w_, bloom_h_, HDR_FMT, rt});
     bloom_b_ = arena_.acquire(TargetDesc{bloom_w_, bloom_h_, HDR_FMT, rt});
+    return albedo_ && normal_ && hdr_ && bloom_a_ && bloom_b_;
 }
 
 void Renderer::render(const SceneSnapshot& snap, WGPUTextureView out_view) {

@@ -1,5 +1,7 @@
 #include "arena.hpp"
 
+#include <cstdio>
+
 void TargetArena::init(WGPUDevice device) {
     device_ = device;
 }
@@ -15,6 +17,14 @@ WGPUTextureView TargetArena::acquire(const TargetDesc& desc) {
             s.in_use = true;
             return s.view;
         }
+    }
+
+    if (pool_.size() >= MAX_SLOTS) {
+        if (refusals_++ == 0)
+            std::fprintf(stderr, "[render] target arena: %zu slots allocated (cap %zu), refusing "
+                         "%ux%u (a new size or too many targets of one descriptor in a frame)\n",
+                         pool_.size(), MAX_SLOTS, desc.w, desc.h);
+        return nullptr;
     }
 
     // Промах пула: ленивое создание один раз под новый дескриптор (только в warm-up).

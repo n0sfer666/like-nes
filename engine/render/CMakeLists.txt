@@ -21,6 +21,12 @@ target_link_libraries(render_golden PRIVATE render_core platform_core webgpu)
 target_copy_webgpu_binaries(render_golden)
 reproducible_rpath(render_golden)
 
+# Потолок арены транзитных целей (аудит #21 A·3·13) — на живом устройстве, headless, на трёх ОС.
+add_executable(render_arena_test arena_test_main.cpp)
+target_link_libraries(render_arena_test PRIVATE render_core webgpu)
+target_copy_webgpu_binaries(render_arena_test)
+reproducible_rpath(render_arena_test)
+
 # Ядро ImGui + glfw + WebGPU-бэкенд + общая оконная обвязка (wgpu_imgui). Оба shell'а
 # (plugin + editor) рендерят через WebGPU — без deprecated OpenGL. OFF в headless CI.
 if(PLUGIN_UI)

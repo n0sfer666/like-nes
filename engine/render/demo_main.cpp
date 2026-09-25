@@ -37,7 +37,10 @@ int run_dump(const char* path) {
     if (!gpu.init(nullptr)) { gpu.shutdown(); return 1; }
     Sprite sprite; sprite.init(gpu.device, gpu.queue);
     Renderer renderer;
-    renderer.init(gpu.device, gpu.queue, sprite, WGPUTextureFormat_RGBA8Unorm, DUMP_W, DUMP_H);
+    if (!renderer.init(gpu.device, gpu.queue, sprite, WGPUTextureFormat_RGBA8Unorm, DUMP_W, DUMP_H)) {
+        renderer.shutdown(); sprite.shutdown(); gpu.shutdown();
+        return 1;
+    }
 
     Scene scene;
     for (uint32_t i = 0; i < DUMP_FRAME; ++i) scene.advance();
@@ -75,7 +78,12 @@ int run_window() {
 
     Sprite sprite; sprite.init(gpu.device, gpu.queue);
     Renderer renderer;
-    renderer.init(gpu.device, gpu.queue, sprite, fmt, (uint32_t)fbw, (uint32_t)fbh);
+    if (!renderer.init(gpu.device, gpu.queue, sprite, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
+        renderer.shutdown(); sprite.shutdown();
+        wgpuSurfaceRelease(surface); gpu.shutdown();
+        glfwDestroyWindow(window); glfwTerminate();
+        return 1;
+    }
     Scene scene;
 
     int frames = 0;
