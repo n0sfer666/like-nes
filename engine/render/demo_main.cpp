@@ -8,6 +8,7 @@
 #include "renderer.hpp"
 #include "scene.hpp"
 #include "sprite.hpp"
+#include "surface_frame.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -15,22 +16,6 @@
 namespace {
 
 constexpr uint32_t DUMP_W = 960, DUMP_H = 540, DUMP_FRAME = 90;
-
-WGPUTextureFormat configure_surface(WGPUSurface surface, WGPUAdapter adapter,
-                                    WGPUDevice device, uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(surface, adapter, &caps);
-    WGPUTextureFormat format = caps.formatCount > 0 ? caps.formats[0]
-                                                     : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = device; cfg.format = format;
-    cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto;
-    cfg.width = w; cfg.height = h; cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(surface, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return format;
-}
 
 int run_dump(const char* path) {
     GpuContext gpu;
@@ -86,28 +71,36 @@ int run_window() {
     }
     Scene scene;
 
-    int frames = 0;
+    const SurfaceSpec spec{surface, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh)};
+    int frames = 0, drawn = 0;
+    bool warned = false, lost = false;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        WGPUSurfaceTexture st = {};
-        wgpuSurfaceGetCurrentTexture(surface, &st);
-        if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-            if (st.texture) wgpuTextureRelease(st.texture);
-            continue;
+        const SurfaceFrame f = acquire_frame(spec, gpu, "render", warned);
+        if (f.quit) { lost = true; break; }
+        if (f.texture) {
+            ++drawn;
+            WGPUTextureView view = wgpuTextureCreateView(f.texture, nullptr);
+            scene.advance();
+            renderer.render(scene.snapshot((float)fbw / fbh), view);
+            wgpuSurfacePresent(surface);
+            wgpuTextureViewRelease(view);
+            wgpuTextureRelease(f.texture);
         }
-        WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
-        scene.advance();
-        renderer.render(scene.snapshot((float)fbw / fbh), view);
-        wgpuSurfacePresent(surface);
-        wgpuTextureViewRelease(view);
-        wgpuTextureRelease(st.texture);
         if (++frames >= 600) glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
     renderer.shutdown(); sprite.shutdown();
     wgpuSurfaceRelease(surface); gpu.shutdown();
     glfwDestroyWindow(window); glfwTerminate();
-    std::printf("[render] window clean exit after %d frames\n", frames);
+    if (lost) return 1;
+    // Такта, кроме `Fifo`, у петли нет: залипшая поверхность прокручивает 600 пропусков за
+    // миллисекунды, и без счёта нарисованных это был бы «clean exit» без единого кадра.
+    if (drawn == 0) {
+        std::fprintf(stderr, "[render] window exit after %d frames, none drawn\n", frames);
+        return 1;
+    }
+    std::printf("[render] window clean exit after %d frames, %d drawn\n", frames, drawn);
     return 0;
 }
 

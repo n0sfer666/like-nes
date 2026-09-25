@@ -1,11 +1,17 @@
 # --- Render-вертикаль (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
+# Кадр оконной петли из поверхности (аудит #21 A·3·6) — отдельно от render_core: shell'ы на imgui
+# render_core не линкуют и компилируют gpu.cpp сами.
+add_library(render_surface STATIC surface_frame.cpp)
+target_include_directories(render_surface PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(render_surface PUBLIC webgpu)
+
 add_library(render_core STATIC
   gpu.cpp arena.cpp scene.cpp sprite.cpp
   gpu_util.cpp shaders_gbuffer.cpp shaders_lighting.cpp
   shaders_post.cpp renderer.cpp renderer_pipelines.cpp
   renderer_forward.cpp renderer_bloom.cpp capture.cpp)
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
-target_link_libraries(render_core PUBLIC webgpu)
+target_link_libraries(render_core PUBLIC webgpu render_surface)
 like_nes_vendored_object(stb_impl_vendored stb_impl.cpp)   # TU целиком — реализация stb, ни строки нашей
 target_include_directories(stb_impl_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(render_core PRIVATE stb_impl_vendored)
@@ -26,6 +32,12 @@ add_executable(render_arena_test arena_test_main.cpp)
 target_link_libraries(render_arena_test PRIVATE render_core webgpu)
 target_copy_webgpu_binaries(render_arena_test)
 reproducible_rpath(render_arena_test)
+
+# Статус поверхности → действие оконной петли (аудит #21 A·3·6, A·3·11) — чистая функция, без GPU.
+add_executable(render_surface_frame_test surface_frame_test.cpp)
+target_link_libraries(render_surface_frame_test PRIVATE render_surface)
+target_copy_webgpu_binaries(render_surface_frame_test)
+reproducible_rpath(render_surface_frame_test)
 
 # Ядро ImGui + glfw + WebGPU-бэкенд + общая оконная обвязка (wgpu_imgui). Оба shell'а
 # (plugin + editor) рендерят через WebGPU — без deprecated OpenGL. OFF в headless CI.
@@ -51,7 +63,7 @@ if(PLUGIN_UI)
   # диагностика из чужого заголовка вменяется нам и валит гейт при любом бампе зависимости.
   target_include_directories(imgui SYSTEM PUBLIC
     ${imgui_SOURCE_DIR} ${imgui_SOURCE_DIR}/backends)
-  target_link_libraries(imgui PUBLIC glfw webgpu)
+  target_link_libraries(imgui PUBLIC glfw webgpu render_surface)
   target_compile_definitions(imgui PUBLIC IMGUI_IMPL_WEBGPU_BACKEND_WGPU)   # wgpu-native, не Dawn
 endif()
 

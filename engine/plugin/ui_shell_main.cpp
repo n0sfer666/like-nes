@@ -85,7 +85,10 @@ int main(int argc, char** argv) {
     }
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(win, &fbw, &fbh);
-    WGPUTextureFormat fmt = wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+    SurfaceSpec spec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
+                     static_cast<uint32_t>(fbh)};
+    spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
+    const WGPUTextureFormat fmt = spec.format;
 
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -96,14 +99,17 @@ int main(int argc, char** argv) {
     info.RenderTargetFormat = fmt;
     ImGui_ImplWGPU_Init(&info);
 
-    bool layout_built = false;
+    bool layout_built = false, surface_warned = false;
+    int rc = 0;
     while (!glfwWindowShouldClose(win)) {
         glfwPollEvents();
         int cw = 0, ch = 0;
         glfwGetFramebufferSize(win, &cw, &ch);
         if (cw > 0 && ch > 0 && (cw != fbw || ch != fbh)) {   // resize → реконфиг surface
             fbw = cw; fbh = ch;
-            wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+            spec.width = static_cast<uint32_t>(fbw);
+            spec.height = static_cast<uint32_t>(fbh);
+            reconfigure_surface(spec, gpu.device);
         }
         ImGui_ImplWGPU_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -150,7 +156,11 @@ int main(int argc, char** argv) {
         for (auto& p : panels) draw_panel(p);
 
         ImGui::Render();
-        wgpu_imgui::present(gpu, surface, WGPUColor{0.10, 0.11, 0.13, 1.0});
+        if (wgpu_imgui::present(gpu, spec, "shell", surface_warned, WGPUColor{0.10, 0.11, 0.13, 1.0})
+            == wgpu_imgui::Presented::Lost) {
+            rc = 1;
+            break;
+        }
     }
 
     ImGui_ImplWGPU_Shutdown();
@@ -160,5 +170,5 @@ int main(int argc, char** argv) {
     gpu.shutdown();
     glfwDestroyWindow(win);
     glfwTerminate();
-    return 0;
+    return rc;
 }

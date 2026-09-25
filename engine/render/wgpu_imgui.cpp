@@ -4,19 +4,6 @@
 
 namespace wgpu_imgui {
 
-WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d, uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(s, a, &caps);
-    WGPUTextureFormat fmt = caps.formatCount > 0 ? caps.formats[0] : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = d; cfg.format = fmt; cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto; cfg.width = w; cfg.height = h;
-    cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(s, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return fmt;
-}
-
 void draw_into(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear) {
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
     WGPURenderPassColorAttachment color = {};
@@ -34,19 +21,16 @@ void draw_into(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear) {
     wgpuCommandEncoderRelease(enc);
 }
 
-bool present(const GpuContext& gpu, WGPUSurface surface, WGPUColor clear) {
-    WGPUSurfaceTexture stex = {};
-    wgpuSurfaceGetCurrentTexture(surface, &stex);
-    if (stex.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-        if (stex.texture) wgpuTextureRelease(stex.texture);
-        return false;
-    }
-    WGPUTextureView view = wgpuTextureCreateView(stex.texture, nullptr);
+Presented present(const GpuContext& gpu, const SurfaceSpec& spec, const char* tag, bool& warned,
+                  WGPUColor clear) {
+    const SurfaceFrame frame = acquire_frame(spec, gpu, tag, warned);
+    if (!frame.texture) return frame.quit ? Presented::Lost : Presented::Skipped;
+    WGPUTextureView view = wgpuTextureCreateView(frame.texture, nullptr);
     draw_into(gpu, view, clear);
-    wgpuSurfacePresent(surface);
+    wgpuSurfacePresent(spec.surface);
     wgpuTextureViewRelease(view);
-    wgpuTextureRelease(stex.texture);
-    return true;
+    wgpuTextureRelease(frame.texture);
+    return Presented::Drawn;
 }
 
 } // namespace wgpu_imgui

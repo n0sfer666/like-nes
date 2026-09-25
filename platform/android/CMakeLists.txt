@@ -32,7 +32,8 @@ add_library(game SHARED
   ${REPO}/example_ugly_game/combat.cpp ${REPO}/example_ugly_game/boss.cpp ${REPO}/example_ugly_game/controls.cpp
   ${REPO}/example_ugly_game/draw.cpp ${REPO}/example_ugly_game/fx.cpp ${REPO}/example_ugly_game/bloom.cpp
   ${REPO}/example_ugly_game/audio.cpp
-  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp)
+  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp
+  ${REPO}/engine/render/surface_frame.cpp)
 
 target_include_directories(game PRIVATE
   ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render)

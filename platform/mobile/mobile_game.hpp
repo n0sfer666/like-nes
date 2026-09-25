@@ -10,6 +10,7 @@
 #include "bloom.hpp"
 #include "fx.hpp"
 #include "gpu.hpp"
+#include "surface_frame.hpp"
 #include "engine.hpp"
 #include "world.hpp"
 
@@ -39,6 +40,9 @@ private:
 
     GpuContext* gpu_ = nullptr;
     WGPUTextureFormat fmt_ = WGPUTextureFormat_BGRA8Unorm;
+    uint32_t fb_w_ = 0, fb_h_ = 0;
+    bool surface_warned_ = false;
+    bool lost_ = false;              // поверхность или устройство потеряны: кадр больше не рисуется
     Atlas atlas_;
     SpriteBatch batch_;
     Bloom bloom_;

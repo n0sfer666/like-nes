@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "gpu_env.hpp"
+#include "surface_frame.hpp"
 
 namespace platformer {
 namespace {
@@ -13,22 +14,6 @@ constexpr int WIN_W = VIEW_W * VIEW_SCALE;
 constexpr int WIN_H = VIEW_H * VIEW_SCALE;
 
 constexpr WGPUColor SKY{0.05, 0.06, 0.10, 1.0};
-
-WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d,
-                                    uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(s, a, &caps);
-    WGPUTextureFormat fmt = caps.formatCount ? caps.formats[0] : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = d; cfg.format = fmt; cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto; cfg.width = w; cfg.height = h;
-    // `Fifo` — не вкус, а ЧАСЫ образца: ровно им живой прогон и сетевой пир держат 60 Гц, и без
-    // него сессия шла бы со скоростью видеокарты.
-    cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(s, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return fmt;
-}
 
 // Распаковка RGBA8 в доли единицы. Тон приезжает из чистой половины упакованным (вертикаль 3 спеки
 // #17): столько его и несёт спрайт фреймворка, и разрядов, которых в нём нет, здесь не появится.
@@ -112,25 +97,11 @@ bool Window::quit_asked() const {
     return glfwWindowShouldClose(win_) || glfwGetKey(win_, GLFW_KEY_ESCAPE) == GLFW_PRESS;
 }
 
-void Window::draw(const Stage& stage) {
-    WGPUSurfaceTexture st = {};
-    wgpuSurfaceGetCurrentTexture(surface_, &st);
-    if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-        if (st.texture) wgpuTextureRelease(st.texture);
-        // Молчаливый выход означал бы вечный чёрный кадр: устаревшая поверхность сама не чинится,
-        // её надо переконфигурировать. Тот же случай и то же лечение, что в `live.cpp`.
-        if (st.status == WGPUSurfaceGetCurrentTextureStatus_Outdated ||
-            st.status == WGPUSurfaceGetCurrentTextureStatus_Lost) {
-            configure_surface(surface_, gpu_.adapter, gpu_.device, fbw_, fbh_);
-        }
-        if (!surface_warned_) {
-            std::fprintf(stderr, "[platformer] surface texture status %u - frame skipped\n",
-                         static_cast<unsigned>(st.status));
-            surface_warned_ = true;
-        }
-        return;
-    }
-    WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
+bool Window::draw(const Stage& stage) {
+    const SurfaceFrame frame =
+        acquire_frame(SurfaceSpec{surface_, fmt_, fbw_, fbh_}, gpu_, "platformer", surface_warned_);
+    if (!frame.texture) return !frame.quit;
+    WGPUTextureView view = wgpuTextureCreateView(frame.texture, nullptr);
     build_quads(stage, camera_at(stage), sprites_, quads_);
     batch_.begin();
     push_frame(batch_, atlas_, quads_);
@@ -145,7 +116,8 @@ void Window::draw(const Stage& stage) {
     wgpuCommandEncoderRelease(enc);
     wgpuSurfacePresent(surface_);
     wgpuTextureViewRelease(view);
-    wgpuTextureRelease(st.texture);
+    wgpuTextureRelease(frame.texture);
+    return true;
 }
 
 } // namespace platformer

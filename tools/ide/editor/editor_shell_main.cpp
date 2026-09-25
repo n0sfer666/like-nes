@@ -94,7 +94,10 @@ int main(int argc, char** argv) {
     }
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(win, &fbw, &fbh);
-    WGPUTextureFormat fmt = wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+    SurfaceSpec spec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
+                     static_cast<uint32_t>(fbh)};
+    spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
+    const WGPUTextureFormat fmt = spec.format;
 
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
@@ -125,15 +128,18 @@ int main(int argc, char** argv) {
     if (gate3) {
         rc = run_gate3(gpu, lib_dir, gate3_work);
     } else if (gate6) {
-        rc = run_gate6(st, win, gpu, surface, fmt, gate6_png);
+        rc = run_gate6(st, win, gpu, spec, gate6_png);
     } else {
+        bool surface_warned = false;
         while (!glfwWindowShouldClose(win)) {
             glfwPollEvents();
             int w = 0, h = 0;
             glfwGetFramebufferSize(win, &w, &h);
             if (w > 0 && h > 0 && (w != fbw || h != fbh)) {   // resize → реконфиг surface
                 fbw = w; fbh = h;
-                wgpu_imgui::configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
+                spec.width = static_cast<uint32_t>(fbw);
+                spec.height = static_cast<uint32_t>(fbh);
+                reconfigure_surface(spec, gpu.device);
             }
 
             ImGui_ImplWGPU_NewFrame();
@@ -142,7 +148,11 @@ int main(int argc, char** argv) {
             if (have_materials) { materials.poll(); materials.draw(); }
             draw_ui(st, built);
             ImGui::Render();
-            wgpu_imgui::present(gpu, surface, WGPUColor{0.08, 0.09, 0.11, 1.0});
+            if (wgpu_imgui::present(gpu, spec, "editor", surface_warned, WGPUColor{0.08, 0.09, 0.11, 1.0})
+                == wgpu_imgui::Presented::Lost) {
+                rc = 1;
+                break;
+            }
         }
     }
 

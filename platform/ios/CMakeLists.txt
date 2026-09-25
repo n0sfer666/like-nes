@@ -30,7 +30,8 @@ add_executable(like_nes_ios MACOSX_BUNDLE
   ${REPO}/example_ugly_game/combat.cpp ${REPO}/example_ugly_game/boss.cpp ${REPO}/example_ugly_game/controls.cpp
   ${REPO}/example_ugly_game/draw.cpp ${REPO}/example_ugly_game/fx.cpp ${REPO}/example_ugly_game/bloom.cpp
   ${REPO}/example_ugly_game/audio.cpp
-  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp)
+  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp
+  ${REPO}/engine/render/surface_frame.cpp)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
   PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 

@@ -1,8 +1,8 @@
 #pragma once
-#include <webgpu/webgpu.h>
+#include "gpu.hpp"
+#include "surface_frame.hpp"
 
 struct GLFWwindow;
-struct GpuContext;
 
 // Гейт 6 спеки #13 в исполняемом виде: редактор сам проходит сценарий, ради которого владельца
 // просили открыть его руками на X11- и на Wayland-сессии, и оставляет доказательства — паспорт
@@ -14,7 +14,7 @@ struct EditorState;
 
 // Возврат: 0 — все проверки прошли; 1 — есть провалившиеся (перечислены в stdout).
 // out_png = nullptr → кадр не снимается (проверки данных и рендер-цикл всё равно идут).
-int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurface surface,
-              WGPUTextureFormat fmt, const char* out_png);
+int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, const SurfaceSpec& spec,
+              const char* out_png);
 
 } // namespace ide::editor

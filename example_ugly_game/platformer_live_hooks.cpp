@@ -40,8 +40,7 @@ bool LiveHooks::show(const Stage& stage) {
     // и крестик приезжают очередью ОС, и спрошенное до неё описывало бы предыдущий кадр.
     win_.poll();
     if (win_.quit_asked()) return false;
-    win_.draw(stage);
-    return true;
+    return win_.draw(stage);
 }
 
 } // namespace platformer

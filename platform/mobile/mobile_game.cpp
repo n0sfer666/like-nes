@@ -31,16 +31,10 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     stick_id_ = fire_id_ = -1;
     fire_down_ = false;
 
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(surface, gpu.adapter, &caps);
-    fmt_ = caps.formatCount ? caps.formats[0] : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = gpu.device; cfg.format = fmt_;
-    cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto;
-    cfg.width = fb_w; cfg.height = fb_h; cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(surface, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
+    fb_w_ = fb_w;
+    fb_h_ = fb_h;
+    surface_warned_ = lost_ = false;
+    fmt_ = configure_surface(surface, gpu.adapter, gpu.device, fb_w, fb_h);
 
     use_bloom_ = bloom_.init(gpu.device, gpu.queue, fmt_, fb_w, fb_h);
     atlas_ = build_atlas();
@@ -129,13 +123,12 @@ void MobileGame::frame(WGPUSurface surface) {
     fx_.update(1.0f / 60);
     audio_.on_events(sink_);
 
-    WGPUSurfaceTexture st = {};
-    wgpuSurfaceGetCurrentTexture(surface, &st);
-    if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-        if (st.texture) wgpuTextureRelease(st.texture);
-        return;
-    }
-    WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
+    if (lost_) return;
+    const SurfaceFrame sf = acquire_frame(SurfaceSpec{surface, fmt_, fb_w_, fb_h_}, *gpu_, "mobile",
+                                          surface_warned_);
+    lost_ = sf.quit;
+    if (!sf.texture) return;
+    WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
     batch_.begin();
     push_scene(batch_, world_, atlas_);
     fx_.render(batch_, atlas_);
@@ -154,7 +147,7 @@ void MobileGame::frame(WGPUSurface surface) {
     wgpuCommandEncoderRelease(enc);
     wgpuSurfacePresent(surface);
     wgpuTextureViewRelease(view);
-    wgpuTextureRelease(st.texture);
+    wgpuTextureRelease(sf.texture);
 }
 
 void MobileGame::shutdown() {

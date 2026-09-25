@@ -526,6 +526,16 @@ jobs:
           [ "$rc" -eq 0 ] || { echo "ARENA TEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
           grep -q "arena-cap: PASS - 32 slot(s), 2 refusal(s)" arena.txt
 
+      # Аудит #21 A·3·6 и A·3·11: статус поверхности → действие оконной петли. Устаревшая поверхность
+      # переконфигурируется, потерянное устройство выходит при любом статусе. Функция чистая.
+      - name: Render — surface status maps to the loop action (reconfigure, skip, quit)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'render_surface_frame_test' -o -name 'render_surface_frame_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "render_surface_frame_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee surface.txt
+          grep -q "surface-frame: PASS - 8 statuses" surface.txt
+
       # Гейты 4/5/6 спеки #18 — шов «материал → пайплайн» на живой видеокарте, на всех трёх ОС и
       # БЕЗ эталонной картинки. Утверждения здесь числовые, и потому портируемые: сколько пайплайнов
       # дал разогрев (семь материалов делят три точки входа), во сколько вызовов собрался кадр

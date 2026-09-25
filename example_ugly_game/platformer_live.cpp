@@ -42,15 +42,17 @@ int run(const std::string& bundle) {
     // привязанный к нему шаг мира на 120 Гц играл бы вдвое быстрее собственной физики.
     const auto period = std::chrono::nanoseconds(tick_period_ns());
     auto next = std::chrono::steady_clock::now();
+    bool lost = false;
     for (uint32_t t = 0;; ++t) {
         next += period;
         std::this_thread::sleep_until(next);
         win.poll();
         if (win.quit_asked()) break;
         step_stage(stage, in.read(t));
-        win.draw(stage);
+        if (!win.draw(stage)) { lost = true; break; }
     }
     win.close();
+    if (lost) return 1;
     std::printf("[platformer] window clean exit\n");
     return 0;
 }

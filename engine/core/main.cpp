@@ -3,69 +3,10 @@
 #include <webgpu/webgpu.h>
 
 #include "fixed.hpp"
+#include "surface_frame.hpp"
 
 #include <cstdio>
 #include <cstdint>
-
-// wgpu-native вызывает request-колбэки СИНХРОННО на нативе — забираем результат в userdata.
-static WGPUAdapter request_adapter(WGPUInstance instance, WGPUSurface surface) {
-    WGPUAdapter out = nullptr;
-    WGPURequestAdapterOptions opts = {};
-    opts.nextInChain = nullptr;
-    opts.compatibleSurface = surface;
-    opts.powerPreference = WGPUPowerPreference_HighPerformance;
-    opts.backendType = WGPUBackendType_Undefined; // macOS → Metal
-    opts.forceFallbackAdapter = false;
-    wgpuInstanceRequestAdapter(
-        instance, &opts,
-        [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* msg, void* ud) {
-            if (status != WGPURequestAdapterStatus_Success)
-                std::fprintf(stderr, "adapter request failed: %s\n", msg ? msg : "?");
-            *static_cast<WGPUAdapter*>(ud) = adapter;
-        },
-        &out);
-    return out;
-}
-
-static WGPUDevice request_device(WGPUAdapter adapter) {
-    WGPUDevice out = nullptr;
-    WGPUDeviceDescriptor desc = {};
-    desc.nextInChain = nullptr;
-    desc.label = "like-nes-core-smoke-device";
-    wgpuAdapterRequestDevice(
-        adapter, &desc,
-        [](WGPURequestDeviceStatus status, WGPUDevice device, char const* msg, void* ud) {
-            if (status != WGPURequestDeviceStatus_Success)
-                std::fprintf(stderr, "device request failed: %s\n", msg ? msg : "?");
-            *static_cast<WGPUDevice*>(ud) = device;
-        },
-        &out);
-    return out;
-}
-
-static WGPUTextureFormat configure_surface(WGPUSurface surface, WGPUAdapter adapter,
-                                           WGPUDevice device, uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(surface, adapter, &caps);
-    WGPUTextureFormat format = caps.formatCount > 0 ? caps.formats[0]
-                                                    : WGPUTextureFormat_BGRA8Unorm;
-
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.nextInChain = nullptr;
-    cfg.device = device;
-    cfg.format = format;
-    cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.viewFormatCount = 0;
-    cfg.viewFormats = nullptr;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto;
-    cfg.width = w;
-    cfg.height = h;
-    cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(surface, &cfg);
-
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return format;
-}
 
 static void render_frame(WGPUDevice device, WGPUQueue queue, WGPUSurface surface,
                          WGPUTextureView view, int frame) {
@@ -107,13 +48,12 @@ static void render_frame(WGPUDevice device, WGPUQueue queue, WGPUSurface surface
 
 int main() {
     int rc = 0;
-    int frames = 0;
+    int frames = 0, ticks = 0;
+    bool warned = false;
+    SurfaceSpec spec;
+    GpuContext gpu;
     GLFWwindow* window = nullptr;
-    WGPUInstance instance = nullptr;
     WGPUSurface surface = nullptr;
-    WGPUAdapter adapter = nullptr;
-    WGPUDevice device = nullptr;
-    WGPUQueue queue = nullptr;
 
     if (!glfwInit()) { std::fprintf(stderr, "glfwInit failed\n"); return 1; }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -121,52 +61,50 @@ int main() {
     window = glfwCreateWindow(960, 540, "like-nes PoC", nullptr, nullptr);
     if (!window) { std::fprintf(stderr, "window failed\n"); rc = 1; goto cleanup; }
 
-    instance = wgpuCreateInstance(nullptr);
-    if (!instance) { std::fprintf(stderr, "instance failed\n"); rc = 1; goto cleanup; }
-
-    surface = glfwGetWGPUSurface(instance, window);
-    adapter = request_adapter(instance, surface);
-    if (!adapter) { std::fprintf(stderr, "no adapter\n"); rc = 1; goto cleanup; }
-    device = request_device(adapter);
-    if (!device) { std::fprintf(stderr, "no device\n"); rc = 1; goto cleanup; }
-    queue = wgpuDeviceGetQueue(device);
+    gpu.instance = gpu.create_instance();
+    if (!gpu.instance) { std::fprintf(stderr, "instance failed\n"); rc = 1; goto cleanup; }
+    surface = glfwGetWGPUSurface(gpu.instance, window);
+    if (!gpu.init(surface)) { std::fprintf(stderr, "no adapter or device\n"); rc = 1; goto cleanup; }
 
     {
         int fbw = 0, fbh = 0;
         glfwGetFramebufferSize(window, &fbw, &fbh);
-        WGPUTextureFormat format =
-            configure_surface(surface, adapter, device, (uint32_t)fbw, (uint32_t)fbh);
-        std::printf("[core-smoke] webgpu up: fb=%dx%d format=%d\n", fbw, fbh, (int)format);
+        spec = SurfaceSpec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
+                           static_cast<uint32_t>(fbh)};
+        spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
+        std::printf("[core-smoke] webgpu up: fb=%dx%d format=%d\n", fbw, fbh,
+                    static_cast<int>(spec.format));
     }
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-
-        WGPUSurfaceTexture st = {};
-        wgpuSurfaceGetCurrentTexture(surface, &st);
-        if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-            if (st.texture) wgpuTextureRelease(st.texture);
-            int nw = 0, nh = 0;
-            glfwGetFramebufferSize(window, &nw, &nh);
-            if (nw > 0 && nh > 0)
-                configure_surface(surface, adapter, device, (uint32_t)nw, (uint32_t)nh);
-            continue;
+        if (++ticks >= 120) glfwSetWindowShouldClose(window, GLFW_TRUE);
+        int nw = 0, nh = 0;
+        glfwGetFramebufferSize(window, &nw, &nh);
+        if (nw > 0 && nh > 0 && (static_cast<uint32_t>(nw) != spec.width
+                                 || static_cast<uint32_t>(nh) != spec.height)) {
+            spec.width = static_cast<uint32_t>(nw);
+            spec.height = static_cast<uint32_t>(nh);
+            reconfigure_surface(spec, gpu.device);
         }
+        const SurfaceFrame sf = acquire_frame(spec, gpu, "core-smoke", warned);
+        if (sf.quit) { rc = 1; break; }
+        if (!sf.texture) continue;
 
-        WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
-        render_frame(device, queue, surface, view, frames);
+        WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
+        render_frame(gpu.device, gpu.queue, surface, view, frames);
         wgpuTextureViewRelease(view);
-        wgpuTextureRelease(st.texture);
-
-        if (++frames >= 120) glfwSetWindowShouldClose(window, GLFW_TRUE);
+        wgpuTextureRelease(sf.texture);
+        ++frames;
+    }
+    if (rc == 0 && frames == 0) {
+        std::fprintf(stderr, "[core-smoke] window exit after %d frames, none drawn\n", ticks);
+        rc = 1;
     }
 
 cleanup:
-    if (queue) wgpuQueueRelease(queue);
-    if (device) wgpuDeviceRelease(device);
-    if (adapter) wgpuAdapterRelease(adapter);
     if (surface) wgpuSurfaceRelease(surface);
-    if (instance) wgpuInstanceRelease(instance);
+    gpu.shutdown();
     if (window) glfwDestroyWindow(window);
     glfwTerminate();
     if (rc == 0) std::printf("[core-smoke] clean exit after %d rendered frames\n", frames);

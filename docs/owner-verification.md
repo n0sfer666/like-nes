@@ -824,8 +824,11 @@ window button — ends the run with:
 
 Anything else on stderr is a finding, not noise: `level unreadable` means the bundle next to the
 binary is stale, `controls unavailable` means the `input` section lost the `jump` action, and
-`surface texture status <n> - frame skipped` repeating every frame means the surface never
-recovered from a resize or a display change.
+`surface texture status <n> - frame skipped` means the surface went stale after a resize or a
+display change and was rebuilt (printed once; the picture must come back). `surface texture status
+<n> - quitting` — with or without `, device lost` — and `[gpu] device lost (reason <n>): …` mean
+the surface or the GPU is gone for good: the window closes by itself, the exit code is 1, and there
+is no `window clean exit` line.
 
 **Walk the level left to right and answer seven questions.** The first six are the moves the
 scripted run makes, which is the point: the hash says they came out identical on three machines, and
@@ -1736,7 +1739,7 @@ a pair that dies with `aliens=0` never heard anything at all.
    | `6` | the socket is unusable: either the port you passed to `--listen` is already taken (the line says `port N did not open`), or the socket went bad mid-run |
    | `7` | the recording could not be written, same directory question as `5` |
    | `9` | the frame was never measured — an engine finding, report it |
-   | `10` | somebody pressed Esc or closed the window — run B only, and it is an answer, not a failure |
+   | `10` | somebody pressed Esc or closed the window — run B only, and it is an answer, not a failure; `10` together with `[platformer] surface texture status <n> - quitting` or `[gpu] device lost (reason <n>): …` means the window closed itself — that is a finding, report both lines |
 2. **The two recordings are the same file.** This is the gate itself — two machines, one input, one
    state, byte for byte:
    `sha256sum live-send.replay` on Linux, `shasum -a 256` on macOS, `certutil -hashfile

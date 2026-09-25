@@ -2,6 +2,7 @@
 
 #include <webgpu/wgpu.h>
 
+#include <atomic>
 #include <cstdio>
 
 namespace {
@@ -38,10 +39,16 @@ WGPUAdapter request_adapter(WGPUInstance instance, WGPUSurface surface, WGPUPowe
     return out;
 }
 
-WGPUDevice request_device(WGPUAdapter adapter) {
+WGPUDevice request_device(WGPUAdapter adapter, std::atomic<bool>* lost) {
     WGPUDevice out = nullptr;
     WGPUDeviceDescriptor desc = {};
     desc.label = "like-nes-render-device";
+    desc.deviceLostCallback = [](WGPUDeviceLostReason reason, char const* msg, void* ud) {
+        std::fprintf(stderr, "[gpu] device lost (reason %u): %s\n", static_cast<unsigned>(reason),
+                     msg ? msg : "?");
+        static_cast<std::atomic<bool>*>(ud)->store(true);
+    };
+    desc.deviceLostUserdata = lost;
     // BC-текстуры нужны ассет-шву (baked KTX2→BC7). Best-effort: включаем, если адаптер
     // поддерживает (desktop Metal/Vulkan — да); render-путь фичу игнорирует.
     WGPUFeatureName feats[1];
@@ -101,7 +108,8 @@ bool GpuContext::init(WGPUSurface surface) {
         return false;
     }
     supports_bc = wgpuAdapterHasFeature(adapter, WGPUFeatureName_TextureCompressionBC);
-    device = request_device(adapter);
+    device_lost.store(false);
+    device = request_device(adapter, &device_lost);
     if (!device) { std::fprintf(stderr, "no device\n"); shutdown(); return false; }
     // Без этого коллбэка валидационные ошибки WebGPU не выводятся НИКУДА: пайплайн не создался,
     // отрисовки нет, окно чёрное, а причина не названа. Именно так «чёрный экран со звуком»

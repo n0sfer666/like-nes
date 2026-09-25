@@ -75,8 +75,8 @@ bool grid_shows(EditorState& st, uint64_t gid, int32_t raw_x) {
 
 } // namespace
 
-int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurface surface,
-              WGPUTextureFormat fmt, const char* out_png) {
+int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, const SurfaceSpec& spec,
+              const char* out_png) {
     failures = 0;
     std::printf("\n=== gate 6 (spec #13): live editor run\n");
     if (!report_session(probe_session())) ++failures;
@@ -102,6 +102,7 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
     size_t depth_after_drag = 0;
     bool grid_followed = false, built = false, undo_ok = false;
     int presented = 0;
+    bool surface_warned = false, lost = false;
 
     for (int f = 0; f < kFrames && !glfwWindowShouldClose(win); ++f) {
         glfwPollEvents();
@@ -128,10 +129,19 @@ int run_gate6(EditorState& st, GLFWwindow* win, const GpuContext& gpu, WGPUSurfa
         ImGui::Render();
 
         // Кадр снимка не презентуется: draw-data рисуется один раз, и цель у него другая.
-        if (f == kShot && out_png) shoot(gpu, fmt, win, out_png);
-        else if (wgpu_imgui::present(gpu, surface, kClear)) ++presented;
+        if (f == kShot && out_png) {
+            shoot(gpu, spec.format, win, out_png);
+            continue;
+        }
+        const wgpu_imgui::Presented shown = wgpu_imgui::present(gpu, spec, "gate6", surface_warned, kClear);
+        if (shown == wgpu_imgui::Presented::Lost) {
+            lost = true;
+            break;
+        }
+        if (shown == wgpu_imgui::Presented::Drawn) ++presented;
     }
 
+    check(!lost, "the surface and the device stay alive for the whole run");
     check(presented > kFrames / 2, "frames reach the swapchain of this session");
     check(dragged.x.raw != before.x.raw, "gizmo drag moved the entity");
     check(depth_after_drag == 1, "drag = one undo transaction, not fifty");

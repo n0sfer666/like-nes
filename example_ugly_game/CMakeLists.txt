@@ -121,7 +121,7 @@ add_executable(game_sidescroller
   boss.cpp fx.cpp
   bloom.cpp audio.cpp
   input_setup.cpp capture.cpp frame_golden.cpp
-  gpu_env.cpp
+  gpu_env.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render
