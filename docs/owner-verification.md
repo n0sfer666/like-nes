@@ -190,7 +190,8 @@ surface, but the scenario runs itself and reports:
 ```
 
 Each run prints a session passport (`XDG_SESSION_TYPE`, the platform GLFW actually drives the window
-with, `DISPLAY`/`WAYLAND_DISPLAY`, the adapter), drives select → gizmo hit-test → edit → Inspector →
+with, whether `DISPLAY`/`WAYLAND_DISPLAY` are `set` or `unset` — never their values, since this output
+goes into a public PR — the adapter), drives select → gizmo hit-test → edit → Inspector →
 Undo through the editor's own commands, pushes 150 frames through this session's swapchain, dumps a
 PNG of the live frame and exits `0` only if every check passed. **Send the stdout and the PNG** —
 that is the gate's evidence, and the passport is what makes the two runs distinguishable.

@@ -19,6 +19,7 @@
 #include "gpu_env.hpp"
 #include "material_fx.hpp"
 #include "platform_env.hpp"
+#include "platform_redact.hpp"
 #include "sim.hpp"
 #include "source.hpp"
 #include "input_setup.hpp"
@@ -76,10 +77,12 @@ int run_window(int frame_cap) {
     platform::env_var("LIKENES_FX_WGSL", fx_wgsl);
     if (have_fx && !fx_wgsl.empty()) {
         if (materials.watch_shader(fx_wgsl))
-            std::printf("[game] shader hot-reload: %s (%s watch)\n", fx_wgsl.c_str(),
+            std::printf("[game] shader hot-reload: %s (%s watch)\n",
+                        platform::redact_home(fx_wgsl).c_str(),
                         materials.watch_backend());
         else
-            std::fprintf(stderr, "[game] shader hot-reload off: %s\n", materials.watch_error());
+            std::fprintf(stderr, "[game] shader hot-reload off: %s\n",
+                         platform::redact_home(materials.watch_error()).c_str());
     }
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,

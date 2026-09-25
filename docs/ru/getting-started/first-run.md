@@ -1,4 +1,4 @@
-<!-- en-sha256: fe9d11cf3a6aa4587cd8df4d7f8227f7faedc0d3c244749900b46ed1d0c73e24 -->
+<!-- en-sha256: 1407dad9a7f58ae9b688ca7af6605f0bb2a45be7b3573b096e17de3c8822dbdf -->
 
 # Первый запуск
 
@@ -35,7 +35,7 @@ cmake --build build --target game_sidescroller
 строки называют, что поднялось, и каждая из них сама по себе проверка —
 
 ```
-[game] assets: baked bundle .../game.bundle (BC7 512x256)
+[game] assets: baked bundle ~/.../game.bundle (BC7 512x256)
 [game] materials: on (3 pipeline(s), 0 fallback(s))
 ```
 

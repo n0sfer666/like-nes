@@ -167,7 +167,8 @@ Smart App Control (он же политика Device Guard). Проверить:
 и ни один скрипт репозитория его не трогает.
 
 Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
-Прислать его целиком.
+Прислать его целиком. Домашний каталог в нём уже заменён на «~»: полный
+путь с именем учётной записи в отчёте — дефект скрипта.
 
 Windows: не открывать проект как папку в самой Visual Studio. Её CMake-
 интеграция кладёт сборку в out\build\x64-Debug, а гейты ждут каталог build
@@ -188,19 +189,21 @@ Windows: не открывать проект как папку в самой Vi
   Стартовые строки должны быть примерно такие (это уже проверка — каждая
   говорит, что подсистема поднялась):
 
-    [game] assets: baked bundle .../game.bundle (BC7 512x256)
+    [game] assets: baked bundle ~/.../game.bundle (BC7 512x256)
     [game] materials: on (3 pipeline(s), 0 fallback(s))
     [game] audio: on (SFX + music)
     [game] achievements: 5 defined, 0 unlocked, backend: local
     [game] WASD/arrows/LStick = move · gamepad: <бэкенд> · Esc = quit
 
+  Домашний каталог в путях печатается как «~» (аудит #21 A·3·12): имя
+  учётной записи не уезжает с логом. Полный путь вместо «~» — дефект.
   Размер в первой строке приезжает ИЗ БАНДЛА (секция `atlas_regions`), а не
   из кода: нарезка спрайтов после вертикали 3 спеки #17 читается по именам.
   Вместо неё может напечататься одна из двух строк отказа — обе означают, что
   игра пошла на процедурный атлас и картинка будет грубее:
 
     [game] assets: atlas_regions section unusable -> procedural
-    [game] assets: bundle .../game.bundle unreadable -> procedural fallback
+    [game] assets: bundle ~/.../game.bundle unreadable -> procedural fallback
 
   Вторая строка — библиотека эффектов (спека #18): семь материалов делят три
   точки входа, поэтому пайплайнов три. `off` означает, что рядом с бинарём не

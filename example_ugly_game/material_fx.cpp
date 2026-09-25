@@ -8,6 +8,7 @@
 
 #include "asset_manager.hpp"
 #include "hash.hpp"
+#include "platform_redact.hpp"
 
 namespace game {
 namespace {
@@ -78,7 +79,8 @@ bool MaterialFx::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat targ
                       const char* bundle_path) {
     auto b = std::make_shared<Bundle>();
     if (!b->am.open(bundle_path, 8u * 1024 * 1024, /*trusted=*/false)) {
-        std::fprintf(stderr, "[game] materials: bundle '%s' unreadable\n", bundle_path);
+        std::fprintf(stderr, "[game] materials: bundle '%s' unreadable\n",
+                     platform::redact_home(bundle_path).c_str());
         return fail(nullptr);
     }
     const uint64_t g_tab = guid_of("materials");

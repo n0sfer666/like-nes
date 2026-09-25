@@ -5,6 +5,7 @@
 
 #include "assets_path.hpp"
 #include "platform_args.hpp"
+#include "platform_redact.hpp"
 #include "platformer_live_input.hpp"
 #include "platformer_scene.hpp"
 #include "platformer_window.hpp"
@@ -23,7 +24,8 @@ namespace {
 int run(const std::string& bundle) {
     Stage stage;
     if (!load_stage(bundle, stage)) {
-        std::fprintf(stderr, "[platformer] level unreadable: %s\n", bundle.c_str());
+        std::fprintf(stderr, "[platformer] level unreadable: %s\n",
+                     platform::redact_home(bundle).c_str());
         return 1;
     }
     Window win;

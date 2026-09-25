@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "platform_fs.hpp"
+#include "platform_redact.hpp"
 
 namespace mat {
 namespace {
@@ -48,7 +49,8 @@ ReloadEvent HotReload::poll(Cache& cache, int timeout_ms) {
 
     if (cache.reload(wgsl.c_str(), path_, diag_)) {
         ++reloads_;
-        std::printf("[material] hot-reload: %s -> %u pipeline(s) total\n", path_.c_str(),
+        std::printf("[material] hot-reload: %s -> %u pipeline(s) total\n",
+                    platform::redact_home(path_).c_str(),
                     cache.pipelines_created());
         return ReloadEvent::Reloaded;
     }

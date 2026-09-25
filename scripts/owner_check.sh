@@ -16,12 +16,17 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
 # shellcheck source=scripts/owner_gates_lib.sh
 . "$ROOT/scripts/owner_gates_lib.sh"
+# shellcheck source=scripts/redact_home_lib.sh
+. "$ROOT/scripts/redact_home_lib.sh"
 
 BUILD_DIR=${BUILD_DIR:-build}
 OS_TAG=$(uname -s | tr '[:upper:]' '[:lower:]' | tr -d ' ')
 REPORT="$ROOT/$BUILD_DIR/owner-report-$OS_TAG.txt"
+REPORT_SHOWN="$BUILD_DIR/owner-report-$OS_TAG.txt"
 mkdir -p "$BUILD_DIR"
 : > "$REPORT"
+# Отчёт владелец присылает целиком — маскировка домашнего каталога в нём на выходе, при любом исходе.
+trap 'redact_home_file "$REPORT"' EXIT
 
 say() { printf '%s\n' "$*" | tee -a "$REPORT"; }
 head_() { printf '\n=== %s\n' "$*" | tee -a "$REPORT"; }
@@ -51,7 +56,9 @@ say "compiler    : $(grep -m1 'CMAKE_CXX_COMPILER:' "$BUILD_DIR/CMakeCache.txt" 
 # render/capture.cpp — то есть виноватым выглядит движок.
 PTR=$(grep -h 'CMAKE_CXX_SIZEOF_DATA_PTR "' "$BUILD_DIR"/CMakeFiles/*/CMakeCXXCompiler.cmake 2>/dev/null | head -1 | tr -dc '0-9')
 say "pointer     : ${PTR:-?} байт$([ "$PTR" = "4" ] && printf ' — 32-битный тулчейн, нужен x64 Native Tools Command Prompt for VS')"
-say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' DISPLAY='${DISPLAY:-}'"
+# Сокеты дисплея — только «задан/не задан»: отчёт уезжает в публичный PR (аудит #21 A·3·12).
+set_or_unset() { if [ -n "$1" ]; then printf set; else printf unset; fi; }
+say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY=$(set_or_unset "${WAYLAND_DISPLAY:-}") DISPLAY=$(set_or_unset "${DISPLAY:-}")"
 # Дистрибутив — не украшение отчёта: имена пакетов и умолчания сессии у Fedora/Nobara, Arch и
 # Debian разные, и «гейт 6 не воспроизвёлся» читается только вместе с тем, где он гонялся.
 if [ "$OS_TAG" = "linux" ] && [ -r /etc/os-release ]; then
@@ -99,7 +106,7 @@ stage() {
     if "$@" >>"$REPORT" 2>&1; then
         say "--- OK: $title"
     else
-        say "--- ПРОВАЛ: $title (подробности выше в $REPORT)"
+        say "--- ПРОВАЛ: $title (подробности выше в $REPORT_SHOWN)"
         STAGES_FAILED+=("$title")
     fi
 }
@@ -178,9 +185,9 @@ if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ] && [ ${#BLOCK
    [ ${#STALE_TESTS[@]} -eq 0 ]
 then
     say "owner-check: PASS — автоматизируемая половина зелёная на этой машине"
-    say "отчёт: $REPORT"
+    say "отчёт: $REPORT_SHOWN"
     exit 0
 fi
 say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}, не запущено $((${#BLOCKED_TESTS[@]} + ${#STALE_TESTS[@]}))"
-say "отчёт: $REPORT"
+say "отчёт: $REPORT_SHOWN"
 exit 1

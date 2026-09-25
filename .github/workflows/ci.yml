@@ -309,6 +309,24 @@ jobs:
           bash scripts/check_path_map.sh build
           bash scripts/check_path_map.sh --selftest build
 
+      # Аудит #21 A·3·12: пути сейва и бандла в логе идут с домашним каталогом, заменённым на «~».
+      # Обе семантики сравнения (POSIX и Windows) проверяются на каждой ОС, перегрузка по
+      # окружению (HOME / USERPROFILE) — своей.
+      - name: Platform — home directory is redacted in printed paths
+        shell: bash
+        run: |
+          E=$(find build -maxdepth 2 -type f \( -name 'platform_redact_test' -o -name 'platform_redact_test.exe' \) | head -1)
+          [ -n "$E" ] || { echo "platform_redact_test not built on ${{ matrix.os }}"; exit 1; }
+          "$E" | tee redact.txt
+          grep -q "platform-redact: PASS" redact.txt
+
+      # Тот же A·3·12 для отчёта owner_check.sh, который владелец пересылает с машины: bash и awk
+      # на трёх ОС разные (замена `~` в bash 5 раскрывалась обратно в дом), а под git-bash у дома
+      # три формы — настоящий cygpath проверяется только здесь.
+      - name: Owner report — home directory is redacted (bash/awk of this OS, git-bash path forms)
+        shell: bash
+        run: bash scripts/redact_home_selftest.sh
+
       # Самопроверка получает ТОТ ЖЕ каталог: с умолчанием build-full её единственный кейс на
       # настоящих бинарях пропускался бы здесь вслух, и на трёх ОС набор проверял бы только фикстуры.
       - name: Docs examples gate selftest (broken fixtures, portability of the assertions)

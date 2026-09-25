@@ -17,9 +17,10 @@ const char* platform_name(int p) {
     }
 }
 
-std::string env_or_dash(const char* name) {
-    std::string v;
-    return platform::env_var(name, v) ? v : std::string("-");
+// Значение сокета дисплея — факт о машине владельца, а улика гейта уезжает в тело публичного PR.
+// Гейту нужно лишь, задан ли он.
+std::string set_or_unset(const char* name) {
+    return platform::env_has(name) ? "set" : "unset";
 }
 
 } // namespace
@@ -29,7 +30,7 @@ SessionPassport probe_session() {
     const int p = glfwGetPlatform();
     s.glfw_platform = platform_name(p);
     if (!platform::env_var("XDG_SESSION_TYPE", s.session_type)) s.session_type = "-";
-    s.display = "DISPLAY=" + env_or_dash("DISPLAY") + " WAYLAND_DISPLAY=" + env_or_dash("WAYLAND_DISPLAY");
+    s.display = "DISPLAY=" + set_or_unset("DISPLAY") + " WAYLAND_DISPLAY=" + set_or_unset("WAYLAND_DISPLAY");
     s.xwayland = (s.session_type == "wayland" && p == GLFW_PLATFORM_X11);
     return s;
 }
