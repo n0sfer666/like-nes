@@ -7,6 +7,7 @@ import re
 
 from ci_lint_patterns import (ASSIGN, COUNTER, DIALECTS, MSVC_FLAG, PROBE, SEARCH, SEGMENT,
                               SYSTEM_PATHS, TOKEN, TOOLS)
+from ci_workflow import allow_pattern
 
 
 class Finding:
@@ -146,5 +147,40 @@ def rule_arg_mangling(step):
                           f"пишется через дефис")
 
 
+USES = re.compile(r"^\s*-?\s*uses:\s*['\"]?([^\s'\"#]+)")
+
+
+def _pinned(ref):
+    return ref.startswith("./") or re.search(r"@[0-9a-f]{40}$", ref) \
+        or re.match(r"docker://\S+@sha256:[0-9a-f]{64}$", ref)
+
+
+def rule_unpinned_action(step):
+    """Сторонний экшен берётся по полному SHA: тег владелец чужого репозитория переставит на другой
+    коммит, и diff этого не покажет. Локальный `./` — часть дерева, образ `docker://` — по дайджесту."""
+    for lineno, text in step.attrs_lines:
+        match = USES.match(text)
+        if not match or step.suppressed("unpinned-action", lineno) or _pinned(match.group(1)):
+            continue
+        yield Finding(step.path, lineno, "unpinned-action",
+                      f"`{match.group(1)}` в шаге «{step.name}» пиннут подвижной ссылкой — нужен "
+                      f"полный SHA коммита с версией в комментарии")
+
+
+def job_unpinned_uses(path, text):
+    """Reusable workflow на уровне job: шагов у такого job нет, и правило шагов его не видит, а
+    `secrets: inherit` отдаёт чужому коду секреты целиком (ревью аудита #21 A·3·8)."""
+    lines = text.splitlines()
+    allow = allow_pattern("unpinned-action")
+    for i, line in enumerate(lines):
+        match = re.match(r"^ {4}uses:\s*['\"]?([^\s'\"#]+)", line)
+        if not match or _pinned(match.group(1)) \
+                or any(allow.search(lines[j]) for j in (i, i - 1) if j >= 0):
+            continue
+        yield Finding(path, i + 1, "unpinned-action",
+                      f"`{match.group(1)}` — reusable workflow на уровне job пиннут подвижной "
+                      f"ссылкой — нужен полный SHA коммита с версией в комментарии")
+
+
 RULES = (rule_unparsed, rule_portability, rule_gate_downgrade,
-         rule_env_assumption, rule_vacuous_gate, rule_arg_mangling)
+         rule_env_assumption, rule_vacuous_gate, rule_arg_mangling, rule_unpinned_action)

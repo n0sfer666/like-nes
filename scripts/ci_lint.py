@@ -13,13 +13,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from ci_lint_lists import check as check_lists  # noqa: E402
-from ci_lint_rules import RULES  # noqa: E402
+from ci_lint_rules import RULES, job_unpinned_uses  # noqa: E402
 from ci_workflow import parse  # noqa: E402
 import py_utf8  # noqa: E402
 
 
 def lint(path, text):
-    return [f for step in parse(path, text) for rule in RULES for f in rule(step)]
+    steps = [f for step in parse(path, text) for rule in RULES for f in rule(step)]
+    return steps + list(job_unpinned_uses(path, text))
 
 
 def main(argv):
