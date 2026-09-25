@@ -63,6 +63,9 @@ const Source* Mixer::find_source(uint64_t guid) const {
     return nullptr;
 }
 
+// Громкость из команды — доля в [0,1] (аудит #21 A·3·4): выше единицы — усиление за полную шкалу и
+// срез, ниже нуля — инверсия фазы вместо тишины. Кламп здесь, на шве консюмера, а не в AudioEngine:
+// команду в очередь кладёт и тот, кто собрал её руками.
 void Mixer::apply(const AudioCommand& c, uint32_t offset) {
     switch (static_cast<CmdType>(c.type)) {
         case CmdType::Play: {
@@ -72,7 +75,7 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
             Voice& v = pool_.alloc(seq_++);
             v.id = c.voice_id;
             v.pcm = src->pcm; v.frames = src->frames; v.ring = src->ring;
-            v.gain = fix32::from_raw(c.gain);
+            v.gain = fix_clamp01(fix32::from_raw(c.gain));
             v.x = fix32::from_raw(c.x); v.y = fix32::from_raw(c.y);
             v.bus = static_cast<Bus>(c.bus);
             v.loop = (c.flags & CMD_FLAG_LOOP) != 0;
@@ -85,7 +88,7 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
             if (Voice* v = pool_.find(c.voice_id)) v->active = false;
             break;
         case CmdType::SetBusGain:
-            if (c.bus < BUS_N) bus_gain_[c.bus] = fix32::from_raw(c.gain);
+            if (c.bus < BUS_N) bus_gain_[c.bus] = fix_clamp01(fix32::from_raw(c.gain));
             break;
         case CmdType::SetListener:
             listener_x_ = fix32::from_raw(c.x); listener_y_ = fix32::from_raw(c.y);

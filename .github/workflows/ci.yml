@@ -931,6 +931,16 @@ jobs:
           D=$(find build -maxdepth 2 -type f \( -name 'audio_determinism_test' -o -name 'audio_determinism_test.exe' \) | head -1); "$D"
           R=$(find build -maxdepth 2 -type f \( -name 'audio_rt_test' -o -name 'audio_rt_test.exe' \) | head -1); "$R"
 
+      # Аудит #21 A·3·4: громкость на шве — доля в [0,1] в обоих бэкендах. Выше единицы — срез и удар
+      # по ушам, ниже нуля — инверсия фазы вместо тишины. Без устройства.
+      - name: Audio — gain above 1 plays as 1, negative gain is silence (both backends)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'audio_gain_test' -o -name 'audio_gain_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "audio_gain_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee gain.txt
+          grep -q "audio-gain: PASS - 8 cases" gain.txt
+
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         shell: bash
         run: |

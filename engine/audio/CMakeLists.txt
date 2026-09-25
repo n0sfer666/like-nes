@@ -28,6 +28,10 @@ target_link_libraries(audio_determinism_test PRIVATE audio_core)
 add_executable(audio_rt_test audio_rt_test.cpp)
 target_link_libraries(audio_rt_test PRIVATE audio_core platform_core)   # шов: PLATFORM_NOINLINE
 
+# Громкость на шве — доля в [0,1] (аудит #21 A·3·4), в обоих бэкендах. Без устройства, на всех ОС.
+add_executable(audio_gain_test audio_gain_test.cpp)
+target_link_libraries(audio_gain_test PRIVATE audio_core)
+
 # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
 add_executable(audio_seam audio_seam_main.cpp)
 target_link_libraries(audio_seam PRIVATE audio_core asset_core)

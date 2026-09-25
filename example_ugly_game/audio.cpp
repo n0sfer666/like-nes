@@ -91,7 +91,7 @@ void GameAudio::on_events(const FxSink& sink) {
         switch (e.kind) {
             case FX_EnemyDie: g = 0.7; break;
             case FX_BossHit:  g = 0.35; break;
-            case FX_BossDie:  g = 1.2; break;
+            case FX_BossDie:  g = 1.0; break;
             case FX_PlayerHit: g = 1.0; break;
             default: continue;   // FX_Fire — без звука (слишком часто)
         }
