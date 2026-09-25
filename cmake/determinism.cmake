@@ -7,6 +7,17 @@
 if(MSVC)
   add_compile_options(/Brepro)
   add_link_options(/Brepro /INCREMENTAL:NO)
+  # /Brepro убирает метки времени, но не пути: без карты абсолютный путь дерева — с именем учётной
+  # записи — уезжал в __FILE__ Windows-бинарей (аудит #21 A·3·7). cl видит путь в обеих формах
+  # слэшей, clang-cl флага /pathmap не знает и берёт GNU-карту через /clang:.
+  foreach(dir "${CMAKE_SOURCE_DIR}" "${CMAKE_BINARY_DIR}")
+    file(TO_NATIVE_PATH "${dir}" native)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+      add_compile_options("/pathmap:${native}=." "/pathmap:${dir}=.")
+    else()
+      add_compile_options("/clang:-ffile-prefix-map=${native}=." "/clang:-ffile-prefix-map=${dir}=.")
+    endif()
+  endforeach()
 else()
   add_compile_options(
     "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=."
