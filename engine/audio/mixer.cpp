@@ -101,9 +101,10 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
 
 void Mixer::drain_commands(uint32_t frames) {
     AudioCommand c;
-    while (commands_.peek(c) && c.sample_time < cursor_ + frames) {
+    const uint64_t cur = cursor();
+    while (commands_.peek(c) && c.sample_time < cur + frames) {
         commands_.pop(c);
-        uint32_t off = c.sample_time > cursor_ ? static_cast<uint32_t>(c.sample_time - cursor_) : 0;
+        uint32_t off = c.sample_time > cur ? static_cast<uint32_t>(c.sample_time - cur) : 0;
         apply(c, off);
     }
 }
@@ -142,7 +143,7 @@ void Mixer::mix(uint32_t frames, int16_t* out) {
         if (v.active && v.start_offset)
             v.start_offset = v.start_offset > frames ? v.start_offset - frames : 0;
     }
-    cursor_ += frames;
+    cursor_.store(cursor() + frames, std::memory_order_relaxed);
 }
 
 void Mixer::mix_fix(uint32_t frames, int16_t* out) {

@@ -57,4 +57,8 @@ if(AUDIO_MINIAUDIO)
     target_link_libraries(audio_device PUBLIC ${CMAKE_DL_LIBS} Threads::Threads m)
   endif()
   target_link_libraries(audio_seam PRIVATE audio_device)
+
+  # Потеря устройства посреди сессии — перезапуск, а не тишина до выхода (аудит #21 A·3·5).
+  add_executable(audio_device_test audio_device_test.cpp)
+  target_link_libraries(audio_device_test PRIVATE audio_device audio_core)
 endif()

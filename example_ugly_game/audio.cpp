@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <thread>
 
@@ -44,6 +45,7 @@ struct GameAudio::Impl {
     uint64_t sample_time = 0;
     uint64_t gsfx = 0;
     bool live = false;
+    bool dropped_warned = false;
 };
 
 GameAudio::~GameAudio() { shutdown(); }
@@ -87,7 +89,8 @@ bool GameAudio::init(const std::string& bundle_path) {
 void GameAudio::on_events(const FxSink& sink) {
     Impl* p = impl_;
     if (!p || !p->live) return;
-    p->sample_time += audio::SAMPLES_PER_TICK;
+    p->dev.poll();
+    p->sample_time = audio::resync_clock(p->sample_time + audio::SAMPLES_PER_TICK, p->mixer.cursor());
     for (const FxEvent& e : sink.events) {
         double g = 0;
         switch (e.kind) {
@@ -99,7 +102,10 @@ void GameAudio::on_events(const FxSink& sink) {
         }
         audio::PlayParams pp; pp.bus = audio::Bus::Sfx; pp.gain = fix32::from_float(g);
         pp.x = fix32::from_float(e.x / 480.0);
-        p->eng.play(p->gsfx, pp, p->sample_time);
+        if (p->eng.play(p->gsfx, pp, p->sample_time) == 0 && !p->dropped_warned) {
+            std::fprintf(stderr, "[game] audio queue full - sound dropped\n");
+            p->dropped_warned = true;
+        }
     }
 }
 

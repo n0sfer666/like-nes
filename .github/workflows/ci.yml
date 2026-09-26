@@ -965,11 +965,18 @@ jobs:
           # Через гейт, а не голым `cmake --build`: реализация miniaudio — вендоренный TU, и его
           # глушение проверяется только на MSVC (D9025 — предупреждение драйвера, мимо /WX).
           # Собранное голым вызовом уезжало в лог, которого никто не читает.
-          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS=audio_seam \
+          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS="audio_seam audio_device_test" \
             bash scripts/build_check.sh
           S=$(find build-audio -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
           "$S" audio.bundle --device-selftest | tee adev.txt
           grep -q "\[audio_seam\] PASS" adev.txt
+          # Аудит #21 A·3·5: устройство, остановленное бэкендом, поднимается заново; самоподъём
+          # бэкенда и WASAPI не перебиваются; окно считается от последнего уведомления; вторая
+          # потеря за 5 с — конец попыток; часы игры после простоя подтягиваются к курсору.
+          T=$(find build-audio -maxdepth 2 -type f \( -name 'audio_device_test' -o -name 'audio_device_test.exe' \) | head -1)
+          [ -n "$T" ] || { echo "audio_device_test not built on ${{ matrix.os }}"; exit 1; }
+          "$T" | tee adt.txt
+          grep -q "audio-device: PASS - 26 cases" adt.txt
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
@@ -984,6 +991,15 @@ jobs:
             engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread \
             engine/audio/audio_determinism_test.cpp engine/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
+          # Аудит #21 A·3·5: курсор миксера пишет поток устройства, а читает поток игры. Реализация
+          # miniaudio берётся из build-audio шага выше; C-TU собирается отдельно, как в CMake.
+          MA=build-audio/_deps/miniaudio-src
+          [ -f "$MA/miniaudio.h" ] || { echo "miniaudio not fetched into $MA"; exit 1; }
+          cc -fsanitize=thread -g -O1 -I"$MA" -c engine/audio/miniaudio_impl.c -o miniaudio_tsan.o
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread -I"$MA" engine/audio/audio_device_test.cpp \
+            engine/audio/device.cpp engine/audio/mixer.cpp miniaudio_tsan.o -ldl -lm -o audio_device_tsan
+          ./audio_device_tsan | tee adt_tsan.txt
+          grep -q "audio-device: PASS - 26 cases" adt_tsan.txt
 
       # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
       # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет

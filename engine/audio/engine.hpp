@@ -9,6 +9,14 @@
 // Вызывается из sim-потока (продюсер SPSC); mixer — единственный консюмер (audio-callback).
 namespace audio {
 
+// Часы игры, ушедшие вперёд курсора миксера дальше RESYNC_LEAD, — след простоя вывода (перезапуск,
+// reroute, suspend): курсор стоял, тики шли. Метка от таких часов ждала бы в голове очереди весь
+// простой и держала бы за собой всё следующее (аудит #21 A·3·5).
+constexpr uint64_t RESYNC_LEAD = SAMPLE_RATE / 4;
+inline uint64_t resync_clock(uint64_t game_time, uint64_t cursor) {
+    return game_time > cursor + RESYNC_LEAD ? cursor : game_time;
+}
+
 class AudioEngine {
 public:
     explicit AudioEngine(Mixer& mixer) : mixer_(mixer) {}
