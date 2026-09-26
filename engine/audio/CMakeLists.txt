@@ -32,6 +32,10 @@ target_link_libraries(audio_rt_test PRIVATE audio_core platform_core)   # шов
 add_executable(audio_gain_test audio_gain_test.cpp)
 target_link_libraries(audio_gain_test PRIVATE audio_core)
 
+# Сумма выше шкалы приглушается ограничителем, а не срезается в прямоугольник (аудит #21 A·3·1).
+add_executable(audio_limiter_test audio_limiter_test.cpp)
+target_link_libraries(audio_limiter_test PRIVATE audio_core)
+
 # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
 add_executable(audio_seam audio_seam_main.cpp)
 target_link_libraries(audio_seam PRIVATE audio_core asset_core)

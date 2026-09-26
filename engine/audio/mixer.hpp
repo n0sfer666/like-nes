@@ -4,6 +4,7 @@
 
 #include "audio_types.hpp"
 #include "fix_math.hpp"
+#include "limiter.hpp"
 #include "spsc.hpp"
 #include "voice.hpp"
 
@@ -61,6 +62,7 @@ private:
     fix32 bus_gain_[static_cast<uint32_t>(Bus::Count)];
     fix32 master_;
     fix32 duck_env_;    // duck-огибающая (рампится ПО СЕМПЛУ в mix-петле → block-независимо)
+    Limiter limiter_;
     fix32 listener_x_, listener_y_;
     std::atomic<uint64_t> cursor_{0};
     static_assert(std::atomic<uint64_t>::is_always_lock_free, "the RT thread takes no locks");

@@ -56,7 +56,7 @@ core_goldens() {
     local rc=0 tmp grav wind
     check_hash determinism_test 0x6c4b121dbb47d13b || rc=1
     check_hash input_determinism_test 0xcc26a1897a326f6f || rc=1
-    check_hash audio_golden 0x2cf5b5597afa3241 || rc=1
+    check_hash audio_golden 0x1b54dd84c4e9d75c || rc=1
     check_hash scene_roundtrip_test 0x2de54a36e54e0684 || rc=1
     check_hash achievements_test 0xe728fef199e87fc9 || rc=1
     check_hash game_sim_test 0x32a094e89eacf2f2 || rc=1

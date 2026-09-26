@@ -927,7 +927,7 @@ jobs:
         run: |
           G=$(find build -maxdepth 2 -type f \( -name 'audio_golden' -o -name 'audio_golden.exe' \) | head -1)
           "$G" | tee ag.txt
-          grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "0x1b54dd84c4e9d75c" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           D=$(find build -maxdepth 2 -type f \( -name 'audio_determinism_test' -o -name 'audio_determinism_test.exe' \) | head -1); "$D"
           R=$(find build -maxdepth 2 -type f \( -name 'audio_rt_test' -o -name 'audio_rt_test.exe' \) | head -1); "$R"
 
@@ -940,6 +940,16 @@ jobs:
           [ -n "$BIN" ] || { echo "audio_gain_test not built on ${{ matrix.os }}"; exit 1; }
           "$BIN" | tee gain.txt
           grep -q "audio-gain: PASS - 12 cases" gain.txt
+
+      # Аудит #21 A·3·1: коррелированные голоса выше полной шкалы приглушаются ограничителем, а не
+      # срезаются в прямоугольник ±32767; после залпа громкость возвращается. Без устройства.
+      - name: Audio — correlated voices above full scale are limited, not clipped (both backends)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'audio_limiter_test' -o -name 'audio_limiter_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "audio_limiter_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee limiter.txt
+          grep -q "audio-limiter: PASS - 20 cases" limiter.txt
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         shell: bash
@@ -1223,7 +1233,7 @@ jobs:
           "$S/asset_determinism_test.exe" syn.bundle | tee asan_det.txt
           grep -q "INVARIANT (PASS)" asan_det.txt
           "$S/audio_golden.exe" | tee asan_audio.txt
-          grep -q "0x2cf5b5597afa3241" asan_audio.txt
+          grep -q "0x1b54dd84c4e9d75c" asan_audio.txt
           "$S/audio_rt_test.exe"
           "$S/plugin_determinism_test.exe" "$S/plugin_gravity.dll" "$S/plugin_wind.dll" | tee asan_plugin.txt
           grep -q "0x7d9a6e60cbed4156" asan_plugin.txt

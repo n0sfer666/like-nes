@@ -26,12 +26,6 @@ fix32 clamp_pan(fix32 p) {
     return p;
 }
 
-int16_t clamp16(int64_t v) {
-    if (v > 32767) return 32767;
-    if (v < -32768) return -32768;
-    return static_cast<int16_t>(v);
-}
-
 // Один семпл голоса + продвижение playhead. Стрим-underrun → тишина (не деактивирует).
 int16_t fetch_advance(Voice& v, uint64_t& underruns) {
     if (v.ring) {
@@ -166,8 +160,7 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
             mL += (busL[b] * bg.raw) >> 16;
             mR += (busR[b] * bg.raw) >> 16;
         }
-        out[f * 2] = clamp16((mL * master_.raw) >> 32);
-        out[f * 2 + 1] = clamp16((mR * master_.raw) >> 32);
+        limiter_.apply((mL * master_.raw) >> 32, (mR * master_.raw) >> 32, out + f * 2);
     }
 }
 
@@ -191,8 +184,8 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
             mL += busL[b] * bg;
             mR += busR[b] * bg;
         }
-        out[f * 2] = clamp16(static_cast<int64_t>(std::lround(mL * master_.to_double())));
-        out[f * 2 + 1] = clamp16(static_cast<int64_t>(std::lround(mR * master_.to_double())));
+        limiter_.apply(std::llround(mL * master_.to_double()), std::llround(mR * master_.to_double()),
+                       out + f * 2);
     }
 }
 

@@ -62,7 +62,8 @@ wall-clock. Микс живёт в audio-callback (RT-safe), декод — на
   - Re-verify: все гейты PASS, ASan/UBSan/TSan чисто, block-независимость PASS, регресса нет.
 - Фаза 9: spec Validated + «Результат PoC», ADR 0004 Accepted, README #3, stack.md — готово.
   Осталось: dev-log + (коммиты — по запросу пользователя, правило 11).
-- **Новый golden-хеш микса: `0x2cf5b5597afa3241`** (block-независимый). Audio bundle: `0x9b3ce443c3096e31`.
+- **Новый golden-хеш микса: `0x2cf5b5597afa3241`** (block-независимый).
+  С аудита #21 A·3·1 (лимитер выхода вместо клипа) — `0x1b54dd84c4e9d75c`. Audio bundle: `0x9b3ce443c3096e31`.
   sim-hash det-гейта: `0x9639afe71ee82e50`.
 </content>
 </invoke>

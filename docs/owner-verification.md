@@ -423,7 +423,7 @@ it was forgotten, and a gate whose precondition is only a habit is not a gate.
 
    (Windows: `scripts\win-dev.bat game`.) With the pad connected the ship flies on the stick and
    fire works on the south button. `-` and `=` step the master volume by a tenth and print
-   `[game] volume <N>/10`: silent at 0/10, the launch level at 10/10, never louder than that. The game reads the same preset from the bundle — this is the
+   `[game] volume <N>/10`: silent at 0/10, the launch level at 10/10, never louder than that. If the whole mix dips briefly in a dense fight or on the boss's death and comes back within about a tenth of a second, that is the output limiter (audit #21 A-3-1), not a finding; a crackle, a torn explosion or a bass that seems to breathe is. The game reads the same preset from the bundle — this is the
    "sample game on presets" half of the gate. If the stick moves nothing here but did move `move=`
    in the probe, say so: the two read the same axes through different preset tables, and that split
    is the whole diagnosis.
