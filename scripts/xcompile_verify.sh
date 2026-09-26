@@ -14,6 +14,28 @@ ROOT="$(cd "$HERE/.." && pwd)"
 fail() { echo "[xcompile] FAIL: $*" >&2; exit 1; }
 ok() { echo "[xcompile] ok: $*"; }
 
+# Без обеих библиотек приложение на устройстве не стартует, а APK собирается (аудит #21 B9:
+# libc++_shared печаталась в `ok`, но не проверялась). Pure-shell case, не `unzip | grep -q`: grep
+# короткозамыкает → unzip SIGPIPE → ложный pipefail.
+APK_LIBS="libgame.so libc++_shared.so"
+apk_missing() {
+  local lib
+  for lib in $APK_LIBS; do
+    case "$1" in *"lib/arm64-v8a/$lib"*) ;; *) echo "$lib"; return ;; esac
+  done
+}
+
+if [ "${1:-}" = "--selftest" ]; then
+  FULL="$(printf '  1  lib/arm64-v8a/libgame.so\n  2  lib/arm64-v8a/libc++_shared.so\n  3  classes.dex')"
+  [ -z "$(apk_missing "$FULL")" ] || fail "selftest: a complete APK listing is refused"
+  for lib in $APK_LIBS; do
+    [ "$(apk_missing "$(printf '%s\n' "$FULL" | grep -vF "$lib")")" = "$lib" ] \
+      || fail "selftest: an APK without $lib passes"
+  done
+  ok "selftest: the APK listing check names each missing library"
+  exit 0
+fi
+
 echo "=== Desktop native-matrix build-time замер (single-node, CI-флаги) ==="
 D="$ROOT/build-xctime"
 rm -rf "$D"
@@ -52,12 +74,8 @@ else
   file "$ANDSO" | grep -q "ARM aarch64" || fail "Android ELF machine != aarch64"
 fi
 APK="$ROOT/build-android/apk/like_nes.apk"
-# pure-shell case (не `unzip | grep -q`: grep короткозамыкает → unzip SIGPIPE → ложный pipefail).
-APKLIST="$(unzip -l "$APK")"
-case "$APKLIST" in
-  *"lib/arm64-v8a/libgame.so"*) ;;
-  *) fail "APK missing arm64-v8a lib" ;;
-esac
+MISSING="$(apk_missing "$(unzip -l "$APK")")"
+[ -z "$MISSING" ] || fail "APK missing lib/arm64-v8a/$MISSING"
 ok "Android aarch64 ELF + APK lib/arm64-v8a/{libgame,libc++_shared}.so"
 
 echo "[xcompile] PASS: desktop matrix (max-vs-sum) + iOS arm64 + Android aarch64"
