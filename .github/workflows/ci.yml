@@ -1222,13 +1222,21 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
           cmake --build build-asan --target asset_test asset_determinism_test \
             audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind \
-            fuzz_readers path_map_probe assetc
+            fuzz_readers
           find build-asan -maxdepth 2 \( -name '*.exe' -o -name '*.dll' \) | sort
-          S=build-asan
           # Аудит #21 A·3·7: ветка clang-cl в determinism.cmake (`/clang:-ffile-prefix-map`) —
-          # своя, и судит её только этот шаг; самопроверка собирает пробу тем же clang-cl без карты.
-          bash scripts/check_path_map.sh "$S"
-          bash scripts/check_path_map.sh --selftest "$S"
+          # своя, и судит её только этот шаг, но не на build-asan. ASan пишет в метаданные
+          # глобалов имя модуля — путь исходника, каким его получил компилятор, а Ninja отдаёт
+          # полный; карта его не переписывает. RelWithDebInfo вдобавок вшивает путь PDB. Пакет
+          # собирается в Release без санитайзера — так же собрана и проверяемая здесь сборка;
+          # самопроверка собирает пробу тем же clang-cl без карты.
+          cmake -S . -B build-clangcl -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
+          cmake --build build-clangcl --target path_map_probe assetc
+          bash scripts/check_path_map.sh build-clangcl
+          bash scripts/check_path_map.sh --selftest build-clangcl
+          S=build-asan
           "$S/asset_test.exe" syn.bundle
           "$S/asset_determinism_test.exe" syn.bundle | tee asan_det.txt
           grep -q "INVARIANT (PASS)" asan_det.txt
