@@ -2050,7 +2050,7 @@ jobs:
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
                    framework_physics_depth_test framework_physics_snapshot_test \
-                   framework_physics_snapshot_islands_test \
+                   framework_physics_snapshot_islands_test framework_physics_id_test \
                    framework_rollback_plan_test framework_rollback_test \
                    framework_replay_test \
                    framework_character_test framework_character_window_test \
@@ -2307,7 +2307,7 @@ jobs:
           # Список единиц трансляции здесь свой, не CMake-овский, и однажды он уже отстал от
           # цели на один файл — линковка упала на раннере, когда всё локальное было зелёным.
           # ci-lint: mirrors-target engine/framework/physics/CMakeLists.txt framework_physics
-          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/core/text_fields.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/snapshot.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
+          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/core/text_fields.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/snapshot.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp engine/framework/physics/world_id.cpp"
           PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
           ./phys_san | tee physsan.txt

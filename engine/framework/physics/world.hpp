@@ -98,11 +98,15 @@ public:
     // момент ВЫДАЧИ, а не записи, поэтому ручка, пережившая запрос между своей выдачей и записью,
     // пишет в тело мимо всех дверей — запрос успел перестроить индекс и считает его чистым.
     // Кешировать ручку на кадр поэтому нельзя: берите заново перед каждой правкой.
+    //
+    // Чужой или негодный дескриптор (`INVALID` от `add` с занятым ключом) — не чтение мимо массива,
+    // а строка в stderr и abort, в любой сборке (аудит #21 B10): `world_id.cpp`.
     Body& mutate(BodyId id) {
+        const uint32_t i = checked(id);
         queries_.invalidate();
-        return bodies_[id.index];
+        return bodies_[i];
     }
-    const Body& body(BodyId id) const { return bodies_[id.index]; }
+    const Body& body(BodyId id) const { return bodies_[checked(id)]; }
     const std::vector<Body>& bodies() const { return bodies_; }
 
     // Индекс запросов (устройство — `query_index.hpp`). Отдаётся как есть, без перестройки: полоса
@@ -173,6 +177,7 @@ public:
 
 private:
     friend struct WorldSnapshot;
+    uint32_t checked(BodyId id) const;
 
     std::vector<Body> bodies_;
     std::vector<Pair> pairs_;
