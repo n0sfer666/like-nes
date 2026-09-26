@@ -99,20 +99,29 @@ def rule_vacuous_gate(step):
     counted, suspect = set(), None
     for lineno, text, _ in step.script:
         code = _code(text)
-        assign = ASSIGN.search(code)
-        if not (assign and SEARCH.search(code)):
+        assign, search = ASSIGN.search(code), SEARCH.search(code)
+        if not (assign and search):
             continue
         if COUNTER.search(code):
-            counted.add(assign.group(1))
+            counted.add((assign.group(1), search.group(0)))
         elif suspect is None:
-            suspect = (lineno, assign.group(1))
+            suspect = (lineno, assign.group(1), search.group(0))
     if suspect is None or step.suppressed("vacuous-gate"):
         return
-    lineno, var = suspect
-    if not re.search(rf"(\[\[?|test)\s+-[zn]\s+\"?\$\{{?{var}\b", step.body):
+    lineno, var, tool = suspect
+    counted = {name for name, by in counted if by == tool}
+    # Вакуумна только форма «непустой результат — провал». Обратная, `[ -n "$E" ] || exit` после
+    # `find`/`ls`, — проверка наличия: промах пути роняет её громко, и её в workflow десятки. Так же
+    # и цепочка `[ -n "$T" ] && [ -n "$G" ] || exit`: после `&&` не провал, а следующая проверка.
+    ref = rf"\"?\$\{{?{var}\b\}}?\"?\s*\]?\]?\s*"
+    fails_on_hits = (rf"(\[\[?|test)\s+-z\s+{ref}\|\|", rf"(\[\[?|test)\s+-n\s+{ref}&&(?!\s*(\[|test\b))",
+                     rf"\bif\s+(\[\[?|test)\s+-n\s+\"?\$\{{?{var}\b")
+    if not any(re.search(form, step.body) for form in fails_on_hits):
         return
     # Порог обязан считать ТОТ ЖЕ поиск. Прежняя проверка «в шаге есть -ge» удовлетворялась любым
-    # посторонним сравнением: правило, ловящее ложно-зелёное, само становилось ложно-зелёным.
+    # посторонним сравнением: правило, ловящее ложно-зелёное, само становилось ложно-зелёным. Тот же
+    # поиск — хотя бы тот же инструмент: с `find`/`awk`/`ls` в SEARCH (аудит #21 B11) счётчик
+    # `ls build/*.o | wc -l` иначе доказывал бы греп по `engine`.
     if any(re.search(rf"\$\{{?{name}\}}?\"?\s*-(ge|gt|eq)\s+\"?\d", step.body) for name in counted):
         return
     yield Finding(step.path, lineno, "vacuous-gate",

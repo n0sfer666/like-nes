@@ -64,7 +64,7 @@ SYSTEM_PATHS = re.compile(r"(?<![\w/])(?:/usr/|/etc/|/opt/|/Library/|/Applicatio
 # и, будучи признан проверкой, выключал бы правило на всём файле.
 PROBE = re.compile(r"\bls\b|\bfind\b|\[\[?\s+-[efdrx]\s|test +-[efdrx] ")
 SEGMENT = re.compile(r"&&|\|\||;|\|")
-SEARCH = re.compile(r"\bgrep\b|\brg\b")
+SEARCH = re.compile(r"\bgrep\b|\brg\b|\bfind\b|\bawk\b|\bls\b")
 ASSIGN = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)=\$\(")
 COUNTER = re.compile(r"wc\s+-l|grep\s+-[a-zA-Z]*c\b")
 

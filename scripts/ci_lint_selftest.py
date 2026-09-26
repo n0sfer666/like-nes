@@ -8,10 +8,11 @@ from ci_lint_fixtures_gates import CASES as GATE_CASES
 from ci_lint_fixtures_args import CASES as ARG_CASES, QUIET as ARG_QUIET
 from ci_lint_fixtures_lists import CASES as LIST_CASES, SWEEP_CASES
 from ci_lint_fixtures_pins import CASES as PIN_CASES, QUIET as PIN_QUIET
+from ci_lint_fixtures_search import CASES as SEARCH_CASES, QUIET as SEARCH_QUIET
 from ci_lint_lists import analyze, check
 
-CASES = RUNNER_CASES + GATE_CASES + ARG_CASES + PIN_CASES
-QUIET = RUNNER_QUIET + ARG_QUIET + PIN_QUIET
+CASES = RUNNER_CASES + GATE_CASES + ARG_CASES + PIN_CASES + SEARCH_CASES
+QUIET = RUNNER_QUIET + ARG_QUIET + PIN_QUIET + SEARCH_QUIET
 
 
 def _report(rule, title, fired, silent, verbose):
