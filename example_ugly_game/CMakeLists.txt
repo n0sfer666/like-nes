@@ -203,7 +203,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/packaging.cmake)
 
 # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
 # всех ОС. Скриптованный combat-сценарий → детерм. golden-хеш (fix32/целочисл. → cross-arch).
-add_executable(game_sim_test sim_test.cpp sim.cpp combat.cpp boss.cpp)
+add_executable(game_sim_test sim_test.cpp sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(game_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
 target_link_libraries(game_sim_test PRIVATE engine_core flecs_static Threads::Threads)
@@ -211,7 +211,7 @@ target_link_libraries(game_sim_test PRIVATE engine_core flecs_static Threads::Th
 # Гейт 7 спеки #10: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
 add_executable(ach_sim_test
   ach_sim_test.cpp achievements.cpp backend_host.cpp ach_source_bundle.cpp
-  sim.cpp combat.cpp boss.cpp)
+  sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(ach_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
 target_link_libraries(ach_sim_test PRIVATE engine_core ach_bundle ach_plugin flecs_static Threads::Threads)

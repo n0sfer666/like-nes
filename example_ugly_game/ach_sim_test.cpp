@@ -7,6 +7,7 @@
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 #include "sim.hpp"
+#include "sim_hash.hpp"
 #include "world.hpp"
 
 // Гейт 7 (спека #10): достижения — НАБЛЮДАТЕЛЬ. sim их не вызывает, поэтому golden

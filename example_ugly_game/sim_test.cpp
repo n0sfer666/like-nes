@@ -1,5 +1,6 @@
 #include "combat.hpp"
 #include "sim.hpp"
+#include "sim_hash.hpp"
 #include "world.hpp"
 
 #include <cstdio>
