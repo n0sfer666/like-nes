@@ -15,7 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from line_budget_allow import ALLOW  # noqa: E402
-from line_budget_rules import HARD, KINDS, SOFT, VENDORED  # noqa: E402
+from line_budget_rules import HARD, KINDS, SOFT, TEXT_FILES, VENDORED  # noqa: E402
 import py_utf8  # noqa: E402
 
 # Область действия названа списком ВКЛЮЧЕНИЯ, и это осознанное сужение: правило 5 — про авторский
@@ -69,6 +69,10 @@ def audit(files, allow):
         if kind not in KINDS:
             out.append(f"{path}: вид обоснования '{kind}' не из закрытого списка "
                        f"({', '.join(sorted(KINDS))}).")
+        if kind == "text" and not path.endswith(TEXT_FILES):
+            out.append(f"{path}: вид 'text' выписан на исходник — к нему обращаются поимённо, это "
+                       f"'single' или разрез файла ({', '.join(TEXT_FILES)} — единственное место "
+                       f"для 'text').")
         if len(reason.split()) < MIN_WORDS:
             out.append(f"{path}: причина из {len(reason.split())} слов(а) — отписка не считается "
                        f"обоснованием, нужно минимум {MIN_WORDS}.")
