@@ -172,18 +172,27 @@ inv_ascii() {
     python3 scripts/ascii_output_check.py || exit 1
 }
 
+# --- C-style касты запрещены (conventions.md, аудит #21 B8) -------------------------------------
+inv_cast() {
+    # Вторая линия за -Wold-style-cast: Windows-файлы и мобильные оболочки флаг не видит. Корни
+    # отдаются отсюда, а не копией списка в скрипте; самопроверку скрипт гоняет сам перед гейтом.
+    # shellcheck disable=SC2086
+    python3 scripts/check_c_casts.py $ROOTS || exit 1
+}
+
 case "${1:-all}" in
     seam) inv_seam ;;
     argv) inv_argv ;;
     env)  inv_env ;;
     deps) inv_deps ;;
     ascii) inv_ascii ;;
+    cast) inv_cast ;;
     all)
         # Ни одна проверка не обрывает остальные: прогон обязан выдать все находки разом — то же
         # основание, что у этапов preflight.sh.
         rc=0
-        for i in seam argv env deps ascii; do ( "inv_$i" ) || rc=1; done
+        for i in seam argv env deps ascii cast; do ( "inv_$i" ) || rc=1; done
         exit $rc
         ;;
-    *) fail "usage: tree_invariants.sh [seam|argv|env|deps|ascii|all]" ;;
+    *) fail "usage: tree_invariants.sh [seam|argv|env|deps|ascii|cast|all]" ;;
 esac

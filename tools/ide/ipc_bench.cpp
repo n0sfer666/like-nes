@@ -69,13 +69,13 @@ int main() {
         std::thread cons([&] {
             std::vector<MirrorEntity> local(N);
             for (int k = 1; k <= ITERS; ++k) {
-                while (pub.load(std::memory_order_acquire) != (uint32_t)k) { /* spin */ }
+                while (pub.load(std::memory_order_acquire) != static_cast<uint32_t>(k)) { /* spin */ }
                 seq_read(g_buf.header.seq, [&] {
                     for (uint32_t i = 0; i < N; ++i) local[i] = g_buf.entities[i];
                 });
                 int64_t t1 = now_ns();
                 lat.push_back((t1 - t0.load(std::memory_order_relaxed)) / 1000.0);
-                ack.store((uint32_t)k, std::memory_order_release);
+                ack.store(static_cast<uint32_t>(k), std::memory_order_release);
             }
         });
         for (int k = 1; k <= ITERS; ++k) {
@@ -83,13 +83,13 @@ int main() {
             seq_write_begin(g_buf.header.seq);
             for (uint32_t i = 0; i < N; ++i) {
                 g_buf.entities[i].guid = 1000 + i;
-                g_buf.entities[i].px = (int32_t)k;
+                g_buf.entities[i].px = static_cast<int32_t>(k);
                 g_buf.entities[i].py = 0; g_buf.entities[i].vx = 0; g_buf.entities[i].vy = 0;
-                g_buf.entities[i].gen = (uint32_t)k;
+                g_buf.entities[i].gen = static_cast<uint32_t>(k);
             }
             seq_write_end(g_buf.header.seq);
-            pub.store((uint32_t)k, std::memory_order_release);
-            while (ack.load(std::memory_order_acquire) != (uint32_t)k) { /* spin */ }
+            pub.store(static_cast<uint32_t>(k), std::memory_order_release);
+            while (ack.load(std::memory_order_acquire) != static_cast<uint32_t>(k)) { /* spin */ }
         }
         cons.join();
         pctl(lat, "shmem", 0);   // 0 сериализации: consumer читает из mmap, copies/frame = 1 (read-out)
@@ -116,7 +116,7 @@ int main() {
         std::vector<MirrorEntity> sbuf(N);
         for (int k = 1; k <= ITERS; ++k) {
             t0.store(now_ns(), std::memory_order_relaxed);   // produce (сериализация) включён — симметрия с shmem
-            for (uint32_t i = 0; i < N; ++i) { sbuf[i] = g_buf.entities[i]; sbuf[i].gen = (uint32_t)k; }
+            for (uint32_t i = 0; i < N; ++i) { sbuf[i] = g_buf.entities[i]; sbuf[i].gen = static_cast<uint32_t>(k); }
             send_all(sv[0], sbuf.data(), frame_bytes);   // serialize=memcpy + syscall + kernel copy
             uint8_t a; recv(sv[0], &a, 1, 0);
         }

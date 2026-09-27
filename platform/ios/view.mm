@@ -48,11 +48,11 @@ using namespace game;
     [super viewDidAppear:animated];
     if (started_) return;
 
-    CAMetalLayer* layer = (CAMetalLayer*)self.view.layer;
+    CAMetalLayer* layer = static_cast<CAMetalLayer*>(self.view.layer);
     const CGFloat scale = UIScreen.mainScreen.scale;
     layer.contentsScale = scale;
-    const uint32_t w = (uint32_t)(self.view.bounds.size.width * scale);
-    const uint32_t h = (uint32_t)(self.view.bounds.size.height * scale);
+    const uint32_t w = static_cast<uint32_t>(self.view.bounds.size.width * scale);
+    const uint32_t h = static_cast<uint32_t>(self.view.bounds.size.height * scale);
     layer.drawableSize = CGSizeMake(w, h);
 
     gpu_.instance = wgpuCreateInstance(nullptr);
@@ -96,7 +96,8 @@ using namespace game;
     const CGSize sz = self.view.bounds.size;
     for (UITouch* t in touches) {
         const CGPoint p = [t locationInView:self.view];
-        game_.pointer((int)(intptr_t)t, phase, (float)p.x, (float)p.y, (float)sz.width, (float)sz.height);
+        // Граница ObjC: id касания — адрес UITouch, UIKit держит один объект на всё касание.
+        game_.pointer(reinterpret_cast<intptr_t>(t), phase, static_cast<float>(p.x), static_cast<float>(p.y), static_cast<float>(sz.width), static_cast<float>(sz.height));
     }
 }
 

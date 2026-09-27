@@ -51,7 +51,7 @@ void draw_star(std::vector<uint8_t>& px) {
         for (uint32_t x = 0; x < STAR; ++x) {
             const float d = std::hypot(x + 0.5f - cx, y + 0.5f - cy);
             const float k = d >= r ? 0.0f : 1.0f - d / r;
-            put(px, SHIP + x, y, Rgba{255, 255, 255, (uint8_t)(std::pow(k, 1.8f) * 255.0f)});
+            put(px, SHIP + x, y, Rgba{255, 255, 255, static_cast<uint8_t>(std::pow(k, 1.8f) * 255.0f)});
         }
 }
 
@@ -80,7 +80,7 @@ void draw_bullet(std::vector<uint8_t>& px) {
         for (uint32_t x = 0; x < W; ++x) {
             const float k = 1.0f - std::hypot((x + 0.5f - 12) / 12.0f, (y + 0.5f - 4) / 4.0f);
             if (k <= 0) continue;
-            const uint8_t a = (uint8_t)(std::pow(k, 0.7f) * 255.0f);
+            const uint8_t a = static_cast<uint8_t>(std::pow(k, 0.7f) * 255.0f);
             put(px, ox + x, oy + y, Rgba{180, 255, 255, a});
         }
 }
@@ -157,13 +157,13 @@ void draw_hostile(std::vector<uint8_t>& px) {
         for (uint32_t x = 0; x < W; ++x) {
             const float k = 1.0f - std::hypot((x + 0.5f - 12) / 12.0f, (y + 0.5f - 4) / 4.0f);
             if (k <= 0) continue;
-            put(px, ox + x, oy + y, Rgba{255, 104, 92, (uint8_t)(std::pow(k, 0.7f) * 255.0f)});
+            put(px, ox + x, oy + y, Rgba{255, 104, 92, static_cast<uint8_t>(std::pow(k, 0.7f) * 255.0f)});
         }
 }
 
 Region rgn(uint32_t x0, uint32_t y0, uint32_t x1, uint32_t y1) {
     const float iu = 0.5f / AW, iv = 0.5f / AH;
-    return {x0 / (float)AW + iu, y0 / (float)AH + iv, x1 / (float)AW - iu, y1 / (float)AH - iv};
+    return {x0 / static_cast<float>(AW) + iu, y0 / static_cast<float>(AH) + iv, x1 / static_cast<float>(AW) - iu, y1 / static_cast<float>(AH) - iv};
 }
 
 } // namespace
@@ -184,7 +184,7 @@ void set_regions(Atlas& atlas) {
 Atlas build_atlas() {
     Atlas atlas;
     set_regions(atlas);
-    atlas.px.assign((size_t)AW * AH * 4, 0);
+    atlas.px.assign(static_cast<size_t>(AW) * AH * 4, 0);
     draw_ship(atlas.px);
     draw_star(atlas.px);
     draw_enemy(atlas.px);

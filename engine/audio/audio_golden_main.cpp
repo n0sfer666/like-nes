@@ -70,14 +70,14 @@ int main() {
     uint64_t a = render_hash(SAMPLES_PER_TICK); // block=800
     uint64_t b = render_hash(SAMPLES_PER_TICK); // run-to-run
     uint64_t c = render_hash(256);              // другой размер блока → должен совпасть
-    std::printf("[audio_golden] mix_hash = 0x%016llx\n", (unsigned long long)a);
+    std::printf("[audio_golden] mix_hash = 0x%016llx\n", static_cast<unsigned long long>(a));
     if (a != b) {
         std::fprintf(stderr, "[audio_golden] FAIL: run-to-run mismatch\n");
         return 1;
     }
     if (a != c) {
         std::fprintf(stderr, "[audio_golden] FAIL: block-size dependence 0x%016llx != 0x%016llx "
-                     "(sample-accuracy broken)\n", (unsigned long long)a, (unsigned long long)c);
+                     "(sample-accuracy broken)\n", static_cast<unsigned long long>(a), static_cast<unsigned long long>(c));
         return 1;
     }
     std::printf("[audio_golden] PASS byte-identical run-to-run AND block-size-independent "

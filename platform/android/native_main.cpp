@@ -33,9 +33,9 @@ void init(App& a, ANativeWindow* win) {
         a.surface = nullptr;
         return;
     }
-    const uint32_t w = (uint32_t)ANativeWindow_getWidth(win);
-    const uint32_t h = (uint32_t)ANativeWindow_getHeight(win);
-    a.vw = (float)w; a.vh = (float)h;
+    const uint32_t w = static_cast<uint32_t>(ANativeWindow_getWidth(win));
+    const uint32_t h = static_cast<uint32_t>(ANativeWindow_getHeight(win));
+    a.vw = static_cast<float>(w); a.vh = static_cast<float>(h);
     if (!a.game.init(a.gpu, a.surface, w, h, "")) return;
     a.ready = true;
 }
@@ -54,7 +54,7 @@ void dispatch(App& a, AInputEvent* ev, int idx, MobileGame::Touch phase) {
 }
 
 int32_t on_input(android_app* app, AInputEvent* ev) {
-    App& a = *(App*)app->userData;
+    App& a = *static_cast<App*>(app->userData);
     if (!a.ready || AInputEvent_getType(ev) != AINPUT_EVENT_TYPE_MOTION) return 0;
     const int32_t raw = AMotionEvent_getAction(ev);
     const int32_t action = raw & AMOTION_EVENT_ACTION_MASK;
@@ -67,7 +67,7 @@ int32_t on_input(android_app* app, AInputEvent* ev) {
             break;
         case AMOTION_EVENT_ACTION_MOVE:
             for (size_t i = 0; i < AMotionEvent_getPointerCount(ev); ++i)
-                dispatch(a, ev, (int)i, MobileGame::Touch::Move);
+                dispatch(a, ev, static_cast<int>(i), MobileGame::Touch::Move);
             break;
         case AMOTION_EVENT_ACTION_UP:
         case AMOTION_EVENT_ACTION_POINTER_UP:
@@ -81,7 +81,7 @@ int32_t on_input(android_app* app, AInputEvent* ev) {
 }
 
 void on_cmd(android_app* app, int32_t cmd) {
-    App& a = *(App*)app->userData;
+    App& a = *static_cast<App*>(app->userData);
     if (cmd == APP_CMD_INIT_WINDOW && app->window) init(a, app->window);
     else if (cmd == APP_CMD_TERM_WINDOW) teardown(a);
 }
@@ -96,7 +96,8 @@ void android_main(android_app* app) {
     while (true) {
         int events;
         android_poll_source* src;
-        while (ALooper_pollOnce(a.ready ? 0 : -1, nullptr, &events, (void**)&src) >= 0) {
+        // Граница C-API: outData у ALooper_pollOnce — void**, looper кладёт туда android_poll_source*.
+        while (ALooper_pollOnce(a.ready ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&src)) >= 0) {
             if (src) src->process(app, src);
             if (app->destroyRequested) { teardown(a); return; }
         }

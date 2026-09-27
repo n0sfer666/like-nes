@@ -39,7 +39,7 @@ int main() {
     game::GameState g{};
     const uint64_t a = game::run_scripted(1200, &g);   // Intro→Play→Boss (таймаут 540) → бой
     const uint64_t b = game::run_scripted(1200);
-    std::printf("[game-sim] combat-golden-hash = 0x%016llx\n", (unsigned long long)a);
+    std::printf("[game-sim] combat-golden-hash = 0x%016llx\n", static_cast<unsigned long long>(a));
     std::printf("[game-sim] final phase=%u kills=%u score=%u lives=%d\n", g.phase, g.kills, g.score, g.lives);
     std::printf("[game-sim] run1==run2: %s\n", a == b ? "YES" : "NO");
     if (a != b) { std::printf("game-sim: FAIL (nondeterministic)\n"); return 1; }

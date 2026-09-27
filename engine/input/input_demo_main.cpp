@@ -42,7 +42,7 @@ static void print_frame(const InputFrame& f) {
     printf("\r[t%6u] ", f.tick);
     for (int a = 0; a < 2; ++a) printf("%s:%s ", kActionName[a], f.action_held(a) ? "#" : ".");
     for (int a = 0; a < 4; ++a) printf("%s:%+.2f ", kAxisName[a], f.axes[a].to_double());
-    printf("mEv:%llu   ", (unsigned long long)glfw_mouse_event_count());
+    printf("mEv:%llu   ", static_cast<unsigned long long>(glfw_mouse_event_count()));
     fflush(stdout);
 }
 
@@ -85,7 +85,7 @@ int main() {
             bool now = engine.device().pad_connected[s];
             if (now != prev_pad[s]) { printf("\n[hotplug] gamepad slot %d %s\n", s, now ? "CONNECTED" : "DISCONNECTED"); prev_pad[s] = now; }
         }
-        if (engine.dropped() != dropped_prev) { printf("\n[warn] dropped %llu raw events (queue full)\n", (unsigned long long)engine.dropped()); dropped_prev = engine.dropped(); }
+        if (engine.dropped() != dropped_prev) { printf("\n[warn] dropped %llu raw events (queue full)\n", static_cast<unsigned long long>(engine.dropped())); dropped_prev = engine.dropped(); }
         if (f.action_pressed(A_Jump) && have_pad_backend) pad->set_rumble(0, 0.7f, 0.7f, 200);
         if (glfwGetKey(win, GLFW_KEY_R) == GLFW_PRESS && have_pad_backend) pad->set_rumble(0, 1.0f, 1.0f, 150);
         bool m_now = glfwGetKey(win, GLFW_KEY_M) == GLFW_PRESS;

@@ -41,11 +41,11 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     batch_.init(gpu.device, gpu.queue,
                 use_bloom_ ? WGPUTextureFormat_RGBA16Float : fmt_, atlas_);
 
-    const double sa = (double)fb_w / fb_h, wa = (double)VIEW_W / VIEW_H;
-    const uint32_t world_w = sa >= wa ? (uint32_t)(VIEW_H * sa) : VIEW_W;
-    const uint32_t world_h = sa >= wa ? VIEW_H : (uint32_t)(VIEW_W / sa);
+    const double sa = static_cast<double>(fb_w) / fb_h, wa = static_cast<double>(VIEW_W) / VIEW_H;
+    const uint32_t world_w = sa >= wa ? static_cast<uint32_t>(VIEW_H * sa) : VIEW_W;
+    const uint32_t world_h = sa >= wa ? VIEW_H : static_cast<uint32_t>(VIEW_W / sa);
     batch_.set_viewport(world_w, world_h);
-    vw_ = (float)world_w; vh_ = (float)world_h;
+    vw_ = static_cast<float>(world_w); vh_ = static_cast<float>(world_h);
 
     spawn(world_, gs_);
     map_ = make_map();
@@ -58,18 +58,18 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
 
 void MobileGame::post_axis(fix32 x, fix32 y) {
     engine_->post({input::RawKind::PadAxis, input::DeviceKind::Gamepad, 0,
-                   (uint16_t)input::code::LX, x.raw, seq_++});
+                   static_cast<uint16_t>(input::code::LX), x.raw, seq_++});
     engine_->post({input::RawKind::PadAxis, input::DeviceKind::Gamepad, 0,
-                   (uint16_t)input::code::LY, y.raw, seq_++});
+                   static_cast<uint16_t>(input::code::LY), y.raw, seq_++});
 }
 
 void MobileGame::post_fire(bool down) {
     fire_down_ = down;
     engine_->post({down ? input::RawKind::PadButtonDown : input::RawKind::PadButtonUp,
-                   input::DeviceKind::Gamepad, 0, (uint16_t)input::code::PadA, 0, seq_++});
+                   input::DeviceKind::Gamepad, 0, static_cast<uint16_t>(input::code::PadA), 0, seq_++});
 }
 
-void MobileGame::pointer(int id, Touch phase, float px, float py, float view_w, float view_h) {
+void MobileGame::pointer(intptr_t id, Touch phase, float px, float py, float view_w, float view_h) {
     if (!engine_) return;
     const Btn b = fire_btn(view_w, view_h);
     const float stick_r = 0.12f * (view_w < view_h ? view_w : view_h);

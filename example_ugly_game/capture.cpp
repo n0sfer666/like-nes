@@ -21,7 +21,7 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
     const uint32_t padded = align256(row);
     WGPUBufferDescriptor bd = {};
     bd.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
-    bd.size = (uint64_t)padded * h;
+    bd.size = static_cast<uint64_t>(padded) * h;
     WGPUBuffer buf = wgpuDeviceCreateBuffer(device, &bd);
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(device, nullptr);
@@ -50,9 +50,9 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
     if (ms.ok) {
         const uint8_t* mapped = static_cast<const uint8_t*>(
             wgpuBufferGetConstMappedRange(buf, 0, bd.size));
-        out.resize((size_t)row * h);
+        out.resize(static_cast<size_t>(row) * h);
         for (uint32_t y = 0; y < h; ++y)
-            std::memcpy(&out[(size_t)y * row], mapped + (size_t)y * padded, row);
+            std::memcpy(&out[static_cast<size_t>(y) * row], mapped + static_cast<size_t>(y) * padded, row);
         wgpuBufferUnmap(buf);
     }
     wgpuBufferRelease(buf);
@@ -60,7 +60,7 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
 }
 
 bool write_png(const char* path, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h) {
-    return stbi_write_png(path, (int)w, (int)h, 4, rgba.data(), (int)(w * 4)) != 0;
+    return stbi_write_png(path, static_cast<int>(w), static_cast<int>(h), 4, rgba.data(), static_cast<int>(w * 4)) != 0;
 }
 
 } // namespace game

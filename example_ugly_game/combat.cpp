@@ -29,8 +29,8 @@ int64_t iabs(int64_t v) { return v < 0 ? -v : v; }
 
 bool overlap(int32_t ax, int32_t ay, int32_t ahw, int32_t ahh,
              int32_t bx, int32_t by, int32_t bhw, int32_t bhh) {
-    return iabs((int64_t)ax - bx) < (int64_t)ahw + bhw &&
-           iabs((int64_t)ay - by) < (int64_t)ahh + bhh;
+    return iabs(static_cast<int64_t>(ax) - bx) < static_cast<int64_t>(ahw) + bhw &&
+           iabs(static_cast<int64_t>(ay) - by) < static_cast<int64_t>(ahh) + bhh;
 }
 
 struct Item { flecs::entity e; int32_t x, y; uint32_t seq; bool dead = false; };
@@ -65,7 +65,7 @@ void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix3
     if (spawn_enemies) {
         if (gs.spawn_cd > 0) gs.spawn_cd--;
         if (gs.spawn_cd == 0) {
-            const int32_t ey = (int32_t)(lcg(gs.rng) % 421u) - 210;
+            const int32_t ey = static_cast<int32_t>(lcg(gs.rng) % 421u) - 210;
             world.entity().set<Transform>({ENEMY_SPAWN_X, fix32::from_int(ey)})
                  .set<Velocity>({ENEMY_VX, fix32{}}).set<Enemy>({1}).set<EntId>({gs.seq++});
             gs.spawn_cd = SPAWN_CD;

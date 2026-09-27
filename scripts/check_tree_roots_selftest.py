@@ -3,7 +3,8 @@
 Отдельным файлом по тому же основанию, что `ascii_output_check_selftest.py` рядом со своим гейтом:
 сверка копий и набор сломанных копий — две ответственности, и растут они независимо (третья копия
 приехала со швом хешей, четвёртая — со швом файлов, пятая — со швом подключений, а с находкой
-ревью у каждой прибавилось по второму списку). Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
+ревью у каждой прибавилось по второму списку; шестая копия расширений — с запретом кастов).
+Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
 """
 import os
 import re
@@ -11,7 +12,7 @@ import shutil
 import sys
 import tempfile
 
-from check_tree_roots import COPIES, FS, INC, PY, ROOT, SEAM, SH, gate
+from check_tree_roots import CAST, EXT_COPIES, FS, INC, PY, ROOT, SEAM, SH, gate
 
 
 def sh_without_root(text, name="docs/examples"):
@@ -37,7 +38,7 @@ def selftest():
         d = tempfile.mkdtemp()
         os.makedirs(os.path.join(d, "scripts"))
         changed = False
-        for rel, _ in COPIES:
+        for rel, _ in EXT_COPIES:
             text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
             new = mutate(rel, text)
             changed = changed or new != text
@@ -81,6 +82,9 @@ def selftest():
             if rel == w else t)
         run("fail", "разбор не нашёл копию %s" % label,
             lambda rel, t, w=path: t.replace("ROOTS = (", "ROOTS_ALL = (") if rel == w else t)
+    # Расширения — ещё и у запрета кастов: корней у него нет, их даёт шелл аргументами.
+    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов"),
+                        (INC, "шва подключений"), (CAST, "запрета кастов")):
         run("fail", "расширение пропало из копии %s" % label,
             lambda rel, t, w=path: t.replace('".inl", ', "") if rel == w else t)
         run("fail", "лишнее расширение в копии %s" % label,

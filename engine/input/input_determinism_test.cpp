@@ -111,7 +111,7 @@ int main() {
     uint64_t h_replay = replay(map, rec);
 
     printf("input-determinism gate:\n");
-    printf("  sim_hash (density=1): 0x%016llx\n", (unsigned long long)h_d1);
+    printf("  sim_hash (density=1): 0x%016llx\n", static_cast<unsigned long long>(h_d1));
     printf("  run-to-run: %s\n", h_d1 == h_d1b ? "YES" : "NO");
     printf("  poll-rate independent (d1==d3==d8): %s\n", (h_d1 == h_d3 && h_d1 == h_d8) ? "YES" : "NO");
     printf("  record->replay identical: %s\n", h_d1 == h_replay ? "YES" : "NO");

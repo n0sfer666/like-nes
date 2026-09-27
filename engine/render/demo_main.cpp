@@ -29,14 +29,14 @@ int run_dump(const char* path) {
 
     Scene scene;
     for (uint32_t i = 0; i < DUMP_FRAME; ++i) scene.advance();
-    SceneSnapshot snap = scene.snapshot((float)DUMP_W / DUMP_H);
+    SceneSnapshot snap = scene.snapshot(static_cast<float>(DUMP_W) / DUMP_H);
 
     std::vector<uint8_t> px = capture::render_offscreen(gpu.device, gpu.queue, renderer,
                                                         snap, DUMP_W, DUMP_H);
     const bool ok = !px.empty() && capture::write_png(path, px, DUMP_W, DUMP_H);
     std::printf("[render] dump %s: %s (arena pool=%zu allocs=%llu)\n", path,
                 ok ? "OK" : "FAIL", renderer.arena().pool_size(),
-                (unsigned long long)renderer.arena().allocations());
+                static_cast<unsigned long long>(renderer.arena().allocations()));
 
     renderer.shutdown(); sprite.shutdown(); gpu.shutdown();
     return ok ? 0 : 1;
@@ -59,11 +59,11 @@ int run_window() {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     WGPUTextureFormat fmt = configure_surface(surface, gpu.adapter, gpu.device,
-                                              (uint32_t)fbw, (uint32_t)fbh);
+                                              static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh));
 
     Sprite sprite; sprite.init(gpu.device, gpu.queue);
     Renderer renderer;
-    if (!renderer.init(gpu.device, gpu.queue, sprite, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
+    if (!renderer.init(gpu.device, gpu.queue, sprite, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh))) {
         renderer.shutdown(); sprite.shutdown();
         wgpuSurfaceRelease(surface); gpu.shutdown();
         glfwDestroyWindow(window); glfwTerminate();
@@ -82,7 +82,7 @@ int run_window() {
             ++drawn;
             WGPUTextureView view = wgpuTextureCreateView(f.texture, nullptr);
             scene.advance();
-            renderer.render(scene.snapshot((float)fbw / fbh), view);
+            renderer.render(scene.snapshot(static_cast<float>(fbw) / fbh), view);
             wgpuSurfacePresent(surface);
             wgpuTextureViewRelease(view);
             wgpuTextureRelease(f.texture);

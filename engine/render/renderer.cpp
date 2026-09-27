@@ -19,7 +19,7 @@ void write_sprite(WGPUQueue q, WGPUBuffer buf, uint32_t offset, const SpriteXfor
 void write_lights(WGPUQueue q, WGPUBuffer buf, const SceneSnapshot& s) {
     LightsUniform lu = {};
     const int n = std::min(s.light_count, 3);
-    lu.header[0] = (float)n; lu.header[1] = s.aspect; lu.header[2] = 0.09f;
+    lu.header[0] = static_cast<float>(n); lu.header[1] = s.aspect; lu.header[2] = 0.09f;
     lu.ambient_col[0] = 0.30f; lu.ambient_col[1] = 0.34f; lu.ambient_col[2] = 0.50f;
     for (int i = 0; i < n; ++i) {
         const LightState& L = s.lights[i];
@@ -92,7 +92,7 @@ bool Renderer::init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
 
 bool Renderer::build_targets() {
     arena_.begin_frame();
-    const WGPUTextureUsage rt = (WGPUTextureUsage)(WGPUTextureUsage_RenderAttachment |
+    const WGPUTextureUsage rt = static_cast<WGPUTextureUsage>(WGPUTextureUsage_RenderAttachment |
                                                    WGPUTextureUsage_TextureBinding);
     albedo_ = arena_.acquire(TargetDesc{w_, h_, GBUFFER_ALBEDO_FMT, rt});
     normal_ = arena_.acquire(TargetDesc{w_, h_, GBUFFER_NORMAL_FMT, rt});

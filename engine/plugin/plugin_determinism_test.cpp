@@ -47,8 +47,8 @@ int main(int argc, char** argv) {
     bool bok = true;
     uint64_t h_without = run_sim(base, TICKS, &bok);
 
-    std::printf("[plugin-determinism] H_with     = 0x%016llx\n", (unsigned long long)h_order1);
-    std::printf("[plugin-determinism] H_without  = 0x%016llx\n", (unsigned long long)h_without);
+    std::printf("[plugin-determinism] H_with     = 0x%016llx\n", static_cast<unsigned long long>(h_order1));
+    std::printf("[plugin-determinism] H_without  = 0x%016llx\n", static_cast<unsigned long long>(h_without));
     std::printf("[plugin-determinism] order-independent (loadA==loadB): %s\n",
                 h_order1 == h_order2 ? "YES" : "NO");
     std::printf("[plugin-determinism] run-to-run stable:                %s\n",

@@ -97,8 +97,8 @@ int render_run(const DemoOptions& opt, std::vector<uint8_t>& last) {
     const fix32 dt = fix32::from_float(1.0 / 60);
 
     for (int t = 0; t < opt.frames; ++t) {
-        driver.drive(engine, (uint32_t)t);
-        const input::InputFrame& f = engine.begin_tick((uint32_t)t, 0);
+        driver.drive(engine, static_cast<uint32_t>(t));
+        const input::InputFrame& f = engine.begin_tick(static_cast<uint32_t>(t), 0);
         sink.events.clear();
         step(world, gs, f, dt, &sink);
         fx.emit(sink);

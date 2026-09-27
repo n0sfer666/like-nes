@@ -156,7 +156,7 @@ jobs:
         run: bash scripts/check_release_selftest.sh
 
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
-      # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
+      # Тела всех статических гейтов дерева — в scripts/tree_invariants.sh: тот же скрипт гоняет
       # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
       # Шаги остаются раздельными, чтобы в логе было названо, какой именно инвариант сломан.
       # Один раннер: результат от ОС не зависит, дерево одно.
@@ -193,8 +193,22 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh ascii
 
-      # Список корней дерева живёт в ДВУХ копиях — `ROOTS` в tree_invariants.sh и `ROOTS` в
-      # ascii_output_check.py, — и внешнего эталона у него нет: «все каталоги дерева» тут неверно.
+      # C-style касты запрещены conventions.md. Первая линия — -Wold-style-cast в warnings.cmake,
+      # но его судит лишь то, что собирают clang и gcc: Windows-файлы (MSVC флага не имеет) и
+      # мобильные оболочки (их CI не собирает) видит только этот разбор. Самопроверка — на всех трёх
+      # ОС: обход берёт файлы у git во временном репозитории, а вывод по-русски идёт через py_utf8.
+      - name: C-style cast gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_c_casts.py --selftest
+
+      - name: Tree — no C-style casts, files the compiler never builds included (audit #21 B8)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/tree_invariants.sh cast
+
+      # Признак обхода дерева живёт в нескольких копиях — `ROOTS`/`EXT` в tree_invariants.sh и
+      # `ROOTS`/`EXTS` в питоновских гейтах (список — в шапке check_tree_roots.py), — и внешнего
+      # эталона у него нет: «все каталоги дерева» тут неверно.
       # Поэтому копии сверяются МЕЖДУ СОБОЙ, ровно форма mirrors-group из ci_lint.py. Расхождение
       # молчит: корень, добавленный в одну копию, проходит инварианты швов и остаётся вне
       # ASCII-проверки. Самопроверка идёт ПЕРЕД гейтом и на всех трёх ОС — предмет у неё

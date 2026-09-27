@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Признак обхода дерева живёт в ПЯТИ копиях, и сверять их между собой некому.
+"""Признак обхода дерева живёт в ПЯТИ копиях (расширения — в шести), и сверять их между собой некому.
 
 `scripts/tree_invariants.sh` перечисляет корни в `ROOTS_CODE`/`ROOTS`, а `ascii_output_check.py`,
 `check_hash_seam.py`, `check_fs_seam.py` и `check_include_seam.py` — в своих `ROOTS`. Внешнего эталона у списка нет: «все
@@ -33,6 +33,7 @@ PY = "scripts/ascii_output_check.py"
 SEAM = "scripts/check_hash_seam.py"
 FS = "scripts/check_fs_seam.py"
 INC = "scripts/check_include_seam.py"
+CAST = "scripts/check_c_casts.py"
 
 SH_ASSIGN = re.compile(r'^\s*(ROOTS|ROOTS_CODE)="([^"]*)"\s*$', re.M)
 PY_ASSIGN = re.compile(r'^ROOTS\s*=\s*\(([^)]*)\)', re.M)
@@ -72,16 +73,19 @@ def python_exts(text):
 # четвёртая — со швом файлового ввода-вывода, пятая — со швом подключений (находки 5, 6 и 13
 # аудита #21): корень, добавленный не во все копии, проходит часть гейтов и молча остаётся вне прочих.
 COPIES = ((SH, "shell"), (PY, "python"), (SEAM, "python"), (FS, "python"), (INC, "python"))
+# Запрет C-style кастов (находка 8) корни берёт аргументами у шелла, а расширения держит своей
+# шестой копией: судит он из них только C++, но список обязан совпадать с соседними целиком.
+EXT_COPIES = COPIES + ((CAST, "python"),)
 # Обе половины признака обхода. Имя списка идёт в текст находки: «расширение .inl есть в трёх
 # копиях» и «корень tools есть в трёх копиях» — разные поломки, и различить их обязан лог.
-GROUPS = (("корень", "ROOTS", {"shell": shell_roots, "python": python_roots}),
-          ("расширение", "EXTS", {"shell": shell_exts, "python": python_exts}))
+GROUPS = (("корень", "ROOTS", {"shell": shell_roots, "python": python_roots}, COPIES),
+          ("расширение", "EXTS", {"shell": shell_exts, "python": python_exts}, EXT_COPIES))
 
 
-def copy_sets(root, parsers):
+def copy_sets(root, parsers, copies):
     """{путь копии: множество имён}. OSError наружу — читает вызывающий."""
     out = {}
-    for rel, kind in COPIES:
+    for rel, kind in copies:
         text = open(os.path.join(root, rel), encoding="utf-8").read()
         out[rel] = parsers[kind](text)
     return out
@@ -91,9 +95,9 @@ def check(root):
     """Находки словами. Пустая копия — ОТКАЗ: пустое равно пустому, и разбор, промахнувшийся мимо
     файла, иначе печатал бы «копии совпадают» (тот же класс, что vacuous-gate в ci_lint.py)."""
     bad = []
-    for label, listname, parsers in GROUPS:
+    for label, listname, parsers, copies in GROUPS:
         try:
-            sets = copy_sets(root, parsers)
+            sets = copy_sets(root, parsers, copies)
         except OSError as e:
             return ["копию списка не прочитать: %s" % e]
         empty = ["%s: %s не разобран — сверять не с чем" % (rel, listname)
@@ -119,9 +123,9 @@ def gate(root, quiet=False):
             sys.stderr.write("tree-roots: FAIL (%d находок)\n" % len(bad))
         return 1
     if not quiet:
-        roots, exts = (copy_sets(root, g[2]) for g in GROUPS)
-        print("tree-roots: ok (%d корней и %d расширений в %d копиях)"
-              % (len(roots[SH]), len(exts[SH]), len(roots)))
+        roots, exts = (copy_sets(root, g[2], g[3]) for g in GROUPS)
+        print("tree-roots: ok (%d корней в %d копиях, %d расширений в %d копиях)"
+              % (len(roots[SH]), len(roots), len(exts[SH]), len(exts)))
     return 0
 
 

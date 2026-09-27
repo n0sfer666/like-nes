@@ -117,7 +117,7 @@ bool GpuContext::init(WGPUSurface surface) {
     wgpuDeviceSetUncapturedErrorCallback(
         device,
         [](WGPUErrorType type, char const* msg, void*) {
-            std::fprintf(stderr, "[wgpu] error %u: %s\n", (unsigned)type, msg ? msg : "?");
+            std::fprintf(stderr, "[wgpu] error %u: %s\n", static_cast<unsigned>(type), msg ? msg : "?");
         },
         nullptr);
     WGPUAdapterProperties props = {};

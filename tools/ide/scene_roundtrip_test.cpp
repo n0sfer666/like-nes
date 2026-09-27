@@ -54,7 +54,7 @@ int main() {
     bool run2run = (serialize(c) == s1);
 
     uint64_t golden = golden_hash(a);
-    std::printf("scene golden-hash: 0x%016llx\n", (unsigned long long)golden);
+    std::printf("scene golden-hash: 0x%016llx\n", static_cast<unsigned long long>(golden));
     std::printf("round-trip byte-identical: %s\n", roundtrip ? "YES" : "NO");
     std::printf("run-to-run identical: %s\n", run2run ? "YES" : "NO");
 

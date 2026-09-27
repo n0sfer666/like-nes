@@ -66,8 +66,8 @@ public:
         for (int i = 0; i < 4 && i < MAX_DEVICES; ++i) {
             XINPUT_STATE st{};
             bool ok = XInputGetState(i, &st) == ERROR_SUCCESS;
-            if (ok && !active_[i]) { active_[i] = true; btns_[i] = 0; for (int a = 0; a < PAD_AXES; ++a) axes_[i][a] = 0; e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, (uint8_t)i, 0, 0, seq_++}); }
-            if (!ok && active_[i]) { active_[i] = false; e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, (uint8_t)i, 0, 0, seq_++}); continue; }
+            if (ok && !active_[i]) { active_[i] = true; btns_[i] = 0; for (int a = 0; a < PAD_AXES; ++a) axes_[i][a] = 0; e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, static_cast<uint8_t>(i), 0, 0, seq_++}); }
+            if (!ok && active_[i]) { active_[i] = false; e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, static_cast<uint8_t>(i), 0, 0, seq_++}); continue; }
             if (!ok) continue;
             const XINPUT_GAMEPAD& g = st.Gamepad;
             for (const Btn& b : kBtns) emit_btn(e, i, b.code, (g.wButtons & b.mask) != 0);
@@ -82,8 +82,8 @@ public:
     void set_rumble(int slot, float low, float high, int) override {
         if (slot < 0 || slot >= 4) return;
         XINPUT_VIBRATION v{};
-        v.wLeftMotorSpeed = (WORD)(low * 65535.0f);
-        v.wRightMotorSpeed = (WORD)(high * 65535.0f);
+        v.wLeftMotorSpeed = static_cast<WORD>(low * 65535.0f);
+        v.wRightMotorSpeed = static_cast<WORD>(high * 65535.0f);
         XInputSetState(slot, &v);
     }
 
@@ -138,13 +138,13 @@ private:
         bool was = (btns_[slot] >> code) & 1u;
         if (pressed == was) return;
         if (pressed) btns_[slot] |= (1u << code); else btns_[slot] &= ~(1u << code);
-        e.post({pressed ? RawKind::PadButtonDown : RawKind::PadButtonUp, DeviceKind::Gamepad, (uint8_t)slot, (uint16_t)code, 0, seq_++});
+        e.post({pressed ? RawKind::PadButtonDown : RawKind::PadButtonUp, DeviceKind::Gamepad, static_cast<uint8_t>(slot), static_cast<uint16_t>(code), 0, seq_++});
     }
     void emit_axis(InputEngine& e, int slot, int code, float v) {
         int32_t raw = fix32::from_float(v).raw;
         if (raw == axes_[slot][code]) return;
         axes_[slot][code] = raw;
-        e.post({RawKind::PadAxis, DeviceKind::Gamepad, (uint8_t)slot, (uint16_t)code, raw, seq_++});
+        e.post({RawKind::PadAxis, DeviceKind::Gamepad, static_cast<uint8_t>(slot), static_cast<uint16_t>(code), raw, seq_++});
     }
 
     bool active_[MAX_DEVICES] = {};

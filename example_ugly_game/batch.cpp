@@ -112,7 +112,7 @@ void SpriteBatch::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat tar
 }
 
 void SpriteBatch::set_viewport(uint32_t w, uint32_t h) {
-    const float vp[4] = {(float)w * 0.5f, (float)h * 0.5f, 0, 0};
+    const float vp[4] = {static_cast<float>(w) * 0.5f, static_cast<float>(h) * 0.5f, 0, 0};
     wgpuQueueWriteBuffer(queue_, vp_ubo_, 0, vp, sizeof(vp));
 }
 

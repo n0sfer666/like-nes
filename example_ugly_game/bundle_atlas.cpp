@@ -64,7 +64,7 @@ Atlas load_baked_atlas(const char* bundle_path) {
     uint32_t w = 0, h = 0;
     // Валидируем И раскладку, И число байт (BC7: 16 байт/4x4-блок) — иначе writeTexture
     // словит validation error вместо мягкого отката на процедурный atlas.
-    const size_t want = (size_t)((atlas.w + 3) / 4) * ((atlas.h + 3) / 4) * 16;
+    const size_t want = static_cast<size_t>((atlas.w + 3) / 4) * ((atlas.h + 3) / 4) * 16;
     const bool ok = asset::ktx2_to_bc7(a.data, a.size, atlas.bc7, w, h) &&
                     w == atlas.w && h == atlas.h && atlas.bc7.size() == want;
     if (!ok) atlas.bc7.clear(); // мисматч => вызывающий делает fallback

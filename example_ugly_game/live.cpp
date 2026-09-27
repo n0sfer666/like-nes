@@ -42,7 +42,7 @@ int run_window(int frame_cap) {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(win, &fbw, &fbh);
     WGPUTextureFormat fmt = configure_surface(surface, gpu.adapter, gpu.device,
-                                              (uint32_t)fbw, (uint32_t)fbh);
+                                              static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh));
 
     Atlas atlas = load_game_atlas(gpu.supports_bc);
     // Библиотека эффектов (гейт 9 спеки #18). Отказ не фатален: `bind` вернёт false, и сцена
@@ -71,7 +71,7 @@ int run_window(int frame_cap) {
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,
                have_fx ? &materials : nullptr);   // → HDR (bloom)
     Bloom bloom;
-    if (!bloom.init(gpu.device, gpu.queue, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
+    if (!bloom.init(gpu.device, gpu.queue, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh))) {
         std::fprintf(stderr, "bloom init failed\n");
         gpu.shutdown(); glfwDestroyWindow(win); glfwTerminate(); return 1;
     }

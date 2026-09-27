@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
     uint64_t h_slow = run(bundle, 4000, r_slow);    // замедленный I/O (4ms/ассет)
 
     std::printf("[asset-determinism] sim-hash fast=0x%016llx slow=0x%016llx\n",
-                (unsigned long long)h_fast, (unsigned long long)h_slow);
+                static_cast<unsigned long long>(h_fast), static_cast<unsigned long long>(h_slow));
     std::printf("[asset-determinism] streamed fast=%d/5 slow=%d/5 (streaming is not a no-op)\n",
                 r_fast, r_slow);
     const bool ok = (h_fast == h_slow) && r_fast == 5 && r_slow == 5;

@@ -188,7 +188,7 @@ int main(int argc, char** argv) {
 
     std::printf("[asset_test] PASS zero-copy=shader stream=bulk+tex arena_used=%zu allocs=%llu "
                 "delay_us=%u\n",
-                am.arena_used(), (unsigned long long)am.arena_allocations(), delay);
+                am.arena_used(), static_cast<unsigned long long>(am.arena_allocations()), delay);
     am.close();
     (void)argc;
     return 0;

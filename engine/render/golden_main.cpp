@@ -29,7 +29,7 @@ std::vector<uint8_t> render_frame(GpuContext& gpu) {
     Scene scene;
     for (uint32_t i = 0; i < FRAME; ++i) scene.advance();
     std::vector<uint8_t> px = capture::render_offscreen(gpu.device, gpu.queue, r,
-                                                        scene.snapshot((float)W / H), W, H);
+                                                        scene.snapshot(static_cast<float>(W) / H), W, H);
     r.shutdown(); sprite.shutdown();
     return px;
 }

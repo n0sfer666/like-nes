@@ -33,7 +33,7 @@ int emit(const char* what, const std::string& path, std::vector<AssetInput> asse
     const BundleHeader* h = reinterpret_cast<const BundleHeader*>(bundle.data());
     std::printf("[assetc] %s %s (%u bytes, %u assets)\n", what, path.c_str(), h->total_size,
                 h->asset_count);
-    std::printf("[assetc] bundle_hash = 0x%016llx\n", (unsigned long long)h->bundle_hash);
+    std::printf("[assetc] bundle_hash = 0x%016llx\n", static_cast<unsigned long long>(h->bundle_hash));
     return 0;
 }
 

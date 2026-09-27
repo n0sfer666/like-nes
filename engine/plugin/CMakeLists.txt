@@ -100,7 +100,9 @@ if(PLUGIN_WASM)
     # модуля, что ему разрешили, а этот — у хозяина, что он говорит о себе (аудит #21, ревью A·2).
     add_executable(plugin_wasm_host_test plugin_wasm_host_test.cpp ${WASM_SRC})
     foreach(T plugin_wasm_test plugin_wasm_host_test)
-      target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${WASMTIME_DIR}/include)
+      target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+      # Чужой C-API: системным, иначе -Wold-style-cast судит касты в макросах wasm.h как наши.
+      target_include_directories(${T} SYSTEM PRIVATE ${WASMTIME_DIR}/include)
       target_link_libraries(${T} PRIVATE plugin_core engine_core ${WASMTIME_DIR}/lib/libwasmtime.a)
       if(APPLE)
         target_link_libraries(${T} PRIVATE

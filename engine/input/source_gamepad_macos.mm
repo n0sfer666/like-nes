@@ -18,6 +18,10 @@ struct PadCache {
     CHHapticEngine* haptics = nullptr;
 };
 
+// Граница ObjC: `__bridge` приводит без передачи ARC-владения (C++-формы у него нет), а
+// reinterpret_cast переводит адрес в число — его только сравнивают, обратно в указатель он не превращается.
+uintptr_t identity(GCController* ctl) { return reinterpret_cast<uintptr_t>((__bridge void*)ctl); }
+
 class MacGamepadSource : public GamepadSource {
 public:
     bool init() override { return true; }
@@ -33,8 +37,8 @@ public:
             if (slot < 0) continue;
             seen[slot] = true;
             if (!cache_[slot].active) {
-                cache_[slot].active = true; cache_[slot].id = (uintptr_t)(__bridge void*)ctl;
-                e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, (uint8_t)slot, 0, 0, seq_++});
+                cache_[slot].active = true; cache_[slot].id = identity(ctl);
+                e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, static_cast<uint8_t>(slot), 0, 0, seq_++});
                 pads_[slot] = ctl;
                 fill_info(slot, ctl);
             }
@@ -43,7 +47,7 @@ public:
         }
         for (int s = 0; s < MAX_DEVICES; ++s)
             if (cache_[s].active && !seen[s]) {
-                e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, (uint8_t)s, 0, 0, seq_++});
+                e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, static_cast<uint8_t>(s), 0, 0, seq_++});
                 cache_[s] = PadCache{}; pads_[s] = nil; info_[s] = PadInfo{};
             }
     }
@@ -78,7 +82,7 @@ private:
     }
 
     int slot_for(GCController* ctl) {
-        for (int s = 0; s < MAX_DEVICES; ++s) if (cache_[s].active && cache_[s].id == (uintptr_t)(__bridge void*)ctl) return s;
+        for (int s = 0; s < MAX_DEVICES; ++s) if (cache_[s].active && cache_[s].id == identity(ctl)) return s;
         for (int s = 0; s < MAX_DEVICES; ++s) if (!cache_[s].active) return s;
         return -1;
     }
@@ -88,7 +92,7 @@ private:
         if (pressed == was) return;
         if (pressed) cache_[slot].btns |= (1u << code); else cache_[slot].btns &= ~(1u << code);
         e.post({pressed ? RawKind::PadButtonDown : RawKind::PadButtonUp,
-                DeviceKind::Gamepad, (uint8_t)slot, (uint16_t)code, 0, seq_++});
+                DeviceKind::Gamepad, static_cast<uint8_t>(slot), static_cast<uint16_t>(code), 0, seq_++});
     }
 
     void emit_buttons(InputEngine& e, int slot, GCExtendedGamepad* gp) {
@@ -107,7 +111,7 @@ private:
         int32_t raw = fix32::from_float(v).raw;
         if (raw == cache_[slot].axes[code]) return;
         cache_[slot].axes[code] = raw;
-        e.post({RawKind::PadAxis, DeviceKind::Gamepad, (uint8_t)slot, (uint16_t)code, raw, seq_++});
+        e.post({RawKind::PadAxis, DeviceKind::Gamepad, static_cast<uint8_t>(slot), static_cast<uint16_t>(code), raw, seq_++});
     }
 
     void emit_axes(InputEngine& e, int slot, GCExtendedGamepad* gp) {

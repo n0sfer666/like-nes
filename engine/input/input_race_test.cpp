@@ -95,8 +95,8 @@ int main() {
     uint64_t h_ref = single_thread(T);
     uint64_t h_thr = threaded(T);
     printf("input-race gate:\n");
-    printf("  sim_hash single-thread: 0x%016llx\n", (unsigned long long)h_ref);
-    printf("  sim_hash threaded(jitter): 0x%016llx\n", (unsigned long long)h_thr);
+    printf("  sim_hash single-thread: 0x%016llx\n", static_cast<unsigned long long>(h_ref));
+    printf("  sim_hash threaded(jitter): 0x%016llx\n", static_cast<unsigned long long>(h_thr));
     printf("  timing-independent (one-way SPSC): %s\n", h_ref == h_thr ? "YES" : "NO");
     bool ok = h_ref == h_thr;
     printf("%s\n", ok ? "input-race: PASS" : "input-race: FAIL");

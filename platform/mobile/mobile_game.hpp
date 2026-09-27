@@ -27,7 +27,8 @@ public:
     bool init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint32_t fb_h,
               const std::string& audio_bundle);
     void set_demo(bool on) { demo_ = on; }
-    void pointer(int id, Touch phase, float px, float py, float view_w, float view_h);
+    // id — intptr_t: iOS отдаёт адрес UITouch целиком, усечение до int склеило бы два касания.
+    void pointer(intptr_t id, Touch phase, float px, float py, float view_w, float view_h);
     void cancel();   // системный CANCEL (шторка/звонок): сбросить все активные касания
     void frame(WGPUSurface surface);
     void shutdown();
@@ -57,7 +58,7 @@ private:
     uint32_t tick_ = 0;
     uint64_t seq_ = 0;
     float vw_ = 0, vh_ = 0;          // мировой вьюпорт (для рендера кнопки)
-    int stick_id_ = -1, fire_id_ = -1;
+    intptr_t stick_id_ = -1, fire_id_ = -1;
     float stick_ox_ = 0, stick_oy_ = 0;
     bool inited_ = false;
     bool demo_ = false;
