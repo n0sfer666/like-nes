@@ -37,6 +37,8 @@ REAL_CYGPATH=$(command -v cygpath || true)
 expect "путь под домом" /Users/al "cwd /Users/al/_dev/x" "cwd ~/_dev/x"
 expect "голый дом в конце строки" /Users/al "HOME=/Users/al" "HOME=~"
 expect "граница компонента" /Users/al "/Users/alice/x /Users/al" "/Users/alice/x ~"
+# Тильда здесь — ожидаемый текст вывода, а не путь: раскрываться ей нельзя.
+# shellcheck disable=SC2088
 expect "несколько вхождений" /Users/al "/Users/al/a:/Users/al/b" "~/a:~/b"
 expect "символы шаблона и пробел в HOME" "/tmp/we ird[1]*" "at /tmp/we ird[1]*/z & \\ q" "at ~/z & \\ q"
 expect "строки без дома не тронуты" /Users/al $'a\n\nb' $'a\n\nb'
