@@ -1842,7 +1842,7 @@ jobs:
           INC="$INC -Iengine/platform"
           COMMON=$(find engine/framework/input engine/framework/core engine/platform \
             -maxdepth 1 -name '*.cpp' \
-            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos')
+            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
           FW=$(find engine/framework/graphics engine/framework/character \
             engine/framework/tilemap engine/framework/physics \
             -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$')
