@@ -51,7 +51,8 @@ python3 scripts/check_include_seam.py --selftest  # правила провер�
 Межцелевые рёбра, которые подъём прятал, заведены явно: INTERFACE-цель `asset_hash` (заголовочный
 `hash.hpp` без zstd) для плагинов, достижений, материалов, IDE и света; `ach_plugin` → `plugin_core`
 PUBLIC, `audio_core`/`input_core` → `asset_hash` вместо сырого `-I engine/asset`. Мобильные
-оболочки (`platform/android`, `platform/ios`) держат свой список `-I` руками и CI их не собирает:
-заголовки их исходников разрешены (`clang++ -MM -MG`), линковка — на железе владельца
-(`scripts/xcompile_verify.sh`). Ручные шаги `.github/workflows/ci.yml` компилируют мимо CMake, и их `-I` перечислены
+оболочки (`platform/android`, `platform/ios`) с 2026-09-28 — подкаталоги корня (`LIKE_NES_MOBILE`):
+`-I` приходят теми же целями, что на десктопе, через `game_core_target` из
+`example_ugly_game/game_sources.cmake`. CI их не собирает — сборку и линковку держит
+`scripts/xcompile_verify.sh` на macOS-хосте. Ручные шаги `.github/workflows/ci.yml` компилируют мимо CMake, и их `-I` перечислены
 руками — переименование или новое ребро требует правки там же.

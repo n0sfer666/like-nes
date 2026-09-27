@@ -20,6 +20,7 @@
 #include "material_fx.hpp"
 #include "platform_env.hpp"
 #include "platform_redact.hpp"
+#include "shader_watch.hpp"
 #include "game_sim.hpp"
 #include "source.hpp"
 #include "surface_frame.hpp"
@@ -58,14 +59,15 @@ int run_window(int frame_cap) {
     // играть — он снимает только горячую замену, о чём и говорит строкой.
     std::string fx_wgsl;
     platform::env_var("LIKENES_FX_WGSL", fx_wgsl);
+    ShaderWatch shader_watch;
     if (have_fx && !fx_wgsl.empty()) {
-        if (materials.watch_shader(fx_wgsl))
+        if (shader_watch.start(materials, fx_wgsl))
             std::printf("[game] shader hot-reload: %s (%s watch)\n",
                         platform::redact_home(fx_wgsl).c_str(),
-                        materials.watch_backend());
+                        shader_watch.backend());
         else
             std::fprintf(stderr, "[game] shader hot-reload off: %s\n",
-                         platform::redact_home(materials.watch_error()).c_str());
+                         platform::redact_home(shader_watch.error()).c_str());
     }
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,
@@ -123,7 +125,7 @@ int run_window(int frame_cap) {
         ach.observe(gs);                                 // наблюдатель: sim о нём не знает
         if ((t % 60) == 0) ach.pump();                   // доставка — вне тика
         ach.autosave();
-        materials.poll_shader();                         // правка шейдера — между тиком и кадром
+        shader_watch.poll(materials);                    // правка шейдера — между тиком и кадром
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
         const bool down = glfwGetKey(win, GLFW_KEY_MINUS) == GLFW_PRESS;
         const bool up = glfwGetKey(win, GLFW_KEY_EQUAL) == GLFW_PRESS;

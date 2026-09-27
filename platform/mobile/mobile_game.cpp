@@ -1,5 +1,8 @@
 #include "mobile_game.hpp"
 
+#include <cstdio>
+
+#include "assets_path.hpp"
 #include "codes.hpp"
 #include "draw.hpp"
 #include "game_sim.hpp"
@@ -20,10 +23,10 @@ Btn fire_btn(float w, float h) {
 
 } // namespace
 
-bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint32_t fb_h,
-                      const std::string& audio_bundle) {
+bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint32_t fb_h) {
     if (inited_) shutdown();   // симметрично: повторный init освобождает прошлые ресурсы
     gpu_ = &gpu;
+    trails_ = TrailQuery();    // запрос старого мира гасится ДО мира
     world_ = flecs::world();   // re-entrant: свежий мир (Android может пере-init после teardown)
     gs_ = GameState{};
     fx_.clear();
@@ -31,15 +34,26 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     stick_id_ = fire_id_ = -1;
     fire_down_ = false;
 
-    fb_w_ = fb_w;
-    fb_h_ = fb_h;
+    fb_w_ = fb_w; fb_h_ = fb_h;
     surface_warned_ = lost_ = false;
     fmt_ = configure_surface(surface, gpu.adapter, gpu.device, fb_w, fb_h);
 
+    // Пресет дописывает привязки, а не заменяет: повторный init без сброса удваивал бы ActionMap.
+    controls_ = Controls{};
+    if (!load_controls(controls_)) {
+        std::fprintf(stderr, "[game] controls unavailable\n");
+        return false;
+    }
     use_bloom_ = bloom_.init(gpu.device, gpu.queue, fmt_, fb_w, fb_h);
-    atlas_ = build_atlas();
-    batch_.init(gpu.device, gpu.queue,
-                use_bloom_ ? WGPUTextureFormat_RGBA16Float : fmt_, atlas_);
+    const WGPUTextureFormat scene_fmt = use_bloom_ ? WGPUTextureFormat_RGBA16Float : fmt_;
+    atlas_ = load_game_atlas(gpu.supports_bc);
+    const bool mat_ok = materials_.init(gpu.device, gpu.queue, scene_fmt,
+                                        resolve_asset("library.bundle").c_str());
+    // bind зовётся и при отказе: он же отвязывает sfx_ от материалов прошлого init.
+    const bool have_fx = sfx_.bind(mat_ok ? &materials_ : nullptr);
+    std::printf("[game] materials: %s (%u pipeline(s), %u fallback(s))\n", have_fx ? "on" : "off",
+                materials_.pipelines_created(), materials_.fallbacks());
+    batch_.init(gpu.device, gpu.queue, scene_fmt, atlas_, have_fx ? &materials_ : nullptr);
 
     const double sa = static_cast<double>(fb_w) / fb_h, wa = static_cast<double>(VIEW_W) / VIEW_H;
     const uint32_t world_w = sa >= wa ? static_cast<uint32_t>(VIEW_H * sa) : VIEW_W;
@@ -48,10 +62,16 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     vw_ = static_cast<float>(world_w); vh_ = static_cast<float>(world_h);
 
     spawn(world_, gs_);
-    map_ = make_map();
-    engine_ = new input::InputEngine(map_);
+    trails_ = make_trail_query(world_);
+    engine_ = new input::InputEngine(controls_.map);
     engine_->post({input::RawKind::DeviceConnected, input::DeviceKind::Gamepad, 0, 0, 0, seq_++});
-    audio_.init(audio_bundle);   // graceful: нет устройства/бандла → false → no-op
+    const bool have_audio = audio_.init(resolve_asset("audio.bundle"));   // graceful: нет → no-op
+    std::printf("[game] audio: %s\n", have_audio ? "on (SFX + music)" : "off");
+    // Нативный бэкенд-плагин на мобиле не грузится: достижения живут локально, в песочнице.
+    ach_.emplace();
+    ach_->init(resolve_bundle_path(), resolve_save_path("achievements.save"), "");
+    std::printf("[game] achievements: %zu defined, %zu unlocked\n", ach_->defined_count(),
+                ach_->unlocked_count());
     inited_ = true;
     return true;
 }
@@ -115,28 +135,36 @@ void MobileGame::push_fire_button() {
 void MobileGame::frame(WGPUSurface surface) {
     if (demo_ && stick_id_ == -1 && fire_id_ == -1) demo_drive();
     const fix32 dt = fix32::from_float(1.0 / 60);
-    const input::InputFrame& f = engine_->begin_tick(tick_++, 0);
+    const uint32_t t = tick_++;
+    const input::InputFrame& f = engine_->begin_tick(t, 0);
     sink_.events.clear();
     step(world_, gs_, f, dt, &sink_);
     fx_.emit(sink_);
-    if (gs_.phase == PH_Play || gs_.phase == PH_Boss) fx_.emit_trails(world_);
-    fx_.update(1.0f / 60);
+    if (gs_.phase == PH_Play || gs_.phase == PH_Boss) fx_.emit_trails(trails_);
+    fx_.update();
     audio_.on_events(sink_);
+    ach_->observe(gs_);                                 // наблюдатель: sim о нём не знает
+    if ((t % 60) == 0) ach_->pump();                    // доставка — вне тика
+    ach_->autosave();
+    if (!lost_) draw(surface);
+}
 
-    if (lost_) return;
+void MobileGame::draw(WGPUSurface surface) {
     const SurfaceFrame sf = acquire_frame(SurfaceSpec{surface, fmt_, fb_w_, fb_h_}, *gpu_, "mobile",
                                           surface_warned_);
     lost_ = sf.quit;
     if (!sf.texture) return;
     WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
     batch_.begin();
-    push_scene(batch_, world_, atlas_);
-    fx_.render(batch_, atlas_);
+    push_scene(batch_, world_, atlas_, sfx_);
+    push_fx(batch_, fx_, atlas_);
     push_hud(batch_, world_, atlas_, gs_);
     push_screen(batch_, atlas_, gs_);
+    push_toast(batch_, atlas_, ach_->toast().name.c_str(), ach_->toast().left);
     push_fire_button();
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu_->device, nullptr);
-    WGPURenderPassEncoder pass = begin_clear(enc, use_bloom_ ? bloom_.hdr_view() : view);
+    WGPURenderPassEncoder pass = begin_clear(enc, use_bloom_ ? bloom_.hdr_view() : view,
+                                             WGPUColor{0.02, 0.02, 0.07, 1.0});
     batch_.flush(pass);
     wgpuRenderPassEncoderEnd(pass);
     wgpuRenderPassEncoderRelease(pass);
@@ -150,14 +178,23 @@ void MobileGame::frame(WGPUSurface surface) {
     wgpuTextureRelease(sf.texture);
 }
 
+void MobileGame::suspend() {
+    if (!inited_) return;
+    ach_->pump();
+    ach_->save();
+}
+
 void MobileGame::shutdown() {
     if (!inited_) return;   // идемпотентно: без парного init нечего освобождать (нет double-free)
+    suspend();
     inited_ = false;
+    ach_.reset();
     audio_.shutdown();
     delete engine_;
     engine_ = nullptr;
     bloom_.shutdown();
     batch_.shutdown();
+    materials_.shutdown();
 }
 
 } // namespace game

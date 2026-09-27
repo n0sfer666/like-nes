@@ -74,18 +74,21 @@ bool MiniaudioDevice::open() {
     cfg.notificationCallback = on_notification;
     cfg.pUserData = t;
 
-    ma_context* ctx = nullptr;
-    if (null_backend_) {
-        ctx = static_cast<ma_context*>(std::malloc(sizeof(ma_context)));
-        if (!ctx) { delete t; return false; }
-        ma_backend backend = ma_backend_null;
-        if (ma_context_init(&backend, 1, nullptr, ctx) != MA_SUCCESS) {
-            std::free(ctx);
-            delete t;
-            return false;
-        }
-        context_ = ctx;
+    // Контекст свой, а не внутренний у ma_device_init: только так задаётся категория сессии iOS. Её
+    // умолчание в miniaudio — PlayAndRecord, то есть сессия с микрофоном; игре нужна та, что iOS
+    // даёт приложению сама, — SoloAmbient. Вне iOS поле не читается.
+    auto* ctx = static_cast<ma_context*>(std::malloc(sizeof(ma_context)));
+    if (!ctx) { delete t; return false; }
+    ma_context_config cc = ma_context_config_init();
+    cc.coreaudio.sessionCategory = ma_ios_session_category_solo_ambient;
+    ma_backend null_only = ma_backend_null;
+    if (ma_context_init(null_backend_ ? &null_only : nullptr, null_backend_ ? 1 : 0, &cc, ctx) !=
+        MA_SUCCESS) {
+        std::free(ctx);
+        delete t;
+        return false;
     }
+    context_ = ctx;
 
     auto* dev = static_cast<ma_device*>(std::malloc(sizeof(ma_device)));
     if (!dev) { close(); delete t; return false; }

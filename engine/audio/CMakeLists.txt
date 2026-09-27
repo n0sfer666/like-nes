@@ -49,7 +49,13 @@ if(AUDIO_MINIAUDIO)
   target_include_directories(audio_device SYSTEM PUBLIC ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device PUBLIC engine_core)
   target_compile_definitions(audio_device PUBLIC AUDIO_HAVE_MINIAUDIO)
-  if(APPLE)
+  # iOS: сессию звука miniaudio ведёт через AVAudioSession — это Objective-C, поэтому TU реализации
+  # собирается как OBJC, а не C (иначе остаётся только MA_NO_AVFOUNDATION и немой симулятор).
+  if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set_source_files_properties(miniaudio_impl.c PROPERTIES LANGUAGE OBJC)
+    target_link_libraries(audio_device PUBLIC "-framework CoreAudio" "-framework AudioToolbox"
+      "-framework CoreFoundation" "-framework AVFoundation" "-framework Foundation")
+  elseif(APPLE)
     target_link_libraries(audio_device PUBLIC "-framework CoreAudio" "-framework AudioToolbox"
       "-framework CoreFoundation")
   elseif(WIN32)

@@ -2383,7 +2383,11 @@ also exercise things no gate covers — playing the sample game long enough to h
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
-[`owner-setup.txt`](owner-setup.txt).
+[`owner-setup.txt`](owner-setup.txt). Section R of the same file is the mobile pair: both shells
+built from the root by `scripts/xcompile_verify.sh`, the sample game started in the iOS simulator
+with its five startup lines, and what to look for on an iPhone and an Android phone — the stick and
+the fire button held at once, and sound. The simulator half has been run; the two phones have not,
+and only you have them.
 
 Two gates that are neither owner hardware nor CI live in the same file, as section Q: `plugin-wasm`
 (the escape gate and the `native == WASM` golden) and `plugin-wasm-host` (what the host object says

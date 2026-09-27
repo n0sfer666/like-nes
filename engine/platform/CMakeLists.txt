@@ -67,21 +67,31 @@ if(WIN32)
 else()
   target_sources(platform_core PRIVATE
     platform_io_posix.cpp platform_fs_posix.cpp platform_path_posix.cpp platform_env_posix.cpp
-    platform_redact_posix.cpp
-    platform_process_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp
-    platform_args_posix.cpp platform_shmem_posix.cpp)
+    platform_redact_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp
+    platform_args_posix.cpp)
   target_link_libraries(platform_core PRIVATE ${CMAKE_DL_LIBS})
-  # Наблюдение — единственный шов, где POSIX не общий: inotify есть только на Linux, FSEvents
-  # только на macOS, и «POSIX-реализация» тут была бы фикцией из двух #ifdef.
-  if(APPLE)
-    target_sources(platform_core PRIVATE platform_watch_macos.cpp platform_spawn_macos.cpp)
+  # Наблюдение — шов, где POSIX не общий: inotify есть только на Linux, FSEvents только на
+  # macOS, и «POSIX-реализация» тут была бы фикцией из двух #ifdef.
+  # iOS — Apple без FSEvents: наблюдение только опросом, запуск процессов тот же, что на macOS.
+  # Android — inotify тот же, что на Linux, а запуска процессов и shm_open нет: явный отказ шва.
+  if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    target_sources(platform_core PRIVATE platform_watch_ios.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_macos.cpp)
+  elseif(APPLE)
+    target_sources(platform_core PRIVATE platform_watch_macos.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_macos.cpp)
     target_link_libraries(platform_core PUBLIC "-framework CoreServices")
+  elseif(ANDROID)
+    target_sources(platform_core PRIVATE platform_watch_linux.cpp
+      platform_process_android.cpp platform_shmem_android.cpp)
   else()
-    target_sources(platform_core PRIVATE platform_watch_linux.cpp platform_spawn_linux.cpp)
+    target_sources(platform_core PRIVATE platform_watch_linux.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_linux.cpp)
   endif()
   # shm_open на Linux живёт в librt (на macOS — в libc). Раньше эту зависимость тянул ipc_core
   # из tools/ide; после переезда шва в платформу она принадлежит platform_core.
-  if(NOT APPLE)
+  # На Android шва shm_open нет вовсе, и librt там тоже нет.
+  if(NOT APPLE AND NOT ANDROID)
     target_link_libraries(platform_core PUBLIC rt)
   endif()
 endif()

@@ -4,8 +4,11 @@
 
 #include <webgpu/webgpu.h>
 
+#include "apk_assets.hpp"
 #include "gpu.hpp"
 #include "mobile_game.hpp"
+#include "platform_env.hpp"
+#include "stdout_logcat.hpp"
 
 using namespace game;
 
@@ -19,6 +22,13 @@ struct App {
     float vw = 0, vh = 0;
 };
 
+void release_gpu(App& a) {
+    if (a.surface) { wgpuSurfaceRelease(a.surface); a.surface = nullptr; }
+    a.gpu.shutdown();
+}
+
+// Отказ освобождает всё поднятое: следующий INIT_WINDOW начнёт init заново, а живые instance и
+// поверхность на том же ANativeWindow иначе копились бы с каждым кругом.
 void init(App& a, ANativeWindow* win) {
     if (a.ready) return;
     a.gpu.instance = wgpuCreateInstance(nullptr);
@@ -28,15 +38,11 @@ void init(App& a, ANativeWindow* win) {
     WGPUSurfaceDescriptor sd = {};
     sd.nextInChain = &nw.chain;
     a.surface = wgpuInstanceCreateSurface(a.gpu.instance, &sd);
-    if (!a.gpu.init(a.surface)) {
-        wgpuSurfaceRelease(a.surface);
-        a.surface = nullptr;
-        return;
-    }
+    if (!a.gpu.init(a.surface)) { release_gpu(a); return; }
     const uint32_t w = static_cast<uint32_t>(ANativeWindow_getWidth(win));
     const uint32_t h = static_cast<uint32_t>(ANativeWindow_getHeight(win));
     a.vw = static_cast<float>(w); a.vh = static_cast<float>(h);
-    if (!a.game.init(a.gpu, a.surface, w, h, "")) return;
+    if (!a.game.init(a.gpu, a.surface, w, h)) { release_gpu(a); return; }
     a.ready = true;
 }
 
@@ -44,8 +50,7 @@ void teardown(App& a) {
     if (!a.ready) return;
     a.ready = false;
     a.game.shutdown();
-    if (a.surface) { wgpuSurfaceRelease(a.surface); a.surface = nullptr; }
-    a.gpu.shutdown();
+    release_gpu(a);
 }
 
 void dispatch(App& a, AInputEvent* ev, int idx, MobileGame::Touch phase) {
@@ -84,11 +89,20 @@ void on_cmd(android_app* app, int32_t cmd) {
     App& a = *static_cast<App*>(app->userData);
     if (cmd == APP_CMD_INIT_WINDOW && app->window) init(a, app->window);
     else if (cmd == APP_CMD_TERM_WINDOW) teardown(a);
+    else if (cmd == APP_CMD_PAUSE) a.game.suspend();
 }
 
 } // namespace
 
 void android_main(android_app* app) {
+    stdout_to_logcat();
+    // exe_dir у приложения — app_process системы, а HOME не задан: пути к ассетам и сейву игра
+    // получает теми же ручками окружения, что и десктоп, только указывают они в песочницу.
+    const std::string data = app->activity->internalDataPath;
+    const std::string assets = data + "/assets";
+    if (unpack_apk_assets(app->activity->assetManager, assets))
+        platform::env_put("LIKENES_ASSETS", assets.c_str());
+    platform::env_put("LIKENES_SAVE_DIR", data.c_str());
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;

@@ -110,45 +110,19 @@ elseif(WIN32)
 else()
   list(APPEND GAME_INPUT_SRC ${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_linux.cpp)
 endif()
+include(${CMAKE_CURRENT_SOURCE_DIR}/game_sources.cmake)
+add_executable(game_sidescroller main.cpp live.cpp demo.cpp shader_watch.cpp capture.cpp
+  frame_golden.cpp ${GAME_INPUT_SRC})
 # Шов assetc→билд (спека #8, гейт 2): baked atlas из game.bundle (asset_core + asset_gpu
-# транскод UASTC→BC7). Заглушки под Windows сняты вместе с POSIX-only'ем asset_core (спека #12).
-set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
-add_executable(game_sidescroller
-  main.cpp live.cpp demo.cpp draw.cpp
-  achievements.cpp backend_host.cpp
-  batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp scene_fx.cpp
-  instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
-  boss.cpp fx.cpp
-  bloom.cpp audio.cpp
-  input_setup.cpp capture.cpp frame_golden.cpp
-  gpu_env.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
-  ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
-target_include_directories(game_sidescroller PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
-target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
-target_link_libraries(game_sidescroller PRIVATE
-  engine_core framework_input framework_graphics flecs_static webgpu glfw3webgpu glfw ach_plugin
-  Threads::Threads)
-# asset_core (и через него platform_core) приходит транзитивно из ach_bundle. Явным его тут не
-# держим: CMake дедуплицирует ПРЯМОЙ список, но транзитивное замыкание дописывает ПОСЛЕ него, и
-# библиотека, названная обоими способами, попадает на линкер-строку дважды — ld на macOS отвечает
-# `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
-# начале строки, и в хвосте замыкания.
-target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
-# Библиотека эффектов (спека #18) + драйвер горячей замены (гейт 3): правка шейдера проверяется в
-# том, что рисует. Названа только `material_hot`: `material_gpu`, `material_core` и `platform_core`
-# он тянет PUBLIC-связью, и второе имя дало бы `warning: ignoring duplicate libraries` на macOS.
-target_link_libraries(game_sidescroller PRIVATE material_hot)
+# транскод UASTC→BC7). Библиотека эффектов (спека #18) + драйвер горячей замены (гейт 3): правка
+# шейдера проверяется в том, что рисует.
+game_core_target(game_sidescroller material_hot)
+target_link_libraries(game_sidescroller PRIVATE glfw3webgpu glfw)
 # Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
 # что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
 # предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
 # давал MSVC `D8021`/`D9025` мимо -Werror, но прямо в лог гейта (cmake/warnings.cmake).
 target_link_libraries(game_sidescroller PRIVATE stb_impl_vendored)
-# Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
-# (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
-if(AUDIO_MINIAUDIO)
-  target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
-endif()
 if(APPLE)
   set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_macos.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc")

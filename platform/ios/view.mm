@@ -40,7 +40,7 @@ using namespace game;
 @implementation GameViewController
 
 - (void)loadView {
-    self.view = [[MetalView alloc] initWithFrame:UIScreen.mainScreen.bounds];
+    self.view = [[MetalView alloc] initWithFrame:CGRectZero];
     self.view.multipleTouchEnabled = YES;   // стик + кнопка-огонь одновременно
 }
 
@@ -49,7 +49,7 @@ using namespace game;
     if (started_) return;
 
     CAMetalLayer* layer = static_cast<CAMetalLayer*>(self.view.layer);
-    const CGFloat scale = UIScreen.mainScreen.scale;
+    const CGFloat scale = self.traitCollection.displayScale;
     layer.contentsScale = scale;
     const uint32_t w = static_cast<uint32_t>(self.view.bounds.size.width * scale);
     const uint32_t h = static_cast<uint32_t>(self.view.bounds.size.height * scale);
@@ -62,8 +62,8 @@ using namespace game;
     WGPUSurfaceDescriptor sd = {};
     sd.nextInChain = &ml.chain;
     surface_ = wgpuInstanceCreateSurface(gpu_.instance, &sd);
-    if (!gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); return; }
-    if (!game_.init(gpu_, surface_, w, h, "")) { NSLog(@"[game] game init failed"); return; }
+    if (!gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); [self releaseGpu]; return; }
+    if (!game_.init(gpu_, surface_, w, h)) { NSLog(@"[game] game init failed"); [self releaseGpu]; return; }
     game_.set_demo([NSProcessInfo.processInfo.arguments containsObject:@"--demo"]);
     started_ = true;
     NSLog(@"[game] iOS shell up: %ux%u - left = stick, bottom-right = fire", w, h);
@@ -72,19 +72,29 @@ using namespace game;
     [link_ addToRunLoop:NSRunLoop.mainRunLoop forMode:NSDefaultRunLoopMode];
 
     NSNotificationCenter* nc = NSNotificationCenter.defaultCenter;
-    [nc addObserver:self selector:@selector(pause) name:UIApplicationDidEnterBackgroundNotification object:nil];
-    [nc addObserver:self selector:@selector(resume) name:UIApplicationWillEnterForegroundNotification object:nil];
+    [nc addObserver:self selector:@selector(pause) name:UISceneDidEnterBackgroundNotification object:nil];
+    [nc addObserver:self selector:@selector(resume) name:UISceneWillEnterForegroundNotification object:nil];
 }
 
-- (void)pause { link_.paused = YES; }
+// Отказ init освобождает поднятое: следующий viewDidAppear создаст инстанс заново, а не поверх.
+- (void)releaseGpu {
+    if (surface_) wgpuSurfaceRelease(surface_);
+    surface_ = nullptr;
+    gpu_.shutdown();
+}
+
+// Фоновый процесс система убивает без dealloc: сохраняться надо здесь, а не при выходе.
+- (void)pause {
+    link_.paused = YES;
+    game_.suspend();
+}
 - (void)resume { link_.paused = NO; }
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
     [link_ invalidate];
     game_.shutdown();
-    if (surface_) wgpuSurfaceRelease(surface_);
-    gpu_.shutdown();
+    [self releaseGpu];
 }
 
 - (void)frame {

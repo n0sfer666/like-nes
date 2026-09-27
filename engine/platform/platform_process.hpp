@@ -5,8 +5,9 @@
 #include <vector>
 
 // Шов №2 платформы (спека #12, решение 2): запуск дочернего процесса. Реализации —
-// platform_process_posix.cpp (posix_spawnp) и platform_process_win32.cpp (CreateProcessW),
-// выбор делает CMake, условной компиляции внутри нет.
+// platform_process_posix.cpp (posix_spawnp), platform_process_win32.cpp (CreateProcessW) и
+// platform_process_android.cpp (отказ: bionic API 24 без posix_spawn — запуск false, статус
+// сброшен), выбор делает CMake, условной компиляции внутри нет.
 //
 // Потребители: пекарь (assetc дёргает пиннутые кодеки), build-loop и Play-spawn (#13).
 namespace platform {

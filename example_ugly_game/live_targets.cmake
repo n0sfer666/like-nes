@@ -26,7 +26,7 @@ function(platformer_live_target name)
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
   target_link_libraries(${name} PRIVATE
     engine_core framework_character framework_graphics_tiles framework_input asset_core
-    material_hot flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+    material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
   if(APPLE)
     target_link_libraries(${name} PRIVATE
       "-framework GameController" "-framework CoreHaptics" "-framework Foundation")

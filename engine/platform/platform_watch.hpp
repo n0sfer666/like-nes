@@ -3,8 +3,9 @@
 #include <vector>
 
 // Шов №8 платформы (спека #13, решение 4): наблюдение за каталогом. Реализации —
-// platform_watch_linux.cpp (inotify), platform_watch_macos.cpp (FSEvents),
-// platform_watch_win32.cpp (ReadDirectoryChangesW), выбор делает CMake.
+// platform_watch_linux.cpp (inotify, он же на Android), platform_watch_macos.cpp (FSEvents),
+// platform_watch_ios.cpp (опрос: FSEvents в SDK iOS нет), platform_watch_win32.cpp
+// (ReadDirectoryChangesW), выбор делает CMake.
 //
 // Форма API — опрос, а не колбэк: build-loop дёргает watcher из своего цикла и обязан знать,
 // КОГДА он смотрит на изменения. Колбэк с потока ОС (у FSEvents и RDCW он свой) тащил бы
