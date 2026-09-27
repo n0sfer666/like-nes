@@ -2,9 +2,9 @@
 
 #include <cstddef>
 
-#include "../../../engine/asset/hash.hpp"
+#include "hash.hpp"
 #include "../compile/diagnostics.hpp"
-#include "bake.hpp"
+#include "material_bake.hpp"
 #include "diag.hpp"
 #include "gpu.hpp"
 #include "imgui.h"

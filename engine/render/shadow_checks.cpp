@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "../light/table.hpp"
+#include "light_table.hpp"
 #include "gpu.hpp"
 #include "light_checks.hpp"
 #include "light_frame.hpp"

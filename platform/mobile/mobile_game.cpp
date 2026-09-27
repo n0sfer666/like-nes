@@ -2,8 +2,8 @@
 
 #include "codes.hpp"
 #include "draw.hpp"
-#include "sim.hpp"
-#include "stick.hpp"
+#include "game_sim.hpp"
+#include "mobile_stick.hpp"
 
 namespace game {
 namespace {

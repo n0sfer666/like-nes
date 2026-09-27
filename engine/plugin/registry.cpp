@@ -1,4 +1,4 @@
-#include "registry.hpp"
+#include "plugin_registry.hpp"
 #include <algorithm>
 #include <cstdio>
 

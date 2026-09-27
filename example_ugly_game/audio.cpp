@@ -10,12 +10,12 @@
 #include <cstring>
 #include <thread>
 
-#include "../engine/asset/asset_manager.hpp"
-#include "../engine/asset/hash.hpp"
-#include "../engine/audio/decoder.hpp"
-#include "../engine/audio/device.hpp"
-#include "../engine/audio/engine.hpp"
-#include "../engine/audio/mixer.hpp"
+#include "asset_manager.hpp"
+#include "hash.hpp"
+#include "decoder.hpp"
+#include "device.hpp"
+#include "audio_engine.hpp"
+#include "mixer.hpp"
 
 namespace game {
 namespace {

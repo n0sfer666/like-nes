@@ -2,7 +2,7 @@
 
 #include "nine_slice.hpp"
 #include "platform_args.hpp"
-#include "sprite.hpp"
+#include "graphics_sprite.hpp"
 
 // Отказы раскладки спрайтов (спека #17, вертикаль 2, шаг A). Отдельная цель по тому же основанию,
 // что у шагов D и E: имя упавшей цели в логе CI обязано называть КЛАСС поломки, а «не поместилось»

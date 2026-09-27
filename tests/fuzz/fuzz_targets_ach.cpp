@@ -3,16 +3,14 @@
 // ЗАВИСИМОСТЯМ: здесь линкуется `ach_core`, а там `asset_core` и `material_*`. Повод к разделению
 // дал бюджет длины, но граница выбрана не по числу строк: у этой пары своя библиотека и свой
 // формат, и второй цели из неё (снимку) нужен шов перепечатки, которого остальным не нужно.
-// `asset/hash.hpp` ниже заголовочный: кода он не линкует и границу групп не двигает.
+// `hash.hpp` из `asset_core` ниже заголовочный: кода он не линкует и границу групп не двигает.
 #include <vector>
 
-// Пути КАТАЛОГОМ, а не одним именем: в дереве по два `bake.hpp`, `manifest.hpp`, `registry.hpp` и
-// `state.hpp` — у материалов и достижений, у достижений и плагинов, у достижений и персонажа.
-#include "achievements/bake.hpp"
-#include "achievements/manifest.hpp"
-#include "achievements/registry.hpp"
-#include "achievements/state.hpp"
-#include "asset/hash.hpp"
+#include "ach_bake.hpp"
+#include "ach_manifest.hpp"
+#include "ach_registry.hpp"
+#include "ach_state.hpp"
+#include "hash.hpp"
 #include "fuzz_target.hpp"
 
 namespace fuzz {

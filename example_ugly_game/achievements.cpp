@@ -2,10 +2,10 @@
 
 #include <cstdio>
 
-#include "../engine/achievements/delivery.hpp"
-#include "../engine/achievements/registry.hpp"
-#include "../engine/achievements/store.hpp"
-#include "../engine/achievements/tracker.hpp"
+#include "delivery.hpp"
+#include "ach_registry.hpp"
+#include "store.hpp"
+#include "tracker.hpp"
 #include "ach_source.hpp"
 #include "backend_host.hpp"
 

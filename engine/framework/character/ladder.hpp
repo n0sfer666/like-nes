@@ -1,7 +1,7 @@
 #pragma once
 #include "profile.hpp"
 #include "slide.hpp"
-#include "state.hpp"
+#include "character_state.hpp"
 
 // РЕЖИМ ДВИЖЕНИЯ «лестница» (вертикаль 3, шаг D) — альтернативный тик, а не приём внутри обычного.
 //

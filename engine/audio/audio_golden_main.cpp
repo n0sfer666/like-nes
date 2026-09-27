@@ -2,8 +2,8 @@
 #include <cstdio>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "engine.hpp"
+#include "hash.hpp"
+#include "audio_engine.hpp"
 #include "mixer.hpp"
 
 // Гейт #1 (спека #3): байт-golden хеш микса. Fix32Mixer над ДЕТЕРМИНИРОВАННЫМ целочисленным

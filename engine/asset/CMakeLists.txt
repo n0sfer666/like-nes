@@ -1,3 +1,8 @@
+# Свёртка FNV (`hash.hpp`) — только заголовок, и берут её подсистемы, которым сам модуль ассетов не
+# нужен: плагины, достижения, материалы, IDE. Отдельной целью, чтобы ради неё не линковать zstd.
+add_library(asset_hash INTERFACE)
+target_include_directories(asset_hash INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Гейт 1 спеки #12: модуль ассетов собирается на всех трёх ОС. POSIX-only он был ровно из-за
 # двух вещей — fork/execvp у пекаря и mmap у загрузчика; обе ушли за platform_core.
 add_library(asset_core STATIC
@@ -16,7 +21,7 @@ target_link_libraries(asset_test PRIVATE asset_core)
 
 # Headless гейт #3 (замедленный I/O → тот же sim-hash). Без GPU — CI на всех ОС.
 add_executable(asset_determinism_test asset_determinism_test.cpp)
-target_link_libraries(asset_determinism_test PRIVATE asset_core)
+target_link_libraries(asset_determinism_test PRIVATE asset_core engine_core)
 
 # Выравнивание базы бандла (аудит #21): своя цель — остальные наборы ходят через mmap и сдвига
 # базы не видят по построению.

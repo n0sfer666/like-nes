@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "bake.hpp"
-#include "table.hpp"
+#include "light_bake.hpp"
+#include "light_table.hpp"
 
 namespace {
 

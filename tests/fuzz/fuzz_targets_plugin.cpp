@@ -12,7 +12,7 @@
 #include "fuzz_target.hpp"
 #include "platform_fs.hpp"
 #include "platform_process.hpp"
-#include "plugin/manifest.hpp"
+#include "plugin_manifest.hpp"
 
 namespace fuzz {
 namespace {

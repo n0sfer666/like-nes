@@ -11,7 +11,7 @@ add_library(render_core STATIC
   shaders_post.cpp renderer.cpp renderer_pipelines.cpp
   renderer_forward.cpp renderer_bloom.cpp capture.cpp)
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
-target_link_libraries(render_core PUBLIC webgpu render_surface)
+target_link_libraries(render_core PUBLIC engine_core webgpu render_surface)
 like_nes_vendored_object(stb_impl_vendored stb_impl.cpp)   # TU целиком — реализация stb, ни строки нашей
 target_include_directories(stb_impl_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(render_core PRIVATE stb_impl_vendored)
@@ -99,7 +99,7 @@ reproducible_rpath(material_hot_reload)
 add_library(light_render STATIC light_pass.cpp shaders_light.cpp light_frame.cpp
             slot_pass.cpp shaders_slot.cpp slot_textures.cpp)
 target_include_directories(light_render PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(light_render PUBLIC light_core material_preview render_core webgpu)
+target_link_libraries(light_render PUBLIC light_core material_preview render_core webgpu PRIVATE asset_hash)
 
 # Гейт 7: голден на Metal у владельца, `--selftest` на трёх ОС. Утверждения вынесены в
 # `light_checks.cpp` отдельной целью-исходником: то, что портируемо, обязано читаться отдельно от

@@ -1,5 +1,5 @@
 #include "fixed.hpp"
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cassert>

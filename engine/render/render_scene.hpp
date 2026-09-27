@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/fixed.hpp"
+#include "fixed.hpp"
 
 // Спрайт-трансформ в render-пространстве (float — только на границе рендера).
 struct SpriteXform { float x, y, scale, rot; };

@@ -1,9 +1,8 @@
 # --- input_core: action-map + coalesce + SPSC (спека #4). Deviceless-гейты — на всех ОС в CI.
 # Native-бэкенды (XInput/RawInput · GameController · evdev) + live-демо — под INPUT_NATIVE ниже.
 add_library(input_core STATIC action_map.cpp)
-target_include_directories(input_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset)
-target_link_libraries(input_core PUBLIC engine_core Threads::Threads)
+target_include_directories(input_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(input_core PUBLIC engine_core asset_hash Threads::Threads)
 
 add_executable(input_determinism_test input_determinism_test.cpp)
 target_link_libraries(input_determinism_test PRIVATE input_core)

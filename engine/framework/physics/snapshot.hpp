@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "body.hpp"
-#include "cache.hpp"
+#include "physics_cache.hpp"
 #include "counters.hpp"
 #include "contact.hpp"
 #include "events.hpp"

@@ -1,5 +1,5 @@
 #pragma once
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
 

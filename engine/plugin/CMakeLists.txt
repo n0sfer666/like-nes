@@ -4,7 +4,7 @@
 # isolation — на всех 3 OS. platform_core PUBLIC: Module — поле PluginHost.
 add_library(plugin_core STATIC registry.cpp host_api.cpp host.cpp builtin.cpp manifest.cpp)
 target_include_directories(plugin_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(plugin_core PUBLIC engine_core platform_core)
+target_link_libraries(plugin_core PUBLIC engine_core asset_hash platform_core)
 
 add_executable(plugin_determinism_test plugin_determinism_test.cpp)
 target_link_libraries(plugin_determinism_test PRIVATE plugin_core)
@@ -45,7 +45,7 @@ foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash
   # (getenv отдаёт на Windows ANSI-строку и помечен небезопасным). Статическая библиотека —
   # неиспользованные объекты в модуль не попадают, поэтому плагинам без окружения это ничего не стоит.
   target_include_directories(${P} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/platform)
-  target_link_libraries(${P} PRIVATE engine_core platform_core)
+  target_link_libraries(${P} PRIVATE engine_core asset_hash platform_core)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
 

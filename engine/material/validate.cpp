@@ -5,7 +5,7 @@
 #include <cstring>
 #include <utility>
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 #include "pipeline.hpp"
 #include "validate_device.hpp"
 #include "wgpu_error.hpp"

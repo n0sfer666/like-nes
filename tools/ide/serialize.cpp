@@ -3,7 +3,7 @@
 // разбора их четырнадцать (список — в `serialize.hpp`), и почти весь его объём — диагностика этих
 // четырнадцати (аудит #21, A·2·8).
 #include "serialize.hpp"
-#include "../../engine/asset/hash.hpp"
+#include "hash.hpp"
 
 namespace ide {
 namespace {

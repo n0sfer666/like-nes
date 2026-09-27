@@ -3,7 +3,7 @@
 #include <chrono>
 #include <cstdio>
 
-#include "../light/bake.hpp"
+#include "light_bake.hpp"
 #include "gpu.hpp"
 #include "light_frame.hpp"
 

@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "bake.hpp"
-#include "table.hpp"
+#include "material_bake.hpp"
+#include "material_table.hpp"
 
 namespace {
 

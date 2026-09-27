@@ -8,6 +8,7 @@ reproducible_rpath(core_smoke)
 
 # Автономный тест детерминизма (без GPU-зависимостей) — гоняется в CI на всех ОС/компиляторах.
 add_executable(determinism_test determinism_test.cpp)
+target_link_libraries(determinism_test PRIVATE engine_core asset_hash)
 
 # Проба канонизации путей для scripts/check_path_map.sh (аудит #21 A·3·7).
 add_executable(path_map_probe path_map_probe.cpp)

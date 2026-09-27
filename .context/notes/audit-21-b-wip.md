@@ -9,7 +9,7 @@
 | B9 | второй `case` на `lib/arm64-v8a/libc++_shared.so` в `xcompile_verify.sh`, контроль на подменённом листинге | ждёт |
 | B10 | `World::mutate/body`: проверка годности и границ во всех сборках (stderr + abort); образец проверяет `INVALID` после `add`; death-тест подпроцессом | ждёт |
 | B11 | `SEARCH` += `find`, `awk`, `ls`; фикстура `--selftest` на каждую форму | ждёт |
-| B12 | вид разрешения `world.hpp` `text` → `single`; потолок не поднимать (рост от B10 — в `world.cpp`) | ждёт |
+| B12 | вид разрешения `physics_world.hpp` `text` → `single`; потолок не поднимать (рост от B10 — в `world.cpp`) | ждёт |
 | B13 | межцелевые `#include "../…"` → по имени через `target_include_directories` слинкованной цели; греп-гейт на подъём выше корня подсистемы; внутрицелевые остаются | ждёт |
 
 Факты сверки: C-style кастов ~110 (render 22, input 20, example ≥27, platform ~23); относительных

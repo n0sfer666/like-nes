@@ -1,7 +1,7 @@
 #include "editor_gate6.hpp"
 #include "editor_gate6_session.hpp"
 #include "editor_ui.hpp"
-#include "capture.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "wgpu_imgui.hpp"
 #include "backends/imgui_impl_glfw.h"

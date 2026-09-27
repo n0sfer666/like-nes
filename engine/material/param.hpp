@@ -15,7 +15,7 @@ enum class Unit : uint8_t { Raw = 0, Fraction = 1, Pixels = 2, Degrees = 3 };
 
 // Блок параметров инстанса. Восьми float'ов хватает трём эффектам библиотеки с запасом
 // (tint 4 + strength 1, color 4 + thickness 1, threshold 1 + edge 1), а размер тут несущий: он
-// стоит в раскладке вершинного буфера и в ABI таблицы, поэтому пин — static_assert в table.hpp.
+// стоит в раскладке вершинного буфера и в ABI таблицы, поэтому пин — static_assert в material_table.hpp.
 constexpr uint32_t PARAM_BLOCK_FLOATS = 8;
 
 constexpr uint32_t MAX_PARAMS = 8;

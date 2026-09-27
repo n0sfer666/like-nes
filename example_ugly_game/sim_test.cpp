@@ -1,7 +1,7 @@
 #include "combat.hpp"
-#include "sim.hpp"
+#include "game_sim.hpp"
 #include "sim_hash.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 #include <cstdio>
 

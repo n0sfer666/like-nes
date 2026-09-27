@@ -1,4 +1,4 @@
-#include "sprite.hpp"
+#include "render_sprite.hpp"
 
 #include <cmath>
 #include <cstdint>

@@ -5,13 +5,10 @@
 #include <memory>
 #include <string>
 
-// Путями ОТ ЭТОГО ФАЙЛА, а не через каталог цели: `cache.hpp` есть и у физики фреймворка, её
-// каталог у платформера стоит в -I раньше, и короткое имя привело бы туда — с диагностикой «нет
-// типа Cache в пространстве mat», ничего не говорящей про то, чей заголовок нашёлся.
-#include "../engine/material/cache.hpp"
-#include "../engine/material/hot_reload.hpp"
-#include "../engine/material/param.hpp"
-#include "../engine/material/table.hpp"
+#include "material_cache.hpp"
+#include "hot_reload.hpp"
+#include "param.hpp"
+#include "material_table.hpp"
 
 namespace game {
 

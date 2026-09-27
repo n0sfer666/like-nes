@@ -3,13 +3,13 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "../../engine/achievements/bake.hpp"
-#include "../../engine/framework/character/profile_bake.hpp"
-#include "../../engine/framework/graphics/atlas_bake.hpp"
-#include "../../engine/framework/input/preset_bake.hpp"
-#include "../../engine/framework/tilemap/map_bake.hpp"
-#include "../../engine/light/bake.hpp"
-#include "../../engine/material/bake.hpp"
+#include "ach_bake.hpp"
+#include "profile_bake.hpp"
+#include "atlas_bake.hpp"
+#include "preset_bake.hpp"
+#include "map_bake.hpp"
+#include "light_bake.hpp"
+#include "material_bake.hpp"
 #include "baker_guid.hpp"
 #include "format.hpp"
 #include "platform_fs.hpp"

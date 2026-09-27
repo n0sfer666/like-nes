@@ -1,5 +1,5 @@
 #pragma once
-#include "sim.hpp"
+#include "plugin_sim.hpp"
 
 inline fix32 sim_dt() { return fix32::from_float(1.0 / 60.0); }
 

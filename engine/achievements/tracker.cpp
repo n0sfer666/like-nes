@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <limits>
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 
 namespace ach {
 namespace {

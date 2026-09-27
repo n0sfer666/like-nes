@@ -196,8 +196,8 @@ build_orchestrator.cpp:22` запускает сторонний компиля�
 `engine/framework/input/preset_format.hpp` + `presets.cpp` (`LNFI`),
 `engine/framework/tilemap/map_format.hpp` + `map_read.cpp` (`LNTM`),
 `engine/framework/graphics/atlas_format.hpp` + `atlas_read.cpp` (`LNAR`),
-`engine/material/table.hpp` + `table.cpp` (`LNMT`),
-`engine/achievements/manifest.hpp/.cpp` (`LNAM`), `state.hpp/.cpp` (`LNAP`), `store.cpp`,
+`engine/material/material_table.hpp` + `table.cpp` (`LNMT`),
+`engine/achievements/ach_manifest.hpp`, `manifest.cpp` (`LNAM`), `ach_state.hpp`, `state.cpp` (`LNAP`), `store.cpp`,
 `tracker.cpp`, `delivery.cpp`,
 `engine/framework/input/rebind_store.cpp`, `engine/input/action_map.cpp/.hpp`,
 `engine/input/device_state.hpp`.
@@ -207,13 +207,14 @@ build_orchestrator.cpp:22` запускает сторонний компиля�
 `tools/assetc/assetc_main.cpp` (обзорно).
 
 **Сцена редактора**
-`tools/ide/serialize.cpp`, `tools/ide/scene.hpp/.cpp`.
+`tools/ide/serialize.cpp`, `tools/ide/ide_scene.hpp`, `scene.cpp`.
 
 **Реплей и sim-состояние**
 `example_ugly_game/platformer_replay_io.hpp`, `engine/framework/replay/stream.hpp`, `verify.hpp`.
 
 **Плагины (зона 3)**
-`engine/plugin/plugin_api.h`, `manifest.hpp/.cpp`, `host.hpp/.cpp`, `registry.hpp/.cpp`,
+`engine/plugin/plugin_api.h`, `plugin_manifest.hpp`, `manifest.cpp`, `host.hpp/.cpp`,
+`plugin_registry.hpp`, `registry.cpp`,
 `wasm_host.hpp/.cpp`, `engine/plugin/CMakeLists.txt`, `engine/plugin/wasm/gravity.wat`,
 `engine/plugin/plugin_wasm_test.cpp`, `engine/achievements/backend_api.h`,
 `example_ugly_game/backend_host.cpp`, `example_ugly_game/achievements.cpp`,
@@ -613,7 +614,7 @@ Use-after-`dlclose` — самый вероятный дефект этого ш
 
 ### Что пройдено
 
-**Зона 4 — звук.** `engine/audio/mixer.cpp` (целиком), `mixer.hpp`, `engine.hpp`, `voice.hpp`,
+**Зона 4 — звук.** `engine/audio/mixer.cpp` (целиком), `mixer.hpp`, `audio_engine.hpp`, `voice.hpp`,
 `audio_types.hpp`, `device.cpp` (целиком), `fix_math.hpp`, `engine/core/fixed.hpp` (арифметика
 `fix32`), `example_ugly_game/audio.cpp` (таблица громкостей образца), голдены
 `audio_golden_main.cpp`, `audio_rt_test.cpp`, `audio_determinism_test.cpp` (как источник знания о
@@ -720,7 +721,7 @@ Use-after-`dlclose` — самый вероятный дефект этого ш
 
 - **severity:** medium
 - **где:** `engine/audio/mixer.hpp:59`; `engine/audio/mixer.cpp:51`;
-  `engine/audio/engine.hpp:14-60` (весь публичный API)
+  `engine/audio/audio_engine.hpp:14-60` (весь публичный API)
 - **что не так:** `master_` инициализируется единицей в конструкторе и **больше не пишется
   никогда** — сеттера нет ни у `Mixer`, ни у `AudioEngine`, среди `CmdType` команды на мастер
   тоже нет. То есть строки `mixer.cpp:162,187` умножают на константу 1.0. Регулировать громкость
@@ -738,7 +739,7 @@ Use-after-`dlclose` — самый вероятный дефект этого ш
 #### 4. `gain` не валидируется на шве API: расхождение бэкендов, а на больших значениях — UB в realtime-потоке
 
 - **severity:** medium
-- **где:** `engine/audio/engine.hpp:24` (`c.gain = p.gain.raw`), `:45` (`c.gain = gain.raw`);
+- **где:** `engine/audio/audio_engine.hpp:24` (`c.gain = p.gain.raw`), `:45` (`c.gain = gain.raw`);
   `engine/audio/mixer.cpp:75`, `:88`, `:120`, `:157-163`
 - **что не так:** ни `play`, ни `set_bus_gain` не ограничивают `gain` ничем — в команду уезжает
   сырой `int32` из `fix32`. Арифметика `fix32` **насыщающая** (`engine/core/fixed.hpp:16-20`),

@@ -1,5 +1,5 @@
 #include "command.hpp"
-#include "scene.hpp"
+#include "ide_scene.hpp"
 #include "serialize.hpp"
 #include <cstdio>
 #include <string>

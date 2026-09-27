@@ -1,6 +1,6 @@
 #pragma once
 #include "../command.hpp"
-#include "../scene.hpp"
+#include "../ide_scene.hpp"
 #include "gizmo.hpp"
 #include "property_grid.hpp"
 #include "imgui.h"

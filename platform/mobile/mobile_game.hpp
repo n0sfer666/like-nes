@@ -11,8 +11,8 @@
 #include "fx.hpp"
 #include "gpu.hpp"
 #include "surface_frame.hpp"
-#include "engine.hpp"
-#include "world.hpp"
+#include "input_engine.hpp"
+#include "game_world.hpp"
 
 namespace game {
 

@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "platform_args.hpp"
-#include "query.hpp"
+#include "physics_query.hpp"
 
 // Гейт 4 спеки #15, свипы: raycast и shapecast против таблицы ЭТАЛОННЫХ ответов, посчитанных
 // руками из раскладки, а не снятых с прогона. Сцена везде одна и та же и нарочно осевая: коробка

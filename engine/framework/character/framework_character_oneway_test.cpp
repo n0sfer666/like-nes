@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "../tilemap/query.hpp"
+#include "tilemap_query.hpp"
 #include "controller.hpp"
 #include "platform_args.hpp"
 

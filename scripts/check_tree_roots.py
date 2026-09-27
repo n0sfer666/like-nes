@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Признак обхода дерева живёт в ЧЕТЫРЁХ копиях, и сверять их между собой некому.
+"""Признак обхода дерева живёт в ПЯТИ копиях, и сверять их между собой некому.
 
 `scripts/tree_invariants.sh` перечисляет корни в `ROOTS_CODE`/`ROOTS`, а `ascii_output_check.py`,
-`check_hash_seam.py` и `check_fs_seam.py` — в своих `ROOTS`. Внешнего эталона у списка нет: «все
+`check_hash_seam.py`, `check_fs_seam.py` и `check_include_seam.py` — в своих `ROOTS`. Внешнего эталона у списка нет: «все
 каталоги дерева» тут неверно (`deps`, `packaging`, `docs/ru` кода не несут), поэтому равенство
 проверяется МЕЖДУ КОПИЯМИ — ровно форма
 `mirrors-group` из `ci_lint.py`, та же, что у пары списков redist-имён в гейте CRT.
@@ -32,6 +32,7 @@ SH = "scripts/tree_invariants.sh"
 PY = "scripts/ascii_output_check.py"
 SEAM = "scripts/check_hash_seam.py"
 FS = "scripts/check_fs_seam.py"
+INC = "scripts/check_include_seam.py"
 
 SH_ASSIGN = re.compile(r'^\s*(ROOTS|ROOTS_CODE)="([^"]*)"\s*$', re.M)
 PY_ASSIGN = re.compile(r'^ROOTS\s*=\s*\(([^)]*)\)', re.M)
@@ -67,10 +68,10 @@ def python_exts(text):
     return set(PY_ITEM.findall(m.group(1))) if m else set()
 
 
-# Копий столько, сколько мест обходит дерево по этому списку. Третья приехала со швом хешей, а
-# четвёртая — со швом файлового ввода-вывода (находки 5 и 6 аудита #21): корень, добавленный в три
-# копии из четырёх, проходит инварианты швов и ASCII-проверку и молча остаётся вне гейта констант.
-COPIES = ((SH, "shell"), (PY, "python"), (SEAM, "python"), (FS, "python"))
+# Копий столько, сколько мест обходит дерево по этому списку. Третья приехала со швом хешей,
+# четвёртая — со швом файлового ввода-вывода, пятая — со швом подключений (находки 5, 6 и 13
+# аудита #21): корень, добавленный не во все копии, проходит часть гейтов и молча остаётся вне прочих.
+COPIES = ((SH, "shell"), (PY, "python"), (SEAM, "python"), (FS, "python"), (INC, "python"))
 # Обе половины признака обхода. Имя списка идёт в текст находки: «расширение .inl есть в трёх
 # копиях» и «корень tools есть в трёх копиях» — разные поломки, и различить их обязан лог.
 GROUPS = (("корень", "ROOTS", {"shell": shell_roots, "python": python_roots}),

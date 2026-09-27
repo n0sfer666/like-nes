@@ -1,5 +1,5 @@
 #pragma once
-#include "../scene.hpp"
+#include "../ide_scene.hpp"
 #include <cstdint>
 #include <string>
 #include <vector>

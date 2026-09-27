@@ -14,10 +14,10 @@ target_include_directories(material_text PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # Файлы пекарь читает ЧЕРЕЗ платформенный шов (`platform_core`), а не `fopen`: MSVC на нём
 # ругается депрекацией, а `/W4 /WX` раннера превращает её в упавшую сборку.
 add_library(material_bake STATIC bake.cpp bake_parse.cpp)
-target_link_libraries(material_bake PUBLIC material_core material_text platform_core)
+target_link_libraries(material_bake PUBLIC material_core material_text platform_core PRIVATE asset_hash)
 
 add_executable(material_bake_test material_bake_test.cpp)
-target_link_libraries(material_bake_test PRIVATE material_bake)
+target_link_libraries(material_bake_test PRIVATE material_bake asset_hash)
 
 add_executable(material_source_test material_source_test.cpp)
 target_link_libraries(material_source_test PRIVATE material_bake)
@@ -31,14 +31,14 @@ target_link_libraries(material_table_test PRIVATE material_bake)
 # Цель читает файлы библиотеки, поэтому путь к каталогу передаётся аргументом (по умолчанию —
 # относительный от корня дерева, как у бандл-гейтов).
 add_executable(material_library_test material_library_test.cpp material_slots_test.cpp)
-target_link_libraries(material_library_test PRIVATE material_bake platform_core)
+target_link_libraries(material_library_test PRIVATE material_bake asset_hash platform_core)
 
 # Шов «материал → пайплайн» (гейты 4/5/6 спеки #18). Третья цель, а не часть `material_core`:
 # ядро читает таблицу и не знает про GPU вовсе — им пользуются пекарь и тесты, которым WebGPU не
 # нужен, а на мобильных шеллах его ещё и нет. Текстового парсера здесь тоже нет: кэш получает
 # готовую таблицу и текст модуля, а откуда они взялись — не его вопрос.
 add_library(material_gpu STATIC cache.cpp pipeline.cpp reload.cpp wgpu_error.cpp)
-target_link_libraries(material_gpu PUBLIC material_core material_diag webgpu)
+target_link_libraries(material_gpu PUBLIC material_core material_diag webgpu PRIVATE asset_hash)
 
 # Диагностика шейдера — своей целью БЕЗ webgpu. Не мелочность: её линкует тест совместимости с
 # панелью редактора (#7), у которого ни устройства, ни адаптера нет и быть не должно, — а тест,
@@ -56,4 +56,4 @@ target_link_libraries(material_hot PUBLIC material_gpu platform_core)
 # потребитель у неё один и он не рисует: пекарь. Кэшу она не нужна, а тянуть в каждую игру
 # перебор бэкендов значило бы поднимать в рантайме три инстанса ради вопроса, отвеченного в бейке.
 add_library(material_validate STATIC validate.cpp validate_device.cpp)
-target_link_libraries(material_validate PUBLIC material_gpu material_diag)
+target_link_libraries(material_validate PUBLIC material_gpu material_diag PRIVATE asset_hash)

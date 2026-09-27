@@ -60,7 +60,7 @@ struct TileHit {
 void overlap_shape(const TileGrid& g, const physics::Shape& s, Vec2 position, fix32 angle,
                    const TileFilter& f, std::vector<TileOverlap>& out);
 
-// Ближайшее касание луча. `delta` — путь целиком, а не направление (обоснование — `physics/query.hpp`).
+// Ближайшее касание луча. `delta` — путь целиком, а не направление (обоснование — `physics/physics_query.hpp`).
 bool raycast(const TileGrid& g, Vec2 origin, Vec2 delta, const TileFilter& f, TileHit& out);
 
 // Ближайшее касание формы, перенесённой на `travel`. Поворота по пути нет.

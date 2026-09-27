@@ -1,6 +1,6 @@
 #pragma once
-#include "registry.hpp"
-#include "sim.hpp"
+#include "plugin_registry.hpp"
+#include "plugin_sim.hpp"
 
 inline uint64_t run_sim(const Registry& reg, int n_ticks, bool* sched_ok) {
     SimWorld w;

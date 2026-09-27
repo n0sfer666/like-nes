@@ -1,9 +1,9 @@
-#include "cache.hpp"
+#include "material_cache.hpp"
 
 #include <cstdio>
 #include <cstring>
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 #include "pipeline.hpp"
 
 namespace mat {

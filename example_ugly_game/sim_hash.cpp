@@ -1,5 +1,5 @@
 #include "sim_hash.hpp"
-#include "../engine/asset/hash.hpp"
+#include "hash.hpp"
 
 #include <algorithm>
 #include <vector>

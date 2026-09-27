@@ -1,7 +1,7 @@
 #pragma once
 #include "profile.hpp"
 #include "slide.hpp"
-#include "state.hpp"
+#include "character_state.hpp"
 
 // Тик кинематического персонажа (спека #16, вертикаль 1).
 //

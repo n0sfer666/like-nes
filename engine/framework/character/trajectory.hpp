@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "state.hpp"
+#include "character_state.hpp"
 
 // Хеш траектории персонажа — то, что сверяет гейт 1 спеки #16 между macOS, Linux и Windows.
 //

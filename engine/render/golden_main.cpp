@@ -1,9 +1,9 @@
-#include "capture.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "platform_args.hpp"
 #include "renderer.hpp"
-#include "scene.hpp"
-#include "sprite.hpp"
+#include "render_scene.hpp"
+#include "render_sprite.hpp"
 
 #include <cstdio>
 #include <cstring>

@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "platform_args.hpp"
-#include "query.hpp"
+#include "tilemap_query.hpp"
 
 // Односторонний тайл (вертикаль 3, шаг B): ЗАПРОС решает по хиту, держит ли платформа.
 //

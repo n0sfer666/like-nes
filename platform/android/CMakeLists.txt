@@ -36,7 +36,9 @@ add_library(game SHARED
   ${REPO}/engine/render/surface_frame.cpp)
 
 target_include_directories(game PRIVATE
-  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render)
+  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render
+  ${REPO}/engine/material ${REPO}/engine/platform ${REPO}/engine/framework/core
+  ${REPO}/engine/framework/graphics)
 target_link_libraries(game PRIVATE
   native_app_glue wgpu_native flecs_static android log)
 target_link_options(game PRIVATE -u ANativeActivity_onCreate)

@@ -1,5 +1,5 @@
 #include "refusal_fixture.hpp"
-#include "scene.hpp"
+#include "ide_scene.hpp"
 #include "serialize.hpp"
 
 #include <algorithm>

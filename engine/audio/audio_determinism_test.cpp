@@ -5,8 +5,8 @@
 #include <thread>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "engine.hpp"
+#include "hash.hpp"
+#include "audio_engine.hpp"
 #include "mixer.hpp"
 
 // Гейт #2 (спека #3): аудио — output-only, НЕ кормит сим. Sim (fix32) детерминированно эмитит

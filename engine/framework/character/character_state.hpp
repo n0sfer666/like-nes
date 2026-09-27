@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "../physics/world.hpp"
+#include "physics_world.hpp"
 #include "fixmath.hpp"
 
 // Состояние кинематического персонажа и его вход за тик (спека #16, вертикаль 1).

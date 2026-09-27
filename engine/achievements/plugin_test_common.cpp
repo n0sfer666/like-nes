@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "registry.hpp"
+#include "ach_registry.hpp"
 
 namespace ach_test {
 

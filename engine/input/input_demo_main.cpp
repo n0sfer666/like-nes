@@ -4,8 +4,8 @@
 #include <GLFW/glfw3.h>
 #include "action_map.hpp"
 #include "codes.hpp"
-#include "engine.hpp"
-#include "sim.hpp"
+#include "input_engine.hpp"
+#include "input_sim.hpp"
 #include "source.hpp"
 
 // Live-демо (owner HW): GLFW-окно (kbd/mouse/трекпад) + native gamepad (GameController/XInput/

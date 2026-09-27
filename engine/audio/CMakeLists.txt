@@ -11,10 +11,9 @@ add_library(audio_core STATIC
 like_nes_vendored_object(stb_vorbis_vendored stb_vorbis_impl.c)
 target_include_directories(stb_vorbis_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(audio_core PRIVATE stb_vorbis_vendored)
-target_include_directories(audio_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset)
+target_include_directories(audio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(audio_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний
-target_link_libraries(audio_core PUBLIC engine_core Threads::Threads)
+target_link_libraries(audio_core PUBLIC engine_core asset_hash Threads::Threads)
 
 # Гейт #1 (байт-golden хеш микса, Fix32 над детерм. PCM). CI на всех ОС.
 add_executable(audio_golden audio_golden_main.cpp)

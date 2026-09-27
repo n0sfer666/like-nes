@@ -1,4 +1,4 @@
-#include "manifest.hpp"
+#include "plugin_manifest.hpp"
 
 #include <cstdio>
 #include <string>

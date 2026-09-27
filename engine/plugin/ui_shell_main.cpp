@@ -1,4 +1,4 @@
-#include "manifest.hpp"
+#include "plugin_manifest.hpp"
 #include "gpu.hpp"
 #include "wgpu_imgui.hpp"
 #include "imgui.h"

@@ -3,8 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "cache.hpp"
-#include "capture.hpp"
+#include "material_cache.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "light_checks.hpp"
 #include "light_frame.hpp"
@@ -16,14 +16,10 @@
 #include "slot_textures.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
-
-// Заголовки двух подсистем зовутся ОДИНАКОВО (`bake.hpp`, `table.hpp`), и порядок -I решал бы,
-// чей из них попадёт в этот TU. Путь здесь явный — иначе перестановка целей в CMake молча
-// подменяет таблицу.
-#include "../light/bake.hpp"
-#include "../light/table.hpp"
-#include "../material/bake.hpp"
-#include "../material/table.hpp"
+#include "light_bake.hpp"
+#include "light_table.hpp"
+#include "material_bake.hpp"
+#include "material_table.hpp"
 
 // Гейт 7 спеки #18 (вертикаль 3): свет — ДАННЫЕ. Сцена материалов рисуется в текстуру, а проход
 // освещения читает источники из таблицы, число которых берёт `arrayLength` — в шейдере его нет.

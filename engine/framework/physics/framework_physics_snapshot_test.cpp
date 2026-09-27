@@ -9,7 +9,7 @@
 #include "framework_physics_observed.hpp"
 #include "framework_physics_snapshot_scene.hpp"
 #include "snapshot.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Основание отката вертикали 1 спеки #22: снимок состояния мира и возврат в него. Устройство сцены
 // и почему она именно такая — `framework_physics_snapshot_scene.hpp`.

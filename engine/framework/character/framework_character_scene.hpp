@@ -1,9 +1,9 @@
 #pragma once
 #include <utility>
 
-#include "../tilemap/query.hpp"
+#include "tilemap_query.hpp"
 #include "slide.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Общая сцена гейтов персонажа: пол, стена, потолок и площадка с краем.
 //

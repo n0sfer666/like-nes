@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../engine/asset/hash.hpp"
+#include "hash.hpp"
 #include <atomic>
 #include <cstdint>
 

@@ -1,4 +1,4 @@
-#include "capture.hpp"
+#include "render_capture.hpp"
 
 #include "renderer.hpp"
 

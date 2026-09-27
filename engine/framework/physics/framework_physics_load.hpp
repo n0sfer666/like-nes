@@ -2,7 +2,7 @@
 #include <cstdint>
 
 #include "framework_physics_lcg.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Сцены нагрузки — гейт 8 спеки #15. Их ТРИ, и каждая отвечает за свою часть шага.
 //

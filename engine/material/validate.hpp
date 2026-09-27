@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "diag.hpp"
-#include "table.hpp"
+#include "material_table.hpp"
 
 namespace mat {
 

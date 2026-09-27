@@ -1,5 +1,5 @@
 #pragma once
-#include "engine.hpp"
+#include "input_engine.hpp"
 
 // HAL-граница ввода. Геймпад — platform-native бэкенд (XInput / GameController / evdev) за
 // интерфейсом GamepadSource. Kbd/mouse/трекпад — через OS-события GLFW-окна (тонкий пумп;

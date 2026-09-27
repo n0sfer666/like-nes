@@ -1,10 +1,7 @@
 #pragma once
 #include <cstdint>
 
-// Путём ОТ ЭТОГО ФАЙЛА, а не через каталог цели: у заголовка движка то же имя, каталог образца
-// стоит в списке -I первым, и `<instance.hpp>` нашёл бы этот же файл — `#pragma once` сделал бы
-// включение пустым, а ошибка вылезла бы у третьего файла, ничего про материалы не знающего.
-#include "../engine/material/instance.hpp"
+#include "material_instance.hpp"
 
 namespace game {
 

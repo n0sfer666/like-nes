@@ -1,8 +1,8 @@
 #include <cstdio>
 #include "action_map.hpp"
 #include "codes.hpp"
-#include "engine.hpp"
-#include "sim.hpp"
+#include "input_engine.hpp"
+#include "input_sim.hpp"
 
 // Прямая валидация «Full»-слоя действий: контексты+consume, rebind (listen-next), per-player
 // device assignment, input-buffer leniency, capture_source. Deviceless, гоняется в CI.

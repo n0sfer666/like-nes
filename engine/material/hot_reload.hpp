@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "cache.hpp"
+#include "material_cache.hpp"
 #include "diag.hpp"
 #include "platform_watch.hpp"
 

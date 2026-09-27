@@ -1,4 +1,4 @@
-#include "sim.hpp"
+#include "game_sim.hpp"
 #include "combat.hpp"
 
 namespace game {

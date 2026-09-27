@@ -3,13 +3,13 @@
 #include <string>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "../platform/platform_args.hpp"
-#include "../platform/platform_fs.hpp"
-#include "bake.hpp"
+#include "hash.hpp"
+#include "platform_args.hpp"
+#include "platform_fs.hpp"
+#include "material_bake.hpp"
 #include "material_slots_test.hpp"
 #include "param.hpp"
-#include "table.hpp"
+#include "material_table.hpp"
 
 // Шов «библиотека эффектов и её шейдер говорят про одни и те же смещения».
 //

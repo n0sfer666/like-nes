@@ -1,4 +1,4 @@
-#include "capture.hpp"
+#include "game_capture.hpp"
 
 #include <webgpu/wgpu.h>
 

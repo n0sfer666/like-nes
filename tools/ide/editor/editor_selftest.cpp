@@ -1,4 +1,4 @@
-#include "../scene.hpp"
+#include "../ide_scene.hpp"
 #include "gizmo.hpp"
 #include "property_grid.hpp"
 #include <cmath>

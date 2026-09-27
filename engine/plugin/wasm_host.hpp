@@ -1,5 +1,5 @@
 #pragma once
-#include "sim.hpp"
+#include "plugin_sim.hpp"
 #include <cstdint>
 #include <string>
 

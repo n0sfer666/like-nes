@@ -5,14 +5,11 @@
 #include <cstring>
 #include <vector>
 
-// Пути КАТАЛОГОМ, а не одним именем: в дереве по два `bake.hpp`, `manifest.hpp`, `registry.hpp` и
-// `state.hpp` — у материалов и достижений, у достижений и плагинов, у достижений и персонажа.
-// Короткое имя выбирал бы порядок каталогов в линковке, то есть случай.
-#include "asset/bundle_view.hpp"
-#include "asset/bundle_writer.hpp"
+#include "bundle_view.hpp"
+#include "bundle_writer.hpp"
 #include "fuzz_target.hpp"
-#include "material/bake.hpp"
-#include "material/table.hpp"
+#include "material_bake.hpp"
+#include "material_table.hpp"
 
 namespace fuzz {
 namespace {

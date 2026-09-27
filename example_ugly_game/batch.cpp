@@ -2,7 +2,7 @@
 
 #include "material_runs.hpp"
 #include "sprite_pipeline.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
 namespace {

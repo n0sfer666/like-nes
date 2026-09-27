@@ -2,8 +2,8 @@
 #include <webgpu/webgpu.h>
 
 #include "arena.hpp"
-#include "scene.hpp"
-#include "sprite.hpp"
+#include "render_scene.hpp"
+#include "render_sprite.hpp"
 
 // Render-graph десктоп-tier: gbuffer(deferred) → lighting → forward → bloom → tonemap.
 // Таргеты пре-варминг на init (арена, стабильные views), bind-group'ы собраны один раз →

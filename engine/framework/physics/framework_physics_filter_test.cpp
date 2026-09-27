@@ -2,8 +2,8 @@
 #include <vector>
 
 #include "platform_args.hpp"
-#include "query.hpp"
-#include "world.hpp"
+#include "physics_query.hpp"
+#include "physics_world.hpp"
 
 // Слои, маски и тела-триггеры. Правило здесь — ОТБРАСЫВАЮЩЕЕ, и проверяется оно только парами
 // утверждений на ОДНОЙ И ТОЙ ЖЕ геометрии: сломанный фильтр не выдаёт неверное число, он выдаёт

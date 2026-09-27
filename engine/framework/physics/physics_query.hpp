@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "cast.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Запросы к миру: перекрытие области, трассировка луча, свип формы (гейт 4 спеки #15).
 //

@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "../core/fixed.hpp"
+#include "fixed.hpp"
 
 // Детерминированная fix32-математика для микса (равная на x86/ARM): целочисл. sqrt
 // для equal-power пана и distance-аттенюации. Никаких float в детерм.-пути.

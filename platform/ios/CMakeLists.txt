@@ -36,7 +36,9 @@ set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_S
   PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 
 target_include_directories(like_nes_ios PRIVATE
-  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render)
+  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render
+  ${REPO}/engine/material ${REPO}/engine/platform ${REPO}/engine/framework/core
+  ${REPO}/engine/framework/graphics)
 target_link_libraries(like_nes_ios PRIVATE wgpu_native flecs_static
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")

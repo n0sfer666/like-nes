@@ -4,7 +4,7 @@
 #include "action_map.hpp"
 #include "device_state.hpp"
 #include "input_buffer.hpp"
-#include "spsc.hpp"
+#include "input_spsc.hpp"
 #include "input_types.hpp"
 
 // InputEngine: связывает input-поток (SPSC сырых событий) и sim-поток (дренаж @tick).

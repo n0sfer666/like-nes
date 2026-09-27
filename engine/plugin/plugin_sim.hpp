@@ -1,6 +1,6 @@
 #pragma once
-#include "../asset/hash.hpp"
-#include "../core/fixed.hpp"
+#include "hash.hpp"
+#include "fixed.hpp"
 #include <cstdint>
 
 struct SimWorld {

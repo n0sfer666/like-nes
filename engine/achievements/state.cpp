@@ -1,7 +1,7 @@
-#include "state.hpp"
+#include "ach_state.hpp"
 #include <cstring>
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 
 namespace ach {
 namespace {

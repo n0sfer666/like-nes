@@ -1,9 +1,9 @@
 #include "wasm_host.hpp"
 #include "wasm_escape.hpp"
-#include "registry.hpp"
+#include "plugin_registry.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
-#include "sim.hpp"
+#include "plugin_sim.hpp"
 #include "platform_args.hpp"
 #include <cstdio>
 #include <string>

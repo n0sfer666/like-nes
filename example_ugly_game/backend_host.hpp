@@ -8,7 +8,7 @@ class Backend;
 
 namespace game {
 
-// Плагин-хост в отдельном TU: plugin/registry.hpp объявляет struct EcsSystem, а flecs.h —
+// Плагин-хост в отдельном TU: plugin/plugin_registry.hpp объявляет struct EcsSystem, а flecs.h —
 // переменную EcsSystem; в одной единице трансляции они несовместимы. Игра видит только
 // ach::Backend, заголовки плагинов сюда не протекают.
 class BackendHost {

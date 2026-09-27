@@ -1,7 +1,7 @@
 #pragma once
 
 #include "units.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Сцена снимка состояния (вертикаль 1 спеки #22) — башня из трёх ящиков, которая ЗАМИРАЕТ, и
 // снаряд, который её будит.

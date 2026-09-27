@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "platform_args.hpp"
-#include "query.hpp"
+#include "tilemap_query.hpp"
 
 // Лестница (вертикаль 3, шаг D): бит карты, который НЕ геометрия.
 //

@@ -7,7 +7,7 @@
 // Тест идёт и под ASan/UBSan (шаг «Plugin — ASan/UBSan»), и это не украшение: массив зависимостей
 // здесь ровно `PLUGIN_MAX_SYSTEM_DEPS` длиной, а счётчиком передаётся на единицу больше — снятый
 // потолок читает мимо конца, и ассерту такое чтение НЕ видно, а санитайзеру видно.
-#include "registry.hpp"
+#include "plugin_registry.hpp"
 #include "platform_args.hpp"
 #include <cstdio>
 #include <string>

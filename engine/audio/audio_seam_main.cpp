@@ -7,10 +7,10 @@
 #include <thread>
 #include <vector>
 
-#include "../asset/asset_manager.hpp"
-#include "../asset/hash.hpp"
+#include "asset_manager.hpp"
+#include "hash.hpp"
 #include "decoder.hpp"
-#include "engine.hpp"
+#include "audio_engine.hpp"
 #include "mixer.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"

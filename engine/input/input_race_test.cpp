@@ -3,8 +3,8 @@
 #include <thread>
 #include "action_map.hpp"
 #include "codes.hpp"
-#include "engine.hpp"
-#include "sim.hpp"
+#include "input_engine.hpp"
+#include "input_sim.hpp"
 
 using namespace input;
 namespace c = input::code;

@@ -1,6 +1,6 @@
 #pragma once
 #include "platform_export.h"
-#include "sim.hpp"
+#include "plugin_sim.hpp"
 #include <cstdint>
 
 #ifdef __cplusplus

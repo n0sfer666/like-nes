@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "backend.hpp"
-#include "registry.hpp"
+#include "ach_registry.hpp"
 #include "tracker.hpp"
 
 namespace {

@@ -5,7 +5,7 @@
 #include "audio_types.hpp"
 #include "fix_math.hpp"
 #include "limiter.hpp"
-#include "spsc.hpp"
+#include "audio_spsc.hpp"
 #include "voice.hpp"
 
 // Микшер (спека #3). Живёт в audio-callback (RT-safe: без локов/heap/I/O). Тянет команды

@@ -2,7 +2,7 @@
 #include <memory>
 #include <string>
 
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace ach {
 class Registry;

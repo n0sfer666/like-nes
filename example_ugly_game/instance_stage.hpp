@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "instance.hpp"
+#include "game_instance.hpp"
 
 namespace game {
 

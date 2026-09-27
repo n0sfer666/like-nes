@@ -4,7 +4,7 @@
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 #include "platform_process.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Аудит #21 B10: дескриптор тела, которого в мире нет, — `INVALID` от `add` с занятым ключом или
 // индекс за последним телом — обязан ронять процесс со строкой в stderr, а не читать мимо массива.

@@ -2,8 +2,8 @@
 
 Отдельным файлом по тому же основанию, что `ascii_output_check_selftest.py` рядом со своим гейтом:
 сверка копий и набор сломанных копий — две ответственности, и растут они независимо (третья копия
-приехала со швом хешей, четвёртая — со швом файлов, а с находкой ревью у каждой прибавилось по
-второму списку). Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
+приехала со швом хешей, четвёртая — со швом файлов, пятая — со швом подключений, а с находкой
+ревью у каждой прибавилось по второму списку). Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
 """
 import os
 import re
@@ -11,7 +11,7 @@ import shutil
 import sys
 import tempfile
 
-from check_tree_roots import COPIES, FS, PY, ROOT, SEAM, SH, gate
+from check_tree_roots import COPIES, FS, INC, PY, ROOT, SEAM, SH, gate
 
 
 def sh_without_root(text, name="docs/examples"):
@@ -72,7 +72,8 @@ def selftest():
         lambda rel, t: t.replace('EXT="--include', 'EXT_ALL="--include') if rel == SH else t)
     # Порчи на КАЖДУЮ python-копию, а не на одну: копия, которую набор не ломает, выпадает из
     # сверки молча — ровно то расхождение, ради которого гейт и заведён.
-    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов")):
+    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов"),
+                        (INC, "шва подключений")):
         run("fail", "корень пропал из копии %s" % label,
             lambda rel, t, w=path: t.replace(', "docs/examples"', "") if rel == w else t)
         run("fail", "лишний корень в копии %s" % label,

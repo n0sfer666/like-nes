@@ -2,8 +2,8 @@
 #include <string>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "cache.hpp"
+#include "hash.hpp"
+#include "material_cache.hpp"
 #include "pipeline.hpp"
 #include "wgpu_error.hpp"
 

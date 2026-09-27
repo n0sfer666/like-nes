@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "diag.hpp"
-#include "instance.hpp"
-#include "table.hpp"
+#include "material_instance.hpp"
+#include "material_table.hpp"
 
 namespace mat {
 

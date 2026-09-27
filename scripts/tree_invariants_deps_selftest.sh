@@ -40,7 +40,7 @@ tree_for() {
       printf '#include "../platform/platform_fs.hpp"\n' > "$d/engine/$m/probe_src.cpp"
   done
   # Разрешённое направление: потребитель читает engine. Оно же — позитивный контроль альтернации.
-  printf '#include "../engine/achievements/registry.hpp"\n' > "$d/example_ugly_game/game.cpp"
+  printf '#include "../engine/achievements/ach_registry.hpp"\n' > "$d/example_ugly_game/game.cpp"
   printf '#include "../../engine/asset/bundle_view.hpp"\n' > "$d/tools/ide/panel.cpp"
   printf '#include "../../engine/asset/bundle_view.hpp"\n' > "$d/tests/fuzz/probe.cpp"
   printf 'add_library(framework_core STATIC schedule.cpp)\n' > "$d/engine/framework/core/CMakeLists.txt"

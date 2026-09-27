@@ -1,6 +1,6 @@
 #include "slot_pass.hpp"
 
-#include "../material/pipeline.hpp"
+#include "pipeline.hpp"
 #include "shaders_slot.hpp"
 #include "slot_encoding.hpp"
 

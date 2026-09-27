@@ -4,7 +4,7 @@
 // обязаны своим включением: транзитивно через зонд побега они уехали бы вместе с ним, а этот гейт
 // живёт отдельной целью ровно затем, чтобы от зонда не зависеть (ревью A·2).
 #include "wasm_sandbox.hpp"
-#include "sim.hpp"
+#include "plugin_sim.hpp"
 #include <cstdio>
 #include <string>
 

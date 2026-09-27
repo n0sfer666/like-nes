@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "platform_args.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Гейт на ЗАЯВЛЕННЫЙ диапазон входов — и он появился не из аккуратности, а из уже случившегося.
 //

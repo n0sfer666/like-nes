@@ -5,7 +5,7 @@
 #include "light_pass.hpp"
 #include "material_scene.hpp"
 #include "slot_pass.hpp"
-#include "../material/table.hpp"
+#include "material_table.hpp"
 
 struct GpuContext;
 

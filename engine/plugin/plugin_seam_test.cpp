@@ -1,4 +1,4 @@
-#include "registry.hpp"
+#include "plugin_registry.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
 #include "platform_args.hpp"

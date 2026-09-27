@@ -124,8 +124,7 @@ add_executable(game_sidescroller
   gpu_env.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
   ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
 target_include_directories(game_sidescroller PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render
-  ${CMAKE_SOURCE_DIR}/engine/framework)
+  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render)
 target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(game_sidescroller PRIVATE
   engine_core framework_input framework_graphics flecs_static webgpu glfw3webgpu glfw ach_plugin
@@ -166,8 +165,7 @@ reproducible_rpath(game_sidescroller)
 # не поднимал ради этого WebGPU.
 add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp instance_stage.cpp
   art.cpp atlas_regions.cpp)
-target_include_directories(game_sprite_out_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_sprite_out_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # material_core — из-за `game::Instance = mat::Instance` (спека #18): один вершинный этап на оба
 # потребителя библиотеки. GPU сюда не приезжает, цель как была headless, так и осталась.
 target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
@@ -181,20 +179,18 @@ target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
 # гейт называл бы в логе CI не тот слой. flecs приезжает ради обхода следов в `emit_trails`,
 # WebGPU — нет: `Instance` живёт отдельным заголовком именно затем.
 add_executable(game_fx_test game_fx_test.cpp fx.cpp sprite_out.cpp art.cpp atlas_regions.cpp)
-target_include_directories(game_fx_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_fx_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core тут НЕ назван, хотя нужен: framework_graphics и framework_input дописывают его в
 # замыкание каждый своей PRIVATE-связью, и названный сверх этого явно он попадает на линкер-строку
 # дважды — ld на macOS отвечает `warning: ignoring duplicate libraries`, мимо -Werror, но прямо в
 # лог гейта. Тот же случай расписан у game_platformer_input_test выше.
-target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
+target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input framework_physics
   framework_alloc_probe_control flecs_static asset_core material_core)
 
 # --- Симметрия звезды атласа: своя цель, а не третий тест в `game_fx_test`. Она стоит на ПЕЧЁНОМ
 # атласе и не трогает ни `Fx`, ни flecs — в общем файле гейт краснел бы на правке траектории.
 add_executable(game_star_test game_star_test.cpp art.cpp atlas_regions.cpp)
-target_include_directories(game_star_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_star_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/live_targets.cmake)
@@ -206,7 +202,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/packaging.cmake)
 add_executable(game_sim_test sim_test.cpp sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(game_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
-target_link_libraries(game_sim_test PRIVATE engine_core flecs_static Threads::Threads)
+target_link_libraries(game_sim_test PRIVATE engine_core asset_hash flecs_static Threads::Threads)
 
 # Гейт 7 спеки #10: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
 add_executable(ach_sim_test

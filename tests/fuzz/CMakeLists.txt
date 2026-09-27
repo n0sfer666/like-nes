@@ -11,14 +11,7 @@ add_executable(fuzz_readers
   fuzz_targets_framework.cpp
   fuzz_targets_plugin.cpp)
 
-# Включения — С ПРЕФИКСОМ КАТАЛОГА от `engine/`, потому что в дереве по два `bake.hpp`,
-# `manifest.hpp`, `registry.hpp` и `state.hpp` (у материалов и достижений, у достижений и
-# плагинов, у достижений и персонажа). Каталог достижений НЕ добавляется в пути намеренно — это
-# требование его собственного CMakeLists: их внутренние включения разрешаются относительно
-# включающего файла и попадают куда надо сами, а общий -I отдавал бы «ближайший» заголовок.
-target_include_directories(fuzz_readers PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}
-  ${CMAKE_SOURCE_DIR}/engine)
+target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Порядок — ОТ ЗАВИСЯЩЕГО К ЗАВИСИМОСТИ, и это не вкусовщина. CMake сохраняет заявленный порядок
 # прямых зависимостей, а чтобы статический архив стоял после того, кто из него тянет символы,

@@ -20,11 +20,11 @@
 #include "material_fx.hpp"
 #include "platform_env.hpp"
 #include "platform_redact.hpp"
-#include "sim.hpp"
+#include "game_sim.hpp"
 #include "source.hpp"
 #include "surface_frame.hpp"
 #include "input_setup.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
 int run_window(int frame_cap) {

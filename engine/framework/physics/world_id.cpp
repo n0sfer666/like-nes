@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "world.hpp"
+#include "physics_world.hpp"
 
 namespace framework::physics {
 

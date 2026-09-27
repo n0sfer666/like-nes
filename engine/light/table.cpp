@@ -1,4 +1,4 @@
-#include "table.hpp"
+#include "light_table.hpp"
 
 #include <cstring>
 

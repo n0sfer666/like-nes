@@ -5,14 +5,14 @@
 #include <optional>
 #include <vector>
 
-#include "framework/character/profile_bake.hpp"
-#include "framework/character/profile_read.hpp"
-#include "framework/graphics/atlas_bake.hpp"
-#include "framework/graphics/atlas_read.hpp"
-#include "framework/input/preset_bake.hpp"
-#include "framework/input/presets.hpp"
-#include "framework/tilemap/map_bake.hpp"
-#include "framework/tilemap/map_read.hpp"
+#include "profile_bake.hpp"
+#include "profile_read.hpp"
+#include "atlas_bake.hpp"
+#include "atlas_read.hpp"
+#include "preset_bake.hpp"
+#include "presets.hpp"
+#include "map_bake.hpp"
+#include "map_read.hpp"
 #include "fuzz_target.hpp"
 
 namespace fuzz {
