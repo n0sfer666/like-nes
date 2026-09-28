@@ -40,7 +40,12 @@ endif()
 find_program(CARGO_BIN cargo REQUIRED)
 set(WGPU_LIB "${wgpu_native_src_SOURCE_DIR}/target/${WGPU_RUST_TARGET}/release/libwgpu_native.a")
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Android")
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  # rustc и крейт cc берут минимальный iOS из окружения; без него объекты wgpu-native несут
+  # умолчание Rust, а не цель, которую корень задал приложению.
+  set(WGPU_CARGO_ENV ${CMAKE_COMMAND} -E env
+    "IPHONEOS_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
   if(NOT DEFINED ANDROID_PLATFORM_LEVEL)
     set(ANDROID_PLATFORM_LEVEL 24)
   endif()

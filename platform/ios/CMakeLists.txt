@@ -4,6 +4,12 @@
 include(${CMAKE_SOURCE_DIR}/cmake/licenses.cmake)
 include(${CMAKE_SOURCE_DIR}/example_ugly_game/game_sources.cmake)
 
+# Пустая цель дала бы plist с пустым MinimumOSVersion и cargo без цели — провал поздний и немой.
+# Так бывает, если iOS задан toolchain-файлом: platform/mobile/ios_min_os.cmake видит его до project().
+if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+  message(FATAL_ERROR "iOS shell: CMAKE_OSX_DEPLOYMENT_TARGET is empty; pass -DCMAKE_SYSTEM_NAME=iOS or set it explicitly")
+endif()
+
 set(MOBILE ${CMAKE_SOURCE_DIR}/platform/mobile)
 # Бандлы игры кладутся в `assets/` внутри `.app`: `resolve_asset` ищет `<exe_dir>/assets/<имя>`, а
 # у iOS-приложения exe_dir и есть корень бандла — оболочке не нужно подсовывать путь окружением.

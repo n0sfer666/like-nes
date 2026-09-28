@@ -1614,13 +1614,19 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Последние строки:
 
     === Mobile true-cross: iOS (aarch64-apple-ios-sim) ===
-    [xcompile] ok: iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{game.bundle library.bundle audio.bundle}
+    [xcompile] ok: iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{game.bundle library.bundle audio.bundle} + minimum iOS 17.0
     === Mobile true-cross: Android (aarch64-linux-android, NDK arm64-v8a) ===
     [xcompile] ok: Android aarch64 ELF + APK {lib/arm64-v8a/libgame.so lib/arm64-v8a/libc++_shared.so assets/game.bundle assets/library.bundle assets/audio.bundle}
     [xcompile] PASS: desktop matrix (max-vs-sum) + iOS arm64 + Android aarch64
 
   Упавший шаг печатает хвост своего лога и путь к нему
   (build-ios/xcompile.log, build-android/xcompile.log).
+
+  «minimum iOS 17.0» — одно число в бинаре (vtool minos), Info.plist
+  (MinimumOSVersion) и кеше CMake (CMAKE_OSX_DEPLOYMENT_TARGET, его задаёт
+  корень). «minimum iOS disagrees …» — они разошлись, и приложение на
+  заявленном iOS не запустится. Прогоняется только iOS 27; 17.0 — обещание
+  Xcode, не проверенное ни симулятором, ни устройством.
 
   2) Игра в симуляторе (прогнано агентом на iPhone 16, iOS 27.0):
 
@@ -1684,19 +1690,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     [ios-sim] ok: simulator like-nes-gate-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0
     [ios-sim] ok: UI test passed (view: platform/ios/view.mm)
+    [ios-sim] ok: no runtime warnings, minimum iOS 17.0 in binary and Info.plist
     [ios-touch] ok: stick=<id> fire=<id> held together; 42 events; int-truncated ids distinct
     [ios-sim] ok: 2 screenshots rendered, evidence in <каталог>
     [ios-sim] PASS
 
   Число событий плавает на единицы: синтезатор Xcode вставляет лишний
   короткий тап. В <каталог> — лог xcodebuild, touch.log и два скриншота
-  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Без Xcode или рантайма —
+  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Каталоги
+  ios-sim-gate.* в $TMPDIR хранятся за пять последних прогонов, этот включая:
+  старшие гейт удаляет сам в начале прогона. «the UI test left runtime
+  warnings» — тест зелёный, но iOS предупредил о дефекте игры (так было с
+  AVAudioSession на главном потоке); строки предупреждений печатаются выше
+  вердикта. Без Xcode или рантайма —
   строка «[ios-sim] SKIP: <причина>», это не зелёный гейт; на Intel Mac —
   тоже SKIP: оболочка собирается под arm64-симулятор. Строка «private
   XCPointerEventPath is gone from this Xcode» — новый Xcode убрал синтез двух
   пальцев в произвольных точках: гейт красный, а не обойдён.
 
-  Позитивный контроль (около двух минут, руками):
+  Позитивный контроль (около трёх минут, руками):
 
     bash scripts/ios_sim_gate_live_selftest.sh
 
@@ -1704,8 +1716,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     [ios-sim-selftest] ok: single-touch — red for its own reason (only one touch reached the view)
     [ios-sim-selftest] ok: collapsed-id — red for its own reason (two touches share one id)
+    [ios-sim-selftest] ok: main-thread-session — red for its own reason (the UI test left runtime warnings)
     [ios-sim-selftest] ok: the real view.mm passes and is back in the CMake cache
-    [ios-sim-selftest] 2 mutants + clean run, 0 failure(s)
+    [ios-sim-selftest] 3 mutants + clean run, 0 failure(s)
 
   4) iPhone. Сборка под устройство прогнана агентом (platform IOS, у нашего
   кода и линковки предупреждений нет; «warning: unexpected cfg» печатает
@@ -1722,7 +1735,18 @@ owner_check.sh гоняет это отдельным этапом сразу п
   стик левым пальцем и огонь правым ОДНОВРЕМЕННО (в симуляторе это держит
   шаг 3, на железе — только вы), звук слышен. Бесшумный режим
   (переключатель сбоку) глушит игру — так задумано: сессия SoloAmbient, как
-  у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект.
+  у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект:
+  сессию больше не активирует и не деактивирует явный setActive (он
+  зависал бы на главном потоке), её активирует запуск звука, и в
+  симуляторе слышимость не проверить — только здесь. Ещё два сценария
+  звука, оба с игрой на экране и слышимой музыкой:
+    - Home (свайп вверх), подождать 5 с, вернуться в игру;
+    - прерывание: «Привет, Siri» или будильник через Часы на минуту
+      вперёд, дождаться его, закрыть, вернуться в игру.
+  Ожидаемо в обоих: музыка снова слышна; в консоли либо ничего нового,
+  либо «[audio] output device stopped - restarted». Строки «did not come
+  back» или «stopped again within 5 s» — дефект. iPhone нужен с iOS 17.0
+  или новее (минимум приложения); запуск ниже iOS 27 не прогонялся никем.
 
   5) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
   отладочным ключом ~/.android/debug.keystore:

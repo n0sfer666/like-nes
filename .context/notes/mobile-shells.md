@@ -119,3 +119,24 @@
 
 Раунд 3 (решение владельца): попутные баги мобилы — `MinimumOSVersion 14.0` против `minos 27.0`,
 AVAudioSession на главном потоке, копящиеся `ios-sim-gate.*` в `$TMPDIR`.
+
+## Раунд 3 — итог (2026-09-29)
+
+Решения владельца: минимальный iOS 17.0, `noAudioSessionActivate`, улики — пять последних
+прогонов, любое предупреждение рантайма в UI-тесте — красный гейт. Устройство и позитивные
+контроли — `.context/gates/ios-sim.md`.
+
+- **minos.** `platform/mobile/ios_min_os.cmake` (корень включает его до `project()`) задаёт
+  `CMAKE_OSX_DEPLOYMENT_TARGET`; `Info.plist.in` и cargo (`IPHONEOS_DEPLOYMENT_TARGET`) читают её.
+  Согласие бинаря, plist и кеша проверяет `platform/mobile/ios_min_os.sh` — в `xcompile_verify.sh`
+  (`build-ios`) и в гейте (`build-ios-xcode/Debug`). Кеш cargo переменную не видит: уже собранный
+  wgpu-native несёт умолчание Rust (14.0 симулятор, 10.0 устройство) до чистой сборки — безвредно,
+  объекты старше цели. Ниже
+  iOS 27 не прогонялось ничего.
+- **AVAudioSession.** Предупреждение давал `setActive:true` в `ma_context_init` на главном потоке
+  (и `setActive:false` в `ma_context_uninit` — нашло ревью: `close()` из `dealloc` и рестарта
+  `poll`); обе выключены, сессию активирует запуск AudioUnit. Симулятор доказывает только
+  отсутствие предупреждения и `audio: on`; слышимость, возврат из фона и прерывание — iPhone
+  владельца (§R шаг 4).
+- **Улики.** Гейт в начале прогона удаляет `ios-sim-gate.*` старше четырёх последних.
+

@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
+include(${CMAKE_CURRENT_SOURCE_DIR}/platform/mobile/ios_min_os.cmake)
 project(like_nes LANGUAGES C CXX)
 
 # Дерево 64-битное, и это не предпочтение: предсобранный wgpu-native выбирает каталог рантайма по
