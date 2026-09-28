@@ -47,6 +47,17 @@ decisions, notes). Читать перед началом любой задач�
 обновляется **в том же коммите**: устаревший сценарий не падает, он молча проверяет вчерашний код.
 Так уже было — `./build/game_sidescroller` в runbook'е без шага сборки этой цели.
 
+## Повестка (agenda)
+
+Раз в неделю, **в воскресенье** (или первой задачей после него, если воскресенье пропущено), —
+запись `~/wiki/dev-log/like-nes/agenda/<YY-MM-DD>-<о-чём-неделя>.md`: готовность в % с основанием,
+что готово на 100%, 3-5 трудностей, 2-4 предложения с ценой. **Кратко — требование**: экран, а не
+простыня; разбор живёт в `.context/` и dev-log, повестка на них ссылается. Первая (`26-09-23-baseline.md`)
+полная, каждая следующая — ДИФФ к предыдущей, со ссылкой на неё, когда для ссылки есть причина
+(закрылось то, что там стояло; вернулось то, что там закрыли; цифра сдвинулась не туда). Пункт,
+ждущий решения владельца, ссылается на `~/wiki/dev-log/like-nes/checks/<спека>.md`. Задним числом
+повестки не пишутся. Формат целиком — `agenda/README.md`.
+
 ## Гейты
 
 Устройство каждого гейта, история его находок и позитивный контроль живут своим файлом в
@@ -74,7 +85,11 @@ decisions, notes). Читать перед началом любой задач�
 | список ручных гейтов | `bash scripts/check_owner_gates.sh` | коммит | [owner-gates](.context/gates/owner-gates.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
+| заголовки чужих целей голым уникальным именем | `python3 scripts/check_include_seam.py` | коммит | [include-seam](.context/gates/include-seam.md) |
+| читатели секций держат битый файл | `./build-full/fuzz_readers` | preflight | [fuzz-readers](.context/gates/fuzz-readers.md) |
 | инварианты дерева, копии признака обхода | `bash scripts/tree_invariants.sh` · `python3 scripts/check_tree_roots.py` | коммит | [preflight](.context/gates/preflight.md) |
+| пин wasmtime C-API в deps/ | `bash scripts/check_wasmtime_pin.sh` | preflight | [wasmtime-pin](.context/gates/wasmtime-pin.md) |
+| пин wgpu-native по релизу upstream | `bash scripts/check_wgpu_pin.sh [<build>]` · конфигурирование | preflight | [wgpu-pin](.context/gates/wgpu-pin.md) |
 | релизный пакет | `bash scripts/check_release.sh` | preflight | [release](.context/gates/release.md) |
 | пакет Linux с машины macOS | `bash scripts/check_release_container.sh [--live]` | preflight · `--live` руками | [release-container](.context/gates/release-container.md) |
 | пакет Windows задачей CI | `bash scripts/check_release_ci.sh [--live]` | preflight · `--live` руками | [release-ci](.context/gates/release-ci.md) |
@@ -93,6 +108,12 @@ decisions, notes). Читать перед началом любой задач�
 
 Conventional commits, английский: `feat(scope): …`, `fix(ci): …`, `docs: …`.
 Без AI-подписей и `Co-Authored-By`. Не коммитить код, не прошедший линтер/типы/сборку.
+
+**Каждый коммит — `git commit -s`.** Подпись DCO судит job `dco.yml`, и срабатывает он только на
+`pull_request`: забытая подпись лежит в ветке незамеченной до раунда и чинится единственным
+способом — rebase + force-push, то есть переписыванием ВСЕХ SHA ветки и всех ссылок на них в
+`.context/`, dev-log и теле PR. Так уже было 2026-09-23: 26 коммитов, 65 протухших ссылок.
+Локально то же утверждение проверяет `bash scripts/check_dco.sh` (первый этап preflight).
 
 ## Push (переопределяет правило 11 глобального CLAUDE.md)
 

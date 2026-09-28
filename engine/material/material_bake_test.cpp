@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "bake.hpp"
-#include "table.hpp"
+#include "hash.hpp"
+#include "material_bake.hpp"
+#include "material_table.hpp"
 
 namespace {
 

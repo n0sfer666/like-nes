@@ -4,7 +4,7 @@
 #include "art.hpp"
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
-#include "graphics/sprite.hpp"
+#include "graphics_sprite.hpp"
 #include "instance_stage.hpp"
 #include "platform_args.hpp"
 #include "sprite_out.hpp"

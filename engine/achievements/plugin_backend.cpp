@@ -1,6 +1,6 @@
 #include "plugin_backend.hpp"
 
-#include "../plugin/registry.hpp"
+#include "plugin_registry.hpp"
 
 namespace ach {
 namespace {

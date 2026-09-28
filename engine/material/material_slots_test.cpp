@@ -2,7 +2,7 @@
 
 #include <cstdio>
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 
 namespace matlib {
 namespace {

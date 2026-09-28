@@ -31,10 +31,14 @@ class Step:
         """Подавление требует причину после токена: `# ci-lint: allow shasum — шаг только Linux`.
         Причина — минимум три слова: односимвольная отписка пишется ровно так же дёшево, как
         голое имя правила, и через полгода не читается вовсе."""
-        pattern = re.compile(rf"ci-lint: allow {re.escape(token)}\s+(?:\S+\s+){{2,}}\S")
+        pattern = allow_pattern(token)
         if lineno is None:
             return bool(pattern.search(f"{self.attrs}\n{self.body}"))
         return any(pattern.search(self._by_line.get(n, "")) for n in (lineno, lineno - 1))
+
+
+def allow_pattern(token):
+    return re.compile(rf"ci-lint: allow {re.escape(token)}\s+(?:\S+\s+){{2,}}\S")
 
 
 def _os_from_condition(expr, base):

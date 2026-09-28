@@ -8,7 +8,7 @@
 # Здесь живёт ПОРЯДОК и условия этапов, а не сами проверки: тела, доросшие до собственного имени,
 # вынесены в свои скрипты (`check_dco.sh`, `check_goldens.sh`, `check_debug_golden.sh`,
 # `check_library_bundle.sh`), а выросшие семейства — в свои группы
-# (`preflight_tree_rules.sh`, `preflight_release_rules.sh`);
+# (`preflight_tree_rules.sh`, `preflight_release_rules.sh`, `preflight_build_rules.sh`);
 # помощник этапа общий с ней (`preflight_stage_lib.sh`). Всё это зовётся внешними командами. Так
 # каждую можно прогнать по одной, не выбирая между «весь preflight» и «руками из истории шелла».
 set -uo pipefail
@@ -93,25 +93,21 @@ if command -v shellcheck >/dev/null; then
     # Сами гейты — тоже скрипты, и ошибка в них тихо превращает проверку в декорацию. Скрипты
     # владельца здесь по той же причине и с добавкой: их гоняют на чужой машине, где сломанный
     # шаг выглядит сломанным ДЕРЕВОМ, а не сломанным скриптом.
-    stage "shellcheck скриптов гейтов" \
-        shellcheck --severity=warning scripts/build_check.sh scripts/preflight.sh \
-                   scripts/preflight_stage_lib.sh scripts/preflight_release_rules.sh \
-                   scripts/preflight_tree_rules.sh \
-                   scripts/check_dco.sh scripts/check_goldens.sh scripts/check_debug_golden.sh \
-                   scripts/check_library_bundle.sh \
-                   scripts/owner_check.sh scripts/gate8_e2e.sh \
-                   scripts/tree_invariants.sh \
-                   scripts/ci_watch.sh scripts/ci_watch_lib.sh scripts/ci_watch_selftest.sh \
-                   scripts/ci_watch_wait_selftest.sh \
-                   scripts/perf_sweep.sh scripts/perf_sweep_lib.sh \
-                   scripts/perf_sweep_guards.sh scripts/perf_sweep_report.sh \
-                   scripts/perf_sweep_selftest.sh \
-                   scripts/release*.sh scripts/check_release*.sh \
-                   scripts/docs_*.sh scripts/check_docs*.sh
-    # Семейство релиза берётся ШАБЛОНОМ, а не списком: за две вертикали спеки #20 оно выросло с
-    # трёх файлов до четырнадцати, и каждый новый гейт приходилось дописывать сюда руками. Забытая
-    # строка не падает — она молча выводит скрипт из-под проверки, ровно тот класс, ради которого
-    # в `ci_lint.py` заведено правило `list-drift`. Шаблон покрывает и ненаписанный ещё файл.
+    # Список — из индекса git, а не рукописный: перечень с семьями-шаблонами внутри к 2026-09-24
+    # молча потерял восемь скриптов из 121, среди них гейт коммита `check_owner_gates.sh`.
+    shellcheck_tree() {
+        local tmp f files=()
+        tmp=$(mktemp) || return 1
+        if ! git ls-files -z -- '*.sh' >"$tmp"; then
+            rm -f "$tmp"; echo "git ls-files отказал — список скриптов не получен"; return 1
+        fi
+        while IFS= read -r -d '' f; do [ -f "$f" ] && files+=("$f"); done <"$tmp"
+        rm -f "$tmp"
+        [ ${#files[@]} -gt 0 ] || { echo "в индексе git ни одного .sh — проверять нечего"; return 1; }
+        echo "файлов: ${#files[@]}"
+        shellcheck --severity=warning "${files[@]}"
+    }
+    stage "shellcheck скриптов дерева" shellcheck_tree
 else
     skip "shellcheck" "не установлен ($(install_hint shellcheck ShellCheck shellcheck 'пакет shellcheck вашего дистрибутива'))"
 fi
@@ -122,15 +118,11 @@ stage "Сборка headless (набор целей CI)" build_config build-ci \
     -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
 stage "Сборка полного набора опций (imgui, miniaudio, wasm, IDE)" build_config build-full
 
-# Три проверки продуктов сборки — по одной, чтобы имя упавшей стояло в логе (обоснование и сами
-# литералы — в `check_goldens.sh`). Порядок: Debug требует своей сборки и стоит дороже всех,
-# бандл сверяется продуктом build-ci и потому идёт после сборок, а не до них.
-stage "Голден физики совпадает в Debug (инвариант 1 спеки #15)" \
-    bash scripts/check_goldens.sh debug
-stage "8 голденов ядра целы (гейт 2 спеки #11, все восемь локально)" \
-    bash scripts/check_goldens.sh core
-stage "Бандл игры сверен с исходниками (tool-free секции)" \
-    bash scripts/check_goldens.sh bundle
+# Гейты по продуктам сборки вынесены группой по тому же признаку, что правила дерева и правила
+# релиза: семейство доросло до четырёх этапов, а порядок внутри него — забота самой группы. Стоят
+# ПОСЛЕ сборок, и это условие группы, а не её внутренняя деталь.
+stage "Продукты сборки: голдены, бандл, фаззинг читателей" \
+    bash scripts/preflight_build_rules.sh
 # Примеры документации (гейт 2 спеки #19) — продукт сборки, и потому стоят здесь, а не в группе
 # правил дерева: каталог им нужен полный (build-full), где цели doc_example_* собраны. Самопроверка
 # идёт ПЕРЕД гейтом и получает тот же каталог: без него единственный её кейс на настоящих бинарях

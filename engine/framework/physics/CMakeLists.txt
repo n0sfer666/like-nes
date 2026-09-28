@@ -4,7 +4,7 @@
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
   gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp query_index.cpp
-  rest.cpp sat.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp)
+  rest.cpp sat.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp world_id.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
 
@@ -123,6 +123,12 @@ target_link_libraries(framework_physics_wake_test PRIVATE framework_physics plat
 
 add_executable(framework_physics_handle_test framework_physics_handle_test.cpp)
 target_link_libraries(framework_physics_handle_test PRIVATE framework_physics platform_core)
+
+# Негодный дескриптор тела роняет процесс в любой сборке (аудит #21 B10). Отдельная цель, потому что
+# падение проверяется подпроцессом, а в Debug-подмножество CI она не входит: там MSVC `abort`
+# открывает модальное окно, и шаг висел бы до таймаута.
+add_executable(framework_physics_id_test framework_physics_id_test.cpp)
+target_link_libraries(framework_physics_id_test PRIVATE framework_physics platform_core)
 
 # Глубина стека, которую держит решатель. Отдельная цель, потому что гейт стека прибит к шести
 # ящикам и про границу не спрашивает: башня из девяти заваливалась при штатном трении молча, а

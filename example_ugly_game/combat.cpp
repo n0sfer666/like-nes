@@ -1,6 +1,5 @@
 #include "combat.hpp"
 #include "boss.hpp"
-#include "../engine/asset/hash.hpp"
 
 #include <algorithm>
 #include <vector>
@@ -30,8 +29,8 @@ int64_t iabs(int64_t v) { return v < 0 ? -v : v; }
 
 bool overlap(int32_t ax, int32_t ay, int32_t ahw, int32_t ahh,
              int32_t bx, int32_t by, int32_t bhw, int32_t bhh) {
-    return iabs((int64_t)ax - bx) < (int64_t)ahw + bhw &&
-           iabs((int64_t)ay - by) < (int64_t)ahh + bhh;
+    return iabs(static_cast<int64_t>(ax) - bx) < static_cast<int64_t>(ahw) + bhw &&
+           iabs(static_cast<int64_t>(ay) - by) < static_cast<int64_t>(ahh) + bhh;
 }
 
 struct Item { flecs::entity e; int32_t x, y; uint32_t seq; bool dead = false; };
@@ -66,7 +65,7 @@ void arena(flecs::world& world, GameState& gs, const input::InputFrame& in, fix3
     if (spawn_enemies) {
         if (gs.spawn_cd > 0) gs.spawn_cd--;
         if (gs.spawn_cd == 0) {
-            const int32_t ey = (int32_t)(lcg(gs.rng) % 421u) - 210;
+            const int32_t ey = static_cast<int32_t>(lcg(gs.rng) % 421u) - 210;
             world.entity().set<Transform>({ENEMY_SPAWN_X, fix32::from_int(ey)})
                  .set<Velocity>({ENEMY_VX, fix32{}}).set<Enemy>({1}).set<EntId>({gs.seq++});
             gs.spawn_cd = SPAWN_CD;
@@ -187,29 +186,6 @@ void reset_run(flecs::world& world, GameState& gs) {
     });
     gs.rng = 0x1234567u; gs.fire_cd = 0; gs.spawn_cd = 0; gs.score = 0; gs.lives = 3;
     gs.kills = 0; gs.phase = PH_Play; gs.phase_t = 0;
-}
-
-uint64_t sim_hash(flecs::world& world, const GameState& gs) {
-    std::vector<Item> ents;
-    world.each([&](flecs::entity e, Transform& t, EntId& id) {
-        ents.push_back({e, t.x.raw, t.y.raw, id.seq});
-    });
-    std::sort(ents.begin(), ents.end(), [](const Item& a, const Item& b) { return a.seq < b.seq; });
-
-    // Смешивание ЦЕЛЫМ СЛОВОМ, а не побайтно: свести его к байтовой форме значило бы получить
-    // ДРУГОЕ число и перештамповать голден игры ради косметики (находка 5 аудита #21).
-    uint64_t h = asset::FNV_OFFSET;
-    auto mix = [&](uint64_t v) { h = asset::fnv1a_word(h, v); };
-    mix(gs.tick); mix(gs.seq); mix(gs.score); mix((uint32_t)gs.lives); mix(gs.rng);
-    mix(gs.fire_cd); mix(gs.spawn_cd); mix(gs.phase); mix(gs.phase_t); mix(gs.kills);
-    for (const Item& it : ents) {
-        uint32_t kind = it.e.has<Enemy>() ? 2u : it.e.has<Bullet>() ? 1u
-                        : it.e.has<Hostile>() ? 3u : it.e.has<Boss>() ? 4u : 0u;
-        mix(it.seq); mix(kind); mix((uint32_t)it.x); mix((uint32_t)it.y);
-        if (kind == 2u) mix((uint32_t)it.e.get<Enemy>().hp);
-        if (kind == 4u) mix((uint32_t)it.e.get<Boss>().hp);
-    }
-    return h;
 }
 
 } // namespace game

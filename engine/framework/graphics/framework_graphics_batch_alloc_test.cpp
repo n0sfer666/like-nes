@@ -5,7 +5,7 @@
 #include "nine_slice.hpp"
 #include "particles.hpp"
 #include "platform_args.hpp"
-#include "sprite.hpp"
+#include "graphics_sprite.hpp"
 
 // Гейт 8 спеки #17: установившийся кадр не ходит в кучу.
 //

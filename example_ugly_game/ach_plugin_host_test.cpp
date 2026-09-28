@@ -1,13 +1,13 @@
-#include "../engine/achievements/plugin_test.hpp"
+#include "plugin_test.hpp"
 
 #include <cstdint>
 
-#include "../engine/achievements/backend.hpp"
-#include "../engine/achievements/delivery.hpp"
-#include "../engine/achievements/plugin_backend.hpp"
-#include "../engine/achievements/registry.hpp"
-#include "../engine/achievements/tracker.hpp"
-#include "../engine/plugin/registry.hpp"
+#include "backend.hpp"
+#include "delivery.hpp"
+#include "plugin_backend.hpp"
+#include "ach_registry.hpp"
+#include "tracker.hpp"
+#include "plugin_registry.hpp"
 #include "backend_host.hpp"
 
 namespace ach_test {

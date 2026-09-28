@@ -4,8 +4,11 @@
 
 #include <webgpu/webgpu.h>
 
+#include "apk_assets.hpp"
 #include "gpu.hpp"
 #include "mobile_game.hpp"
+#include "platform_env.hpp"
+#include "stdout_logcat.hpp"
 
 using namespace game;
 
@@ -19,6 +22,13 @@ struct App {
     float vw = 0, vh = 0;
 };
 
+void release_gpu(App& a) {
+    if (a.surface) { wgpuSurfaceRelease(a.surface); a.surface = nullptr; }
+    a.gpu.shutdown();
+}
+
+// Отказ освобождает всё поднятое: следующий INIT_WINDOW начнёт init заново, а живые instance и
+// поверхность на том же ANativeWindow иначе копились бы с каждым кругом.
 void init(App& a, ANativeWindow* win) {
     if (a.ready) return;
     a.gpu.instance = wgpuCreateInstance(nullptr);
@@ -28,15 +38,11 @@ void init(App& a, ANativeWindow* win) {
     WGPUSurfaceDescriptor sd = {};
     sd.nextInChain = &nw.chain;
     a.surface = wgpuInstanceCreateSurface(a.gpu.instance, &sd);
-    if (!a.gpu.init(a.surface)) {
-        wgpuSurfaceRelease(a.surface);
-        a.surface = nullptr;
-        return;
-    }
-    const uint32_t w = (uint32_t)ANativeWindow_getWidth(win);
-    const uint32_t h = (uint32_t)ANativeWindow_getHeight(win);
-    a.vw = (float)w; a.vh = (float)h;
-    if (!a.game.init(a.gpu, a.surface, w, h, "")) return;
+    if (!a.gpu.init(a.surface)) { release_gpu(a); return; }
+    const uint32_t w = static_cast<uint32_t>(ANativeWindow_getWidth(win));
+    const uint32_t h = static_cast<uint32_t>(ANativeWindow_getHeight(win));
+    a.vw = static_cast<float>(w); a.vh = static_cast<float>(h);
+    if (!a.game.init(a.gpu, a.surface, w, h)) { release_gpu(a); return; }
     a.ready = true;
 }
 
@@ -44,8 +50,7 @@ void teardown(App& a) {
     if (!a.ready) return;
     a.ready = false;
     a.game.shutdown();
-    if (a.surface) { wgpuSurfaceRelease(a.surface); a.surface = nullptr; }
-    a.gpu.shutdown();
+    release_gpu(a);
 }
 
 void dispatch(App& a, AInputEvent* ev, int idx, MobileGame::Touch phase) {
@@ -54,7 +59,7 @@ void dispatch(App& a, AInputEvent* ev, int idx, MobileGame::Touch phase) {
 }
 
 int32_t on_input(android_app* app, AInputEvent* ev) {
-    App& a = *(App*)app->userData;
+    App& a = *static_cast<App*>(app->userData);
     if (!a.ready || AInputEvent_getType(ev) != AINPUT_EVENT_TYPE_MOTION) return 0;
     const int32_t raw = AMotionEvent_getAction(ev);
     const int32_t action = raw & AMOTION_EVENT_ACTION_MASK;
@@ -67,7 +72,7 @@ int32_t on_input(android_app* app, AInputEvent* ev) {
             break;
         case AMOTION_EVENT_ACTION_MOVE:
             for (size_t i = 0; i < AMotionEvent_getPointerCount(ev); ++i)
-                dispatch(a, ev, (int)i, MobileGame::Touch::Move);
+                dispatch(a, ev, static_cast<int>(i), MobileGame::Touch::Move);
             break;
         case AMOTION_EVENT_ACTION_UP:
         case AMOTION_EVENT_ACTION_POINTER_UP:
@@ -81,14 +86,23 @@ int32_t on_input(android_app* app, AInputEvent* ev) {
 }
 
 void on_cmd(android_app* app, int32_t cmd) {
-    App& a = *(App*)app->userData;
+    App& a = *static_cast<App*>(app->userData);
     if (cmd == APP_CMD_INIT_WINDOW && app->window) init(a, app->window);
     else if (cmd == APP_CMD_TERM_WINDOW) teardown(a);
+    else if (cmd == APP_CMD_PAUSE) a.game.suspend();
 }
 
 } // namespace
 
 void android_main(android_app* app) {
+    stdout_to_logcat();
+    // exe_dir у приложения — app_process системы, а HOME не задан: пути к ассетам и сейву игра
+    // получает теми же ручками окружения, что и десктоп, только указывают они в песочницу.
+    const std::string data = app->activity->internalDataPath;
+    const std::string assets = data + "/assets";
+    if (unpack_apk_assets(app->activity->assetManager, assets))
+        platform::env_put("LIKENES_ASSETS", assets.c_str());
+    platform::env_put("LIKENES_SAVE_DIR", data.c_str());
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;
@@ -96,7 +110,8 @@ void android_main(android_app* app) {
     while (true) {
         int events;
         android_poll_source* src;
-        while (ALooper_pollOnce(a.ready ? 0 : -1, nullptr, &events, (void**)&src) >= 0) {
+        // Граница C-API: outData у ALooper_pollOnce — void**, looper кладёт туда android_poll_source*.
+        while (ALooper_pollOnce(a.ready ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&src)) >= 0) {
             if (src) src->process(app, src);
             if (app->destroyRequested) { teardown(a); return; }
         }

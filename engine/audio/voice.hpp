@@ -2,7 +2,7 @@
 #include <cstdint>
 
 #include "audio_types.hpp"
-#include "spsc.hpp"
+#include "audio_spsc.hpp"
 
 // Голос микшера. Источник — резидентный PCM (int16 mono, playhead) ИЛИ стрим-ring.
 // Пул фиксированный (MAX_VOICES) → без per-callback heap. Переполнение = voice-stealing

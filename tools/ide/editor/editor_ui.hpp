@@ -1,6 +1,6 @@
 #pragma once
 #include "../command.hpp"
-#include "../scene.hpp"
+#include "../ide_scene.hpp"
 #include "gizmo.hpp"
 #include "property_grid.hpp"
 #include "imgui.h"
@@ -69,7 +69,9 @@ inline void inspector_panel(EditorState& st) {
             if (changed) st.bus.set_component<Position>(st.sel, {fix32::from_raw(xy[0]), fix32::from_raw(xy[1])});
             if (ImGui::IsItemDeactivated()) st.bus.end_group();
         }
-        if (ImGui::Button("Undo")) st.bus.undo();
+        // Отказ отмены кнопке сказать нечем: панели ошибок у шины нет, а шаг при отказе остаётся
+        // целым и на месте — то есть следующее нажатие повторит попытку (ревью аудита #21, A·2·8).
+        if (ImGui::Button("Undo")) (void)st.bus.undo();
         ImGui::SameLine();
         if (ImGui::Button("Redo")) st.bus.redo();
     }

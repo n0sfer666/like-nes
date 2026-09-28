@@ -175,6 +175,43 @@ int main(int argc, char** argv) {
     check(f.axes[AX_X] == fix32::from_int(1), "the stick row drives its own axis");
     check(f.axes[AX_Y] == fix32{}, "the stick does not leak into the next axis");
 
+    // Три счёта логических осей — пекаря (предел движка), читателя (`axis_count`) и рантайма
+    // (номер слота в `bind`) — обязаны быть ОДНИМ счётом: разойдись они на единицу, пекарь отбивал
+    // бы влезающее либо пропускал невлезающее, а строка уезжала бы в чужой слот InputFrame. Здесь
+    // они сверяются на пределе: восемь осей по три строки, то есть двадцать четыре строки на восемь
+    // слотов (аудит #21, ревью A·2).
+    const char* letters = "abcdefghijklmnopqrstuvwx";
+    std::string wide = "preset | wide\n";
+    for (int a = 0; a < ::input::MAX_AXES; ++a)
+        for (int r = 0; r < 3; ++r)
+            wide += "axis | ax" + std::to_string(a) + " | key:" + letters[a * 3 + r] + " | -\n";
+    std::vector<uint8_t> wide_blob;
+    PresetTable wt;
+    ::input::ActionMap wmap;
+    check(bake_presets(wide, wide_blob, err), "the baker counts axes, not rows: 24 rows still bake");
+    check(wt.open(wide_blob.data(), wide_blob.size()), "the table of 24 rows opens");
+    check(wt.axis_count(0) == static_cast<uint32_t>(::input::MAX_AXES),
+          "the reader counts the same eight axes the baker allowed");
+    check(wt.bind(0, wmap), "the runtime binds them: its own count agrees with the reader's");
+    ::input::PlayerAssign wpa;
+    wpa.use_kbd_mouse = true;
+    wpa.pad_slot = 0;
+    wmap.assign_player(0, wpa);
+    bool slots_agree = true;
+    int tick = 100;
+    for (int a = 0; a < ::input::MAX_AXES; ++a) {
+        if (wt.find_axis(0, ("ax" + std::to_string(a)).c_str()) != a) slots_agree = false;
+        for (int r = 0; r < 3; ++r) {
+            ::input::DeviceState ds;
+            const int key = 'A' + (letters[a * 3 + r] - 'a');
+            ds.keys[key >> 6] |= (1ull << (key & 63));
+            const ::input::InputFrame wf = wmap.resolve(ds, 0, tick++, 0);
+            for (int k = 0; k < ::input::MAX_AXES; ++k)
+                if (wf.axes[k] != (k == a ? fix32::from_int(1) : fix32{})) slots_agree = false;
+        }
+    }
+    check(slots_agree, "every row lands in the slot the reader names for its axis, first or not");
+
     // Битая таблица не открывается, а не читается как чужая память.
     std::vector<uint8_t> broken = blob;
     broken[0] = 'X';

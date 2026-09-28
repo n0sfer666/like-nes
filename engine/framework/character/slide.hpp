@@ -1,7 +1,7 @@
 #pragma once
 #include "collision.hpp"
 #include "profile.hpp"
-#include "state.hpp"
+#include "character_state.hpp"
 
 // Движение со скольжением и проба опоры — весь контакт персонажа с миром.
 //
@@ -97,7 +97,7 @@ struct GroundInfo {
     bool oneway = false;
     // Личность опоры — `BodyId`, а не ключ игры: скорость платформы берётся у мира по индексу за
     // одно обращение, а по ключу пришлось бы искать. Индекс здесь стабилен по построению — тела не
-    // удаляются (`physics/world.hpp`), — поэтому запомненная опора не может протухнуть в чужую.
+    // удаляются (`physics/physics_world.hpp`), — поэтому запомненная опора не может протухнуть в чужую.
     physics::BodyId body{physics::BodyId::INVALID};
 };
 

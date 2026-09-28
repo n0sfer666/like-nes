@@ -2,12 +2,8 @@
 #include <cstdint>
 
 #include "atlas_regions.hpp"
-#include "instance.hpp"
-// Путь с подсистемой, а не голое имя: `engine/render/sprite.hpp` зовётся ТАК ЖЕ и стоит в списке
-// каталогов раньше, поэтому `#include "sprite.hpp"` отсюда приводит спрайт СТАРОГО рендера — тот
-// компилируется и молча даёт «нет типа SpriteList в framework::graphics». Внутри самого фреймворка
-// коллизии нет: там имя разрешается относительно файла.
-#include "graphics/sprite.hpp"
+#include "game_instance.hpp"
+#include "graphics_sprite.hpp"
 
 // Перевод спрайта фреймворка в инстанс шутера (спека #17, вертикаль 3, шаг B3). Шов узкий
 // намеренно: он один знает и про порядок байт в `Sprite::rgba`, и про то, что фреймворк меряет

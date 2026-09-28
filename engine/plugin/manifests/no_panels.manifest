@@ -1,0 +1,5 @@
+# Fixture: the identity line is whole and its api= is the host's own, and there are no panels
+# (audit #21, A.2.7 review). It pins the early return that keeps the ABI verdict from overwriting
+# a structural refusal: without it a manifest with nothing in it reports the host's own version
+# as agreement and comes back ok.
+plugin lonely 1.0 api=2

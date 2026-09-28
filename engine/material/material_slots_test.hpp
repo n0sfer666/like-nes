@@ -1,6 +1,6 @@
 #pragma once
 
-#include "table.hpp"
+#include "material_table.hpp"
 
 // Шов «`library.mat` и ЧУЖОЙ потребитель», отделённый от шва «библиотека и её собственный шейдер».
 // Граница по предмету: смещения параметров читает `sprite_effects.wgsl` в этой же подсистеме, а

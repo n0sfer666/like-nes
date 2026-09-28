@@ -2,7 +2,7 @@
 #include <vector>
 
 #include "platform_args.hpp"
-#include "query.hpp"
+#include "tilemap_query.hpp"
 
 // Геометрия склона (вертикаль 3, шаг B): тайл со склоном разворачивается в ТРЕУГОЛЬНИК, а не в
 // коробку, и ориентация читается из битов зеркал.

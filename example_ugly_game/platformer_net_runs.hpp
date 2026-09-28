@@ -8,6 +8,7 @@
 #include "platform_process.hpp"
 #include "platformer_observed.hpp"
 #include "platformer_peer_result.hpp"
+#include "platformer_replay_io.hpp"
 #include "platformer_scene.hpp"
 #include "platformer_sim.hpp"
 
@@ -112,10 +113,17 @@ inline bool spawn_pair(const std::string& exe, const std::string& bundle, const 
     // порядок вызовов, а не про то, как пиры нашли друг друга.
     out.met_by_file = platform::file_exists(prefix + "-send.port") ||
                       platform::file_exists(prefix + "-recv.port");
+    // Реплеи ребёнка берутся с тем же потолком, что и файл реплея с диска: правило потолка названо
+    // у `replay_io::read_file` как общее — его знает тот, кто БЕРЁТ байты, — и единственный в
+    // дереве берущий РЕПЛЕИ мимо `read_file` это место (аудит #21, A·2·3). Прогон скрипта на три
+    // порядка ниже потолка, то есть отказ здесь означает не длинный прогон, а подменённый файл
+    // рандеву.
     out.ran = peer_result::read_file(prefix + "-send.result", out.send_mark, out.send) &&
               peer_result::read_file(prefix + "-recv.result", out.recv_mark, out.recv) &&
-              platform::read_bytes(prefix + "-send.replay", out.send_replay) &&
-              platform::read_bytes(prefix + "-recv.replay", out.recv_replay);
+              platform::read_bytes_capped(prefix + "-send.replay", out.send_replay,
+                                          replay_io::MAX_FILE) &&
+              platform::read_bytes_capped(prefix + "-recv.replay", out.recv_replay,
+                                          replay_io::MAX_FILE);
     // Файлы сносятся только после УДАВШЕГОСЯ чтения: прочитать их не вышло — значит смотреть в них
     // будет человек, и уборка отобрала бы у него единственную улику.
     if (out.ran) forget(prefix);

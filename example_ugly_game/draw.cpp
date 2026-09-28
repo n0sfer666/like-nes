@@ -37,7 +37,7 @@ void push_text(SpriteBatch& b, const Atlas& a, const char* s, float cx, float y,
 
 void push_center(SpriteBatch& b, const Atlas& a, const char* s, float y, float cw,
                  float cr, float cg, float cb) {
-    push_text(b, a, s, -((int)std::strlen(s) - 1) * cw * 0.5f, y, cw, cr, cg, cb);
+    push_text(b, a, s, -(static_cast<int>(std::strlen(s)) - 1) * cw * 0.5f, y, cw, cr, cg, cb);
 }
 
 } // namespace
@@ -46,21 +46,21 @@ void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas,
                 const SceneFx& sfx) {
     float p[mat::PARAM_BLOCK_FLOATS];
     world.each([&](const Transform& t, const Star& s) {
-        const float f = s.shade / 255.0f, sz = (float)s.size.to_double();
-        quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), sz, sz, atlas.star,
+        const float f = s.shade / 255.0f, sz = static_cast<float>(s.size.to_double());
+        quad(batch, static_cast<float>(t.x.to_double()), static_cast<float>(t.y.to_double()), sz, sz, atlas.star,
              f * 0.85f, f * 0.92f, f, 1.0f);
     });
     world.each([&](const Transform& t, const Boss& b) {
-        const float x = (float)t.x.to_double(), y = (float)t.y.to_double();
+        const float x = static_cast<float>(t.x.to_double()), y = static_cast<float>(t.y.to_double());
         if (!sfx.ready()) { quad(batch, x, y, 124, 92, atlas.boss, 1, 1, 1, 1); return; }
-        const uint32_t m = sfx.boss(b.hp / (float)BOSS_HP_MAX, p);
+        const uint32_t m = sfx.boss(b.hp / static_cast<float>(BOSS_HP_MAX), p);
         quad_fx(batch, x, y, 124, 92, atlas.boss, 1, 1, 1, m, p);
     });
     // Подход врага — доля пройденного им пути справа налево. Берётся из позиции, а не из таймера:
     // позиция уже детерминирована симуляцией, а второй счётчик на стороне отрисовки разъезжался бы
     // с ней на паузе и на пропущенном кадре.
     world.each([&](const Transform& t, const Enemy&) {
-        const float x = (float)t.x.to_double(), y = (float)t.y.to_double();
+        const float x = static_cast<float>(t.x.to_double()), y = static_cast<float>(t.y.to_double());
         if (!sfx.ready()) { quad(batch, x, y, 64, 48, atlas.enemy, 1, 1, 1, 1); return; }
         const uint32_t m = sfx.enemy((HALF_W - x) / (2.0f * HALF_W), p);
         quad_fx(batch, x, y, 64, 48, atlas.enemy, 1, 1, 1, m, p);
@@ -70,16 +70,16 @@ void push_scene(SpriteBatch& batch, flecs::world& world, const Atlas& atlas,
     // (bloom на mobile — вне #8; S10). draw.cpp общий, desktop-свечение не ломается.
     world.each([&](flecs::entity e, const Transform& t, const Velocity&) {
         if (e.has<Hostile>())
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 26, 10, atlas.hostile,
+            quad(batch, static_cast<float>(t.x.to_double()), static_cast<float>(t.y.to_double()), 26, 10, atlas.hostile,
                  2.3f, 0.8f, 0.7f, 1);
         else if (e.has<Bullet>())
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 28, 10, atlas.bullet,
+            quad(batch, static_cast<float>(t.x.to_double()), static_cast<float>(t.y.to_double()), 28, 10, atlas.bullet,
                  1.7f, 2.3f, 2.5f, 1);
     });
     world.each([&](flecs::entity e, const Transform& t, const Velocity& v) {
         if (e.has<Ship>()) {
-            const float tilt = -(float)v.y.to_double() / 340.0f * 0.38f;   // наклон по верт. скорости
-            quad(batch, (float)t.x.to_double(), (float)t.y.to_double(), 112, 76, atlas.ship,
+            const float tilt = -static_cast<float>(v.y.to_double()) / 340.0f * 0.38f;   // наклон по верт. скорости
+            quad(batch, static_cast<float>(t.x.to_double()), static_cast<float>(t.y.to_double()), 112, 76, atlas.ship,
                  1, 1, 1, 1, tilt);
         }
     });
@@ -96,7 +96,7 @@ void push_hud(SpriteBatch& batch, flecs::world& world, const Atlas& atlas, const
     if (gs.phase == PH_Boss) {                                              // HP-бар босса сверху
         int32_t hp = 0;
         world.each([&](const Boss& b) { hp = b.hp; });
-        const float w = 460, y = HALF_H - 12, frac = hp > 0 ? hp / (float)BOSS_HP_MAX : 0.0f;
+        const float w = 460, y = HALF_H - 12, frac = hp > 0 ? hp / static_cast<float>(BOSS_HP_MAX) : 0.0f;
         quad(batch, 0, y, w, 12, atlas.solid, 0.35f, 0.06f, 0.10f, 1);
         quad(batch, -w * 0.5f + w * frac * 0.5f, y, w * frac, 12, atlas.solid, 0.95f, 0.30f, 0.35f, 1);
     }

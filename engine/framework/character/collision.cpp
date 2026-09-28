@@ -1,6 +1,6 @@
 #include "collision.hpp"
 
-#include "../tilemap/grid.hpp"
+#include "grid.hpp"
 
 namespace framework::character {
 namespace {

@@ -5,7 +5,7 @@
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
 #include "fx.hpp"
-#include "physics/hash_mix.hpp"
+#include "hash_mix.hpp"
 
 // Частицы шутера НА ФРЕЙМВОРКЕ (спека #17, вертикаль 3, шаг B3). Два утверждения, и одно не
 // заменяет другое: сцена повторяется числом (голден) и установившийся кадр не ходит в кучу

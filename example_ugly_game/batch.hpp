@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "art.hpp"
-#include "instance.hpp"
+#include "game_instance.hpp"
 #include "instance_stage.hpp"
 #include "material_fx.hpp"
 #include "material_runs.hpp"

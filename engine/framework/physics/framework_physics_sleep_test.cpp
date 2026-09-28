@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "platform_args.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Гейт 5 спеки #15: сон не влияет на результат — прогон со сном и без сна даёт одинаковый хеш.
 //

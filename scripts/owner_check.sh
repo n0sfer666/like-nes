@@ -16,12 +16,17 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
 # shellcheck source=scripts/owner_gates_lib.sh
 . "$ROOT/scripts/owner_gates_lib.sh"
+# shellcheck source=scripts/redact_home_lib.sh
+. "$ROOT/scripts/redact_home_lib.sh"
 
 BUILD_DIR=${BUILD_DIR:-build}
 OS_TAG=$(uname -s | tr '[:upper:]' '[:lower:]' | tr -d ' ')
 REPORT="$ROOT/$BUILD_DIR/owner-report-$OS_TAG.txt"
+REPORT_SHOWN="$BUILD_DIR/owner-report-$OS_TAG.txt"
 mkdir -p "$BUILD_DIR"
 : > "$REPORT"
+# Отчёт владелец присылает целиком — маскировка домашнего каталога в нём на выходе, при любом исходе.
+trap 'redact_home_file "$REPORT"' EXIT
 
 say() { printf '%s\n' "$*" | tee -a "$REPORT"; }
 head_() { printf '\n=== %s\n' "$*" | tee -a "$REPORT"; }
@@ -51,7 +56,9 @@ say "compiler    : $(grep -m1 'CMAKE_CXX_COMPILER:' "$BUILD_DIR/CMakeCache.txt" 
 # render/capture.cpp — то есть виноватым выглядит движок.
 PTR=$(grep -h 'CMAKE_CXX_SIZEOF_DATA_PTR "' "$BUILD_DIR"/CMakeFiles/*/CMakeCXXCompiler.cmake 2>/dev/null | head -1 | tr -dc '0-9')
 say "pointer     : ${PTR:-?} байт$([ "$PTR" = "4" ] && printf ' — 32-битный тулчейн, нужен x64 Native Tools Command Prompt for VS')"
-say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY='${WAYLAND_DISPLAY:-}' DISPLAY='${DISPLAY:-}'"
+# Сокеты дисплея — только «задан/не задан»: отчёт уезжает в публичный PR (аудит #21 A·3·12).
+set_or_unset() { if [ -n "$1" ]; then printf set; else printf unset; fi; }
+say "session     : XDG_SESSION_TYPE='${XDG_SESSION_TYPE:-}' WAYLAND_DISPLAY=$(set_or_unset "${WAYLAND_DISPLAY:-}") DISPLAY=$(set_or_unset "${DISPLAY:-}")"
 # Дистрибутив — не украшение отчёта: имена пакетов и умолчания сессии у Fedora/Nobara, Arch и
 # Debian разные, и «гейт 6 не воспроизвёлся» читается только вместе с тем, где он гонялся.
 if [ "$OS_TAG" = "linux" ] && [ -r /etc/os-release ]; then
@@ -99,7 +106,7 @@ stage() {
     if "$@" >>"$REPORT" 2>&1; then
         say "--- OK: $title"
     else
-        say "--- ПРОВАЛ: $title (подробности выше в $REPORT)"
+        say "--- ПРОВАЛ: $title (подробности выше в $REPORT_SHOWN)"
         STAGES_FAILED+=("$title")
     fi
 }
@@ -114,72 +121,11 @@ else
     STAGES_FAILED+=("Линтер workflow")
 fi
 
-# Тесты берутся ИЗ КАТАЛОГА СБОРКИ, а не списком в скрипте: список разошёлся бы с деревом молча,
-# и пропавшая цель читалась бы как «всё зелёное».
-head_ "Тесты дерева"
-PASSED=0; FAILED_TESTS=(); SKIPPED=(); BLOCKED_TESTS=(); STALE_TESTS=()
-# Свежесть спрашивается у ninja, а не у mtime: в неизменном каталоге время файла старое и у
-# АКТУАЛЬНЫХ целей. Нужно стало 2026-08-29: гейт встал на 426-й цели из 654, этап прогнал бинари от
-# 12 августа и напечатал двум FAIL — вердикт о дереве, которого в каталоге нет. Нет ninja — сказать.
-have ninja || say "  ninja не найден: свежесть бинарей не проверена, вердикты ниже могут быть о прошлой сборке"
-stale() { have ninja && ! ninja -C "$BUILD_DIR" -n "$1" 2>/dev/null | grep -q 'no work to do'; }
-for t in "$BUILD_DIR"/*_test "$BUILD_DIR"/*_test.exe; do
-    [ -x "$t" ] || continue
-    name=$(basename "$t")
-    # Сопоставление идёт по имени БЕЗ `.exe`: точное имя в списке ниже на Windows не совпадало,
-    # шесть тестов запускались без обязательных аргументов, печатали `usage:` и делали вердикт
-    # ложно красным. Совпадали только шаблоны с `*` — то есть список молча работал наполовину.
-    key=${name%.exe}
-    # Пропуск НАЗЫВАЕТСЯ вслух — молчаливый читался бы как «всё прогнано». Две причины, и обе
-    # про вход, а не про результат: интерактивные цели и тесты, которым нужны пути к плагинам,
-    # бандлам и дочерним процессам. Последние CI зовёт с аргументами на всех трёх ОС — повторять
-    # их вызовы здесь значило бы завести второй список путей, расходящийся с рабочим молча.
-    case "$key" in
-        *_probe*|*_bench*|input_demo*)
-            SKIPPED+=("$name — интерактивный / замер"); continue;;
-        ach_plugin_test|ach_sim_test|ach_steam_test|asset_test|asset_determinism_test|play_spawn_test|plugin_*)
-            SKIPPED+=("$name — нужны пути к плагинам/бандлам, вызов живёт в ci.yml"); continue;;
-    esac
-    if stale "$key"; then
-        STALE_TESTS+=("$name"); say "  STALE $name — не от этой сборки, тест НЕ ВЫПОЛНЯЛСЯ"; continue
-    fi
-    out=$("$t" 2>&1); rc=$?
-    # «Не запустился» и «не прошёл» РАЗВЕДЕНЫ, и это не косметика. Прогон владельца на Windows вернул
-    # восемь красных, из которых семь вообще не выполнялись: Defender запретил exec свежесобранным
-    # бинарям, шелл вернул 126, а этап печатал то же слово FAIL, что и разошедшемуся тесту. Одно и то
-    # же слово на «проверено и не сошлось» и «не проверено вовсе» — ровно тот дефект, который
-    # `ci_lint.py` ловит правилом `vacuous-gate` в чужих workflow. Коды фиксированы POSIX: 126 —
-    # файл найден, но запуск запрещён, 127 — не найден (пропала DLL рядом с exe).
-    if [ $rc -eq 0 ]; then
-        PASSED=$((PASSED + 1))
-        printf '  PASS %s\n' "$name" | tee -a "$REPORT"
-    elif [ $rc -eq 126 ] || [ $rc -eq 127 ]; then
-        BLOCKED_TESTS+=("$name (код $rc)")
-        printf '  BLOCKED %s — запуск запрещён (код %d), тест НЕ ВЫПОЛНЯЛСЯ\n' "$name" "$rc" |
-            tee -a "$REPORT"
-    else
-        FAILED_TESTS+=("$name")
-        printf '  FAIL %s\n' "$name" | tee -a "$REPORT"
-        printf '%s\n' "$out" | tail -20 >>"$REPORT"
-    fi
-done
-say "тестов пройдено: $PASSED, провалов: ${#FAILED_TESTS[@]}, не запущено: $((${#BLOCKED_TESTS[@]} + ${#STALE_TESTS[@]}))"
-for s in "${SKIPPED[@]:-}"; do [ -n "$s" ] && say "  SKIP $s"; done
-for f in "${FAILED_TESTS[@]:-}"; do [ -n "$f" ] && say "  FAIL $f"; done
-for b in "${BLOCKED_TESTS[@]:-}"; do [ -n "$b" ] && say "  BLOCKED $b"; done
-for u in "${STALE_TESTS[@]:-}"; do [ -n "$u" ] && say "  STALE $u"; done
-# Лечение печатается ОДИН раз и только когда есть что лечить: следующий прогон не должен начинаться
-# с догадок о том, что за «Permission denied» на файле, который сам же скрипт только что собрал.
-if [ ${#BLOCKED_TESTS[@]} -ne 0 ]; then
-    say "  ни один из них не проверен: Windows блокирует запуск неподписанных сборок (MOTW/Defender)."
-    say "  лечение — исключить каталог сборки из проверки в реальном времени, из PowerShell админом:"
-    say "    Add-MpPreference -ExclusionPath '$ROOT'"
-    say "  каталог УЖЕ исключён, а BLOCKED остались — причина вторая: Smart App Control (Device"
-    say "  Guard) режет ЧАСТЬ неподписанных сборок мимо антивируса. Смотреть ключ CI\\Policy:"
-    say "    Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' | Select VerifiedAndReputablePolicyState"
-    say "  и перезапустить прогон. Пока строки BLOCKED есть, вердикт красный по праву: эта машина"
-    say "  про перечисленные цели не сказала ничего."
-fi
+# Обход тестов дерева — отдельным файлом: длина этого скрипта упёрлась в жёсткий лимит, а обход
+# самодостаточен и имеет своё имя. Подключается, а не запускается: вердикт внизу считает по его
+# массивам, а у дочернего процесса их не занять.
+# shellcheck source=scripts/owner_check_tests.sh
+. "$ROOT/scripts/owner_check_tests.sh"
 
 # Замер цикла правка→сборка→hot-reload. Гейт 8 спеки #13 требует записать его фактом для Linux и
 # Windows: в CI число измеряет буферизацию логов раннера, а не сборку.
@@ -239,9 +185,9 @@ if [ ${#STAGES_FAILED[@]} -eq 0 ] && [ ${#FAILED_TESTS[@]} -eq 0 ] && [ ${#BLOCK
    [ ${#STALE_TESTS[@]} -eq 0 ]
 then
     say "owner-check: PASS — автоматизируемая половина зелёная на этой машине"
-    say "отчёт: $REPORT"
+    say "отчёт: $REPORT_SHOWN"
     exit 0
 fi
 say "owner-check: FAIL — этапов ${#STAGES_FAILED[@]}, тестов ${#FAILED_TESTS[@]}, не запущено $((${#BLOCKED_TESTS[@]} + ${#STALE_TESTS[@]}))"
-say "отчёт: $REPORT"
+say "отчёт: $REPORT_SHOWN"
 exit 1

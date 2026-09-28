@@ -3,7 +3,7 @@
 # второй из них, и запись бюджета прямо требовала разреза по границе смысла. Граница есть: это
 # единственные цели каталога, которым нужны окно GLFW, устройство wgpu и живой ввод.
 #
-# flecs приезжает сюда транзитивно и не по нужде: `batch.cpp` включает `world.hpp` ради двух
+# flecs приезжает сюда транзитивно и не по нужде: `batch.cpp` включает `game_world.hpp` ради двух
 # констант вида. Платформер их перекрывает своим `set_viewport`, но цель всё равно обязана
 # слинковаться, поэтому библиотека названа явно, а не выпилена из чужого файла.
 
@@ -14,7 +14,8 @@ set(PLATFORMER_LIVE_SRC
   platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
   batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp
   instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
-  ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
+  ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
+  ${GAME_INPUT_SRC})
 
 # platform_core здесь не назван по тому же основанию, что и в гейтах выше: framework_graphics_tiles
 # тянет его PRIVATE-связью своего framework_graphics, и второе имя дало бы `warning: ignoring
@@ -25,7 +26,7 @@ function(platformer_live_target name)
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
   target_link_libraries(${name} PRIVATE
     engine_core framework_character framework_graphics_tiles framework_input asset_core
-    material_hot flecs_static webgpu glfw3webgpu glfw Threads::Threads)
+    material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
   if(APPLE)
     target_link_libraries(${name} PRIVATE
       "-framework GameController" "-framework CoreHaptics" "-framework Foundation")

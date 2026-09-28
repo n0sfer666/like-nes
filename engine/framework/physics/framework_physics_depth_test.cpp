@@ -2,7 +2,7 @@
 
 #include "platform_args.hpp"
 #include "solver.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Глубина стека, которую держит решатель, — заявленная величина, а не то, что получилось.
 //

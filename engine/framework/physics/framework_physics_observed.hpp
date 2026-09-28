@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Полный набор публичных наблюдаемых мира — всё, что игра вправе спросить между шагами.
 //

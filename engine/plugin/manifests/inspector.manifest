@@ -1,5 +1,5 @@
 # Declarative plugin manifest — panels are born from this data, not code.
-plugin inspector 1.0 api=1
+plugin inspector 1.0 api=2
 
 panel inspector "Inspector" dock=right
   text "Selected entity: none"

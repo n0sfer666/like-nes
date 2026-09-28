@@ -1,6 +1,6 @@
 #include "sprite_pipeline.hpp"
 
-#include "instance.hpp"
+#include "game_instance.hpp"
 
 namespace game {
 namespace {

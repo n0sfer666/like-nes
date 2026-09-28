@@ -190,7 +190,8 @@ surface, but the scenario runs itself and reports:
 ```
 
 Each run prints a session passport (`XDG_SESSION_TYPE`, the platform GLFW actually drives the window
-with, `DISPLAY`/`WAYLAND_DISPLAY`, the adapter), drives select → gizmo hit-test → edit → Inspector →
+with, whether `DISPLAY`/`WAYLAND_DISPLAY` are `set` or `unset` — never their values, since this output
+goes into a public PR — the adapter), drives select → gizmo hit-test → edit → Inspector →
 Undo through the editor's own commands, pushes 150 frames through this session's swapchain, dumps a
 PNG of the live frame and exits `0` only if every check passed. **Send the stdout and the PNG** —
 that is the gate's evidence, and the passport is what makes the two runs distinguishable.
@@ -421,7 +422,8 @@ it was forgotten, and a gate whose precondition is only a habit is not a gate.
    ```
 
    (Windows: `scripts\win-dev.bat game`.) With the pad connected the ship flies on the stick and
-   fire works on the south button. The game reads the same preset from the bundle — this is the
+   fire works on the south button. `-` and `=` step the master volume by a tenth and print
+   `[game] volume <N>/10`: silent at 0/10, the launch level at 10/10, never louder than that. If the whole mix dips briefly in a dense fight or on the boss's death and comes back within about a tenth of a second, that is the output limiter (audit #21 A-3-1), not a finding; a crackle, a torn explosion or a bass that seems to breathe is. The game reads the same preset from the bundle — this is the
    "sample game on presets" half of the gate. If the stick moves nothing here but did move `move=`
    in the probe, say so: the two read the same axes through different preset tables, and that split
    is the whole diagnosis.
@@ -823,8 +825,11 @@ window button — ends the run with:
 
 Anything else on stderr is a finding, not noise: `level unreadable` means the bundle next to the
 binary is stale, `controls unavailable` means the `input` section lost the `jump` action, and
-`surface texture status <n> - frame skipped` repeating every frame means the surface never
-recovered from a resize or a display change.
+`surface texture status <n> - frame skipped` means the surface went stale after a resize or a
+display change and was rebuilt (printed once; the picture must come back). `surface texture status
+<n> - quitting` — with or without `, device lost` — and `[gpu] device lost (reason <n>): …` mean
+the surface or the GPU is gone for good: the window closes by itself, the exit code is 1, and there
+is no `window clean exit` line.
 
 **Walk the level left to right and answer seven questions.** The first six are the moves the
 scripted run makes, which is the point: the hash says they came out identical on three machines, and
@@ -1172,7 +1177,7 @@ With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
-<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остались AMD и NVIDIA -->
+<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остался AMD -->
 
 > **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
 > frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
@@ -1735,7 +1740,7 @@ a pair that dies with `aliens=0` never heard anything at all.
    | `6` | the socket is unusable: either the port you passed to `--listen` is already taken (the line says `port N did not open`), or the socket went bad mid-run |
    | `7` | the recording could not be written, same directory question as `5` |
    | `9` | the frame was never measured — an engine finding, report it |
-   | `10` | somebody pressed Esc or closed the window — run B only, and it is an answer, not a failure |
+   | `10` | somebody pressed Esc or closed the window — run B only, and it is an answer, not a failure; `10` together with `[platformer] surface texture status <n> - quitting` or `[gpu] device lost (reason <n>): …` means the window closed itself — that is a finding, report both lines |
 2. **The two recordings are the same file.** This is the gate itself — two machines, one input, one
    state, byte for byte:
    `sha256sum live-send.replay` on Linux, `shasum -a 256` on macOS, `certutil -hashfile
@@ -2378,7 +2383,19 @@ also exercise things no gate covers — playing the sample game long enough to h
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
 mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
-[`owner-setup.txt`](owner-setup.txt).
+[`owner-setup.txt`](owner-setup.txt). Section R of the same file is the mobile pair: both shells
+built from the root by `scripts/xcompile_verify.sh`, the sample game started in the iOS simulator
+with its five startup lines, and what to look for on an iPhone and an Android phone — the stick and
+the fire button held at once, and sound. The simulator half has been run; the two phones have not,
+and only you have them.
+
+Two gates that are neither owner hardware nor CI live in the same file, as section Q: `plugin-wasm`
+(the escape gate and the `native == WASM` golden) and `plugin-wasm-host` (what the host object says
+about itself). They need the wasmtime C-API from `deps/`, which is not in git, so `PLUGIN_WASM=OFF`
+in all six configurations of `ci.yml` and no runner has ever executed them — `scripts/check_goldens.sh`
+says so where it stops short of the WASM golden. A machine with `deps/` unpacked runs both in a
+second, and section Q carries the commands with their output line by line. Re-run them when a commit
+touches `engine/plugin/wasm_*`.
 
 ## What to send back
 

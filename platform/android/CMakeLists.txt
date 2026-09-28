@@ -1,41 +1,20 @@
-cmake_minimum_required(VERSION 3.24)
-project(like_nes_android LANGUAGES C CXX)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
-
-set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-set(MOBILE ${CMAKE_CURRENT_SOURCE_DIR}/../mobile)
-
-include(${MOBILE}/wgpu_native.cmake)
-
-include(FetchContent)
-set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
-set(FLECS_STATIC ON CACHE BOOL "" FORCE)
-set(FLECS_PIC ON CACHE BOOL "" FORCE)
-set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(flecs
-  GIT_REPOSITORY https://github.com/SanderMertens/flecs
-  GIT_TAG v4.1.6
-  GIT_SHALLOW TRUE)
-FetchContent_MakeAvailable(flecs)
+# Android-оболочка — подкаталог корня, а не свой проект: цели движка, flecs и wgpu-native приходят из
+# корня под тулчейном NDK, игра — общим списком example_ugly_game/game_sources.cmake. Своё здесь —
+# только native_app_glue-вход и ANativeWindow; упаковку APK (бандлы в assets/) делает build_apk.sh.
+include(${CMAKE_SOURCE_DIR}/example_ugly_game/game_sources.cmake)
 
 set(GLUE ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue)
+# Чужой C-код NDK: строгие флаги дерева (cmake/warnings.cmake) судят наш код, а не его.
 add_library(native_app_glue STATIC ${GLUE}/android_native_app_glue.c)
 target_include_directories(native_app_glue PUBLIC ${GLUE})
+like_nes_vendored_target(native_app_glue)
+like_nes_vendored_headers(native_app_glue)
 
 add_library(game SHARED
-  ${CMAKE_CURRENT_SOURCE_DIR}/native_main.cpp
-  ${MOBILE}/mobile_game.cpp
-  ${REPO}/example_ugly_game/art.cpp ${REPO}/example_ugly_game/batch.cpp ${REPO}/example_ugly_game/sim.cpp
-  ${REPO}/example_ugly_game/combat.cpp ${REPO}/example_ugly_game/boss.cpp ${REPO}/example_ugly_game/controls.cpp
-  ${REPO}/example_ugly_game/draw.cpp ${REPO}/example_ugly_game/fx.cpp ${REPO}/example_ugly_game/bloom.cpp
-  ${REPO}/example_ugly_game/audio.cpp
-  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp)
-
-target_include_directories(game PRIVATE
-  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render)
-target_link_libraries(game PRIVATE
-  native_app_glue wgpu_native flecs_static android log)
+  ${CMAKE_CURRENT_SOURCE_DIR}/native_main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/apk_assets.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/stdout_logcat.cpp
+  ${CMAKE_SOURCE_DIR}/platform/mobile/mobile_game.cpp)
+game_core_target(game material_gpu)
+target_include_directories(game PRIVATE ${CMAKE_SOURCE_DIR}/platform/mobile)
+target_link_libraries(game PRIVATE native_app_glue android log)
 target_link_options(game PRIVATE -u ANativeActivity_onCreate)

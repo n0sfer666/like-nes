@@ -167,7 +167,8 @@ Smart App Control (он же политика Device Guard). Проверить:
 и ни один скрипт репозитория его не трогает.
 
 Отчёт: build/owner-report-<os>.txt (Windows: build\owner-report-*.txt).
-Прислать его целиком.
+Прислать его целиком. Домашний каталог в нём уже заменён на «~»: полный
+путь с именем учётной записи в отчёте — дефект скрипта.
 
 Windows: не открывать проект как папку в самой Visual Studio. Её CMake-
 интеграция кладёт сборку в out\build\x64-Debug, а гейты ждут каталог build
@@ -188,19 +189,21 @@ Windows: не открывать проект как папку в самой Vi
   Стартовые строки должны быть примерно такие (это уже проверка — каждая
   говорит, что подсистема поднялась):
 
-    [game] assets: baked bundle .../game.bundle (BC7 512x256)
+    [game] assets: baked bundle ~/.../game.bundle (BC7 512x256)
     [game] materials: on (3 pipeline(s), 0 fallback(s))
     [game] audio: on (SFX + music)
     [game] achievements: 5 defined, 0 unlocked, backend: local
-    [game] WASD/arrows/LStick = move · gamepad: <бэкенд> · Esc = quit
+    [game] WASD/arrows/LStick = move | gamepad: <бэкенд> | -/= = volume | Esc = quit
 
+  Домашний каталог в путях печатается как «~» (аудит #21 A·3·12): имя
+  учётной записи не уезжает с логом. Полный путь вместо «~» — дефект.
   Размер в первой строке приезжает ИЗ БАНДЛА (секция `atlas_regions`), а не
   из кода: нарезка спрайтов после вертикали 3 спеки #17 читается по именам.
   Вместо неё может напечататься одна из двух строк отказа — обе означают, что
   игра пошла на процедурный атлас и картинка будет грубее:
 
     [game] assets: atlas_regions section unusable -> procedural
-    [game] assets: bundle .../game.bundle unreadable -> procedural fallback
+    [game] assets: bundle ~/.../game.bundle unreadable -> procedural fallback
 
   Вторая строка — библиотека эффектов (спека #18): семь материалов делят три
   точки входа, поэтому пайплайнов три. `off` означает, что рядом с бинарём не
@@ -215,6 +218,13 @@ Windows: не открывать проект как папку в самой Vi
   На что смотреть, играя 3–5 минут:
     - враги стреляют и умирают, счёт растёт, босс появляется;
     - звук: выстрелы, взрывы, музыка — без заикания и хрипа;
+      если в густом бою или на смерти босса звук целиком чуть проседает
+      и за ~0.1 с возвращается — это ограничитель выхода (аудит #21
+      A·3·1), не находка; треск, "рваный" взрыв или "дышащий" бас —
+      находка;
+    - "-" и "=" меняют громкость шагом в десятую: каждое нажатие печатает
+      "[game] volume <N>/10", на 0/10 тихо, на 10/10 — как при запуске;
+      громче стартовой её не сделать;
     - тост достижения выезжает после первого убитого врага (First Blood);
     - кадр не рвётся, картинка не мерцает;
     - Esc закрывает окно и печатает ДВЕ строки:
@@ -224,6 +234,11 @@ Windows: не открывать проект как папку в самой Vi
       вылетать. peak — запас, в котором стоит этот ноль (скриптовый бой
       game_fx_test даёт 113, холостой полёт — 32).
       (не "крестиком" — крестик тоже должен работать, проверь оба).
+    - строка "[game] surface texture status <n> - frame skipped" печатается
+      один раз после ресайза или смены монитора, картинка ОБЯЗАНА вернуться.
+      "[game] surface texture status <n> - quitting" или "[gpu] device lost
+      (reason <n>): …" — окно закрывается само кодом 1 и без строки clean
+      exit: это находка, приложи обе строки.
 
   Если жалуется на ассеты — LIKENES_ASSETS=<путь к example_ugly_game/assets>.
 
@@ -293,8 +308,46 @@ Windows: не открывать проект как папку в самой Vi
 --- E. Звук на живом железе (в CI не существует) --------------------------
 
   Во время игры воткни/выдерни наушники, переключи устройство вывода в ОС.
-  Ожидание: звук либо продолжается на новом устройстве, либо честно
-  замолкает — но игра не падает и не зависает.
+  Игра не должна ни падать, ни зависать. Какие строки придут в терминал,
+  решает бэкенд miniaudio, а не игра:
+    [audio] output rerouted by the backend
+        Бэкенд сам перевёл поток. macOS — при выдёргивании и переключении
+        устройства по умолчанию. Windows — на каждую смену вывода 2-3 такие
+        строки подряд (WASAPI переводит поток по разу на роль вывода), это
+        норма. Linux (Pulse/PipeWire) — когда сервер перевёл поток без разрыва.
+    [audio] output device stopped - restarted
+        Бэкенд остановил вывод и за 0.5 с тишины не поднял; игра открыла его
+        заново. Ожидаемо на Linux при suspend устройства и на ALSA; на macOS
+        — если после reroute поток не стартовал. На Windows этой строки нет:
+        там игра поток не перезапускает.
+    [audio] output device stopped - left to the backend to bring back
+        Только Windows: выдернуто ЕДИНСТВЕННОЕ устройство вывода. Игра ждёт
+        miniaudio. Воткни устройство обратно — придут 1-3 строки "rerouted"
+        (по одной на роль вывода), и звук вернётся сам.
+    [audio] output device stopped again within 5 s of a restart - no sound until the game restarts
+    [audio] output device stopped and did not come back - no sound until the game restarts
+        Дальше тишина до перезапуска игры, новых попыток нет.
+  "[game] audio queue full - sound dropped" ожидаема после двух строк про
+  "no sound" и после долгого "left to the backend": вывод стоит и не
+  забирает команды.
+
+  Linux, отдельно — suspend посреди игры (игра не должна подвиснуть: окно
+  рисуется, пад отвечает):
+    pactl suspend-sink @DEFAULT_SINK@ 1
+        ожидаемо: через ~0.5 с "[audio] output device stopped - restarted",
+        картинка при этом НЕ замирает.
+    pactl suspend-sink @DEFAULT_SINK@ 0
+        звук идёт дальше.
+
+  Звуки, запущенные во время простоя вывода, после подъёма могут прозвучать
+  пачкой — это норма. Звуки, запущенные ПОСЛЕ строки, не отстают от
+  картинки больше чем на 0.25 с: часы игры подтягиваются к выводу.
+  Находка: звук пропал, а строки нет; строка есть, а звук не вернулся
+  (кроме двух строк про "no sound"); строка повторяется каждый кадр;
+  "restarted" на Windows; картинка замерла после suspend; звуки, запущенные
+  после строки, отстают от картинки или идут пачкой; на Windows устройство
+  воткнуто обратно, а звука нет. "[game] audio queue full" без любой из
+  строк выше — тоже находка: пришли её с тем, что делал в этот момент.
 
 --- F. Бейк ассетов байт-в-байт -------------------------------------------
 
@@ -635,9 +688,14 @@ owner_check.sh гоняет это сам и кладёт вывод в отчё
   Любая строка в stderr — находка, а не шум:
     "level unreadable"      — бандл рядом с бинарём устарел;
     "controls unavailable"  — из секции input пропало действие jump;
-    "surface texture status <n> - frame skipped" каждый кадр — поверхность
-                              не восстановилась после ресайза или смены
-                              монитора.
+    "surface texture status <n> - frame skipped" — поверхность устарела
+                              после ресайза или смены монитора и пересобрана;
+                              печатается один раз, картинка обязана вернуться;
+    "surface texture status <n> - quitting" (с ", device lost" или без),
+    "[gpu] device lost (reason <n>): …"
+                            — поверхность или видеокарта потеряны насовсем:
+                              окно закрывается само, код выхода 1, строки
+                              "window clean exit" нет.
 
   Пройти уровень слева направо и ответить на СЕМЬ вопросов. Первые шесть —
   те приёмы, что гоняет скриптованный прогон, и в этом суть: хеш говорит, что
@@ -898,7 +956,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
   Esc или закрытое окно завершают прогон кодом 10 и строкой об этом. Это
   отказ, а не падение, но односторонний: сосед продолжает ждать и уходит по
-  своему дедлайну (код 4) через две минуты. Дедлайн вдвое длиннее сессии и
+  своему дедлайну (код 4) через две минуты. Код 10 вместе со строкой
+  "[platformer] surface texture status <n> - quitting" или "[gpu] device lost
+  (reason <n>): …" — окно закрылось само, это находка, а не выход руками. Дедлайн вдвое длиннее сессии и
   ВЫВОДИТСЯ из неё, а не написан числом: написанный, он однажды совпал с
   длиной сессии на 30 Гц, и исправная пара читалась бы как «сосед ушёл».
   Выходить — обоим.
@@ -1440,6 +1500,198 @@ owner_check.sh гоняет это отдельным этапом сразу п
   ВХОД — один файл, их ПОВЕДЕНИЕ на этом бите не доказано ничем, и разошлись
   бы они запросом UAC под /qn на твоей машине, а не красным гейтом.
 
+--- Q. WASM-песочница: гейты plugin-wasm и plugin-wasm-host ----------------
+
+  Этих двух гейтов в CI НЕТ: PLUGIN_WASM=OFF во всех шести конфигурациях
+  .github/workflows/ci.yml, потому что wasmtime C-API лежит в deps/, а не в
+  git. Гоняются они на машине владельца и больше нигде — scripts/check_goldens.sh
+  про native==WASM так и говорит. Перепрогон — когда коммит тронул
+  engine/plugin/wasm_*.
+
+  C-API в deps/ кладёт скрипт — пиннутая версия, сверка sha256; чужая версия
+  в deps/ валит конфигурацию FATAL_ERROR'ом с её именем:
+
+      bash scripts/fetch_wasmtime.sh
+
+  Последняя строка: «fetch_wasmtime: wasmtime-v26.0.0-<тройка>-c-api
+  распакован в deps/ (sha256 …)» или «… уже в deps/ (sha256 сверена)».
+  «deps/wasmtime-… есть, но не сверен с пином» — каталог распакован руками
+  или до штампа .sha256 (аудит #21 A·3·9): удалить его и запустить снова;
+  конфигурация с таким каталогом падает FATAL_ERROR'ом «не сверен с пином».
+
+  На Windows пина нет (у wasmtime там .zip, а пин и fetch знают только .tar.xz):
+  конфигурация печатает «PLUGIN_WASM: wasmtime для x86_64-Windows не пиннут —
+  gate #5 пропущен», fetch_wasmtime.sh отказывает, и раздел на Windows НЕ
+  гоняется — это известный пробел, а не провал. Каталог соседней тройки,
+  скачанный тем же скриптом (WASMTIME_TRIPLE=x86_64-macos под Rosetta),
+  конфигурации не мешает.
+
+  Сборка:
+
+      cmake -S . -B build -G Ninja -DPLUGIN_WASM=ON
+      cmake --build build --target plugin_wasm_test plugin_wasm_host_test plugin_wind
+
+  Гейт побега и голден native==WASM:
+
+      ./build/plugin_wasm_test engine/plugin/wasm/gravity.wat build/plugin_wind.so
+
+  Должен напечатать:
+    [plugin] wind registered
+    [plugin-wasm] native golden = 0x7d9a6e60cbed4156
+    [plugin-wasm] WASM golden   = 0x7d9a6e60cbed4156
+    [plugin-wasm] native == WASM (bit-exact fix32 across ABI): YES
+    [plugin-wasm] limits: memory 16777216 bytes, table 65536 elements, fuel 10000000 per call
+    [plugin-wasm] fuel per call: 9499 of 10000000 spent by the gravity tick
+    [plugin-wasm] escape OOB linear-memory -> trap (host alive): YES
+    [plugin-wasm] escape ungranted host import -> link rejected: YES
+    [plugin-wasm] escape endless loop -> out of fuel -> trap: YES
+    [plugin-wasm] escape memory.grow one page past the memory limit -> refused: YES
+    [plugin-wasm] control: memory.grow exactly to the limit still grows: YES
+    [plugin-wasm] escape a declared memory past the memory limit -> refused: YES
+    [plugin-wasm] escape table one element past the table limit -> refused: YES
+    [plugin-wasm] control: a table exactly at the limit still instantiates: YES
+    [plugin-wasm] escape a second table -> refused: YES
+    [plugin-wasm] escape a second memory -> refused: YES
+    [plugin-wasm] control: a module with a finite (start) instantiates: YES
+    [plugin-wasm] escape endless (start) at instantiation -> refused: YES
+    [plugin-wasm] a store without a fuel counter -> host error, not guest: YES
+    [plugin-wasm] a call the host got wrong -> host error, not a guest trap: YES
+    plugin-wasm: PASS
+
+  Расход топлива (9499) — цифра ЭТОЙ фикстуры: другой gravity.wat или другое
+  число тел её меняют, и гейт судит не её саму, а процент бака. Красная строка
+  побега печатает под собой «cause: <текст wasmtime>» — присылать вместе с ней.
+
+  Контракт объекта-хозяина (аргументов нет):
+
+      ./build/plugin_wasm_host_test
+
+  Должен напечатать:
+    [plugin-wasm-host] the reason of a failed init survives to error(): YES
+    [plugin-wasm-host] a failed init can be retried, no false 'already initialized': YES
+    [plugin-wasm-host] a successful init clears the previous reason: YES
+    [plugin-wasm-host] a trapped call names its OWN spend (6011, good call 9): YES
+    [plugin-wasm-host] an endless guest drains the tank (10000000 of 10000000): YES
+    [plugin-wasm-host] a good call clears the reason, a trapped one names itself: YES
+    [plugin-wasm-host] a call that never happened measures no fuel (0): YES
+    [plugin-wasm-host] a refusal that kills nobody names itself twice: YES
+    [plugin-wasm-host] a missing export is told apart from a refused instantiation: YES
+    [plugin-wasm-host] the refusal names itself: no export 'nope'
+    plugin-wasm-host: PASS
+
+  Числа 6011 и 9 — расход гостя из фикстуры, а не константа движка: гейт
+  утверждает про них ровно «трапнувший вызов потратил больше удачного», то
+  есть что после трапа счётчик читают, а не оставляют нулём. Ноль в скобках
+  строкой ниже — вторая половина того же контракта: вызова не было, значит и
+  измерения нет.
+
+
+--- R. Мобильные оболочки: iOS-симулятор, iPhone, Android -----------------
+
+  Оболочки собираются ИЗ КОРНЯ тем же графом целей, что десктоп: корневой
+  CMakeLists.txt с iOS- или Android-тулчейном включает LIKE_NES_MOBILE и
+  подключает platform/ios или platform/android. Исходники игры у всех трёх
+  одни — example_ugly_game/game_sources.cmake. Горячей замены шейдеров на
+  мобиле нет (material_gpu без material_hot), звук — настоящий miniaudio.
+
+  Поставить (один раз, только macOS):
+    - Xcode 27 + рантайм iOS 27.0 (Xcode → Settings → Components);
+    - rustup target add aarch64-apple-ios-sim aarch64-apple-ios \
+        aarch64-linux-android
+      (wgpu-native под мобиле собирается из Rust, первая сборка — минуты);
+    - Android SDK в ~/Library/Android/sdk: ndk;28.2.13676358,
+      platforms;android-35, build-tools;35.0.0, platform-tools
+      (sdkmanager --licenses — один раз).
+
+  1) Обе оболочки собираются:
+
+    bash scripts/xcompile_verify.sh
+
+  Последние строки:
+
+    === Mobile true-cross: iOS (aarch64-apple-ios-sim) ===
+    [xcompile] ok: iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{game.bundle library.bundle audio.bundle}
+    === Mobile true-cross: Android (aarch64-linux-android, NDK arm64-v8a) ===
+    [xcompile] ok: Android aarch64 ELF + APK {lib/arm64-v8a/libgame.so lib/arm64-v8a/libc++_shared.so assets/game.bundle assets/library.bundle assets/audio.bundle}
+    [xcompile] PASS: desktop matrix (max-vs-sum) + iOS arm64 + Android aarch64
+
+  Упавший шаг печатает хвост своего лога и путь к нему
+  (build-ios/xcompile.log, build-android/xcompile.log).
+
+  2) Игра поднимается в симуляторе (прогнано агентом на iPhone 16, iOS 27.0):
+
+    xcrun simctl create like-nes-smoke \
+      com.apple.CoreSimulator.SimDeviceType.iPhone-16 \
+      com.apple.CoreSimulator.SimRuntime.iOS-27-0
+    xcrun simctl boot like-nes-smoke
+    xcrun simctl install like-nes-smoke build-ios/like_nes_ios.app
+    xcrun simctl launch --console-pty like-nes-smoke com.likenes.sidescroller
+
+  Ожидаемо (Ctrl+C уходит в игру и завершает её — консоль и игра закрываются
+  вместе):
+
+    [gpu] Apple iOS simulator GPU | Metal | BC: no
+    [game] assets: device lacks BC -> procedural atlas (no baked BC7)
+    [game] materials: on (3 pipeline(s), 0 fallback(s))
+    [game] audio: on (SFX + music)
+    [game] achievements: 5 defined, 0 unlocked
+    ... [game] iOS shell up: 1179x2556 - left = stick, bottom-right = fire
+
+  На экране — титул «LIKE NES / SIDESCROLLER», звёзды, корабль, светящаяся
+  кнопка огня справа внизу. «procedural atlas» здесь норма: GPU симулятора не
+  умеет BC7. Симулятор НЕ заменяет устройство — GPU у него хостовый, а
+  мультитач только готовыми жестами.
+
+  Уход в фон сохраняет достижения (прогнано агентом): система убивает фоновый
+  процесс без выхода, и ждать автосейва на 600-м тике нельзя.
+
+    D=$(xcrun simctl get_app_container like-nes-smoke com.likenes.sidescroller data)
+    xcrun simctl terminate like-nes-smoke com.likenes.sidescroller
+    rm -f "$D/Library/Application Support/like-nes/achievements.save"
+    xcrun simctl launch like-nes-smoke com.likenes.sidescroller
+    # 3 секунды — 180 тиков, до автосейва далеко
+    xcrun simctl launch like-nes-smoke com.apple.Preferences
+    ls -l "$D/Library/Application Support/like-nes/achievements.save"
+
+  Ожидаемо: файл есть (72 байта при пустом прогрессе). Нет файла — сохранение
+  при уходе в фон сломано. Сразу после Preferences файла может ещё не быть:
+  UIKit шлёт уход сцены в фон с задержкой, ls — через пару секунд.
+
+  3) iPhone. Сборка под устройство прогнана агентом (platform IOS, у нашего
+  кода и линковки предупреждений нет; «warning: unexpected cfg» печатает
+  cargo про сам крейт wgpu-native — это его, не наше). Подпись и запуск — НЕ
+  прогнаны: нужна команда разработчика владельца. Тот же корень с sysroot
+  iphoneos:
+
+    cmake -S . -B build-ios-device -G Ninja -DCMAKE_SYSTEM_NAME=iOS \
+      -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64
+    cmake --build build-ios-device --target like_nes_ios
+
+  Подписать build-ios-device/like_nes_ios.app своей командой разработчика и
+  поставить на iPhone. Смотреть: те же пять строк [game] в консоли Xcode
+  (Devices and Simulators → Open Console, фильтр like_nes_ios), в игре —
+  стик левым пальцем и огонь правым ОДНОВРЕМЕННО (оба касания живут разом —
+  ради этого и чинился id касания в B8), звук слышен. Бесшумный режим
+  (переключатель сбоку) глушит игру — так задумано: сессия SoloAmbient, как
+  у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект.
+
+  4) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
+  отладочным ключом ~/.android/debug.keystore:
+
+    ~/Library/Android/sdk/platform-tools/adb install -r \
+      build-android/apk/like_nes.apk
+    ~/Library/Android/sdk/platform-tools/adb logcat -c
+    ~/Library/Android/sdk/platform-tools/adb shell am start \
+      -n com.likenes.sidescroller/android.app.NativeActivity
+    ~/Library/Android/sdk/platform-tools/adb logcat -s like-nes
+
+  stdout игры оболочка заворачивает в logcat под тегом like-nes: ждать те же
+  строки [gpu] и [game], что в симуляторе (BC на телефоне, скорее всего, тоже
+  «no» — это норма). Строка «asset unpack failed: <бандл>» — дефект: бандл не
+  доехал из APK в песочницу. В игре — то же, что на iPhone: стик + огонь
+  разом, звук.
+
+
 ===========================================================================
 5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================
@@ -1474,6 +1726,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   - строку bundle_hash из пункта F
   - запись экрана платформера, его стартовую строку и семь ответов
     из пункта K
+  - по пункту R: строки [gpu] и [game] с iPhone (консоль Xcode) и с
+    Android (adb logcat -s like-nes) и два ответа на каждом — работают ли
+    стик и огонь ОДНОВРЕМЕННО и слышен ли звук
   - словами: что в игре ощущалось не так — звук, ввод, частота кадров
 
 ===========================================================================

@@ -1,6 +1,6 @@
 #include "slot_textures.hpp"
 
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 #include "slot_encoding.hpp"
 
 #include <cmath>

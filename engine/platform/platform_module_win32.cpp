@@ -24,8 +24,8 @@ std::string temp_copy_path(const std::string& src) {
 
 thread_local std::string g_error;
 
-// LOAD_WITH_ALTERED_SEARCH_PATH задокументирован как неопределённое поведение на относительном
-// пути, а зовут нас именно относительными (`build/plugin_gravity.dll` из CI). Разворачиваем сами.
+// LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR по документации требует полного пути, а зовут нас именно
+// относительными (`build/plugin_gravity.dll` из CI). Разворачиваем сами.
 std::wstring absolute(const std::wstring& path) {
     const DWORD need = GetFullPathNameW(path.c_str(), 0, nullptr, nullptr);
     if (need == 0) return std::wstring();
@@ -63,9 +63,12 @@ bool Module::open(const std::string& utf8_path) {
         g_error = "GetFullPathNameW failed: " + utf8_path;
         return false;
     }
-    // LOAD_WITH_ALTERED_SEARCH_PATH: зависимости искать от каталога модуля, а не от рабочего
-    // каталога процесса — иначе плагин, лежащий не рядом с exe, не найдёт своих DLL.
-    const HMODULE h = LoadLibraryExW(full.c_str(), nullptr, LOAD_WITH_ALTERED_SEARCH_PATH);
+    // Зависимости ищутся в каталоге модуля, каталоге exe и системных — и нигде больше. Прежний
+    // LOAD_WITH_ALTERED_SEARCH_PATH тоже начинал с каталога модуля, но затем шёл в рабочий каталог
+    // процесса и PATH: плагин с не-системной зависимостью, запущенный из «Загрузок», подхватил бы
+    // чужую DLL оттуда (A·1·2 аудита #21, гейт — win32_dll_search_test.cpp).
+    const HMODULE h = LoadLibraryExW(
+        full.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
     if (!h) {
         const DWORD code = GetLastError();
         remove_file(copy);

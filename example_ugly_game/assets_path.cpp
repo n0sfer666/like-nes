@@ -4,6 +4,7 @@
 
 #include "platform_env.hpp"
 #include "platform_fs.hpp"
+#include "platform_redact.hpp"
 
 // Политика игры поверх платформенного шва (#12): ГДЕ искать ассеты и куда класть сейв.
 // Как устроены пути, каталоги и юникод на конкретной ОС — знает engine/platform, не игра.
@@ -47,7 +48,8 @@ std::string resolve_save_path(const char* name) {
     const std::string dir = save_dir();
     if (!dir.empty()) {
         if (platform::ensure_dir(dir)) return dir + "/" + name;
-        std::fprintf(stderr, "[game] save dir '%s' unusable, falling back to exe dir\n", dir.c_str());
+        std::fprintf(stderr, "[game] save dir '%s' unusable, falling back to exe dir\n",
+                     platform::redact_home(dir).c_str());
     }
     const std::string ed = platform::exe_dir();
     return (ed.empty() ? std::string(".") : ed) + "/" + name;

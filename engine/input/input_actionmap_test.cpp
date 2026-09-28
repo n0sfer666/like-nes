@@ -1,8 +1,8 @@
 #include <cstdio>
 #include "action_map.hpp"
 #include "codes.hpp"
-#include "engine.hpp"
-#include "sim.hpp"
+#include "input_engine.hpp"
+#include "input_sim.hpp"
 
 // Прямая валидация «Full»-слоя действий: контексты+consume, rebind (listen-next), per-player
 // device assignment, input-buffer leniency, capture_source. Deviceless, гоняется в CI.
@@ -38,7 +38,7 @@ static bool test_rebind() {
     PlayerAssign pa; pa.use_kbd_mouse = true; m.assign_player(0, pa);
     bool before = m.resolve(kbd_with(c::Space), 0, 0, 0).action_held(A_Jump);
     // listen-next: игрок нажал K → захватываем источник и перебиндиваем.
-    Source s = capture_source({RawKind::KeyDown, DeviceKind::Keyboard, 0, (uint16_t)c::S, 0, 0});
+    Source s = capture_source({RawKind::KeyDown, DeviceKind::Keyboard, 0, static_cast<uint16_t>(c::S), 0, 0});
     m.rebind(A_Jump, 0, s);
     bool now_k = m.resolve(kbd_with(c::S), 0, 1, 0).action_held(A_Jump);
     bool old_gone = !m.resolve(kbd_with(c::Space), 0, 2, 0).action_held(A_Jump);

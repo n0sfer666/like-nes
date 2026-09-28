@@ -1,0 +1,7 @@
+# Fixture: the version IS written on the identity line, in a form the parser does not read
+# (audit #21, A.2.7 review). Telling this file "declares no api=" and nothing else sends its owner
+# to add a field that is already there; the refusal has to quote what it did find.
+plugin typo 1.0 API=2
+
+panel typo "Typo" dock=left
+  text "this panel must never be born"

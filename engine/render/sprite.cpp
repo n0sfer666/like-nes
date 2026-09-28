@@ -1,4 +1,4 @@
-#include "sprite.hpp"
+#include "render_sprite.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -52,10 +52,10 @@ std::vector<uint8_t> gen_albedo() {
             const bool check = ((x >> 5) ^ (y >> 5)) & 1;
             const float base = check ? 0.82f : 0.62f;
             uint8_t* p = &px[(y * TEX + x) * 4];
-            p[0] = (uint8_t)(base * 235);
-            p[1] = (uint8_t)(base * 205);
-            p[2] = (uint8_t)(base * 250);
-            p[3] = (uint8_t)(bevel_height(u, v) > 0.02f ? 255 : 0);
+            p[0] = static_cast<uint8_t>(base * 235);
+            p[1] = static_cast<uint8_t>(base * 205);
+            p[2] = static_cast<uint8_t>(base * 250);
+            p[3] = static_cast<uint8_t>(bevel_height(u, v) > 0.02f ? 255 : 0);
         }
     return px;
 }
@@ -76,9 +76,9 @@ std::vector<uint8_t> gen_normal() {
             const float inv = 1.0f / std::sqrt(nx * nx + ny * ny + nz * nz);
             nx *= inv; ny *= inv; nz *= inv;
             uint8_t* p = &px[(y * TEX + x) * 4];
-            p[0] = (uint8_t)((nx * 0.5f + 0.5f) * 255);
-            p[1] = (uint8_t)((ny * 0.5f + 0.5f) * 255);
-            p[2] = (uint8_t)((nz * 0.5f + 0.5f) * 255);
+            p[0] = static_cast<uint8_t>((nx * 0.5f + 0.5f) * 255);
+            p[1] = static_cast<uint8_t>((ny * 0.5f + 0.5f) * 255);
+            p[2] = static_cast<uint8_t>((nz * 0.5f + 0.5f) * 255);
             p[3] = 255;
         }
     return px;

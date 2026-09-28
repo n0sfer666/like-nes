@@ -33,7 +33,7 @@ cmake --build build --target game_sidescroller
 what came up, and each of them is a check in itself —
 
 ```
-[game] assets: baked bundle .../game.bundle (BC7 512x256)
+[game] assets: baked bundle ~/.../game.bundle (BC7 512x256)
 [game] materials: on (3 pipeline(s), 0 fallback(s))
 ```
 

@@ -165,7 +165,7 @@ void test_a_bystander_never_hides_the_pusher() {
 }
 
 // Замершее по правилу покоя тело не сносит: снос читает ДВИЖЕНИЕ, а `mutate` остров не будит
-// намеренно (`world.hpp`). Случай отдельный от статики: там неподвижность по типу, здесь — по
+// намеренно (`physics_world.hpp`). Случай отдельный от статики: там неподвижность по типу, здесь — по
 // состоянию, и живёт она в другом ответе `support_velocity`.
 void test_a_frozen_body_shoves_nobody() {
     Stage st = make_stage(physics::BodyType::Dynamic, {fix32{}, fix32{}}, false);
@@ -174,7 +174,7 @@ void test_a_frozen_body_shoves_nobody() {
 
     // Скорость записана МЕЖДУ шагом мира и тиком персонажа — то окно, в котором `at_rest` ещё
     // говорит «замерло»: правило покоя сверит тело с копией лишь в начале следующего шага
-    // (`world.hpp`), а `mutate` остров не будит. Тело не ехало, и снос по записанному числу увёл
+    // (`physics_world.hpp`), а `mutate` остров не будит. Тело не ехало, и снос по записанному числу увёл
     // бы персонажа от НЕПОДВИЖНОЙ платформы.
     const MoveProfile p = weightless();
     const MoveDerived d = derive(p, tick_dt());

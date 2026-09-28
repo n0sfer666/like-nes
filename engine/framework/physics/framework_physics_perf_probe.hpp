@@ -6,7 +6,7 @@
 #include "contact.hpp"
 #include "framework_physics_load.hpp"
 #include "solver.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Измерительная половина гейта 8 спеки #15: прогон сцены, снятие счётчиков и печать. Утверждения
 // живут отдельно (`framework_physics_perf_test.cpp`) — у них разные причины меняться: замер правится

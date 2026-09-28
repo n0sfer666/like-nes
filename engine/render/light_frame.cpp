@@ -1,6 +1,6 @@
 #include "light_frame.hpp"
 
-#include "capture.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "material_frame.hpp"
 

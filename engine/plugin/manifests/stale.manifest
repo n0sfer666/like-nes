@@ -1,0 +1,6 @@
+# Fixture: a structurally valid manifest declaring a FOREIGN ABI version (audit #21, A.2.7).
+# Everything below parses; the only thing wrong with this file is the number after api=.
+plugin stale 1.0 api=1
+
+panel stale "Stale" dock=right
+  text "this panel must never be born"

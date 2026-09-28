@@ -158,7 +158,7 @@ engine/net`, тогда как модули framework в том же гейте 
 **Файл:строка:** `engine/asset/hash.hpp:9-10` (`FNV_OFFSET = 1469598103934665603ull`) против
 `engine/framework/physics/hash_mix.hpp:12-13` (`0xcbf29ce484222325ULL`); ручные копии цикла —
 `engine/achievements/tracker.cpp:8-9`, `engine/achievements/state.cpp:7-8`,
-`engine/achievements/def.hpp:9,12`, `engine/achievements/tracker.hpp:56`, `engine/plugin/sim.hpp:24-31`,
+`engine/achievements/def.hpp:9,12`, `engine/achievements/tracker.hpp:56`, `engine/plugin/plugin_sim.hpp:24-31`,
 `engine/core/determinism_test.cpp:47-48`, `tools/ide/ipc/mirror.hpp:41,47`,
 `example_ugly_game/combat.cpp:198-199`.
 
@@ -303,7 +303,7 @@ APK собирается, `libgame.so` в нём есть, приложение 
 
 ### 10. `BodyId` не проверяется ни при создании, ни при разыменовании, и игра-образец учит этому
 
-**Файл:строка:** `engine/framework/physics/world.hpp` — `BodyId{INVALID=0xffffffffu}`,
+**Файл:строка:** `engine/framework/physics/physics_world.hpp` — `BodyId{INVALID=0xffffffffu}`,
 `BodyId add(const BodyDesc&)`, `Body& mutate(BodyId)`, `const Body& body(BodyId) const`;
 потребитель — `example_ugly_game/platformer_level.cpp:83` (`out.lift = out.world.add(d);`), далее
 `platformer_scene.cpp:94,95,97`, `platformer_view.cpp:173`, `platformer_sim.cpp:121,141`.
@@ -357,7 +357,7 @@ APK собирается, `libgame.so` в нём есть, приложение 
 
 ### 12. Вид обоснования `text` выписан на C++-заголовок
 
-**Файл:строка:** `scripts/line_budget_allow_code.py:27-30` (`engine/framework/physics/world.hpp`,
+**Файл:строка:** `scripts/line_budget_allow_code.py:27-30` (`engine/framework/physics/physics_world.hpp`,
 212, `text`).
 
 **Severity:** low

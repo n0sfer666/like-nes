@@ -3,7 +3,7 @@
 
 #include "snapshot.hpp"
 #include "units.hpp"
-#include "world.hpp"
+#include "physics_world.hpp"
 
 // Связность островов — состояние, а не выводимое заново, и это утверждается ОТДЕЛЬНОЙ целью.
 //

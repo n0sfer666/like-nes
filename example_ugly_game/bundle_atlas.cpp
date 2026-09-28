@@ -9,6 +9,7 @@
 #include "assets_path.hpp"
 #include "atlas_regions.hpp"
 #include "hash.hpp"
+#include "platform_redact.hpp"
 #include "transcode.hpp"
 
 // Шов assetc→билд (спека #8, гейт 2): игра стартует с бейкнутых ассетов, не с source.
@@ -63,7 +64,7 @@ Atlas load_baked_atlas(const char* bundle_path) {
     uint32_t w = 0, h = 0;
     // Валидируем И раскладку, И число байт (BC7: 16 байт/4x4-блок) — иначе writeTexture
     // словит validation error вместо мягкого отката на процедурный atlas.
-    const size_t want = (size_t)((atlas.w + 3) / 4) * ((atlas.h + 3) / 4) * 16;
+    const size_t want = static_cast<size_t>((atlas.w + 3) / 4) * ((atlas.h + 3) / 4) * 16;
     const bool ok = asset::ktx2_to_bc7(a.data, a.size, atlas.bc7, w, h) &&
                     w == atlas.w && h == atlas.h && atlas.bc7.size() == want;
     if (!ok) atlas.bc7.clear(); // мисматч => вызывающий делает fallback
@@ -80,11 +81,12 @@ Atlas load_game_atlas(bool device_supports_bc) {
     if (!bp.empty()) {
         Atlas a = load_baked_atlas(bp.c_str());
         if (!a.bc7.empty()) {
-            std::printf("[game] assets: baked bundle %s (BC7 %ux%u)\n", bp.c_str(), a.w, a.h);
+            std::printf("[game] assets: baked bundle %s (BC7 %ux%u)\n",
+                        platform::redact_home(bp).c_str(), a.w, a.h);
             return a;
         }
         std::fprintf(stderr, "[game] assets: bundle %s unreadable -> procedural fallback\n",
-                     bp.c_str());
+                     platform::redact_home(bp).c_str());
     } else {
         std::fprintf(stderr, "[game] assets: no game.bundle found -> procedural fallback\n");
     }

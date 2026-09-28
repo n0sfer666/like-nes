@@ -118,7 +118,15 @@
   регистрируются через единый реестр. ASan-чисто.
 - **Гейт 6 (конфиг-интерфейс) — ✅ ЗЕЛЁНЫЙ (headless + live).** `plugin_manifest_test`:
   декларативный манифест → панели + dock-слоты (right/left/bottom/center) + widgets; robustness на
-  битом вводе (нет terminate). ASan+UBSan-чисто. **Live `plugin_ui_shell`** (Dear ImGui docking +
+  битом вводе (нет terminate). Плюс ВЕРДИКТ О ВЕРСИИ ABI (аудит #21, A·2·7): `parse_manifest`
+  сверяет `api=` с `PLUGIN_API_VERSION` и не отдаёт `ok` чужой версии — то есть отказ стоит до
+  любой загрузки кода, а не после `dlopen`, как сверка `plugin_abi_version()` в `host.cpp`
+  (она остаётся). Причин отказа шесть, и они говорят разное, потому что чинятся по-разному: чужая
+  версия (`stale.manifest`), значение не число (`bad.manifest` — мусор, `empty_api.manifest` —
+  пусто), цифры не влезают в `int` (`overflow.manifest`), поля нет вовсе (`no_api.manifest`),
+  идентичность объявлена дважды (`dup_plugin.manifest`), ключ `api=` повторён в одной строке
+  (`dup_api.manifest`). Каждый отказ называет свой файл.
+  ASan+UBSan-чисто. **Live `plugin_ui_shell`** (Dear ImGui docking +
   GLFW + GL3): панели рождаются из 2 манифестов и докируются по хинту — **подтверждено live на
   owner-HW (macOS 2026-07-21):** окно отрисовалось, панели видны (как input_demo / miniaudio --play).
 - **Гейт 5 (WASM-sandbox) — ✅ ЗЕЛЁНЫЙ (local pinned-T4).** `plugin_wasm_test` (wasmtime C-API v26,

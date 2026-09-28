@@ -25,7 +25,13 @@ BuildResult run_build(const std::vector<std::string>& argv) {
     // Упавший компилятор при этом не «сборка с ошибками»: exit_code остаётся -1, success ложен.
     r.exit_code = (reaped && st.kind == platform::ExitKind::Exited) ? st.code : -1;
     r.success = (r.exit_code == 0);
-    r.diagnostics = parse_diagnostics(r.raw_output);
+    r.truncated = reaped && st.kind == platform::ExitKind::Truncated;
+    // Усечение режет посреди строки, и огрызок диагностики разобрался бы в ложный путь или номер.
+    const size_t last_nl = r.raw_output.rfind('\n');
+    const size_t whole = !r.truncated              ? r.raw_output.size()
+                         : last_nl == std::string::npos ? 0
+                                                        : last_nl + 1;
+    r.diagnostics = parse_diagnostics(r.raw_output.substr(0, whole));
     return r;
 }
 

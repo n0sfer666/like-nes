@@ -2,6 +2,8 @@
 
 #include <cstring>
 
+#include "preset_axes.hpp"
+
 namespace framework::input {
 namespace {
 
@@ -13,44 +15,7 @@ namespace {
     return s;
 }
 
-template <typename T>
-const T* view(const uint8_t* base, uint32_t offset, uint32_t count, std::size_t size) {
-    // Границы — единственная защита zero-parse формата: дальше по нему ходят указателями. Верхнего
-    // предела мало: смещение проверяется снизу (иначе строки лягут поверх заголовка) и на
-    // выравнивание (`reinterpret_cast` мимо границы = SIGBUS, как в `asset/bundle_view.cpp`), а
-    // сумма считается в uint64 — в `size_t` на 32 битах `count * sizeof(T)` заворачивается.
-    if (offset < sizeof(PresetHeader) || offset % alignof(T) != 0) return nullptr;
-    if (static_cast<uint64_t>(offset) + static_cast<uint64_t>(count) * sizeof(T) > size)
-        return nullptr;
-    return reinterpret_cast<const T*>(base + offset);
-}
-
 } // namespace
-
-bool PresetTable::open(const void* data, std::size_t size) {
-    header_ = nullptr;
-    if (data == nullptr || size < sizeof(PresetHeader)) return false;
-    const auto* base = static_cast<const uint8_t*>(data);
-    const auto* h = reinterpret_cast<const PresetHeader*>(base);
-    if (std::memcmp(h->magic, PRESET_MAGIC, sizeof(h->magic)) != 0) return false;
-    if (h->version != PRESET_VERSION || h->total_size > size) return false;
-
-    presets_ = view<PresetRow>(base, h->presets_offset, h->preset_count, size);
-    actions_ = view<ActionRow>(base, h->actions_offset, h->action_count, size);
-    axes_ = view<AxisRow>(base, h->axes_offset, h->axis_count, size);
-    bindings_ = view<BindingRow>(base, h->bindings_offset, h->binding_count, size);
-    pads_ = view<PadRow>(base, h->pads_offset, h->pad_count, size);
-    if (presets_ == nullptr || actions_ == nullptr || axes_ == nullptr || bindings_ == nullptr ||
-        pads_ == nullptr)
-        return false;
-    if (h->strings_offset >= h->total_size) return false;
-
-    strings_ = reinterpret_cast<const char*>(base + h->strings_offset);
-    strings_size_ = h->total_size - h->strings_offset;
-    if (strings_[strings_size_ - 1] != '\0') return false;   // обход имён обязан упереться в ноль
-    header_ = h;
-    return true;
-}
 
 const char* PresetTable::string_at(uint32_t offset) const {
     if (header_ == nullptr || offset >= strings_size_) return "";
@@ -79,37 +44,24 @@ uint32_t PresetTable::action_count(uint32_t preset) const {
     return p != nullptr ? p->action_count : 0;
 }
 
-// Одна ось живёт в нескольких строках (клавиши, стрелки, стик — альтернативные биндинги того же
-// движения), поэтому наружу торчит ЛОГИЧЕСКИЙ номер: порядковый номер имени, а не строки.
-// Иначе игра, добавив стик в манифест, получила бы сдвиг осей в InputFrame и другой sim-хеш.
+// Наружу торчит ЛОГИЧЕСКИЙ номер оси; как он считается — в `preset_axes.hpp`, одинаково для
+// рантайма, пекаря и читателя. Здесь остаётся только доступ к имени строки.
+const char* PresetTable::axis_name(const PresetRow& p, uint32_t row) const {
+    return string_at(axes_[p.axis_begin + row].name_offset);
+}
+
 uint32_t PresetTable::axis_count(uint32_t preset) const {
     const PresetRow* p = preset_at(preset);
     if (p == nullptr) return 0;
-    uint32_t n = 0;
-    for (uint32_t i = 0; i < p->axis_count; ++i)
-        if (row_is_first(*p, i)) ++n;
-    return n;
+    return logical_axis_count(p->axis_count, [&](uint32_t i) { return axis_name(*p, i); });
 }
 
 bool PresetTable::row_is_first(const PresetRow& p, uint32_t row) const {
-    const char* name = string_at(axes_[p.axis_begin + row].name_offset);
-    for (uint32_t k = 0; k < row; ++k)
-        if (std::strcmp(string_at(axes_[p.axis_begin + k].name_offset), name) == 0) return false;
-    return true;
+    return axis_row_is_first(row, [&](uint32_t i) { return axis_name(p, i); });
 }
 
 uint32_t PresetTable::logical_axis(const PresetRow& p, uint32_t row) const {
-    // Индекс оси — порядковый номер её ИМЕНИ, а не номер строки среди первых. У оси строк
-    // несколько (клавиши, стрелки, стик — альтернативные источники одного направления), и
-    // непервая строка обязана попасть в тот же индекс, что и первая: считать её началом
-    // следующей оси значит увести стрелки и стик в чужой слот InputFrame.
-    const char* name = string_at(axes_[p.axis_begin + row].name_offset);
-    uint32_t logical = 0;
-    for (uint32_t i = 0; i < row; ++i) {
-        if (std::strcmp(string_at(axes_[p.axis_begin + i].name_offset), name) == 0) break;
-        if (row_is_first(p, i)) ++logical;
-    }
-    return logical;
+    return logical_axis_of_row(row, [&](uint32_t i) { return axis_name(p, i); });
 }
 
 int PresetTable::first_row_of_axis(const PresetRow& p, uint32_t axis) const {

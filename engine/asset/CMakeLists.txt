@@ -1,3 +1,8 @@
+# Свёртка FNV (`hash.hpp`) — только заголовок, и берут её подсистемы, которым сам модуль ассетов не
+# нужен: плагины, достижения, материалы, IDE. Отдельной целью, чтобы ради неё не линковать zstd.
+add_library(asset_hash INTERFACE)
+target_include_directories(asset_hash INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+
 # Гейт 1 спеки #12: модуль ассетов собирается на всех трёх ОС. POSIX-only он был ровно из-за
 # двух вещей — fork/execvp у пекаря и mmap у загрузчика; обе ушли за platform_core.
 add_library(asset_core STATIC
@@ -16,11 +21,19 @@ target_link_libraries(asset_test PRIVATE asset_core)
 
 # Headless гейт #3 (замедленный I/O → тот же sim-hash). Без GPU — CI на всех ОС.
 add_executable(asset_determinism_test asset_determinism_test.cpp)
-target_link_libraries(asset_determinism_test PRIVATE asset_core)
+target_link_libraries(asset_determinism_test PRIVATE asset_core engine_core)
+
+# Выравнивание базы бандла (аудит #21): своя цель — остальные наборы ходят через mmap и сдвига
+# базы не видят по построению.
+add_executable(asset_align_test asset_align_test.cpp)
+target_link_libraries(asset_align_test PRIVATE asset_core)
 
 # Hot-reload roundtrip (свап бандла, стабильный guid). Self-contained — CI на всех ОС.
 add_executable(asset_hot_reload_test asset_hot_reload_test.cpp)
 target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
+
+add_executable(asset_fail_test asset_fail_test.cpp)
+target_link_libraries(asset_fail_test PRIVATE asset_core)
 
 # --- Шов asset→render (спека #5 гейт): baked BC7 tex + baked Tint SPIR-V → GPU → offscreen ---
 # basis транскодер — один файл; KTX2 без zstd-суперкомпрессии → BASISD_SUPPORT_KTX2_ZSTD=0
@@ -33,6 +46,16 @@ like_nes_vendored_target(basis_transcoder)   # цель целиком — од�
 add_library(asset_gpu STATIC transcode.cpp)
 target_link_libraries(asset_gpu PUBLIC basis_transcoder)
 target_compile_options(asset_gpu PRIVATE
+  $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-unknown-warning-option>)   # basisu.h GCC-pragma
+
+# Потолок уровня KTX2 (аудит #21, A·2·9). Своя цель, а не строки в `asset_test`: та не линкует
+# транскодер, а тянуть basisu в гейт резидентности значило бы тянуть его и в его санитайзерную
+# сборку, собираемую руками.
+add_executable(asset_transcode_test transcode_test.cpp)
+target_link_libraries(asset_transcode_test PRIVATE asset_core asset_gpu)
+# Тот же глушитель, что у `asset_gpu` выше, и по той же причине: тест включает
+# `basisu_transcoder.h` НАПРЯМУЮ, а опция у цели PRIVATE и по линковке не наследуется.
+target_compile_options(asset_transcode_test PRIVATE
   $<$<CXX_COMPILER_ID:Clang,AppleClang>:-Wno-unknown-warning-option>)   # basisu.h GCC-pragma
 
 add_executable(asset_render asset_render_main.cpp)

@@ -5,8 +5,8 @@
 #include <thread>
 #include <vector>
 
-#include "../asset/hash.hpp"
-#include "engine.hpp"
+#include "hash.hpp"
+#include "audio_engine.hpp"
 #include "mixer.hpp"
 
 // Гейт #2 (спека #3): аудио — output-only, НЕ кормит сим. Sim (fix32) детерминированно эмитит
@@ -100,7 +100,7 @@ int main() {
     uint64_t slow = run(1500); // «медленный/джиттер» audio-callback
 
     std::printf("[audio_determinism] sim_hash fast=0x%016llx slow=0x%016llx\n",
-                (unsigned long long)fast, (unsigned long long)slow);
+                static_cast<unsigned long long>(fast), static_cast<unsigned long long>(slow));
     if (fast != slow) {
         std::fprintf(stderr, "[audio_determinism] FAIL: audio timing leaked into sim-hash\n");
         return 1;

@@ -1,0 +1,5 @@
+# Fixture: a structurally valid manifest that declares NO ABI version at all (audit #21, A.2.7).
+plugin mute 1.0
+
+panel mute "Mute" dock=left
+  text "this panel must never be born"

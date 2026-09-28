@@ -1,4 +1,4 @@
-#include "capture.hpp"
+#include "render_capture.hpp"
 
 #include "renderer.hpp"
 
@@ -46,7 +46,7 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
     const uint32_t padded = align256(row);
     WGPUBufferDescriptor bd = {};
     bd.usage = WGPUBufferUsage_CopyDst | WGPUBufferUsage_MapRead;
-    bd.size = (uint64_t)padded * h;
+    bd.size = static_cast<uint64_t>(padded) * h;
     WGPUBuffer buf = wgpuDeviceCreateBuffer(device, &bd);
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(device, nullptr);
@@ -75,9 +75,9 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
     if (ms.ok) {
         const uint8_t* mapped = static_cast<const uint8_t*>(
             wgpuBufferGetConstMappedRange(buf, 0, bd.size));
-        out.resize((size_t)row * h);
+        out.resize(static_cast<size_t>(row) * h);
         for (uint32_t y = 0; y < h; ++y)
-            std::memcpy(&out[(size_t)y * row], mapped + (size_t)y * padded, row);
+            std::memcpy(&out[static_cast<size_t>(y) * row], mapped + static_cast<size_t>(y) * padded, row);
         wgpuBufferUnmap(buf);
     }
 
@@ -86,15 +86,15 @@ std::vector<uint8_t> readback_rgba(WGPUDevice device, WGPUQueue queue, WGPUTextu
 }
 
 bool write_png(const char* path, const std::vector<uint8_t>& rgba, uint32_t w, uint32_t h) {
-    return stbi_write_png(path, (int)w, (int)h, 4, rgba.data(), (int)(w * 4)) != 0;
+    return stbi_write_png(path, static_cast<int>(w), static_cast<int>(h), 4, rgba.data(), static_cast<int>(w * 4)) != 0;
 }
 
 bool read_png(const char* path, std::vector<uint8_t>& out, uint32_t& w, uint32_t& h) {
     int iw = 0, ih = 0, ch = 0;
     unsigned char* data = stbi_load(path, &iw, &ih, &ch, 4);
     if (!data) return false;
-    w = (uint32_t)iw; h = (uint32_t)ih;
-    out.assign(data, data + (size_t)iw * ih * 4);
+    w = static_cast<uint32_t>(iw); h = static_cast<uint32_t>(ih);
+    out.assign(data, data + static_cast<size_t>(iw) * ih * 4);
     stbi_image_free(data);
     return true;
 }
@@ -109,7 +109,7 @@ DiffResult compare(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b,
         double pmax = 0;
         for (size_t c = 0; c < 4; ++c) {
             const size_t i = p * 4 + c;
-            const double d = std::fabs((double)a[i] - (double)b[i]) / 255.0;
+            const double d = std::fabs(static_cast<double>(a[i]) - static_cast<double>(b[i])) / 255.0;
             sum += d;
             if (d > r.max_abs) r.max_abs = d;
             if (d > pmax) pmax = d;
@@ -117,7 +117,7 @@ DiffResult compare(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b,
         if (pmax > per_pixel_eps) ++px_over;
     }
     r.mean_abs = sum / a.size();
-    r.frac_over = (double)px_over / pixels;
+    r.frac_over = static_cast<double>(px_over) / pixels;
     r.pass = r.frac_over <= frac_tolerance && r.max_abs <= max_abs_cap;
     return r;
 }

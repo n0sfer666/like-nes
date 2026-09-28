@@ -3,15 +3,15 @@
 #include <string>
 #include <vector>
 
-#include "bake.hpp"
-#include "cache.hpp"
-#include "capture.hpp"
+#include "material_bake.hpp"
+#include "material_cache.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "material_frame.hpp"
 #include "material_scene.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
-#include "table.hpp"
+#include "material_table.hpp"
 
 // Первый потребитель материалов (решение 6 спеки #18 — «голден первым»): сцена библиотеки,
 // нарисованная ЧЕРЕЗ кэш «материал → пайплайн».

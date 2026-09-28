@@ -3,8 +3,8 @@
 
 #include "fx_events.hpp"
 #include "fx_table.hpp"
-#include "instance.hpp"
-#include "world.hpp"
+#include "game_instance.hpp"
+#include "game_world.hpp"
 
 namespace game {
 

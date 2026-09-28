@@ -1,7 +1,7 @@
 #pragma once
 #include "platform_module.hpp"
-#include "registry.hpp"
-#include "sim.hpp"
+#include "plugin_registry.hpp"
+#include "plugin_sim.hpp"
 #include <string>
 #include <vector>
 #include <map>

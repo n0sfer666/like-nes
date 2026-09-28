@@ -1,4 +1,4 @@
-#include "table.hpp"
+#include "material_table.hpp"
 
 #include <cstdint>
 #include <cstring>

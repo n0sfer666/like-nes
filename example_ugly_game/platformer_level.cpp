@@ -81,6 +81,10 @@ bool load_stage(const std::string& bundle_path, Stage& out) {
     d.position = {LIFT_LEFT, LIFT_TOP + LIFT_HALF_H};
     d.velocity = {LIFT_SPEED, fix32{}};
     out.lift = out.world.add(d);
+    // `add` отказывает `INVALID`, когда ключ занят, и этот отказ проверяется здесь, у `add`: дальше
+    // дескриптор уходит в сцену, вид и симуляцию, и `mutate`/`body` на нём уронят процесс
+    // (аудит #21 B10).
+    if (!out.lift.valid()) return false;
 
     place_at_spawn(out);
     return true;

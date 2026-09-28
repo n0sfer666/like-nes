@@ -4,7 +4,7 @@
 
 #include "camera.hpp"
 #include "platformer_scene.hpp"
-#include "sprite.hpp"
+#include "graphics_sprite.hpp"
 #include "tile_draw.hpp"
 #include "viewport.hpp"
 

@@ -1,0 +1,11 @@
+# Fixture: two identity lines, and the FIRST one declares a foreign version (audit #21, A.2.7
+# review). The version it names is deliberately not the host's: that is what pins the ORDER of the
+# refusals. Ask about the version first and this file is refused for being stale; while its identity
+# is stated twice there is no line whose number can be trusted, so the duplicate is the first thing
+# to say. The gate asserts both halves — that the refusal names the duplicate, and that it does not
+# name the version.
+plugin twin 1.0 api=1
+plugin twin 1.0
+
+panel twin "Twin" dock=bottom
+  text "this panel must never be born"

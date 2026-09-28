@@ -26,7 +26,7 @@ from fs_seam_rules import FIX, SEAM, file_hits, seam_forms
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
 # ЧЕТВЁРТАЯ копия списка корней; внешнего эталона у него нет, поэтому копии сверяются между
 # собой (`scripts/check_tree_roots.py`, форма `mirrors-group`).
-ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples")
+ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples", "tests")
 
 # Позитивный контроль: обход обязан видеть файлы шва, дерево — быть не пустым, а правило — что-то
 # находить в САМОМ шве. Первого условия мало: файлы на месте, а регулярка имени могла сломаться и

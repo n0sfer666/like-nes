@@ -5,7 +5,7 @@
 #include <new>
 #include <vector>
 
-#include "engine.hpp"
+#include "audio_engine.hpp"
 #include "mixer.hpp"
 #include "platform_noinline.hpp"
 
@@ -73,6 +73,6 @@ int main() {
         return 1;
     }
     std::printf("[audio_rt] PASS no-alloc callback (voices peak=%u, underruns=%llu, lock-free SPSC)\n",
-                mix.peak_voices(), (unsigned long long)mix.underruns());
+                mix.peak_voices(), static_cast<unsigned long long>(mix.underruns()));
     return 0;
 }

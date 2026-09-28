@@ -1,4 +1,4 @@
-#include "scene.hpp"
+#include "render_scene.hpp"
 
 #include <cmath>
 

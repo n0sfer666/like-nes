@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "asset_manager.hpp"
-#include "capture.hpp"
+#include "render_capture.hpp"
 #include "gpu.hpp"
 #include "hash.hpp"
 #include "platform_args.hpp"

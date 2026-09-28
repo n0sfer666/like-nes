@@ -8,6 +8,21 @@ FetchContent_Declare(wgpu_native_src
   GIT_SUBMODULES_RECURSE TRUE)
 FetchContent_MakeAvailable(wgpu_native_src)
 
+# bindgen 0.69 из Cargo.lock тега не видит полей структур под clang 21 (Xcode 27): в AST больше нет
+# ElaboratedType, и 72 структуры webgpu.h выходят непрозрачными — 248 ошибок компиляции крейта.
+# 0.72.1 это чинит; патч ставится идемпотентно, повторный configure его не дублирует.
+set(_wgpu_patch "${CMAKE_CURRENT_LIST_DIR}/wgpu_bindgen.patch")
+execute_process(COMMAND git apply --reverse --check "${_wgpu_patch}"
+  WORKING_DIRECTORY "${wgpu_native_src_SOURCE_DIR}" RESULT_VARIABLE _wgpu_patched
+  OUTPUT_QUIET ERROR_QUIET)
+if(NOT _wgpu_patched EQUAL 0)
+  execute_process(COMMAND git apply "${_wgpu_patch}"
+    WORKING_DIRECTORY "${wgpu_native_src_SOURCE_DIR}" RESULT_VARIABLE _wgpu_apply)
+  if(NOT _wgpu_apply EQUAL 0)
+    message(FATAL_ERROR "wgpu_native.cmake: ${_wgpu_patch} does not apply to v0.19.4.1")
+  endif()
+endif()
+
 if(NOT DEFINED WGPU_RUST_TARGET)
   if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     if(CMAKE_OSX_SYSROOT MATCHES "iPhoneSimulator|iphonesimulator")
@@ -45,6 +60,11 @@ add_custom_command(
   COMMENT "Building wgpu-native from Rust source for ${WGPU_RUST_TARGET}"
   VERBATIM)
 add_custom_target(wgpu_native_build DEPENDS "${WGPU_LIB}")
+unset(_wgpu_patch)
+unset(_wgpu_patched)
+unset(_wgpu_apply)
+unset(_tcbin)
+unset(_lk)
 
 set(WGPU_SHIM "${wgpu_native_src_SOURCE_DIR}/webgpu_shim")
 file(MAKE_DIRECTORY "${WGPU_SHIM}/webgpu")
@@ -57,3 +77,10 @@ add_library(wgpu_native STATIC IMPORTED GLOBAL)
 set_target_properties(wgpu_native PROPERTIES IMPORTED_LOCATION "${WGPU_LIB}")
 target_include_directories(wgpu_native INTERFACE "${WGPU_SHIM}")
 add_dependencies(wgpu_native wgpu_native_build)
+
+# Цели движка линкуют WebGPU под десктопным именем `webgpu` и зовут копирование его рантайма рядом
+# с бинарём. На мобиле библиотека статическая и уезжает внутрь приложения линковкой — копировать
+# нечего, а имя то же, чтобы граф целей движка не ветвился по платформе.
+add_library(webgpu ALIAS wgpu_native)
+function(target_copy_webgpu_binaries)
+endfunction()

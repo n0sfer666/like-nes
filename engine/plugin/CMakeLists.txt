@@ -2,9 +2,9 @@
 # sim-системы (спека #6). Загрузка модуля и крэш-изоляция — за швами platform_core (#12):
 # dlopen/siglongjmp на POSIX, LoadLibraryExW+копия/SEH на Windows. Гейты determinism/seam/
 # isolation — на всех 3 OS. platform_core PUBLIC: Module — поле PluginHost.
-add_library(plugin_core STATIC registry.cpp host.cpp builtin.cpp manifest.cpp)
+add_library(plugin_core STATIC registry.cpp host_api.cpp host.cpp builtin.cpp manifest.cpp)
 target_include_directories(plugin_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(plugin_core PUBLIC engine_core platform_core)
+target_link_libraries(plugin_core PUBLIC engine_core asset_hash platform_core)
 
 add_executable(plugin_determinism_test plugin_determinism_test.cpp)
 target_link_libraries(plugin_determinism_test PRIVATE plugin_core)
@@ -14,6 +14,11 @@ target_link_libraries(plugin_seam_test PRIVATE plugin_core)
 
 add_executable(plugin_isolation_test plugin_isolation_test.cpp)
 target_link_libraries(plugin_isolation_test PRIVATE plugin_core)
+
+# Гейт границы C-ABI (аудит #21, A·2·10): враждебные аргументы в восемь входов `HostApi`. Своя
+# цель, а не ассерты внутри соседей: те зовут танки как ДОБРОСОВЕСТНЫЙ плагин и врут про границу.
+add_executable(plugin_abi_test plugin_abi_test.cpp)
+target_link_libraries(plugin_abi_test PRIVATE plugin_core)
 
 # Headless-гейт конфигурируемого интерфейса: манифест (данные) → панели/докинг. Без окна, в CI.
 add_executable(plugin_manifest_test plugin_manifest_test.cpp)
@@ -40,7 +45,7 @@ foreach(P plugin_gravity plugin_wind plugin_rle_codec plugin_multi plugin_crash
   # (getenv отдаёт на Windows ANSI-строку и помечен небезопасным). Статическая библиотека —
   # неиспользованные объекты в модуль не попадают, поэтому плагинам без окружения это ничего не стоит.
   target_include_directories(${P} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/platform)
-  target_link_libraries(${P} PRIVATE engine_core platform_core)
+  target_link_libraries(${P} PRIVATE engine_core asset_hash platform_core)
   set_target_properties(${P} PROPERTIES PREFIX "")
 endforeach()
 
@@ -70,21 +75,41 @@ endif()
 
 # WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
 # (i32 fix32, детерм.), грузится через wasmtime_wat2wasm (без wasm-ld). Local pinned-T4 (C-API
-# prebuilt в deps/, не в git; CI — follow-up). Гейты: native≡WASM sim-hash + OOB/cap escape→trap.
+# prebuilt в deps/, не в git; CI — follow-up). Слово «untrusted» держится на ТРЁХ ресурсах сразу:
+# память хоста (OOB→trap, чужой импорт→отказ линковки), его RAM (store limiter 16 МиБ, один
+# инстанс) и его время (топливо на каждый вызов) — до аудита #21 A·2·2 последних двух не было, и
+# гость с бесконечным циклом вешал кадр, а memory.grow забирал адресное пространство целиком.
+# Гейты: native≡WASM sim-hash + OOB/cap/loop/grow escape→trap + позитивный контроль роста.
 if(PLUGIN_WASM)
-  file(GLOB WASMTIME_DIR ${CMAKE_SOURCE_DIR}/deps/wasmtime-*-c-api)
-  if(WASMTIME_DIR AND EXISTS ${WASMTIME_DIR}/include/wasmtime.h)
-    add_executable(plugin_wasm_test plugin_wasm_test.cpp wasm_host.cpp)
-    target_include_directories(plugin_wasm_test PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR} ${WASMTIME_DIR}/include)
-    target_link_libraries(plugin_wasm_test PRIVATE plugin_core engine_core ${WASMTIME_DIR}/lib/libwasmtime.a)
-    if(APPLE)
-      target_link_libraries(plugin_wasm_test PRIVATE
-        "-framework CoreFoundation" "-framework Security" "-framework SystemConfiguration")
-    elseif(UNIX)
-      target_link_libraries(plugin_wasm_test PRIVATE pthread dl m)
-    endif()
-  else()
-    message(STATUS "PLUGIN_WASM: wasmtime C-API не найден в deps/ — gate #5 пропущен")
+  include(${CMAKE_SOURCE_DIR}/cmake/wasmtime_pin.cmake)
+  # На Apple целевая архитектура — CMAKE_OSX_ARCHITECTURES, а не процессор хоста; универсальная
+  # сборка (две архитектуры) тройки не имеет, и гейт пропускается.
+  set(WASMTIME_CPU "${CMAKE_SYSTEM_PROCESSOR}")
+  if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+    string(REPLACE ";" "+" WASMTIME_CPU "${CMAKE_OSX_ARCHITECTURES}")
+  endif()
+  like_nes_wasmtime_triple("${CMAKE_SYSTEM_NAME}" "${WASMTIME_CPU}" WASMTIME_TRIPLE)
+  like_nes_wasmtime_dir(${CMAKE_SOURCE_DIR}/deps "${WASMTIME_TRIPLE}" WASMTIME_DIR)
+  if(WASMTIME_DIR)
+    # Три сущности — три файла: песочница с потолками (wasm_sandbox), хозяин игрового пути
+    # (wasm_host) и зонд побега (wasm_escape). Песочницу делят двое: потолок, поставленный только
+    # на игровом пути, оставил бы гейт мерить другую конфигурацию (аудит #21, ревью A·2).
+    set(WASM_SRC wasm_host.cpp wasm_sandbox.cpp wasm_error.cpp wasm_escape.cpp)
+    add_executable(plugin_wasm_test plugin_wasm_test.cpp ${WASM_SRC})
+    # Контракт объекта WasmGravity — своя цель и свой вердикт: гейт побега спрашивает у ЧУЖОГО
+    # модуля, что ему разрешили, а этот — у хозяина, что он говорит о себе (аудит #21, ревью A·2).
+    add_executable(plugin_wasm_host_test plugin_wasm_host_test.cpp ${WASM_SRC})
+    foreach(T plugin_wasm_test plugin_wasm_host_test)
+      target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+      # Чужой C-API: системным, иначе -Wold-style-cast судит касты в макросах wasm.h как наши.
+      target_include_directories(${T} SYSTEM PRIVATE ${WASMTIME_DIR}/include)
+      target_link_libraries(${T} PRIVATE plugin_core engine_core ${WASMTIME_DIR}/lib/libwasmtime.a)
+      if(APPLE)
+        target_link_libraries(${T} PRIVATE
+          "-framework CoreFoundation" "-framework Security" "-framework SystemConfiguration")
+      elseif(UNIX)
+        target_link_libraries(${T} PRIVATE pthread dl m)
+      endif()
+    endforeach()
   endif()
 endif()

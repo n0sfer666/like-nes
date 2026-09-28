@@ -2,12 +2,12 @@
 #include <cstdlib>
 #include <string>
 
-#include "../plugin/host.hpp"
+#include "host.hpp"
 #include "delivery.hpp"
 #include "platform_args.hpp"
 #include "platform_env.hpp"
 #include "plugin_backend.hpp"
-#include "registry.hpp"
+#include "ach_registry.hpp"
 #include "tracker.hpp"
 
 namespace {

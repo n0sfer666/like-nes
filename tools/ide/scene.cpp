@@ -1,4 +1,4 @@
-#include "scene.hpp"
+#include "ide_scene.hpp"
 
 namespace ide {
 

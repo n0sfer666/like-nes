@@ -1,5 +1,5 @@
 #pragma once
-#include "../core/fixed.hpp"
+#include "fixed.hpp"
 #include "platform_export.h"
 #include <cstdint>
 

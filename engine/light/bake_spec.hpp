@@ -2,12 +2,12 @@
 #include <string>
 #include <vector>
 
-#include "table.hpp"
+#include "light_table.hpp"
 
 namespace light {
 
 // Разобранный источник — то, что парсер отдаёт сборщику байтов. Отдельным заголовком по той же
-// причине, что и `mat::bake_rows.hpp`: два файла пекаря делят его, а рантайм не знает о нём вовсе.
+// причине, что и `material_bake_rows.hpp`: два файла пекаря делят его, а рантайм не знает о нём вовсе.
 struct LightSpec {
     std::string name;
     Kind kind = Kind::Point;

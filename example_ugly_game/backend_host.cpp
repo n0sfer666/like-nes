@@ -1,7 +1,7 @@
 #include "backend_host.hpp"
 
-#include "../engine/achievements/plugin_backend.hpp"
-#include "../engine/plugin/host.hpp"
+#include "plugin_backend.hpp"
+#include "host.hpp"
 
 namespace game {
 

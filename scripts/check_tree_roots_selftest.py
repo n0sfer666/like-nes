@@ -2,15 +2,32 @@
 
 Отдельным файлом по тому же основанию, что `ascii_output_check_selftest.py` рядом со своим гейтом:
 сверка копий и набор сломанных копий — две ответственности, и растут они независимо (третья копия
-приехала со швом хешей, четвёртая — со швом файлов, а с находкой ревью у каждой прибавилось по
-второму списку). Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
+приехала со швом хешей, четвёртая — со швом файлов, пятая — со швом подключений, а с находкой
+ревью у каждой прибавилось по второму списку; шестая копия расширений — с запретом кастов).
+Зовётся только из `check_tree_roots.py --selftest`, гейтом не является.
 """
 import os
+import re
 import shutil
 import sys
 import tempfile
 
-from check_tree_roots import COPIES, FS, PY, ROOT, SEAM, SH, gate
+from check_tree_roots import CAST, EXT_COPIES, FS, INC, PY, ROOT, SEAM, SH, gate
+
+
+def sh_without_root(text, name="docs/examples"):
+    """Убирает корень из `ROOTS_CODE`, где бы он в списке ни стоял.
+
+    Раньше порча была текстовой заменой ` docs/examples"` на `"`, то есть молча полагалась на то,
+    что этот корень в списке ПОСЛЕДНИЙ. Гейт 9 дописал `tests` — подстроки не стало, порча
+    перестала что-либо менять, и контроль остался без предмета (красный CI 2026-09-22). Разбор
+    списка словами от позиции не зависит: дописать корень в конец больше не значит обезоружить
+    контроль.
+    """
+    def strip(m):
+        return m.group(1) + " ".join(w for w in m.group(2).split() if w != name) + '"'
+
+    return re.sub(r'^(ROOTS_CODE=")([^"]*)"', strip, text, count=1, flags=re.M)
 
 
 def selftest():
@@ -21,7 +38,7 @@ def selftest():
         d = tempfile.mkdtemp()
         os.makedirs(os.path.join(d, "scripts"))
         changed = False
-        for rel, _ in COPIES:
+        for rel, _ in EXT_COPIES:
             text = open(os.path.join(ROOT, rel), encoding="utf-8").read()
             new = mutate(rel, text)
             changed = changed or new != text
@@ -44,7 +61,7 @@ def selftest():
 
     run("pass", "нетронутые копии совпадают", lambda rel, t: t)
     run("fail", "корень пропал из копии в шелле",
-        lambda rel, t: t.replace(' docs/examples"', '"') if rel == SH else t)
+        lambda rel, t: sh_without_root(t) if rel == SH else t)
     run("fail", "разбор не нашёл копию в шелле",
         lambda rel, t: t.replace("ROOTS_CODE=", "ROOTS_SRC=").replace("ROOTS=", "ROOTS_ALL=")
         if rel == SH else t)
@@ -56,7 +73,8 @@ def selftest():
         lambda rel, t: t.replace('EXT="--include', 'EXT_ALL="--include') if rel == SH else t)
     # Порчи на КАЖДУЮ python-копию, а не на одну: копия, которую набор не ломает, выпадает из
     # сверки молча — ровно то расхождение, ради которого гейт и заведён.
-    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов")):
+    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов"),
+                        (INC, "шва подключений")):
         run("fail", "корень пропал из копии %s" % label,
             lambda rel, t, w=path: t.replace(', "docs/examples"', "") if rel == w else t)
         run("fail", "лишний корень в копии %s" % label,
@@ -64,6 +82,9 @@ def selftest():
             if rel == w else t)
         run("fail", "разбор не нашёл копию %s" % label,
             lambda rel, t, w=path: t.replace("ROOTS = (", "ROOTS_ALL = (") if rel == w else t)
+    # Расширения — ещё и у запрета кастов: корней у него нет, их даёт шелл аргументами.
+    for path, label in ((PY, "ASCII-вывода"), (SEAM, "шва хешей"), (FS, "шва файлов"),
+                        (INC, "шва подключений"), (CAST, "запрета кастов")):
         run("fail", "расширение пропало из копии %s" % label,
             lambda rel, t, w=path: t.replace('".inl", ', "") if rel == w else t)
         run("fail", "лишнее расширение в копии %s" % label,

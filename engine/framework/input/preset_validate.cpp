@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "input_types.hpp"
+#include "preset_axes.hpp"
 #include "preset_parse.hpp"
 #include "source_names.hpp"
 
@@ -9,6 +10,12 @@
 // противоречие видно только между строками, а формы прикрепляются к осям в конце пресета.
 // Грамматика строки живёт в `preset_parse.cpp` и о них ничего не знает — зовёт по имени.
 namespace framework::input {
+
+// Потолок строк осей обязан быть не ниже предела движка: иначе пресет, который движок ещё биндит,
+// пекарь отбивал бы раньше — и отказ ссылался бы на читателя там, где мешает сам потолок.
+static_assert(MAX_AXIS_ROWS >= static_cast<uint32_t>(::input::MAX_AXES),
+              "the axis row cap must leave room for every axis the engine binds");
+
 namespace {
 
 std::string row_name(const BindingRow& r) {
@@ -23,24 +30,18 @@ bool row_bound(const BindingRow& r) {
     return r.kind != static_cast<uint32_t>(::input::SourceKind::None);
 }
 
-// Логических осей в пресете меньше, чем строк: одна ось объявляется несколькими (клавиши, стрелки,
-// стик), а предел движка стоит на ОСЯХ. `PresetTable::bind` считает так же — иначе пекарь отбивал бы
-// не то, что не влезает.
 bool declares_axis(const PresetBuild& b, const PresetRow& p, const std::string& name) {
     for (uint32_t i = p.axis_begin; i < p.axis_begin + p.axis_count; ++i)
         if (b.axis_names[i] == name) return true;
     return false;
 }
 
-uint32_t logical_axes(const PresetBuild& b, const PresetRow& p) {
-    uint32_t n = 0;
-    for (uint32_t i = p.axis_begin; i < p.axis_begin + p.axis_count; ++i) {
-        bool first = true;
-        for (uint32_t k = p.axis_begin; k < i; ++k)
-            if (b.axis_names[k] == b.axis_names[i]) { first = false; break; }
-        if (first) ++n;
-    }
-    return n;
+// Логических осей в пресете меньше, чем строк: одна ось объявляется несколькими (клавиши, стрелки,
+// стик), а предел движка стоит на ОСЯХ. Считает их общая функция (`preset_axes.hpp`) — та же, что
+// у читателя и у рантайма: пекарь, считающий по-своему, отбивал бы не то, что не влезает, и писал
+// бы в `pair_axis` номер, которого рантайм не знает. Здесь остаётся только доступ к имени строки.
+auto axis_names(const PresetBuild& b, const PresetRow& p) {
+    return [&b, &p](uint32_t i) { return b.axis_names[p.axis_begin + i].c_str(); };
 }
 
 // Один источник, тянущий одну ось в обе стороны, — противоречие манифеста, а не альтернатива:
@@ -82,11 +83,17 @@ bool preset_check_action_row(const PresetBuild& b, int line, PresetBakeError& er
 
 bool preset_check_axis_row(const PresetBuild& b, const std::string& name, int line,
                            PresetBakeError& err) {
+    if (b.presets.back().axis_count > MAX_AXIS_ROWS)
+        return preset_fail(err, line, "the preset declares more than " +
+                               std::to_string(MAX_AXIS_ROWS) +
+                               " axis rows; the reader refuses such a table");
     std::string clash;
     if (axis_pulls_both_ways(b, b.presets.back(), name, clash))
         return preset_fail(err, line, "axis '" + name + "' takes '" + clash + "' in both directions; "
                                "the later row would silently win and reverse the axis");
-    if (logical_axes(b, b.presets.back()) > static_cast<uint32_t>(::input::MAX_AXES))
+    const PresetRow& cur = b.presets.back();
+    if (logical_axis_count(cur.axis_count, axis_names(b, cur)) >
+        static_cast<uint32_t>(::input::MAX_AXES))
         return preset_fail(err, line, "the preset declares more than " +
                                std::to_string(::input::MAX_AXES) + " axes; the engine binds no more");
     return true;
@@ -121,17 +128,22 @@ bool preset_close(PresetBuild& b, PresetBakeError& err, int line) {
         b.axes[i].outer_raw = it->second.outer_raw;
         b.axes[i].curve_exp = it->second.curve_exp;
         if (it->second.pair.empty()) continue;
+        // Ось, спаренная сама с собой, — радиальная зона по одной оси, то есть бессмыслица:
+        // `pair` получил бы собственный номер, и проверка читателя `pair < logical` такую
+        // таблицу пропустила бы (аудит #21, ревью A·2).
+        if (it->second.pair == b.axis_names[i])
+            return preset_fail(err, it->second.line, "shape pairs axis '" + it->second.pair +
+                                   "' with itself; a radial zone needs two different axes");
         // Пара хранится ЛОГИЧЕСКИМ номером оси, а не номером строки: одна ось объявляется
         // несколькими строками (клавиши, стрелки, стик), и номер строки указывал бы на
         // альтернативный биндинг вместо самой оси.
-        uint32_t pair = NO_PAIR, logical = 0;
-        for (uint32_t j = p.axis_begin; j < p.axis_begin + p.axis_count; ++j) {
-            if (b.axis_names[j] == it->second.pair) { pair = logical; break; }
-            bool first = true;
-            for (uint32_t k = p.axis_begin; k < j; ++k)
-                if (b.axis_names[k] == b.axis_names[j]) { first = false; break; }
-            if (first) ++logical;
-        }
+        uint32_t pair = NO_PAIR;
+        const auto name_of = axis_names(b, p);
+        for (uint32_t j = 0; j < p.axis_count; ++j)
+            if (b.axis_names[p.axis_begin + j] == it->second.pair) {
+                pair = logical_axis_of_row(j, name_of);
+                break;
+            }
         if (pair == NO_PAIR)
             return preset_fail(err, line,
                         "shape pairs axis '" + it->second.pair + "' which the preset does not declare");

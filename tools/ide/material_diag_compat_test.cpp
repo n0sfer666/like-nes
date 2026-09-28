@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <string>
 
-#include "../../engine/material/diag.hpp"
+#include "diag.hpp"
 #include "compile/diagnostics.hpp"
 
 // Совместимость диагностики шейдера с панелью #7 — УТВЕРЖДЕНИЕМ, а не соглашением в комментарии.

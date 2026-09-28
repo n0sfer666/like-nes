@@ -1,4 +1,4 @@
-#include "sprite.hpp"
+#include "graphics_sprite.hpp"
 
 #include <algorithm>
 

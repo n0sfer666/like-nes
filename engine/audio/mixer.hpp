@@ -1,9 +1,11 @@
 #pragma once
+#include <atomic>
 #include <cstdint>
 
 #include "audio_types.hpp"
 #include "fix_math.hpp"
-#include "spsc.hpp"
+#include "limiter.hpp"
+#include "audio_spsc.hpp"
 #include "voice.hpp"
 
 // Микшер (спека #3). Живёт в audio-callback (RT-safe: без локов/heap/I/O). Тянет команды
@@ -37,7 +39,9 @@ public:
     // Callback устройства (RT-safe). Микширует frames стерео-фреймов в out (interleaved int16).
     void mix(uint32_t frames, int16_t* out);
 
-    uint64_t cursor() const { return cursor_; }
+    // Читается и из потока игры: часы игры, убежавшие вперёд за простой вывода, подтягиваются к
+    // нему (аудит #21 A·3·5).
+    uint64_t cursor() const { return cursor_.load(std::memory_order_relaxed); }
     uint64_t underruns() const { return underruns_; }
     uint32_t peak_voices() const { return peak_voices_; }
 
@@ -58,8 +62,10 @@ private:
     fix32 bus_gain_[static_cast<uint32_t>(Bus::Count)];
     fix32 master_;
     fix32 duck_env_;    // duck-огибающая (рампится ПО СЕМПЛУ в mix-петле → block-независимо)
+    Limiter limiter_;
     fix32 listener_x_, listener_y_;
-    uint64_t cursor_ = 0;
+    std::atomic<uint64_t> cursor_{0};
+    static_assert(std::atomic<uint64_t>::is_always_lock_free, "the RT thread takes no locks");
     uint64_t seq_ = 0;
     uint64_t underruns_ = 0;
     uint32_t peak_voices_ = 0;

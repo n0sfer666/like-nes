@@ -8,6 +8,19 @@
 // решить по одной строке, спрашивается у `preset_validate.cpp`; всё, что про текст как таковой, —
 // у `framework/core/text_fields.hpp`.
 namespace framework::input {
+
+// Имя длиннее потолка читатель отвергнет целиком, и отказ придёт уже на игре. Пекарь обязан
+// назвать такое имя номером строки манифеста (аудит #21, A·2·1b). В сообщении стоит ДЛИНА, а не
+// обрезанное имя: у длинных имён общая голова, и по «abcdefghijklmnop...» не понять ни какое имя
+// виновато, ни насколько его резать (аудит #21, ревью A·2). Проверка общая с разбором падов:
+// потолок один на весь блоб имён, и вторая его копия разошлась бы с первой.
+bool preset_name_fits(const std::string& name, int line, PresetBakeError& err) {
+    if (name.size() <= MAX_NAME) return true;
+    return preset_fail(err, line, "a name of " + std::to_string(name.size()) +
+                           " bytes is longer than the " + std::to_string(MAX_NAME) +
+                           " bytes the reader accepts");
+}
+
 namespace {
 
 BindingRow to_row(const ::input::Source& s) {
@@ -37,6 +50,13 @@ bool need_preset(const PresetBuild& b, PresetBakeError& err, int line, const cha
 
 bool parse_preset(PresetBuild& b, const std::vector<std::string>& f, int line, PresetBakeError& err) {
     if (f.size() != 2 || f[1].empty()) return preset_fail(err, line, "preset needs exactly one name");
+    // Потолок пресетов держит не память, а СТАРТ: проверка срезов у читателя обходит оси каждого
+    // пресета попарным сравнением имён, и таблица сверх потолка ему уже не откроется.
+    if (b.presets.size() >= MAX_PRESETS)
+        return preset_fail(err, line, "the manifest declares more than " +
+                               std::to_string(MAX_PRESETS) + " presets; the reader refuses such a "
+                               "table");
+    if (!preset_name_fits(f[1], line, err)) return false;
     if (!preset_close(b, err, line)) return false;
     PresetRow p{};
     p.name_offset = b.blob.add(f[1]);
@@ -49,6 +69,7 @@ bool parse_preset(PresetBuild& b, const std::vector<std::string>& f, int line, P
 bool parse_action(PresetBuild& b, const std::vector<std::string>& f, int line, PresetBakeError& err) {
     if (!need_preset(b, err, line, "action")) return false;
     if (f.size() < 3) return preset_fail(err, line, "action needs a name and at least one source");
+    if (!preset_name_fits(f[1], line, err)) return false;
     // Действие объявляется один раз со всеми источниками сразу: биндинги действия обязаны лежать
     // непрерывным диапазоном, а вторая строка с тем же именем разорвала бы его молча.
     const PresetRow& cur = b.presets.back();
@@ -75,6 +96,7 @@ bool parse_axis(PresetBuild& b, const std::vector<std::string>& f, int line, Pre
     if (!need_preset(b, err, line, "axis")) return false;
     if (f.size() != 4)
         return preset_fail(err, line, "axis needs a name, a positive source and a negative source ('-' for none)");
+    if (!preset_name_fits(f[1], line, err)) return false;
     ::input::Source pos{}, neg{};
     if (!parse_source(f[2], pos)) return preset_fail(err, line, "unknown source '" + f[2] + "'");
     if (f[3] != "-" && !parse_source(f[3], neg)) return preset_fail(err, line, "unknown source '" + f[3] + "'");

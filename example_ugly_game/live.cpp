@@ -19,30 +19,15 @@
 #include "gpu_env.hpp"
 #include "material_fx.hpp"
 #include "platform_env.hpp"
-#include "sim.hpp"
+#include "platform_redact.hpp"
+#include "shader_watch.hpp"
+#include "game_sim.hpp"
 #include "source.hpp"
+#include "surface_frame.hpp"
 #include "input_setup.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
-namespace {
-
-WGPUTextureFormat configure_surface(WGPUSurface s, WGPUAdapter a, WGPUDevice d,
-                                    uint32_t w, uint32_t h) {
-    WGPUSurfaceCapabilities caps = {};
-    wgpuSurfaceGetCapabilities(s, a, &caps);
-    WGPUTextureFormat fmt = caps.formatCount ? caps.formats[0] : WGPUTextureFormat_BGRA8Unorm;
-    WGPUSurfaceConfiguration cfg = {};
-    cfg.device = d; cfg.format = fmt; cfg.usage = WGPUTextureUsage_RenderAttachment;
-    cfg.alphaMode = WGPUCompositeAlphaMode_Auto; cfg.width = w; cfg.height = h;
-    cfg.presentMode = WGPUPresentMode_Fifo;
-    wgpuSurfaceConfigure(s, &cfg);
-    wgpuSurfaceCapabilitiesFreeMembers(caps);
-    return fmt;
-}
-
-} // namespace
-
 int run_window(int frame_cap) {
     if (!glfwInit()) { std::fprintf(stderr, "glfwInit failed\n"); return 1; }
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -58,7 +43,7 @@ int run_window(int frame_cap) {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(win, &fbw, &fbh);
     WGPUTextureFormat fmt = configure_surface(surface, gpu.adapter, gpu.device,
-                                              (uint32_t)fbw, (uint32_t)fbh);
+                                              static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh));
 
     Atlas atlas = load_game_atlas(gpu.supports_bc);
     // Библиотека эффектов (гейт 9 спеки #18). Отказ не фатален: `bind` вернёт false, и сцена
@@ -74,18 +59,21 @@ int run_window(int frame_cap) {
     // играть — он снимает только горячую замену, о чём и говорит строкой.
     std::string fx_wgsl;
     platform::env_var("LIKENES_FX_WGSL", fx_wgsl);
+    ShaderWatch shader_watch;
     if (have_fx && !fx_wgsl.empty()) {
-        if (materials.watch_shader(fx_wgsl))
-            std::printf("[game] shader hot-reload: %s (%s watch)\n", fx_wgsl.c_str(),
-                        materials.watch_backend());
+        if (shader_watch.start(materials, fx_wgsl))
+            std::printf("[game] shader hot-reload: %s (%s watch)\n",
+                        platform::redact_home(fx_wgsl).c_str(),
+                        shader_watch.backend());
         else
-            std::fprintf(stderr, "[game] shader hot-reload off: %s\n", materials.watch_error());
+            std::fprintf(stderr, "[game] shader hot-reload off: %s\n",
+                         platform::redact_home(shader_watch.error()).c_str());
     }
     SpriteBatch batch;
     batch.init(gpu.device, gpu.queue, WGPUTextureFormat_RGBA16Float, atlas,
                have_fx ? &materials : nullptr);   // → HDR (bloom)
     Bloom bloom;
-    if (!bloom.init(gpu.device, gpu.queue, fmt, (uint32_t)fbw, (uint32_t)fbh)) {
+    if (!bloom.init(gpu.device, gpu.queue, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh))) {
         std::fprintf(stderr, "bloom init failed\n");
         gpu.shutdown(); glfwDestroyWindow(win); glfwTerminate(); return 1;
     }
@@ -112,14 +100,16 @@ int run_window(int frame_cap) {
     install_glfw_input(win, engine);
     input::GamepadSource* pad = input::make_gamepad_source();
     bool have_pad = pad && pad->init();
-    std::printf("[game] WASD/arrows/LStick = move | gamepad: %s | Esc = quit\n",
+    std::printf("[game] WASD/arrows/LStick = move | gamepad: %s | -/= = volume | Esc = quit\n",
                 have_pad ? pad->backend_name() : "none");
 
     const fix32 dt = fix32::from_float(1.0 / 60);
     const auto period = std::chrono::microseconds(16667);
     auto next = std::chrono::steady_clock::now();
+    const SurfaceSpec spec{surface, fmt, static_cast<uint32_t>(fbw), static_cast<uint32_t>(fbh)};
     int frames = 0;
-    bool surface_warned = false;
+    bool vol_down = false, vol_up = false;
+    bool surface_warned = false, lost = false;
     for (uint32_t t = 0; !glfwWindowShouldClose(win); ++t) {
         next += period;
         std::this_thread::sleep_until(next);
@@ -135,47 +125,39 @@ int run_window(int frame_cap) {
         ach.observe(gs);                                 // наблюдатель: sim о нём не знает
         if ((t % 60) == 0) ach.pump();                   // доставка — вне тика
         ach.autosave();
-        materials.poll_shader();                         // правка шейдера — между тиком и кадром
+        shader_watch.poll(materials);                    // правка шейдера — между тиком и кадром
         if (glfwGetKey(win, GLFW_KEY_ESCAPE) == GLFW_PRESS) break;
+        const bool down = glfwGetKey(win, GLFW_KEY_MINUS) == GLFW_PRESS;
+        const bool up = glfwGetKey(win, GLFW_KEY_EQUAL) == GLFW_PRESS;
+        if ((down && !vol_down) || (up && !vol_up))
+            std::printf("[game] volume %d/10\n", audio.step_volume(down && !vol_down ? -1 : 1));
+        vol_down = down;
+        vol_up = up;
 
-        WGPUSurfaceTexture st = {};
-        wgpuSurfaceGetCurrentTexture(surface, &st);
-        if (st.status != WGPUSurfaceGetCurrentTextureStatus_Success) {
-            if (st.texture) wgpuTextureRelease(st.texture);
-            // Молчаливый continue означал бесконечный чёрный кадр: Outdated поверхность сама не
-            // чинится, её надо переконфигурировать, а не ждать. Размер берём тот же — окно
-            // нерастяжимое, и bloom-таргеты созданы под него.
-            if (st.status == WGPUSurfaceGetCurrentTextureStatus_Outdated ||
-                st.status == WGPUSurfaceGetCurrentTextureStatus_Lost) {
-                configure_surface(surface, gpu.adapter, gpu.device, (uint32_t)fbw, (uint32_t)fbh);
-            }
-            if (!surface_warned) {
-                std::fprintf(stderr, "[game] surface texture status %u - frame skipped\n",
-                             (unsigned)st.status);
-                surface_warned = true;
-            }
-            continue;
+        const SurfaceFrame frame = acquire_frame(spec, gpu, "game", surface_warned);
+        if (frame.quit) { lost = true; break; }
+        if (frame.texture) {
+            WGPUTextureView view = wgpuTextureCreateView(frame.texture, nullptr);
+            batch.begin();
+            push_scene(batch, world, atlas, sfx);
+            push_fx(batch, fx, atlas);
+            push_hud(batch, world, atlas, gs);
+            push_screen(batch, atlas, gs);
+            push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);
+            WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
+            WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view(), WGPUColor{0.02, 0.02, 0.07, 1.0});   // сцена → HDR
+            batch.flush(pass);
+            wgpuRenderPassEncoderEnd(pass);
+            wgpuRenderPassEncoderRelease(pass);
+            bloom.resolve(enc, view);                                          // bloom → swapchain
+            WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
+            wgpuQueueSubmit(gpu.queue, 1, &cmd);
+            wgpuCommandBufferRelease(cmd);
+            wgpuCommandEncoderRelease(enc);
+            wgpuSurfacePresent(surface);
+            wgpuTextureViewRelease(view);
+            wgpuTextureRelease(frame.texture);
         }
-        WGPUTextureView view = wgpuTextureCreateView(st.texture, nullptr);
-        batch.begin();
-        push_scene(batch, world, atlas, sfx);
-        push_fx(batch, fx, atlas);
-        push_hud(batch, world, atlas, gs);
-        push_screen(batch, atlas, gs);
-        push_toast(batch, atlas, ach.toast().name.c_str(), ach.toast().left);
-        WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
-        WGPURenderPassEncoder pass = begin_clear(enc, bloom.hdr_view(), WGPUColor{0.02, 0.02, 0.07, 1.0});   // сцена → HDR
-        batch.flush(pass);
-        wgpuRenderPassEncoderEnd(pass);
-        wgpuRenderPassEncoderRelease(pass);
-        bloom.resolve(enc, view);                                          // bloom → swapchain
-        WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
-        wgpuQueueSubmit(gpu.queue, 1, &cmd);
-        wgpuCommandBufferRelease(cmd);
-        wgpuCommandEncoderRelease(enc);
-        wgpuSurfacePresent(surface);
-        wgpuTextureViewRelease(view);
-        wgpuTextureRelease(st.texture);
         if (frame_cap && ++frames >= frame_cap) break;
     }
     ach.pump();
@@ -189,6 +171,7 @@ int run_window(int frame_cap) {
     glfwDestroyWindow(win);
     glfwTerminate();
     std::printf("[game] fx: peak %u of %u, dropped %u\n", fx.peak(), FX_CAP, fx.dropped());
+    if (lost) return 1;
     std::printf("[game] window clean exit\n");
     return 0;
 }

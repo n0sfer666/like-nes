@@ -29,16 +29,29 @@ bool read_text(const std::string& path, std::string& out) {
     return ok;
 }
 
-bool read_bytes(const std::string& path, std::vector<uint8_t>& out) {
+bool read_bytes_capped(const std::string& path, std::vector<uint8_t>& out, size_t max_bytes) {
     std::FILE* f = open_file(path, "rb");
     if (f == nullptr) return false;
     out.clear();
     uint8_t buf[4096];
-    for (size_t n; (n = std::fread(buf, 1, sizeof(buf), f)) > 0;) out.insert(out.end(), buf, buf + n);
-    const bool ok = std::ferror(f) == 0;
+    bool ok = true;
+    // Потолок спрашивается НА КАЖДОМ куске, а не после цикла: проверка размера у готового вектора
+    // означала бы, что чужой файл уже прочитан целиком, то есть ровно то выделение, которое потолок
+    // и запрещает. Чтение обрывается на первом куске, который его перебирает.
+    for (size_t n; ok && (n = std::fread(buf, 1, sizeof(buf), f)) > 0;) {
+        if (out.size() + n > max_bytes) ok = false;
+        else out.insert(out.end(), buf, buf + n);
+    }
+    ok = ok && std::ferror(f) == 0;
     std::fclose(f);
     if (!ok) out.clear();
     return ok;
+}
+
+// Без потолка — тот же цикл с потолком в размер адресного пространства: у своих файлов дерева
+// (бандл, испечённый этим же процессом) размер диктует пекарь, а не отправитель.
+bool read_bytes(const std::string& path, std::vector<uint8_t>& out) {
+    return read_bytes_capped(path, out, SIZE_MAX);
 }
 
 bool ensure_dir(const std::string& path) {

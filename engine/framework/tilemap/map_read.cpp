@@ -13,6 +13,9 @@ bool TileMapTable::open(const void* data, std::size_t size) {
     strings_ = nullptr;
     strings_size_ = 0;
     if (data == nullptr || size < sizeof(MapHeader)) return false;
+    // База выровнена не по контракту, а по проверке: буфер со сдвигом дал бы невыровненное чтение
+    // заголовка — UB, на strict-align SIGBUS (аудит #21, A·2·6).
+    if (reinterpret_cast<std::uintptr_t>(data) % alignof(MapHeader) != 0) return false;
     const auto* base = static_cast<const uint8_t*>(data);
     const auto* h = reinterpret_cast<const MapHeader*>(base);
     if (std::memcmp(h->magic, MAP_MAGIC, sizeof(h->magic)) != 0) return false;

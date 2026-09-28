@@ -1,5 +1,5 @@
 #pragma once
-#include "world.hpp"
+#include "game_world.hpp"
 #include "input_types.hpp"
 #include "fx_events.hpp"
 
@@ -13,9 +13,5 @@ void combat_step(flecs::world& world, GameState& gs, const input::InputFrame& in
 
 // Рестарт забега (S8): очистить бой, вернуть корабль/GameState в PH_Play.
 void reset_run(flecs::world& world, GameState& gs);
-
-// Канонический хеш боевого состояния (GameState + сущности с EntId в порядке seq) —
-// golden для регресс-теста детерминизма. Фон-звёзды не хешируются (не gameplay).
-uint64_t sim_hash(flecs::world& world, const GameState& gs);
 
 } // namespace game

@@ -53,67 +53,28 @@ option(PLUGIN_WASM "Build WASM-sandbox gate (wasmtime C-API from deps/)" ON)
 option(IDE_POC "Build IDE editor foundation (flecs scene-doc + round-trip + undo)" ON)
 option(LINUX_WAYLAND "Build GLFW with the Wayland backend too (needs wayland-scanner, libwayland-dev, libxkbcommon-dev)" OFF)
 
+# Мобильные оболочки собираются ЭТИМ корнем под тулчейном iOS/Android, а не своим проектом: цели
+# движка у игры и оболочек одни, и второй граф целей рядом отставал бы от первого молча — так уже
+# было, список исходников в оболочках застыл до удаления controls.cpp. Корнем, а не
+# `add_subdirectory` из оболочки: CMAKE_SOURCE_DIR в дереве обязан указывать сюда.
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+  set(LIKE_NES_MOBILE ON)
+  foreach(opt INPUT_NATIVE PLUGIN_UI PLUGIN_WASM)
+    set(${opt} OFF CACHE BOOL "" FORCE)
+  endforeach()
+  # Статический wgpu_native стоит в строке линковки дважды (игра и цели движка), и ld Apple на
+  # это предупреждает; CMP0156 убирает повтор там, где линкер сам разрешает обратные ссылки.
+  cmake_policy(SET CMP0156 NEW)
+else()
+  set(LIKE_NES_MOBILE OFF)
+endif()
+
 include(FetchContent)
 
-# --- GLFW (windowing) ---
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-# По умолчанию X11-only: wayland-scanner и libwayland-dev на раннере не стоят, а рендер в CI —
-# xvfb/X11. Wayland включается ЯВНО (`-DLINUX_WAYLAND=ON`), и без этого гейт 6 спеки #13 проверить
-# нечем: под Wayland-сессией собранный без него GLFW живёт клиентом XWayland, то есть отвечает на
-# вопрос про X11 второй раз. Системные зависимости — docs/en/getting-started/build.md.
-set(GLFW_BUILD_WAYLAND ${LINUX_WAYLAND} CACHE BOOL "" FORCE)
-FetchContent_Declare(glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw
-  GIT_TAG a74efa0d5628b74adc0426af4c5710e287fa7c2c  # 3.4
-  GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(glfw)
-
-# --- WebGPU backend ---
-# Движок линкует wgpu-native (prebuilt) — Dawn-из-исходников не собирается на arm64-macOS
-# (баг Abseil ×clang21: -msse4.1). Тот же стандартный webgpu.h, что и Dawn (продакшн-цель
-# в ADR): render-код переносится без изменений, свап на Dawn — позже.
-set(WEBGPU_BACKEND "WGPU" CACHE STRING "" FORCE)
-set(WEBGPU_BUILD_FROM_SOURCE OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(webgpu
-  GIT_REPOSITORY https://github.com/eliemichel/WebGPU-distribution
-  GIT_TAG f2b81861a0c1889ef51b79fc777da8e11c37bdb3  # main-v0.2.0
-)
-FetchContent_MakeAvailable(webgpu)
-
-# --- glfw3webgpu (surface creation glue) ---
-FetchContent_Declare(glfw3webgpu
-  GIT_REPOSITORY https://github.com/eliemichel/glfw3webgpu
-  GIT_TAG 39a80205998c6cbf803e18e750d964c23a47ef39  # v1.2.0
-)
-FetchContent_MakeAvailable(glfw3webgpu)
-# Бэкенд ОКНА этот glue выбирает на этапе компиляции, а `_GLFW_X11`/`_GLFW_WAYLAND` у самой glfw
-# объявлены PRIVATE — до потребителя они не доходят, и на Linux ветка всегда бралась X11-ная
-# (`#else` в его цепочке). GLFW при этом выбирает платформу В РАНТАЙМЕ, поэтому под Wayland-сессией
-# бинарь спрашивал X11-дисплей у Wayland-платформы, получал NULL и умирал паникой wgpu
-# «Display pointer is not set» — уже внутри создания поверхности, без единого слова про причину.
-# Пробрасываем свой же выбор: каталог, собранный с LINUX_WAYLAND=ON, и поверхность создаёт
-# Wayland-ную. Выбор остаётся ОДИН на каталог сборки — ровно поэтому гейт 6 требует двух деревьев.
-# Под `Linux`, а не голым `if(LINUX_WAYLAND)`: у самой glfw опция `GLFW_BUILD_WAYLAND` вне Linux
-# игнорируется ею же, а у glue такой защиты нет — `-DLINUX_WAYLAND=ON` на macOS увёл бы его в
-# Wayland-ветку создания поверхности поверх Cocoa.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND LINUX_WAYLAND)
-  target_compile_definitions(glfw3webgpu PRIVATE _GLFW_WAYLAND)
-endif()
-# Публичные макросы — НАШИ и объявляются ЗДЕСЬ, потому что выбор бэкенда окна это выбор ОС, а он по
-# инварианту 1 спеки #12 живёт в сборке, не в исходнике: `#if defined(__linux__)` в коде редактора
-# гейт `tree_invariants.sh seam` отбивает — и правильно. Потребителю нужно знать, под какую сессию
-# собран каталог, чтобы назвать расхождение словами. Чужое `_GLFW_WAYLAND` для этого не годится:
-# оно приватное намеренно (внутренний макрос glfw), публиковать его значило бы включить внутренние
-# ветки glfw в нашем коде.
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  if(LINUX_WAYLAND)
-    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_WAYLAND)
-  else()
-    target_compile_definitions(glfw3webgpu PUBLIC LIKE_NES_GLFW_X11)
-  endif()
+if(LIKE_NES_MOBILE)
+  include(${CMAKE_CURRENT_SOURCE_DIR}/platform/mobile/wgpu_native.cmake)
+else()
+  include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/window_deps.cmake)
 endif()
 
 # --- stb (PNG read/write для golden-image) ---
@@ -166,7 +127,7 @@ if(PLUGIN_UI)
 endif()
 
 # flecs = ECS-мир + meta/json рефлексия (единый источник: property-grid + IPC-зеркало + save/load).
-if(IDE_POC)
+if(IDE_POC OR LIKE_NES_MOBILE)
   set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
   set(FLECS_STATIC ON CACHE BOOL "" FORCE)
   set(FLECS_PIC ON CACHE BOOL "" FORCE)
@@ -215,10 +176,24 @@ add_subdirectory(engine/framework) # слой поверх подсистем �
 add_subdirectory(engine/plugin)
 add_subdirectory(engine/achievements)
 add_subdirectory(engine/hotreload)
+
+# Мобильная сборка строит только замыкание оболочки: тесты и демо движка под iOS/Android не
+# запускаются, а собранные «на всякий случай» они требовали бы от шва того, чего на телефоне нет.
+if(LIKE_NES_MOBILE)
+  get_property(dirs DIRECTORY PROPERTY SUBDIRECTORIES)
+  foreach(dir IN LISTS dirs)
+    set_property(DIRECTORY ${dir} PROPERTY EXCLUDE_FROM_ALL TRUE)
+  endforeach()
+  string(TOLOWER ${CMAKE_SYSTEM_NAME} shell)
+  add_subdirectory(platform/${shell})
+  return()
+endif()
+
 add_subdirectory(tools/assetc)
 add_subdirectory(tools/ide)
 add_subdirectory(example_ugly_game)
 add_subdirectory(docs/examples)   # примеры документации (#19) — после всех, кем они пользуются
+add_subdirectory(tests/fuzz)      # гейт 9 аудита #21 — последним: линкует читателей всех модулей
 
 # Компонент установки движка (#20) — после tools/, чьи цели он ставит.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_engine.cmake)

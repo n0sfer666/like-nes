@@ -1,4 +1,4 @@
-#include "scene.hpp"
+#include "ide_scene.hpp"
 #include "serialize.hpp"
 #include <cstdint>
 #include <cstdio>
@@ -40,16 +40,21 @@ int main() {
     std::string s1 = serialize(a);
 
     Scene b;
-    deserialize(b, s1);
+    // Загрузка своего же текста обязана СОСТОЯТЬСЯ: без этой проверки отказ давал бы пустую
+    // сцену, а `s1 == s2` на двух пустых текстах не сошлось бы только из-за шапки формата —
+    // то есть гейт падал бы, не назвав причины (аудит #21, A·2·8).
+    std::string why;
+    bool loaded = deserialize(b, s1, &why);
+    if (!loaded) std::fprintf(stderr, "deserialize refused: %s\n", why.c_str());
     std::string s2 = serialize(b);
-    bool roundtrip = (s1 == s2);
+    bool roundtrip = loaded && (s1 == s2);
 
     Scene c;
     build_scene(c);
     bool run2run = (serialize(c) == s1);
 
     uint64_t golden = golden_hash(a);
-    std::printf("scene golden-hash: 0x%016llx\n", (unsigned long long)golden);
+    std::printf("scene golden-hash: 0x%016llx\n", static_cast<unsigned long long>(golden));
     std::printf("round-trip byte-identical: %s\n", roundtrip ? "YES" : "NO");
     std::printf("run-to-run identical: %s\n", run2run ? "YES" : "NO");
 
@@ -58,7 +63,7 @@ int main() {
     }
 
     bool golden_ok = (GOLDEN == 0x0ull) || (golden == GOLDEN);
-    bool pass = roundtrip && run2run && golden_ok;
+    bool pass = roundtrip && run2run && golden_ok; // loaded уже внутри roundtrip
     std::printf("scene-roundtrip: %s\n", pass ? "PASS" : "FAIL");
     return pass ? 0 : 1;
 }

@@ -10,15 +10,15 @@
 #include "art.hpp"
 #include "batch.hpp"
 #include "assets_path.hpp"
-#include "capture.hpp"
+#include "game_capture.hpp"
 #include "frame_golden.hpp"
 #include "draw.hpp"
-#include "engine.hpp"
+#include "input_engine.hpp"
 #include "gpu.hpp"
 #include "gpu_env.hpp"
-#include "sim.hpp"
+#include "game_sim.hpp"
 #include "input_setup.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
 namespace {
@@ -97,8 +97,8 @@ int render_run(const DemoOptions& opt, std::vector<uint8_t>& last) {
     const fix32 dt = fix32::from_float(1.0 / 60);
 
     for (int t = 0; t < opt.frames; ++t) {
-        driver.drive(engine, (uint32_t)t);
-        const input::InputFrame& f = engine.begin_tick((uint32_t)t, 0);
+        driver.drive(engine, static_cast<uint32_t>(t));
+        const input::InputFrame& f = engine.begin_tick(static_cast<uint32_t>(t), 0);
         sink.events.clear();
         step(world, gs, f, dt, &sink);
         fx.emit(sink);

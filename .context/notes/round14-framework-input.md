@@ -12,7 +12,7 @@ DoD: гейты 1–7 зелёные на трёх ОС; пресеты и пр�
 
 - `engine/input/` — закрытая спека #4: `DeviceState` (уровни), `ActionMap::resolve` → `InputFrame`,
   контексты, линейная мёртвая зона, `capture_source` для перебиндов. Здесь **не переписывается**.
-- `engine/achievements/bake.hpp` + `manifest.hpp` + баркер в `tools/assetc/bakers.cpp` — готовый
+- `engine/achievements/ach_bake.hpp` + `ach_manifest.hpp` + баркер в `tools/assetc/bakers.cpp` — готовый
   образец «текстовый манифест → zero-parse таблица в бандле → рантайм читает из mmap». Ввод
   повторяет ровно эту схему, а не изобретает свою.
 - Расписания тика в ядре нет: игра-образец зовёт системы руками из `sim.cpp`. Каркас слоя обязан

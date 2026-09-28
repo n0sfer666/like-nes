@@ -2,23 +2,23 @@
 #include <webgpu/webgpu.h>
 
 #include "arena.hpp"
-#include "scene.hpp"
-#include "sprite.hpp"
+#include "render_scene.hpp"
+#include "render_sprite.hpp"
 
 // Render-graph десктоп-tier: gbuffer(deferred) → lighting → forward → bloom → tonemap.
 // Таргеты пре-варминг на init (арена, стабильные views), bind-group'ы собраны один раз →
 // в render() НЕТ per-frame heap/GPU-аллокаций (инвариант #5).
 class Renderer {
 public:
-    void init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
-              WGPUTextureFormat out_format, uint32_t w, uint32_t h);
+    [[nodiscard]] bool init(WGPUDevice device, WGPUQueue queue, const Sprite& sprite,
+                            WGPUTextureFormat out_format, uint32_t w, uint32_t h);
     void render(const SceneSnapshot& snap, WGPUTextureView out_view);
     void shutdown();
 
     const TargetArena& arena() const { return arena_; }
 
 private:
-    void build_targets();
+    bool build_targets();
     void build_gbuffer();
     void build_lighting();
     void build_forward();

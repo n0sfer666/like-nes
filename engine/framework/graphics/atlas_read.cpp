@@ -13,6 +13,9 @@ bool AtlasTable::open(const void* data, std::size_t size) {
     rows_ = nullptr;
     strings_ = nullptr;
     if (data == nullptr || size < sizeof(AtlasHeader)) return false;
+    // База выровнена не по контракту, а по проверке: буфер со сдвигом дал бы невыровненное чтение
+    // заголовка — UB, на strict-align SIGBUS (аудит #21, A·2·6).
+    if (reinterpret_cast<std::uintptr_t>(data) % alignof(AtlasHeader) != 0) return false;
     const auto* base = static_cast<const uint8_t*>(data);
     const auto* h = reinterpret_cast<const AtlasHeader*>(base);
     if (std::memcmp(h->magic, ATLAS_MAGIC, sizeof(h->magic)) != 0) return false;

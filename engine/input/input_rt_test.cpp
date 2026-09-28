@@ -4,8 +4,8 @@
 #include <new>
 #include "action_map.hpp"
 #include "codes.hpp"
-#include "engine.hpp"
-#include "sim.hpp"
+#include "input_engine.hpp"
+#include "input_sim.hpp"
 #include "platform_noinline.hpp"
 
 // Гейт #3 (спека #4): горячий путь дренажа+коалесценции @tick — БЕЗ heap-аллокаций (пулы/

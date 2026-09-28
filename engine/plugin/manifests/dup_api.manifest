@@ -1,0 +1,10 @@
+# Fixture: one identity line, no version field, and two api= keys of which the LAST one is the
+# host's own (audit #21, A.2.7 review). The missing version field is the point, not an oversight:
+# while the identity line was read as two positional fields first, `api=1` landed in the version
+# and only `api=2` reached the key loop — so the file was taken whole, as the host's own version,
+# and the rule against a repeated key never saw a repeat. Restore that order and this file is
+# accepted again, which is what the gate asserts by refusing it.
+plugin twice api=1 api=2
+
+panel twice "Twice" dock=center
+  text "this panel must never be born"

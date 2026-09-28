@@ -1,18 +1,21 @@
 #include "audio.hpp"
 
+#include <algorithm>
+
 #ifdef AUDIO_HAVE_MINIAUDIO
 
 #include <atomic>
 #include <chrono>
+#include <cstdio>
 #include <cstring>
 #include <thread>
 
-#include "../engine/asset/asset_manager.hpp"
-#include "../engine/asset/hash.hpp"
-#include "../engine/audio/decoder.hpp"
-#include "../engine/audio/device.hpp"
-#include "../engine/audio/engine.hpp"
-#include "../engine/audio/mixer.hpp"
+#include "asset_manager.hpp"
+#include "hash.hpp"
+#include "decoder.hpp"
+#include "device.hpp"
+#include "audio_engine.hpp"
+#include "mixer.hpp"
 
 namespace game {
 namespace {
@@ -42,6 +45,7 @@ struct GameAudio::Impl {
     uint64_t sample_time = 0;
     uint64_t gsfx = 0;
     bool live = false;
+    bool dropped_warned = false;
 };
 
 GameAudio::~GameAudio() { shutdown(); }
@@ -85,20 +89,31 @@ bool GameAudio::init(const std::string& bundle_path) {
 void GameAudio::on_events(const FxSink& sink) {
     Impl* p = impl_;
     if (!p || !p->live) return;
-    p->sample_time += audio::SAMPLES_PER_TICK;
+    p->dev.poll();
+    p->sample_time = audio::resync_clock(p->sample_time + audio::SAMPLES_PER_TICK, p->mixer.cursor());
     for (const FxEvent& e : sink.events) {
         double g = 0;
         switch (e.kind) {
             case FX_EnemyDie: g = 0.7; break;
             case FX_BossHit:  g = 0.35; break;
-            case FX_BossDie:  g = 1.2; break;
+            case FX_BossDie:  g = 1.0; break;
             case FX_PlayerHit: g = 1.0; break;
             default: continue;   // FX_Fire — без звука (слишком часто)
         }
         audio::PlayParams pp; pp.bus = audio::Bus::Sfx; pp.gain = fix32::from_float(g);
         pp.x = fix32::from_float(e.x / 480.0);
-        p->eng.play(p->gsfx, pp, p->sample_time);
+        if (p->eng.play(p->gsfx, pp, p->sample_time) == 0 && !p->dropped_warned) {
+            std::fprintf(stderr, "[game] audio queue full - sound dropped\n");
+            p->dropped_warned = true;
+        }
     }
+}
+
+int GameAudio::step_volume(int delta) {
+    volume_ = std::clamp(volume_ + delta, 0, 10);
+    if (impl_ && impl_->live)
+        impl_->eng.set_master_gain(fix32::from_raw(volume_ * 65536 / 10), impl_->sample_time);
+    return volume_;
 }
 
 void GameAudio::shutdown() {
@@ -119,6 +134,7 @@ struct GameAudio::Impl {};
 GameAudio::~GameAudio() { shutdown(); }
 bool GameAudio::init(const std::string&) { return false; }
 void GameAudio::on_events(const FxSink&) {}
+int GameAudio::step_volume(int delta) { return volume_ = std::clamp(volume_ + delta, 0, 10); }
 // impl_ здесь всегда nullptr — но освобождение симметрично живой ветке, а не «поле, которого
 // в этой сборке будто нет»: иначе -Wunused-private-field справедливо ругается на заголовок.
 void GameAudio::shutdown() { delete impl_; impl_ = nullptr; }

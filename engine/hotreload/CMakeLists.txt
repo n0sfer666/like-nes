@@ -7,8 +7,9 @@ add_library(game_crash MODULE game_crash.cpp)
 foreach(M game_a game_b game_crash)
   # Нужен только platform_export.h (макрос экспорта), объекты шва модулю ни к чему.
   target_include_directories(${M} PRIVATE ${CMAKE_SOURCE_DIR}/engine/platform)
+  target_link_libraries(${M} PRIVATE engine_core)
   set_target_properties(${M} PROPERTIES PREFIX "")
 endforeach()
 
 add_executable(hotreload_host host.cpp)
-target_link_libraries(hotreload_host PRIVATE platform_core)
+target_link_libraries(hotreload_host PRIVATE engine_core platform_core)

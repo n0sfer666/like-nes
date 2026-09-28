@@ -37,13 +37,14 @@ void AssetManager::close() {
     stop_worker();
     slots_.clear();
     visible_.clear();
+    failed_visible_.clear();
     view_ = BundleView{};
     file_.close();
 }
 
 void AssetManager::submit_load(uint64_t guid) {
     Slot& s = slots_[guid];
-    if (!s.entry || s.completed.load()) return;
+    if (!s.entry || s.completed.load() || s.failed.load()) return;
     if (s.entry->residency == static_cast<uint32_t>(Residency::Mmap)) {
         // zero-copy: указатель прямо в mmap-регион, готов немедленно.
         s.loaded = Loaded{view_.payload(*s.entry), s.entry->payload_size, true};
@@ -51,6 +52,7 @@ void AssetManager::submit_load(uint64_t guid) {
         return;
     }
     if (s.inflight.exchange(true)) return; // уже в очереди — без дубля (иначе двойной do_load)
+    if (s.completed.load() || s.failed.load()) { s.inflight.store(false); return; }
     jobs_.push(guid);
     cv_.notify_one();
 }
@@ -86,10 +88,12 @@ bool AssetManager::reload(const std::string& new_bundle_path) {
         view_ = newv;            // base_ = тот же mmap-адрес (move не ремапит) → валиден
         arena_.reset();
         visible_.clear();
+        failed_visible_.clear();
         for (auto& [g, s] : slots_) {
             s.entry = view_.find(g); // guid стабилен → новый entry того же ассета
             s.completed.store(false);
             s.inflight.store(false);
+            s.failed.store(false);
             s.loaded = Loaded{};
         }
     }
@@ -134,35 +138,47 @@ void AssetManager::worker_loop() {
 }
 
 void AssetManager::do_load(Slot& s) {
+    if (fill(s)) s.completed.store(true); // release: loaded-запись в fill happens-before видимого completed
+    else s.failed.store(true);
+    s.inflight.store(false);
+}
+
+bool AssetManager::fill(Slot& s) {
     const AssetEntry& e = *s.entry;
     const uint8_t* src = view_.payload(e); // mmap-регион (чтение зоны стрима)
     if (e.codec == static_cast<uint32_t>(Codec::Zstd)) {
         uint8_t* dst = arena_.alloc(e.uncompressed_size);
-        if (!dst) return;
+        if (!dst) return false;
         size_t n = ZSTD_decompress(dst, e.uncompressed_size, src, e.payload_size);
-        if (ZSTD_isError(n) || n != e.uncompressed_size) return;
+        if (ZSTD_isError(n) || n != e.uncompressed_size) return false;
         s.loaded = Loaded{dst, e.uncompressed_size, false};
     } else {
         // Ktx2/прочее: staging копия в арену (транскод BC7 — Phase 3, читает отсюда).
         uint8_t* dst = arena_.alloc(e.payload_size);
-        if (!dst) return;
+        if (!dst) return false;
         std::memcpy(dst, src, e.payload_size);
         s.loaded = Loaded{dst, e.payload_size, false};
     }
-    s.completed.store(true); // release: loaded-запись выше happens-before видимого completed
-    s.inflight.store(false);
+    return true;
 }
 
 void AssetManager::sync_point() {
     std::lock_guard<std::mutex> lk(mu_);
-    for (auto& [guid, s] : slots_)
+    for (auto& [guid, s] : slots_) {
         if (s.completed.load() && visible_.find(guid) == visible_.end())
             visible_[guid] = s.loaded;
+        if (s.failed.load() && failed_visible_.count(guid) == 0) failed_visible_.insert(guid);
+    }
 }
 
 bool AssetManager::is_ready(uint64_t guid) const {
     std::lock_guard<std::mutex> lk(mu_);
     return visible_.find(guid) != visible_.end();
+}
+
+bool AssetManager::is_failed(uint64_t guid) const {
+    std::lock_guard<std::mutex> lk(mu_);
+    return failed_visible_.count(guid) != 0;
 }
 
 Loaded AssetManager::get(uint64_t guid) const {

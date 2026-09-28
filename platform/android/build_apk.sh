@@ -9,20 +9,25 @@ ABI="arm64-v8a"
 API=24
 BT="$SDK/build-tools/35.0.0"
 ANDROID_JAR="$SDK/platforms/android-35/android.jar"
-BUILD="$HERE/../../build-android"
+REPO="$(cd "$HERE/../.." && pwd)"
+BUILD="$REPO/build-android"
 OUT="$BUILD/apk"
+. "$REPO/platform/mobile/fresh_cache.sh"
 
-cmake -S "$HERE" -B "$BUILD" -G Ninja \
+# Оболочка — подкаталог корня: цели движка и игра приходят тем же графом, что на десктопе.
+FRESH="$(fresh_flag "$BUILD" "$REPO")"
+cmake ${FRESH:+"$FRESH"} -S "$REPO" -B "$BUILD" -G Ninja \
   -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
   -DANDROID_ABI="$ABI" -DANDROID_PLATFORM="android-$API"
-cmake --build "$BUILD" -j8
+cmake --build "$BUILD" --target game -j8
 
 rm -rf "$OUT"; mkdir -p "$OUT/lib/$ABI" "$OUT/assets/licenses"
 cp "$BUILD/libgame.so" "$OUT/lib/$ABI/"
 cp "$NDK/toolchains/llvm/prebuilt/$HOST_TAG/sysroot/usr/lib/aarch64-linux-android/libc++_shared.so" \
    "$OUT/lib/$ABI/"
 
-REPO="$HERE/../.."
+# Бандлы игры — в корень assets/: native_main.cpp распаковывает их оттуда в песочницу.
+for b in game library audio; do cp "$REPO/example_ugly_game/assets/$b.bundle" "$OUT/assets/"; done
 while read -r lic || [ -n "$lic" ]; do
   [ -n "$lic" ] || continue
   [ -f "$REPO/$lic" ] || { echo "spec #9: лицензионный файл отсутствует: $REPO/$lic" >&2; exit 1; }

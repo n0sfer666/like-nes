@@ -1,4 +1,4 @@
-#include "sim.hpp"
+#include "game_sim.hpp"
 #include "combat.hpp"
 
 namespace game {
@@ -30,11 +30,11 @@ void spawn(flecs::world& world, GameState& gs) {
     uint32_t s = 0x9e3779b9u;
     for (int i = 0; i < STAR_COUNT; ++i) {
         const int layer = i % 3;
-        const int px = (int)(lcg(s) % (uint32_t)(VIEW_W + 80)) - (HALF_W + 40);
-        const int py = (int)(lcg(s) % (uint32_t)VIEW_H) - HALF_H;
+        const int px = static_cast<int>(lcg(s) % static_cast<uint32_t>(VIEW_W + 80)) - (HALF_W + 40);
+        const int py = static_cast<int>(lcg(s) % static_cast<uint32_t>(VIEW_H)) - HALF_H;
         const fix32 speed = fix32::from_int(40 + layer * 44);
         const fix32 size = fix32::from_int(2 + layer * 2);
-        const uint8_t shade = (uint8_t)(110 + layer * 60);
+        const uint8_t shade = static_cast<uint8_t>(110 + layer * 60);
         world.entity().set<Transform>({fix32::from_int(px), fix32::from_int(py)})
                       .set<Star>({speed, size, shade});
     }

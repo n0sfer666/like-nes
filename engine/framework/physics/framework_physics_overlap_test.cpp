@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "platform_args.hpp"
-#include "query.hpp"
+#include "physics_query.hpp"
 
 // Гейт 4 спеки #15, третий вид запроса: перекрытие области. Отдельной целью от свипов
 // (`framework_physics_query_test`) по той же причине, по которой узкая фаза разложена на три:

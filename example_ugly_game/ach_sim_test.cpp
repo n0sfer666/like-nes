@@ -6,8 +6,9 @@
 #include "combat.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
-#include "sim.hpp"
-#include "world.hpp"
+#include "game_sim.hpp"
+#include "sim_hash.hpp"
+#include "game_world.hpp"
 
 // Гейт 7 (спека #10): достижения — НАБЛЮДАТЕЛЬ. sim их не вызывает, поэтому golden
 // sim-хеш обязан совпасть и с трекером, и с загруженным плагином-бэкендом, и без них.

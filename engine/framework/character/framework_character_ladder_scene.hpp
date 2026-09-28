@@ -1,5 +1,5 @@
 #pragma once
-#include "../tilemap/query.hpp"
+#include "tilemap_query.hpp"
 #include "controller.hpp"
 
 // Раскладка гейта лестницы — отдельным файлом от утверждений, по той же границе, что у

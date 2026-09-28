@@ -4,7 +4,7 @@
 #include "batch.hpp"
 #include "fx.hpp"
 #include "scene_fx.hpp"
-#include "world.hpp"
+#include "game_world.hpp"
 
 namespace game {
 

@@ -1,5 +1,5 @@
 #include "fixed.hpp"
-#include "../asset/hash.hpp"
+#include "hash.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cassert>
@@ -80,7 +80,7 @@ int main() {
     uint64_t h1 = hash_world(w);
     uint64_t h2 = hash_world(w2);
 
-    std::printf("[determinism] arch-golden-hash = 0x%016llx\n", (unsigned long long)h1);
+    std::printf("[determinism] arch-golden-hash = 0x%016llx\n", static_cast<unsigned long long>(h1));
     std::printf("[determinism] run1==run2: %s\n", h1 == h2 ? "YES" : "NO");
     return h1 == h2 ? 0 : 1;
 }

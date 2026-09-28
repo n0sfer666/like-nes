@@ -1,6 +1,8 @@
 #pragma once
 #include <webgpu/webgpu.h>
 
+#include <atomic>
+
 // Общий WebGPU-контекст для оконного (demo) и headless (golden) путей.
 // surface может быть null — тогда адаптер запрашивается без compatibleSurface (offscreen/CI).
 struct GpuContext {
@@ -9,6 +11,12 @@ struct GpuContext {
     WGPUDevice device = nullptr;
     WGPUQueue queue = nullptr;
     bool supports_bc = false; // device включил TextureCompressionBC (baked BC7-шов доступен)
+    // Устройство потеряно (TDR, отключённая eGPU, переключение гибридной графики): причина уже
+    // напечатана строкой `[gpu] device lost`, оконная петля выходит ненулевым кодом (аудит #21
+    // A·3·11). Без своего коллбэка wgpu-native падал бы panic!'ом. Коллбэк держит адрес флага, а
+    // поток его вызова webgpu.h не фиксирует: atomic заодно запрещает копировать и перемещать
+    // контекст, у копии флаг никто бы не взвёл.
+    std::atomic<bool> device_lost{false};
 
     // Чем выбирать адаптер. Заполняется вызывающим ДО init; по умолчанию — «решает wgpu» и
     // дискретная карта, то есть ровно прежнее поведение. Полями, а не чтением окружения внутри:

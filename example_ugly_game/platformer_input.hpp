@@ -1,7 +1,7 @@
 #pragma once
 #include "input_types.hpp"
 #include "presets.hpp"
-#include "state.hpp"
+#include "character_state.hpp"
 
 // Раскладка → намерение персонажа. Отдельно от окна, потому что ровно здесь живёт единственное
 // место образца, где переворачивается ЗНАК: ось `move_y` положительна ВВЕРХ (так её объявляет

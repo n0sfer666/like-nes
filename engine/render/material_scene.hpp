@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <vector>
 
-#include "cache.hpp"
-#include "instance.hpp"
-#include "table.hpp"
+#include "material_cache.hpp"
+#include "material_instance.hpp"
+#include "material_table.hpp"
 
 // Сцена гейтов 4/5/6 спеки #18: каждый материал библиотеки нарисован НЕСКОЛЬКИМИ объектами с
 // разными значениями параметров. Вопрос сцены не «красиво ли», а «сколько вышло вызовов

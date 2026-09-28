@@ -11,10 +11,9 @@ add_library(audio_core STATIC
 like_nes_vendored_object(stb_vorbis_vendored stb_vorbis_impl.c)
 target_include_directories(stb_vorbis_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(audio_core PRIVATE stb_vorbis_vendored)
-target_include_directories(audio_core PUBLIC
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/asset)
+target_include_directories(audio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(audio_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний
-target_link_libraries(audio_core PUBLIC engine_core Threads::Threads)
+target_link_libraries(audio_core PUBLIC engine_core asset_hash Threads::Threads)
 
 # Гейт #1 (байт-golden хеш микса, Fix32 над детерм. PCM). CI на всех ОС.
 add_executable(audio_golden audio_golden_main.cpp)
@@ -27,6 +26,14 @@ target_link_libraries(audio_determinism_test PRIVATE audio_core)
 # Гейт #3 (RT-safe callback: no-alloc/lock-free). ASan/UBSan-джоб. CI на всех ОС.
 add_executable(audio_rt_test audio_rt_test.cpp)
 target_link_libraries(audio_rt_test PRIVATE audio_core platform_core)   # шов: PLATFORM_NOINLINE
+
+# Громкость на шве — доля в [0,1] (аудит #21 A·3·4), в обоих бэкендах. Без устройства, на всех ОС.
+add_executable(audio_gain_test audio_gain_test.cpp)
+target_link_libraries(audio_gain_test PRIVATE audio_core)
+
+# Сумма выше шкалы приглушается ограничителем, а не срезается в прямоугольник (аудит #21 A·3·1).
+add_executable(audio_limiter_test audio_limiter_test.cpp)
+target_link_libraries(audio_limiter_test PRIVATE audio_core)
 
 # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
 add_executable(audio_seam audio_seam_main.cpp)
@@ -42,7 +49,13 @@ if(AUDIO_MINIAUDIO)
   target_include_directories(audio_device SYSTEM PUBLIC ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device PUBLIC engine_core)
   target_compile_definitions(audio_device PUBLIC AUDIO_HAVE_MINIAUDIO)
-  if(APPLE)
+  # iOS: сессию звука miniaudio ведёт через AVAudioSession — это Objective-C, поэтому TU реализации
+  # собирается как OBJC, а не C (иначе остаётся только MA_NO_AVFOUNDATION и немой симулятор).
+  if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    set_source_files_properties(miniaudio_impl.c PROPERTIES LANGUAGE OBJC)
+    target_link_libraries(audio_device PUBLIC "-framework CoreAudio" "-framework AudioToolbox"
+      "-framework CoreFoundation" "-framework AVFoundation" "-framework Foundation")
+  elseif(APPLE)
     target_link_libraries(audio_device PUBLIC "-framework CoreAudio" "-framework AudioToolbox"
       "-framework CoreFoundation")
   elseif(WIN32)
@@ -53,4 +66,8 @@ if(AUDIO_MINIAUDIO)
     target_link_libraries(audio_device PUBLIC ${CMAKE_DL_LIBS} Threads::Threads m)
   endif()
   target_link_libraries(audio_seam PRIVATE audio_device)
+
+  # Потеря устройства посреди сессии — перезапуск, а не тишина до выхода (аудит #21 A·3·5).
+  add_executable(audio_device_test audio_device_test.cpp)
+  target_link_libraries(audio_device_test PRIVATE audio_device audio_core)
 endif()

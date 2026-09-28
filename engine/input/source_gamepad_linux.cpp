@@ -51,11 +51,11 @@ public:
             if (d.fd < 0) continue;
             input_event ev;
             ssize_t n;
-            while ((n = read(d.fd, &ev, sizeof(ev))) == (ssize_t)sizeof(ev)) {
+            while ((n = read(d.fd, &ev, sizeof(ev))) == static_cast<ssize_t>(sizeof(ev))) {
                 if (ev.type == EV_KEY) {
                     int code = map_key(ev.code);
                     if (code >= 0) e.post({ev.value ? RawKind::PadButtonDown : RawKind::PadButtonUp,
-                                           DeviceKind::Gamepad, (uint8_t)d.slot, (uint16_t)code, 0, seq_++});
+                                           DeviceKind::Gamepad, static_cast<uint8_t>(d.slot), static_cast<uint16_t>(code), 0, seq_++});
                 } else if (ev.type == EV_ABS) {
                     handle_abs(e, d, ev);
                 }
@@ -70,11 +70,11 @@ public:
         if (!d || d->fd < 0) return;
         ff_effect fx{};
         fx.type = FF_RUMBLE; fx.id = -1;
-        fx.u.rumble.strong_magnitude = (uint16_t)(low * 65535.0f);
-        fx.u.rumble.weak_magnitude = (uint16_t)(high * 65535.0f);
-        fx.replay.length = (uint16_t)ms;
+        fx.u.rumble.strong_magnitude = static_cast<uint16_t>(low * 65535.0f);
+        fx.u.rumble.weak_magnitude = static_cast<uint16_t>(high * 65535.0f);
+        fx.replay.length = static_cast<uint16_t>(ms);
         if (ioctl(d->fd, EVIOCSFF, &fx) < 0) return;
-        input_event play{}; play.type = EV_FF; play.code = (uint16_t)fx.id; play.value = 1;
+        input_event play{}; play.type = EV_FF; play.code = static_cast<uint16_t>(fx.id); play.value = 1;
         ssize_t w = write(d->fd, &play, sizeof(play)); (void)w;
     }
 
@@ -97,11 +97,11 @@ private:
         const input_absinfo& ai = d.abs[ev.code];
         int range = ai.maximum - ai.minimum;
         float norm = range > 0 ? (2.0f * (ev.value - ai.minimum) / range - 1.0f) : 0.0f;
-        if (code == c::LT || code == c::RT) norm = range > 0 ? (float)(ev.value - ai.minimum) / range : 0.0f;
-        e.post({RawKind::PadAxis, DeviceKind::Gamepad, (uint8_t)d.slot, (uint16_t)code, fix32::from_float(norm).raw, seq_++});
+        if (code == c::LT || code == c::RT) norm = range > 0 ? static_cast<float>(ev.value - ai.minimum) / range : 0.0f;
+        e.post({RawKind::PadAxis, DeviceKind::Gamepad, static_cast<uint8_t>(d.slot), static_cast<uint16_t>(code), fix32::from_float(norm).raw, seq_++});
     }
     void emit_dpad(InputEngine& e, int slot, int code, bool pressed) {
-        e.post({pressed ? RawKind::PadButtonDown : RawKind::PadButtonUp, DeviceKind::Gamepad, (uint8_t)slot, (uint16_t)code, 0, seq_++});
+        e.post({pressed ? RawKind::PadButtonDown : RawKind::PadButtonUp, DeviceKind::Gamepad, static_cast<uint8_t>(slot), static_cast<uint16_t>(code), 0, seq_++});
     }
     Dev* by_slot(int slot) { for (Dev& d : devs_) if (d.slot == slot) return &d; return nullptr; }
 
@@ -131,13 +131,13 @@ private:
             if (ioctl(fd, EVIOCGID, &id) >= 0) { d.info.vid = id.vendor; d.info.pid = id.product; }
             if (ioctl(fd, EVIOCGNAME(sizeof(d.info.name) - 1), d.info.name) < 0) d.info.name[0] = '\0';
             devs_.push_back(d); opened_.insert(path); paths_[slot] = path;
-            e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, (uint8_t)slot, 0, 0, seq_++});
+            e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, static_cast<uint8_t>(slot), 0, 0, seq_++});
         }
         closedir(dir);
     }
     int free_slot() { bool used[MAX_DEVICES] = {}; for (Dev& d : devs_) if (d.slot >= 0) used[d.slot] = true; for (int s = 0; s < MAX_DEVICES; ++s) if (!used[s]) return s; return -1; }
     void close_dev(InputEngine& e, Dev& d) {
-        e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, (uint8_t)d.slot, 0, 0, seq_++});
+        e.post({RawKind::DeviceDisconnected, DeviceKind::Gamepad, static_cast<uint8_t>(d.slot), 0, 0, seq_++});
         close(d.fd); opened_.erase(paths_[d.slot]); d.fd = -1; d.slot = -1;
     }
 

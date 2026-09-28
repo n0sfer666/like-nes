@@ -3,8 +3,8 @@
 #include <cctype>
 #include <cstring>
 
-#include "instance.hpp"
-#include "table.hpp"
+#include "material_instance.hpp"
+#include "material_table.hpp"
 
 namespace mat::detail {
 namespace {

@@ -25,7 +25,11 @@ if(MSVC)
     set(LIKE_NES_WARN_ERROR /WX)
     set(LIKE_NES_NO_WARN /w)
 else()
-    set(LIKE_NES_WARN_FLAGS -Wall -Wextra)
+    # -Wold-style-cast — механика запрета C-style кастов из conventions.md (аудит #21 B8): под -Werror
+    # компилятор судит каст точно, по типу, а не по тексту. Только C++ и ObjC++: в C другого
+    # приведения нет, и gcc на `.c` отвечает предупреждением драйвера. MSVC аналога не имеет —
+    # Windows-файлы и мобильные оболочки держит разбор дерева (`tree_invariants.sh cast`).
+    set(LIKE_NES_WARN_FLAGS -Wall -Wextra $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Wold-style-cast>)
     set(LIKE_NES_WARN_ERROR -Werror)
     set(LIKE_NES_NO_WARN -w)
 endif()

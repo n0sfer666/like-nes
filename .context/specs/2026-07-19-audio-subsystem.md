@@ -74,13 +74,16 @@ AssetManager (спека #5): request/ready-set gate @tick — тайминг I/
                   ▼
   decode-worker ──► per-voice PCM ring  ──► audio-callback (RT-safe)
    (stb_vorbis,        (SPSC worker→mixer)     │ drain commands @sample-boundary
-    вне callback)                              │ Mixer: voices → pan/atten → buses → duck → master
+    вне callback)                              │ Mixer: voices → pan/atten → buses → duck → master → limiter
                                                │   FloatMixer (прод) | Fix32Mixer (детерм./golden)
                                                ▼
                           AudioDevice (HAL): miniaudio (desktop/mobile) | null/offline (CI)
                             caps{sample_rate, channels}; console-бэкенд — позже
 ```
 
+- **Лимитер выхода (аудит #21 A·3·1, `engine/audio/limiter.hpp`):** вместо клипа int16 — порог
+  −1 dBFS (29204), упреждение 48 кадров (выход задержан на 47), удержание скользящим минимумом
+  20 мс, релиз ~50 мс; целочисленный, общий для Fix32 и Float. Ниже порога — бит-в-бит.
 - **HAL (спека #1 open Q #2):** аудио-устройство за platform-частью HAL (отдельно от RHI/asset-IO),
   desktop = miniaudio, console/mobile — точки расширения.
 - **Фазирование (KISS, как спеки #2/#5):** проектируем под всё (3 домена, шины, 2 микшера, HAL,

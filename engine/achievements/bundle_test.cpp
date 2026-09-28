@@ -8,7 +8,7 @@
 #include "bundle_source.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
-#include "registry.hpp"
+#include "ach_registry.hpp"
 #include "tracker.hpp"
 
 namespace {

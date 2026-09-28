@@ -5,10 +5,10 @@
 #include <string>
 #include <vector>
 
-#include "cache.hpp"
+#include "material_cache.hpp"
 #include "hot_reload.hpp"
 #include "material_scene.hpp"
-#include "table.hpp"
+#include "material_table.hpp"
 
 struct GpuContext;
 

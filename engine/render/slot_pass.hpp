@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "../material/table.hpp"
+#include "material_table.hpp"
 #include "material_scene.hpp"
 #include "slot_textures.hpp"
 

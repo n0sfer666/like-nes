@@ -2,10 +2,10 @@
 
 #include <cstdio>
 
-#include "../engine/achievements/delivery.hpp"
-#include "../engine/achievements/registry.hpp"
-#include "../engine/achievements/store.hpp"
-#include "../engine/achievements/tracker.hpp"
+#include "delivery.hpp"
+#include "ach_registry.hpp"
+#include "store.hpp"
+#include "tracker.hpp"
 #include "ach_source.hpp"
 #include "backend_host.hpp"
 
@@ -97,6 +97,16 @@ void Achievements::init(const std::string& bundle_path, const std::string& save_
                          "[game] achievements: %zu snapshot records outside the catalogue, "
                          "kept as-is\n",
                          kept);
+        }
+        // Отброс потолком переноса обязан быть СКАЗАН: молчаливая потеря прогресса неотличима от
+        // её отсутствия, а после первого же автосейва усечённый снимок уезжает на диск — то есть
+        // молчание здесь стоит не строки в логе, а самих записей (аудит #21, A·2·4).
+        const std::size_t dropped = impl_->tracker->dropped_count();
+        if (dropped != 0) {
+            std::fprintf(stderr,
+                         "[game] achievements: %zu records dropped past the carry ceiling, "
+                         "progress for them is lost\n",
+                         dropped);
         }
     }
     impl_->saved_hash = impl_->tracker->progress_hash();

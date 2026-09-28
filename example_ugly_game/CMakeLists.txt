@@ -27,11 +27,19 @@ target_include_directories(game_platformer_rollback_test PRIVATE ${CMAKE_CURRENT
 target_link_libraries(game_platformer_rollback_test PRIVATE framework_character framework_tilemap
   framework_rollback framework_alloc_probe_control asset_core platform_core)
 
-# Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ДВЕ по числу вопросов — остра
-# ли заявка о состоянии и тотален ли читатель формата, — и обстановка у них общая
-# (`platformer_replay_run.hpp`): второй экземпляр записи был бы второй правдой о том, что такое
-# «тот же прогон».
-foreach(T game_platformer_replay_test game_platformer_replay_io_test)
+# Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ЧЕТЫРЕ по числу вопросов — остра
+# ли заявка о состоянии, доносит ли файл ТОТ ЖЕ прогон, тотален ли читатель формата по раскладке и
+# что он отказывается ВЫДЕЛИТЬ по чужому заголовку, — и обстановка у них общая
+# (`platformer_replay_run.hpp` для первых двух, `platformer_replay_fixture.hpp` для двух последних):
+# второй экземпляр записи был бы второй правдой о том, что такое «тот же прогон».
+#
+# Две последние отделились по решению владельца (ревью аудита #21, A·2·3), когда перечисление порч
+# переросло лимит длины: у них нет ни бандла, ни переигровки, эталон они собирают руками. Разрез
+# между ними по предмету отказа — раскладка чужих байт против размера выделения по чужому
+# заголовку, — а не по длине файла: у потолков своя граница, свой позитивный контроль на ней и
+# прогон в 8 МБ, которого перечислению порч не нужно вовсе.
+foreach(T game_platformer_replay_test game_platformer_replay_io_test
+          game_platformer_replay_refusal_test game_platformer_replay_ceiling_test)
   add_executable(${T} ${T}.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
   target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   target_link_libraries(${T} PRIVATE framework_character framework_tilemap framework_rollback
@@ -102,46 +110,19 @@ elseif(WIN32)
 else()
   list(APPEND GAME_INPUT_SRC ${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_linux.cpp)
 endif()
+include(${CMAKE_CURRENT_SOURCE_DIR}/game_sources.cmake)
+add_executable(game_sidescroller main.cpp live.cpp demo.cpp shader_watch.cpp capture.cpp
+  frame_golden.cpp ${GAME_INPUT_SRC})
 # Шов assetc→билд (спека #8, гейт 2): baked atlas из game.bundle (asset_core + asset_gpu
-# транскод UASTC→BC7). Заглушки под Windows сняты вместе с POSIX-only'ем asset_core (спека #12).
-set(GAME_SEAM_SRC assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
-add_executable(game_sidescroller
-  main.cpp live.cpp demo.cpp draw.cpp
-  achievements.cpp backend_host.cpp
-  batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp scene_fx.cpp
-  instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
-  boss.cpp fx.cpp
-  bloom.cpp audio.cpp
-  input_setup.cpp capture.cpp frame_golden.cpp
-  gpu_env.cpp
-  ${GAME_SEAM_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${GAME_INPUT_SRC})
-target_include_directories(game_sidescroller PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render
-  ${CMAKE_SOURCE_DIR}/engine/framework)
-target_include_directories(game_sidescroller SYSTEM PRIVATE ${stb_SOURCE_DIR})
-target_link_libraries(game_sidescroller PRIVATE
-  engine_core framework_input framework_graphics flecs_static webgpu glfw3webgpu glfw ach_plugin
-  Threads::Threads)
-# asset_core (и через него platform_core) приходит транзитивно из ach_bundle. Явным его тут не
-# держим: CMake дедуплицирует ПРЯМОЙ список, но транзитивное замыкание дописывает ПОСЛЕ него, и
-# библиотека, названная обоими способами, попадает на линкер-строку дважды — ld на macOS отвечает
-# `warning: ignoring duplicate libraries`. Проверено на build.ninja: libasset_core.a стояла и в
-# начале строки, и в хвосте замыкания.
-target_link_libraries(game_sidescroller PRIVATE asset_gpu ach_bundle)
-# Библиотека эффектов (спека #18) + драйвер горячей замены (гейт 3): правка шейдера проверяется в
-# том, что рисует. Названа только `material_hot`: `material_gpu`, `material_core` и `platform_core`
-# он тянет PUBLIC-связью, и второе имя дало бы `warning: ignoring duplicate libraries` на macOS.
-target_link_libraries(game_sidescroller PRIVATE material_hot)
+# транскод UASTC→BC7). Библиотека эффектов (спека #18) + драйвер горячей замены (гейт 3): правка
+# шейдера проверяется в том, что рисует.
+game_core_target(game_sidescroller material_hot)
+target_link_libraries(game_sidescroller PRIVATE glfw3webgpu glfw)
 # Реализация stb (чтение PNG для гейта 2 и запись кадров) приезжает ТОЙ ЖЕ вендоренной OBJECT-целью,
 # что и у render-вертикали, а не вторым `#define … _IMPLEMENTATION` в нашем capture.cpp: уровень
 # предупреждений — свойство цели, и снятый с одного исходника через set_source_files_properties он
 # давал MSVC `D8021`/`D9025` мимо -Werror, но прямо в лог гейта (cmake/warnings.cmake).
 target_link_libraries(game_sidescroller PRIVATE stb_impl_vendored)
-# Аудио #3 (локально): mixer + miniaudio-устройство. AUDIO_HAVE_MINIAUDIO — из audio_device
-# (PUBLIC) → audio.cpp компилит реальный путь; без AUDIO_MINIAUDIO — no-op (CI headless).
-if(AUDIO_MINIAUDIO)
-  target_link_libraries(game_sidescroller PRIVATE audio_core audio_device)
-endif()
 if(APPLE)
   set_source_files_properties(${CMAKE_SOURCE_DIR}/engine/input/source_gamepad_macos.mm
     PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
@@ -158,8 +139,7 @@ reproducible_rpath(game_sidescroller)
 # не поднимал ради этого WebGPU.
 add_executable(game_sprite_out_test game_sprite_out_test.cpp sprite_out.cpp instance_stage.cpp
   art.cpp atlas_regions.cpp)
-target_include_directories(game_sprite_out_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_sprite_out_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # material_core — из-за `game::Instance = mat::Instance` (спека #18): один вершинный этап на оба
 # потребителя библиотеки. GPU сюда не приезжает, цель как была headless, так и осталась.
 target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
@@ -173,20 +153,18 @@ target_link_libraries(game_sprite_out_test PRIVATE framework_graphics
 # гейт называл бы в логе CI не тот слой. flecs приезжает ради обхода следов в `emit_trails`,
 # WebGPU — нет: `Instance` живёт отдельным заголовком именно затем.
 add_executable(game_fx_test game_fx_test.cpp fx.cpp sprite_out.cpp art.cpp atlas_regions.cpp)
-target_include_directories(game_fx_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_fx_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core тут НЕ назван, хотя нужен: framework_graphics и framework_input дописывают его в
 # замыкание каждый своей PRIVATE-связью, и названный сверх этого явно он попадает на линкер-строку
 # дважды — ld на macOS отвечает `warning: ignoring duplicate libraries`, мимо -Werror, но прямо в
 # лог гейта. Тот же случай расписан у game_platformer_input_test выше.
-target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input
+target_link_libraries(game_fx_test PRIVATE framework_graphics framework_input framework_physics
   framework_alloc_probe_control flecs_static asset_core material_core)
 
 # --- Симметрия звезды атласа: своя цель, а не третий тест в `game_fx_test`. Она стоит на ПЕЧЁНОМ
 # атласе и не трогает ни `Fx`, ни flecs — в общем файле гейт краснел бы на правке траектории.
 add_executable(game_star_test game_star_test.cpp art.cpp atlas_regions.cpp)
-target_include_directories(game_star_test PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/framework)
+target_include_directories(game_star_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_star_test PRIVATE framework_graphics asset_core)
 
 include(${CMAKE_CURRENT_SOURCE_DIR}/live_targets.cmake)
@@ -195,15 +173,15 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/packaging.cmake)
 
 # --- Sim-hash регресс-тест боя (S7, гейт): headless (без рендера) → собирается/гоняется на
 # всех ОС. Скриптованный combat-сценарий → детерм. golden-хеш (fix32/целочисл. → cross-arch).
-add_executable(game_sim_test sim_test.cpp sim.cpp combat.cpp boss.cpp)
+add_executable(game_sim_test sim_test.cpp sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(game_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
-target_link_libraries(game_sim_test PRIVATE engine_core flecs_static Threads::Threads)
+target_link_libraries(game_sim_test PRIVATE engine_core asset_hash flecs_static Threads::Threads)
 
 # Гейт 7 спеки #10: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
 add_executable(ach_sim_test
   ach_sim_test.cpp achievements.cpp backend_host.cpp ach_source_bundle.cpp
-  sim.cpp combat.cpp boss.cpp)
+  sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(ach_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
 target_link_libraries(ach_sim_test PRIVATE engine_core ach_bundle ach_plugin flecs_static Threads::Threads)

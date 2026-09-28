@@ -4,8 +4,9 @@
 #include <string>
 
 // Шов №7 платформы (спека #13, решение 1): именованная разделяемая память. Реализации —
-// platform_shmem_posix.cpp (shm_open + mmap) и platform_shmem_win32.cpp (CreateFileMappingW +
-// MapViewOfFile), выбор делает CMake, условной компиляции внутри нет.
+// platform_shmem_posix.cpp (shm_open + mmap), platform_shmem_win32.cpp (CreateFileMappingW +
+// MapViewOfFile) и platform_shmem_android.cpp (отказ: в bionic нет shm_open — open false),
+// выбор делает CMake, условной компиляции внутри нет.
 //
 // Имя на входе — ПОРТИРУЕМЫЙ токен без разделителей (`likenes_ide_1234`), а не готовый путь:
 // POSIX требует ведущий `/`, Windows — префикс пространства имён `Local\`, и декорирование живёт

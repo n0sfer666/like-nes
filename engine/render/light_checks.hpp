@@ -7,8 +7,8 @@
 #include "light_pass.hpp"
 #include "material_scene.hpp"
 #include "slot_pass.hpp"
-#include "../light/table.hpp"
-#include "../material/table.hpp"
+#include "light_table.hpp"
+#include "material_table.hpp"
 
 struct GpuContext;
 

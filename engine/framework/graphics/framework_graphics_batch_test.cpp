@@ -3,7 +3,7 @@
 #include "hash_mix.hpp"
 #include "nine_slice.hpp"
 #include "platform_args.hpp"
-#include "sprite.hpp"
+#include "graphics_sprite.hpp"
 
 // Порядок отрисовки и батчи (спека #17, вертикаль 2, шаг A). Гейт спрашивает три разных вопроса:
 //   * ПОРЯДОК — слой, потом материал, потом номер подачи, и порядок этот полный;

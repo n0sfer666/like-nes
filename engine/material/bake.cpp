@@ -1,10 +1,10 @@
-#include "bake.hpp"
+#include "material_bake.hpp"
 
 #include <cstring>
 
-#include "../asset/hash.hpp"
-#include "../platform/platform_fs.hpp"
-#include "bake_rows.hpp"
+#include "hash.hpp"
+#include "platform_fs.hpp"
+#include "material_bake_rows.hpp"
 
 namespace mat {
 namespace {

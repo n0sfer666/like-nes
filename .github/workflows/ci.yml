@@ -10,19 +10,29 @@ permissions:
 jobs:
   build-and-determinism:
     name: build+determinism (${{ matrix.os }})
-    # 60, а не 30: у джоба четыре build-каталога (headless `build`, `build-audio`, `build-ui`,
-    # `build-asan` под clang-cl) — каждый со своим configure и своим FetchContent. Самый дорогой
-    # из них `build-ui`: только там собираются glfw и шесть TU imgui, и только там сборочный гейт
-    # видит вендоренные объекты MSVC.
-    timeout-minutes: 60
+    # 60, а не 30: джоб конфигурирует и собирает дерево много раз. На всех трёх ОС — headless
+    # `build`, `build-audio`, `build-ui` и `build-debug` (голден уровней оптимизации); на Windows
+    # добавляется `build-asan` под clang-cl, на Linux — `build-fuzz-san` под ASan/UBSan и ЕЩЁ ДВЕ
+    # полные сборки в шаге воспроизводимости (`/tmp/repro-a`, `/tmp/repro-bbbb…`). Каждая со своим
+    # configure и своим FetchContent. Самый дорогой одиночный каталог — `build-ui`: только там
+    # собираются glfw и шесть TU imgui, и только там сборочный гейт видит вендоренные объекты MSVC.
+    # Замером названа только БАЗА: последний зелёный прогон до фаззинга под санитайзером — Linux 33
+    # минуты, macOS 12, Windows 22. Добавка (configure со своим FetchContent, сборка замыкания
+    # читателей под ASan/UBSan и два прогона гейта) не измерена на раннере ни разу, поэтому лимит
+    # поднят ЗАРАНЕЕ: упёршись в 60, Linux отдал бы голый таймаут задачи без имени цели, seed'а и
+    # номера случая — ровно тот исход, ради отмены которого гейт и писался. Зависание при этом не
+    # маскируется: настоящее убивает сторож за 3 секунды, а не лимит задачи. Первый прогон ветки
+    # назовёт настоящую длительность, и тогда число вернётся к замеру. Следующий каталог в этом
+    # джобе поднимает лимит, а не дописывается молча.
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      # NOTE: третьи-партийные экшены при провижене CI стоит запинить на commit SHA.
-      - uses: actions/checkout@v4.2.2
+      # Сторонние экшены — только по полному SHA: это правило `unpinned-action` в ci_lint.py.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Linux deps (X11 for GLFW, lavapipe for headless Vulkan, xvfb)
         if: runner.os == 'Linux'
@@ -146,7 +156,7 @@ jobs:
         run: bash scripts/check_release_selftest.sh
 
       # Инвариант 2 спеки #12: условная компиляция по ОС живёт ТОЛЬКО в engine/platform/*.
-      # Тела всех четырёх статических гейтов — в scripts/tree_invariants.sh: тот же скрипт гоняет
+      # Тела всех статических гейтов дерева — в scripts/tree_invariants.sh: тот же скрипт гоняет
       # preflight, поэтому нарушение видно до push, а не через двадцать минут на трёх ОС.
       # Шаги остаются раздельными, чтобы в логе было названо, какой именно инвариант сломан.
       # Один раннер: результат от ОС не зависит, дерево одно.
@@ -183,8 +193,22 @@ jobs:
         shell: bash
         run: bash scripts/tree_invariants.sh ascii
 
-      # Список корней дерева живёт в ДВУХ копиях — `ROOTS` в tree_invariants.sh и `ROOTS` в
-      # ascii_output_check.py, — и внешнего эталона у него нет: «все каталоги дерева» тут неверно.
+      # C-style касты запрещены conventions.md. Первая линия — -Wold-style-cast в warnings.cmake,
+      # но его судит лишь то, что собирают clang и gcc: Windows-файлы (MSVC флага не имеет) и
+      # мобильные оболочки (их CI не собирает) видит только этот разбор. Самопроверка — на всех трёх
+      # ОС: обход берёт файлы у git во временном репозитории, а вывод по-русски идёт через py_utf8.
+      - name: C-style cast gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_c_casts.py --selftest
+
+      - name: Tree — no C-style casts, files the compiler never builds included (audit #21 B8)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: bash scripts/tree_invariants.sh cast
+
+      # Признак обхода дерева живёт в нескольких копиях — `ROOTS`/`EXT` в tree_invariants.sh и
+      # `ROOTS`/`EXTS` в питоновских гейтах (список — в шапке check_tree_roots.py), — и внешнего
+      # эталона у него нет: «все каталоги дерева» тут неверно.
       # Поэтому копии сверяются МЕЖДУ СОБОЙ, ровно форма mirrors-group из ci_lint.py. Расхождение
       # молчит: корень, добавленный в одну копию, проходит инварианты швов и остаётся вне
       # ASCII-проверки. Самопроверка идёт ПЕРЕД гейтом и на всех трёх ОС — предмет у неё
@@ -265,12 +289,25 @@ jobs:
         shell: bash
         run: python3 scripts/check_fs_seam.py
 
+      # Шов подключений (находка 13 того же аудита): `#include "../../engine/…"` обходил граф целей —
+      # файл собирался без ребра target_link_libraries, а одноимённые заголовки подсистем делали
+      # голое имя заложником порядка -I. Путь из подсистемы наверх запрещён, базовые имена
+      # заголовков уникальны без учёта регистра (так их ищут macOS и Windows).
+      - name: Include seam gate selftest (broken rules, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_include_seam.py --selftest
+
+      - name: Headers of other targets are included by a bare name unique across the tree
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_include_seam.py
+
       - name: Setup Ninja
-        uses: seanmiddleditch/gha-setup-ninja@v5
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
 
       - name: MSVC env (Windows)
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
 
       - name: Configure
         run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
@@ -288,6 +325,34 @@ jobs:
         env:
           LIKE_NES_BUILD_SUBSET: "1"
         run: bash scripts/build_check.sh
+
+      # Аудит #21 A·3·7: абсолютный путь дерева — с именем учётной записи — не уезжает в продукт.
+      # Смысл шаг имеет прежде всего на Windows: канонизация MSVC (/pathmap) и clang-cl — отдельные
+      # ветки determinism.cmake, и локальная проверка на macOS их не видит. Позитивный контроль
+      # (строка пробы находится в её бинаре тем же поиском) — внутри скрипта.
+      - name: Build tree path stays out of the binaries (/pathmap, -ffile-prefix-map)
+        shell: bash
+        run: |
+          bash scripts/check_path_map.sh build
+          bash scripts/check_path_map.sh --selftest build
+
+      # Аудит #21 A·3·12: пути сейва и бандла в логе идут с домашним каталогом, заменённым на «~».
+      # Обе семантики сравнения (POSIX и Windows) проверяются на каждой ОС, перегрузка по
+      # окружению (HOME / USERPROFILE) — своей.
+      - name: Platform — home directory is redacted in printed paths
+        shell: bash
+        run: |
+          E=$(find build -maxdepth 2 -type f \( -name 'platform_redact_test' -o -name 'platform_redact_test.exe' \) | head -1)
+          [ -n "$E" ] || { echo "platform_redact_test not built on ${{ matrix.os }}"; exit 1; }
+          "$E" | tee redact.txt
+          grep -q "platform-redact: PASS" redact.txt
+
+      # Тот же A·3·12 для отчёта owner_check.sh, который владелец пересылает с машины: bash и awk
+      # на трёх ОС разные (замена `~` в bash 5 раскрывалась обратно в дом), а под git-bash у дома
+      # три формы — настоящий cygpath проверяется только здесь.
+      - name: Owner report — home directory is redacted (bash/awk of this OS, git-bash path forms)
+        shell: bash
+        run: bash scripts/redact_home_selftest.sh
 
       # Самопроверка получает ТОТ ЖЕ каталог: с умолчанием build-full её единственный кейс на
       # настоящих бинарях пропускался бы здесь вслух, и на трёх ОС набор проверял бы только фикстуры.
@@ -335,6 +400,17 @@ jobs:
           [ -n "$Q" ] || { echo "win32_cmdline_test not built"; exit 1; }
           "$Q" | tee cmdline.txt
           grep -q "PASS" cmdline.txt
+
+      # A·1·2 аудита #21: зависимость плагина не ищется в рабочем каталоге. Тест сам доказывает,
+      # что его фикстура ловит дефект: старый флаг обязан найти ту же DLL в CWD.
+      - name: Platform — plugin DLL dependencies are not searched in the CWD
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          Q=$(find build -maxdepth 2 -type f -name 'win32_dll_search_test.exe' | head -1)
+          [ -n "$Q" ] || { echo "win32_dll_search_test not built"; exit 1; }
+          "$Q" | tee dll_search.txt
+          grep -q "win32-dll-search\] PASS" dll_search.txt
 
       # Гейт 8 спеки #12: кириллица и пробел в пути — не косметика, а другие API. Узкий fopen на
       # Windows идёт через ANSI-кодовую страницу и на кириллице открывает не тот файл или ничего,
@@ -460,6 +536,32 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f -name 'render_golden' | head -1)
           [ -n "$BIN" ] || { echo "render_golden not found"; exit 1; }
           "$BIN" --selftest
+
+      # Аудит #21 A·3·13: у арены транзитных целей нет вытеснения, и потолок превращает рост VRAM на
+      # каждый новый размер цели в отказ вслух. На живом устройстве, как материалы ниже: предмет —
+      # создание текстур. Код возврата и вывод разведены по той же причине, что там.
+      - name: Render — target arena refuses descriptors over its cap on a real GPU
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'render_arena_test' -o -name 'render_arena_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "render_arena_test not built"; exit 1; }
+          set +e
+          "$BIN" > arena.txt 2>&1
+          rc=$?
+          set -e
+          cat arena.txt
+          [ "$rc" -eq 0 ] || { echo "ARENA TEST EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "arena-cap: PASS - 32 slot(s), 2 refusal(s)" arena.txt
+
+      # Аудит #21 A·3·6 и A·3·11: статус поверхности → действие оконной петли. Устаревшая поверхность
+      # переконфигурируется, потерянное устройство выходит при любом статусе. Функция чистая.
+      - name: Render — surface status maps to the loop action (reconfigure, skip, quit)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'render_surface_frame_test' -o -name 'render_surface_frame_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "render_surface_frame_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee surface.txt
+          grep -q "surface-frame: PASS - 8 statuses" surface.txt
 
       # Гейты 4/5/6 спеки #18 — шов «материал → пайплайн» на живой видеокарте, на всех трёх ОС и
       # БЕЗ эталонной картинки. Утверждения здесь числовые, и потому портируемые: сколько пайплайнов
@@ -725,20 +827,123 @@ jobs:
           T=$(find build -maxdepth 2 -type f \( -name 'asset_test' -o -name 'asset_test.exe' \) | head -1); "$T" syn.bundle
           D=$(find build -maxdepth 2 -type f \( -name 'asset_determinism_test' -o -name 'asset_determinism_test.exe' \) | head -1); "$D" syn.bundle
           H=$(find build -maxdepth 2 -type f \( -name 'asset_hot_reload_test' -o -name 'asset_hot_reload_test.exe' \) | head -1); "$H" .
+          # Вердикт читается, а не подразумевается: нулевой код возврата есть и у прогона, который
+          # не напечатал ничего.
+          L=$(find build -maxdepth 2 -type f \( -name 'asset_align_test' -o -name 'asset_align_test.exe' \) | head -1)
+          [ -n "$L" ] || { echo "asset_align_test not built on ${{ matrix.os }}"; exit 1; }
+          "$L" | tee asset_align.txt
+          grep -q "asset-align: PASS" asset_align.txt
+          F=$(find build -maxdepth 2 -type f \( -name 'asset_fail_test' -o -name 'asset_fail_test.exe' \) | head -1)
+          [ -n "$F" ] || { echo "asset_fail_test not built on ${{ matrix.os }}"; exit 1; }
+          "$F" . | tee asset_fail.txt
+          grep -q "asset-fail: PASS" asset_fail.txt
+          # Потолок уровня KTX2 (A·2·9). Бандл берётся ГОТОВЫЙ из дерева, а не синтетический:
+          # положительный контроль обязан стоять на атласе, испечённом нашим же `assetc`, —
+          # синтетика подтвердила бы только сама себя.
+          K=$(find build -maxdepth 2 -type f \( -name 'asset_transcode_test' -o -name 'asset_transcode_test.exe' \) | head -1)
+          [ -n "$K" ] || { echo "asset_transcode_test not built on ${{ matrix.os }}"; exit 1; }
+          "$K" example_ugly_game/assets/game.bundle | tee asset_transcode.txt
+          grep -q "\[transcode_test\] PASS" asset_transcode.txt
 
       - name: Asset — ASan/UBSan (gate #2 memory-safety, Linux)
         if: runner.os == 'Linux'
         shell: bash
         run: |
+          # Жёсткий режим — всему шагу, а не последнему прогону: UBSan по умолчанию печатает
+          # находку и возвращает 0, то есть гейт проглотил бы её молча. Разная строгость у трёх
+          # прогонов одного шага была бы различием без причины (ревью A·2·9).
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
           ZINC=$(find build -maxdepth 4 -path '*zstd-src/lib' -type d | head -1)
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
-            -Iengine/asset -Iengine/platform -I"$ZINC" \
-            engine/asset/asset_test.cpp engine/asset/asset_manager.cpp \
-            engine/platform/platform_io_posix.cpp engine/asset/bundle_view.cpp \
-            engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
+          SINC=$(find build -maxdepth 4 -type d -name 'stb-src' | head -1)
+          # Сторож на КАЖДОМ найденном пути, а не на одном: пустая подстановка после `-isystem`
+          # съедает следующий флаг как свой аргумент, и пропажа каталога читается как невнятная
+          # ошибка компиляции на чужом пути вместо честного отказа шага (ревью A·2·9).
+          [ -n "$ZLIB" ] || { echo "libzstd.a not built on ${{ matrix.os }}"; exit 1; }
+          [ -n "$ZINC" ] || { echo "zstd sources not found on ${{ matrix.os }}"; exit 1; }
+          [ -n "$SINC" ] || { echo "stb sources not found on ${{ matrix.os }}"; exit 1; }
+          # Список исходников модуля здесь СВОЙ, не CMake-овский, и он равняется ЦЕЛИ, а не тому,
+          # что звалось вчера. До ревью A·2·9 шаг нёс два прогона с ДВУМЯ разными подмножествами
+          # `asset_core`, а добавляемый тут третий принёс бы своё, и это не стилистика: `a1a4916`
+          # добавил вызов `write_bundle` в тест, не
+          # добавив `bundle_writer.cpp` в первый из списков, и шаг падал на линковке
+          # (`undefined reference to asset::write_bundle`) пять прогонов подряд. CI это видел —
+          # не смотрел никто. Поэтому состав теперь один на все три прогона, а сторожит его гейт
+          # `list-drift`: он краснеет на этой машине, ДО пуша, а не вместо прогона CI.
+          # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_core
+          ASRC="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp"
+          # ci-lint: mirrors-group seam-fs
+          PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
+          # ci-lint: mirrors-group seam-args
+          PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
+          # Эти два шва в группы выше не входят по составу потребителей: `platform_io_posix.cpp`
+          # нужен mmap-загрузчику, `platform_process_posix.cpp` — `codec.cpp`, который зовёт
+          # внешнего пекаря. Своей группы им не завести: группа из одного списка сверяется сама с
+          # собой, и гейт справедливо считает такое находкой, а не молчанием.
+          PLAT_IO="engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp"
+          SAN="-std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
+          INC="-Iengine/asset -Iengine/platform -isystem $ZINC -isystem $SINC"
+          c++ $SAN $INC engine/asset/asset_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
             "$ZLIB" -lpthread -o asset_test_san
-          ./asset_test_san syn.bundle
+          # Вердикт читается, а не подразумевается: нулевой код возврата есть и у прогона, который
+          # не напечатал ничего, — так гейт зеленел бы на бинарнике, упавшем до первой проверки.
+          ./asset_test_san syn.bundle | tee asset_test_san.txt
+          grep -q "\[asset_test\] PASS" asset_test_san.txt
+          # Выравнивание базы бандла — тот же гейт памяти, и без санитайзера он проверяет только
+          # отказ: невыровненное чтение на x86 молча работает, а сообщает о нём ровно UBSan
+          # (`misaligned address ... which requires N byte alignment`).
+          c++ $SAN $INC engine/asset/asset_align_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            "$ZLIB" -lpthread -o asset_align_san
+          ./asset_align_san | tee asset_align_san.txt
+          grep -q "asset-align: PASS" asset_align_san.txt
+          c++ $SAN $INC engine/asset/asset_fail_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            "$ZLIB" -lpthread -o asset_fail_san
+          ./asset_fail_san . | tee asset_fail_san.txt
+          grep -q "asset-fail: PASS" asset_fail_san.txt
+          # Потолок уровня KTX2 под санитайзерами (A·2·9). Проверяется здесь не «выход за конец» —
+          # в отгружаемом коде отказ случается ДО `transcode_image_level`, и транскодер во
+          # враждебную шапку не пишет вовсе. Проверяется, что отказ происходит до выделения памяти
+          # и что сама фикстура (копия ассета, подмена сторон, три вызова basisu) чиста. Выход за
+          # конец даёт ровно одна мутация — «буфер выделен короче, чем обещано транскодеру»
+          # (`resize(blocks * 16 - 16)`), и ловит её именно ASan этого шага.
+          BINC=$(find build -maxdepth 4 -path '*basisu-src/transcoder' -type d | head -1)
+          [ -n "$BINC" ] || { echo "basisu transcoder sources not found on ${{ matrix.os }}"; exit 1; }
+          # Вендорный TU собирается ОТДЕЛЬНЫМ объектом и только с ASan — это решение, а не экономия
+          # времени. UBSan на чужом коде находит чужие дефекты, чинить которые мы не вправе (basisu
+          # тянется FetchContent'ом), а `halt_on_error=1` выше превращает любую такую находку в
+          # красный гейт про не наш баг. Развод этот ЧАСТИЧНЫЙ, и заявлять большее нечестно: вне
+          # инструментации остаётся основной массив вендорного кода, а шаблоны и инлайн-функции из
+          # `basisu_transcoder.h` (конструкторы `ktx2_transcoder`, `basisu::vector<>`)
+          # инстанцируются в НАШИХ двух TU и приезжают под UBSan вместе с ними. Полностью развести
+          # это можно было бы только обёрткой над транскодером, а она — отдельная задача.
+          # ASan при этом остаётся обязательным, и это измерено, а не
+          # предположено: на мутации `resize(blocks * 16 - 16)` запись за конец делает САМ этот TU,
+          # и с ним под ASan прогон даёт `heap-buffer-overflow ... in memset`, а с ним же без
+          # санитайзера — ни одной строки санитайзера, только несовпадение размера. Инструментация
+          # чужого TU здесь и есть весь вердикт о памяти.
+          # `-DNDEBUG` не косметика: без него отладочные ветки `basisu_containers.h` не собираются
+          # g++ 13 (`safe_shift_left` неоднозначен). Сборка дерева этого не показывает не потому,
+          # что цель вендорная (`like_nes_vendored_target` трогает только уровень предупреждений),
+          # а потому, что все конфигурации, где basisu вообще собирается, — Release или
+          # RelWithDebInfo, то есть уже с `NDEBUG`; Debug-шаг CI собирает лишь `STATE_TARGETS` и до
+          # basisu не доходит. Проверено в контейнере ubuntu:24.04.
+          BASIS="-DBASISD_SUPPORT_KTX2=1 -DBASISD_SUPPORT_KTX2_ZSTD=0"
+          c++ -std=gnu++20 -fsanitize=address -fno-omit-frame-pointer -g -O1 -DNDEBUG $BASIS \
+            -isystem "$BINC" -c "$BINC/basisu_transcoder.cpp" -o basisu_transcoder_san.o
+          # Наши два TU, включающие заголовки basisu, — тоже отдельными объектами, и `-DNDEBUG`
+          # висит РОВНО на них. Повесить его на всю команду было бы проще, но тогда `asset_core` и
+          # платформенный шов собирались бы в этом прогоне иначе, чем в двух соседних прогонах того
+          # же шага, — различие без причины, ровно то, против чего написан `UBSAN_OPTIONS` выше.
+          # Первый же `assert()` в `asset_core` оказался бы выключен именно здесь (ревью A·2·9).
+          c++ $SAN -DNDEBUG $BASIS $INC -isystem "$BINC" -c engine/asset/transcode.cpp \
+            -o san_transcode.o
+          c++ $SAN -DNDEBUG $BASIS $INC -isystem "$BINC" -c engine/asset/transcode_test.cpp \
+            -o san_transcode_test.o
+          c++ $SAN $INC san_transcode.o san_transcode_test.o \
+            $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            basisu_transcoder_san.o "$ZLIB" -lpthread -o transcode_san
+          ./transcode_san example_ugly_game/assets/game.bundle | tee transcode_san.txt
+          grep -q "\[transcode_test\] PASS" transcode_san.txt
 
       # --- Аудио-вертикаль (спека #3) — deviceless-гейты на всех трёх ОС ---
       # Реальное устройство (miniaudio --play) — локальный pinned-T4 (как perceptual-golden
@@ -749,9 +954,29 @@ jobs:
         run: |
           G=$(find build -maxdepth 2 -type f \( -name 'audio_golden' -o -name 'audio_golden.exe' \) | head -1)
           "$G" | tee ag.txt
-          grep -q "0x2cf5b5597afa3241" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "0x1b54dd84c4e9d75c" ag.txt || { echo "AUDIO MIX GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           D=$(find build -maxdepth 2 -type f \( -name 'audio_determinism_test' -o -name 'audio_determinism_test.exe' \) | head -1); "$D"
           R=$(find build -maxdepth 2 -type f \( -name 'audio_rt_test' -o -name 'audio_rt_test.exe' \) | head -1); "$R"
+
+      # Аудит #21 A·3·4 и A·3·3: громкость голоса, шины и мастера — доля в [0,1] в обоих бэкендах. Выше единицы — срез и удар
+      # по ушам, ниже нуля — инверсия фазы вместо тишины. Без устройства.
+      - name: Audio — voice, bus and master gain above 1 play as 1, negative is silence (both backends)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'audio_gain_test' -o -name 'audio_gain_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "audio_gain_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee gain.txt
+          grep -q "audio-gain: PASS - 12 cases" gain.txt
+
+      # Аудит #21 A·3·1: коррелированные голоса выше полной шкалы приглушаются ограничителем, а не
+      # срезаются в прямоугольник ±32767; после залпа громкость возвращается. Без устройства.
+      - name: Audio — correlated voices above full scale are limited, not clipped (both backends)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'audio_limiter_test' -o -name 'audio_limiter_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "audio_limiter_test not built on ${{ matrix.os }}"; exit 1; }
+          "$BIN" | tee limiter.txt
+          grep -q "audio-limiter: PASS - 20 cases" limiter.txt
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         shell: bash
@@ -777,11 +1002,18 @@ jobs:
           # Через гейт, а не голым `cmake --build`: реализация miniaudio — вендоренный TU, и его
           # глушение проверяется только на MSVC (D9025 — предупреждение драйвера, мимо /WX).
           # Собранное голым вызовом уезжало в лог, которого никто не читает.
-          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS=audio_seam \
+          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS="audio_seam audio_device_test" \
             bash scripts/build_check.sh
           S=$(find build-audio -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
           "$S" audio.bundle --device-selftest | tee adev.txt
           grep -q "\[audio_seam\] PASS" adev.txt
+          # Аудит #21 A·3·5: устройство, остановленное бэкендом, поднимается заново; самоподъём
+          # бэкенда и WASAPI не перебиваются; окно считается от последнего уведомления; вторая
+          # потеря за 5 с — конец попыток; часы игры после простоя подтягиваются к курсору.
+          T=$(find build-audio -maxdepth 2 -type f \( -name 'audio_device_test' -o -name 'audio_device_test.exe' \) | head -1)
+          [ -n "$T" ] || { echo "audio_device_test not built on ${{ matrix.os }}"; exit 1; }
+          "$T" | tee adt.txt
+          grep -q "audio-device: PASS - 26 cases" adt.txt
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
@@ -790,12 +1022,22 @@ jobs:
           # -Iengine/platform: проба берёт оттуда PLATFORM_NOINLINE — условная компиляция живёт
           # только за швом. Шаг зовёт компилятор напрямую, мимо CMake, поэтому include-пути
           # целей сюда не приезжают: их приходится повторять руками.
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine/platform \
+          INC="-Iengine/core -Iengine/asset -Iengine/platform"
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 $INC \
             engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
-          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 \
+          c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 $INC \
             engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
-          c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread \
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread $INC \
             engine/audio/audio_determinism_test.cpp engine/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
+          # Аудит #21 A·3·5: курсор миксера пишет поток устройства, а читает поток игры. Реализация
+          # miniaudio берётся из build-audio шага выше; C-TU собирается отдельно, как в CMake.
+          MA=build-audio/_deps/miniaudio-src
+          [ -f "$MA/miniaudio.h" ] || { echo "miniaudio not fetched into $MA"; exit 1; }
+          cc -fsanitize=thread -g -O1 -I"$MA" -c engine/audio/miniaudio_impl.c -o miniaudio_tsan.o
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread $INC -I"$MA" engine/audio/audio_device_test.cpp \
+            engine/audio/device.cpp engine/audio/mixer.cpp miniaudio_tsan.o -ldl -lm -o audio_device_tsan
+          ./audio_device_tsan | tee adt_tsan.txt
+          grep -q "audio-device: PASS - 26 cases" adt_tsan.txt
 
       # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
       # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет
@@ -826,11 +1068,11 @@ jobs:
         shell: bash
         run: |
           # -Iengine/platform: rt-проба берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine -Iengine/platform -std=gnu++20"
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine/core -Iengine/asset -Iengine/platform -std=gnu++20"
           c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
-          c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine -pthread \
+          c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine/core -Iengine/asset -pthread \
             engine/input/action_map.cpp engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
 
       # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation/manifest на ВСЕХ 3 ОС: спека
@@ -866,12 +1108,31 @@ jobs:
           "$IT" "$(mod plugin_gravity)" "$(mod plugin_wind)" "$(mod plugin_crash)" | tee pi.txt
           grep -q "plugin-isolation: PASS" pi.txt
 
-      - name: Plugin — configurable UI manifest gate (data->panels/docking, all OS)
+      # Граница C-ABI (аудит #21, A·2·10): восемь входов хоста зовут враждебными аргументами —
+      # nullptr вместо контекста и строки, отрицательный и запредельный счётчик зависимостей, дыра
+      # посреди массива, строка без терминатора в пределах потолка. На трёх ОС не ради симметрии:
+      # эту границу собирают три тулчейна тремя разными стандартными библиотеками, и `std::string`,
+      # поиск терминатора и `noexcept`-путь к `std::terminate` — их, а не наши. Сторож, доказанный
+      # под libc++, про STL от MSVC не говорит ничего, а `/W4 /WX` судит тот же код своей меркой.
+      # Санитайзерная половина гейта живёт отдельным шагом ниже, только на Linux.
+      - name: "Plugin — C-ABI boundary (hostile args into HostApi, gate A·2·10)"
+        shell: bash
+        run: |
+          AT=$(find build -maxdepth 2 -type f \( -name 'plugin_abi_test' -o -name 'plugin_abi_test.exe' \) | head -1)
+          [ -n "$AT" ] || { echo "plugin_abi_test not built"; exit 1; }
+          "$AT" 2>&1 | tee pa.txt
+          grep -q "\[plugin-abi\] PASS" pa.txt
+
+      - name: Plugin — configurable UI manifest gate (data->panels/docking + ABI verdict, all OS)
         shell: bash
         run: |
           MT=$(find build -maxdepth 2 -type f \( -name 'plugin_manifest_test' -o -name 'plugin_manifest_test.exe' \) | head -1)
           [ -n "$MT" ] || { echo "plugin_manifest_test not built"; exit 1; }
-          "$MT" engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest | tee pm.txt
+          MF=engine/plugin/manifests
+          "$MT" "$MF/inspector.manifest" "$MF/console.manifest" "$MF/bad.manifest" "$MF/stale.manifest" \
+            "$MF/no_api.manifest" "$MF/empty_api.manifest" "$MF/overflow.manifest" \
+            "$MF/dup_plugin.manifest" "$MF/dup_api.manifest" "$MF/no_panels.manifest" \
+            "$MF/api_typo.manifest" | tee pm.txt
           grep -q "plugin-manifest: PASS" pm.txt
 
       - name: Plugin — ASan/UBSan (loader/registry/probe + manifest robustness, Linux)
@@ -880,21 +1141,35 @@ jobs:
         run: |
           # Эти сборки собирают дерево вручную, минуя CMake, поэтому исходники швов приходится
           # перечислять самим — иначе шаг падает на первом же `platform_*.hpp: No such file`.
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core -Iengine/platform"
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/plugin -Iengine/core -Iengine/asset -Iengine/platform"
           # ci-lint: mirrors-group seam-fs
           PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           # ci-lint: mirrors-group seam-args
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          # ci-lint: mirrors-target engine/plugin/CMakeLists.txt plugin_core
+          PLUGIN_CORE="engine/plugin/registry.cpp engine/plugin/host_api.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp"
+          MF=engine/plugin/manifests
           c++ $SAN engine/plugin/manifest.cpp engine/plugin/plugin_manifest_test.cpp $PLAT_FS $PLAT_ARGS -o plugin_manifest_san
-          ./plugin_manifest_san engine/plugin/manifests/inspector.manifest engine/plugin/manifests/console.manifest engine/plugin/manifests/bad.manifest
+          UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+            ./plugin_manifest_san "$MF/inspector.manifest" "$MF/console.manifest" "$MF/bad.manifest" "$MF/stale.manifest" \
+            "$MF/no_api.manifest" "$MF/empty_api.manifest" "$MF/overflow.manifest" \
+            "$MF/dup_plugin.manifest" "$MF/dup_api.manifest" "$MF/no_panels.manifest" \
+            "$MF/api_typo.manifest" 2>&1 | tee pmsan.txt
+          grep -q "plugin-manifest: PASS" pmsan.txt
           c++ $SAN -shared -fPIC engine/plugin/plugins/gravity.cpp -o plugin_gravity_san.so
           c++ $SAN -shared -fPIC engine/plugin/plugins/wind.cpp -o plugin_wind_san.so
-          c++ $SAN engine/plugin/registry.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp \
+          c++ $SAN $PLUGIN_CORE \
             engine/plugin/plugin_determinism_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD -ldl -o plugin_det_san
           ./plugin_det_san ./plugin_gravity_san.so ./plugin_wind_san.so | tee pdsan.txt
           grep -q "plugin-determinism: PASS" pdsan.txt
+          # Гейт границы C-ABI под санитайзерами: ассерт видит «реестр не вырос», но не видит
+          # чтения мимо конца `after[]`, которым обернулся бы снятый потолок `n_after`.
+          c++ $SAN $PLUGIN_CORE engine/plugin/plugin_abi_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
+            -ldl -o plugin_abi_san
+          UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 ./plugin_abi_san 2>&1 | tee pasan.txt
+          grep -q "\[plugin-abi\] PASS" pasan.txt
 
       # Гейт 7 спеки #12: санитайзеры на Windows. Решение владельца — MSVC основной, санитарит
       # clang-cl: у него MSVC-ABI (линкуется с тем же деревом), а рантайм ASan идёт вместе с ним.
@@ -974,18 +1249,53 @@ jobs:
             -DCMAKE_MODULE_LINKER_FLAGS="$LINK_ASAN" \
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
           cmake --build build-asan --target asset_test asset_determinism_test \
-            audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind
+            audio_golden audio_rt_test plugin_determinism_test plugin_gravity plugin_wind \
+            fuzz_readers
           find build-asan -maxdepth 2 \( -name '*.exe' -o -name '*.dll' \) | sort
+          # Аудит #21 A·3·7: ветка clang-cl в determinism.cmake (`/clang:-ffile-prefix-map`) —
+          # своя, и судит её только этот шаг, но не на build-asan. ASan пишет в метаданные
+          # глобалов имя модуля — путь исходника, каким его получил компилятор, а Ninja отдаёт
+          # полный; карта его не переписывает. RelWithDebInfo вдобавок вшивает путь PDB. Пакет
+          # собирается в Release без санитайзера — так же собрана и проверяемая здесь сборка;
+          # самопроверка собирает пробу тем же clang-cl без карты.
+          cmake -S . -B build-clangcl -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DINPUT_NATIVE=OFF -DIDE_POC=OFF
+          cmake --build build-clangcl --target path_map_probe assetc
+          bash scripts/check_path_map.sh build-clangcl
+          bash scripts/check_path_map.sh --selftest build-clangcl
           S=build-asan
           "$S/asset_test.exe" syn.bundle
           "$S/asset_determinism_test.exe" syn.bundle | tee asan_det.txt
           grep -q "INVARIANT (PASS)" asan_det.txt
           "$S/audio_golden.exe" | tee asan_audio.txt
-          grep -q "0x2cf5b5597afa3241" asan_audio.txt
+          grep -q "0x1b54dd84c4e9d75c" asan_audio.txt
           "$S/audio_rt_test.exe"
           "$S/plugin_determinism_test.exe" "$S/plugin_gravity.dll" "$S/plugin_wind.dll" | tee asan_plugin.txt
           grep -q "0x7d9a6e60cbed4156" asan_plugin.txt
           grep -q "plugin-determinism: PASS" asan_plugin.txt
+          # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
+          # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
+          # код. targets=9, а не 10, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
+          "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=9 " asan_fuzz.txt
+          # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
+          # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
+          # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
+          # не работал. Судит СТРОКА: «the canary survived» печатается ровно тогда, когда прогон
+          # дошёл до конца, то есть ASan здесь не вооружён и зелёная строка выше не доказывает
+          # ничего. `|| true` — потому что ожидаемый исход как раз ненулевой код.
+          "$S/fuzz_readers.exe" --selftest --cases 200 > asan_fuzz_self.txt 2>&1 || true
+          if grep -q "the canary survived" asan_fuzz_self.txt; then
+            echo "fuzz selftest: the canary survived — the sanitizer is not armed here"; exit 1
+          fi
+          # Класс ошибки назван поимённо: `grep AddressSanitizer` удовлетворяется и отчётом
+          # LeakSanitizer («N byte(s) leaked»), который про выход за границу не говорит ничего,
+          # — позитивный контроль утверждал бы любое упоминание санитайзера вместо СВОЕГО
+          # события. Классов два, потому что аннотации контейнеров libc++/MSVC STL дают
+          # `container-overflow` там, где голый буфер дал бы `heap-buffer-overflow`.
+          grep -qE "AddressSanitizer: (heap-buffer-overflow|container-overflow)" asan_fuzz_self.txt
 
       # --- IDE-вертикаль (спека #7), срез 1 — фундамент редактора: flecs scene-doc + детерм.
       # round-trip + undo/redo. Гейт 1 golden (fix32 целочисл., текст ASCII → cross-OS байт-golden,
@@ -999,6 +1309,22 @@ jobs:
           "$BIN" | tee ide_rt.txt
           grep -q "0x2de54a36e54e0684" ide_rt.txt || { echo "IDE SCENE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "scene-roundtrip: PASS" ide_rt.txt
+
+      - name: IDE — scene loader refuses a malformed file whole (audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'scene_refusal_test' -o -name 'scene_refusal_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "scene_refusal_test not built"; exit 1; }
+          "$BIN" | tee ide_refusal.txt
+          grep -q "scene-refusal: PASS" ide_refusal.txt
+
+      - name: IDE — an undo snapshot that does not parse refuses too (audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'scene_undo_refusal_test' -o -name 'scene_undo_refusal_test.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "scene_undo_refusal_test not built"; exit 1; }
+          "$BIN" | tee ide_undo_refusal.txt
+          grep -q "scene-undo-refusal: PASS" ide_undo_refusal.txt
 
       - name: "IDE — undo/redo command bus (gate 2: do/undo/redo + grouping + redo-truncation)"
         shell: bash
@@ -1015,13 +1341,33 @@ jobs:
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           [ -n "$FLECSLIB" ] || { echo "libflecs_static.a not found"; exit 1; }
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
-          c++ $SAN tools/ide/scene_roundtrip_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_rt_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/asset -I$FLECSINC"
+          # Судят эти шаги по СТРОКЕ из stdout, а UBSan по умолчанию печатает `runtime error:` в
+          # stderr и возвращает 0 — то есть без `halt_on_error` найденное им UB оставляло бы шаг
+          # зелёным. Ровно тот же промах закрыт в этом аудите для гейта манифеста (ревью, A·2·8).
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Список исходников библиотеки сцены — рукописный, потому что санитайзерная сборка идёт
+          # мимо CMake. Такой список расходится с целью молча: файл, добавленный в scene_core,
+          # просто не попадает под санитайзер, и шаг остаётся зелёным, ничего про него не сказав —
+          # ровно так deserialize.cpp дописывался в пять мест руками. Маркер отдаёт сверку гейту
+          # list-drift (ревью аудита #21, A·2·8).
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/scene_roundtrip_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_rt_san
           ./ide_rt_san | tee ide_rt_san.txt
           grep -q "scene-roundtrip: PASS" ide_rt_san.txt
-          c++ $SAN tools/ide/command_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_cmd_san
+          c++ $SAN tools/ide/command_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_cmd_san
           ./ide_cmd_san | tee ide_cmd_san.txt
           grep -q "command-undo: PASS" ide_cmd_san.txt
+          # Отказ на битом вводе — путь, которого до A·2·8 не было вовсе: чужой текст доходит до
+          # `from_json` и до `substr` по найденному пробелу, и обе границы обязан щупать санитайзер.
+          # Оба текста: у файла сцены и у тела снимка undo разные ветки разбора.
+          c++ $SAN tools/ide/scene_refusal_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_refusal_san
+          ./ide_refusal_san | tee ide_refusal_san.txt
+          grep -q "scene-refusal: PASS" ide_refusal_san.txt
+          c++ $SAN tools/ide/scene_undo_refusal_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_undo_san
+          ./ide_undo_san | tee ide_undo_san.txt
+          grep -q "scene-undo-refusal: PASS" ide_undo_san.txt
 
       # --- IDE-вертикаль срез 2 (спека #7, гейты 3/4/8) — Процесс + IPC. Разделяемую память даёт
       # шов platform_shmem (спека #13, решение 1); fork в play_spawn_test — остаток POSIX-поверхности.
@@ -1151,7 +1497,7 @@ jobs:
         run: |
           # Шов shmem приезжает исходником (platform_shmem_posix.cpp), а не библиотекой: цель
           # санитайзерной сборки — инструментировать И шов тоже, а libplatform_core.a собран без -fsanitize.
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/platform"
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Itools/ide -Iengine/asset -Iengine/platform"
           c++ $SAN tools/ide/ipc_selftest.cpp -pthread -o ide_seq_san   # чистый seqlock, без шва
           ./ide_seq_san | tee ide_seq_san.txt
           grep -q "ipc-seqlock: PASS" ide_seq_san.txt
@@ -1159,7 +1505,7 @@ jobs:
           c++ $SAN tools/ide/game_child.cpp $SEAM \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp -pthread -lrt -o ide_gc_san
           c++ $SAN tools/ide/play_spawn_test.cpp $SEAM \
-            engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp \
             -pthread -lrt -o ide_play_san
           # crash-изоляция: child намеренно null-deref'ит. handle_segv=0 несущий: с включённым
@@ -1212,7 +1558,7 @@ jobs:
             tools/ide/compile/diagnostics_gnu.cpp tools/ide/compile/diagnostics_msvc.cpp \
             tools/ide/compile/build_orchestrator.cpp engine/platform/platform_fs.cpp \
             engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp \
-            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_env_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/platform/platform_module_posix.cpp engine/platform/platform_watch_linux.cpp \
             engine/platform/platform_watch_poll.cpp \
             -ldl -lpthread -o ide_bl_san
@@ -1237,8 +1583,16 @@ jobs:
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
           # -Iengine/platform: perf_test берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/platform -I$FLECSINC"
-          c++ $SAN tools/ide/perf_test.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_perf_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/asset -Iengine/platform -I$FLECSINC"
+          # Тот же довод, что в срезе 1: судят по строке из stdout, а UBSan без
+          # `halt_on_error` пишет `runtime error:` в stderr и возвращает 0 — шаг остаётся
+          # зелёным на найденном UB. Разбор сцены тут под санитайзером на обоих проходах.
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Тот же рукописный список, что и в срезе 1, и та же беда: разойдись он с целью —
+          # шаг остался бы зелёным, просто не проверив нового файла. Сверку ведёт list-drift.
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/perf_test.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_perf_san
           ./ide_perf_san | tee ide_perf_san.txt
           grep -q "ide-perf: PASS" ide_perf_san.txt
 
@@ -1260,8 +1614,16 @@ jobs:
         run: |
           FLECSLIB=$(find build -type f -name 'libflecs_static.a' | head -1)
           FLECSINC=$(find build -path '*flecs-src/include' -type d | head -1)
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -I$FLECSINC"
-          c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp tools/ide/scene.cpp tools/ide/serialize.cpp "$FLECSLIB" -pthread -o ide_editor_san
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Dflecs_STATIC -Itools/ide -Iengine/core -Iengine/asset -I$FLECSINC"
+          # Тот же довод, что в срезе 1: судят по строке из stdout, а UBSan без
+          # `halt_on_error` пишет `runtime error:` в stderr и возвращает 0 — шаг остаётся
+          # зелёным на найденном UB. Разбор сцены тут под санитайзером на обоих проходах.
+          export UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1
+          # Тот же рукописный список, что и в срезе 1, и та же беда: разойдись он с целью —
+          # шаг остался бы зелёным, просто не проверив нового файла. Сверку ведёт list-drift.
+          # ci-lint: mirrors-target tools/ide/CMakeLists.txt scene_core
+          IDE_CORE="tools/ide/scene.cpp tools/ide/serialize.cpp tools/ide/deserialize.cpp tools/ide/parse_component.cpp"
+          c++ $SAN tools/ide/editor/editor_selftest.cpp tools/ide/editor/property_grid.cpp $IDE_CORE "$FLECSLIB" -pthread -o ide_editor_san
           ./ide_editor_san | tee ide_editor_san.txt
           grep -q "ide-editor-data: PASS" ide_editor_san.txt
 
@@ -1446,7 +1808,9 @@ jobs:
           # дают один бит. Разойдись она — физический голден покажет расхождение, но не назовёт
           # причину.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
-                   framework_preset_refusal_test framework_pad_test framework_rebind_test \
+                   framework_preset_refusal_test framework_preset_reader_test \
+                   framework_preset_axes_test \
+                   framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
@@ -1458,6 +1822,56 @@ jobs:
           # совпасть на трёх ОС — расхождение здесь и есть та регрессия, ради которой гейт заведён.
           grep -q "preset-input-hash = 0x416969081dcf230d" fw_framework_golden_test.txt \
             || { echo "PRESET INPUT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+
+      # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
+      # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
+      # случилось чтения мимо буфера. Ровно так и была поймана нижняя граница `name_fits`: без
+      # ASan тот же набор был зелёным. Список TU — целиком каталоги библиотек, а не выборка «что
+      # зовёт прогон»: рукописное подмножество расходится с целью молча. Одно исключение названо
+      # руками — `engine/input/action_map.cpp`: каталог `engine/input` целиком не собирается без
+      # GLFW и evdev (`source_glfw.cpp`, `source_gamepad_linux.cpp`), а `input_core` — ровно один
+      # TU, и добавление второго увидит компоновщик.
+      - name: Framework — section readers ASan/UBSan (gates A·2·1/A·2·1b/A·2·6, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          SAN="-std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
+          INC="-Iengine/framework/input -Iengine/framework/core -Iengine/framework/graphics"
+          INC="$INC -Iengine/framework/character -Iengine/framework/tilemap"
+          INC="$INC -Iengine/framework/physics -Iengine/core -Iengine/input -Iengine/asset"
+          INC="$INC -Iengine/platform"
+          COMMON=$(find engine/framework/input engine/framework/core engine/platform \
+            -maxdepth 1 -name '*.cpp' \
+            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
+          FW=$(find engine/framework/graphics engine/framework/character \
+            engine/framework/tilemap engine/framework/physics \
+            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$')
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
+            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
+          ./preset_reader_san | tee reader_san.txt
+          grep -q "framework-preset-reader: PASS" reader_san.txt
+          # Сквозной прогон «манифест → InputFrame» под тем же санитайзером: карта «строка → ось»
+          # пишет в стековый массив по потолку формата, и вызывающих у неё ДВОЕ — читатель бандла
+          # (`preset_open.cpp`) и тест согласия; пекарь и рантайм спрашивают только счётчики.
+          # Под ASan обязаны быть оба, а не один.
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_preset_test.cpp \
+            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_san
+          ./preset_san | tee preset_san.txt
+          grep -q "framework-preset: PASS" preset_san.txt
+          # Второй её вызывающий — прямой вопрос счётчикам, и ровно он бьёт по буферу ШИРИНОЙ
+          # РОВНО В ПОТОЛОК формата: запись на единицу мимо обычный прогон не заметит (ревью A·2).
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_preset_axes_test.cpp \
+            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_axes_san
+          ./preset_axes_san | tee preset_axes_san.txt
+          grep -q "framework-preset-axes: PASS" preset_axes_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/framework_section_align_test.cpp \
+            engine/input/action_map.cpp $COMMON $FW -ldl -lpthread -o section_align_san
+          ./section_align_san | tee align_san.txt
+          grep -q "framework-section-align: PASS" align_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —
@@ -1664,7 +2078,7 @@ jobs:
                    framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test \
                    framework_physics_band_test framework_physics_wake_test framework_physics_handle_test \
                    framework_physics_depth_test framework_physics_snapshot_test \
-                   framework_physics_snapshot_islands_test \
+                   framework_physics_snapshot_islands_test framework_physics_id_test \
                    framework_rollback_plan_test framework_rollback_test \
                    framework_replay_test \
                    framework_character_test framework_character_window_test \
@@ -1680,6 +2094,8 @@ jobs:
                    framework_tilemap_bundle_test game_platformer_sim_test \
                    game_platformer_rollback_test \
                    game_platformer_replay_test game_platformer_replay_io_test \
+                   game_platformer_replay_refusal_test \
+                   game_platformer_replay_ceiling_test \
                    game_platformer_view_test game_platformer_input_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -1919,7 +2335,7 @@ jobs:
           # Список единиц трансляции здесь свой, не CMake-овский, и однажды он уже отстал от
           # цели на один файл — линковка упала на раннере, когда всё локальное было зелёным.
           # ci-lint: mirrors-target engine/framework/physics/CMakeLists.txt framework_physics
-          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/core/text_fields.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/snapshot.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp"
+          LIB="engine/framework/core/fixmath.cpp engine/framework/core/fixtrig.cpp engine/framework/core/text_fields.cpp engine/framework/physics/axis_terms.cpp engine/framework/physics/body.cpp engine/framework/physics/broadphase.cpp engine/framework/physics/cache.cpp engine/framework/physics/cast.cpp engine/framework/physics/distance.cpp engine/framework/physics/event_hash.cpp engine/framework/physics/events.cpp engine/framework/physics/gap.cpp engine/framework/physics/island.cpp engine/framework/physics/mass.cpp engine/framework/physics/narrowphase.cpp engine/framework/physics/nearest.cpp engine/framework/physics/prepare.cpp engine/framework/physics/query.cpp engine/framework/physics/query_index.cpp engine/framework/physics/rest.cpp engine/framework/physics/sat.cpp engine/framework/physics/shape.cpp engine/framework/physics/snapshot.cpp engine/framework/physics/solver.cpp engine/framework/physics/state_hash.cpp engine/framework/physics/world.cpp engine/framework/physics/world_id.cpp"
           PLAT="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           c++ $SAN $LIB engine/framework/physics/framework_physics_test.cpp $PLAT -o phys_san
           ./phys_san | tee physsan.txt
@@ -2157,16 +2573,16 @@ jobs:
         if: runner.os == 'Linux'
         shell: bash
         run: |
-          # -Iengine/achievements тут не нужен (TU лежат в этом каталоге, кавычечный include их находит)
-          # и вернул бы коллизию registry.hpp/manifest.hpp с -Iengine/plugin в цепочке achp_san.
           # Швы перечисляются поимённо по той же причине, что и в plugin-шаге: CMake тут не участвует.
-          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/core -Iengine/platform"
+          SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/achievements -Iengine/core -Iengine/asset -Iengine/platform"
           # ci-lint: mirrors-group seam-fs
           PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           # ci-lint: mirrors-group seam-args
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
           PLAT_MOD="engine/platform/platform_module_posix.cpp engine/platform/platform_guard_posix.cpp"
+          # ci-lint: mirrors-target engine/plugin/CMakeLists.txt plugin_core
+          PLUGIN_CORE="engine/plugin/registry.cpp engine/plugin/host_api.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp"
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp $PLAT_FS -o ach_san
@@ -2190,7 +2606,7 @@ jobs:
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
             engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
             engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
-            engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp \
+            engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
             engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp $PLAT_FS $PLAT_ARGS \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt
@@ -2208,8 +2624,7 @@ jobs:
           c++ $SAN -DPLUGIN_FORCE_DLCLOSE -Iengine/plugin engine/achievements/registry.cpp \
             engine/achievements/tracker.cpp engine/achievements/state.cpp engine/achievements/store.cpp \
             engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
-            engine/achievements/plugin_backend.cpp engine/plugin/registry.cpp engine/plugin/host.cpp \
-            engine/plugin/builtin.cpp engine/plugin/manifest.cpp example_ugly_game/backend_host.cpp \
+            engine/achievements/plugin_backend.cpp $PLUGIN_CORE example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
             example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san
@@ -2222,3 +2637,49 @@ jobs:
               ./plugin_ach_v1_san.so | tee achpsan.txt
             grep -q "PASS" achpsan.txt
           done
+
+      # --- Гейт 9 аудита #21: ни один читатель секции не падает на мутированном файле. Прогон
+      # релизный и идёт на всех трёх ОС, потому что предмет тут ещё и ПОРТИРУЕМОСТЬ разбора:
+      # выравнивание, знак char и порядок полей на macOS/Windows свои. Число целей в строке PASS
+      # закреплено грепом — выпавшая из таблицы цель иначе уехала бы зелёной.
+      - name: Fuzz — section readers survive mutated input (gate 9 of audit #21, all OS)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
+          "$BIN" | tee fuzz.txt
+          grep -q "\[fuzz\] PASS targets=10 " fuzz.txt
+
+      # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
+      # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
+      # Отдельный каталог, а не флаги поверх `build`: одна цель со своими зависимостями вместо
+      # пересборки дерева.
+      - name: Fuzz — readers under ASan/UBSan (gate 9 of audit #21, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          # -fno-sanitize-recover обязателен: по умолчанию UBSan ПЕЧАТАЕТ находку и продолжает,
+          # процесс возвращает ноль, и шаг зеленеет с undefined-behavior в логе. Так и случилось
+          # на первом же прогоне этого гейта — переполнение int32 нашлось, а гейт промолчал.
+          SAN="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g -O1"
+          cmake -S . -B build-fuzz-san -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" \
+            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
+          cmake --build build-fuzz-san --target fuzz_readers
+          ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=10 " fuzz_san.txt
+          # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
+          # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
+          # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
+          # гейта. Судит СТРОКА: «the canary survived» печатается ровно тогда, когда прогон дошёл
+          # до конца, то есть ASan в этой сборке не вооружён и зелёная строка выше не доказывает
+          # ничего. `|| true` — потому что ожидаемый исход как раз ненулевой код.
+          ./build-fuzz-san/fuzz_readers --selftest --cases 200 > fuzz_self.txt 2>&1 || true
+          if grep -q "the canary survived" fuzz_self.txt; then
+            echo "fuzz selftest: the canary survived — the sanitizer is not armed here"; exit 1
+          fi
+          # Класс ошибки назван поимённо, а не одним словом «AddressSanitizer»: ему
+          # удовлетворяет и отчёт LeakSanitizer, который про выход за границу не говорит
+          # ничего. Классов два — аннотации контейнеров дают `container-overflow` там, где
+          # голый буфер дал бы `heap-buffer-overflow`.
+          grep -qE "AddressSanitizer: (heap-buffer-overflow|container-overflow)" fuzz_self.txt

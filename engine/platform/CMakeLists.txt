@@ -1,7 +1,8 @@
 # Платформенный шов (спека #12, решение 2): «абстракции, а не #ifdef по коду». Реализацию
 # выбирает ЭТОТ файл — потому условной компиляции по ОС нет ни в одном .cpp платформы, и
 # инвариант «#ifdef не расползается» проверяется грепом по всему дереву, а не обещанием.
-add_library(platform_core STATIC platform_fs.cpp platform_args.cpp platform_watch_poll.cpp)
+add_library(platform_core STATIC
+  platform_fs.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp)
 target_include_directories(platform_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # Статическую библиотеку линкуют и MODULE-цели (плагины читают окружение через шов), а объект без
 # -fPIC в разделяемый объект не линкуется вовсе. На Ubuntu-раннере это до поры не всплывает —
@@ -13,6 +14,11 @@ set_target_properties(platform_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_executable(platform_env_test platform_env_test.cpp)
 target_link_libraries(platform_env_test PRIVATE platform_core)
 
+# Маскировка домашнего каталога в печатаемых путях (аудит #21 A·3·12): обе семантики сравнения
+# проверяются на каждой ОС, перегрузка по окружению — своей, потому тоже вне ветки WIN32.
+add_executable(platform_redact_test platform_redact_test.cpp)
+target_link_libraries(platform_redact_test PRIVATE platform_core)
+
 # Шов разделяемой памяти (спека #13) — та же ловушка, что у окружения: обе реализации отдают
 # «получилось», и расхождение молчит до живого прогона. Потому тоже вне ветки WIN32.
 add_executable(platform_shmem_test platform_shmem_test.cpp)
@@ -21,7 +27,7 @@ target_link_libraries(platform_shmem_test PRIVATE platform_core)
 # Шов запуска процесса с захватом вывода (спека #13): перезапускает сам себя со служебным
 # режимом, потому отдельной цели-ребёнка не нужно. Тоже вне ветки WIN32 — гоняется на трёх ОС.
 add_executable(platform_process_test platform_process_test.cpp)
-target_link_libraries(platform_process_test PRIVATE platform_core)
+target_link_libraries(platform_process_test PRIVATE platform_core platform_net)
 
 # Шов наблюдения за каталогом (спека #13, решение 4): три РАЗНЫЕ по устройству реализации
 # (опрос дескриптора / колбэк с потока run loop / асинхронное чтение) под одним опросным API —
@@ -34,6 +40,7 @@ if(WIN32)
   target_sources(platform_core PRIVATE
     win32_utf.cpp win32_cmdline.cpp
     platform_io_win32.cpp platform_fs_win32.cpp platform_path_win32.cpp platform_env_win32.cpp
+    platform_redact_win32.cpp
     platform_process_win32.cpp platform_module_win32.cpp platform_guard_win32.cpp
     platform_args_win32.cpp platform_shmem_win32.cpp win32_spawn.cpp platform_watch_win32.cpp)
   # CommandLineToArgvW живёт в shell32: его зовёт platform_args_win32.cpp (разбор своей строки
@@ -44,23 +51,47 @@ if(WIN32)
   # CommandLineToArgvW → тест только под Windows.
   add_executable(win32_cmdline_test win32_cmdline_test.cpp)
   target_link_libraries(win32_cmdline_test PRIVATE platform_core)
+  # Порядок поиска зависимостей плагина (A·1·2 аудита #21): зависимость уезжает в подкаталог,
+  # потому что каталог exe входит в LOAD_LIBRARY_SEARCH_DEFAULT_DIRS и нашёл бы её там.
+  add_library(dll_search_dep SHARED win32_dll_search_dep.cpp)
+  set_target_properties(dll_search_dep PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/dll_search_dep)
+  add_library(dll_search_plugin SHARED win32_dll_search_plugin.cpp)
+  target_link_libraries(dll_search_plugin PRIVATE dll_search_dep)
+  add_executable(win32_dll_search_test win32_dll_search_test.cpp)
+  target_link_libraries(win32_dll_search_test PRIVATE platform_core)
+  add_dependencies(win32_dll_search_test dll_search_plugin)
+  target_compile_definitions(win32_dll_search_test PRIVATE
+    DLL_SEARCH_PLUGIN="$<TARGET_FILE:dll_search_plugin>"
+    DLL_SEARCH_DEP="$<TARGET_FILE:dll_search_dep>")
 else()
   target_sources(platform_core PRIVATE
     platform_io_posix.cpp platform_fs_posix.cpp platform_path_posix.cpp platform_env_posix.cpp
-    platform_process_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp
-    platform_args_posix.cpp platform_shmem_posix.cpp)
+    platform_redact_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp
+    platform_args_posix.cpp)
   target_link_libraries(platform_core PRIVATE ${CMAKE_DL_LIBS})
-  # Наблюдение — единственный шов, где POSIX не общий: inotify есть только на Linux, FSEvents
-  # только на macOS, и «POSIX-реализация» тут была бы фикцией из двух #ifdef.
-  if(APPLE)
-    target_sources(platform_core PRIVATE platform_watch_macos.cpp)
+  # Наблюдение — шов, где POSIX не общий: inotify есть только на Linux, FSEvents только на
+  # macOS, и «POSIX-реализация» тут была бы фикцией из двух #ifdef.
+  # iOS — Apple без FSEvents: наблюдение только опросом, запуск процессов тот же, что на macOS.
+  # Android — inotify тот же, что на Linux, а запуска процессов и shm_open нет: явный отказ шва.
+  if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+    target_sources(platform_core PRIVATE platform_watch_ios.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_macos.cpp)
+  elseif(APPLE)
+    target_sources(platform_core PRIVATE platform_watch_macos.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_macos.cpp)
     target_link_libraries(platform_core PUBLIC "-framework CoreServices")
+  elseif(ANDROID)
+    target_sources(platform_core PRIVATE platform_watch_linux.cpp
+      platform_process_android.cpp platform_shmem_android.cpp)
   else()
-    target_sources(platform_core PRIVATE platform_watch_linux.cpp)
+    target_sources(platform_core PRIVATE platform_watch_linux.cpp platform_shmem_posix.cpp
+      platform_process_posix.cpp platform_spawn_linux.cpp)
   endif()
   # shm_open на Linux живёт в librt (на macOS — в libc). Раньше эту зависимость тянул ipc_core
   # из tools/ide; после переезда шва в платформу она принадлежит platform_core.
-  if(NOT APPLE)
+  # На Android шва shm_open нет вовсе, и librt там тоже нет.
+  if(NOT APPLE AND NOT ANDROID)
     target_link_libraries(platform_core PUBLIC rt)
   endif()
 endif()

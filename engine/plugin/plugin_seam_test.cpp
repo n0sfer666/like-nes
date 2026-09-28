@@ -1,4 +1,4 @@
-#include "registry.hpp"
+#include "plugin_registry.hpp"
 #include "builtin.hpp"
 #include "host.hpp"
 #include "platform_args.hpp"
@@ -26,9 +26,9 @@ int main(int argc, char** argv) {
     AssetDecodeFn dec = reg.find_codec("RLE0");
     std::vector<uint8_t> encoded = {4, 0xAB, 2, 0xCD, 3, 0x01};
     std::vector<uint8_t> out(64, 0);
-    int32_t n = dec ? dec(encoded.data(), (int32_t)encoded.size(), out.data(), (int32_t)out.size()) : -1;
+    int32_t n = dec ? dec(encoded.data(), static_cast<int32_t>(encoded.size()), out.data(), static_cast<int32_t>(out.size())) : -1;
     std::vector<uint8_t> expect = {0xAB, 0xAB, 0xAB, 0xAB, 0xCD, 0xCD, 0x01, 0x01, 0x01};
-    bool codec_ok = (n == (int32_t)expect.size());
+    bool codec_ok = (n == static_cast<int32_t>(expect.size()));
     for (int32_t i = 0; codec_ok && i < n; ++i) codec_ok = (out[i] == expect[i]);
 
     size_t c_ecs = reg.count(EXT_ECS_SYSTEM);

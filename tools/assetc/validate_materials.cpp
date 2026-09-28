@@ -2,8 +2,8 @@
 
 #include <cstdio>
 
-#include "../../engine/material/table.hpp"
-#include "../../engine/material/validate.hpp"
+#include "material_table.hpp"
+#include "validate.hpp"
 #include "baker_guid.hpp"
 
 namespace asset {

@@ -1,47 +1,30 @@
-cmake_minimum_required(VERSION 3.24)
-project(like_nes_ios LANGUAGES C CXX OBJC OBJCXX)
+# iOS-оболочка — подкаталог корня, а не свой проект: цели движка, flecs и wgpu-native приходят из
+# корня под тем же тулчейном, игра — общим списком example_ugly_game/game_sources.cmake. Своё здесь —
+# только UIKit-вход, слой Metal и упаковка `.app`.
+include(${CMAKE_SOURCE_DIR}/cmake/licenses.cmake)
+include(${CMAKE_SOURCE_DIR}/example_ugly_game/game_sources.cmake)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_POLICY_VERSION_MINIMUM 3.10 CACHE STRING "" FORCE)
-
-set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/../..)
-set(MOBILE ${CMAKE_CURRENT_SOURCE_DIR}/../mobile)
-
-include(${REPO}/cmake/licenses.cmake)
-include(${MOBILE}/wgpu_native.cmake)
-
-include(FetchContent)
-set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
-set(FLECS_STATIC ON CACHE BOOL "" FORCE)
-set(FLECS_PIC ON CACHE BOOL "" FORCE)
-set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
-FetchContent_Declare(flecs
-  GIT_REPOSITORY https://github.com/SanderMertens/flecs
-  GIT_TAG v4.1.6
-  GIT_SHALLOW TRUE)
-FetchContent_MakeAvailable(flecs)
+set(MOBILE ${CMAKE_SOURCE_DIR}/platform/mobile)
+# Бандлы игры кладутся в `assets/` внутри `.app`: `resolve_asset` ищет `<exe_dir>/assets/<имя>`, а
+# у iOS-приложения exe_dir и есть корень бандла — оболочке не нужно подсовывать путь окружением.
+set(GAME_BUNDLES game.bundle library.bundle audio.bundle)
+list(TRANSFORM GAME_BUNDLES PREPEND ${CMAKE_SOURCE_DIR}/example_ugly_game/assets/)
 
 add_executable(like_nes_ios MACOSX_BUNDLE
-  ${LICENSE_FILES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
-  ${MOBILE}/mobile_game.cpp
-  ${REPO}/example_ugly_game/art.cpp ${REPO}/example_ugly_game/batch.cpp ${REPO}/example_ugly_game/sim.cpp
-  ${REPO}/example_ugly_game/combat.cpp ${REPO}/example_ugly_game/boss.cpp ${REPO}/example_ugly_game/controls.cpp
-  ${REPO}/example_ugly_game/draw.cpp ${REPO}/example_ugly_game/fx.cpp ${REPO}/example_ugly_game/bloom.cpp
-  ${REPO}/example_ugly_game/audio.cpp
-  ${REPO}/engine/input/action_map.cpp ${REPO}/engine/render/gpu.cpp)
+  ${LICENSE_FILES} ${GAME_BUNDLES}
+  ${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm ${MOBILE}/mobile_game.cpp)
+game_core_target(like_nes_ios material_gpu)
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${CMAKE_CURRENT_SOURCE_DIR}/view.mm
   PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-
-target_include_directories(like_nes_ios PRIVATE
-  ${REPO}/example_ugly_game ${MOBILE} ${REPO}/engine/core ${REPO}/engine/input ${REPO}/engine/render)
-target_link_libraries(like_nes_ios PRIVATE wgpu_native flecs_static
+target_include_directories(like_nes_ios PRIVATE ${MOBILE})
+target_link_libraries(like_nes_ios PRIVATE
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")
 
 set_source_files_properties(${LICENSE_FILES} PROPERTIES
   MACOSX_PACKAGE_LOCATION Resources/licenses HEADER_FILE_ONLY ON)
+set_source_files_properties(${GAME_BUNDLES} PROPERTIES
+  MACOSX_PACKAGE_LOCATION assets HEADER_FILE_ONLY ON)
 
 set_target_properties(like_nes_ios PROPERTIES
   MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in

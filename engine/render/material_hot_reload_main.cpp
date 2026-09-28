@@ -3,13 +3,13 @@
 #include <string>
 #include <vector>
 
-#include "bake.hpp"
-#include "cache.hpp"
+#include "material_bake.hpp"
+#include "material_cache.hpp"
 #include "gpu.hpp"
 #include "hot_reload.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
-#include "table.hpp"
+#include "material_table.hpp"
 
 // Гейт 3 спеки #18: правка `.wgsl` доезжает до живого кэша, а БИТАЯ правка не гасит сцену.
 //

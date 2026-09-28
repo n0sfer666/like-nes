@@ -26,12 +26,6 @@ fix32 clamp_pan(fix32 p) {
     return p;
 }
 
-int16_t clamp16(int64_t v) {
-    if (v > 32767) return 32767;
-    if (v < -32768) return -32768;
-    return static_cast<int16_t>(v);
-}
-
 // Один семпл голоса + продвижение playhead. Стрим-underrun → тишина (не деактивирует).
 int16_t fetch_advance(Voice& v, uint64_t& underruns) {
     if (v.ring) {
@@ -63,6 +57,9 @@ const Source* Mixer::find_source(uint64_t guid) const {
     return nullptr;
 }
 
+// Громкость из команды — доля в [0,1] (аудит #21 A·3·4): выше единицы — усиление за полную шкалу и
+// срез, ниже нуля — инверсия фазы вместо тишины. Кламп здесь, на шве консюмера, а не в AudioEngine:
+// команду в очередь кладёт и тот, кто собрал её руками.
 void Mixer::apply(const AudioCommand& c, uint32_t offset) {
     switch (static_cast<CmdType>(c.type)) {
         case CmdType::Play: {
@@ -72,7 +69,7 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
             Voice& v = pool_.alloc(seq_++);
             v.id = c.voice_id;
             v.pcm = src->pcm; v.frames = src->frames; v.ring = src->ring;
-            v.gain = fix32::from_raw(c.gain);
+            v.gain = fix_clamp01(fix32::from_raw(c.gain));
             v.x = fix32::from_raw(c.x); v.y = fix32::from_raw(c.y);
             v.bus = static_cast<Bus>(c.bus);
             v.loop = (c.flags & CMD_FLAG_LOOP) != 0;
@@ -85,19 +82,23 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
             if (Voice* v = pool_.find(c.voice_id)) v->active = false;
             break;
         case CmdType::SetBusGain:
-            if (c.bus < BUS_N) bus_gain_[c.bus] = fix32::from_raw(c.gain);
+            if (c.bus < BUS_N) bus_gain_[c.bus] = fix_clamp01(fix32::from_raw(c.gain));
             break;
         case CmdType::SetListener:
             listener_x_ = fix32::from_raw(c.x); listener_y_ = fix32::from_raw(c.y);
+            break;
+        case CmdType::SetMasterGain:
+            master_ = fix_clamp01(fix32::from_raw(c.gain));
             break;
     }
 }
 
 void Mixer::drain_commands(uint32_t frames) {
     AudioCommand c;
-    while (commands_.peek(c) && c.sample_time < cursor_ + frames) {
+    const uint64_t cur = cursor();
+    while (commands_.peek(c) && c.sample_time < cur + frames) {
         commands_.pop(c);
-        uint32_t off = c.sample_time > cursor_ ? static_cast<uint32_t>(c.sample_time - cursor_) : 0;
+        uint32_t off = c.sample_time > cur ? static_cast<uint32_t>(c.sample_time - cur) : 0;
         apply(c, off);
     }
 }
@@ -136,7 +137,7 @@ void Mixer::mix(uint32_t frames, int16_t* out) {
         if (v.active && v.start_offset)
             v.start_offset = v.start_offset > frames ? v.start_offset - frames : 0;
     }
-    cursor_ += frames;
+    cursor_.store(cursor() + frames, std::memory_order_relaxed);
 }
 
 void Mixer::mix_fix(uint32_t frames, int16_t* out) {
@@ -159,8 +160,7 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
             mL += (busL[b] * bg.raw) >> 16;
             mR += (busR[b] * bg.raw) >> 16;
         }
-        out[f * 2] = clamp16((mL * master_.raw) >> 32);
-        out[f * 2 + 1] = clamp16((mR * master_.raw) >> 32);
+        limiter_.apply((mL * master_.raw) >> 32, (mR * master_.raw) >> 32, out + f * 2);
     }
 }
 
@@ -184,8 +184,8 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
             mL += busL[b] * bg;
             mR += busR[b] * bg;
         }
-        out[f * 2] = clamp16(static_cast<int64_t>(std::lround(mL * master_.to_double())));
-        out[f * 2 + 1] = clamp16(static_cast<int64_t>(std::lround(mR * master_.to_double())));
+        limiter_.apply(std::llround(mL * master_.to_double()), std::llround(mR * master_.to_double()),
+                       out + f * 2);
     }
 }
 

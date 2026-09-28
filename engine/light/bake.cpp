@@ -1,9 +1,9 @@
-#include "bake.hpp"
+#include "light_bake.hpp"
 
 #include <cstdint>
 #include <cstring>
 
-#include "../platform/platform_fs.hpp"
+#include "platform_fs.hpp"
 
 namespace light {
 namespace {
