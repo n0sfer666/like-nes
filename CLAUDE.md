@@ -95,6 +95,7 @@ decisions, notes). Читать перед началом любой задач�
 | пакет Windows задачей CI | `bash scripts/check_release_ci.sh [--live]` | preflight · `--live` руками | [release-ci](.context/gates/release-ci.md) |
 | образ macOS | `bash scripts/check_release_dmg.sh` | preflight | [release-dmg](.context/gates/release-dmg.md) |
 | образ Linux | `bash scripts/check_release_appimage.sh` | preflight | [release-appimage](.context/gates/release-appimage.md) |
+| два пальца на iOS-симуляторе | `bash scripts/ios_sim_gate.sh` · `bash scripts/ios_sim_gate_live_selftest.sh` | preflight · самопроверка руками | [ios-sim](.context/gates/ios-sim.md) |
 | установщик Windows | `bash scripts/check_release_msi.sh` | preflight | [release-msi](.context/gates/release-msi.md) |
 | пакет Windows без VC++ Redistributable | `bash scripts/check_release_crt.sh` | preflight | [release-crt](.context/gates/release-crt.md) |
 | всё до CI | `bash scripts/preflight.sh` | перед push | [preflight](.context/gates/preflight.md) |

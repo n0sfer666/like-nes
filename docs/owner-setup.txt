@@ -1640,7 +1640,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   На экране — титул «LIKE NES / SIDESCROLLER», звёзды, корабль, светящаяся
   кнопка огня справа внизу. «procedural atlas» здесь норма: GPU симулятора не
   умеет BC7. Симулятор НЕ заменяет устройство — GPU у него хостовый, а
-  мультитач только готовыми жестами.
+  жест синтезирован, а не поставлен пальцами.
 
   Уход в фон сохраняет достижения (прогнано агентом): система убивает фоновый
   процесс без выхода, и ждать автосейва на 600-м тике нельзя.
@@ -1657,7 +1657,41 @@ owner_check.sh гоняет это отдельным этапом сразу п
   при уходе в фон сломано. Сразу после Preferences файла может ещё не быть:
   UIKit шлёт уход сцены в фон с задержкой, ls — через пару секунд.
 
-  3) iPhone. Сборка под устройство прогнана агентом (platform IOS, у нашего
+  3) Два пальца разом — гейт симулятора (прогнан агентом; стоит в
+  preflight, в CI его нет). UI-тест ставит стик слева и огонь в круге
+  справа внизу, вердикт читает строки [touch] из системного лога:
+
+    bash scripts/ios_sim_gate.sh
+
+  Первый прогон собирает build-ios-xcode (wgpu-native из Rust — минуты),
+  следующие — около 40 секунд. Ожидаемо:
+
+    [ios-sim] ok: simulator like-nes-gate-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0
+    [ios-sim] ok: UI test passed (view: platform/ios/view.mm)
+    [ios-touch] ok: stick=<id> fire=<id> held together; 42 events; int-truncated ids distinct
+    [ios-sim] ok: 2 screenshots rendered, evidence in <каталог>
+    [ios-sim] PASS
+
+  Число событий плавает на единицы: синтезатор Xcode вставляет лишний
+  короткий тап. В <каталог> — лог xcodebuild, touch.log и два скриншота
+  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Без Xcode или рантайма —
+  строка «[ios-sim] SKIP: <причина>», это не зелёный гейт; на Intel Mac —
+  тоже SKIP: оболочка собирается под arm64-симулятор. Строка «private
+  XCPointerEventPath is gone from this Xcode» — новый Xcode убрал синтез двух
+  пальцев в произвольных точках: гейт красный, а не обойдён.
+
+  Позитивный контроль (около двух минут, руками):
+
+    bash scripts/ios_sim_gate_live_selftest.sh
+
+  Ожидаемо:
+
+    [ios-sim-selftest] ok: single-touch — red for its own reason (only one touch reached the view)
+    [ios-sim-selftest] ok: collapsed-id — red for its own reason (two touches share one id)
+    [ios-sim-selftest] ok: the real view.mm passes and is back in the CMake cache
+    [ios-sim-selftest] 2 mutants + clean run, 0 failure(s)
+
+  4) iPhone. Сборка под устройство прогнана агентом (platform IOS, у нашего
   кода и линковки предупреждений нет; «warning: unexpected cfg» печатает
   cargo про сам крейт wgpu-native — это его, не наше). Подпись и запуск — НЕ
   прогнаны: нужна команда разработчика владельца. Тот же корень с sysroot
@@ -1670,12 +1704,12 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Подписать build-ios-device/like_nes_ios.app своей командой разработчика и
   поставить на iPhone. Смотреть: те же пять строк [game] в консоли Xcode
   (Devices and Simulators → Open Console, фильтр like_nes_ios), в игре —
-  стик левым пальцем и огонь правым ОДНОВРЕМЕННО (оба касания живут разом —
-  ради этого и чинился id касания в B8), звук слышен. Бесшумный режим
+  стик левым пальцем и огонь правым ОДНОВРЕМЕННО (в симуляторе это держит
+  шаг 3, на железе — только вы), звук слышен. Бесшумный режим
   (переключатель сбоку) глушит игру — так задумано: сессия SoloAmbient, как
   у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект.
 
-  4) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
+  5) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
   отладочным ключом ~/.android/debug.keystore:
 
     ~/Library/Android/sdk/platform-tools/adb install -r \

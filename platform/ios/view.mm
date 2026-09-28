@@ -34,6 +34,8 @@ using namespace game;
     WGPUSurface surface_;
     CADisplayLink* link_;
     bool started_;
+    bool probe_;
+    NSString* run_;
 }
 @end
 
@@ -64,7 +66,10 @@ using namespace game;
     surface_ = wgpuInstanceCreateSurface(gpu_.instance, &sd);
     if (!gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); [self releaseGpu]; return; }
     if (!game_.init(gpu_, surface_, w, h)) { NSLog(@"[game] game init failed"); [self releaseGpu]; return; }
-    game_.set_demo([NSProcessInfo.processInfo.arguments containsObject:@"--demo"]);
+    NSArray<NSString*>* args = NSProcessInfo.processInfo.arguments;
+    game_.set_demo([args containsObject:@"--demo"]);
+    probe_ = [args containsObject:@"--touch-probe"];
+    run_ = NSProcessInfo.processInfo.environment[@"LIKE_NES_TOUCH_RUN"] ?: @"-";
     started_ = true;
     NSLog(@"[game] iOS shell up: %ux%u - left = stick, bottom-right = fire", w, h);
 
@@ -107,8 +112,21 @@ using namespace game;
     for (UITouch* t in touches) {
         const CGPoint p = [t locationInView:self.view];
         // Граница ObjC: id касания — адрес UITouch, UIKit держит один объект на всё касание.
-        game_.pointer(reinterpret_cast<intptr_t>(t), phase, static_cast<float>(p.x), static_cast<float>(p.y), static_cast<float>(sz.width), static_cast<float>(sz.height));
+        const intptr_t id = reinterpret_cast<intptr_t>(t);
+        game_.pointer(id, phase, static_cast<float>(p.x), static_cast<float>(p.y), static_cast<float>(sz.width), static_cast<float>(sz.height));
+        if (probe_) [self probe:id phase:phase at:p];
     }
+}
+
+// Строка на касание с состоянием ПОСЛЕ него: XCUITest проигрывает жест целиком и середину не видит,
+// поэтому гейт (`scripts/ios_sim_gate.sh`) судит историю из системного лога. id32 — усечение до
+// int, каким id был до B8: печатается как улика, что оно не склеивает соседние касания. run —
+// нонс прогона гейта: строки прошлых запусков в той же выборке лога вердикт отбрасывает.
+- (void)probe:(intptr_t)id phase:(MobileGame::Touch)phase at:(CGPoint)p {
+    static const char* const kPhase[] = {"down", "move", "up"};
+    NSLog(@"[touch] %s id=%ld id32=%d x=%.0f y=%.0f stick=%ld fire=%ld run=%@", kPhase[static_cast<int>(phase)],
+          static_cast<long>(id), static_cast<int32_t>(id), p.x, p.y,
+          static_cast<long>(game_.stick_touch()), static_cast<long>(game_.fire_touch()), run_);
 }
 
 - (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
