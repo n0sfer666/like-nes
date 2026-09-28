@@ -14,7 +14,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 B="$ROOT/build-ios-xcode"
 VIEW="$ROOT/platform/ios/view.mm"
-DEVTYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-16
 
 fail() { echo "[ios-sim] FAIL: $*" >&2; exit 1; }
 ok() { echo "[ios-sim] ok: $*"; }
@@ -28,21 +27,17 @@ case "$#:${1:-}" in
   *) fail "usage: bash scripts/ios_sim_gate.sh [--view <view.mm>]" ;;
 esac
 
-[ "$(uname -s)" = Darwin ] || skip_gate "the iOS simulator exists only on macOS"
-[ "$(uname -m)" = arm64 ] || skip_gate "the shell is built for the arm64 simulator, this Mac is $(uname -m)"
-xcodebuild -version >/dev/null 2>&1 || skip_gate "xcodebuild missing (install Xcode, then xcode-select -s)"
-RUNTIME=$(xcrun simctl list runtimes iOS | awk '/^iOS / && !/unavailable/ {id=$NF} END {print id}') \
-  || fail "simctl cannot list runtimes (CoreSimulatorService down?)"
+# shellcheck source=scripts/ios_sim_lib.sh
+. "$ROOT/scripts/ios_sim_lib.sh"
+WHY=$(ios_sim_missing)
+[ -z "$WHY" ] || skip_gate "$WHY"
+RUNTIME=$(ios_runtime) || fail "simctl cannot list runtimes (CoreSimulatorService down?)"
 [ -n "$RUNTIME" ] || skip_gate "no iOS simulator runtime (Xcode > Settings > Components)"
 
 # Имя несёт рантайм: устройство навсегда остаётся на том, с которым создано, и после обновления
 # Xcode гейт гонял бы старый iOS под строкой, называющей новый.
 DEVICE="like-nes-gate-${RUNTIME##*.}"
-UDID=$(xcrun simctl list devices available | sed -nE "s/^ +$DEVICE \\(([0-9A-F-]{36})\\).*/\\1/p" | head -1) \
-  || fail "simctl cannot list devices"
-if [ -z "$UDID" ]; then
-  UDID=$(xcrun simctl create "$DEVICE" "$DEVTYPE" "$RUNTIME") || fail "cannot create $DEVICE ($DEVTYPE, $RUNTIME)"
-fi
+UDID=$(ios_device "$DEVICE" "$RUNTIME") || fail "cannot find or create $DEVICE on $RUNTIME"
 xcrun simctl bootstatus "$UDID" -b >/dev/null || fail "simulator $DEVICE ($UDID) did not boot"
 ok "simulator $DEVICE $UDID on $RUNTIME"
 

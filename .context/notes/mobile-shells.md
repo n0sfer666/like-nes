@@ -105,3 +105,17 @@
 - Попутное из раунда 1 (`MinimumOSVersion 14.0` против `minos 27.0`) по-прежнему не чинилось.
 
 Дальше: iPhone и Android-устройство — у владельца (`docs/owner-setup.txt` §R, шаги 4–5).
+
+## Запуск игры в симуляторе руками (2026-09-28)
+
+Владелец не смог поднять игру по §R шаг 2. Причины: bash-синтаксис (`$(…)`, `\`) в Nushell;
+`xcompile_verify.sh` требует Android SDK ради одной iOS-игры; повторный `simctl create` заводил
+двойника `like-nes-smoke`; `boot` загруженного падает; **в Xcode 27 нет Simulator.app** — окно
+устройства теперь Device Hub (`com.apple.dt.Devices`), `open -a Simulator` не находит приложение.
+Итог — `bash scripts/ios_sim_run.sh [--background-save]`: сборка `build-ios`, устройство
+`like-nes-play-<рантайм>`, Device Hub, игра с консолью. Режим фона — PASS/FAIL вместо ручного `ls`:
+автосейв на титуле не пишет (прогресс не меняется, замер 20 с), уход в фон пишет через 10–21 с;
+мутант без `game_.suspend()` в `pause` — FAIL.
+
+Раунд 3 (решение владельца): попутные баги мобилы — `MinimumOSVersion 14.0` против `minos 27.0`,
+AVAudioSession на главном потоке, копящиеся `ios-sim-gate.*` в `$TMPDIR`.
