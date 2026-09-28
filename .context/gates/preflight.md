@@ -17,8 +17,8 @@ workflow, инварианты `scripts/tree_invariants.sh` — тот же ск
 (`scripts/check_docs_examples.sh build-full` со своей самопроверкой перед ним: цели `doc_example_*`
 живут в полном каталоге) → релизный пакет
 (`scripts/check_release.sh`, собирается из уже собранного `build-full`) → образ macOS
-(`scripts/check_release_dmg.sh`) → AppImage (`scripts/check_release_appimage.sh`) → сборка gcc,
-если он установлен. Установщик Windows (`scripts/check_release_msi.sh`) и гейт CRT (`scripts/check_release_crt.sh`)
+(`scripts/check_release_dmg.sh`) → AppImage (`scripts/check_release_appimage.sh`) → iOS-симулятор
+(`scripts/ios_sim_gate.sh`) → сборка gcc, если он установлен. Установщик Windows (`scripts/check_release_msi.sh`) и гейт CRT (`scripts/check_release_crt.sh`)
 стоят НЕ здесь, а в группе `preflight_release_rules.sh` вместе с правилами: сборки им не нужно —
 стейдж установщик делает себе сам, а CRT читает таблицы импортов. Этапы не
 останавливают друг друга: один прогон обязан выдать все находки разом.

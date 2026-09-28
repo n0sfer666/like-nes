@@ -35,6 +35,9 @@ public:
     // id — intptr_t: iOS отдаёт адрес UITouch целиком, усечение до int склеило бы два касания.
     void pointer(intptr_t id, Touch phase, float px, float py, float view_w, float view_h);
     void cancel();   // системный CANCEL (шторка/звонок): сбросить все активные касания
+    // Чьё касание держит стик и огонь (-1 — ничьё): гейт симулятора судит маршрутизацию по ним.
+    intptr_t stick_touch() const { return stick_id_; }
+    intptr_t fire_touch() const { return fire_id_; }
     void frame(WGPUSurface surface);
     // Уход в фон: система убивает фоновый процесс без dealloc и onDestroy, и статы достижений,
     // копящиеся до автосейва, пропали бы. Сохраняет, ничего не освобождая.
