@@ -111,10 +111,12 @@ bool replace_file(const std::string& from, const std::string& to) {
     return std::rename(from.c_str(), to.c_str()) == 0;
 }
 
-bool copy_file(const std::string& src, const std::string& dst) {
+namespace {
+
+bool copy_to(const std::string& src, const std::string& dst, const char* mode) {
     FILE* in = open_file(src, "rb");
     if (!in) return false;
-    FILE* out = open_file(dst, "wb");
+    FILE* out = open_file(dst, mode);
     if (!out) {
         std::fclose(in);
         return false;
@@ -134,6 +136,16 @@ bool copy_file(const std::string& src, const std::string& dst) {
     if (std::fclose(out) != 0) ok = false;
     if (!ok) remove_file(dst);
     return ok;
+}
+
+} // namespace
+
+bool copy_file(const std::string& src, const std::string& dst) {
+    return copy_to(src, dst, "wb");
+}
+
+bool copy_file_new(const std::string& src, const std::string& dst) {
+    return copy_to(src, dst, "wbx");
 }
 
 namespace {

@@ -347,6 +347,14 @@ jobs:
           "$E" | tee redact.txt
           grep -q "platform-redact: PASS" redact.txt
 
+      - name: Platform — exclusive copy refuses a taken name, plain copy overwrites
+        shell: bash
+        run: |
+          E=$(find build -maxdepth 2 -type f \( -name 'platform_copy_test' -o -name 'platform_copy_test.exe' \) | head -1)
+          [ -n "$E" ] || { echo "platform_copy_test not built on ${{ matrix.os }}"; exit 1; }
+          "$E" | tee copy.txt
+          grep -q "platform-copy: PASS" copy.txt
+
       # Тот же A·3·12 для отчёта owner_check.sh, который владелец пересылает с машины: bash и awk
       # на трёх ОС разные (замена `~` в bash 5 раскрывалась обратно в дом), а под git-bash у дома
       # три формы — настоящий cygpath проверяется только здесь.

@@ -45,7 +45,7 @@ bool Module::open(const std::string& utf8_path) {
     std::string copy;
     for (int attempt = 0; attempt < 8 && copy.empty(); ++attempt) {
         const std::string candidate = temp_copy_path(utf8_path);
-        if (copy_file(utf8_path, candidate)) copy = candidate;
+        if (copy_file_new(utf8_path, candidate)) copy = candidate;
     }
     if (copy.empty()) {
         g_error = "copy for hot-reload failed: " + utf8_path;
