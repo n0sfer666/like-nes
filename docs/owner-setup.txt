@@ -1596,21 +1596,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
   Поставить (один раз, только macOS):
     - Xcode 27 + рантайм iOS 27.0 (Xcode → Settings → Components);
-    - rustup target add aarch64-apple-ios-sim aarch64-apple-ios \
-        aarch64-linux-android
+    - rustup target add aarch64-apple-ios-sim aarch64-apple-ios aarch64-linux-android
       (wgpu-native под мобиле собирается из Rust, первая сборка — минуты);
     - Android SDK в ~/Library/Android/sdk: ndk;28.2.13676358,
       platforms;android-35, build-tools;35.0.0, platform-tools
       (sdkmanager --licenses — один раз).
 
-  1) Обе оболочки собираются:
+  Каждая команда этого раздела — одна строка без `$(…)` и переноса `\`: она
+  одинаково работает из Nushell, zsh и bash. Всё, что требует подстановок
+  (шаги 2 и 3), собрано в скрипты `bash scripts/…`.
+
+  1) Обе оболочки собираются (нужен и Android SDK; для одной игры в
+  симуляторе этот шаг НЕ нужен — шаг 2 собирает iOS сам):
 
     bash scripts/xcompile_verify.sh
 
   Последние строки:
 
     === Mobile true-cross: iOS (aarch64-apple-ios-sim) ===
-    [xcompile] ok: iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{game.bundle library.bundle audio.bundle}
+    [xcompile] ok: iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{game.bundle library.bundle audio.bundle} + minimum iOS 17.0
     === Mobile true-cross: Android (aarch64-linux-android, NDK arm64-v8a) ===
     [xcompile] ok: Android aarch64 ELF + APK {lib/arm64-v8a/libgame.so lib/arm64-v8a/libc++_shared.so assets/game.bundle assets/library.bundle assets/audio.bundle}
     [xcompile] PASS: desktop matrix (max-vs-sum) + iOS arm64 + Android aarch64
@@ -1618,18 +1622,26 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Упавший шаг печатает хвост своего лога и путь к нему
   (build-ios/xcompile.log, build-android/xcompile.log).
 
-  2) Игра поднимается в симуляторе (прогнано агентом на iPhone 16, iOS 27.0):
+  «minimum iOS 17.0» — одно число в бинаре (vtool minos), Info.plist
+  (MinimumOSVersion) и кеше CMake (CMAKE_OSX_DEPLOYMENT_TARGET, его задаёт
+  корень). «minimum iOS disagrees …» — они разошлись, и приложение на
+  заявленном iOS не запустится. Прогоняется только iOS 27; 17.0 — обещание
+  Xcode, не проверенное ни симулятором, ни устройством.
 
-    xcrun simctl create like-nes-smoke \
-      com.apple.CoreSimulator.SimDeviceType.iPhone-16 \
-      com.apple.CoreSimulator.SimRuntime.iOS-27-0
-    xcrun simctl boot like-nes-smoke
-    xcrun simctl install like-nes-smoke build-ios/like_nes_ios.app
-    xcrun simctl launch --console-pty like-nes-smoke com.likenes.sidescroller
+  2) Игра в симуляторе (прогнано агентом на iPhone 16, iOS 27.0):
 
-  Ожидаемо (Ctrl+C уходит в игру и завершает её — консоль и игра закрываются
-  вместе):
+    bash scripts/ios_sim_run.sh
 
+  Скрипт собирает build-ios (первая сборка — минуты: wgpu-native из Rust),
+  находит или заводит устройство like-nes-play-iOS-27-0 (имя несёт рантайм;
+  повторный запуск двойника НЕ создаёт), загружает его, открывает окно,
+  ставит и запускает игру с консолью. Ожидаемо (Ctrl+C уходит в игру и
+  завершает её — консоль и игра закрываются вместе):
+
+    [ios-run] building …/build-ios (the first build compiles wgpu-native from Rust: minutes)
+    [ios-run] ok: built build-ios/like_nes_ios.app
+    [ios-run] ok: simulator like-nes-play-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0, app installed
+    [ios-run] screen: Device Hub, like-nes-play-iOS-27-0 in the sidebar (no window: Cmd+Tab to Device Hub)
     [gpu] Apple iOS simulator GPU | Metal | BC: no
     [game] assets: device lacks BC -> procedural atlas (no baked BC7)
     [game] materials: on (3 pipeline(s), 0 fallback(s))
@@ -1637,25 +1649,35 @@ owner_check.sh гоняет это отдельным этапом сразу п
     [game] achievements: 5 defined, 0 unlocked
     ... [game] iOS shell up: 1179x2556 - left = stick, bottom-right = fire
 
+  Окно — Device Hub, а не Simulator: в Xcode 27 Simulator.app убран
+  (`open -a Simulator` отвечает «Unable to find application»). В Device Hub
+  выбрать like-nes-play-iOS-27-0 в левой панели. Крестик закрывает окно, но
+  не приложение, и следующий запуск окна не вернёт — Cmd+Tab → Device Hub.
+  Закрывать Device Hub — «Quit and Keep Simulators Running»: обычный выход может
+  погасить симуляторы.
+
   На экране — титул «LIKE NES / SIDESCROLLER», звёзды, корабль, светящаяся
   кнопка огня справа внизу. «procedural atlas» здесь норма: GPU симулятора не
   умеет BC7. Симулятор НЕ заменяет устройство — GPU у него хостовый, а
   жест синтезирован, а не поставлен пальцами.
 
   Уход в фон сохраняет достижения (прогнано агентом): система убивает фоновый
-  процесс без выхода, и ждать автосейва на 600-м тике нельзя.
+  процесс без выхода, и сохраниться игра обязана при уходе в фон.
 
-    D=$(xcrun simctl get_app_container like-nes-smoke com.likenes.sidescroller data)
-    xcrun simctl terminate like-nes-smoke com.likenes.sidescroller
-    rm -f "$D/Library/Application Support/like-nes/achievements.save"
-    xcrun simctl launch like-nes-smoke com.likenes.sidescroller
-    # 3 секунды — 180 тиков, до автосейва далеко
-    xcrun simctl launch like-nes-smoke com.apple.Preferences
-    ls -l "$D/Library/Application Support/like-nes/achievements.save"
+    bash scripts/ios_sim_run.sh --background-save
 
-  Ожидаемо: файл есть (72 байта при пустом прогрессе). Нет файла — сохранение
-  при уходе в фон сломано. Сразу после Preferences файла может ещё не быть:
-  UIKit шлёт уход сцены в фон с задержкой, ls — через пару секунд.
+  Скрипт стирает achievements.save, запускает игру, ждёт её строку «iOS shell
+  up» (с ней появляется подписка на уход в фон), открывает Настройки и ждёт
+  файл до 60 с (UIKit шлёт уход в фон с задержкой, замерено 10–21 с). На титуле автосейв не пишет — прогресс не меняется, — так что файл
+  может записать только уход в фон. Ожидаемо — те же четыре строки [ios-run],
+  что в шаге 2, затем (72 байта при пустом прогрессе):
+
+    [ios-run] ok: background save wrote 72 bytes to …/Library/Application Support/like-nes/achievements.save
+    [ios-run] PASS
+
+  «[ios-run] FAIL: no achievements.save 60 s after going to background» —
+  сохранение при уходе в фон сломано (так падает мутант без game_.suspend() в
+  pause, view.mm).
 
   3) Два пальца разом — гейт симулятора (прогнан агентом; стоит в
   preflight, в CI его нет). UI-тест ставит стик слева и огонь в круге
@@ -1668,19 +1690,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     [ios-sim] ok: simulator like-nes-gate-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0
     [ios-sim] ok: UI test passed (view: platform/ios/view.mm)
+    [ios-sim] ok: no runtime warnings, minimum iOS 17.0 in binary and Info.plist
     [ios-touch] ok: stick=<id> fire=<id> held together; 42 events; int-truncated ids distinct
     [ios-sim] ok: 2 screenshots rendered, evidence in <каталог>
     [ios-sim] PASS
 
   Число событий плавает на единицы: синтезатор Xcode вставляет лишний
   короткий тап. В <каталог> — лог xcodebuild, touch.log и два скриншота
-  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Без Xcode или рантайма —
+  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Каталоги
+  ios-sim-gate.* в $TMPDIR хранятся за пять последних прогонов, этот включая:
+  старшие гейт удаляет сам в начале прогона. «the UI test left runtime
+  warnings» — тест зелёный, но iOS предупредил о дефекте игры (так было с
+  AVAudioSession на главном потоке); строки предупреждений печатаются выше
+  вердикта. Без Xcode или рантайма —
   строка «[ios-sim] SKIP: <причина>», это не зелёный гейт; на Intel Mac —
   тоже SKIP: оболочка собирается под arm64-симулятор. Строка «private
   XCPointerEventPath is gone from this Xcode» — новый Xcode убрал синтез двух
   пальцев в произвольных точках: гейт красный, а не обойдён.
 
-  Позитивный контроль (около двух минут, руками):
+  Позитивный контроль (около трёх минут, руками):
 
     bash scripts/ios_sim_gate_live_selftest.sh
 
@@ -1688,8 +1716,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     [ios-sim-selftest] ok: single-touch — red for its own reason (only one touch reached the view)
     [ios-sim-selftest] ok: collapsed-id — red for its own reason (two touches share one id)
+    [ios-sim-selftest] ok: main-thread-session — red for its own reason (the UI test left runtime warnings)
     [ios-sim-selftest] ok: the real view.mm passes and is back in the CMake cache
-    [ios-sim-selftest] 2 mutants + clean run, 0 failure(s)
+    [ios-sim-selftest] 3 mutants + clean run, 0 failure(s)
 
   4) iPhone. Сборка под устройство прогнана агентом (platform IOS, у нашего
   кода и линковки предупреждений нет; «warning: unexpected cfg» печатает
@@ -1697,8 +1726,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   прогнаны: нужна команда разработчика владельца. Тот же корень с sysroot
   iphoneos:
 
-    cmake -S . -B build-ios-device -G Ninja -DCMAKE_SYSTEM_NAME=iOS \
-      -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64
+    cmake -S . -B build-ios-device -G Ninja -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphoneos -DCMAKE_OSX_ARCHITECTURES=arm64
     cmake --build build-ios-device --target like_nes_ios
 
   Подписать build-ios-device/like_nes_ios.app своей командой разработчика и
@@ -1707,16 +1735,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
   стик левым пальцем и огонь правым ОДНОВРЕМЕННО (в симуляторе это держит
   шаг 3, на железе — только вы), звук слышен. Бесшумный режим
   (переключатель сбоку) глушит игру — так задумано: сессия SoloAmbient, как
-  у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект.
+  у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект:
+  сессию больше не активирует и не деактивирует явный setActive (он
+  зависал бы на главном потоке), её активирует запуск звука, и в
+  симуляторе слышимость не проверить — только здесь. Ещё два сценария
+  звука, оба с игрой на экране и слышимой музыкой:
+    - Home (свайп вверх), подождать 5 с, вернуться в игру;
+    - прерывание: «Привет, Siri» или будильник через Часы на минуту
+      вперёд, дождаться его, закрыть, вернуться в игру.
+  Ожидаемо в обоих: музыка снова слышна; в консоли либо ничего нового,
+  либо «[audio] output device stopped - restarted». Строки «did not come
+  back» или «stopped again within 5 s» — дефект. iPhone нужен с iOS 17.0
+  или новее (минимум приложения); запуск ниже iOS 27 не прогонялся никем.
 
   5) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
   отладочным ключом ~/.android/debug.keystore:
 
-    ~/Library/Android/sdk/platform-tools/adb install -r \
-      build-android/apk/like_nes.apk
+    ~/Library/Android/sdk/platform-tools/adb install -r build-android/apk/like_nes.apk
     ~/Library/Android/sdk/platform-tools/adb logcat -c
-    ~/Library/Android/sdk/platform-tools/adb shell am start \
-      -n com.likenes.sidescroller/android.app.NativeActivity
+    ~/Library/Android/sdk/platform-tools/adb shell am start -n com.likenes.sidescroller/android.app.NativeActivity
     ~/Library/Android/sdk/platform-tools/adb logcat -s like-nes
 
   stdout игры оболочка заворачивает в logcat под тегом like-nes: ждать те же

@@ -4,7 +4,7 @@
 # --selftest` доказывают правила разбора, но не то, что симулятор, синтезатор и проба вообще
 # доносят до них дефект, — это доказывает только мутант, прошедший весь путь.
 #
-#   bash scripts/ios_sim_gate_live_selftest.sh   # ~2 минуты: два мутанта и чистый прогон
+#   bash scripts/ios_sim_gate_live_selftest.sh   # ~3 минуты: три мутанта и чистый прогон
 #
 # Последним идёт чистый прогон: он же возвращает в кеш CMake настоящий view.mm.
 set -uo pipefail
@@ -41,11 +41,15 @@ mutant single-touch 's/multipleTouchEnabled = YES/multipleTouchEnabled = NO/' \
 # Все касания под одним id: маршрутизация не отличит стик от огня.
 mutant collapsed-id 's/const intptr_t id = reinterpret_cast<intptr_t>(t);/const intptr_t id = 1;/' \
   "two touches share one id"
+# Сессия звука активируется синхронно на главном потоке — так было в miniaudio до раунда 3. Тест
+# зелёный, iOS только предупреждает; мутант доказывает, что шаблон предупреждения в гейте не пуст.
+mutant main-thread-session $'1a\\\n#import <AVFoundation/AVFoundation.h>\ns/if (started_) return;/if (started_) return; [[AVAudioSession sharedInstance] setActive:YES error:nil];/' \
+  "the UI test left runtime warnings"
 
 if bash "$ROOT/scripts/ios_sim_gate.sh" | tail -1 | grep -qx "\[ios-sim\] PASS"; then
   echo "[ios-sim-selftest] ok: the real view.mm passes and is back in the CMake cache"
 else
   echo "[ios-sim-selftest] FAIL: the real view.mm does not pass after the mutants"; FAILS=$((FAILS + 1))
 fi
-echo "[ios-sim-selftest] 2 mutants + clean run, $FAILS failure(s)"
+echo "[ios-sim-selftest] 3 mutants + clean run, $FAILS failure(s)"
 [ "$FAILS" -eq 0 ]

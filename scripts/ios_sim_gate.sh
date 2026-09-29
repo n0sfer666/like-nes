@@ -14,7 +14,6 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 B="$ROOT/build-ios-xcode"
 VIEW="$ROOT/platform/ios/view.mm"
-DEVTYPE=com.apple.CoreSimulator.SimDeviceType.iPhone-16
 
 fail() { echo "[ios-sim] FAIL: $*" >&2; exit 1; }
 ok() { echo "[ios-sim] ok: $*"; }
@@ -28,25 +27,27 @@ case "$#:${1:-}" in
   *) fail "usage: bash scripts/ios_sim_gate.sh [--view <view.mm>]" ;;
 esac
 
-[ "$(uname -s)" = Darwin ] || skip_gate "the iOS simulator exists only on macOS"
-[ "$(uname -m)" = arm64 ] || skip_gate "the shell is built for the arm64 simulator, this Mac is $(uname -m)"
-xcodebuild -version >/dev/null 2>&1 || skip_gate "xcodebuild missing (install Xcode, then xcode-select -s)"
-RUNTIME=$(xcrun simctl list runtimes iOS | awk '/^iOS / && !/unavailable/ {id=$NF} END {print id}') \
-  || fail "simctl cannot list runtimes (CoreSimulatorService down?)"
+# shellcheck source=scripts/ios_sim_lib.sh
+. "$ROOT/scripts/ios_sim_lib.sh"
+WHY=$(ios_sim_missing)
+[ -z "$WHY" ] || skip_gate "$WHY"
+RUNTIME=$(ios_runtime) || fail "simctl cannot list runtimes (CoreSimulatorService down?)"
 [ -n "$RUNTIME" ] || skip_gate "no iOS simulator runtime (Xcode > Settings > Components)"
 
 # Имя несёт рантайм: устройство навсегда остаётся на том, с которым создано, и после обновления
 # Xcode гейт гонял бы старый iOS под строкой, называющей новый.
 DEVICE="like-nes-gate-${RUNTIME##*.}"
-UDID=$(xcrun simctl list devices available | sed -nE "s/^ +$DEVICE \\(([0-9A-F-]{36})\\).*/\\1/p" | head -1) \
-  || fail "simctl cannot list devices"
-if [ -z "$UDID" ]; then
-  UDID=$(xcrun simctl create "$DEVICE" "$DEVTYPE" "$RUNTIME") || fail "cannot create $DEVICE ($DEVTYPE, $RUNTIME)"
-fi
+UDID=$(ios_device "$DEVICE" "$RUNTIME") || fail "cannot find or create $DEVICE on $RUNTIME"
 xcrun simctl bootstatus "$UDID" -b >/dev/null || fail "simulator $DEVICE ($UDID) did not boot"
 ok "simulator $DEVICE $UDID on $RUNTIME"
 
 TMP="${TMPDIR:-/tmp}"
+# Улики хранятся за пять последних прогонов, этот включая: живая самопроверка (три мутанта и
+# чистый — четыре прогона) влезает целиком, а каталоги не копятся в $TMPDIR без конца. Возраст —
+# по времени изменения каталога.
+{ ls -1td "${TMP%/}"/ios-sim-gate.?????? 2>/dev/null || true; } | tail -n +5 | while IFS= read -r old; do
+  rm -rf "$old" || echo "[ios-sim] warning: cannot remove old evidence $old" >&2
+done
 RUN=$(mktemp -d "${TMP%/}/ios-sim-gate.XXXXXX")
 # shellcheck source=platform/mobile/fresh_cache.sh
 . "$ROOT/platform/mobile/fresh_cache.sh"
@@ -61,8 +62,8 @@ cmake ${FRESH:+"$FRESH"} -S "$ROOT" -B "$B" -G Xcode -DCMAKE_SYSTEM_NAME=iOS \
 # прошлых прогонов отбрасывает не она, а нонс RUN_ID, который тест передаёт игре.
 START=$(date '+%Y-%m-%d %H:%M:%S%z')
 RUN_ID=${RUN##*.}
-# Диагностику симулятора xcodebuild собирает и на зелёном прогоне, если тест оставил
-# предупреждения (AVAudioSession на главном потоке), — это `simctl diagnose` на 10 минут.
+# Диагностику симулятора xcodebuild собирает, если тест оставил предупреждения рантайма, — это
+# `simctl diagnose` на 10 минут до вердикта, который гейт ниже выносит и сам.
 if ! TEST_RUNNER_LIKE_NES_TOUCH_RUN="$RUN_ID" xcodebuild test -project "$B/like_nes.xcodeproj" -scheme like_nes_ios -configuration Debug \
     -destination "id=$UDID" -resultBundlePath "$RUN/test.xcresult" -collect-test-diagnostics never \
     >"$RUN/xcodebuild.log" 2>&1; then
@@ -70,6 +71,17 @@ if ! TEST_RUNNER_LIKE_NES_TOUCH_RUN="$RUN_ID" xcodebuild test -project "$B/like_
   fail "xcodebuild test — $RUN/xcodebuild.log"
 fi
 ok "UI test passed (view: ${VIEW#"$ROOT"/})"
+# Предупреждение рантайма в тесте — дефект игры, а не шум инструмента: так AVAudioSession
+# активировалась на главном потоке, грозя зависанием интерфейса, при зелёном тесте. Шаблон держит
+# формат Xcode 27: предупреждение, привязанное к методу ObjC (`-[…]` или `+[…]`) — другой формат
+# пройдёт мимо. Что шаблон не пуст, доказывает мутант самопроверки.
+if grep -E 'warning: [-+]\[[A-Za-z0-9_]+ [A-Za-z0-9_:]+\] :' "$RUN/xcodebuild.log" >&2; then
+  fail "the UI test left runtime warnings — $RUN/xcodebuild.log"
+fi
+# shellcheck source=platform/mobile/ios_min_os.sh
+. "$ROOT/platform/mobile/ios_min_os.sh"
+MIN_OS=$(ios_min_os_agree "$B/Debug/like_nes_ios.app" "$B") || fail "minimum iOS version"
+ok "no runtime warnings, minimum iOS $MIN_OS in binary and Info.plist"
 
 xcrun simctl spawn "$UDID" log show --start "$START" --style compact \
   --predicate 'process == "like_nes_ios" AND eventMessage CONTAINS "[touch]"' \

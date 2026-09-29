@@ -75,7 +75,9 @@ IOSWGPU="$IOSB/_deps/wgpu_native_src-src/target/aarch64-apple-ios-sim/release/li
 for b in $BUNDLES; do
   [ -f "$IOSB/like_nes_ios.app/assets/$b" ] || fail "iOS .app missing assets/$b"
 done
-ok "iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{$BUNDLES}"
+. "$ROOT/platform/mobile/ios_min_os.sh"
+IOSMIN=$(ios_min_os_agree "$IOSB/like_nes_ios.app" "$IOSB") || fail "iOS minimum version"
+ok "iOS arm64 Mach-O (IOSSIMULATOR) + wgpu-native-from-Rust arm64 + .app assets/{$BUNDLES} + minimum iOS $IOSMIN"
 
 echo "=== Mobile true-cross: Android (aarch64-linux-android, NDK arm64-v8a) ==="
 mkdir -p "$ROOT/build-android"

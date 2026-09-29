@@ -81,6 +81,11 @@ bool MiniaudioDevice::open() {
     if (!ctx) { delete t; return false; }
     ma_context_config cc = ma_context_config_init();
     cc.coreaudio.sessionCategory = ma_ios_session_category_solo_ambient;
+    // Явный setActive miniaudio зовёт на потоке init и uninit, а это главный поток UIKit (open/close
+    // на старте, в dealloc и при рестарте из poll): iOS 27 предупреждает о зависании интерфейса.
+    // Сессию активирует сам запуск AudioUnit, деактивирует система при уходе в фон.
+    cc.coreaudio.noAudioSessionActivate = MA_TRUE;
+    cc.coreaudio.noAudioSessionDeactivate = MA_TRUE;
     ma_backend null_only = ma_backend_null;
     if (ma_context_init(null_backend_ ? &null_only : nullptr, null_backend_ ? 1 : 0, &cc, ctx) !=
         MA_SUCCESS) {

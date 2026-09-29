@@ -3,7 +3,7 @@
 ```
 bash scripts/ios_sim_gate.sh                     # гейт, этап preflight (в CI его нет)
 python3 scripts/ios_touch_verdict.py --selftest  # правила вердикта на фикстурах, правила дерева
-bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты view.mm, руками (~2 минуты)
+bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты view.mm, руками (~3 минуты)
 ```
 
 Мобильная оболочка ради одного и держит мультитач: стик левым пальцем и огонь правым разом. До
@@ -42,9 +42,30 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 - **`LIKE_NES_IOS_VIEW` передаётся КАЖДЫМ прогоном.** Кеш-переменная подменяет `view.mm` мутантом
   живой самопроверки, и кеш CMake её переживает: гейт, не передавший путь, судил бы вчерашний
   мутант. Последний шаг самопроверки — чистый прогон, возвращающий настоящий файл.
-- **`-collect-test-diagnostics never` обязателен.** Без него зелёный прогон с предупреждениями
-  теста (AVAudioSession на главном потоке) зовёт `simctl diagnose --timeout=600` и висит до 10
-  минут после вердикта.
+- **`-collect-test-diagnostics never` обязателен.** Без него прогон с предупреждениями теста зовёт
+  `simctl diagnose --timeout=600` и висит до 10 минут до вердикта.
+- **Предупреждение рантайма в тесте — красный** (строка `warning: -[<класс> <метод>] :` или
+  `+[…]` в `xcodebuild.log`, формат Xcode 27; предупреждение без привязки к методу ObjC гейт не
+  видит, проверен один этот формат). Так жил дефект раунда 1: miniaudio звал
+  `[AVAudioSession setActive:]` в `ma_context_init`/`ma_context_uninit`, то есть на главном потоке
+  UIKit (старт, `dealloc`, рестарт из `poll`), iOS 27 предупреждал о зависании интерфейса, а тест
+  был зелёным. Лечение — `coreaudio.noAudioSessionActivate` и `noAudioSessionDeactivate`
+  (`engine/audio/device.cpp`): сессию активирует запуск AudioUnit, деактивирует система при уходе
+  в фон. Симулятор доказывает лишь `audio: on` (старт устройства без явной активации не упал);
+  слышимость, возврат из фона и после прерывания — шаг 4 §R у владельца. Что шаблон не пуст,
+  доказывает мутант `main-thread-session` живой самопроверки.
+- **Минимальный iOS — одно число** (`platform/mobile/ios_min_os.sh`, его же зовёт
+  `xcompile_verify.sh` для `build-ios`): `minos` бинаря, `MinimumOSVersion` в `Info.plist` и
+  `CMAKE_OSX_DEPLOYMENT_TARGET` кеша; её задаёт `platform/mobile/ios_min_os.cmake`, включённый
+  корнем до `project()` (17.0, решение владельца), пустую отбивает `platform/ios/CMakeLists.txt`.
+  Сравнение — «мажор.минор» (`17` ≡ `17.0`). До раунда 3 plist обещал 14.0, а clang без цели
+  брал версию SDK — 27.0; xcodebuild переписывал plist сам с предупреждением в логе, сборка
+  Ninja — нет. Цель уходит и в cargo (`IPHONEOS_DEPLOYMENT_TARGET`), но фингерпринт cargo её не
+  видит: собранный раньше wgpu-native несёт умолчание Rust (14.0 у симулятора, 10.0 у
+  устройства) до чистой сборки — безвредно, объекты старше цели.
+- **Улики — пять последних прогонов** (`ios-sim-gate.*` в `$TMPDIR`, этот включая): старшие гейт
+  удаляет в начале прогона по времени изменения каталога. Живая самопроверка — четыре прогона
+  (три мутанта и чистый) — влезает целиком.
 - **Схема с test action пишется ТЕСТИРУЕМОЙ цели.** CMake кладёт её по `XCTEST_TESTEE` на
   `like_nes_ios` (`XCODE_GENERATE_SCHEME ON`), поэтому `-scheme like_nes_ios`; схема самого
   бандла отвечает «not configured for the test action».
@@ -55,6 +76,9 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 - **Пропуск — вслух и с причиной**: не macOS, не arm64 (оболочка собирается под arm64-симулятор),
   нет `xcodebuild`, нет рантайма iOS. Устройство `like-nes-gate-<рантайм>` (iPhone 16) создаётся
   на каждый новый рантайм: имя несёт версию, и после обновления Xcode гейт не гоняет старый iOS.
+- **Устройство и рантайм — `scripts/ios_sim_lib.sh`**, общий с `ios_sim_run.sh` (игра руками,
+  §R шаг 2): поиск по имени до `simctl create`, иначе каждый повтор заводит двойника с тем же
+  именем, и команды по имени выбирают из двух (так сломался старый шаг 2).
 - **UI-тест собирается с `-Wall -Wextra -Werror`**: цель вне `game_core_target`, флаги дерева на
   неё не ложатся.
 
@@ -72,9 +96,19 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 |---|---|---|
 | `single-touch` | `multipleTouchEnabled = NO` | `only one touch reached the view` |
 | `collapsed-id` | id касания — константа `1` | `two touches share one id` |
+| `main-thread-session` | `[AVAudioSession setActive:YES]` в `viewDidAppear` | `the UI test left runtime warnings` |
 
 Прогнано 2026-09-28, Xcode 27 / iOS 27.0: гейт 36 с, самопроверка 1 мин 42 с, оба мутанта красные
-по своей причине.
+по своей причине. 2026-09-29, раунд 3: самопроверка 2 мин 26 с, три мутанта красные по своей
+причине, чистый прогон зелёный.
+
+Раунд 3 (2026-09-29), руками, не в самопроверке — порча вне `view.mm` (MA_FALSE ломает сам
+исправленный вызов, `main-thread-session` — только шаблон гейта):
+
+| мутант | порча | обязанная причина |
+|---|---|---|
+| активация на главном потоке | `noAudioSessionActivate = MA_FALSE` (`engine/audio/device.cpp`) | `the UI test left runtime warnings` со строкой `AVAudioSession_iOS.mm:978` |
+| plist против бинаря | копия `.app`, `MinimumOSVersion` → 14.0 | `ios_min_os_agree`: `Info.plist '14.0'` при `minos '17.0'` |
 
 Симулятор устройство НЕ заменяет: GPU хостовый, жест синтезирован. Прогон на iPhone остаётся у
 владельца (`docs/owner-setup.txt` §R, шаг 4).
