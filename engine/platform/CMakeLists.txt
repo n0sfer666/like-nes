@@ -18,6 +18,8 @@ target_link_libraries(platform_env_test PRIVATE platform_core)
 # проверяются на каждой ОС, перегрузка по окружению — своей, потому тоже вне ветки WIN32.
 add_executable(platform_redact_test platform_redact_test.cpp)
 target_link_libraries(platform_redact_test PRIVATE platform_core)
+add_executable(platform_copy_test platform_copy_test.cpp)
+target_link_libraries(platform_copy_test PRIVATE platform_core)
 
 # Шов разделяемой памяти (спека #13) — та же ловушка, что у окружения: обе реализации отдают
 # «получилось», и расхождение молчит до живого прогона. Потому тоже вне ветки WIN32.

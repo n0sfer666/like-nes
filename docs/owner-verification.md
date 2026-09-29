@@ -2389,13 +2389,12 @@ with its five startup lines, and what to look for on an iPhone and an Android ph
 the fire button held at once, and sound. The simulator half has been run; the two phones have not,
 and only you have them.
 
-Two gates that are neither owner hardware nor CI live in the same file, as section Q: `plugin-wasm`
-(the escape gate and the `native == WASM` golden) and `plugin-wasm-host` (what the host object says
-about itself). They need the wasmtime C-API from `deps/`, which is not in git, so `PLUGIN_WASM=OFF`
-in all six configurations of `ci.yml` and no runner has ever executed them — `scripts/check_goldens.sh`
-says so where it stops short of the WASM golden. A machine with `deps/` unpacked runs both in a
-second, and section Q carries the commands with their output line by line. Re-run them when a commit
-touches `engine/plugin/wasm_*`.
+Two gates that CI covers on Linux only live in the same file, as section Q: `plugin-wasm` (the escape
+gate and the `native == WASM` golden) and `plugin-wasm-host` (what the host object says about
+itself). They need the wasmtime C-API, which is not in git: CI fetches it by its pin and runs both
+under ASan/UBSan, while on macOS nothing but your machine executes them. A machine with `deps/`
+unpacked runs both in a second, and section Q carries the commands with their output line by line.
+Re-run them when a commit touches `engine/plugin/wasm_*`.
 
 ## What to send back
 

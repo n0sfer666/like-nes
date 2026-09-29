@@ -347,6 +347,14 @@ jobs:
           "$E" | tee redact.txt
           grep -q "platform-redact: PASS" redact.txt
 
+      - name: Platform — exclusive copy refuses a taken name, plain copy overwrites
+        shell: bash
+        run: |
+          E=$(find build -maxdepth 2 -type f \( -name 'platform_copy_test' -o -name 'platform_copy_test.exe' \) | head -1)
+          [ -n "$E" ] || { echo "platform_copy_test not built on ${{ matrix.os }}"; exit 1; }
+          "$E" | tee copy.txt
+          grep -q "platform-copy: PASS" copy.txt
+
       # Тот же A·3·12 для отчёта owner_check.sh, который владелец пересылает с машины: bash и awk
       # на трёх ОС разные (замена `~` в bash 5 раскрывалась обратно в дом), а под git-bash у дома
       # три формы — настоящий cygpath проверяется только здесь.
@@ -1079,7 +1087,8 @@ jobs:
       # #12 увела загрузку и крэш-изоляцию за швы platform_module/platform_guard (dlopen+сигналы
       # против LoadLibraryExW+SEH), и «Windows SEH — follow-up» здесь больше не действует.
       # Determinism golden (fix32, целочисл.) сверяется cross-arch (macOS ARM ≡ Linux x86_64).
-      # WASM-sandbox (gate #5) + live UI-shell — follow-up (тулчейн/owner-HW), как miniaudio --play.
+      # WASM-sandbox (gate #5) — шаг «Audit #21 pass-A tests and WASM sandbox», Linux под
+      # ASan/UBSan; live UI-shell — owner-HW.
       - name: "Plugin — determinism golden sim-hash (gate #1: order-independent + plugin-effect + cross-arch)"
         shell: bash
         run: |
@@ -2683,3 +2692,32 @@ jobs:
           # ничего. Классов два — аннотации контейнеров дают `container-overflow` там, где
           # голый буфер дал бы `heap-buffer-overflow`.
           grep -qE "AddressSanitizer: (heap-buffer-overflow|container-overflow)" fuzz_self.txt
+
+      - name: Audit #21 pass-A tests and WASM sandbox under ASan/UBSan (gate 8 of audit #21, Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          export ASAN_OPTIONS=abort_on_error=1 UBSAN_OPTIONS=abort_on_error=1:print_stacktrace=1
+          bash scripts/fetch_wasmtime.sh
+          cmake -S . -B build-fuzz-san -DPLUGIN_WASM=ON | tee san_cfg.txt
+          if grep -q "gate #5 пропущен" san_cfg.txt; then echo "PLUGIN_WASM: wasmtime not picked up"; exit 1; fi
+          T="platform_process_test:platform-process: PASS
+          framework_preset_refusal_test:framework-preset-refusal: PASS
+          game_platformer_replay_io_test:game-platformer-replay-io: PASS
+          game_platformer_replay_ceiling_test:game-platformer-replay-ceiling: PASS
+          ach_state_test:PASS
+          audio_limiter_test:audio-limiter: PASS - 20 cases
+          audio_gain_test:audio-gain: PASS - 12 cases
+          plugin_wasm_host_test:plugin-wasm-host: PASS"
+          cmake --build build-fuzz-san --target $(cut -d: -f1 <<<"$T") plugin_wasm_test plugin_wind
+          ran=0
+          while IFS=: read -r -u3 name want; do
+            ./build-fuzz-san/"$name" < /dev/null > "san_$name.txt" 2>&1 || { cat "san_$name.txt"; echo "$name FAILED under ASan/UBSan"; exit 1; }
+            grep -qxF "$want" "san_$name.txt" || { cat "san_$name.txt"; echo "$name: no line '$want' under ASan/UBSan"; exit 1; }
+            echo "$name: PASS under ASan/UBSan"
+            ran=$((ran + 1))
+          done 3<<<"$T"
+          [ "$ran" -eq "$(wc -l <<<"$T")" ] || { echo "ran $ran of $(wc -l <<<"$T") sanitized tests"; exit 1; }
+          ./build-fuzz-san/plugin_wasm_test engine/plugin/wasm/gravity.wat build-fuzz-san/plugin_wind.so < /dev/null 2>&1 | tee san_wasm.txt
+          grep -q "WASM golden   = 0x7d9a6e60cbed4156" san_wasm.txt || { echo "WASM GOLDEN MISMATCH under ASan/UBSan"; exit 1; }
+          grep -q "plugin-wasm: PASS" san_wasm.txt

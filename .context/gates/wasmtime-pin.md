@@ -6,8 +6,18 @@ bash scripts/check_wasmtime_pin.sh           # гейт, этап preflight_tree
 bash scripts/check_wasmtime_pin.sh --live    # плюс настоящая загрузка для этой машины, руками
 ```
 
-WASM-гейт спеки #6 (`plugin_wasm_test`, `plugin_wasm_host_test`) в CI не ходит — `PLUGIN_WASM=OFF`
-во всех конфигурациях `ci.yml`, а C-API лежит в `deps/` вне git. До A·3·9 конфигурация брала
+WASM-гейт спеки #6 (`plugin_wasm_test`, `plugin_wasm_host_test`) идёт в CI только на Linux: шаг
+«Audit #21 pass-A tests and WASM sandbox under ASan/UBSan» качает C-API `fetch_wasmtime.sh` по
+пину и переконфигурирует `build-fuzz-san` с `PLUGIN_WASM=ON` (гейт 8 аудита #21, решение владельца
+2026-09-29). Санитайзер в этом каталоге вооружён — это доказывает дырявая цель `canary` шагом
+раньше. `ASAN_OPTIONS`/`UBSAN_OPTIONS` с `abort_on_error=1` обязательны: на Linux по умолчанию
+санитайзер после отчёта зовёт `exit(1)`, и ребёнок `platform_process_test crash`, пойманный UBSan
+на записи по `nullptr`, выглядел бы чистым выходом, а не падением. Тесты читают `/dev/null`, а не
+список шага, и число прогнанных сверяется с длиной списка: тест, съевший stdin, иначе оборвал бы
+цикл зелёным. До push шаг прогнан в `ubuntu:24.04` arm64 — ловушка OOB в wasmtime работает рядом с
+обработчиком ASan; на x86_64 первый зелёный прогон — `bffeba5`, CI 36606678754 (8 из 8, голден
+`0x7d9a6e60cbed4156`, архив sha256 `8eff9cf9…`). На macOS и
+Windows гейт остаётся за владельцем, C-API вне git. До A·3·9 конфигурация брала
 `GLOB deps/wasmtime-*-c-api`, а документ качал архив голым `curl`: любая версия рядом молча
 линковалась в песочницу untrusted-плагинов.
 

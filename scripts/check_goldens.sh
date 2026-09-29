@@ -84,12 +84,11 @@ core_goldens() {
         echo "  plugin_gravity/plugin_wind не собраны"
         rc=1
     fi
-    # А вот это остаётся за ВЛАДЕЛЬЦЕМ, и названо вслух намеренно: «восемь голденов целы» и «native
-    # сошёлся с WASM» — разные утверждения, и второе здесь не проверяется. В CI оно тоже не
-    # проверяется: `PLUGIN_WASM=OFF` во всех шести конфигурациях `ci.yml`, потому что wasmtime
-    # C-API лежит в `deps/`, а не в git. Сценарий обоих гейтов — `docs/owner-verification.md`.
-    echo "  native==WASM (plugin_wasm_test) и plugin_wasm_host_test — только у владельца:"
-    echo "    нужен wasmtime C-API из deps/, PLUGIN_WASM=OFF во всём CI"
+    # Названо вслух намеренно: «восемь голденов целы» и «native сошёлся с WASM» — разные
+    # утверждения, и второе здесь не проверяется. CI проверяет его только на Linux под ASan/UBSan,
+    # на macOS — владелец. Сценарий обоих гейтов — `docs/owner-verification.md`.
+    echo "  native==WASM (plugin_wasm_test) и plugin_wasm_host_test здесь не проверяются:"
+    echo "    нужен wasmtime C-API из deps/; CI гоняет их только на Linux под ASan/UBSan"
     return $rc
 }
 

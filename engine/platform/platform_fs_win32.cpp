@@ -118,10 +118,22 @@ bool replace_file(const std::string& from, const std::string& to) {
                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
 }
 
-bool copy_file(const std::string& src, const std::string& dst) {
+namespace {
+
+bool copy_to(const std::string& src, const std::string& dst, BOOL fail_if_exists) {
     const std::wstring wsrc = win32::widen(src), wdst = win32::widen(dst);
     if (wsrc.empty() || wdst.empty()) return false;
-    return CopyFileW(wsrc.c_str(), wdst.c_str(), /*bFailIfExists=*/FALSE) != 0;
+    return CopyFileW(wsrc.c_str(), wdst.c_str(), fail_if_exists) != 0;
+}
+
+} // namespace
+
+bool copy_file(const std::string& src, const std::string& dst) {
+    return copy_to(src, dst, FALSE);
+}
+
+bool copy_file_new(const std::string& src, const std::string& dst) {
+    return copy_to(src, dst, TRUE);
 }
 
 // Через шов, а не через узкий CRT: тот отдаёт ANSI-строку, и %APPDATA% профиля `C:\Users\Пётр\`

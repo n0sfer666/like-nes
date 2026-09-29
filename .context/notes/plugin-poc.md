@@ -130,7 +130,7 @@
 
 ## Follow-up — НЕ закрыто, доделать позже (спека #6 Validated, но это точки расширения)
 Вертикаль доказала главные риски (все 6 гейтов), НО ряд путей осознанно оставлен на потом. Чеклист:
-1. [ ] **WASM в CI** — сейчас local pinned-T4 (C-API prebuilt в `poc/deps`, не в git). Нужны per-OS
+1. [~] **WASM в CI** — с 2026-09-29 Linux под ASan/UBSan (гейт 8 аудита #21), macOS/Windows — local pinned-T4. Было: local pinned-T4 (C-API prebuilt в `poc/deps`, не в git). Нужны per-OS
        тарболы wasmtime C-API (linux/mac/win) через FetchContent + job. (как miniaudio --play).
 2. [ ] **Native-code UiDrawFn-панели** — сейчас панели data-driven из манифеста; code-drawn ui-panel
        через C-ABI требует cross-.so ImGui (SetCurrentContext + shared allocator в плагин). API готов.

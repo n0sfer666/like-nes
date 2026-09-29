@@ -1502,10 +1502,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
 --- Q. WASM-песочница: гейты plugin-wasm и plugin-wasm-host ----------------
 
-  Этих двух гейтов в CI НЕТ: PLUGIN_WASM=OFF во всех шести конфигурациях
-  .github/workflows/ci.yml, потому что wasmtime C-API лежит в deps/, а не в
-  git. Гоняются они на машине владельца и больше нигде — scripts/check_goldens.sh
-  про native==WASM так и говорит. Перепрогон — когда коммит тронул
+  В CI оба гейта идут только на Linux, под ASan/UBSan: шаг «Audit #21 pass-A
+  tests and WASM sandbox» сам качает C-API по пину. На macOS их гоняет только
+  машина владельца — этот раздел, перепрогон — когда коммит тронул
   engine/plugin/wasm_*.
 
   C-API в deps/ кладёт скрипт — пиннутая версия, сверка sha256; чужая версия

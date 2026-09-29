@@ -68,7 +68,7 @@ Proposed → Accepted: walking-skeleton plugin-вертикаль (T4) закр�
 5. **WASM-sandbox — ✅** untrusted WAT-гость (wasmtime v26): native≡WASM бит-в-бит fix32; OOB
    linear-memory → trap (host жив); незаявленный host-import → link rejected. Local pinned-T4. UBSan-чисто.
 6. **Live (owner HW, macOS) — ✅** UI-shell (докируемые панели из манифестов, GLFW+ImGui) подтверждён
-   live owner-ом (2026-07-21: окно+панели видны). Isolation/hot-reload — CI+local; WASM — local pinned-T4.
+   live owner-ом (2026-07-21: окно+панели видны). Isolation/hot-reload — CI+local; WASM — local pinned-T4 (с 2026-09-29 — ещё и CI на Linux под ASan/UBSan, гейт 8 аудита #21).
 
 ## Последствия
 

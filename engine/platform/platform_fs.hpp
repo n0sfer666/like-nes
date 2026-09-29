@@ -92,9 +92,12 @@ void sync_dir_of(const std::string& file_path);
 // (MappedFile::close / AssetManager::close) → replace_file → открыть заново.
 bool replace_file(const std::string& from, const std::string& to);
 
-// Перезаписывает существующий dst. Нужна hot-reload'у: Windows держит загруженный модуль
-// залоченным, поэтому грузится копия (решение 4 спеки #12).
+// Перезаписывает существующий dst.
 bool copy_file(const std::string& src, const std::string& dst);
+
+// Отказывает, если dst уже есть. Нужна hot-reload'у: Windows держит загруженный модуль
+// залоченным, поэтому грузится копия (решение 4 спеки #12).
+bool copy_file_new(const std::string& src, const std::string& dst);
 
 // Каталог пользовательских данных приложения: %APPDATA%\<app> на Windows,
 // ~/Library/Application Support/<app> на macOS, $XDG_DATA_HOME/<app> (иначе

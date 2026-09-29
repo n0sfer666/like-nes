@@ -75,8 +75,8 @@ endif()
 
 # WASM-sandbox гейт (спека #6, gate #5): untrusted-плагин в wasmtime-песочнице. Guest — WAT
 # (i32 fix32, детерм.), грузится через wasmtime_wat2wasm (без wasm-ld). Local pinned-T4 (C-API
-# prebuilt в deps/, не в git; CI — follow-up). Слово «untrusted» держится на ТРЁХ ресурсах сразу:
-# память хоста (OOB→trap, чужой импорт→отказ линковки), его RAM (store limiter 16 МиБ, один
+# prebuilt в deps/, не в git; CI — Linux под ASan/UBSan). Слово «untrusted» держится на ТРЁХ
+# ресурсах сразу: память хоста (OOB→trap, чужой импорт→отказ линковки), его RAM (store limiter 16 МиБ, один
 # инстанс) и его время (топливо на каждый вызов) — до аудита #21 A·2·2 последних двух не было, и
 # гость с бесконечным циклом вешал кадр, а memory.grow забирал адресное пространство целиком.
 # Гейты: native≡WASM sim-hash + OOB/cap/loop/grow escape→trap + позитивный контроль роста.
