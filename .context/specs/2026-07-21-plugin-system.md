@@ -137,5 +137,5 @@
 
 **CI:** determinism/seam/isolation — POSIX (macOS+Linux) + Windows build-валидация; manifest — все 3 OS;
 ASan/UBSan — Linux. WASM + live-UI — **local pinned-T4** (C-API/окно не на раннерах), как miniaudio
-`--play` / perceptual-golden render #2. ADR **Accepted** / spec **Validated** — все 6 гейтов закрыты.
+`--play` / perceptual-golden render #2. С 2026-09-29 WASM идёт в CI на Linux под ASan/UBSan (гейт 8 аудита #21). ADR **Accepted** / spec **Validated** — все 6 гейтов закрыты.
 Коммиты: `4a8fc55` native · `749408d` UI · `4fe43a3` CI · `f839d4b`/`758b8f7` docs · +WASM (этот).
