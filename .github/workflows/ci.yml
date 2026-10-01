@@ -2721,3 +2721,37 @@ jobs:
           ./build-fuzz-san/plugin_wasm_test engine/plugin/wasm/gravity.wat build-fuzz-san/plugin_wind.so < /dev/null 2>&1 | tee san_wasm.txt
           grep -q "WASM golden   = 0x7d9a6e60cbed4156" san_wasm.txt || { echo "WASM GOLDEN MISMATCH under ASan/UBSan"; exit 1; }
           grep -q "plugin-wasm: PASS" san_wasm.txt
+
+  sdk-game:
+    name: sdk+game (${{ matrix.os }})
+    # Свой джоб, а не шаг build-and-determinism: тому уже 90 минут лимита, а этот конфигурирует
+    # два своих каталога (Release и Debug) и собирает игру против поставленного префикса. Лимит —
+    # с запасом на Windows, где конфигурирование с FetchContent дольше всего; замер — первым прогоном.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Linux deps (X11 for GLFW)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorg-dev
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
+
+      - name: MSVC env (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+
+      # Спека #24, В1: игра собирается против поставленного префикса в Release и Debug, фикстуры
+      # (внутренний заголовок, префикс без библиотеки, на MSVC — Debug без like_nes_add_game)
+      # обязаны упасть каждая по своей причине.
+      - name: SDK package builds a game against the installed prefix (spec #24, V1)
+        shell: bash
+        run: bash scripts/check_sdk_game.sh

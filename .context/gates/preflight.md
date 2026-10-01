@@ -13,7 +13,9 @@ workflow, инварианты `scripts/tree_invariants.sh` — тот же ск
 `library.bundle` ведёт `scripts/check_library_bundle.sh`; голден физики в Debug, восемь голденов
 ядра, сверка `game.bundle` с исходниками — этап `bundle` несёт ТРИ утверждения; четвёртым идёт
 фаззинг читателей секций `./build-full/fuzz_readers`, гейт 9 аудита #21. Три этапа требуют готовых
-`build-ci`/`build-full`, а голден Debug конфигурирует и собирает свой `build-debug` сам) → примеры документации
+`build-ci`/`build-full`, а голден Debug конфигурирует и собирает свой `build-debug` сам; так же
+свои `build-sdk-release`/`build-sdk-debug` у этапа SDK `scripts/check_sdk_game.sh`, спека #24 В1,
+[sdk-game](sdk-game.md)) → примеры документации
 (`scripts/check_docs_examples.sh build-full` со своей самопроверкой перед ним: цели `doc_example_*`
 живут в полном каталоге) → релизный пакет
 (`scripts/check_release.sh`, собирается из уже собранного `build-full`) → образ macOS

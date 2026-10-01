@@ -1762,6 +1762,61 @@ owner_check.sh гоняет это отдельным этапом сразу п
   разом, звук.
 
 
+--- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1) -------
+
+  Игра в games/neon-rumble собирается НЕ деревом, а против поставленного
+  SDK: find_package(like-nes) в префиксе, куда компонент sdk поставлен из
+  двух своих каталогов (build-sdk-release и build-sdk-debug). CI гоняет это
+  headless на трёх ОС (джоб sdk-game); окно на живом железе — только здесь.
+  Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
+  cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake или games/.
+
+  macOS и Linux, в корне репозитория:
+
+      bash scripts/check_sdk_game.sh --keep
+      ./build-sdk-work/game-Release/neon_rumble --frames 120
+
+  Windows — первая команда из ЛЮБОГО шелла, остальные из окна, которое она
+  откроет (cl.exe нужен и SDK, и игре; причина та же, что у perf_sweep выше):
+
+      scripts\win-dev.bat shell
+      "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
+      build-sdk-work\game-Release\neon_rumble.exe --frames 120
+
+  Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
+  двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):
+
+      sdk-game: OK   Release: SDK built and installed into the prefix
+      sdk-game: OK   Debug: SDK built and installed into the prefix
+      neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: headless run ok, 60 frames
+      sdk-game: OK   Release: built against the prefix and ran 60 headless frames
+      neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: headless run ok, 60 frames
+      sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
+      sdk-game: OK   fixture: internal header is not in the prefix
+      sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
+      sdk-game: SKIP CRT fixture (not an MSVC toolchain)
+      sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
+      sdk-game: prefix and game builds kept in build-sdk-work/
+
+  На Windows вместо SKIP — «OK   fixture: Debug game without
+  like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
+  framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна.
+
+  Оконный запуск: тёмно-фиолетовое окно «Neon Rumble» 960×540, через 120
+  кадров закрывается само; последние строки:
+
+      [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
+      neon-rumble: window run ok, 120 frames
+
+  Код выхода 0. BC: no — не находка: сжатые текстуры скелет не грузит. Сцена пустая — это скелет В1, картинка придёт с уровнем
+  (В3–В5). Находка — всё, что не так: окно не открылось, «no surface,
+  adapter or device», «cannot read …/library.bundle», ошибка про
+  libwgpu_native / wgpu_native.dll (рантайм обязан лежать рядом с exe).
+  На Linux SDK собран с GLFW только под X11: под Wayland-сессией окно идёт
+  через XWayland — это норма В1, не находка.
+
 ===========================================================================
 5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================
