@@ -62,6 +62,7 @@ const std::vector<Target>& table() {
 #if defined(LN_FUZZ_SCENE)
         append(v, scene_targets);
 #endif
+        append(v, json_targets);
         return v;
     }();
     return all;

@@ -27,7 +27,7 @@ fuzz_readers_gate() {
     local out
     out=$(./build-full/fuzz_readers 2>&1) || { echo "$out"; return 1; }
     echo "$out"
-    grep -q "\[fuzz\] PASS targets=10 " <<< "$out"
+    grep -q "\[fuzz\] PASS targets=11 " <<< "$out"
 }
 
 # По одному этапу на голден, чтобы имя упавшего стояло в логе (обоснование и сами литералы — в

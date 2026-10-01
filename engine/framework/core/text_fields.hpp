@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "fixed.hpp"
@@ -28,6 +29,11 @@ std::string trim(const std::string& s);
 // менять смысл строки.
 std::vector<std::string> split_fields(const std::string& line);
 bool parse_fix(const std::string& s, fix32& out);
+// Число как его записал автор: цифры до точки, после неё и десятичный порядок. Одна функция на
+// `|`-грамматики и JSON (спека #24, В3): два правила перевода в fix32 разошлись бы на округлении, и
+// одна и та же «0.5» в `.sheet` и в `.tmj` дала бы разные биты бандла.
+bool fix_from_decimal(bool negative, std::string_view whole, std::string_view frac, int64_t exp10,
+                      fix32& out);
 // Целые — только неотрицательные, знак отбивается как «не число». Заворачивание «-4» в 65532 дало
 // бы значение, проходящее проверку диапазона и лежащее совсем не там, где написано в исходнике.
 bool parse_u32(const std::string& s, uint32_t& out);
