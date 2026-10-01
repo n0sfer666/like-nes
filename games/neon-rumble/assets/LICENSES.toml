@@ -15,3 +15,14 @@
 # pack = "warped-city"
 # sha256 = "..."
 # changes = "recoloured"         # required for CC-BY files, "none" if unchanged
+
+[[pack]]
+name = "warped-city"
+url = "https://opengameart.org/content/warped-city"
+author = "ansimuz"
+license = "CC0-1.0"
+
+[[file]]
+path = "warped-city/tileset.png"
+pack = "warped-city"
+sha256 = "b84bbcac67eb7497c5be1644acced216e4cb170b1573b89bef1d2ba78be02536"

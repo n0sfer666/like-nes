@@ -1,4 +1,4 @@
-# Игра против поставленного SDK (спека #24, В1)
+# Игра против поставленного SDK (спека #24, В1, В4)
 
 ```
 bash scripts/check_sdk_game.sh          # префикс и сборки игры во временном каталоге
@@ -14,8 +14,21 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
    Debug (`cmake --fresh`) и запускает `--headless --frames 60`. Утверждение — rc 0 **и** строки
-   `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандл рядом
-   с exe кладёт `like_nes_bake` (заглушка В1), рантайм wgpu — `like_nes_add_game`.
+   `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
+   с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`;
+4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
+   `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход
+   `assetc`: грузит игра именно её. Другой хеш на одной ОС — находка. Законная смена — только
+   коммитом, который намеренно меняет PNG, манифест или байты пекаря (`engine/asset/`,
+   `tools/assetc/`): значение из строки `[assetc] bundle_hash` лога сборки, `bundle.hash` — в том
+   же коммите, после зелёного гейта на трёх ОС.
+
+`like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
+`<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,
+`copy_if_different`). Подкаталог — не вкус: у Ninja он совпадал бы с каталогом exe, копия стала бы
+копией файла в себя, и шаг, без которого у Visual Studio и Xcode бандла рядом с exe нет, гейт на
+Ninja не судил бы (мутант «копии нет» выжил ровно так, 2026-10-02). PNG в DEPENDS нет — о нём сборка
+знает только из depfile; `CMP0116 NEW` ставится в `like_nes_bake.cmake`.
 
 Каталоги СВОИ, как у голдена Debug: одолженный `build-ci` поменял бы конфигурацию чужому этапу.
 Оба конфигурируются из одного состояния дерева — последняя установка перетирает Config в префиксе
@@ -28,6 +41,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 | копия игры с `#include "renderer_internal.hpp"` | сборка | имя заголовка + `not found` / `No such file` / `Cannot open include file` |
 | КОПИЯ префикса без `libframework_physics.a` (`framework_physics.lib`) | `find_package` | `missing library <файл>` из Config; лог сверяется со схлопнутыми пробелами — CMake переносит причину по ширине, и место переноса зависит от длины пути |
 | только MSVC: копия без `like_nes_add_game`, Debug | компоновка | `LNK2038` (статический CRT движка против динамического по умолчанию) |
+| `bundle.hash` с чужим значением против Release-сборки | сверка хеша | `bundle.hash says 0x0123456789abcdef` |
+| копия игры, манифест `texture\|street_tiles\|<путь>` без кодека | сборка игры | `game.manifest:1: texture record needs a codec` (строка `assetc` в логе сборки) |
+| копия игры: пересборка без правок, потом PNG подменён другим с отметкой на год вперёд от сегодня | — | без правок нет строки `Baking game.bundle`; после подмены она есть, и хеш рядом с exe уже не равен `bundle.hash` |
 
 Отказ без своей причины в логе — FAIL фикстуры: упало что-то другое, и она ничего не доказала.
 Фикстура CRT вне MSVC печатает SKIP — у clang/gcc нет второго CRT по построению. MSVC судится по
@@ -44,6 +60,11 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 - `INTERFACE_COMPILE_OPTIONS` / `LINK_OPTIONS` / `LINK_DIRECTORIES` цели SDK — отказ; каталог
   include — только поставленный (плюс stb: его не подключает ни один поставленный заголовок);
 - макрос с `$<`, `]==]` или путём дерева — отказ; значения пишутся в Config bracket-аргументом.
+
+Мутации `like_nes_bake` 2026-10-02 (macOS, префикс `--keep`): без `DEPFILE`, без копии бандла в
+каталог exe, копия через `POST_BUILD` вместо отдельной цели — каждая валит свою фикстуру или сверку.
+Последнюю ловит только подмена PNG ДРУГИМ файлом: после голого `touch` байты те же, и недоехавший
+бандл неотличим от доехавшего.
 
 Мутации 2026-10-01 (macOS): `<stb_image.h>` в `arena.hpp`, PUBLIC include `tools/` у
 `framework_physics`, ссылка на `build-sdk-release/libfoo.a` — каждая валит конфигурирование своим
@@ -62,5 +83,5 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 
 ## Что ещё не судит (следующие вертикали #24)
 
-- настоящий бейк `game.bundle` из манифеста — В4; сейчас `like_nes_bake` проверяет только, что
-  манифест существует, и копирует `library.bundle`.
+- загрузку `game.bundle` игрой — В5 (Raw RGBA8 в GPU); сейчас гейт судит байты бандла, а не кадр;
+- записи `level`, `clips`, `credits` — `assetc` их отбивает как `unsupported record kind` до В5–В8.

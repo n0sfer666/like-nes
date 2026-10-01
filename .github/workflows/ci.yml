@@ -832,11 +832,11 @@ jobs:
       # заводится сюда с первого своего коммита, а не «потом».
       # Вердикт берётся ДВАЖДЫ — кодом возврата и напечатанной строкой: тест, упавший до вывода
       # итога, и тест, выведший FAIL с нулевым кодом, ломаются по-разному, а молчат одинаково.
-      - name: Material/Light — bakers, readers and refusals (all OS)
+      - name: Material/Light/assetc — bakers, readers and refusals (all OS)
         shell: bash
         run: |
           for t in material_bake_test material_source_test material_table_test \
-                   material_library_test light_table_test; do
+                   material_library_test light_table_test assetc_manifest_test assetc_bake_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -2733,7 +2733,9 @@ jobs:
           plugin_wasm_host_test:plugin-wasm-host: PASS
           framework_json_test:framework-json: PASS
           framework_json_string_test:framework-json-string: PASS
-          framework_json_number_test:framework-json-number: PASS"
+          framework_json_number_test:framework-json-number: PASS
+          assetc_manifest_test:assetc-manifest: PASS
+          assetc_bake_test:assetc-bake: PASS"
           cmake --build build-fuzz-san --target $(cut -d: -f1 <<<"$T") plugin_wasm_test plugin_wind
           ran=0
           while IFS=: read -r -u3 name want; do
@@ -2774,9 +2776,11 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
 
-      # Спека #24, В1: игра собирается против поставленного префикса в Release и Debug, фикстуры
-      # (внутренний заголовок, префикс без библиотеки, на MSVC — Debug без like_nes_add_game)
-      # обязаны упасть каждая по своей причине.
-      - name: SDK package builds a game against the installed prefix (spec #24, V1)
+      # Спека #24, В1 и В4: игра собирается против поставленного префикса в Release и Debug,
+      # bundle_hash испечённого game.bundle равен games/neon-rumble/bundle.hash на каждой ОС.
+      # Фикстуры (внутренний заголовок, префикс без библиотеки, чужой bundle.hash, манифест без
+      # кодека, перебейк по depfile, на MSVC — Debug без like_nes_add_game) обязаны упасть каждая
+      # по своей причине.
+      - name: SDK package builds a game against the installed prefix, bundle hash (spec #24, V1, V4)
         shell: bash
         run: bash scripts/check_sdk_game.sh

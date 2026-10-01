@@ -1,2 +1,9 @@
 Third-party assets of this game and their licences.
 Generated from LICENSES.toml by scripts/check_asset_licenses.py --write; do not edit.
+
+== warped-city ==
+Author: ansimuz
+Source: https://opengameart.org/content/warped-city
+License: CC0-1.0 (licenses/CC0-1.0.txt)
+Files:
+  warped-city/tileset.png

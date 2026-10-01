@@ -33,7 +33,9 @@ missing.
 
 `games/neon-rumble` is built **against an installed SDK prefix**, not inside the tree (spec #24).
 `bash scripts/check_sdk_game.sh --keep` builds and installs the `sdk` component in Release and Debug,
-builds the game against that prefix and leaves it in `build-sdk-work/`; the steps for the owner's
+builds the game against that prefix and leaves it in `build-sdk-work/`. The game's `game.bundle` is
+baked at build time by the SDK's `assetc` from `games/neon-rumble/game.manifest`, and its
+`bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The steps for the owner's
 window run, with the expected output line by line, are section S of
 [`owner-setup.txt`](owner-setup.txt).
 

@@ -6,7 +6,9 @@
   `games` в ROOTS, правило 3 include-seam). Бейк В1 — заглушка до В4: копия `library.bundle`,
   параметр `OUT`. В2 реализована 2026-10-01 (гейты `asset-licenses` и `asset-budget`, манифест
   игры переехал в её корень). В3 реализована 2026-10-01 (цель `framework_json` вне SDK,
-  `core::fix_from_decimal` общая с `parse_fix`, fuzz-цель `json`, счётчики 11/10). Следующая — В4.
+  `core::fix_from_decimal` общая с `parse_fix`, fuzz-цель `json`, счётчики 11/10). В4 реализована
+  2026-10-02 (`assetc --manifest` с depfile, путь `pixel`, Warped City в инвентаре, `bundle.hash`
+  в гейте `sdk-game`; итог — раздел «Реализация В4»). Следующая — В5.
 - **Зонтик:** [#23](2026-10-01-beatemup-game.md), раздел «#24». Здесь — подробности и DoD раунда.
 - **Наследует:** [#16](2026-07-26-character-tilemap.md) (секция `LNTM`, `TileSet`),
   [#17](2026-07-26-graphics-framework.md) (клипы, камера, атлас `LNAR`, «декор вне симуляции»),
@@ -164,7 +166,8 @@ fs-seam, hash-seam, `tree_invariants.sh`, `ascii_output_check.py`; `check_tree_r
   (`INT32_MIN`), но отбивается так же, как его отбивает `parse_fix`.
 - `Int` и `Fix` — два вида одного числа: Tiled пишет одно поле (`x`, `offsetx`) то `16`, то `16.5`.
   Пекарь, ждущий fix32, переводит `Int` тем же правилом — `|i| < 32768`, иначе отказ, а не
-  насыщение `from_int`. Общий помощник заводится в В4 вместе с первым таким полем.
+  насыщение `from_int`. Общий помощник заводится в В5 вместе с первым таким полем: у В4 нет
+  JSON-полей (решение 2026-10-02).
 - Сверх перечисленного (решение владельца 2026-10-01): UTF-8 строк проверяется, BOM — отказ с
   текстом «save the file as UTF-8 without BOM», `\u0000` — отказ. Лимит строки — на длину ЗАПИСИ
   (с экранированием), а не результата.
@@ -210,6 +213,34 @@ Aseprite или `.sheet`). Регионы — в своей секции (`LNVL`
 
 **Детерминизм.** CI печатает `bundle_hash` бандла Neon Rumble на трёх ОС и сверяет с
 `games/neon-rumble/bundle.hash` (закоммичен). Сам бандл не коммитится — его печёт сборка.
+
+**Реализация В4 (2026-10-02), решения владельца и уточнения:**
+
+- Записи — только `texture` (`pixel`, `hd` через basisu). `level`, `clips`, `credits` отбиваются
+  `unsupported record kind '<вид>' (this assetc bakes: texture)` до своих вертикалей. `credits`
+  отложены в В8 вместе с форматом секции и экраном титров: zero-parse формата у них нет, а читатель
+  и fuzz-цель ради строки, которую до В8 никто не покажет, — работа впустую. Счётчики fuzz не
+  меняются.
+- Грамматика: `#` — комментарий в любом месте строки, пустые строки пропускаются, поля
+  обрезаются `split_fields`. Имя — `[A-Za-z0-9_.-]`. Путь — через `/`, относительный; `..` в любом
+  сегменте, `\`, `:` и ведущий `/`, пустой сегмент и `.` — отказ разбором. Каждый сегмент сверяется
+  с `list_dir` с точным регистром на любой ОС: `Tiles/` против `tiles/` на macOS прошло бы и
+  упало бы у игрока на Linux. Символические ссылки не проверяются: манифест пишет автор игры о
+  своём дереве, правило держит переносимость записи, а не песочницу; от `/dev/zero` и образов
+  через ссылку — потолки чтения (PNG 64 МиБ, манифест 1 МиБ). UTF-8 BOM — отказ с текстом, как у
+  JSON. Манифест без записей — отказ. Ошибка — `<манифест>:<строка>: …`.
+- `pixel`: подпись PNG сверяется до stb (иначе молча прошли бы JPEG/BMP/GIF), палитра, серый и RGB
+  разворачиваются в RGBA8. Кодек секции `Raw`, `Residency::Stream`, `tex_format = 0x12`
+  (`WGPUTextureFormat_RGBA8Unorm`; литерал, чтобы пекарь не тянул webgpu, совпадение держит
+  `static_assert` в `assetc_main.cpp`). `hd` проверяет тот же PNG (`png_info`) до вызова basisu.
+- `like_nes_bake` печёт в `<build>/like_nes_bake/<цель>/` и копирует в каталог exe всегда исполняемой
+  целью `<игра>_bundle` (подробно — `.context/gates/sdk-game.md`). `assetc` поставлен в префикс
+  (`LIKE_NES_ASSETC`); его отсутствие — отказ `find_package`.
+- Загрузка `game.bundle` в GPU — В5, не В4. Сверка `bundle.hash` — в `check_sdk_game.sh` (джоб
+  `sdk-game` на трёх ОС), отдельного шага CI нет.
+- Тесты: `assetc_manifest_test` (грамматика, пути, depfile), `assetc_bake_test` (оракул RGBA из
+  своего PNG-кодировщика `png_fixture.hpp`, граница 2048/2049 по обеим осям, 16 бит, 4096², не-PNG,
+  голден `bundle_hash`), обе в CI на трёх ОС и под ASan/UBSan на Linux.
 
 Счётчик `5 tool-free section(s)` в `check_goldens.sh:110` и `ci.yml:710` не меняется: он считает
 закоммиченный бандл сэмпла, а тот в #24 не меняется.
@@ -339,7 +370,8 @@ event|punch|2|swing
 
 - Neon Rumble показывает фрагмент уровня 1 из Warped City: 3+ слоя параллакса, анимированная
   вывеска, объектный слой со спавном и `bounds`. Боец Chewbatrij (CC0, есть `.aseprite`) играет
-  клипы из Aseprite, F3 показывает боксы в `debug_draw`. Титры из `credits`.
+  клипы из Aseprite, F3 показывает боксы в `debug_draw`. Титры из `credits` — запись манифеста,
+  формат секции и экран титров заводятся здесь (перенесены из В4 решением 2026-10-02).
 - Документация en/ru: «SDK и своя игра», «Уровни в Tiled», «Анимации в Aseprite», «Лицензии
   ассетов». Врезка CMake — snippet из `games/neon-rumble/CMakeLists.txt`: `check_docs_snippets.sh`
   расширяется на `.cmake`/`CMakeLists.txt` вместе с selftest. Командная строка экспорта Aseprite
@@ -374,9 +406,12 @@ engine/framework/tilemap/  visual_format.hpp, visual_bake.*, visual_read.*,     
 engine/framework/graphics/ clip_format.hpp, clip_bake.*, clip_read.*,                  (В6)
                            aseprite_parse.cpp, sheet_parse.cpp,
                            layer_draw.*, viewport_fit.*, флип в спрайте и батче       (В5, В7)
-engine/asset/              кодек pixel рядом с codec.cpp                               (В4)
-tools/assetc/              manifest_mode.cpp, bakers_level.cpp, bakers_clip.cpp,       (В4–В6)
-                           bakers_pixel.cpp, bakers_credits.cpp, depfile.cpp
+engine/asset/              png_info, png_to_rgba8 в codec.cpp                          (В4)
+tools/assetc/              manifest_mode.cpp, assetc_manifest*.cpp, assetc_depfile.cpp, (В4)
+                           assetc_emit.cpp, manifest_bake.cpp, bakers_pixel.cpp,
+                           png_fixture.hpp, assetc_manifest_test, assetc_bake_test
+                           bakers_level.cpp, bakers_clip.cpp                           (В5–В6)
+                           bakers_credits.cpp                                          (В8)
 cmake/                     install_sdk.cmake, like-nesConfig.cmake.in, like_nes_bake.cmake (В1)
 scripts/                   check_sdk_game.sh, check_asset_licenses.py,                 (В1, В2)
                            check_asset_budget.py

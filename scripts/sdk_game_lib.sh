@@ -96,3 +96,69 @@ fixture_msvc_crt() {
         sdk_bad "fixture: CRT mismatch failed without LNK2038"; return 1; }
     sdk_ok "fixture: Debug game without like_nes_add_game fails with LNK2038"
 }
+
+# bundle_hash из заголовка game.bundle рядом с exe (смещение 32, uint64 LE — все хосты LE) против
+# закоммиченного bundle.hash. Читается копия рядом с exe, а не выход assetc: её грузит игра.
+bundle_hash_check() {
+    local dir=$1 cfg=$2 want_file=$3 got want
+    [ -f "$dir/game.bundle" ] || { sdk_bad "$cfg: no game.bundle next to the exe"; return 1; }
+    got=0x$(od -An -tx8 -j32 -N8 "$dir/game.bundle" | tr -d '[:space:]')
+    want=$(tr -d '[:space:]' < "$want_file")
+    [ "$got" = "$want" ] || {
+        sdk_bad "$cfg: game.bundle bundle_hash $got, bundle.hash says $want (re-bake changed the bytes)"
+        return 1; }
+    sdk_ok "$cfg: game.bundle bundle_hash $got matches bundle.hash"
+}
+
+fixture_bundle_hash() {
+    printf '0x0123456789abcdef\n' > "$WORK/fx-bundle.hash"
+    if bundle_hash_check "$1" Release "$WORK/fx-bundle.hash" 2> "$WORK/fx-hash.log"; then
+        sdk_bad "fixture: a wrong bundle.hash was accepted"; return 1
+    fi
+    grep -q "bundle.hash says 0x0123456789abcdef" "$WORK/fx-hash.log" || {
+        cat "$WORK/fx-hash.log"; sdk_bad "fixture: wrong bundle.hash failed for another reason"; return 1; }
+    sdk_ok "fixture: a wrong bundle.hash is refused"
+}
+
+fixture_manifest_no_codec() {
+    local src
+    src=$(fixture_copy nocodec)
+    printf 'texture | street_tiles | assets/warped-city/tileset.png\n' > "$src/game.manifest"
+    if game_build "$src" "$WORK/fx-nocodec-build" Release; then
+        sdk_bad "fixture: a texture record without a codec baked"; return 1
+    fi
+    grep -q "game.manifest:1: texture record needs a codec" "$WORK/fx-nocodec-build.log" || {
+        tail -20 "$WORK/fx-nocodec-build.log"
+        sdk_bad "fixture: manifest without a codec failed for another reason"; return 1; }
+    sdk_ok "fixture: texture record without a codec stops the game build with assetc's line"
+}
+
+# Перебейк судится по depfile: PNG нет в DEPENDS, о нём сборка знает только из depfile assetc.
+# Без изменений assetc не зовётся; другой PNG — зовётся, и новый бандл доезжает до exe (хеш рядом с
+# exe уже не равен bundle.hash). `touch -r` с будущим образцом, а не голый cp: на ФС с секундными
+# отметками подмена в ту же секунду, что и бейк, была бы невидима.
+fixture_rebake() {
+    local src dir="$WORK/fx-rebake-build"
+    src=$(fixture_copy rebake)
+    game_build "$src" "$dir" Release || {
+        tail -20 "$dir.log"; sdk_bad "fixture: rebake copy did not build"; return 1; }
+    cmake --build "$(native "$dir")" > "$dir.again.log" 2>&1 || {
+        sdk_bad "fixture: no-op rebuild failed"; return 1; }
+    if grep -q "Baking game.bundle" "$dir.again.log"; then
+        sdk_bad "fixture: a rebuild with nothing changed ran assetc again"; return 1
+    fi
+    # Отметка на год вперёд от сегодня, а не датой: зашитый год однажды стал бы прошлым, и Ninja
+    # перестал бы видеть подмену без единой правки в коде.
+    cp "$ROOT/tools/assetc/assets/src/hero_albedo.png" "$src/assets/warped-city/tileset.png" &&
+        touch -t "$(( $(date +%Y) + 1 ))01010000" "$WORK/fx-future" &&
+        touch -r "$WORK/fx-future" "$src/assets/warped-city/tileset.png" || {
+        sdk_bad "fixture: cannot replace the PNG in the rebake copy"; return 1; }
+    cmake --build "$(native "$dir")" > "$dir.touch.log" 2>&1 || {
+        sdk_bad "fixture: rebuild after replacing the PNG failed"; return 1; }
+    grep -q "Baking game.bundle" "$dir.touch.log" || {
+        cat "$dir.touch.log"; sdk_bad "fixture: a replaced PNG did not re-bake (depfile not honoured)"; return 1; }
+    if bundle_hash_check "$dir" Release "$ROOT/games/neon-rumble/bundle.hash" > /dev/null 2>&1; then
+        sdk_bad "fixture: the re-baked bundle did not reach the exe directory"; return 1
+    fi
+    sdk_ok "fixture: depfile re-bakes on a replaced PNG and only then, the new bundle reaches the exe"
+}

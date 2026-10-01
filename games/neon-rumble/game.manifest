@@ -1,0 +1,3 @@
+# What like_nes_bake bakes into game.bundle (spec #24, B4): one record per line,
+# texture|<name>|<pixel or hd>|<path from this directory>.
+texture | street_tiles | pixel | assets/warped-city/tileset.png

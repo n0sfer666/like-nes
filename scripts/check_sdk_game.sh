@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Гейт SDK (спека #24, В1): игра собирается ПРОТИВ ПОСТАВЛЕННОГО ПРЕФИКСА, а не против дерева.
+# Гейт SDK (спека #24, В1, В4): игра собирается ПРОТИВ ПОСТАВЛЕННОГО ПРЕФИКСА, а не против дерева.
 # Поставить компонент sdk из двух своих каталогов (Release и Debug) в один временный префикс,
 # собрать games/neon-rumble в обеих конфигурациях через find_package(like-nes) и прогнать
 # `--headless --frames 60`. Сборка внутри дерева этого не доказывает: там видны все заголовки и
 # все цели, и забытый в списке поставки заголовок или библиотека проявились бы только у игрока.
+# С В4 сборка печёт game.bundle поставленным assetc по game.manifest, и его bundle_hash рядом с
+# exe сверяется с закоммиченным games/neon-rumble/bundle.hash в обеих конфигурациях.
 #
 # Каталоги СВОИ (build-sdk-release, build-sdk-debug), а не build-ci: у Debug другие флаги, а
 # одолженный кеш оставил бы чужой этап собирать не ту конфигурацию, которую он заявляет. Оба
@@ -54,6 +56,7 @@ sdk_build build-sdk-debug Debug like_nes_sdk || exit 1
 for cfg in Release Debug; do
     if game_build "$ROOT/games/neon-rumble" "$OUT/game-$cfg" "$cfg"; then
         game_run "$OUT/game-$cfg" "$cfg" || FAIL=1
+        bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
     else
         tail -30 "$OUT/game-$cfg.log"
         sdk_bad "$cfg: neon-rumble did not build against the prefix"
@@ -63,6 +66,9 @@ done
 
 fixture_internal_header || FAIL=1
 fixture_missing_library || FAIL=1
+fixture_bundle_hash "$OUT/game-Release" || FAIL=1
+fixture_manifest_no_codec || FAIL=1
+fixture_rebake || FAIL=1
 # Фикстура CRT — только у MSVC: у clang и gcc одна стандартная библиотека на обе конфигурации, и
 # расхождения, которое она ловит, там нет по построению.
 # Судит компилятор, который выбрал CMake, а не окружение: под vcvars с CXX=clang-cl компоновщик

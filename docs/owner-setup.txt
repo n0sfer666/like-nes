@@ -1762,14 +1762,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   разом, звук.
 
 
---- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1) -------
+--- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1, В4) ---
 
   Игра в games/neon-rumble собирается НЕ деревом, а против поставленного
   SDK: find_package(like-nes) в префиксе, куда компонент sdk поставлен из
   двух своих каталогов (build-sdk-release и build-sdk-debug). CI гоняет это
   headless на трёх ОС (джоб sdk-game); окно на живом железе — только здесь.
   Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
-  cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake или games/.
+  cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
+  engine/asset/ или games/.
 
   macOS и Linux, в корне репозитория:
 
@@ -1791,18 +1792,31 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
+      sdk-game: OK   Release: game.bundle bundle_hash 0xbe1e2c2415f76c69 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xbe1e2c2415f76c69 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
+      sdk-game: OK   fixture: a wrong bundle.hash is refused
+      sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
+      sdk-game: OK   fixture: depfile re-bakes on a replaced PNG and only then, the new bundle reaches the exe
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
       sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
       sdk-game: prefix and game builds kept in build-sdk-work/
 
   На Windows вместо SKIP — «OK   fixture: Debug game without
   like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
-  framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна.
+  framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна;
+  bundle_hash — от game.bundle, который assetc из SDK печёт по
+  games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel), и тоже
+  один на всех ОС: он закоммичен в games/neon-rumble/bundle.hash. Другой хеш
+  на одной из машин — находка, а не повод переписать файл. Законная смена —
+  только когда коммит намеренно меняет PNG, game.manifest или байты пекаря:
+  новое значение — строка «[assetc] bundle_hash = 0x…» в логе сборки игры
+  (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
+  правка, после зелёного гейта на всех трёх ОС.
 
   Оконный запуск: тёмно-фиолетовое окно «Neon Rumble» 960×540, через 120
   кадров закрывается само; последние строки:

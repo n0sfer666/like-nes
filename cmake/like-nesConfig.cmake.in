@@ -25,15 +25,21 @@ foreach(_ln_t IN LISTS _ln_static)
     return()
   endif()
 endforeach()
-# implib на Windows — тот же класс: без него ошибка линкера вместо отказа find_package.
-set(_ln_needed "bin/${_ln_runtime}")
+# implib на Windows — тот же класс: без него ошибка линкера вместо отказа find_package. assetc —
+# тоже: без него like_nes_bake упал бы на первой сборке игры, а не при поиске SDK.
+set(_ln_assetc "bin/assetc")
+if(WIN32)
+  string(APPEND _ln_assetc ".exe")
+endif()
+set(_ln_needed "bin/${_ln_runtime}" "${_ln_assetc}")
 if(WIN32)
   list(APPEND _ln_needed "lib/like-nes/${_ln_runtime}.lib")
 endif()
 foreach(_ln_f IN LISTS _ln_needed)
   if(NOT EXISTS "${_ln_prefix}/${_ln_f}")
     set(like-nes_FOUND FALSE)
-    set(like-nes_NOT_FOUND_MESSAGE "like-nes SDK at ${_ln_prefix} is missing ${_ln_f}")
+    set(like-nes_NOT_FOUND_MESSAGE
+        "like-nes SDK at ${_ln_prefix} is missing ${_ln_f}; install the sdk component from a Release build")
     return()
   endif()
 endforeach()
@@ -107,6 +113,7 @@ endif()
 
 set(LIKE_NES_RUNTIME "${_ln_prefix}/bin/${_ln_runtime}")
 set(LIKE_NES_LIBRARY_BUNDLE "${_ln_prefix}/share/like-nes/library.bundle")
+set(LIKE_NES_ASSETC "${_ln_prefix}/${_ln_assetc}")
 
 # Движок собран со статическим CRT (cmake/msvc_runtime.cmake): цель игры обязана взять тот же,
 # иначе LNK2038. Рантайм wgpu кладётся рядом с exe, rpath смотрит туда же.

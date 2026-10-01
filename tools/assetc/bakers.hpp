@@ -10,6 +10,9 @@ namespace asset::bakers {
 
 bool texture(const codec::Tools& t, const std::string& src, const char* name, const std::string& tmp,
              std::vector<AssetInput>& out);
+// Путь pixel (спека #24, В4): PNG → RGBA8 Raw, nearest, без мипов и внешних инструментов.
+bool pixel(const std::vector<uint8_t>& png, const char* name, std::vector<AssetInput>& out,
+           std::string& error);
 bool shader(const codec::Tools& t, const std::string& src, const char* name, const std::string& ep,
             uint32_t stage, std::vector<AssetInput>& out);
 bool audio(const std::string& src, const char* name, bool loop, std::vector<AssetInput>& out);
@@ -23,5 +26,9 @@ bool materials(const std::string& src, const std::string& wgsl_src,
 bool lights(const std::string& src, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
+
+// WGPUTextureFormat_RGBA8Unorm: пекарь пишет target-native значение, а `assetc_bake` webgpu не
+// линкует. Сверка с заголовком wgpu — static_assert в `assetc_main.cpp`.
+constexpr uint32_t TEX_FORMAT_RGBA8_UNORM = 0x12;
 
 } // namespace asset::bakers
