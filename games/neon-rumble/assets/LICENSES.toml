@@ -1,0 +1,17 @@
+# Inventory of the third-party assets under this directory (spec #24, B2): one [[pack]] per source,
+# one [[file]] per file. Checked by `python3 scripts/check_asset_licenses.py`; `--write` regenerates
+# NOTICES.txt and credits.txt from it. Licence texts go to licenses/<SPDX>.txt. Own files of the
+# game (manifest, levels, sheets) live outside assets/ and are not listed here.
+#
+# [[pack]]
+# name = "warped-city"
+# url = "https://opengameart.org/content/warped-city"
+# author = "ansimuz"
+# license = "CC0-1.0"            # CC0-1.0, CC-BY-3.0, CC-BY-4.0 or OFL-1.1
+# attribution = "..."            # required for CC-BY
+#
+# [[file]]
+# path = "warped-city/tiles.png" # relative to assets/, case as on disk
+# pack = "warped-city"
+# sha256 = "..."
+# changes = "recoloured"         # required for CC-BY files, "none" if unchanged

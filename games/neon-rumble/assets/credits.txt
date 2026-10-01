@@ -1,0 +1,2 @@
+# Credits of the third-party assets, one pack per credit line.
+# Generated from LICENSES.toml by scripts/check_asset_licenses.py --write; do not edit.

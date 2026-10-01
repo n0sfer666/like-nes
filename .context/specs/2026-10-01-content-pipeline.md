@@ -2,9 +2,10 @@
 
 - **Дата:** 2026-10-01
 - **Статус:** **В работе** — интервью владельца закрыто 2026-10-01. В1 реализована 2026-10-01
-  (`090520d` — компонент `sdk`, Config, скелет игры, гейт `sdk-game`, CI × 3 ОС зелёный; следующий
-  коммит — `games` в ROOTS, правило 3 include-seam). Бейк В1 — заглушка до В4: копия
-  `library.bundle`, параметр `OUT`. Следующая — В2.
+  (`090520d` — компонент `sdk`, Config, скелет игры, гейт `sdk-game`, CI × 3 ОС зелёный; `55ab007` —
+  `games` в ROOTS, правило 3 include-seam). Бейк В1 — заглушка до В4: копия `library.bundle`,
+  параметр `OUT`. В2 реализована 2026-10-01 (гейты `asset-licenses` и `asset-budget`, манифест
+  игры переехал в её корень). Следующая — В3.
 - **Зонтик:** [#23](2026-10-01-beatemup-game.md), раздел «#24». Здесь — подробности и DoD раунда.
 - **Наследует:** [#16](2026-07-26-character-tilemap.md) (секция `LNTM`, `TileSet`),
   [#17](2026-07-26-graphics-framework.md) (клипы, камера, атлас `LNAR`, «декор вне симуляции»),
@@ -116,6 +117,14 @@ fs-seam, hash-seam, `tree_invariants.sh`, `ascii_output_check.py`; `check_tree_r
 
 ### В2. Инвентарь лицензий (до первого ассета в дереве)
 
+**Уточнения владельца при реализации (2026-10-01):** `assets/` — только чужое; свои файлы игры
+(манифест, уровни, листы) живут вне `assets/` и вне инвентаря, манифест — `games/neon-rumble/game.manifest`.
+Инвентарь — `[[pack]]` (источник, автор, лицензия, атрибуция) + `[[file]]` (путь, пак, sha256,
+`changes`); у файла CC-BY `changes` обязательно, `"none"` для неизменённого. Сверх спеки по ревью:
+поле без `#` (читатели `|`-грамматики режут по нему), путь — печатный ASCII (NFD на macOS),
+запись закрывает ровно один файл, служебные файлы ОС (`.DS_Store`, `Thumbs.db`, `desktop.ini`)
+обход пропускает. Устройство — [`gates/asset-licenses.md`](../gates/asset-licenses.md).
+
 - `games/neon-rumble/assets/LICENSES.toml`: на каждый файл ассета — путь, пак, URL источника,
   автор, лицензия (SPDX), атрибуция (обязательна для CC-BY), `changes` (перекраска, обрезка;
   обязательно для изменённых CC-BY), sha256.
@@ -133,7 +142,7 @@ fs-seam, hash-seam, `tree_invariants.sh`, `ascii_output_check.py`; `check_tree_r
 - `--selftest`: нет записи, лишняя запись, запрещённая лицензия, CC-BY без атрибуции, хеш не
   совпал, устаревший `NOTICES.txt`, нет текста лицензии, CRLF-копия файла. Каждая фикстура падает
   по своей причине.
-- `.gitattributes`: `games/neon-rumble/assets/** -text` тем же коммитом — иначе autocrlf на
+- `.gitattributes`: `games/*/assets/** -text` тем же коммитом — иначе autocrlf на
   Windows ломает sha256 и сверку `NOTICES.txt` только там.
 - Отдельный гейт `python3 scripts/check_asset_budget.py` + `--selftest`: `assets/` ≤ 30 МиБ.
 - Оба гейта — в таблицу `CLAUDE.md` и `.context/gates/`, запуск на коммит.
@@ -159,11 +168,11 @@ fs-seam, hash-seam, `tree_invariants.sh`, `ascii_output_check.py`; `check_tree_r
 --depfile <out.d>`:
 
 ```
-texture|street_tiles|pixel|tiles/street.png
-level|level1|tiled|levels/level1.tmj
-clips|brawler|aseprite|chars/brawler.json
-clips|thug|sheet|chars/thug.sheet
-credits|credits|credits.txt
+texture|street_tiles|pixel|assets/warped-city/street.png
+level|level1|tiled|content/level1.tmj
+clips|brawler|aseprite|assets/chewbatrij/brawler.json
+clips|thug|sheet|content/thug.sheet
+credits|credits|assets/credits.txt
 ```
 
 - Имя записи — ключ guid (`fnv1a`), дубликат — отказ. Пути — относительно манифеста; выход за
@@ -355,7 +364,8 @@ tools/assetc/              manifest_mode.cpp, bakers_level.cpp, bakers_clip.cpp,
 cmake/                     install_sdk.cmake, like-nesConfig.cmake.in, like_nes_bake.cmake (В1)
 scripts/                   check_sdk_game.sh, check_asset_licenses.py,                 (В1, В2)
                            check_asset_budget.py
-games/neon-rumble/         CMakeLists.txt, src/, assets/, LICENSES.toml, bundle.hash   (В1→В8)
+games/neon-rumble/         CMakeLists.txt, game.manifest, src/, content/, assets/,     (В1→В8)
+                           assets/LICENSES.toml, bundle.hash
 ```
 
 Грамматика и сборка байтов — в движке, `assetc` только вызывает `bake_*` и `push_table`.
@@ -390,7 +400,7 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 add_executable(neon_rumble src/main.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine)
 like_nes_add_game(neon_rumble)
-like_nes_bake(neon_rumble MANIFEST assets/game.manifest OUT game.bundle)
+like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 ```
 
 `Result` из эскиза зонтика здесь не вводится: #24 пишет в конвенции дерева (`bool` + ошибка).

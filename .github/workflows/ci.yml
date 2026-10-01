@@ -302,6 +302,26 @@ jobs:
         shell: bash
         run: python3 scripts/check_include_seam.py
 
+      # Инвентарь лицензий чужих ассетов (спека #24, В2). Гейт по дереву идёт на ВСЕХ трёх ОС, в
+      # отличие от соседних: его предмет — байты файлов из checkout, а autocrlf на windows-раннере
+      # менял бы sha256 и NOTICES.txt только там (замок — `games/*/assets/** -text`).
+      - name: Asset licence inventory selftest (broken inventories, each refused for its reason)
+        shell: bash
+        run: python3 scripts/check_asset_licenses.py --selftest
+
+      - name: Every third-party asset is in the licence inventory, NOTICES and credits generated
+        shell: bash
+        run: python3 scripts/check_asset_licenses.py
+
+      - name: Asset budget selftest (exactly the limit passes, one byte over is refused)
+        shell: bash
+        run: python3 scripts/check_asset_budget.py --selftest
+
+      - name: Third-party assets of a game stay within 30 MiB
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_asset_budget.py
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
 
