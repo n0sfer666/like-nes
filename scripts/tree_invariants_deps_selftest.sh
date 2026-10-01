@@ -31,7 +31,7 @@ tree_for() {
   # аудита #21 дописал туда `tests`, и фикстура без него положила набор вместе с опорным pass.
   mkdir -p "$d/scripts" "$d/engine/framework/core" "$d/engine/render" "$d/engine/achievements" \
            "$d/engine/light" "$d/engine/material" "$d/tools/ide" "$d/example_ugly_game" \
-           "$d/docs/examples" "$d/tests/fuzz"
+           "$d/docs/examples" "$d/tests/fuzz" "$d/games/neon-rumble"
   cp "$ROOT/scripts/tree_invariants.sh" "$d/scripts/tree_invariants.sh"
   # Включения в engine нужны не для красоты: вторая половина инварианта утверждает, что поиск по
   # этому корню вообще что-то видит, и дерево без единого include делало бы её вакуумной.
