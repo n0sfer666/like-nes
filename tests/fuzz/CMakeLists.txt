@@ -10,6 +10,7 @@ add_executable(fuzz_readers
   fuzz_targets_engine.cpp
   fuzz_targets_framework.cpp
   fuzz_targets_json.cpp
+  fuzz_targets_level.cpp
   fuzz_targets_plugin.cpp)
 
 target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

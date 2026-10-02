@@ -50,6 +50,8 @@ bool parse(std::span<const std::byte> in, asset::ByteArena& arena, std::vector<N
 
 const Node* member(std::span<const Node> doc, const Node& obj, std::string_view key);
 
+bool as_fix(const Node& n, fix32& out);
+
 // Строка и столбец (с единицы, столбец — в символах UTF-8) смещения `at` во входе.
 JsonError error_at(std::span<const std::byte> in, uint32_t at, std::string message);
 

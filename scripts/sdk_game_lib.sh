@@ -133,32 +133,46 @@ fixture_manifest_no_codec() {
     sdk_ok "fixture: texture record without a codec stops the game build with assetc's line"
 }
 
-# Перебейк судится по depfile: PNG нет в DEPENDS, о нём сборка знает только из depfile assetc.
-# Без изменений assetc не зовётся; другой PNG — зовётся, и новый бандл доезжает до exe (хеш рядом с
-# exe уже не равен bundle.hash). `touch -r` с будущим образцом, а не голый cp: на ФС с секундными
-# отметками подмена в ту же секунду, что и бейк, была бы невидима.
+# Перебейк судится по depfile: PNG и .tsj нет в DEPENDS, о них сборка знает только из depfile
+# assetc. Без изменений assetc не зовётся; правка .tsj уровня или другой PNG — зовётся, и новый
+# бандл доезжает до exe (хеш рядом с exe уже не тот, что был до правки). Свежесть правки — `sleep 2`,
+# а не отметка из будущего: такая отметка делает вход новее любого выхода навсегда, и следующий
+# раунд перебейка шёл бы при любом depfile. Две секунды — запас на ФС с секундными отметками.
+# Раунд PNG идёт на манифесте без уровня: тайлсет сверяет размер картинки, а подмена другого размера.
 fixture_rebake() {
-    local src dir="$WORK/fx-rebake-build"
+    local src dir="$WORK/fx-rebake-build" tsj before
     src=$(fixture_copy rebake)
+    tsj="$src/levels/warped-city.tsj"
     game_build "$src" "$dir" Release || {
         tail -20 "$dir.log"; sdk_bad "fixture: rebake copy did not build"; return 1; }
-    cmake --build "$(native "$dir")" > "$dir.again.log" 2>&1 || {
-        sdk_bad "fixture: no-op rebuild failed"; return 1; }
-    if grep -q "Baking game.bundle" "$dir.again.log"; then
-        sdk_bad "fixture: a rebuild with nothing changed ran assetc again"; return 1
-    fi
-    # Отметка на год вперёд от сегодня, а не датой: зашитый год однажды стал бы прошлым, и Ninja
-    # перестал бы видеть подмену без единой правки в коде.
-    cp "$ROOT/tools/assetc/assets/src/hero_albedo.png" "$src/assets/warped-city/tileset.png" &&
-        touch -t "$(( $(date +%Y) + 1 ))01010000" "$WORK/fx-future" &&
-        touch -r "$WORK/fx-future" "$src/assets/warped-city/tileset.png" || {
-        sdk_bad "fixture: cannot replace the PNG in the rebake copy"; return 1; }
-    cmake --build "$(native "$dir")" > "$dir.touch.log" 2>&1 || {
-        sdk_bad "fixture: rebuild after replacing the PNG failed"; return 1; }
-    grep -q "Baking game.bundle" "$dir.touch.log" || {
-        cat "$dir.touch.log"; sdk_bad "fixture: a replaced PNG did not re-bake (depfile not honoured)"; return 1; }
+    rebake_round "$dir" again "" "a rebuild with nothing changed ran assetc again" || return 1
+    sleep 2
+    sed 's/"value":"ladder"/"value":"solid"/' "$tsj" > "$tsj.new" && mv "$tsj.new" "$tsj" || {
+        sdk_bad "fixture: cannot edit the tileset in the rebake copy"; return 1; }
+    rebake_round "$dir" tsj "Baking game.bundle" "an edited .tsj did not re-bake (depfile not honoured)" || return 1
     if bundle_hash_check "$dir" Release "$ROOT/games/neon-rumble/bundle.hash" > /dev/null 2>&1; then
-        sdk_bad "fixture: the re-baked bundle did not reach the exe directory"; return 1
+        sdk_bad "fixture: the bundle re-baked from the edited .tsj did not reach the exe directory"; return 1
     fi
-    sdk_ok "fixture: depfile re-bakes on a replaced PNG and only then, the new bundle reaches the exe"
+    sleep 2
+    printf 'texture | street_tiles | pixel | assets/warped-city/tileset.png\n' > "$src/game.manifest"
+    rebake_round "$dir" nolevel "Baking game.bundle" "a manifest without the level did not re-bake" || return 1
+    before=$(od -An -tx8 -j32 -N8 "$dir/game.bundle" | tr -d '[:space:]')
+    sleep 2
+    cp "$ROOT/tools/assetc/assets/src/hero_albedo.png" "$src/assets/warped-city/tileset.png" || {
+        sdk_bad "fixture: cannot replace the PNG in the rebake copy"; return 1; }
+    rebake_round "$dir" png "Baking game.bundle" "a replaced PNG did not re-bake (depfile not honoured)" || return 1
+    [ "$(od -An -tx8 -j32 -N8 "$dir/game.bundle" | tr -d '[:space:]')" != "$before" ] || {
+        sdk_bad "fixture: the bundle re-baked from the replaced PNG did not reach the exe directory"; return 1; }
+    sdk_ok "fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe"
+}
+
+rebake_round() {
+    local dir=$1 tag=$2 want=$3 why=$4
+    cmake --build "$(native "$dir")" > "$dir.$tag.log" 2>&1 || {
+        tail -20 "$dir.$tag.log"; sdk_bad "fixture: rebuild ($tag) failed"; return 1; }
+    if [ -z "$want" ]; then
+        grep -q "Baking game.bundle" "$dir.$tag.log" && { sdk_bad "fixture: $why"; return 1; }
+        return 0
+    fi
+    grep -q "$want" "$dir.$tag.log" || { cat "$dir.$tag.log"; sdk_bad "fixture: $why"; return 1; }
 }

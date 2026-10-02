@@ -1,8 +1,9 @@
 # --- framework_tilemap: тайловая сетка коллизии (спека #16, вертикаль 2, шаг A). Зависит ВНИЗ, на
 # framework_physics: сетка не пишет геометрию заново, а разворачивает тайл в форму #15 и отвечает
 # теми же свипом и узкой фазой. Обратного ребра нет — физика про тайлы не знает (решение 3 спеки).
-add_library(framework_tilemap STATIC grid.cpp query.cpp map_parse.cpp map_bake.cpp
-  map_read.cpp)
+add_library(framework_tilemap STATIC grid.cpp query.cpp map_parse.cpp map_bake.cpp tile_flag_words.cpp
+  map_read.cpp section_open.cpp section_bake.cpp visual_read.cpp visual_bake.cpp object_read.cpp
+  object_bake.cpp)
 target_include_directories(framework_tilemap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит сетка, а не файловый шов, которым пекарь читает
 # исходник. То же устройство, что у framework_character и framework_input.
@@ -54,3 +55,11 @@ target_link_libraries(framework_tilemap_refusal_test PRIVATE framework_tilemap p
 add_executable(framework_tilemap_bundle_test framework_tilemap_bundle_test.cpp)
 target_link_libraries(framework_tilemap_bundle_test PRIVATE framework_tilemap asset_core
   platform_core)
+
+add_executable(framework_tilemap_visual_test framework_tilemap_visual_test.cpp)
+target_link_libraries(framework_tilemap_visual_test PRIVATE framework_tilemap)
+
+add_executable(framework_tilemap_objects_test framework_tilemap_objects_test.cpp)
+target_link_libraries(framework_tilemap_objects_test PRIVATE framework_tilemap)
+
+add_subdirectory(tiled)

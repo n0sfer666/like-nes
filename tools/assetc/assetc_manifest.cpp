@@ -63,9 +63,7 @@ bool fail(Error& err, uint32_t line, std::string message) {
     return false;
 }
 
-bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error& err) {
-    if (f[0] != "texture")
-        return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture)");
+bool texture(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f.size() == 3 && (f[2] == "pixel" || f[2] == "hd"))
         return fail(err, line, "texture record needs a path: texture|<name>|" + f[2] + "|<path>");
     if (f.size() == 3)
@@ -74,13 +72,35 @@ bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error
     if (f.size() != 4)
         return fail(err, line, "texture record has " + std::to_string(f.size()) +
                                    " fields, expected texture|<name>|<codec>|<path>");
-    if (!name_ok(f[1]))
-        return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
+    if (f[1] == "tilemap" || f[1] == "visual" || f[1] == "objects")
+        return fail(err, line, "texture name '" + f[1] + "' is reserved for the level sections");
     if (f[2] != "pixel" && f[2] != "hd")
         return fail(err, line, "unknown codec '" + f[2] + "', expected pixel or hd");
+    return true;
+}
+
+bool level(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 4 || f[2] != "tiled")
+        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj");
+    const std::string& path = f[3];
+    if (path.size() < 4 || path.compare(path.size() - 4, 4, ".tmj") != 0)
+        return fail(err, line, "level path '" + path + "' must be a Tiled JSON map (.tmj)");
+    return true;
+}
+
+bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error& err) {
+    if (f[0] == "texture") {
+        if (!texture(f, line, err)) return false;
+    } else if (f[0] == "level") {
+        if (!level(f, line, err)) return false;
+    } else {
+        return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level)");
+    }
+    if (!name_ok(f[1]))
+        return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
     std::string why;
     if (!path_ok(f[3], why)) return fail(err, line, why);
-    rec = Record{line, f[1], f[2], f[3]};
+    rec = Record{line, f[0], f[1], f[2], f[3]};
     return true;
 }
 

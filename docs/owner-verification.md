@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**7 of the 18 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
+**7 of the 19 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 12 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -34,6 +34,7 @@ names that surface.
 | The forms people actually install from — `.dmg`, `.AppImage`, `.msi` — install and start | [#20](../.context/specs/2026-07-26-release-installers.md) 3 | **all three** | — | `scripts/release_dmg*`, `scripts/release_appimage*`, `packaging/like-nes.wxs.in` |
 | No Visual C++ Redistributable on the box, and a silent install still lands | [#20](../.context/specs/2026-07-26-release-installers.md) 4 | **Windows** | — | `cmake/msvc_runtime.cmake`, `cmake/msvc_redist.cmake`, `packaging/like-nes.wxs.in` |
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
+| Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -2373,9 +2374,38 @@ that section is deliberately unwritten: `docs/en/index.md` names `tutorial/`, `g
 gate and a lie to the reader either way. When the tutorial is written, this gate is run the same way
 as §17 — by typing what the page says and noting everything you had to add.
 
+## 18. Gate 3 of #24 — level 1 comes out of a real Tiled
+
+<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh — bundle_hash 0xf28a379fc38c0753 -->
+
+`games/neon-rumble/levels/level1.tmj` and `warped-city.tsj` were written by hand to the Tiled 1.10
+JSON format, not saved by Tiled. The importer is tested on fixtures of the same hand, so a field
+Tiled actually writes and the importer refuses — or one it writes differently — stays invisible
+until a real Tiled saves the file. This half of the gate is the bake; the window half (parallax,
+flips, the animated sign) joins it with B5b.
+
+1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×12 tiles of 16
+   px: a row of facades over a street, a one-way platform, a ladder, and the object layer `spawns`
+   with `player`, `street` and `walk`.
+2. Move any tile, undo it, and save the map with **File → Save** (keep JSON, keep CSV layer
+   format). Open `warped-city.tsj` in the same window and save it too.
+3. Run the gate from the repository root (Windows: from the `scripts\win-dev.bat shell` window):
+
+       bash scripts/check_sdk_game.sh
+
+   Expected: `sdk-game: PASS`, and both lines
+   `Release: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash` and the same for
+   `Debug`.
+4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
+
+What counts as a finding: an import refusal (the message names `level1.tmj:<line>:<column>` and
+what to change in Tiled), or a different `bundle_hash`. A diff in the files with the same hash is
+not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
+then replace the hand-written ones in the tree.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 7 of the 18 are closed, and the open 11 are listed by
+The gates above are what the ADRs waited on; 7 of the 19 are closed, and the open 12 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

@@ -5,7 +5,7 @@
 # входят; замкнутость набора по #include проверяет install_sdk.cmake при конфигурировании.
 
 set(LIKE_NES_SDK_HEADERS
-  core/fixed.hpp
+  core/fixed.hpp core/sim_tick.hpp
   asset/hash.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp

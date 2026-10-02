@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -38,6 +39,11 @@
 //   * повтор ИМЕНИ карты — поиск по имени вернул бы первую, а правили бы вторую.
 namespace framework::tilemap {
 
+// Потолок карты: смещения формата 32-битные, и карта, чья таблица не влезает в uint32, испеклась бы
+// с обёрнутым смещением, то есть прочиталась бы как другая карта. Четыре миллиона тайлов — это
+// 8 МБ флагов и экран платформера в две тысячи ширин.
+constexpr uint64_t MAX_MAP_TILES = 1ull << 22;
+
 struct MapBakeError {
     int line = 0;
     std::string message;
@@ -60,6 +66,7 @@ bool parse_maps(const std::string& text, std::vector<ParsedMap>& out, MapBakeErr
 bool parse_maps_file(const std::string& path, std::vector<ParsedMap>& out, MapBakeError& err);
 
 bool bake_maps(const std::string& text, std::vector<uint8_t>& out, MapBakeError& err);
+bool bake_maps(std::span<const ParsedMap> maps, std::vector<uint8_t>& out, MapBakeError& err);
 bool bake_maps_file(const std::string& path, std::vector<uint8_t>& out, MapBakeError& err);
 
 } // namespace framework::tilemap

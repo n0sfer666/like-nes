@@ -98,6 +98,22 @@ void test_shared_rule() {
           "parse_fix and the exponent form agree");
 }
 
+bool as_fix_raw(const std::string& text, bool want, int32_t raw) {
+    Run r;
+    if (!parse(r, text)) return false;
+    fix32 out = fix32::from_raw(-1);
+    const bool ok = json::as_fix(r.doc[0], out);
+    return ok == want && (!want || out.raw == raw);
+}
+
+void test_as_fix() {
+    check(as_fix_raw("32767", true, 32767 << 16) && as_fix_raw("-32767", true, -32767 * 65536),
+          "as_fix takes an integer up to +-32767");
+    check(as_fix_raw("32768", false, 0) && as_fix_raw("-32768", false, 0), "as_fix refuses +-32768");
+    check(as_fix_raw("1.5", true, 98304), "as_fix passes a fix32 through");
+    check(as_fix_raw("\"7\"", false, 0) && as_fix_raw("true", false, 0), "as_fix refuses a non-number");
+}
+
 } // namespace
 
 int main() {
@@ -106,5 +122,6 @@ int main() {
     test_grammar();
     test_fix();
     test_shared_rule();
+    test_as_fix();
     return verdict("framework-json-number");
 }

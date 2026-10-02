@@ -73,3 +73,17 @@ bool scan_number(Cursor& c, Node& out) {
 }
 
 } // namespace framework::json::detail
+
+namespace framework::json {
+
+bool as_fix(const Node& n, fix32& out) {
+    if (n.kind == Kind::Fix) {
+        out = n.f;
+        return true;
+    }
+    if (n.kind != Kind::Int || n.i <= -32768 || n.i >= 32768) return false;
+    out = fix32::from_int(static_cast<int32_t>(n.i));
+    return true;
+}
+
+} // namespace framework::json

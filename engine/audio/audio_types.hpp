@@ -2,6 +2,7 @@
 #include <cstdint>
 
 #include "fixed.hpp"
+#include "sim_tick.hpp"
 
 // Общие типы аудио-подсистемы (спека #3). Внутренний микс — фикс. rate/каналы;
 // команды таймштампятся в sample-time (tick N → sample N*SAMPLES_PER_TICK), НЕ wall-clock,
@@ -10,7 +11,7 @@ namespace audio {
 
 constexpr uint32_t SAMPLE_RATE = 48000;
 constexpr uint32_t OUT_CHANNELS = 2;   // стерео-выход
-constexpr uint32_t TICK_HZ = 60;
+constexpr uint32_t TICK_HZ = sim::TICK_HZ;
 constexpr uint32_t SAMPLES_PER_TICK = SAMPLE_RATE / TICK_HZ; // 800 фреймов/тик
 constexpr uint32_t MAX_VOICES = 32;    // фикс. пул — без per-callback heap
 

@@ -836,7 +836,8 @@ jobs:
         shell: bash
         run: |
           for t in material_bake_test material_source_test material_table_test \
-                   material_library_test light_table_test assetc_manifest_test assetc_bake_test; do
+                   material_library_test light_table_test assetc_manifest_test assetc_bake_test \
+                   assetc_level_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -1305,10 +1306,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=10, а не 11, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=12, а не 13, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=10 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=12 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -1843,6 +1844,8 @@ jobs:
                    framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_json_test framework_json_string_test framework_json_number_test \
+                   framework_tilemap_visual_test framework_tilemap_objects_test \
+                   framework_tiled_test framework_tiled_refusal_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -2461,7 +2464,7 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/tilemap/section_bake.cpp engine/framework/tilemap/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
           # ci-lint: mirrors-group seam-fs
@@ -2679,7 +2682,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=11 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=13 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -2698,7 +2701,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=11 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=13 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -2735,7 +2738,12 @@ jobs:
           framework_json_string_test:framework-json-string: PASS
           framework_json_number_test:framework-json-number: PASS
           assetc_manifest_test:assetc-manifest: PASS
-          assetc_bake_test:assetc-bake: PASS"
+          assetc_bake_test:assetc-bake: PASS
+          assetc_level_test:assetc-level: PASS
+          framework_tilemap_visual_test:framework-tilemap-visual: PASS
+          framework_tilemap_objects_test:framework-tilemap-objects: PASS
+          framework_tiled_test:framework-tiled: PASS
+          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
           cmake --build build-fuzz-san --target $(cut -d: -f1 <<<"$T") plugin_wasm_test plugin_wind
           ran=0
           while IFS=: read -r -u3 name want; do
@@ -2776,11 +2784,12 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
 
-      # Спека #24, В1 и В4: игра собирается против поставленного префикса в Release и Debug,
-      # bundle_hash испечённого game.bundle равен games/neon-rumble/bundle.hash на каждой ОС.
-      # Фикстуры (внутренний заголовок, префикс без библиотеки, чужой bundle.hash, манифест без
-      # кодека, перебейк по depfile, на MSVC — Debug без like_nes_add_game) обязаны упасть каждая
-      # по своей причине.
-      - name: SDK package builds a game against the installed prefix, bundle hash (spec #24, V1, V4)
+      # Спека #24, В1, В4, В5а: игра собирается против поставленного префикса в Release и Debug,
+      # bundle_hash испечённого game.bundle (текстура и уровень level1 из Tiled) равен
+      # games/neon-rumble/bundle.hash на каждой ОС. Фикстуры (внутренний заголовок, префикс без
+      # библиотеки, чужой bundle.hash, манифест без кодека, перебейк по depfile после правки .tsj
+      # и подмены PNG, на MSVC — Debug без like_nes_add_game) обязаны упасть каждая по своей
+      # причине.
+      - name: SDK package builds a game against the installed prefix, bundle hash (spec #24, V1, V4, V5)
         shell: bash
         run: bash scripts/check_sdk_game.sh

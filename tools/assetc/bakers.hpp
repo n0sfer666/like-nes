@@ -1,10 +1,12 @@
 #pragma once
 
+#include <span>
 #include <string>
 #include <vector>
 
 #include "bundle_writer.hpp"
 #include "codec.hpp"
+#include "tiled_import.hpp"
 
 namespace asset::bakers {
 
@@ -24,6 +26,8 @@ bool atlas_regions(const std::string& src, std::vector<AssetInput>& out);
 bool materials(const std::string& src, const std::string& wgsl_src,
                std::vector<AssetInput>& out);
 bool lights(const std::string& src, std::vector<AssetInput>& out);
+bool levels(std::span<const framework::tiled::Level> levels, std::vector<AssetInput>& out, std::string& error);
+void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
 

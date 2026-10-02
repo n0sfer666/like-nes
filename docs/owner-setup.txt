@@ -1762,7 +1762,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   разом, звук.
 
 
---- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1, В4) ---
+--- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1, В4, В5) ---
 
   Игра в games/neon-rumble собирается НЕ деревом, а против поставленного
   SDK: find_package(like-nes) в префиксе, куда компонент sdk поставлен из
@@ -1770,7 +1770,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   headless на трёх ОС (джоб sdk-game); окно на живом железе — только здесь.
   Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
   cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
-  engine/asset/ или games/.
+  engine/asset/, engine/framework/tilemap/ или games/.
 
   macOS и Linux, в корне репозитория:
 
@@ -1792,16 +1792,16 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0xbe1e2c2415f76c69 matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0xbe1e2c2415f76c69 matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
       sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
-      sdk-game: OK   fixture: depfile re-bakes on a replaced PNG and only then, the new bundle reaches the exe
+      sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
       sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
       sdk-game: prefix and game builds kept in build-sdk-work/
@@ -1810,10 +1810,12 @@ owner_check.sh гоняет это отдельным этапом сразу п
   like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
   framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна;
   bundle_hash — от game.bundle, который assetc из SDK печёт по
-  games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel), и тоже
+  games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
+  levels/level1.tmj из Tiled — секции tilemap, visual, objects), и тоже
   один на всех ОС: он закоммичен в games/neon-rumble/bundle.hash. Другой хеш
   на одной из машин — находка, а не повод переписать файл. Законная смена —
-  только когда коммит намеренно меняет PNG, game.manifest или байты пекаря:
+  только когда коммит намеренно меняет PNG, game.manifest, levels/ или байты
+  пекаря:
   новое значение — строка «[assetc] bundle_hash = 0x…» в логе сборки игры
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
@@ -1824,8 +1826,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
       [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
       neon-rumble: window run ok, 120 frames
 
-  Код выхода 0. BC: no — не находка: сжатые текстуры скелет не грузит. Сцена пустая — это скелет В1, картинка придёт с уровнем
-  (В3–В5). Находка — всё, что не так: окно не открылось, «no surface,
+  Код выхода 0. BC: no — не находка: сжатые текстуры скелет не грузит. Сцена пустая — уровень уже в game.bundle (В5а), рисовать
+  его игра начнёт с В5б. Пересохранение level1.tmj в настоящем Tiled — гейт
+  3 спеки #24, docs/owner-verification.md §18. Находка — всё, что не так: окно не открылось, «no surface,
   adapter or device», «cannot read …/library.bundle», ошибка про
   libwgpu_native / wgpu_native.dll (рантайм обязан лежать рядом с exe).
   На Linux SDK собран с GLFW только под X11: под Wayland-сессией окно идёт
