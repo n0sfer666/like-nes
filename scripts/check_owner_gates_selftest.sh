@@ -138,11 +138,11 @@ mutate "$d" "$DOC" py_in "$d/$DOC" '2026-08-22' '| Physics frame cost' '2026-08-
 expect fail 'таблица шапки разъехалась' 'в таблице чужая дата закрытия' "$d"
 
 d=$(tree_for)
-mutate "$d" "$DOC" sed_in "$d/$DOC" 's|\*\*7 of the 18 gates below are closed\*\*|**9 of the 18 gates below are closed**|'
+mutate "$d" "$DOC" sed_in "$d/$DOC" 's|\*\*[0-9][0-9]* of the \([0-9][0-9]*\) gates below are closed\*\*|**99 of the \1 gates below are closed**|'
 expect fail 'вводный абзац' 'вводный абзац называет чужое число' "$d"
 
 d=$(tree_for)
-mutate "$d" "$DOC" sed_in "$d/$DOC" 's|\*\*7 of the 18 gates below are closed\*\*|**most of the gates below are closed**|'
+mutate "$d" "$DOC" sed_in "$d/$DOC" 's|\*\*[0-9][0-9]* of the [0-9][0-9]* gates below are closed\*\*|**most of the gates below are closed**|'
 expect fail 'не называет чисел в ожидаемой форме' 'вводный абзац без чисел вовсе' "$d"
 
 d=$(tree_for)

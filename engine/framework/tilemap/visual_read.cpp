@@ -48,7 +48,7 @@ bool layers_ok(const SectionView& v, const VisualRow& r, std::span<const VisualL
         std::span<const uint16_t> cells;
         if (!v.take(l.cells_offset, r.width * r.height, cells)) return false;
         for (uint16_t c : cells)
-            if ((c & CELL_INDEX) > total || ((c & CELL_INDEX) == 0 && c != 0)) return false;
+            if (static_cast<uint32_t>(c & CELL_INDEX) > total || ((c & CELL_INDEX) == 0 && c != 0)) return false;
     }
     return true;
 }
