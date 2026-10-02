@@ -102,7 +102,10 @@ configure_file("${CMAKE_CURRENT_LIST_DIR}/like-nesConfig.cmake.in"
 
 # Пока мажор 0, API ломается между минорами — SameMinorVersion; суффикс -dev в версию пакета не
 # идёт, CMake сравнивает только числа.
-string(REGEX MATCH "^[0-9]+\\.[0-9]+\\.[0-9]+" sdk_version "${GAME_VERSION}")
+if(NOT GAME_VERSION MATCHES "^v?([0-9]+\\.[0-9]+\\.[0-9]+)")
+  message(FATAL_ERROR "GAME_VERSION '${GAME_VERSION}' does not start with X.Y.Z or vX.Y.Z")
+endif()
+set(sdk_version "${CMAKE_MATCH_1}")
 write_basic_package_version_file("${CMAKE_BINARY_DIR}/sdk/like-nesConfigVersion.cmake"
   VERSION "${sdk_version}" COMPATIBILITY SameMinorVersion)
 install(FILES "${CMAKE_BINARY_DIR}/sdk/like-nesConfig.cmake"

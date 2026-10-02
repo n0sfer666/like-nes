@@ -2744,7 +2744,8 @@ jobs:
           framework_tilemap_objects_test:framework-tilemap-objects: PASS
           framework_tiled_test:framework-tiled: PASS
           framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
-          cmake --build build-fuzz-san --target $(cut -d: -f1 <<<"$T") plugin_wasm_test plugin_wind
+          mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
+          cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0
           while IFS=: read -r -u3 name want; do
             ./build-fuzz-san/"$name" < /dev/null > "san_$name.txt" 2>&1 || { cat "san_$name.txt"; echo "$name FAILED under ASan/UBSan"; exit 1; }
