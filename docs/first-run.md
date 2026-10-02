@@ -29,6 +29,18 @@ whose verdict still said `owner-check: PASS`, because the stage's exit status wa
 own `| tee` and never counted. A gate that prints a stack trace and passes is worse than one that is
 missing.
 
+## Your own game against the SDK
+
+`games/neon-rumble` is built **against an installed SDK prefix**, not inside the tree (spec #24).
+`bash scripts/check_sdk_game.sh --keep` builds and installs the `sdk` component in Release and Debug,
+builds the game against that prefix and leaves it in `build-sdk-work/`. The game's `game.bundle` is
+baked at build time by the SDK's `assetc` from `games/neon-rumble/game.manifest`, and its
+`bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The game maps that bundle
+and draws level 1 from it with a fighter on the spawn playing her clips (F3 toggles the cel, pivot
+and box overlay); `--headless` prints the level, frame and fighter summary the gate checks. The
+steps for the owner's window run, with the expected output line by line, are section S of
+[`owner-setup.txt`](owner-setup.txt).
+
 ## Related
 
 - [`owner-verification.md`](owner-verification.md) — the gates a CI runner cannot close (real GPU

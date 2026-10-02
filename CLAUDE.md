@@ -86,10 +86,13 @@ decisions, notes). Читать перед началом любой задач�
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
 | заголовки чужих целей голым уникальным именем | `python3 scripts/check_include_seam.py` | коммит | [include-seam](.context/gates/include-seam.md) |
+| лицензии чужих ассетов игр | `python3 scripts/check_asset_licenses.py [--write]` | коммит | [asset-licenses](.context/gates/asset-licenses.md) |
+| бюджет ассетов игры 30 МиБ | `python3 scripts/check_asset_budget.py` | коммит | [asset-budget](.context/gates/asset-budget.md) |
 | читатели секций держат битый файл | `./build-full/fuzz_readers` | preflight | [fuzz-readers](.context/gates/fuzz-readers.md) |
 | инварианты дерева, копии признака обхода | `bash scripts/tree_invariants.sh` · `python3 scripts/check_tree_roots.py` | коммит | [preflight](.context/gates/preflight.md) |
 | пин wasmtime C-API в deps/ | `bash scripts/check_wasmtime_pin.sh` | preflight | [wasmtime-pin](.context/gates/wasmtime-pin.md) |
 | пин wgpu-native по релизу upstream | `bash scripts/check_wgpu_pin.sh [<build>]` · конфигурирование | preflight | [wgpu-pin](.context/gates/wgpu-pin.md) |
+| игра против поставленного SDK | `bash scripts/check_sdk_game.sh [--keep]` | preflight · CI × 3 ОС | [sdk-game](.context/gates/sdk-game.md) |
 | релизный пакет | `bash scripts/check_release.sh` | preflight | [release](.context/gates/release.md) |
 | пакет Linux с машины macOS | `bash scripts/check_release_container.sh [--live]` | preflight · `--live` руками | [release-container](.context/gates/release-container.md) |
 | пакет Windows задачей CI | `bash scripts/check_release_ci.sh [--live]` | preflight · `--live` руками | [release-ci](.context/gates/release-ci.md) |

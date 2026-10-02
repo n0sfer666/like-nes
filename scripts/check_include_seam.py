@@ -18,6 +18,11 @@
    дереве нет вовсе, — сторонняя библиотека (`backends/imgui_impl_wgpu.h`).
 2. Базовые имена заголовков уникальны по дереву, без учёта регистра: на macOS и Windows
    `Scene.hpp` находится по `#include "scene.hpp"`.
+
+Игры под `games/` собираются против поставленного SDK отдельными проектами (спека #24, В1), поэтому
+у них правило 2 своё: имя уникально внутри своей игры, а не по дереву, — и
+3. имя заголовка игры не совпадает с поставленным заголовком SDK: SDK подключает их голым именем
+   через каталоги (`"fixed.hpp"` из physics) и при `-I` игры раньше взял бы файл игры.
 """
 
 import os
@@ -28,11 +33,12 @@ from pathlib import Path
 
 import py_utf8
 from cpp_text import split_code_comments
+from sdk_header_names import sdk_header_names
 
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl", ".m", ".mm"}
 # ПЯТАЯ копия списка корней; внешнего эталона у него нет, поэтому копии сверяются между
 # собой (`scripts/check_tree_roots.py`, форма `mirrors-group`).
-ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples", "tests")
+ROOTS = ("engine", "tools", "example_ugly_game", "platform", "docs/examples", "tests", "games")
 HEADERS = {".h", ".hpp", ".inl"}
 INCLUDE = re.compile(r'[ \t]*#[ \t]*include[ \t]*"([^"]+)"')
 BLOCK = re.compile(r"/\*.*?\*/")
@@ -43,6 +49,7 @@ BLOCK = re.compile(r"/\*.*?\*/")
 MIN_FILES = 60
 MIN_CMAKE = 10
 MIN_INCLUDES = 300
+MIN_SDK = 100  # имён из списков SDK: меньше — правило 3 судит не тот список
 
 
 def owner(path, cmake_dirs):
@@ -85,8 +92,14 @@ def target_of(path, inc, home, files):
     return ", ".join(elsewhere) or None
 
 
-def audit(files, cmake_dirs):
-    """files: {путь: текст}, cmake_dirs: каталоги с CMakeLists.txt. Находки словами."""
+def scope(path):
+    """Область уникальности имени: у игры — её каталог (у файла прямо в `games/` — `games`)."""
+    parts = path.split("/")
+    return "/".join(parts[:min(2, len(parts) - 1)]) if parts[0] == "games" else ""
+
+
+def audit(files, cmake_dirs, sdk):
+    """files: {путь: текст}, cmake_dirs: каталоги с CMakeLists.txt, sdk: {имя: заголовок}."""
     bad = []
     for path in sorted(files):
         home = owner(path, cmake_dirs)
@@ -100,16 +113,22 @@ def audit(files, cmake_dirs):
     names = {}
     for path in files:
         if os.path.splitext(path)[1] in HEADERS:
-            names.setdefault(os.path.basename(path).lower(), []).append(path)
-    for name in sorted(names):
-        if len(names[name]) > 1:
-            bad.append(f"{name}: одно имя у {len(names[name])} заголовков "
-                       f"({', '.join(sorted(names[name]))}) — голое `#include` возьмёт первый по "
+            name = os.path.basename(path).lower()
+            names.setdefault((scope(path), name), []).append(path)
+            if scope(path) and name in sdk:
+                game = os.path.basename(scope(path)).replace("-", "_")
+                bad.append(f"{path}: имя заголовка игры совпадает с поставленным заголовком SDK "
+                           f"`{sdk[name]}` — голое `#include \"{name}\"` возьмёт тот, чей -I "
+                           f"раньше. Дай имени префикс игры (`{game}_{name}`).")
+    for key in sorted(names):
+        if len(names[key]) > 1:
+            bad.append(f"{key[1]}: одно имя у {len(names[key])} заголовков "
+                       f"({', '.join(sorted(names[key]))}) — голое `#include` возьмёт первый по "
                        f"порядку -I. Дай имени префикс подсистемы (`audio_engine.hpp`).")
     return bad
 
 
-def guards(files, cmake_dirs):
+def guards(files, cmake_dirs, sdk, sdk_problems):
     """Отказы охранников: обход, промахнувшийся мимо дерева, обязан отличаться от чистого прогона."""
     if len(files) < MIN_FILES:
         return [f"обход дал {len(files)} файл(ов) при пороге {MIN_FILES}: он описывает не то "
@@ -121,6 +140,9 @@ def guards(files, cmake_dirs):
     if seen < MIN_INCLUDES:
         return [f"разбор нашёл {seen} подключений при пороге {MIN_INCLUDES}: регулярка директивы "
                 f"сломана, и молчит она неотличимо от чистого дерева"]
+    if sdk_problems or len(sdk) < MIN_SDK:
+        return [f"списки SDK не разобраны ({'; '.join(sdk_problems) or f'{len(sdk)} имён при '
+                f'пороге {MIN_SDK}'}): заголовки игр сверять не с чем"]
     return []
 
 
@@ -148,12 +170,13 @@ def scan(root):
 
 def gate(root):
     files, cmake_dirs = scan(root)
-    stop = guards(files, cmake_dirs)
+    sdk, sdk_problems = sdk_header_names(root)
+    stop = guards(files, cmake_dirs, sdk, sdk_problems)
     if stop:
         for line in stop:
             print(f"include-seam: FAIL — {line}")
         return 1
-    bad = audit(files, cmake_dirs)
+    bad = audit(files, cmake_dirs, sdk)
     for line in bad:
         print(line)
     print(f"include-seam: {'FAIL' if bad else 'PASS'} — {len(files)} файл(ов), "

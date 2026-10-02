@@ -9,7 +9,8 @@ add_library(render_core STATIC
   gpu.cpp arena.cpp scene.cpp sprite.cpp
   gpu_util.cpp shaders_gbuffer.cpp shaders_lighting.cpp
   shaders_post.cpp renderer.cpp renderer_pipelines.cpp
-  renderer_forward.cpp renderer_bloom.cpp capture.cpp)
+  renderer_forward.cpp renderer_bloom.cpp capture.cpp
+  quad_batch.cpp quad_pipeline.cpp)
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
 target_link_libraries(render_core PUBLIC engine_core webgpu render_surface)
 like_nes_vendored_object(stb_impl_vendored stb_impl.cpp)   # TU целиком — реализация stb, ни строки нашей

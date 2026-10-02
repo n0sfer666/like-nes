@@ -1,6 +1,8 @@
 #include "codec.hpp"
 
+#include <climits>
 #include <cstdio>
+#include <cstring>
 #include <zstd.h>
 
 #include "platform_fs.hpp"
@@ -15,6 +17,13 @@ namespace asset::codec {
 namespace {
 
 using platform::run_tool;
+
+constexpr uint8_t PNG_SIGNATURE[8] = {0x89, 'P', 'N', 'G', '\r', '\n', 0x1a, '\n'};
+
+std::string failure(const char* what) {
+    const char* why = stbi_failure_reason();
+    return std::string(what) + (why ? std::string(": ") + why : std::string());
+}
 
 } // namespace
 
@@ -65,6 +74,59 @@ bool png_to_ktx2(const Tools& t, const std::string& png_path, const std::string&
     out = read_file(tmp_out);
     platform::remove_file(tmp_out);
     return !out.empty();
+}
+
+// stb_image сам читает и JPEG, и BMP, и GIF: без сверки подписи путь pixel молча принял бы любой
+// из них, а hd отдал бы его basisu, который их не ест.
+bool png_info(const std::vector<uint8_t>& png, uint32_t& w, uint32_t& h, std::string& error) {
+    if (png.size() < sizeof(PNG_SIGNATURE) ||
+        std::memcmp(png.data(), PNG_SIGNATURE, sizeof(PNG_SIGNATURE)) != 0) {
+        error = "not a PNG file";
+        return false;
+    }
+    if (png.size() > static_cast<size_t>(INT_MAX)) {
+        error = "PNG file larger than 2 GiB";
+        return false;
+    }
+    const int len = static_cast<int>(png.size());
+    int iw = 0, ih = 0, comp = 0;
+    if (!stbi_info_from_memory(png.data(), len, &iw, &ih, &comp)) {
+        error = failure("corrupt PNG");
+        return false;
+    }
+    if (stbi_is_16_bit_from_memory(png.data(), len)) {
+        error = "PNG has 16 bits per channel; export it with 8 bits per channel";
+        return false;
+    }
+    w = static_cast<uint32_t>(iw);
+    h = static_cast<uint32_t>(ih);
+    if (w > MAX_TEXTURE_SIDE || h > MAX_TEXTURE_SIDE) {
+        error = "PNG is " + std::to_string(w) + "x" + std::to_string(h) +
+                ", a texture side is limited to " + std::to_string(MAX_TEXTURE_SIDE) + " px";
+        return false;
+    }
+    return true;
+}
+
+bool png_to_rgba8(const std::vector<uint8_t>& png, std::vector<uint8_t>& rgba, uint32_t& w,
+                  uint32_t& h, std::string& error) {
+    if (!png_info(png, w, h, error)) return false;
+    int iw = 0, ih = 0, comp = 0;
+    stbi_uc* px = stbi_load_from_memory(png.data(), static_cast<int>(png.size()), &iw, &ih, &comp, 4);
+    if (!px) {
+        error = failure("corrupt PNG");
+        return false;
+    }
+    // Размер буфера берётся из заголовка, прочитанного отдельно: расхождение двух чтений stb было
+    // бы чтением за концом его буфера, а не ошибкой декодера.
+    if (iw != static_cast<int>(w) || ih != static_cast<int>(h)) {
+        stbi_image_free(px);
+        error = "corrupt PNG: decoded size differs from the header";
+        return false;
+    }
+    rgba.assign(px, px + static_cast<size_t>(w) * h * 4);
+    stbi_image_free(px);
+    return true;
 }
 
 } // namespace asset::codec

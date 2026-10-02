@@ -1,0 +1,7 @@
+# What like_nes_bake bakes into game.bundle (spec #24, B4-B5): one record per line,
+# texture|<name>|<pixel or hd>|<path from this directory>, level|<name>|tiled|<path>.tmj,
+# clips|<name>|aseprite|<path>.json (spec #24, B6) over a sheet that is a texture record by path.
+texture | street_tiles | pixel | assets/warped-city/tileset.png
+level | level1 | tiled | levels/level1.tmj
+texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
+clips | queen | aseprite | assets/chewbatrij/queen-rows.json

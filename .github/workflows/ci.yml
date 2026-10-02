@@ -302,6 +302,26 @@ jobs:
         shell: bash
         run: python3 scripts/check_include_seam.py
 
+      # Инвентарь лицензий чужих ассетов (спека #24, В2). Гейт по дереву идёт на ВСЕХ трёх ОС, в
+      # отличие от соседних: его предмет — байты файлов из checkout, а autocrlf на windows-раннере
+      # менял бы sha256 и NOTICES.txt только там (замок — `games/*/assets/** -text`).
+      - name: Asset licence inventory selftest (broken inventories, each refused for its reason)
+        shell: bash
+        run: python3 scripts/check_asset_licenses.py --selftest
+
+      - name: Every third-party asset is in the licence inventory, NOTICES and credits generated
+        shell: bash
+        run: python3 scripts/check_asset_licenses.py
+
+      - name: Asset budget selftest (exactly the limit passes, one byte over is refused)
+        shell: bash
+        run: python3 scripts/check_asset_budget.py --selftest
+
+      - name: Third-party assets of a game stay within 30 MiB
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_asset_budget.py
+
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
 
@@ -605,6 +625,49 @@ jobs:
             echo "PARAMETERS SPLIT THE BATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "material-gpu: PASS" mat.txt || { echo "MATERIAL GATES FAILED"; exit 1; }
 
+      # Слои `LNVL` на живой видеокарте (спека #24, В5б): квады бэкенда против CPU-эталона ТОЧНО, а
+      # не с допуском, — выборка `textureLoad` без фильтрации и альфа только 0/255 не оставляют
+      # бэкенду места для своего округления. Контроли рядом с вердиктом: эталон без флипов обязан
+      # разойтись, соседние тики анимации — различаться, повтор — совпасть.
+      - name: Layers — tile layers on a real GPU against the CPU reference (spec #24 B5b)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'framework_layer_golden' -o -name 'framework_layer_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "framework_layer_golden not built on ${{ matrix.os }}"; exit 1; }
+          set +e
+          "$BIN" > layer.txt 2>&1
+          rc=$?
+          set -e
+          cat layer.txt
+          [ "$rc" -eq 0 ] || { echo "LAYER GOLDEN EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "base tick 2 zoom 1: .*, 0 mismatched" layer.txt || {
+            echo "LAYER FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "zoom tick 2 zoom 2: .*, 0 mismatched" layer.txt || {
+            echo "ZOOMED LAYER FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "layer-golden: PASS" layer.txt || { echo "LAYER GOLDEN FAILED"; exit 1; }
+
+      # Кадр клипа `LNCL` с оверлеем F3 на живой видеокарте (спека #24, В6б): клетка листа и рамки
+      # `DebugDraw` против CPU-эталона, собранного из ИСХОДНЫХ кадров, а не из испечённой таблицы.
+      # Цвета оверлея — только каналы 0/255, поэтому sRGB-цель обязана совпасть так же точно. Счёт
+      # боксов в строке кадра — улика, что эталон и бэкенд рисовали не пустой оверлей.
+      - name: Clips — cel and F3 boxes on a real GPU against the CPU reference (spec #24 B6b)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'framework_clip_golden' -o -name 'framework_clip_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "framework_clip_golden not built on ${{ matrix.os }}"; exit 1; }
+          set +e
+          "$BIN" > clip.txt 2>&1
+          rc=$?
+          set -e
+          cat clip.txt
+          [ "$rc" -eq 0 ] || { echo "CLIP GOLDEN EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "base tick 2 frame 0 zoom 1 flip 0: 0 hit, 1 hurt, 1 push, 0 mismatched" clip.txt || {
+            echo "CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "flip tick 14 frame 2 zoom 2 flip 1: 2 hit, 2 hurt, 0 push, 0 mismatched" clip.txt || {
+            echo "FLIPPED CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "srgb: 0 pixel(s) differ" clip.txt || { echo "SRGB CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "clip-golden: PASS" clip.txt || { echo "CLIP GOLDEN FAILED"; exit 1; }
+
       # Гейт 3 спеки #18 — горячая замена библиотеки на живой видеокарте, на всех трёх ОС. Утверждение
       # про БИТУЮ правку («рисует прежний вариант») в одиночку проходит и на кэше, который не
       # перезагружается вовсе, поэтому гейт первой делает ВЕРНУЮ правку и требует смены объектов
@@ -812,11 +875,12 @@ jobs:
       # заводится сюда с первого своего коммита, а не «потом».
       # Вердикт берётся ДВАЖДЫ — кодом возврата и напечатанной строкой: тест, упавший до вывода
       # итога, и тест, выведший FAIL с нулевым кодом, ломаются по-разному, а молчат одинаково.
-      - name: Material/Light — bakers, readers and refusals (all OS)
+      - name: Material/Light/assetc — bakers, readers and refusals (all OS)
         shell: bash
         run: |
           for t in material_bake_test material_source_test material_table_test \
-                   material_library_test light_table_test; do
+                   material_library_test light_table_test assetc_manifest_test assetc_bake_test \
+                   assetc_level_test assetc_clips_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -845,6 +909,10 @@ jobs:
           [ -n "$F" ] || { echo "asset_fail_test not built on ${{ matrix.os }}"; exit 1; }
           "$F" . | tee asset_fail.txt
           grep -q "asset-fail: PASS" asset_fail.txt
+          LK=$(find build -maxdepth 2 -type f \( -name 'asset_lookup_test' -o -name 'asset_lookup_test.exe' \) | head -1)
+          [ -n "$LK" ] || { echo "asset_lookup_test not built on ${{ matrix.os }}"; exit 1; }
+          "$LK" | tee asset_lookup.txt
+          grep -q "asset-lookup: PASS" asset_lookup.txt
           # Потолок уровня KTX2 (A·2·9). Бандл берётся ГОТОВЫЙ из дерева, а не синтетический:
           # положительный контроль обязан стоять на атласе, испечённом нашим же `assetc`, —
           # синтетика подтвердила бы только сама себя.
@@ -878,8 +946,11 @@ jobs:
           # (`undefined reference to asset::write_bundle`) пять прогонов подряд. CI это видел —
           # не смотрел никто. Поэтому состав теперь один на все три прогона, а сторожит его гейт
           # `list-drift`: он краснеет на этой машине, ДО пуша, а не вместо прогона CI.
+          # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_view
+          AVIEW="engine/asset/bundle_view.cpp engine/asset/bundle_lookup.cpp"
           # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_core
-          ASRC="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp"
+          ACORE="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/asset_manager.cpp"
+          ASRC="$AVIEW $ACORE"
           # ci-lint: mirrors-group seam-fs
           PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           # ci-lint: mirrors-group seam-args
@@ -908,6 +979,10 @@ jobs:
             "$ZLIB" -lpthread -o asset_fail_san
           ./asset_fail_san . | tee asset_fail_san.txt
           grep -q "asset-fail: PASS" asset_fail_san.txt
+          c++ $SAN $INC engine/asset/asset_lookup_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            "$ZLIB" -lpthread -o asset_lookup_san
+          ./asset_lookup_san | tee asset_lookup_san.txt
+          grep -q "asset-lookup: PASS" asset_lookup_san.txt
           # Потолок уровня KTX2 под санитайзерами (A·2·9). Проверяется здесь не «выход за конец» —
           # в отгружаемом коде отказ случается ДО `transcode_image_level`, и транскодер во
           # враждебную шапку не пишет вовсе. Проверяется, что отказ происходит до выделения памяти
@@ -1285,10 +1360,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=9, а не 10, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=13, а не 14, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=9 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=13 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -1815,12 +1890,16 @@ jobs:
           # framework/core и не знает о телах. Но гоняется она на трёх ОС по той же причине, что и
           # хеш физики, — это ЦЕЛОЧИСЛЕННАЯ замена libm, и вся её ценность в том, что x86 и ARM
           # дают один бит. Разойдись она — физический голден покажет расхождение, но не назовёт
-          # причину.
+          # причину. Разборщик JSON пекарей — здесь же и по той же причине: его десятичная мантисса
+          # переводится в fix32 целыми, без strtod и локали, и бит обязан совпасть на трёх ОС.
           for T in framework_schedule_test framework_stick_test framework_preset_test \
                    framework_preset_refusal_test framework_preset_reader_test \
                    framework_preset_axes_test \
                    framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
+                   framework_json_test framework_json_string_test framework_json_number_test \
+                   framework_tilemap_visual_test framework_tilemap_objects_test \
+                   framework_tiled_test framework_tiled_refusal_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -1852,9 +1931,11 @@ jobs:
           COMMON=$(find engine/framework/input engine/framework/core engine/platform \
             -maxdepth 1 -name '*.cpp' \
             | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
+          IMPORT=$(sed -n '/add_library(framework_graphics_import/,/)/p' engine/framework/graphics/import.cmake \
+            | grep -oE '[a-z_]+\.cpp' | sed 's|^|graphics/|')
           FW=$(find engine/framework/graphics engine/framework/character \
             engine/framework/tilemap engine/framework/physics \
-            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$')
+            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$' | grep -vF "$IMPORT")
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
@@ -1901,7 +1982,10 @@ jobs:
                    framework_graphics_debug_test framework_graphics_debug_refusal_test \
                    framework_graphics_batch_test framework_graphics_batch_refusal_test \
                    framework_graphics_batch_alloc_test framework_graphics_tile_test \
-                   framework_graphics_tile_refusal_test \
+                   framework_graphics_tile_refusal_test framework_graphics_flip_test \
+                   framework_graphics_clip_bake_test framework_graphics_clip_import_test \
+                   framework_graphics_clip_import_refusal_test framework_graphics_clip_read_test \
+                   framework_graphics_layer_test framework_graphics_layer_kinds_test \
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
                    game_sprite_out_test game_fx_test game_star_test \
@@ -2439,7 +2523,7 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp"
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/core/section_bake.cpp engine/framework/core/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/visual_texels.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
           # ci-lint: mirrors-group seam-fs
@@ -2657,7 +2741,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=10 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=14 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -2676,7 +2760,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=10 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=14 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -2708,8 +2792,26 @@ jobs:
           ach_state_test:PASS
           audio_limiter_test:audio-limiter: PASS - 20 cases
           audio_gain_test:audio-gain: PASS - 12 cases
-          plugin_wasm_host_test:plugin-wasm-host: PASS"
-          cmake --build build-fuzz-san --target $(cut -d: -f1 <<<"$T") plugin_wasm_test plugin_wind
+          plugin_wasm_host_test:plugin-wasm-host: PASS
+          framework_json_test:framework-json: PASS
+          framework_json_string_test:framework-json-string: PASS
+          framework_json_number_test:framework-json-number: PASS
+          assetc_manifest_test:assetc-manifest: PASS
+          assetc_bake_test:assetc-bake: PASS
+          assetc_level_test:assetc-level: PASS
+          assetc_clips_test:assetc-clips: PASS
+          framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
+          framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
+          framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS
+          framework_graphics_clip_read_test:framework-graphics-clip-read: PASS
+          framework_tilemap_visual_test:framework-tilemap-visual: PASS
+          framework_tilemap_objects_test:framework-tilemap-objects: PASS
+          framework_graphics_layer_test:framework-graphics-layer: PASS
+          framework_graphics_layer_kinds_test:framework-graphics-layer-kinds: PASS
+          framework_tiled_test:framework-tiled: PASS
+          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
+          mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
+          cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0
           while IFS=: read -r -u3 name want; do
             ./build-fuzz-san/"$name" < /dev/null > "san_$name.txt" 2>&1 || { cat "san_$name.txt"; echo "$name FAILED under ASan/UBSan"; exit 1; }
@@ -2721,3 +2823,40 @@ jobs:
           ./build-fuzz-san/plugin_wasm_test engine/plugin/wasm/gravity.wat build-fuzz-san/plugin_wind.so < /dev/null 2>&1 | tee san_wasm.txt
           grep -q "WASM golden   = 0x7d9a6e60cbed4156" san_wasm.txt || { echo "WASM GOLDEN MISMATCH under ASan/UBSan"; exit 1; }
           grep -q "plugin-wasm: PASS" san_wasm.txt
+
+  sdk-game:
+    name: sdk+game (${{ matrix.os }})
+    # Свой джоб, а не шаг build-and-determinism: тому уже 90 минут лимита, а этот конфигурирует
+    # два своих каталога (Release и Debug) и собирает игру против поставленного префикса. Лимит —
+    # с запасом на Windows, где конфигурирование с FetchContent дольше всего; замер — первым прогоном.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Linux deps (X11 for GLFW)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorg-dev
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
+
+      - name: MSVC env (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
+
+      # Спека #24, В1, В4, В5а: игра собирается против поставленного префикса в Release и Debug,
+      # bundle_hash испечённого game.bundle (текстура и уровень level1 из Tiled) равен
+      # games/neon-rumble/bundle.hash на каждой ОС. Фикстуры (внутренний заголовок, префикс без
+      # библиотеки, чужой bundle.hash, манифест без кодека, перебейк по depfile после правки .tsj
+      # и подмены PNG, на MSVC — Debug без like_nes_add_game) обязаны упасть каждая по своей
+      # причине.
+      - name: SDK package builds a game against the installed prefix, bundle hash (spec #24, V1, V4, V5)
+        shell: bash
+        run: bash scripts/check_sdk_game.sh

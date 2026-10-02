@@ -30,4 +30,16 @@ bool wgsl_to_spirv(const Tools& t, const std::string& wgsl_path, const std::stri
 bool png_to_ktx2(const Tools& t, const std::string& png_path, const std::string& tmp_out,
                  std::vector<uint8_t>& out, uint32_t& w, uint32_t& h);
 
+// Безопасный предел стороны текстуры у wgpu downlevel — его держат мобилки (спека #24, В4).
+constexpr uint32_t MAX_TEXTURE_SIDE = 2048;
+
+// Проверка PNG до бейка, общая для pixel и hd: подпись, 8 бит на канал, сторона не больше предела.
+// 16 бит отбиваются, а не сводятся к 8: stb_image урезал бы их молча, и автор не узнал бы, что
+// половина его градиента не доехала до игры.
+bool png_info(const std::vector<uint8_t>& png, uint32_t& w, uint32_t& h, std::string& error);
+
+// PNG из памяти → RGBA8 построчно сверху вниз; палитра, серый и RGB разворачиваются в RGBA.
+bool png_to_rgba8(const std::vector<uint8_t>& png, std::vector<uint8_t>& rgba, uint32_t& w,
+                  uint32_t& h, std::string& error);
+
 } // namespace asset::codec

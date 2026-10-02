@@ -11,7 +11,10 @@ release/
 scripts/.selftest_*
 vdf/
 **/dist/
+# Служебные файлы ОС; тот же список гейты ассетов пропускают в рабочем дереве (game_assets.py).
 .DS_Store
+Thumbs.db
+desktop.ini
 *.o
 *.a
 *.dylib

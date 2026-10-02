@@ -1,0 +1,56 @@
+# Inventory of the third-party assets under this directory (spec #24, B2): one [[pack]] per source,
+# one [[file]] per file. Checked by `python3 scripts/check_asset_licenses.py`; `--write` regenerates
+# NOTICES.txt and credits.txt from it. Licence texts go to licenses/<SPDX>.txt. Own files of the
+# game (manifest, levels, sheets) live outside assets/ and are not listed here.
+#
+# [[pack]]
+# name = "warped-city"
+# url = "https://opengameart.org/content/warped-city"
+# author = "ansimuz"
+# license = "CC0-1.0"            # CC0-1.0, CC-BY-3.0, CC-BY-4.0 or OFL-1.1
+# attribution = "..."            # required for CC-BY
+#
+# [[file]]
+# path = "warped-city/tiles.png" # relative to assets/, case as on disk
+# pack = "warped-city"
+# sha256 = "..."
+# changes = "recoloured"         # required for CC-BY files, "none" if unchanged
+
+[[pack]]
+name = "warped-city"
+url = "https://opengameart.org/content/warped-city"
+author = "ansimuz"
+license = "CC0-1.0"
+
+[[file]]
+path = "warped-city/tileset.png"
+pack = "warped-city"
+sha256 = "b84bbcac67eb7497c5be1644acced216e4cb170b1573b89bef1d2ba78be02536"
+
+[[pack]]
+name = "chewbatrij"
+url = "https://opengameart.org/sites/default/files/punchingqueen_gfx.zip"
+author = "Chewbatrij"
+license = "CC0-1.0"
+
+[[file]]
+path = "chewbatrij/queen.json"
+pack = "chewbatrij"
+sha256 = "f068cd13529240524a3f8f9b052121a2dea8294cdd5c68611ae8971b9a3e1fe7"
+
+[[file]]
+path = "chewbatrij/queen.png"
+pack = "chewbatrij"
+sha256 = "26f3953312fbc0982f22d43c8f879e8e8e346632aff88df808e7694e98de2a82"
+
+[[file]]
+path = "chewbatrij/queen-rows.json"
+pack = "chewbatrij"
+sha256 = "a5d860e3ad5a25c56d7554f1d159e5bc4a995daa624754534da937cdc06967d8"
+changes = "re-laid in rows of 8 cells"
+
+[[file]]
+path = "chewbatrij/queen-rows.png"
+pack = "chewbatrij"
+sha256 = "a4daa9dddfa580a4cf6a1baf8b1bc41b31d6a8d3cf55e0d67ea1cbced01df4ea"
+changes = "re-laid in rows of 8 cells"

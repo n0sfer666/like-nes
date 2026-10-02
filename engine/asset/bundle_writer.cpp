@@ -68,7 +68,8 @@ std::vector<uint8_t> write_bundle(std::vector<AssetInput> assets) {
         e.tex_format = a.tex_format;
         e.variant_key = a.variant_key;
         put(buf, table_offset + static_cast<uint32_t>(i) * sizeof(AssetEntry), e);
-        std::memcpy(buf.data() + offsets[i], a.payload.data(), a.payload.size());
+        if (!a.payload.empty())
+            std::memcpy(buf.data() + offsets[i], a.payload.data(), a.payload.size());
     }
 
     // bundle_hash считается по всем байтам с обнулённым полем (уже 0) → детерминирован.

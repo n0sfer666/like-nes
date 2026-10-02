@@ -19,17 +19,46 @@ void put(std::vector<uint8_t>& out, const void* p, std::size_t n) {
 // ширины предыдущей — то есть от данных, а не от формата.
 uint64_t align4(uint64_t v) { return (v + 3u) & ~3ull; }
 
+bool refuse(MapBakeError& err, const std::string& message) {
+    err.line = 0;
+    err.message = message;
+    return false;
+}
+
+bool check_maps(std::span<const ParsedMap> maps, MapBakeError& err) {
+    if (maps.empty()) return refuse(err, "no map to bake");
+    for (std::size_t i = 0; i < maps.size(); ++i) {
+        const ParsedMap& m = maps[i];
+        if (m.name.empty()) return refuse(err, "a map needs a name");
+        for (std::size_t j = 0; j < i; ++j)
+            if (maps[j].name == m.name) return refuse(err, "map '" + m.name + "' is declared twice");
+        const uint64_t tiles = static_cast<uint64_t>(m.width) * m.height;
+        if (m.width == 0 || m.height == 0 || tiles > MAX_MAP_TILES)
+            return refuse(err, "map '" + m.name + "' has a size the format cannot hold");
+        if (m.flags.size() != static_cast<std::size_t>(m.width) * m.height)
+            return refuse(err, "map '" + m.name + "' has flags for a different size");
+        if (m.tile_size.raw < 2 || (m.tile_size.raw & 1) != 0)
+            return refuse(err, "map '" + m.name + "' has a tile size the grid would change");
+    }
+    return true;
+}
+
 } // namespace
 
 bool bake_maps(const std::string& text, std::vector<uint8_t>& out, MapBakeError& err) {
     std::vector<ParsedMap> maps;
     if (!parse_maps(text, maps, err)) return false;
+    return bake_maps(std::span<const ParsedMap>(maps), out, err);
+}
 
+bool bake_maps(std::span<const ParsedMap> maps, std::vector<uint8_t>& out, MapBakeError& err) {
+    if (!check_maps(maps, err)) return false;
     std::vector<char> blob{'\0'};   // смещение 0 — пустая строка, значит «имени нет»
     std::vector<MapRow> rows;
     rows.reserve(maps.size());
-    // Дедупа имён здесь нет намеренно: повтор имени карты отвергает `parse_maps`, и ветка «имя уже
-    // в блобе» была бы кодом, который не может выполниться — в пути, который печёт байты голдена.
+    // Дедупа имён здесь нет намеренно: повтор имени карты отвергает `check_maps` выше (для обоих
+    // входов — текста и готовых карт), и ветка «имя уже в блобе» была бы кодом, который не может
+    // выполниться — в пути, который печёт байты голдена.
     uint64_t cursor = sizeof(MapHeader) + maps.size() * sizeof(MapRow);
     for (const ParsedMap& m : maps) {
         const auto off = static_cast<uint32_t>(blob.size());

@@ -189,12 +189,12 @@ if(LIKE_NES_MOBILE)
   add_subdirectory(platform/${shell})
   return()
 endif()
-
 add_subdirectory(tools/assetc)
 add_subdirectory(tools/ide)
 add_subdirectory(example_ugly_game)
 add_subdirectory(docs/examples)   # примеры документации (#19) — после всех, кем они пользуются
 add_subdirectory(tests/fuzz)      # гейт 9 аудита #21 — последним: линкует читателей всех модулей
 
-# Компонент установки движка (#20) — после tools/, чьи цели он ставит.
+# Компоненты установки движка (#20) и SDK (#24) — после tools/, чьи цели они ставят.
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_engine.cmake)
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/install_sdk.cmake)

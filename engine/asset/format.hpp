@@ -35,6 +35,10 @@ enum class Codec : uint32_t {
 // ogg-контейнера (stb_vorbis). Заполнять при bake — точка расширения (нужен decode в assetc).
 constexpr uint32_t AUDIO_FLAG_LOOP = 1u;
 
+// WGPUTextureFormat_RGBA8Unorm: пекарь пишет target-native значение, а ни пекарь, ни читатель
+// бандла webgpu не линкуют. Сверка с заголовком wgpu — static_assert в `assetc_main.cpp`.
+constexpr uint32_t TEX_FORMAT_RGBA8_UNORM = 0x12;
+
 enum class Residency : uint32_t {
     Mmap = 0,   // резидент, zero-copy (index/hot/small/shader)
     Stream = 1, // async-I/O + decompress вне sim-потока (bulk/texture)

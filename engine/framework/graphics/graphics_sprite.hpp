@@ -29,7 +29,14 @@ struct Sprite {
     RegionId region = 0;
     uint16_t material = 0;
     int16_t layer = 0;
+    uint8_t flip = 0;
 };
+
+// Биты ориентации региона в порядке Tiled: сначала транспонирование (D), затем H, затем V. Значения
+// совпадают с битами клетки `LNVL`, сдвинутыми на 13, — `layer_draw` переносит их без таблицы.
+constexpr uint8_t SPRITE_FLIP_D = 1u << 0;
+constexpr uint8_t SPRITE_FLIP_V = 1u << 1;
+constexpr uint8_t SPRITE_FLIP_H = 1u << 2;
 
 // Батч — ОТРЕЗОК отсортированного порядка, а не копия спрайтов: копирование ради группировки
 // стоило бы второго буфера, а порядок и так лежит числами.
@@ -64,6 +71,7 @@ public:
     uint32_t build(Batch* out, uint32_t max_batches);
 
     uint32_t count() const { return count_; }
+    bool full() const { return count_ >= capacity_; }
     uint32_t dropped() const { return dropped_; }
     const Sprite* data() const { return sprites_; }
 

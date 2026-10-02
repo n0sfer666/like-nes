@@ -1,0 +1,10 @@
+add_library(framework_tiled STATIC tmj_doc.cpp tmj_tiles.cpp tmj_tilesets.cpp tmj_gid.cpp tmj_collision.cpp
+  tmj_layers.cpp tmj_objects.cpp tmj_parse.cpp)
+target_include_directories(framework_tiled PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(framework_tiled PUBLIC framework_tilemap framework_json)
+
+add_executable(framework_tiled_test framework_tiled_test.cpp)
+target_link_libraries(framework_tiled_test PRIVATE framework_tiled)
+
+add_executable(framework_tiled_refusal_test framework_tiled_refusal_test.cpp)
+target_link_libraries(framework_tiled_refusal_test PRIVATE framework_tiled)

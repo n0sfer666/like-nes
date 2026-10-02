@@ -1,7 +1,8 @@
 # --- framework_core: стадии тика и расписание систем (спека #14, правила слоя — ../README.md).
 # Зависит только от engine_core: стрелка слоя направлена вниз, и проверить это должно быть можно
 # по этой строке, не читая код.
-add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp)
+add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp section_bake.cpp
+  section_open.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
 
@@ -28,3 +29,15 @@ target_link_libraries(framework_trig_test PRIVATE framework_core platform_core)
 # модуля, и падать он обязан именем слоя, а не именем первого пекаря, чей голден разошёлся.
 add_executable(framework_text_test framework_text_test.cpp)
 target_link_libraries(framework_text_test PRIVATE framework_core platform_core)
+
+# --- Разборщик JSON для пекарей контента (спека #24, В3). Отдельной целью, а не файлом внутри
+# framework_core: ему нужна `asset::ByteArena`, а ребро framework_core → asset_core протащило бы
+# zstd и платформу во всё, что линкует ядро слоя. В SDK не ставится: рантайм JSON не разбирает.
+add_library(framework_json STATIC json.cpp json_error.cpp json_string.cpp json_number.cpp)
+target_link_libraries(framework_json PUBLIC framework_core asset_core)
+
+# Три цели, а не одна: имя упавшей в логе CI обязано назвать слой — дерево, строки или числа.
+foreach(part json json_string json_number)
+  add_executable(framework_${part}_test framework_${part}_test.cpp)
+  target_link_libraries(framework_${part}_test PRIVATE framework_json)
+endforeach()

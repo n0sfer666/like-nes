@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**7 of the 18 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
+**7 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -34,6 +34,8 @@ names that surface.
 | The forms people actually install from — `.dmg`, `.AppImage`, `.msi` — install and start | [#20](../.context/specs/2026-07-26-release-installers.md) 3 | **all three** | — | `scripts/release_dmg*`, `scripts/release_appimage*`, `packaging/like-nes.wxs.in` |
 | No Visual C++ Redistributable on the box, and a silent install still lands | [#20](../.context/specs/2026-07-26-release-installers.md) 4 | **Windows** | — | `cmake/msvc_runtime.cmake`, `cmake/msvc_redist.cmake`, `packaging/like-nes.wxs.in` |
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
+| Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
+| Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -2373,9 +2375,129 @@ that section is deliberately unwritten: `docs/en/index.md` names `tutorial/`, `g
 gate and a lie to the reader either way. When the tutorial is written, this gate is run the same way
 as §17 — by typing what the page says and noting everything you had to add.
 
+## 18. Gate 3 of #24 — level 1 comes out of a real Tiled
+
+<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4e7f9ade1d27776a; окно neon_rumble --frames 600 против вида Tiled -->
+
+`games/neon-rumble/levels/level1.tmj` and `warped-city.tsj` were written by hand to the Tiled 1.10
+JSON format, not saved by Tiled. The importer is tested on fixtures of the same hand, so a field
+Tiled actually writes and the importer refuses — or one it writes differently — stays invisible
+until a real Tiled saves the file. The gate has two halves: the bake (steps 1–4) and the window
+(step 5), where the game draws the saved level from `game.bundle` and the owner compares it with
+Tiled. Parallax layers and the animated sign are not in level 1 yet — they come with B8 and its own
+scenario; flips and tile animation are judged by the pixel golden on CI on all three OSes.
+
+1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×12 tiles of 16
+   px: a row of facades over a street, a one-way platform, a ladder, and the object layer `spawns`
+   with `player`, `street` and `walk`.
+2. Move any tile, undo it, and save the map with **File → Save** (keep JSON, keep CSV layer
+   format). Open `warped-city.tsj` in the same window and save it too.
+3. Run the gate from the repository root (Windows: from the `scripts\win-dev.bat shell` window):
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, and both lines
+   `Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash` and the same for
+   `Debug`, each run preceded by
+   `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`.
+4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
+5. Run the window from the same shell and keep Tiled open next to it:
+
+       ./build-sdk-work/game-Release/neon_rumble --frames 600
+
+   (Windows: `build-sdk-work\game-Release\neon_rumble.exe --frames 600`.) The window shows the
+   street and the facades exactly as Tiled draws them, scaled by a whole number (2 on a 1x screen,
+   5 on a 2x one); the camera pans along the street and back, then the window closes with
+   `neon-rumble: window run ok, 600 frames` and exit code 0. Send back a screenshot and the
+   `[gpu]` line. The queen at the left end of the street is the fighter of §19, not part of the
+   level; judge the tiles around her.
+
+What counts as a finding: an import refusal (the message names `level1.tmj:<line>:<column>` and
+what to change in Tiled), a different `bundle_hash`, or a window that differs from Tiled — a tile
+in the wrong place or mirrored, a seam or a line between tiles, a shimmer while the camera pans,
+tiles lighter or more washed out than in Tiled (on Linux and Windows the window surface may be sRGB,
+and a doubled colour encoding would look exactly like that). A diff in the files with the same hash
+is not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
+then replace the hand-written ones in the tree.
+
+## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
+
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
+
+The importer reads boxes from slices and events from the user data of a tag, and both were tested
+on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
+is an Aseprite 1.2.8 export with neither, so how 1.3 actually writes a slice key, a slice switched
+off on a frame, and the user data of a tag stays unknown until a real Aseprite exports them. The
+gate has two halves: the export (steps 1–6) and the window (step 7), where Neon Rumble plays the
+clips of the same pack from `game.bundle` and F3 draws what the engine thinks a frame is. Where the
+cel, the boxes and the pivot cross land in pixels, flipped and zoomed, is judged by the pixel golden
+`framework_clip_golden` on CI on all three OSes; the window is about the real surface and the real
+key.
+
+1. Take `Queen.ase` from the Chewbatrij pack
+   (https://opengameart.org/sites/default/files/punchingqueen_gfx.zip) and open it in Aseprite 1.3
+   or newer. Tag `Death` spans frames 3 to 8.
+2. On frame 3 draw a slice around the fist and name it `hit0`. Move it a little on frame 4. On
+   frame 5 remove the slice from that frame only; if Aseprite 1.3 cannot clear one frame of a
+   slice, leave it and say so — the box then stays on to the end of the tag, and that is a finding
+   about the format, not about the drawing.
+3. Open the properties of tag `Death` and type `1:fall` into its user data text.
+4. **File → Export Sprite Sheet**: Layout **By Rows**; Sprite — no trim, no padding; Borders —
+   leave **Ignore Empty** and **Merge Duplicates** off; Output — **JSON Data**, **Array**, with
+   **Tags** and **Slices** ticked, and **Split Layers**/**Split Tags** off. Save the sheet as
+   `queen.png` and the data as `queen.json` into one new directory outside the repository.
+5. Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window), naming that
+   directory:
+
+       bash scripts/aseprite_owner_check.sh <directory>
+
+   The script bakes the export with `assetc`, reads the clip table back out of the bundle with
+   `clip_dump` and looks for four rows of it. Clip frame 0 of `Death` is sprite frame 3, and tag
+   `Hit` covers the same frame 3, so the box reaches both clips. Expected:
+
+       [assetc] manifest <directory>/queen.bundle (<n> bytes, 2 assets)
+       [assetc] bundle_hash = 0x<16 hex digits>
+         ok: queen/Death frame=0 boxes=hit0 event=-
+         ok: queen/Death frame=1 boxes=hit0 event=fall
+         ok: queen/Death frame=2 boxes=- event=-
+         ok: queen/Hit frame=0 boxes=hit0 event=-
+       aseprite-export: PASS
+
+   A `missing:` row is printed with every `Death` and `Hit` row of the table under it, and the
+   script ends with `aseprite-export: FAIL`.
+6. Send back `queen.json` and the output of step 5. The JSON goes into the tree as a fixture that
+   pins the hit box to frames 3 and 4 and the event `fall` to frame 4.
+7. Build the game against the SDK and run the window from the same shell (Windows: from the
+   `scripts\win-dev.bat shell` window, with `.exe` and backslashes):
+
+       bash scripts/check_sdk_game.sh --keep
+       ./build-sdk-work/game-Release/neon_rumble --frames 1200
+
+   The gate prints, for each configuration,
+   `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right`. In the window the
+   queen stands at the left end of the street with her feet on its top line, facing right, and
+   plays Walk for 60 frames, then Jab, Hook and Uppercut for 30 frames each; every second round
+   of 150 frames she faces left. Both the showcase and the camera step once per drawn frame, and
+   the window presents at the display rate: one second for Walk at 60 Hz, half a second on a
+   120 Hz ProMotion screen — that is not a finding. The camera pans her out of view at about frame
+   85 and brings her back at about frame 235 on a 1x screen (427 on a 2x one); the next pass
+   starts at frame 320 (512). Press **F3** while she is in view: a cyan frame around her cell
+   (74×75 sheet pixels, larger than her silhouette) and a white cross at her feet; **F3** again
+   hides them. The pack has no slices, so no coloured boxes appear — red hit, green hurt and yellow
+   push frames show up once a sheet with boxes is in the bundle. Send back a screenshot with the
+   overlay on.
+
+What counts as a finding: a refusal (it names `queen.json:<line>:<column>` and what to change in
+the export), a `queen.json` whose tag `Death` has no `data` field after step 3 — the user data did
+not reach the export, and events then move to the fallback of slices `ev:<name>` — or a slice that
+Aseprite would not clear on one frame. In the window: the queen floating above the street or sunk
+into it, sliding against the street while the camera pans, a cell cut off by its frame (a
+neighbour's limb at an edge means a wrong cell rectangle), the cross away from her feet, the
+overlay not following a flip, or F3 doing nothing.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 7 of the 18 are closed, and the open 11 are listed by
+The gates above are what the ADRs waited on; 7 of the 20 are closed, and the open 13 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

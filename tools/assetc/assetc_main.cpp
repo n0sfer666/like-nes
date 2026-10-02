@@ -3,41 +3,25 @@
 #include <string>
 #include <vector>
 
+#include "assetc_emit.hpp"
 #include "bakers.hpp"
 #include "bundle_writer.hpp"
 #include "codec.hpp"
 #include "format.hpp"
+#include "manifest_mode.hpp"
 #include "platform_args.hpp"
 #include "validate_materials.hpp"
 #include "verify_game.hpp"
+
+#include <webgpu/webgpu.h>
+
+// Литерал в bakers.hpp — чтобы пекарь и его тесты не тянули webgpu; совпадение держит сборка.
+static_assert(asset::bakers::TEX_FORMAT_RGBA8_UNORM == WGPUTextureFormat_RGBA8Unorm);
 
 // Headless CLI-бейкер (спека #5): source (png+wgsl+bulk) → детерм. bundle.
 // Один код бейка (CI + IDE-watch поверх). Печатает golden bundle_hash (гейт #1).
 
 using namespace asset;
-
-namespace {
-
-int emit(const char* what, const std::string& path, std::vector<AssetInput> assets) {
-    std::vector<uint8_t> bundle = write_bundle(std::move(assets));
-    // Пустой вывод — сигнал guard'а writer'а (бандл не влез в uint32-адресацию). Без проверки
-    // на диск лёг бы 0-байтный файл, а заголовок читался бы по nullptr.
-    if (bundle.empty()) {
-        std::fprintf(stderr, "[assetc] bundle does not fit uint32 addressing: %s\n", path.c_str());
-        return 1;
-    }
-    if (!codec::write_file(path, bundle)) {
-        std::fprintf(stderr, "[assetc] write failed: %s\n", path.c_str());
-        return 1;
-    }
-    const BundleHeader* h = reinterpret_cast<const BundleHeader*>(bundle.data());
-    std::printf("[assetc] %s %s (%u bytes, %u assets)\n", what, path.c_str(), h->total_size,
-                h->asset_count);
-    std::printf("[assetc] bundle_hash = 0x%016llx\n", static_cast<unsigned long long>(h->bundle_hash));
-    return 0;
-}
-
-} // namespace
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
@@ -47,9 +31,11 @@ int main(int argc, char** argv) {
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
                      "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
                      "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
-                     " [--lights L.txt]  (tools-free)\n");
+                     " [--lights L.txt]  (tools-free)\n"
+                     "       assetc --manifest <game.manifest> <out.bundle> [--depfile D] [--basisu P]\n");
         return 2;
     }
+    if (std::strcmp(argv[1], "--manifest") == 0) return run_manifest(argc, argv);
     // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
     // `--game` без tint/basisu нельзя, а сверить tool-free секции можно везде.
     if (std::strcmp(argv[1], "--verify-game") == 0) {

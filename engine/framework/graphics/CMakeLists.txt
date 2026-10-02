@@ -3,14 +3,16 @@
 # регион атласа здесь — прямоугольник в пикселях, а не текстура. Тянуть сюда RHI «на будущее»
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
-  particles.cpp viewport.cpp)
+add_library(framework_graphics STATIC clip.cpp clip_bake.cpp clip_read.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
+  particles.cpp viewport.cpp sprite_flip.cpp clip_debug.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
 # platform_core — PRIVATE и только за файловым швом пекаря нарезки: наружу из модуля торчат клип,
 # камера и таблица регионов, а не чтение файла. То же устройство, что у framework_tilemap.
 target_link_libraries(framework_graphics PUBLIC framework_core PRIVATE platform_core)
+
+include(${CMAKE_CURRENT_LIST_DIR}/import.cmake)
 
 # Гейты шага A — ТРИ цели, и граница между ними класс поломки, который обязано называть имя
 # упавшей цели в логе CI:
@@ -113,7 +115,7 @@ target_link_libraries(framework_graphics_batch_alloc_test PRIVATE framework_grap
 # Сетка тянет за собой физику, и затащи её в саму библиотеку — клипы, машина и камера линковали бы
 # тайлы с решателем, не спросив ни одного тайла. Ровно тот же довод, по которому RHI нет среди
 # зависимостей выше.
-add_library(framework_graphics_tiles STATIC tile_draw.cpp)
+add_library(framework_graphics_tiles STATIC tile_draw.cpp layer_draw.cpp)
 target_include_directories(framework_graphics_tiles PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_graphics_tiles PUBLIC framework_graphics framework_tilemap)
 
@@ -138,6 +140,22 @@ add_executable(framework_graphics_tile_refusal_test framework_graphics_tile_refu
 target_link_libraries(framework_graphics_tile_refusal_test PRIVATE framework_graphics_tiles)
 target_include_directories(framework_graphics_tile_refusal_test PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+# Слои `LNVL` (спека #24, В5б): геометрия, параллакс, повтор, culling — и отдельно виды клеток
+# (анимация, image-слой, чужая текстура, тексели). Линковка — по тому же правилу, что у тайлов выше.
+foreach(t framework_graphics_layer_test framework_graphics_layer_kinds_test)
+  add_executable(${t} ${t}.cpp)
+  target_link_libraries(${t} PRIVATE framework_graphics_tiles)
+  target_include_directories(${t} PRIVATE
+    $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+endforeach()
+
+add_executable(framework_graphics_flip_test framework_graphics_flip_test.cpp)
+target_link_libraries(framework_graphics_flip_test PRIVATE framework_graphics platform_core)
+
+# Шов слоёв к GPU (спека #24, В5б) — свой каталог: RHI нет среди зависимостей
+# `framework_graphics_tiles`, и тайловые тесты его не линкуют.
+add_subdirectory(gpu)
 
 # Частицы обоих классов (вертикаль 2, шаг C) — ТРИ цели, граница та же: класс поломки.
 #   * ..._particle_test         — ДЕТЕРМИНИЗМ геймплейного класса (гейт 4), геометрия шага, отрисовка;

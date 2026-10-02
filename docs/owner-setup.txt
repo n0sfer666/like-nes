@@ -1762,6 +1762,118 @@ owner_check.sh гоняет это отдельным этапом сразу п
   разом, звук.
 
 
+--- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1, В4, В5) ---
+
+  Игра в games/neon-rumble собирается НЕ деревом, а против поставленного
+  SDK: find_package(like-nes) в префиксе, куда компонент sdk поставлен из
+  двух своих каталогов (build-sdk-release и build-sdk-debug). CI гоняет это
+  headless на трёх ОС (джоб sdk-game); окно на живом железе — только здесь.
+  Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
+  cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
+  engine/asset/, engine/framework/tilemap/, engine/framework/graphics/,
+  engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
+
+  macOS и Linux, в корне репозитория:
+
+      bash scripts/check_sdk_game.sh --keep
+      ./build-sdk-work/game-Release/neon_rumble --frames 120
+
+  Windows — первая команда из ЛЮБОГО шелла, остальные из окна, которое она
+  откроет (cl.exe нужен и SDK, и игре; причина та же, что у perf_sweep выше):
+
+      scripts\win-dev.bat shell
+      "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
+      build-sdk-work\game-Release\neon_rumble.exe --frames 120
+
+  Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
+  двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):
+
+      sdk-game: OK   Release: SDK built and installed into the prefix
+      sdk-game: OK   Debug: SDK built and installed into the prefix
+      neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
+      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right
+      neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: headless run ok, 60 frames
+      sdk-game: OK   Release: built against the prefix and ran 60 headless frames
+      sdk-game: OK   Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash
+      neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
+      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right
+      neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: headless run ok, 60 frames
+      sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash
+      sdk-game: OK   fixture: internal header is not in the prefix
+      sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
+      sdk-game: OK   fixture: a wrong bundle.hash is refused
+      sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
+      sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
+      sdk-game: SKIP CRT fixture (not an MSVC toolchain)
+      sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
+      sdk-game: prefix and game builds kept in build-sdk-work/
+
+  На Windows вместо SKIP — «OK   fixture: Debug game without
+  like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
+  framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна;
+  bundle_hash — от game.bundle, который assetc из SDK печёт по
+  games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
+  levels/level1.tmj из Tiled — секции tilemap, visual, objects; лист и клипы
+  бойца из Aseprite — chewbatrij/queen-rows.*), и тоже
+  один на всех ОС: он закоммичен в games/neon-rumble/bundle.hash. Другой хеш
+  на одной из машин — находка, а не повод переписать файл. Законная смена —
+  только когда коммит намеренно меняет PNG, game.manifest, levels/ или байты
+  пекаря:
+  новое значение — строка «[assetc] bundle_hash = 0x…» в логе сборки игры
+  (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
+  правка, после зелёного гейта на всех трёх ОС.
+
+  Строки level и frame — уровень level1 прочитан игрой из game.bundle
+  (таблица visual и тайлсет сырым RGBA8), а кадр 960x540 при зуме 2 целиком
+  лёг в квады: unknown, rejected и dropped обязаны быть нулями.
+
+  Строки fighter — боец: 20 клипов из таблицы clips, лист 592x300 по guid
+  первого клипа витрины, стоит на объекте player (48,160) лицом вправо.
+  Витрина по тику: Walk 60 тиков, Jab, Hook и Uppercut по 30, круг 150
+  тиков, на каждом втором круге боец смотрит в другую сторону, поэтому на
+  тике 215 — Jab с flip 1. Боксов у пака нет (0 hit, 0 hurt, 0 push), квады
+  оверлея F3 — рамка клетки и крест пивота; rejected и dropped — нули.
+
+  Оконный запуск: окно «Neon Rumble» 960×540 на тёмно-фиолетовом фоне, в
+  нём уровень level1 — фасады над улицей, как в Tiled. Зум — наибольший
+  целый, при котором 192 px карты влезают по высоте кадра (Retina 2x: 5,
+  обычный экран: 2). Камера едет вдоль улицы на пиксель карты за кадр и обратно.
+  У левого края улицы стоит боец (королева в короне) ногами на линии улицы
+  и шагает на месте; камера уводит его из кадра около 85-го кадра, и в
+  прогоне на 120 кадров он не возвращается (возврат — около 235-го кадра на
+  1x и 427-го на 2x, §19). F3, пока боец в кадре, включает и выключает
+  оверлей: голубая рамка клетки и белый крест пивота у ступней.
+  Через 120 кадров окно закрывается само; последние строки:
+
+      [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
+      neon-rumble: window run ok, 120 frames
+
+  Код выхода 0. BC: no — не находка: сжатые текстуры игра не грузит.
+  Чтобы рассмотреть прокрутку, — --frames 600. Пересохранение level1.tmj в
+  настоящем Tiled и сверка окна с ним — гейт 3 спеки #24,
+  docs/owner-verification.md §18. Находка — всё, что не так: окно не
+  открылось, «no surface, adapter or device», «cannot read
+  …/library.bundle», «cannot open …/game.bundle», «texture …: <причина>»,
+  щели или полосы между тайлами, тайл не на своём месте против Tiled,
+  тайлы светлее или бледнее, чем в Tiled (на Linux и Windows поверхность
+  бывает sRGB — так проявилось бы двойное кодирование цвета),
+  дрожание при прокрутке, боец висит над улицей или проваливается в неё,
+  отстаёт от улицы на прокрутке, крест F3 не у ступней или рамка клетки
+  режет спрайт,
+  ошибка про libwgpu_native / wgpu_native.dll
+  (рантайм обязан лежать рядом с exe).
+  На Linux SDK собран с GLFW только под X11: под Wayland-сессией окно идёт
+  через XWayland — это норма В1, не находка.
+
 ===========================================================================
 5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================

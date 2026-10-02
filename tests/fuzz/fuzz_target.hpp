@@ -69,6 +69,10 @@ const Target* plugin_targets(std::size_t* count);
 #if defined(LN_FUZZ_SCENE)
 const Target* scene_targets(std::size_t* count);
 #endif
+// Цели спеки #24 стоят ПОСЛЕ сцены: индексы старых целей и их исторические мутанты не сдвигаются.
+// Под `-DIDE_POC=OFF` индексы новых на число сценовых целей меньше — мутантов у них ещё нет.
+const Target* json_targets(std::size_t* count);
+const Target* level_targets(std::size_t* count);
 
 // Позитивный контроль: читатель с ЗАВЕДОМО снятой проверкой длины. Гоняется только под
 // `--selftest` и ОБЯЗАН упасть под санитайзером — шаг CI красен, если он НЕ упал. Без него гейт
