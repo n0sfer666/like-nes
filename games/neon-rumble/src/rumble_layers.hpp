@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "graphics_sprite.hpp"
+#include "layer_draw.hpp"
 #include "quad_batch.hpp"
 #include "rumble_level.hpp"
 
@@ -35,6 +36,8 @@ public:
     std::span<const render::QuadRun> runs(const LayerStats& st) const {
         return {runs_.data(), st.runs};
     }
+    const framework::graphics::LayerFrame& frame() const { return frame_; }
+    void append(LayerStats& st, std::span<const render::Quad> extra, uint32_t texture);
 
 private:
     std::vector<framework::graphics::Sprite> sprites_;
@@ -42,6 +45,7 @@ private:
     std::vector<framework::graphics::Batch> batches_;
     std::vector<render::Quad> quads_;
     std::vector<render::QuadRun> runs_;
+    framework::graphics::LayerFrame frame_;
 };
 
 } // namespace rumble

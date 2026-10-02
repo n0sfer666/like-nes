@@ -1,5 +1,7 @@
 #include "rumble_layers.hpp"
 
+#include <algorithm>
+
 #include "layer_draw.hpp"
 #include "layer_quads.hpp"
 #include "viewport.hpp"
@@ -63,7 +65,19 @@ LayerStats Layers::build(const Level& level, uint32_t screen_w, uint32_t screen_
     st.runs = q.runs;
     st.rejected = q.rejected;
     st.dropped = list.dropped() + q.dropped;
+    frame_ = f;
     return st;
+}
+
+void Layers::append(LayerStats& st, std::span<const render::Quad> extra, uint32_t texture) {
+    if (extra.empty()) return;
+    if (st.runs == CAPACITY || extra.size() > CAPACITY - st.quads) {
+        st.dropped += static_cast<uint32_t>(extra.size());
+        return;
+    }
+    std::copy(extra.begin(), extra.end(), quads_.begin() + st.quads);
+    runs_[st.runs++] = {st.quads, static_cast<uint32_t>(extra.size()), texture};
+    st.quads += static_cast<uint32_t>(extra.size());
 }
 
 } // namespace rumble

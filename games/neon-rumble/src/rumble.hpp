@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 
+#include "rumble_fighter.hpp"
 #include "rumble_level.hpp"
 #include "schedule.hpp"
 
@@ -16,6 +17,6 @@ struct Scene {
     void step(uint32_t index);
 };
 
-int run_window(Scene& scene, const Level& level, int frames);
+int run_window(Scene& scene, const Level& level, const Fighter& fighter, int frames);
 
 } // namespace rumble

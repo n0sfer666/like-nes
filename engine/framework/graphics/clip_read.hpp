@@ -34,6 +34,8 @@ private:
 bool clip_rect_ok(const Rect16& r);
 uint64_t clip_period_wide(std::span<const ClipFrame> frames, uint16_t flags);
 std::span<const ClipBox> cel_boxes(const ClipView& view, const ClipCel& cel);
+const ClipCel* frame_cel(const ClipView& view, uint16_t frame);
+std::span<const ClipBox> frame_boxes(const ClipView& view, uint16_t frame, BoxKind kind);
 const char* clip_event_name(const ClipView& view, AnimEvent event);
 
 } // namespace framework::graphics

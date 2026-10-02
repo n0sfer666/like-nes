@@ -646,6 +646,28 @@ jobs:
             echo "ZOOMED LAYER FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
           grep -q "layer-golden: PASS" layer.txt || { echo "LAYER GOLDEN FAILED"; exit 1; }
 
+      # Кадр клипа `LNCL` с оверлеем F3 на живой видеокарте (спека #24, В6б): клетка листа и рамки
+      # `DebugDraw` против CPU-эталона, собранного из ИСХОДНЫХ кадров, а не из испечённой таблицы.
+      # Цвета оверлея — только каналы 0/255, поэтому sRGB-цель обязана совпасть так же точно. Счёт
+      # боксов в строке кадра — улика, что эталон и бэкенд рисовали не пустой оверлей.
+      - name: Clips — cel and F3 boxes on a real GPU against the CPU reference (spec #24 B6b)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'framework_clip_golden' -o -name 'framework_clip_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "framework_clip_golden not built on ${{ matrix.os }}"; exit 1; }
+          set +e
+          "$BIN" > clip.txt 2>&1
+          rc=$?
+          set -e
+          cat clip.txt
+          [ "$rc" -eq 0 ] || { echo "CLIP GOLDEN EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "base tick 2 frame 0 zoom 1 flip 0: 0 hit, 1 hurt, 1 push, 0 mismatched" clip.txt || {
+            echo "CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "flip tick 14 frame 2 zoom 2 flip 1: 2 hit, 2 hurt, 0 push, 0 mismatched" clip.txt || {
+            echo "FLIPPED CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "srgb: 0 pixel(s) differ" clip.txt || { echo "SRGB CLIP FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "clip-golden: PASS" clip.txt || { echo "CLIP GOLDEN FAILED"; exit 1; }
+
       # Гейт 3 спеки #18 — горячая замена библиотеки на живой видеокарте, на всех трёх ОС. Утверждение
       # про БИТУЮ правку («рисует прежний вариант») в одиночку проходит и на кэше, который не
       # перезагружается вовсе, поэтому гейт первой делает ВЕРНУЮ правку и требует смены объектов

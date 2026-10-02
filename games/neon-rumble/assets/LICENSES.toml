@@ -42,3 +42,15 @@ sha256 = "f068cd13529240524a3f8f9b052121a2dea8294cdd5c68611ae8971b9a3e1fe7"
 path = "chewbatrij/queen.png"
 pack = "chewbatrij"
 sha256 = "26f3953312fbc0982f22d43c8f879e8e8e346632aff88df808e7694e98de2a82"
+
+[[file]]
+path = "chewbatrij/queen-rows.json"
+pack = "chewbatrij"
+sha256 = "a5d860e3ad5a25c56d7554f1d159e5bc4a995daa624754534da937cdc06967d8"
+changes = "re-laid in rows of 8 cells"
+
+[[file]]
+path = "chewbatrij/queen-rows.png"
+pack = "chewbatrij"
+sha256 = "a4daa9dddfa580a4cf6a1baf8b1bc41b31d6a8d3cf55e0d67ea1cbced01df4ea"
+changes = "re-laid in rows of 8 cells"

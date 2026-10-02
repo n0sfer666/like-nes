@@ -1,4 +1,4 @@
-# Игра против поставленного SDK (спека #24, В1, В4, В5а, В5б)
+# Игра против поставленного SDK (спека #24, В1, В4, В5а, В5б, В6б)
 
 ```
 bash scripts/check_sdk_game.sh          # префикс и сборки игры во временном каталоге
@@ -21,7 +21,13 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`raw_rgba8`), — и `frame 960x540 zoom 2: <N> sprite(s), <M> run(s), 0 unknown, 0 rejected,
    0 dropped` — кадр окна прошёл `draw_layer` и `layer_quads` из поставленных заголовков и целиком лёг
    в квады. Числа спрайтов и прогонов не пинятся (их судит голден в дереве), только ненулевые; нули
-   отказов пинятся: чужой guid текстуры, источник за краем текстуры или нехватка буферов — находка;
+   отказов пинятся: чужой guid текстуры, источник за краем текстуры или нехватка буферов — находка.
+   С В6б — боец: `fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right` (таблица `clips`,
+   лист по `texture_guid` клипа, объект `player` из `objects`) и две строки позы —
+   `fighter tick 0: queen/Walk frame 0 flip 0, …` и `fighter tick 215: queen/Jab frame 0 flip 1, …`:
+   витрина по тику (Walk 60, Jab 30, Hook 30, Uppercut 30) и смена стороны на втором круге. Счёт
+   боксов и квадов оверлея — регэкспом (у пака боксов нет, B6a); нули отказов и сброса пинятся:
+   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
    `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход
    `assetc`: грузит игра именно её. Другой хеш на одной ОС — находка. Законная смена — только
@@ -29,7 +35,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `tools/assetc/`, импорт Tiled `engine/framework/tilemap/`, `levels/*.tmj`/`*.tsj`): значение из
    строки `[assetc] bundle_hash` лога сборки, `bundle.hash` — в том же коммите, после зелёного гейта
    на трёх ОС. С В5а в бандле уровень `level1` (секции `tilemap`, `visual`, `objects`); пересохранение
-   `level1.tmj` в настоящем Tiled хеш менять не должно — сценарий в `docs/owner-verification.md`.
+   `level1.tmj` в настоящем Tiled хеш менять не должно. С В6б — ещё лист `queen_sheet` и клипы
+   `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,
@@ -92,6 +99,8 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 ## Что ещё не судит (следующие вертикали #24)
 
 - пиксели кадра игры: GPU-путь слоёв (`QuadRenderer`, флипы, анимация) судит в дереве
-  `framework_layer_golden` против CPU-эталона на трёх ОС (шаг CI «Layers — tile layers on a real
-  GPU»), а окно игры — владелец (`docs/owner-verification.md` §18, шаг 5);
-- записи `level`, `clips`, `credits` — `assetc` их отбивает как `unsupported record kind` до В5–В8.
+  `framework_layer_golden`, клетку клипа и оверлей F3 (`cel_quad`, `debug_quads`, флип вокруг пивота,
+  боксы трёх видов) — `framework_clip_golden`, оба против CPU-эталона на трёх ОС (шаги CI «Layers —
+  tile layers on a real GPU» и «Clips — cel and F3 boxes on a real GPU»), а окно игры — владелец
+  (`docs/owner-verification.md` §18, шаг 5, и §19, шаг 7);
+- запись `credits` — `assetc` её отбивает как `unsupported record kind` до В8.

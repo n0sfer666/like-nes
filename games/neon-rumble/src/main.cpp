@@ -8,6 +8,7 @@
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 #include "rumble.hpp"
+#include "rumble_fighter_quads.hpp"
 #include "rumble_layers.hpp"
 
 namespace {
@@ -50,6 +51,29 @@ void report_level(const rumble::Level& level) {
                 st.zoom, st.sprites, st.runs, st.unknown, st.rejected, st.dropped);
 }
 
+// Сводка бойца: клипы и лист из бандла, спавн из таблицы объектов и поза на двух тиках витрины —
+// второй берёт следующий круг, где боец развёрнут, и судит флип без окна.
+void report_fighter(const rumble::Level& level, const rumble::Fighter& fighter) {
+    std::printf("neon-rumble: fighter %u clip(s), sheet %ux%u, spawn %d,%d facing %s\n",
+                fighter.clips.count(), fighter.sheet.width, fighter.sheet.height,
+                fighter.spawn.x.to_int(), fighter.spawn.y.to_int(),
+                fighter.faces_left ? "left" : "right");
+    rumble::Layers layers;
+    rumble::FighterQuads quads;
+    for (const uint64_t tick : {uint64_t{0}, uint64_t{215}}) {
+        rumble::LayerStats st = layers.build(level, 960, 540, tick);
+        const rumble::Pose p = fighter.pose(tick);
+        const rumble::FighterStats fs = quads.add(fighter, p, layers, st, level.texture_count, true);
+        std::printf("neon-rumble: fighter tick %llu: %s frame %u flip %d, %zu hit, %zu hurt, "
+                    "%zu push, %u overlay quad(s), %u rejected, %u dropped\n",
+                    static_cast<unsigned long long>(tick), p.name, p.frame, p.flip ? 1 : 0,
+                    framework::graphics::frame_boxes(p.clip, p.frame, framework::graphics::BoxKind::Hit).size(),
+                    framework::graphics::frame_boxes(p.clip, p.frame, framework::graphics::BoxKind::Hurt).size(),
+                    framework::graphics::frame_boxes(p.clip, p.frame, framework::graphics::BoxKind::Push).size(),
+                    fs.overlay, fs.rejected, fs.dropped + st.dropped);
+    }
+}
+
 int run_headless(rumble::Scene& scene, int frames) {
     for (int i = 0; i < frames; ++i) scene.step(static_cast<uint32_t>(i));
     if (scene.ticks != static_cast<uint32_t>(frames)) {
@@ -85,7 +109,10 @@ int main(int argc, char** argv) {
     rumble::Level level;
     if (!level.open(platform::exe_dir() + "/game.bundle", "level1")) return 1;
     report_level(level);
+    rumble::Fighter fighter;
+    if (!fighter.open(level)) return 1;
+    report_fighter(level, fighter);
     rumble::Scene scene;
     if (!scene.init()) return 1;
-    return headless ? run_headless(scene, frames) : rumble::run_window(scene, level, frames);
+    return headless ? run_headless(scene, frames) : rumble::run_window(scene, level, fighter, frames);
 }

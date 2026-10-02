@@ -114,6 +114,24 @@ std::span<const ClipBox> cel_boxes(const ClipView& view, const ClipCel& cel) {
     return view.boxes.subspan(cel.first_box, cel.box_count);
 }
 
+const ClipCel* frame_cel(const ClipView& view, uint16_t frame) {
+    if (frame >= view.clip.frame_count || view.clip.frames == nullptr) return nullptr;
+    const RegionId region = view.clip.frames[frame].region;
+    return region < view.cels.size() ? &view.cels[region] : nullptr;
+}
+
+std::span<const ClipBox> frame_boxes(const ClipView& view, uint16_t frame, BoxKind kind) {
+    const ClipCel* cel = frame_cel(view, frame);
+    if (cel == nullptr) return {};
+    const std::span<const ClipBox> own = cel_boxes(view, *cel);
+    const auto wanted = static_cast<uint8_t>(kind);
+    std::size_t first = 0;
+    while (first < own.size() && own[first].kind < wanted) ++first;
+    std::size_t last = first;
+    while (last < own.size() && own[last].kind == wanted) ++last;
+    return own.subspan(first, last - first);
+}
+
 const char* clip_event_name(const ClipView& view, AnimEvent event) {
     if (event == ANIM_EVENT_NONE || event > view.events.size() || view.strings == nullptr) return "";
     return view.strings + view.events[event - 1u];

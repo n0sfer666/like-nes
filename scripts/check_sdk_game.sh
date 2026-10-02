@@ -17,7 +17,9 @@
 # `--keep` оставляет префикс и сборки игры в build-sdk-work/ для оконного прогона владельцем
 # (docs/owner-setup.txt, раздел S): окно на живом железе CI не открыть. Фикстуры и тогда идут во
 # временном каталоге, а префикс портят копией: прерванный прогон не оставит владельцу префикс без
-# библиотеки.
+# библиотеки. Прежний префикс `--keep` уезжает во временный каталог, а SDK ставится в пустой:
+# `cmake --install` только добавляет файлы, и заголовок, убранный из SDK, оставался бы в префиксе и
+# перекрывал свой новый адрес (так было в В6б: `framework/graphics/layer_quads.hpp`).
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -32,6 +34,7 @@ OUT=$WORK
 if [ "${1:-}" = --keep ]; then
     OUT="$ROOT/build-sdk-work"
     mkdir -p "$OUT"
+    [ ! -e "$OUT/prefix" ] || mv "$OUT/prefix" "$WORK/stale-prefix" || exit 1
 fi
 PREFIX="$OUT/prefix"
 FLAGS=(-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF)

@@ -106,12 +106,48 @@ void test_cel_boxes() {
     check(cel_boxes(ClipView{}, ClipCel{}).empty(), "cel_boxes of no clip is empty");
 }
 
+uint32_t boxes_at(const ClipView& v, uint64_t tick, BoxKind kind) {
+    return static_cast<uint32_t>(frame_boxes(v, clip_frame_at(v.clip, tick), kind).size());
+}
+
+void test_frame_boxes() {
+    const std::vector<uint8_t> bytes = bake(clip_fixture::clips());
+    ClipTable t;
+    t.open(bytes.data(), bytes.size());
+    const ClipView run = t.find("hero/run");
+    const ClipView jab = t.find("hero/jab");
+    if (run.row == nullptr || jab.row == nullptr) {
+        check(false, "fixture clips found");
+        return;
+    }
+    const std::span<const ClipBox> hurt = frame_boxes(run, 0, BoxKind::Hurt);
+    check(hurt.size() == 2 && hurt[0].index == 0 && hurt[1].index == 1 && hurt[1].rect.y == -24,
+          "first frame: both hurt boxes in index order");
+    check(frame_boxes(run, 0, BoxKind::Push).size() == 1 && frame_boxes(run, 0, BoxKind::Hit).empty(),
+          "first frame: push after hurt, no hit");
+    check(boxes_at(run, 2, BoxKind::Hurt) == 2 && boxes_at(run, 3, BoxKind::Hurt) == 0,
+          "last tick of frame 0 keeps the hurt boxes, first tick of frame 1 has none");
+    check(boxes_at(run, 6, BoxKind::Hit) == 0 && boxes_at(run, 7, BoxKind::Hit) == 1,
+          "the hit box comes on the first tick of the last frame");
+    check(frame_boxes(run, 2, BoxKind::Hit).size() == 1 && frame_boxes(run, 2, BoxKind::Hit)[0].rect.x == 2 &&
+              boxes_at(run, 9, BoxKind::Hit) == 1 &&
+              boxes_at(run, 10, BoxKind::Hit) == 0 && boxes_at(run, 10, BoxKind::Push) == 1,
+          "the loop wraps from the last frame's boxes to the first frame's");
+    check(frame_boxes(jab, 1, BoxKind::Hit).size() == 1 && frame_boxes(jab, 1, BoxKind::Hit)[0].index == 3,
+          "the hit index comes from the suffix, not from the order");
+    check(frame_cel(run, 3) == nullptr && frame_boxes(run, 3, BoxKind::Hurt).empty(), "frame past the clip");
+    check(frame_cel(ClipView{}, 0) == nullptr && frame_boxes(ClipView{}, 0, BoxKind::Hit).empty(),
+          "frame of no clip");
+    check(frame_cel(run, 2) == &run.cels[run.clip.frames[2].region], "frame_cel follows the region");
+}
+
 } // namespace
 
 int main() {
     test_corruptions();
     test_long_period();
     test_cel_boxes();
+    test_frame_boxes();
     std::printf("framework-graphics-clip-read: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

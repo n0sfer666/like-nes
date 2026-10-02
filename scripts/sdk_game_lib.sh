@@ -22,7 +22,8 @@ game_build() {
 # Запуск --headless --frames 60: код выхода 0 И строка вердикта. Одного кода мало — exe, не
 # дошедший до цикла кадров (скажем, без бандла рядом), тоже может выйти нулём из чужой ветки.
 # Сводка уровня (В5б) — бандл прочитан игрой против SDK: таблица `visual`, RGBA8 тайлсета и кадр
-# 960x540, весь легший в квады без чужих текстур и выпавших за край источников.
+# 960x540, весь легший в квады без чужих текстур и выпавших за край источников. Сводка бойца (В6б) —
+# клипы, лист и спавн из бандла и поза витрины на тиках 0 и 215: клип, кадр и флип пинятся.
 game_run() {
     local dir=$1 cfg=$2 exe out
     exe="$dir/neon_rumble"
@@ -38,6 +39,12 @@ game_run() {
         <<< "$out" || { sdk_bad "$cfg: level1 from game.bundle: no summary line"; return 1; }
     grep -Eq '^neon-rumble: frame 960x540 zoom 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
+    grep -q '^neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right$' <<< "$out" || {
+        sdk_bad "$cfg: fighter from game.bundle: no summary line"; return 1; }
+    grep -Eq '^neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
+        <<< "$out" || { sdk_bad "$cfg: fighter on tick 0 is not Walk frame 0 facing right"; return 1; }
+    grep -Eq '^neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
+        <<< "$out" || { sdk_bad "$cfg: fighter on tick 215 is not Jab frame 0 flipped"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 60 headless frames"
 }
 

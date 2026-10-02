@@ -6,6 +6,8 @@ Author: Chewbatrij
 Source: https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
 License: CC0-1.0 (licenses/CC0-1.0.txt)
 Files:
+  chewbatrij/queen-rows.json (changes: re-laid in rows of 8 cells)
+  chewbatrij/queen-rows.png (changes: re-laid in rows of 8 cells)
   chewbatrij/queen.json
   chewbatrij/queen.png
 

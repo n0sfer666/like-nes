@@ -2377,7 +2377,7 @@ as §17 — by typing what the page says and noting everything you had to add.
 
 ## 18. Gate 3 of #24 — level 1 comes out of a real Tiled
 
-<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh --keep — bundle_hash 0xf28a379fc38c0753; окно neon_rumble --frames 600 против вида Tiled -->
+<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4e7f9ade1d27776a; окно neon_rumble --frames 600 против вида Tiled -->
 
 `games/neon-rumble/levels/level1.tmj` and `warped-city.tsj` were written by hand to the Tiled 1.10
 JSON format, not saved by Tiled. The importer is tested on fixtures of the same hand, so a field
@@ -2397,7 +2397,7 @@ scenario; flips and tile animation are judged by the pixel golden on CI on all t
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, and both lines
-   `Release: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
@@ -2409,7 +2409,8 @@ scenario; flips and tile animation are judged by the pixel golden on CI on all t
    street and the facades exactly as Tiled draws them, scaled by a whole number (2 on a 1x screen,
    5 on a 2x one); the camera pans along the street and back, then the window closes with
    `neon-rumble: window run ok, 600 frames` and exit code 0. Send back a screenshot and the
-   `[gpu]` line.
+   `[gpu]` line. The queen at the left end of the street is the fighter of §19, not part of the
+   level; judge the tiles around her.
 
 What counts as a finding: an import refusal (the message names `level1.tmj:<line>:<column>` and
 what to change in Tiled), a different `bundle_hash`, or a window that differs from Tiled — a tile
@@ -2421,13 +2422,17 @@ then replace the hand-written ones in the tree.
 
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json -->
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
 is an Aseprite 1.2.8 export with neither, so how 1.3 actually writes a slice key, a slice switched
 off on a frame, and the user data of a tag stays unknown until a real Aseprite exports them. The
-window half — the fighter playing its clips with F3 drawing the boxes — comes with B6b.
+gate has two halves: the export (steps 1–6) and the window (step 7), where Neon Rumble plays the
+clips of the same pack from `game.bundle` and F3 draws what the engine thinks a frame is. Where the
+cel, the boxes and the pivot cross land in pixels, flipped and zoomed, is judged by the pixel golden
+`framework_clip_golden` on CI on all three OSes; the window is about the real surface and the real
+key.
 
 1. Take `Queen.ase` from the Chewbatrij pack
    (https://opengameart.org/sites/default/files/punchingqueen_gfx.zip) and open it in Aseprite 1.3
@@ -2462,11 +2467,33 @@ window half — the fighter playing its clips with F3 drawing the boxes — come
    script ends with `aseprite-export: FAIL`.
 6. Send back `queen.json` and the output of step 5. The JSON goes into the tree as a fixture that
    pins the hit box to frames 3 and 4 and the event `fall` to frame 4.
+7. Build the game against the SDK and run the window from the same shell (Windows: from the
+   `scripts\win-dev.bat shell` window, with `.exe` and backslashes):
+
+       bash scripts/check_sdk_game.sh --keep
+       ./build-sdk-work/game-Release/neon_rumble --frames 1200
+
+   The gate prints, for each configuration,
+   `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right`. In the window the
+   queen stands at the left end of the street with her feet on its top line, facing right, and
+   plays Walk for 60 frames, then Jab, Hook and Uppercut for 30 frames each; every second round
+   of 150 frames she faces left. Both the showcase and the camera step once per drawn frame, and
+   the window presents at the display rate: one second for Walk at 60 Hz, half a second on a
+   120 Hz ProMotion screen — that is not a finding. The camera pans her out of view at about frame
+   85 and brings her back at about frame 235 on a 1x screen (427 on a 2x one); the next pass
+   starts at frame 320 (512). Press **F3** while she is in view: a cyan frame around her cell
+   (74×75 sheet pixels, larger than her silhouette) and a white cross at her feet; **F3** again
+   hides them. The pack has no slices, so no coloured boxes appear — red hit, green hurt and yellow
+   push frames show up once a sheet with boxes is in the bundle. Send back a screenshot with the
+   overlay on.
 
 What counts as a finding: a refusal (it names `queen.json:<line>:<column>` and what to change in
 the export), a `queen.json` whose tag `Death` has no `data` field after step 3 — the user data did
 not reach the export, and events then move to the fallback of slices `ev:<name>` — or a slice that
-Aseprite would not clear on one frame.
+Aseprite would not clear on one frame. In the window: the queen floating above the street or sunk
+into it, sliding against the street while the camera pans, a cell cut off by its frame (a
+neighbour's limb at an edge means a wrong cell rectangle), the cross away from her feet, the
+overlay not following a flip, or F3 doing nothing.
 
 ## Beyond the gates
 
