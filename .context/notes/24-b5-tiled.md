@@ -52,4 +52,7 @@ lavapipe, окно — владелец.
 - Ревью (3 medium, 10 low — все исправлены): sRGB-поверхность Vulkan/DX12 кодировала тексели PNG
   второй раз → `quad_texel_format`, контроль голдена на `RGBA8UnormSrgb`; повтор слоя на мелком зуме
   — отказ клетки уже пикселя и обрыв по полному списку (`truncated`); перестановка margin/spacing
-  была невидима тесту текселей. Риск CI: точность sRGB-кругового пути на lavapipe/WARP.
+  была невидима тесту текселей. sRGB-контроль голдена в CI `1a88b70`: 0 расхождений на
+  Metal, lavapipe и WARP.
+- CI `0e45039` упал на ubuntu: UBSan `nonnull` у `memcpy` пустого payload в `bundle_writer`
+  (фикстуры `empty`/`flat`), на macOS эта проверка отсутствует → guard, `1a88b70`, CI 6/6.
