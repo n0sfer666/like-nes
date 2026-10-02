@@ -1,4 +1,4 @@
-# Игра против поставленного SDK (спека #24, В1, В4, В5)
+# Игра против поставленного SDK (спека #24, В1, В4, В5а, В5б)
 
 ```
 bash scripts/check_sdk_game.sh          # префикс и сборки игры во временном каталоге
@@ -15,7 +15,13 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
    Debug (`cmake --fresh`) и запускает `--headless --frames 60`. Утверждение — rc 0 **и** строки
    `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
-   с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`;
+   с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
+   `level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256` — игра открыла
+   `game.bundle` маппингом, прочитала таблицу `visual` (`raw_table`) и тайлсет сырым RGBA8
+   (`raw_rgba8`), — и `frame 960x540 zoom 2: <N> sprite(s), <M> run(s), 0 unknown, 0 rejected,
+   0 dropped` — кадр окна прошёл `draw_layer` и `layer_quads` из поставленных заголовков и целиком лёг
+   в квады. Числа спрайтов и прогонов не пинятся (их судит голден в дереве), только ненулевые; нули
+   отказов пинятся: чужой guid текстуры, источник за краем текстуры или нехватка буферов — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
    `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход
    `assetc`: грузит игра именно её. Другой хеш на одной ОС — находка. Законная смена — только
@@ -85,5 +91,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 
 ## Что ещё не судит (следующие вертикали #24)
 
-- загрузку `game.bundle` игрой — В5 (Raw RGBA8 в GPU); сейчас гейт судит байты бандла, а не кадр;
+- пиксели кадра игры: GPU-путь слоёв (`QuadRenderer`, флипы, анимация) судит в дереве
+  `framework_layer_golden` против CPU-эталона на трёх ОС (шаг CI «Layers — tile layers on a real
+  GPU»), а окно игры — владелец (`docs/owner-verification.md` §18, шаг 5);
 - записи `level`, `clips`, `credits` — `assetc` их отбивает как `unsupported record kind` до В5–В8.

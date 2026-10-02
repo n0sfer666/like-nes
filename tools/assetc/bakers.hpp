@@ -31,8 +31,6 @@ void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<Asse
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
 
-// WGPUTextureFormat_RGBA8Unorm: пекарь пишет target-native значение, а `assetc_bake` webgpu не
-// линкует. Сверка с заголовком wgpu — static_assert в `assetc_main.cpp`.
-constexpr uint32_t TEX_FORMAT_RGBA8_UNORM = 0x12;
+using asset::TEX_FORMAT_RGBA8_UNORM;
 
 } // namespace asset::bakers

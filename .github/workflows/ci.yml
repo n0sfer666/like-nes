@@ -625,6 +625,27 @@ jobs:
             echo "PARAMETERS SPLIT THE BATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "material-gpu: PASS" mat.txt || { echo "MATERIAL GATES FAILED"; exit 1; }
 
+      # Слои `LNVL` на живой видеокарте (спека #24, В5б): квады бэкенда против CPU-эталона ТОЧНО, а
+      # не с допуском, — выборка `textureLoad` без фильтрации и альфа только 0/255 не оставляют
+      # бэкенду места для своего округления. Контроли рядом с вердиктом: эталон без флипов обязан
+      # разойтись, соседние тики анимации — различаться, повтор — совпасть.
+      - name: Layers — tile layers on a real GPU against the CPU reference (spec #24 B5b)
+        shell: bash
+        run: |
+          BIN=$(find build -maxdepth 2 -type f \( -name 'framework_layer_golden' -o -name 'framework_layer_golden.exe' \) | head -1)
+          [ -n "$BIN" ] || { echo "framework_layer_golden not built on ${{ matrix.os }}"; exit 1; }
+          set +e
+          "$BIN" > layer.txt 2>&1
+          rc=$?
+          set -e
+          cat layer.txt
+          [ "$rc" -eq 0 ] || { echo "LAYER GOLDEN EXITED $rc on ${{ matrix.os }}"; exit 1; }
+          grep -q "base tick 2 zoom 1: .*, 0 mismatched" layer.txt || {
+            echo "LAYER FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "zoom tick 2 zoom 2: .*, 0 mismatched" layer.txt || {
+            echo "ZOOMED LAYER FRAME DIVERGED on ${{ matrix.os }}"; exit 1; }
+          grep -q "layer-golden: PASS" layer.txt || { echo "LAYER GOLDEN FAILED"; exit 1; }
+
       # Гейт 3 спеки #18 — горячая замена библиотеки на живой видеокарте, на всех трёх ОС. Утверждение
       # про БИТУЮ правку («рисует прежний вариант») в одиночку проходит и на кэше, который не
       # перезагружается вовсе, поэтому гейт первой делает ВЕРНУЮ правку и требует смены объектов
@@ -866,6 +887,10 @@ jobs:
           [ -n "$F" ] || { echo "asset_fail_test not built on ${{ matrix.os }}"; exit 1; }
           "$F" . | tee asset_fail.txt
           grep -q "asset-fail: PASS" asset_fail.txt
+          LK=$(find build -maxdepth 2 -type f \( -name 'asset_lookup_test' -o -name 'asset_lookup_test.exe' \) | head -1)
+          [ -n "$LK" ] || { echo "asset_lookup_test not built on ${{ matrix.os }}"; exit 1; }
+          "$LK" | tee asset_lookup.txt
+          grep -q "asset-lookup: PASS" asset_lookup.txt
           # Потолок уровня KTX2 (A·2·9). Бандл берётся ГОТОВЫЙ из дерева, а не синтетический:
           # положительный контроль обязан стоять на атласе, испечённом нашим же `assetc`, —
           # синтетика подтвердила бы только сама себя.
@@ -899,8 +924,11 @@ jobs:
           # (`undefined reference to asset::write_bundle`) пять прогонов подряд. CI это видел —
           # не смотрел никто. Поэтому состав теперь один на все три прогона, а сторожит его гейт
           # `list-drift`: он краснеет на этой машине, ДО пуша, а не вместо прогона CI.
+          # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_view
+          AVIEW="engine/asset/bundle_view.cpp engine/asset/bundle_lookup.cpp"
           # ci-lint: mirrors-target engine/asset/CMakeLists.txt asset_core
-          ASRC="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp"
+          ACORE="engine/asset/bundle_writer.cpp engine/asset/codec.cpp engine/asset/asset_manager.cpp"
+          ASRC="$AVIEW $ACORE"
           # ci-lint: mirrors-group seam-fs
           PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
           # ci-lint: mirrors-group seam-args
@@ -929,6 +957,10 @@ jobs:
             "$ZLIB" -lpthread -o asset_fail_san
           ./asset_fail_san . | tee asset_fail_san.txt
           grep -q "asset-fail: PASS" asset_fail_san.txt
+          c++ $SAN $INC engine/asset/asset_lookup_test.cpp $ASRC $PLAT_FS $PLAT_ARGS $PLAT_IO \
+            "$ZLIB" -lpthread -o asset_lookup_san
+          ./asset_lookup_san | tee asset_lookup_san.txt
+          grep -q "asset-lookup: PASS" asset_lookup_san.txt
           # Потолок уровня KTX2 под санитайзерами (A·2·9). Проверяется здесь не «выход за конец» —
           # в отгружаемом коде отказ случается ДО `transcode_image_level`, и транскодер во
           # враждебную шапку не пишет вовсе. Проверяется, что отказ происходит до выделения памяти
@@ -1926,7 +1958,8 @@ jobs:
                    framework_graphics_debug_test framework_graphics_debug_refusal_test \
                    framework_graphics_batch_test framework_graphics_batch_refusal_test \
                    framework_graphics_batch_alloc_test framework_graphics_tile_test \
-                   framework_graphics_tile_refusal_test \
+                   framework_graphics_tile_refusal_test framework_graphics_flip_test \
+                   framework_graphics_layer_test framework_graphics_layer_kinds_test \
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
                    game_sprite_out_test game_fx_test game_star_test \
@@ -2464,7 +2497,7 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/tilemap/section_bake.cpp engine/framework/tilemap/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/tilemap/section_bake.cpp engine/framework/tilemap/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/visual_texels.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
           # ci-lint: mirrors-group seam-fs
@@ -2742,6 +2775,8 @@ jobs:
           assetc_level_test:assetc-level: PASS
           framework_tilemap_visual_test:framework-tilemap-visual: PASS
           framework_tilemap_objects_test:framework-tilemap-objects: PASS
+          framework_graphics_layer_test:framework-graphics-layer: PASS
+          framework_graphics_layer_kinds_test:framework-graphics-layer-kinds: PASS
           framework_tiled_test:framework-tiled: PASS
           framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")

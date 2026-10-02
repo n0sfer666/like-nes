@@ -6,7 +6,7 @@
 
 set(LIKE_NES_SDK_HEADERS
   core/fixed.hpp core/sim_tick.hpp
-  asset/hash.hpp
+  asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp
   platform/platform_module.hpp platform/platform_noinline.hpp platform/platform_path.hpp
@@ -16,7 +16,7 @@ set(LIKE_NES_SDK_HEADERS
   input/input_engine.hpp input/input_sim.hpp input/input_spsc.hpp input/input_types.hpp
   input/source.hpp
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
-  render/surface_frame.hpp
+  render/surface_frame.hpp render/quad_batch.hpp
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp
   framework/input/pad_profile.hpp framework/input/pad_registry.hpp
@@ -39,6 +39,10 @@ set(LIKE_NES_SDK_HEADERS
   framework/tilemap/grid.hpp framework/tilemap/map_bake.hpp framework/tilemap/map_format.hpp
   framework/tilemap/map_read.hpp framework/tilemap/tile_rules.hpp
   framework/tilemap/tile_shape.hpp framework/tilemap/tilemap_query.hpp
+  framework/tilemap/section_format.hpp framework/tilemap/section_open.hpp
+  framework/tilemap/visual_format.hpp framework/tilemap/visual_read.hpp
+  framework/tilemap/visual_texels.hpp framework/tilemap/object_format.hpp
+  framework/tilemap/object_read.hpp
   framework/character/assist.hpp framework/character/character_state.hpp
   framework/character/collision.hpp framework/character/controller.hpp
   framework/character/ladder.hpp framework/character/profile.hpp
@@ -52,6 +56,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/machine.hpp framework/graphics/nine_slice.hpp
   framework/graphics/particles.hpp framework/graphics/player.hpp
   framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp
+  framework/graphics/layer_draw.hpp framework/graphics/gpu/layer_quads.hpp
+  framework/graphics/sprite_flip.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
 )
@@ -59,11 +65,12 @@ set(LIKE_NES_SDK_HEADERS
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
   framework_core framework_input framework_physics framework_tilemap framework_character
-  framework_graphics framework_graphics_tiles framework_rollback
-  input_core platform_core render_core render_surface glfw glfw3webgpu)
+  framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
+  asset_view input_core platform_core render_core render_surface glfw glfw3webgpu)
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
 # То, что видит игра под like-nes::engine; окно — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
-  engine_core asset_hash platform_core input_core render_core render_surface
+  engine_core asset_hash asset_view platform_core input_core render_core render_surface
   framework_core framework_input framework_physics framework_tilemap framework_character
-  framework_graphics framework_graphics_tiles framework_rollback framework_replay)
+  framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
+  framework_replay)

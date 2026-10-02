@@ -5,15 +5,19 @@
 #include <webgpu/webgpu.h>
 
 #include <cstdio>
+#include <span>
 
 #include "gpu.hpp"
+#include "quad_batch.hpp"
+#include "rumble_layers.hpp"
 #include "surface_frame.hpp"
 
 namespace rumble {
 
 namespace {
 
-void clear_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view) {
+void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view,
+                const render::QuadRenderer& quads, std::span<const render::QuadRun> runs) {
     WGPURenderPassColorAttachment color = {};
     color.view = view;
     color.loadOp = WGPULoadOp_Clear;
@@ -21,12 +25,13 @@ void clear_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView vie
     color.clearValue = WGPUColor{0.06, 0.02, 0.12, 1.0};
 
     WGPURenderPassDescriptor rp = {};
-    rp.label = "neon-rumble-clear";
+    rp.label = "neon-rumble-layers";
     rp.colorAttachmentCount = 1;
     rp.colorAttachments = &color;
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
     WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(enc, &rp);
+    quads.draw(pass, runs);
     wgpuRenderPassEncoderEnd(pass);
     wgpuRenderPassEncoderRelease(pass);
     WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
@@ -36,14 +41,33 @@ void clear_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView vie
     wgpuCommandEncoderRelease(enc);
 }
 
+// Текстуры уровня уходят в GPU один раз, в порядке `Level::guids`: этот порядок и есть номер
+// материала спрайта, который `draw_layer` выдаёт по guid.
+bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
+                const Level& level) {
+    if (!quads.init(gpu.device, gpu.queue, format, Layers::CAPACITY)) return false;
+    for (uint32_t i = 0; i < level.texture_count; ++i)
+        if (!quads.add_texture(level.pixels[i].pixels, level.pixels[i].width,
+                               level.pixels[i].height))
+            return false;
+    return true;
+}
+
 int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& scene,
-               int frames, int& drawn) {
+               const Level& level, int frames, int& drawn) {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     SurfaceSpec spec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
                      static_cast<uint32_t>(fbh)};
     spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
+    render::QuadRenderer quads;
+    if (!init_quads(quads, gpu, spec.format, level)) {
+        std::fprintf(stderr, "neon-rumble: quad renderer or level texture upload failed\n");
+        return 1;
+    }
+    Layers layers;
     bool warned = false;
+    bool upload_warned = false;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         int nw = 0, nh = 0;
@@ -58,8 +82,14 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
         if (sf.quit) return 1;
         if (!sf.texture) continue;
         scene.step(static_cast<uint32_t>(drawn));
+        const LayerStats st = layers.build(level, spec.width, spec.height,
+                                           static_cast<uint64_t>(drawn));
+        if (!quads.upload(layers.quads(st), spec.width, spec.height) && !upload_warned) {
+            std::fprintf(stderr, "neon-rumble: %u quad(s) not uploaded, frame left empty\n", st.quads);
+            upload_warned = true;
+        }
         WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
-        clear_frame(gpu, surface, view);
+        draw_frame(gpu, surface, view, quads, layers.runs(st));
         wgpuTextureViewRelease(view);
         wgpuTextureRelease(sf.texture);
         if (++drawn == frames) glfwSetWindowShouldClose(window, GLFW_TRUE);
@@ -69,7 +99,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
 
 } // namespace
 
-int run_window(Scene& scene, int frames) {
+int run_window(Scene& scene, const Level& level, int frames) {
     if (!glfwInit()) {
         std::fprintf(stderr, "neon-rumble: glfwInit failed\n");
         return 1;
@@ -87,7 +117,7 @@ int run_window(Scene& scene, int frames) {
     } else if (!(surface = glfwGetWGPUSurface(gpu.instance, window)) || !gpu.init(surface)) {
         std::fprintf(stderr, "neon-rumble: no surface, adapter or device\n");
     } else {
-        rc = frame_loop(window, gpu, surface, scene, frames, drawn);
+        rc = frame_loop(window, gpu, surface, scene, level, frames, drawn);
         if (rc == 0 && drawn == 0) {
             std::fprintf(stderr, "neon-rumble: window closed before the first frame\n");
             rc = 1;

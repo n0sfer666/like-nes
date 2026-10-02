@@ -71,6 +71,9 @@ Vec2 camera_shake_offset(const Camera& c, uint64_t tick);
 // не попадает, и фон дрожал бы относительно переднего плана ровно там, где режим обязан это убрать.
 Vec2 camera_layer_center(const Camera& c, const CameraConfig& cfg, uint64_t tick, fix32 parallax);
 
+// То же с долей ПО ОСЯМ: параллакс Tiled задаётся отдельно по x и по y.
+Vec2 camera_layer_center(const Camera& c, const CameraConfig& cfg, uint64_t tick, Vec2 parallax);
+
 // Центр для ОТРИСОВКИ игрового слоя — тот же слой с долей единица. Отдельно от `Camera::center`,
 // потому что в симуляцию не пишет ничего из этого.
 Vec2 camera_view_center(const Camera& c, const CameraConfig& cfg, uint64_t tick);

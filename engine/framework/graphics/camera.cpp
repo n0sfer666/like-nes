@@ -104,7 +104,12 @@ Vec2 camera_shake_offset(const Camera& c, uint64_t tick) {
 }
 
 Vec2 camera_layer_center(const Camera& c, const CameraConfig& cfg, uint64_t tick, fix32 parallax) {
-    Vec2 v = (c.center + camera_shake_offset(c, tick)) * parallax;
+    return camera_layer_center(c, cfg, tick, Vec2{parallax, parallax});
+}
+
+Vec2 camera_layer_center(const Camera& c, const CameraConfig& cfg, uint64_t tick, Vec2 parallax) {
+    const Vec2 base = c.center + camera_shake_offset(c, tick);
+    Vec2 v{base.x * parallax.x, base.y * parallax.y};
     if ((cfg.policies & CAMERA_PIXEL_PERFECT) != 0 && cfg.pixels_per_unit > 0) {
         v.x = snap_pixel(v.x, cfg.pixels_per_unit);
         v.y = snap_pixel(v.y, cfg.pixels_per_unit);

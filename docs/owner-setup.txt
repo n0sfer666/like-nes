@@ -1770,7 +1770,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
   headless на трёх ОС (джоб sdk-game); окно на живом железе — только здесь.
   Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
   cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
-  engine/asset/, engine/framework/tilemap/ или games/.
+  engine/asset/, engine/framework/tilemap/, engine/framework/graphics/,
+  engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
 
   macOS и Linux, в корне репозитория:
 
@@ -1790,10 +1791,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Release: SDK built and installed into the prefix
       sdk-game: OK   Debug: SDK built and installed into the prefix
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
       sdk-game: OK   Release: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
       sdk-game: OK   Debug: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash
@@ -1820,17 +1825,30 @@ owner_check.sh гоняет это отдельным этапом сразу п
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
 
-  Оконный запуск: тёмно-фиолетовое окно «Neon Rumble» 960×540, через 120
-  кадров закрывается само; последние строки:
+  Строки level и frame — уровень level1 прочитан игрой из game.bundle
+  (таблица visual и тайлсет сырым RGBA8), а кадр 960x540 при зуме 2 целиком
+  лёг в квады: unknown, rejected и dropped обязаны быть нулями.
+
+  Оконный запуск: окно «Neon Rumble» 960×540 на тёмно-фиолетовом фоне, в
+  нём уровень level1 — фасады над улицей, как в Tiled. Зум — наибольший
+  целый, при котором 192 px карты влезают по высоте кадра (Retina 2x: 5,
+  обычный экран: 2). Камера едет вдоль улицы на пиксель карты за кадр и обратно;
+  через 120 кадров окно закрывается само; последние строки:
 
       [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
       neon-rumble: window run ok, 120 frames
 
-  Код выхода 0. BC: no — не находка: сжатые текстуры скелет не грузит. Сцена пустая — уровень уже в game.bundle (В5а), рисовать
-  его игра начнёт с В5б. Пересохранение level1.tmj в настоящем Tiled — гейт
-  3 спеки #24, docs/owner-verification.md §18. Находка — всё, что не так: окно не открылось, «no surface,
-  adapter or device», «cannot read …/library.bundle», ошибка про
-  libwgpu_native / wgpu_native.dll (рантайм обязан лежать рядом с exe).
+  Код выхода 0. BC: no — не находка: сжатые текстуры игра не грузит.
+  Чтобы рассмотреть прокрутку, — --frames 600. Пересохранение level1.tmj в
+  настоящем Tiled и сверка окна с ним — гейт 3 спеки #24,
+  docs/owner-verification.md §18. Находка — всё, что не так: окно не
+  открылось, «no surface, adapter or device», «cannot read
+  …/library.bundle», «cannot open …/game.bundle», «texture …: <причина>»,
+  щели или полосы между тайлами, тайл не на своём месте против Tiled,
+  тайлы светлее или бледнее, чем в Tiled (на Linux и Windows поверхность
+  бывает sRGB — так проявилось бы двойное кодирование цвета),
+  дрожание при прокрутке, ошибка про libwgpu_native / wgpu_native.dll
+  (рантайм обязан лежать рядом с exe).
   На Linux SDK собран с GLFW только под X11: под Wayland-сессией окно идёт
   через XWayland — это норма В1, не находка.
 

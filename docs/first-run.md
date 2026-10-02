@@ -35,8 +35,9 @@ missing.
 `bash scripts/check_sdk_game.sh --keep` builds and installs the `sdk` component in Release and Debug,
 builds the game against that prefix and leaves it in `build-sdk-work/`. The game's `game.bundle` is
 baked at build time by the SDK's `assetc` from `games/neon-rumble/game.manifest`, and its
-`bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The steps for the owner's
-window run, with the expected output line by line, are section S of
+`bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The game maps that bundle
+and draws level 1 from it; `--headless` prints the level and frame summary the gate checks. The
+steps for the owner's window run, with the expected output line by line, are section S of
 [`owner-setup.txt`](owner-setup.txt).
 
 ## Related

@@ -5,15 +5,19 @@ target_include_directories(asset_hash INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Гейт 1 спеки #12: модуль ассетов собирается на всех трёх ОС. POSIX-only он был ровно из-за
 # двух вещей — fork/execvp у пекаря и mmap у загрузчика; обе ушли за platform_core.
+# Вид бандла без zstd и stb (спека #24, В5б): игре против SDK нужно читать Raw-записи
+# `game.bundle`, а не тянуть кодеки пекаря.
+add_library(asset_view STATIC bundle_view.cpp bundle_lookup.cpp)
+target_include_directories(asset_view PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_library(asset_core STATIC
-  bundle_writer.cpp codec.cpp
-  bundle_view.cpp asset_manager.cpp)
+  bundle_writer.cpp codec.cpp asset_manager.cpp)
 target_include_directories(asset_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # stb и zstd — сторонние: SYSTEM, иначе строгий уровень варнингов вменяет нам их заголовки
 # (реализация stb_image тянет три десятка неиспользуемых функций в codec.cpp).
 target_include_directories(asset_core SYSTEM PUBLIC ${stb_SOURCE_DIR} ${zstd_SOURCE_DIR}/lib)
 # platform_core — PUBLIC: MappedFile стоит полем AssetManager, заголовок нужен потребителям.
-target_link_libraries(asset_core PUBLIC platform_core libzstd_static Threads::Threads)
+target_link_libraries(asset_core PUBLIC asset_view platform_core libzstd_static Threads::Threads)
 
 # Headless гейт #2 (zero-copy / no per-frame heap). ASan/UBSan-джоб — Phase 6.
 add_executable(asset_test asset_test.cpp)
@@ -34,6 +38,9 @@ target_link_libraries(asset_hot_reload_test PRIVATE asset_core)
 
 add_executable(asset_fail_test asset_fail_test.cpp)
 target_link_libraries(asset_fail_test PRIVATE asset_core)
+
+add_executable(asset_lookup_test asset_lookup_test.cpp)
+target_link_libraries(asset_lookup_test PRIVATE asset_core)
 
 # --- Шов asset→render (спека #5 гейт): baked BC7 tex + baked Tint SPIR-V → GPU → offscreen ---
 # basis транскодер — один файл; KTX2 без zstd-суперкомпрессии → BASISD_SUPPORT_KTX2_ZSTD=0

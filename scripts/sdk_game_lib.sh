@@ -21,6 +21,8 @@ game_build() {
 
 # Запуск --headless --frames 60: код выхода 0 И строка вердикта. Одного кода мало — exe, не
 # дошедший до цикла кадров (скажем, без бандла рядом), тоже может выйти нулём из чужой ветки.
+# Сводка уровня (В5б) — бандл прочитан игрой против SDK: таблица `visual`, RGBA8 тайлсета и кадр
+# 960x540, весь легший в квады без чужих текстур и выпавших за край источников.
 game_run() {
     local dir=$1 cfg=$2 exe out
     exe="$dir/neon_rumble"
@@ -32,6 +34,10 @@ game_run() {
         sdk_bad "$cfg: no headless verdict line"; return 1; }
     grep -q '^neon-rumble: library.bundle [1-9][0-9]* bytes' <<< "$out" || {
         sdk_bad "$cfg: library.bundle next to the exe was not loaded"; return 1; }
+    grep -q '^neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256$' \
+        <<< "$out" || { sdk_bad "$cfg: level1 from game.bundle: no summary line"; return 1; }
+    grep -Eq '^neon-rumble: frame 960x540 zoom 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
+        <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 60 headless frames"
 }
 

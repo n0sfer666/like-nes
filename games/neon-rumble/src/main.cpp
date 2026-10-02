@@ -8,6 +8,7 @@
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
 #include "rumble.hpp"
+#include "rumble_layers.hpp"
 
 namespace {
 
@@ -30,6 +31,23 @@ bool parse_frames(const char* text, int& frames) {
     const char* end = text + std::strlen(text);
     const auto [ptr, ec] = std::from_chars(text, end, frames);
     return ec == std::errc() && ptr == end && frames > 0;
+}
+
+// Сводка уровня и кадра — то, что headless доказывает о бандле без окна: таблица `visual` читается,
+// каждая текстура карты лежит сырым RGBA8, кадр в окне 960x540 весь ложится в квады.
+void report_level(const rumble::Level& level) {
+    const auto& row = *level.map.row;
+    std::printf("neon-rumble: level %s %ux%u tile %u, %zu visual layer(s), %u texture(s)",
+                level.name, row.width, row.height, row.tile_size, level.map.layers.size(),
+                level.texture_count);
+    for (uint32_t i = 0; i < level.texture_count; ++i)
+        std::printf(" %ux%u", level.sizes[i].w, level.sizes[i].h);
+    std::printf("\n");
+    rumble::Layers layers;
+    const rumble::LayerStats st = layers.build(level, 960, 540, 0);
+    std::printf("neon-rumble: frame 960x540 zoom %u: %u sprite(s), %u run(s), %u unknown, "
+                "%u rejected, %u dropped\n",
+                st.zoom, st.sprites, st.runs, st.unknown, st.rejected, st.dropped);
 }
 
 int run_headless(rumble::Scene& scene, int frames) {
@@ -64,7 +82,10 @@ int main(int argc, char** argv) {
         return 2;
     }
     if (!report_library_bundle()) return 1;
+    rumble::Level level;
+    if (!level.open(platform::exe_dir() + "/game.bundle", "level1")) return 1;
+    report_level(level);
     rumble::Scene scene;
     if (!scene.init()) return 1;
-    return headless ? run_headless(scene, frames) : rumble::run_window(scene, frames);
+    return headless ? run_headless(scene, frames) : rumble::run_window(scene, level, frames);
 }

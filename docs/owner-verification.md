@@ -2376,13 +2376,15 @@ as §17 — by typing what the page says and noting everything you had to add.
 
 ## 18. Gate 3 of #24 — level 1 comes out of a real Tiled
 
-<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh — bundle_hash 0xf28a379fc38c0753 -->
+<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh --keep — bundle_hash 0xf28a379fc38c0753; окно neon_rumble --frames 600 против вида Tiled -->
 
 `games/neon-rumble/levels/level1.tmj` and `warped-city.tsj` were written by hand to the Tiled 1.10
 JSON format, not saved by Tiled. The importer is tested on fixtures of the same hand, so a field
 Tiled actually writes and the importer refuses — or one it writes differently — stays invisible
-until a real Tiled saves the file. This half of the gate is the bake; the window half (parallax,
-flips, the animated sign) joins it with B5b.
+until a real Tiled saves the file. The gate has two halves: the bake (steps 1–4) and the window
+(step 5), where the game draws the saved level from `game.bundle` and the owner compares it with
+Tiled. Parallax layers and the animated sign are not in level 1 yet — they come with B8 and its own
+scenario; flips and tile animation are judged by the pixel golden on CI on all three OSes.
 
 1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×12 tiles of 16
    px: a row of facades over a street, a one-way platform, a ladder, and the object layer `spawns`
@@ -2391,16 +2393,29 @@ flips, the animated sign) joins it with B5b.
    format). Open `warped-city.tsj` in the same window and save it too.
 3. Run the gate from the repository root (Windows: from the `scripts\win-dev.bat shell` window):
 
-       bash scripts/check_sdk_game.sh
+       bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, and both lines
    `Release: game.bundle bundle_hash 0xf28a379fc38c0753 matches bundle.hash` and the same for
-   `Debug`.
+   `Debug`, each run preceded by
+   `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
+5. Run the window from the same shell and keep Tiled open next to it:
+
+       ./build-sdk-work/game-Release/neon_rumble --frames 600
+
+   (Windows: `build-sdk-work\game-Release\neon_rumble.exe --frames 600`.) The window shows the
+   street and the facades exactly as Tiled draws them, scaled by a whole number (2 on a 1x screen,
+   5 on a 2x one); the camera pans along the street and back, then the window closes with
+   `neon-rumble: window run ok, 600 frames` and exit code 0. Send back a screenshot and the
+   `[gpu]` line.
 
 What counts as a finding: an import refusal (the message names `level1.tmj:<line>:<column>` and
-what to change in Tiled), or a different `bundle_hash`. A diff in the files with the same hash is
-not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
+what to change in Tiled), a different `bundle_hash`, or a window that differs from Tiled — a tile
+in the wrong place or mirrored, a seam or a line between tiles, a shimmer while the camera pans,
+tiles lighter or more washed out than in Tiled (on Linux and Windows the window surface may be sRGB,
+and a doubled colour encoding would look exactly like that). A diff in the files with the same hash
+is not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
 then replace the hand-written ones in the tree.
 
 ## Beyond the gates
