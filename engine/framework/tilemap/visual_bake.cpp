@@ -29,7 +29,7 @@ bool check(std::span<const VisualMapSrc> maps, std::string& error) {
     return true;
 }
 
-bool anims(SectionBuilder& b, const VisualMapSrc& m, VisualRow& row, std::string& error) {
+bool anims(core::SectionBuilder& b, const VisualMapSrc& m, VisualRow& row, std::string& error) {
     std::vector<const VisualAnimSrc*> order;
     for (const VisualAnimSrc& a : m.anims) order.push_back(&a);
     std::sort(order.begin(), order.end(),
@@ -53,7 +53,7 @@ bool anims(SectionBuilder& b, const VisualMapSrc& m, VisualRow& row, std::string
     return true;
 }
 
-void layers(SectionBuilder& b, const VisualMapSrc& m, VisualRow& row) {
+void layers(core::SectionBuilder& b, const VisualMapSrc& m, VisualRow& row) {
     std::vector<VisualLayer> table;
     for (const VisualLayerSrc& l : m.layers) {
         VisualLayer out{};
@@ -81,7 +81,7 @@ void layers(SectionBuilder& b, const VisualMapSrc& m, VisualRow& row) {
 bool bake_visuals(std::span<const VisualMapSrc> maps, std::vector<uint8_t>& out, std::string& error) {
     if (!check(maps, error)) return false;
     std::vector<VisualRow> rows(maps.size(), VisualRow{});
-    SectionBuilder b(rows.size() * sizeof(VisualRow));
+    core::SectionBuilder b(rows.size() * sizeof(VisualRow));
     for (std::size_t i = 0; i < maps.size(); ++i) {
         const VisualMapSrc& m = maps[i];
         VisualRow& r = rows[i];

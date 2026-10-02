@@ -36,7 +36,7 @@ bool anims_ok(std::span<const VisualAnim> anims, std::span<const VisualFrame> fr
     return true;
 }
 
-bool layers_ok(const SectionView& v, const VisualRow& r, std::span<const VisualLayer> layers,
+bool layers_ok(const core::SectionView& v, const VisualRow& r, std::span<const VisualLayer> layers,
                uint32_t total) {
     for (const VisualLayer& l : layers) {
         if (!v.text(l.name_offset) || l.repeat > (REPEAT_X | REPEAT_Y)) return false;
@@ -53,7 +53,7 @@ bool layers_ok(const SectionView& v, const VisualRow& r, std::span<const VisualL
     return true;
 }
 
-bool row_ok(const SectionView& v, const VisualRow& r) {
+bool row_ok(const core::SectionView& v, const VisualRow& r) {
     if (r.width == 0 || r.height == 0 || uint64_t{r.width} * r.height > MAX_MAP_TILES) return false;
     if (r.tile_size == 0 || !v.text(r.name_offset)) return false;
     std::span<const VisualTileset> tilesets;
@@ -71,10 +71,10 @@ bool row_ok(const SectionView& v, const VisualRow& r) {
 } // namespace
 
 bool VisualTable::open(const void* data, std::size_t size) {
-    view_ = SectionView{};
+    view_ = core::SectionView{};
     rows_ = nullptr;
-    SectionView v;
-    if (!open_section(data, size, VISUAL_MAGIC, VISUAL_VERSION, sizeof(VisualRow),
+    core::SectionView v;
+    if (!core::open_section(data, size, VISUAL_MAGIC, VISUAL_VERSION, sizeof(VisualRow),
                       alignof(VisualTileset), v))
         return false;
     const std::span<const VisualRow> rows = v.at<VisualRow>(v.header->rows_offset, v.header->count);

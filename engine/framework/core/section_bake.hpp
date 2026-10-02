@@ -5,7 +5,7 @@
 #include <string>
 #include <vector>
 
-namespace framework::tilemap {
+namespace framework::core {
 
 class SectionBuilder {
 public:
@@ -22,4 +22,4 @@ private:
     std::map<std::string, uint32_t> seen_{{std::string(), 0}};
 };
 
-} // namespace framework::tilemap
+} // namespace framework::core

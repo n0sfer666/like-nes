@@ -27,7 +27,7 @@ public:
     ObjectMap find(const char* name) const;
 
 private:
-    SectionView view_;
+    core::SectionView view_;
     const ObjectRow* rows_ = nullptr;
 };
 

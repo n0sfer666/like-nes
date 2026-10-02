@@ -45,7 +45,7 @@ bool check(std::span<const ObjectMapSrc> maps, std::string& error) {
     return true;
 }
 
-MapObject object_of(SectionBuilder& b, const ObjectSrc& o, std::vector<ObjectVertex>& vertices,
+MapObject object_of(core::SectionBuilder& b, const ObjectSrc& o, std::vector<ObjectVertex>& vertices,
                     std::vector<ObjectProp>& props) {
     MapObject out{};
     out.id = o.id;
@@ -71,7 +71,7 @@ MapObject object_of(SectionBuilder& b, const ObjectSrc& o, std::vector<ObjectVer
     return out;
 }
 
-void map_of(SectionBuilder& b, const ObjectMapSrc& m, ObjectRow& row) {
+void map_of(core::SectionBuilder& b, const ObjectMapSrc& m, ObjectRow& row) {
     std::vector<const ObjectSrc*> order;
     for (const ObjectSrc& o : m.objects) order.push_back(&o);
     std::sort(order.begin(), order.end(), [](const ObjectSrc* x, const ObjectSrc* y) {
@@ -95,7 +95,7 @@ void map_of(SectionBuilder& b, const ObjectMapSrc& m, ObjectRow& row) {
 bool bake_objects(std::span<const ObjectMapSrc> maps, std::vector<uint8_t>& out, std::string& error) {
     if (!check(maps, error)) return false;
     std::vector<ObjectRow> rows(maps.size(), ObjectRow{});
-    SectionBuilder b(rows.size() * sizeof(ObjectRow));
+    core::SectionBuilder b(rows.size() * sizeof(ObjectRow));
     for (std::size_t i = 0; i < maps.size(); ++i) map_of(b, maps[i], rows[i]);
     if (!b.finish(OBJECT_MAGIC, OBJECT_VERSION, static_cast<uint32_t>(rows.size()), rows.data(), out, error))
         return false;

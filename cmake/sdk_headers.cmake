@@ -39,7 +39,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/tilemap/grid.hpp framework/tilemap/map_bake.hpp framework/tilemap/map_format.hpp
   framework/tilemap/map_read.hpp framework/tilemap/tile_rules.hpp
   framework/tilemap/tile_shape.hpp framework/tilemap/tilemap_query.hpp
-  framework/tilemap/section_format.hpp framework/tilemap/section_open.hpp
+  framework/core/section_format.hpp framework/core/section_open.hpp
   framework/tilemap/visual_format.hpp framework/tilemap/visual_read.hpp
   framework/tilemap/visual_texels.hpp framework/tilemap/object_format.hpp
   framework/tilemap/object_read.hpp

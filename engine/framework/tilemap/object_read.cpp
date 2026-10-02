@@ -6,7 +6,7 @@
 namespace framework::tilemap {
 namespace {
 
-bool prop_ok(const SectionView& v, const ObjectProp& p) {
+bool prop_ok(const core::SectionView& v, const ObjectProp& p) {
     if (!v.text(p.name_offset) || p.type > static_cast<uint8_t>(PropType::Bool)) return false;
     if (p.type == static_cast<uint8_t>(PropType::String))
         return p.value >= 0 && v.text(static_cast<uint32_t>(p.value));
@@ -25,12 +25,12 @@ bool shape_ok(const MapObject& o) {
     }
 }
 
-bool ordered(const SectionView& v, const MapObject& a, const MapObject& b) {
+bool ordered(const core::SectionView& v, const MapObject& a, const MapObject& b) {
     const int c = std::strcmp(v.strings + a.class_offset, v.strings + b.class_offset);
     return c < 0 || (c == 0 && a.id < b.id);
 }
 
-bool row_ok(const SectionView& v, const ObjectRow& r) {
+bool row_ok(const core::SectionView& v, const ObjectRow& r) {
     std::span<const MapObject> objects;
     std::span<const ObjectVertex> vertices;
     std::span<const ObjectProp> props;
@@ -52,10 +52,10 @@ bool row_ok(const SectionView& v, const ObjectRow& r) {
 } // namespace
 
 bool ObjectTable::open(const void* data, std::size_t size) {
-    view_ = SectionView{};
+    view_ = core::SectionView{};
     rows_ = nullptr;
-    SectionView v;
-    if (!open_section(data, size, OBJECT_MAGIC, OBJECT_VERSION, sizeof(ObjectRow), alignof(ObjectRow), v))
+    core::SectionView v;
+    if (!core::open_section(data, size, OBJECT_MAGIC, OBJECT_VERSION, sizeof(ObjectRow), alignof(ObjectRow), v))
         return false;
     const std::span<const ObjectRow> rows = v.at<ObjectRow>(v.header->rows_offset, v.header->count);
     for (const ObjectRow& r : rows)

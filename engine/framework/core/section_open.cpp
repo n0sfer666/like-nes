@@ -2,7 +2,7 @@
 
 #include <cstring>
 
-namespace framework::tilemap {
+namespace framework::core {
 
 bool SectionView::block(uint32_t offset, uint64_t bytes, std::size_t align) const {
     if (offset < rows_end || offset % align != 0) return false;
@@ -34,4 +34,4 @@ bool open_section(const void* data, std::size_t size, const uint8_t (&magic)[4],
     return true;
 }
 
-} // namespace framework::tilemap
+} // namespace framework::core

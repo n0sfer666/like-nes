@@ -2,7 +2,7 @@
 # framework_physics: сетка не пишет геометрию заново, а разворачивает тайл в форму #15 и отвечает
 # теми же свипом и узкой фазой. Обратного ребра нет — физика про тайлы не знает (решение 3 спеки).
 add_library(framework_tilemap STATIC grid.cpp query.cpp map_parse.cpp map_bake.cpp tile_flag_words.cpp
-  map_read.cpp section_open.cpp section_bake.cpp visual_read.cpp visual_texels.cpp visual_bake.cpp
+  map_read.cpp visual_read.cpp visual_texels.cpp visual_bake.cpp
   object_read.cpp object_bake.cpp)
 target_include_directories(framework_tilemap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит сетка, а не файловый шов, которым пекарь читает

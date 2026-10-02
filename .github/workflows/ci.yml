@@ -2497,7 +2497,7 @@ jobs:
           # стыка ходят вдоль самых границ карты (490 выровненных свипов и 256 путей сквозь плиту),
           # то есть ровно там, где такой промах и живёт.
           # ci-lint: mirrors-target engine/framework/tilemap/CMakeLists.txt framework_tilemap
-          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/tilemap/section_bake.cpp engine/framework/tilemap/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/visual_texels.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
+          TILES="engine/framework/tilemap/grid.cpp engine/framework/tilemap/query.cpp engine/framework/tilemap/map_parse.cpp engine/framework/tilemap/map_bake.cpp engine/framework/tilemap/map_read.cpp engine/framework/core/section_bake.cpp engine/framework/core/section_open.cpp engine/framework/tilemap/tile_flag_words.cpp engine/framework/tilemap/visual_bake.cpp engine/framework/tilemap/visual_read.cpp engine/framework/tilemap/visual_texels.cpp engine/framework/tilemap/object_bake.cpp engine/framework/tilemap/object_read.cpp"
           # Пекарь читает исходник файлом, поэтому шов файловой системы линкуется здесь же: CMake в
           # этом шаге не участвует, и цепочка собирается поимённо.
           # ci-lint: mirrors-group seam-fs

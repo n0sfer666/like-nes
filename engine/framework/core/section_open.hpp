@@ -5,7 +5,7 @@
 
 #include "section_format.hpp"
 
-namespace framework::tilemap {
+namespace framework::core {
 
 struct SectionView {
     const uint8_t* base = nullptr;
@@ -35,4 +35,4 @@ struct SectionView {
 bool open_section(const void* data, std::size_t size, const uint8_t (&magic)[4], uint32_t version,
                   std::size_t row_size, std::size_t align, SectionView& out);
 
-} // namespace framework::tilemap
+} // namespace framework::core

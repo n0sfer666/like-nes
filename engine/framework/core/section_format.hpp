@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace framework::tilemap {
+namespace framework::core {
 
 struct SectionHeader {
     uint8_t magic[4];
@@ -13,4 +13,4 @@ struct SectionHeader {
 };
 static_assert(sizeof(SectionHeader) == 24, "SectionHeader layout pinned (zero-parse ABI)");
 
-} // namespace framework::tilemap
+} // namespace framework::core

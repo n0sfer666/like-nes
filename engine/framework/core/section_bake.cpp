@@ -4,7 +4,7 @@
 
 #include "section_format.hpp"
 
-namespace framework::tilemap {
+namespace framework::core {
 
 SectionBuilder::SectionBuilder(std::size_t rows_bytes)
     : rows_bytes_(rows_bytes), bytes_(sizeof(SectionHeader) + rows_bytes, 0) {}
@@ -48,4 +48,4 @@ bool SectionBuilder::finish(const uint8_t (&magic)[4], uint32_t version, uint32_
     return true;
 }
 
-} // namespace framework::tilemap
+} // namespace framework::core

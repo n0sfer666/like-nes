@@ -28,7 +28,7 @@ public:
     VisualMap find(const char* name) const;
 
 private:
-    SectionView view_;
+    core::SectionView view_;
     const VisualRow* rows_ = nullptr;
 };
 

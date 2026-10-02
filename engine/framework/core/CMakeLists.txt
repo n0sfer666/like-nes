@@ -1,7 +1,8 @@
 # --- framework_core: стадии тика и расписание систем (спека #14, правила слоя — ../README.md).
 # Зависит только от engine_core: стрелка слоя направлена вниз, и проверить это должно быть можно
 # по этой строке, не читая код.
-add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp)
+add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp section_bake.cpp
+  section_open.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
 
