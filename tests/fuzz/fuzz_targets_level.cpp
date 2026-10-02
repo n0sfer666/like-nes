@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "clip_bake.hpp"
+#include "clip_read.hpp"
 #include "fuzz_target.hpp"
 #include "object_bake.hpp"
 #include "object_read.hpp"
@@ -12,6 +14,7 @@ namespace fuzz {
 namespace {
 
 namespace tl = framework::tilemap;
+namespace gr = framework::graphics;
 
 std::vector<uint8_t> seed_visuals() {
     tl::VisualMapSrc m;
@@ -122,9 +125,45 @@ bool read_objects(const uint8_t* data, size_t size) {
     return true;
 }
 
+std::vector<uint8_t> seed_clips() {
+    gr::ClipSrc c;
+    c.name = "hero/run";
+    c.flags = gr::CLIP_LOOP | gr::CLIP_PINGPONG;
+    c.texture_guid = 0xA1;
+    c.frames = {gr::ClipFrameSrc{0, 0, 16, 24, 8, 24, 3, "step",
+                                 {gr::ClipBoxSrc{gr::BoxKind::Hurt, 0, {-6, -16, 12, 16}},
+                                  gr::ClipBoxSrc{gr::BoxKind::Push, 0, {-4, -20, 8, 20}}}},
+                gr::ClipFrameSrc{16, 0, 16, 24, -2, 30, 4, "", {gr::ClipBoxSrc{gr::BoxKind::Hit, 1, {2, -18, 10, 6}}}}};
+    std::vector<uint8_t> bytes;
+    std::string err;
+    gr::bake_clips({&c, 1}, bytes, err);
+    return bytes;
+}
+
+bool read_clips(const uint8_t* data, size_t size) {
+    gr::ClipTable t;
+    if (!t.open(data, size)) return false;
+    for (uint32_t i = 0; i < t.count(); ++i) {
+        const gr::ClipView v = t.clip(i);
+        consume_str(t.name(i));
+        consume_all(v.row->texture_guid, gr::clip_period(v.clip), gr::clip_frame_at(v.clip, 1000));
+        for (uint16_t f = 0; f < v.clip.frame_count; ++f) {
+            const gr::ClipFrame& fr = v.clip.frames[f];
+            const gr::ClipCel& c = v.cels[fr.region];
+            consume_str(gr::clip_event_name(v, fr.event));
+            consume_all(fr.duration, c.x, c.y, c.w, c.h, c.anchor_x, c.anchor_y);
+            for (const gr::ClipBox& b : gr::cel_boxes(v, c))
+                consume_all(b.kind, b.index, b.rect.x, b.rect.y, b.rect.w, b.rect.h);
+        }
+        consume(t.find(t.name(i)).row == v.row);
+    }
+    return true;
+}
+
 const Target TARGETS[] = {
     {"visual", seed_visuals, read_visuals},
     {"objects", seed_objects, read_objects},
+    {"clips", seed_clips, read_clips},
 };
 
 } // namespace

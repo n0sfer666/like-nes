@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**7 of the 19 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 12 stay here as the procedure, because each needs a machine a CI runner is not: a
+**7 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -35,6 +35,7 @@ names that surface.
 | No Visual C++ Redistributable on the box, and a silent install still lands | [#20](../.context/specs/2026-07-26-release-installers.md) 4 | **Windows** | — | `cmake/msvc_runtime.cmake`, `cmake/msvc_redist.cmake`, `packaging/like-nes.wxs.in` |
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
+| Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
 The last to close was the look of the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
@@ -2418,9 +2419,58 @@ and a doubled colour encoding would look exactly like that). A diff in the files
 is not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
 then replace the hand-written ones in the tree.
 
+## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
+
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json -->
+
+The importer reads boxes from slices and events from the user data of a tag, and both were tested
+on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
+is an Aseprite 1.2.8 export with neither, so how 1.3 actually writes a slice key, a slice switched
+off on a frame, and the user data of a tag stays unknown until a real Aseprite exports them. The
+window half — the fighter playing its clips with F3 drawing the boxes — comes with B6b.
+
+1. Take `Queen.ase` from the Chewbatrij pack
+   (https://opengameart.org/sites/default/files/punchingqueen_gfx.zip) and open it in Aseprite 1.3
+   or newer. Tag `Death` spans frames 3 to 8.
+2. On frame 3 draw a slice around the fist and name it `hit0`. Move it a little on frame 4. On
+   frame 5 remove the slice from that frame only; if Aseprite 1.3 cannot clear one frame of a
+   slice, leave it and say so — the box then stays on to the end of the tag, and that is a finding
+   about the format, not about the drawing.
+3. Open the properties of tag `Death` and type `1:fall` into its user data text.
+4. **File → Export Sprite Sheet**: Layout **By Rows**; Sprite — no trim, no padding; Borders —
+   leave **Ignore Empty** and **Merge Duplicates** off; Output — **JSON Data**, **Array**, with
+   **Tags** and **Slices** ticked, and **Split Layers**/**Split Tags** off. Save the sheet as
+   `queen.png` and the data as `queen.json` into one new directory outside the repository.
+5. Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window), naming that
+   directory:
+
+       bash scripts/aseprite_owner_check.sh <directory>
+
+   The script bakes the export with `assetc`, reads the clip table back out of the bundle with
+   `clip_dump` and looks for four rows of it. Clip frame 0 of `Death` is sprite frame 3, and tag
+   `Hit` covers the same frame 3, so the box reaches both clips. Expected:
+
+       [assetc] manifest <directory>/queen.bundle (<n> bytes, 2 assets)
+       [assetc] bundle_hash = 0x<16 hex digits>
+         ok: queen/Death frame=0 boxes=hit0 event=-
+         ok: queen/Death frame=1 boxes=hit0 event=fall
+         ok: queen/Death frame=2 boxes=- event=-
+         ok: queen/Hit frame=0 boxes=hit0 event=-
+       aseprite-export: PASS
+
+   A `missing:` row is printed with every `Death` and `Hit` row of the table under it, and the
+   script ends with `aseprite-export: FAIL`.
+6. Send back `queen.json` and the output of step 5. The JSON goes into the tree as a fixture that
+   pins the hit box to frames 3 and 4 and the event `fall` to frame 4.
+
+What counts as a finding: a refusal (it names `queen.json:<line>:<column>` and what to change in
+the export), a `queen.json` whose tag `Death` has no `data` field after step 3 — the user data did
+not reach the export, and events then move to the fallback of slices `ev:<name>` — or a slice that
+Aseprite would not clear on one frame.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 7 of the 19 are closed, and the open 12 are listed by
+The gates above are what the ADRs waited on; 7 of the 20 are closed, and the open 13 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

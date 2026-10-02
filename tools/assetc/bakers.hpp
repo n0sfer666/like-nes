@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "bundle_writer.hpp"
+#include "clip_bake.hpp"
 #include "codec.hpp"
 #include "tiled_import.hpp"
 
@@ -27,6 +28,7 @@ bool materials(const std::string& src, const std::string& wgsl_src,
                std::vector<AssetInput>& out);
 bool lights(const std::string& src, std::vector<AssetInput>& out);
 bool levels(std::span<const framework::tiled::Level> levels, std::vector<AssetInput>& out, std::string& error);
+bool clips(std::span<const framework::graphics::ClipSrc> clips, std::vector<AssetInput>& out, std::string& error);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);

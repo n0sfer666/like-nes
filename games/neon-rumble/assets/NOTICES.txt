@@ -1,6 +1,14 @@
 Third-party assets of this game and their licences.
 Generated from LICENSES.toml by scripts/check_asset_licenses.py --write; do not edit.
 
+== chewbatrij ==
+Author: Chewbatrij
+Source: https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+License: CC0-1.0 (licenses/CC0-1.0.txt)
+Files:
+  chewbatrij/queen.json
+  chewbatrij/queen.png
+
 == warped-city ==
 Author: ansimuz
 Source: https://opengameart.org/content/warped-city

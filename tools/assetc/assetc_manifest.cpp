@@ -72,8 +72,8 @@ bool texture(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f.size() != 4)
         return fail(err, line, "texture record has " + std::to_string(f.size()) +
                                    " fields, expected texture|<name>|<codec>|<path>");
-    if (f[1] == "tilemap" || f[1] == "visual" || f[1] == "objects")
-        return fail(err, line, "texture name '" + f[1] + "' is reserved for the level sections");
+    if (f[1] == "tilemap" || f[1] == "visual" || f[1] == "objects" || f[1] == "clips")
+        return fail(err, line, "texture name '" + f[1] + "' is reserved for the level and clip sections");
     if (f[2] != "pixel" && f[2] != "hd")
         return fail(err, line, "unknown codec '" + f[2] + "', expected pixel or hd");
     return true;
@@ -88,13 +88,24 @@ bool level(const std::vector<std::string>& f, uint32_t line, Error& err) {
     return true;
 }
 
+bool clips(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 4 || (f[2] != "aseprite" && f[2] != "sheet"))
+        return fail(err, line, "clips record expected as clips|<name>|aseprite|<path>.json or "
+                               "clips|<name>|sheet|<path>.sheet");
+    const std::string ext = f[2] == "aseprite" ? ".json" : ".sheet";
+    if (!f[3].ends_with(ext)) return fail(err, line, "clips path '" + f[3] + "' must end in " + ext);
+    return true;
+}
+
 bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error& err) {
     if (f[0] == "texture") {
         if (!texture(f, line, err)) return false;
     } else if (f[0] == "level") {
         if (!level(f, line, err)) return false;
+    } else if (f[0] == "clips") {
+        if (!clips(f, line, err)) return false;
     } else {
-        return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level)");
+        return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips)");
     }
     if (!name_ok(f[1]))
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");

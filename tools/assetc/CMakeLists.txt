@@ -2,9 +2,9 @@
 # не линковали webgpu, который нужен исполняемому `assetc` только для валидации материалов.
 add_library(assetc_bake STATIC bakers.cpp bakers_pixel.cpp assetc_manifest.cpp
   assetc_manifest_paths.cpp assetc_depfile.cpp assetc_emit.cpp manifest_bake.cpp level_source.cpp
-  bakers_level.cpp push_table.cpp)
+  bakers_level.cpp bakers_clips.cpp push_table.cpp)
 target_include_directories(assetc_bake PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(assetc_bake PUBLIC asset_core framework_core framework_tiled)
+target_link_libraries(assetc_bake PUBLIC asset_core framework_core framework_tiled framework_graphics_import)
 
 # Гейт 1 спеки #12: пекарь собирается и печёт на всех трёх ОС — запуск кодеков ушёл
 # за platform_process, открытие файлов за platform_fs.
@@ -16,9 +16,12 @@ add_executable(assetc assetc_main.cpp bakers_table.cpp manifest_mode.cpp validat
 # Бейк от этого не перестаёт работать на машине без GPU: бэкенды, которых нет, честно называются
 # пропущенными, и число проверенных печатается строкой.
 target_link_libraries(assetc PRIVATE assetc_bake ach_core material_bake material_validate
-  light_bake framework_input framework_character framework_graphics)
+  light_bake framework_input framework_character)
 target_copy_webgpu_binaries(assetc)
 reproducible_rpath(assetc)
+
+add_executable(clip_dump clip_dump.cpp)
+target_link_libraries(clip_dump PRIVATE assetc_bake)
 
 add_executable(assetc_manifest_test assetc_manifest_test.cpp)
 target_link_libraries(assetc_manifest_test PRIVATE assetc_bake)
@@ -26,3 +29,5 @@ add_executable(assetc_bake_test assetc_bake_test.cpp)
 target_link_libraries(assetc_bake_test PRIVATE assetc_bake)
 add_executable(assetc_level_test assetc_level_test.cpp)
 target_link_libraries(assetc_level_test PRIVATE assetc_bake)
+add_executable(assetc_clips_test assetc_clips_test.cpp)
+target_link_libraries(assetc_clips_test PRIVATE assetc_bake)

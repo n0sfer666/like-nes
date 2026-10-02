@@ -57,7 +57,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/particles.hpp framework/graphics/player.hpp
   framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp
   framework/graphics/layer_draw.hpp framework/graphics/gpu/layer_quads.hpp
-  framework/graphics/sprite_flip.hpp
+  framework/graphics/sprite_flip.hpp framework/graphics/clip_format.hpp
+  framework/graphics/clip_read.hpp framework/graphics/clip_bake.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
 )

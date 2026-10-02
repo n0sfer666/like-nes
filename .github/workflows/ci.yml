@@ -858,7 +858,7 @@ jobs:
         run: |
           for t in material_bake_test material_source_test material_table_test \
                    material_library_test light_table_test assetc_manifest_test assetc_bake_test \
-                   assetc_level_test; do
+                   assetc_level_test assetc_clips_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -1338,10 +1338,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=12, а не 13, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=13, а не 14, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=12 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=13 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -1959,6 +1959,8 @@ jobs:
                    framework_graphics_batch_test framework_graphics_batch_refusal_test \
                    framework_graphics_batch_alloc_test framework_graphics_tile_test \
                    framework_graphics_tile_refusal_test framework_graphics_flip_test \
+                   framework_graphics_clip_bake_test framework_graphics_clip_import_test \
+                   framework_graphics_clip_import_refusal_test framework_graphics_clip_read_test \
                    framework_graphics_layer_test framework_graphics_layer_kinds_test \
                    framework_graphics_particle_test framework_graphics_particle_split_test \
                    framework_graphics_particle_refusal_test \
@@ -2715,7 +2717,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=13 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=14 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -2734,7 +2736,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=13 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=14 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -2773,6 +2775,11 @@ jobs:
           assetc_manifest_test:assetc-manifest: PASS
           assetc_bake_test:assetc-bake: PASS
           assetc_level_test:assetc-level: PASS
+          assetc_clips_test:assetc-clips: PASS
+          framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
+          framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
+          framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS
+          framework_graphics_clip_read_test:framework-graphics-clip-read: PASS
           framework_tilemap_visual_test:framework-tilemap-visual: PASS
           framework_tilemap_objects_test:framework-tilemap-objects: PASS
           framework_graphics_layer_test:framework-graphics-layer: PASS

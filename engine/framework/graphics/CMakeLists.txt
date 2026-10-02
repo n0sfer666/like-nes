@@ -3,7 +3,7 @@
 # регион атласа здесь — прямоугольник в пикселях, а не текстура. Тянуть сюда RHI «на будущее»
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
+add_library(framework_graphics STATIC clip.cpp clip_bake.cpp clip_read.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
   particles.cpp viewport.cpp sprite_flip.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
@@ -11,6 +11,8 @@ target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
 # platform_core — PRIVATE и только за файловым швом пекаря нарезки: наружу из модуля торчат клип,
 # камера и таблица регионов, а не чтение файла. То же устройство, что у framework_tilemap.
 target_link_libraries(framework_graphics PUBLIC framework_core PRIVATE platform_core)
+
+include(${CMAKE_CURRENT_LIST_DIR}/import.cmake)
 
 # Гейты шага A — ТРИ цели, и граница между ними класс поломки, который обязано называть имя
 # упавшей цели в логе CI:

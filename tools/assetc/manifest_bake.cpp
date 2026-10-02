@@ -5,6 +5,7 @@
 #include "assetc_manifest.hpp"
 #include "baker_guid.hpp"
 #include "bakers.hpp"
+#include "clip_import.hpp"
 #include "level_source.hpp"
 #include "platform_fs.hpp"
 
@@ -61,6 +62,29 @@ bool level(Bake& b, const Record& r, const std::string& file, LevelSource& src,
     return true;
 }
 
+bool clips(Bake& b, const Record& r, const std::string& file, LevelSource& src,
+           std::vector<framework::graphics::ClipSrc>& out) {
+    std::vector<uint8_t> bytes;
+    if (!platform::read_bytes_capped(file, bytes, MAX_LEVEL_BYTES))
+        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 64 MiB)");
+    std::vector<framework::graphics::ClipSrc> got;
+    std::string why;
+    const bool ok =
+        r.codec == "aseprite"
+            ? framework::graphics::import_aseprite(r.name, file, std::as_bytes(std::span<const uint8_t>(bytes)), src,
+                                                   got, why)
+            : framework::graphics::import_sheet(r.name, file, std::string(bytes.begin(), bytes.end()), src, got, why);
+    if (!ok) return fail(b, r.line, why);
+    if (!framework::graphics::check_clips(got, why)) return fail(b, r.line, file + ": " + why);
+    out.insert(out.end(), std::make_move_iterator(got.begin()), std::make_move_iterator(got.end()));
+    return true;
+}
+
+bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src,
+                 std::vector<framework::tiled::Level>& levels, std::vector<framework::graphics::ClipSrc>& clipped) {
+    return r.kind == "level" ? level(b, r, file, src, levels) : clips(b, r, file, src, clipped);
+}
+
 } // namespace
 
 bool bake(Bake& b) {
@@ -80,19 +104,23 @@ bool bake(Bake& b) {
     Textures textures;
     LevelSource src(base, textures, b.deps);
     std::vector<framework::tiled::Level> levels;
-    uint32_t last_level = 0;
+    std::vector<framework::graphics::ClipSrc> clipped;
+    uint32_t last_level = 0, last_clips = 0;
     for (const bool textures_pass : {true, false}) {
         for (const Record& r : records) {
             if ((r.kind == "texture") != textures_pass) continue;
             std::string file, why;
             if (!resolve(base, r.path, file, why)) return fail(b, r.line, why);
             b.deps.push_back(file);
-            if (textures_pass ? !texture(b, r, file, textures) : !level(b, r, file, src, levels)) return false;
-            last_level = textures_pass ? last_level : r.line;
+            if (textures_pass ? !texture(b, r, file, textures) : !second_pass(b, r, file, src, levels, clipped))
+                return false;
+            if (r.kind == "level") last_level = r.line;
+            if (r.kind == "clips") last_clips = r.line;
         }
     }
     std::string why;
     if (!levels.empty() && !bakers::levels(levels, b.assets, why)) return fail(b, last_level, why);
+    if (!clipped.empty() && !bakers::clips(clipped, b.assets, why)) return fail(b, last_clips, why);
     return true;
 }
 
