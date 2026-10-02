@@ -1909,9 +1909,11 @@ jobs:
           COMMON=$(find engine/framework/input engine/framework/core engine/platform \
             -maxdepth 1 -name '*.cpp' \
             | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
+          IMPORT=$(sed -n '/add_library(framework_graphics_import/,/)/p' engine/framework/graphics/import.cmake \
+            | grep -oE '[a-z_]+\.cpp' | sed 's|^|graphics/|')
           FW=$(find engine/framework/graphics engine/framework/character \
             engine/framework/tilemap engine/framework/physics \
-            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$')
+            -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$' | grep -vF "$IMPORT")
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
             engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
