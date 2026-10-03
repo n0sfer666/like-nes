@@ -1682,7 +1682,7 @@ bit.
 
 ## 13. Gate 8 of #22 — the network frame cost (Linux and Windows)
 
-<!-- gate: open | цена кадра сети: два числа (sim и net) сверить с бюджетом на САМОЙ МЕДЛЕННОЙ машине владельца -->
+<!-- gate: open | цена кадра сети: Linux-половина снята 2026-10-03 на Nobara (та же коробка — самая медленная), осталась ВИНДОВАЯ половина на ней же: scripts\win-dev.bat check, затем bash scripts/owner_net_budget.sh -->
 
 The third frame-cost gate, and the first one whose frame contains a *rollback*. Sections 4 and 5
 measure a physics step and a character tick; this one measures the step a networked peer actually
@@ -1758,6 +1758,54 @@ What to judge, in this order:
 **Measure on an idle machine**, for exactly the reason spelled out in §5: nothing in this output
 separates a loaded run from a quiet one, and a build in another window is enough to turn a 1.9%
 frame into a 20% one.
+
+### The Linux half, 2026-10-03 (Nobara, Intel UHD 620, gcc 16.2.1, Release, idle box on AC)
+
+This is the slowest machine in the set, and the one `owner-setup.txt` pins as such. Eight runs of
+`scripts/owner_net_budget.sh` on a quiet desktop, every one exiting `0` with no `FAIL` line:
+
+| | worst frame | of 16.67 ms | `sim worst` | `net worst` | socket passes | `resent` |
+|---|---|---|---|---|---|---|
+| `send` | 0.269-0.456 ms | 1.6-2.7% | 0.234-0.361 ms | 0.027-0.095 ms | 452-558 | 78-224 |
+| `recv` | 0.250-0.542 ms | 1.5-3.3% | 0.207-0.338 ms | 0.027-0.204 ms | 1158-1273 | 0 |
+
+Both peers printed `over 417 ticks`, `forced=0` and `aliens=0` in every run, so questions 1 and 2
+are answered by the run itself. The counters were identical run to run — `send` 21 rollbacks and 84
+replayed ticks, `recv` 20 and 72 — which is the scripted route being the same route, not the machine.
+
+**The shared budget, which the script cannot see.** This box's physics step (§4) is
+`heap: worst=4.177 ms mean=3.276 ms` and its character tick (§5) `target: worst=0.2357 ms
+mean=0.0278 ms`. Adding the means to the worst network frame of the eight runs gives
+**3.28 + 0.03 + 0.54 = 3.85 ms, 23% of a frame**; worst on worst on worst it is
+**4.18 + 0.24 + 0.54 = 4.96 ms, 30%**. The network half is the smallest of the three terms by an
+order of magnitude: on this machine the frame is paid for by physics, and the rollback, the
+recording and the socket together cost about half a percent of it per peer on average
+(`sim mean` 0.032-0.052 ms, `net mean` 0.003-0.011 ms).
+
+**Question 4 is answered the other way round here, and that is a finding.** The gate expects `recv`
+to be the expensive peer because it is the one that rolls back. Its socket half behaves exactly as
+predicted — 1158-1273 passes against 452-558, a ratio of about 2.3, in every single run. Its
+simulation half does not: `recv sim worst` was *lower* than `send sim worst` in six runs of eight
+and equal in the other two (0.234 against 0.234), where the M3 Pro reference has `recv` at 1.9x
+`send` (0.208 against 0.112). The totals follow: `send` came out the costlier peer in four of the
+eight runs, and the two sets overlap completely, so on this box the ordering is noise rather than
+structure. What is *not* noise is that the asymmetry the gate rests on is visible on Metal and not
+here. The counters rule out a different route, which leaves the clock: every `sim` sample on this
+machine is two to three times the M3 Pro's, and whatever `recv`'s replay burst adds is inside that
+spread instead of above it. **Which of the two it is — the replay burst drowning in a slower
+baseline, or the sender paying something the Mac does not — is not judged from this run.**
+
+`resent=` sits at 78-224 on the sender and 0 on the receiver, exactly the reliable layer doing its
+job on a loopback. It is not the story the gate warns about: the sender's `net worst` is the
+*smallest* number in the whole report (0.027-0.095 ms), so those resends cost nothing measurable.
+
+The machine was quiet, and there is a cross-check for that rather than a claim: `target: worst=0.2357
+mean=0.0278` on this run against `worst=0.2600 mean=0.0242` measured on the same box on 2026-09-01 —
+the same numbers, where a loaded box turns them into 3.7 ms (§5 recorded a fourteenfold difference
+from three builds running alongside).
+
+**The gate stays open on the Windows half**, which runs on this same box: it is the slowest machine
+on both OSes, and §5 closed only after both.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
 
