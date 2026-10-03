@@ -1276,6 +1276,14 @@ a comparison of your machine with itself.
 > The numeric half stays machine-side and green on all three runners: the pipeline count, the draw
 > calls, and no compile after the warm-up. Kept as the procedure — a change under the right-hand
 > column of the table re-runs it.
+>
+> **Corroborated the same day on Linux** (Nobara, Intel UHD 620, Vulkan), where the harness runs
+> `--selftest` rather than `--golden` for the reason two paragraphs below: `[gpu] Intel(R) UHD
+> Graphics 620 (KBL GT2) | Vulkan | BC: yes`, then `warm-up: 3 pipeline(s) for 7 material(s), 0
+> fallback(s)`, `frame: 28 instance(s) in 3 draw call(s)`, `painted: 30.4% of the frame`, the
+> `fs_nope` fallback line and `material-gpu: PASS`. Every counter is identical to the Metal run,
+> `painted` included to the tenth of a percent — the scene the reference describes is the scene a
+> foreign driver draws, which is the part of the gate a pinned PNG cannot carry across adapters.
 
 ```sh
 cmake --build build --target material_golden
