@@ -189,6 +189,43 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 > Fedora 44 dropped `gnome-session-xsession` from the repos, and picking the installed `i3` session
 > means logging out — an owner action.
 
+> **Re-run of the X11 half, 2026-10-03**, same box, i3 on Xorg, commit `a8e67c0`:
+> `./build/editor_shell --gate6` came back **PASS, failures: 0** with `XDG_SESSION_TYPE=x11`,
+> `glfw: x11`, `DISPLAY=set WAYLAND_DISPLAY=unset`. Evidence: `build/owner-artifacts-linux/x11/`.
+>
+> * **The first run passed with the gizmo off screen.** i3 tiles a new window, so it came up
+>   1916x507; the camera keeps its zoom and centres the scene, and the top row of the grid —
+>   `entity_0` and its gizmo — fell above the viewport's edge (`gate6-x11.png`). Every check stayed
+>   green, because the hit-test checks are arithmetic on `world_to_screen` and never ask whether the
+>   point lies inside the viewport. Run fullscreen (`$mod+f`) instead: `gate6-x11-full.png`
+>   (1920x1080) shows the gizmo, and `screen-x11-gate6.png` — a grab of the X root window, i.e. the
+>   screen itself, with no compositor in between — shows the same window on screen.
+> * **The gizmo does not obey a mouse, real or synthetic, because the editor has no code for it.**
+>   An XTEST drag along the X axis (`780,227 → 972,227`, 24 steps, button 1 held) left the
+>   Inspector at `x [fix32] = -8388608` before and after, and `Ctrl+Z` changed nothing
+>   (`mouse-strip.png`). The reason is in the tree, not in the session: `viewport_panel`
+>   (`tools/ide/editor/editor_ui.hpp`) draws the axes and never reads the mouse; `gizmo_hit` is
+>   called only from `editor_selftest.cpp` and `editor_gate6.cpp`, and the gate's "drag" is
+>   `bus.set_component` called directly. `git log --all -S` finds no `IsMouseDragging`,
+>   `IsMouseClicked`, `IsMouseDown` or `GetMouseDragDelta` in the whole history — the hit-test has
+>   not been wired to input since it was added in `3aacd7a` (2026-07-21). The closing note's
+>   "the gizmo obeys a real mouse" cannot have been observed; what a mouse does move is the
+>   Inspector's `Position.raw` drag field. The gate stays on its 2026-08-05 date pending the owner's
+>   decision: this is the question the gate exists to ask, and the answer today is **no**.
+> * **GLFW 3.4 hangs on X11 when a window is created under a fullscreen window.** With the editor
+>   fullscreen on the same i3 workspace, `neon_rumble --frames 120` never shows a frame: 1189 s and
+>   counting at 99% CPU on one thread, stack `glfwCreateWindow → _glfwCreateWindowX11 →
+>   waitForVisibilityNotify → XCheckTypedWindowEvent`; reproduced 2 of 2 under `timeout 20`
+>   (`n9-x11.txt`). `waitForX11Event` returns true while *any* event is queued, so an event that
+>   `XCheckTypedWindowEvent` does not take keeps the loop spinning and the 0.1 s timeout is never
+>   spent. Upstream master has the same two functions unchanged. It affects every GLFW window of
+>   the engine, editor included.
+> * **Finding Н9 (a hidden window presents at 1 Hz) does not happen on Xorg.** Same binary,
+>   `--frames 120`: alone on screen 2.00 s, moved to a hidden i3 workspace (unmapped) 2.00 s;
+>   `--frames 600` covered by a fullscreen window *after* it was created 11.1 s. The 1 Hz is
+>   mutter's, not the engine's — on this session the loop runs at refresh whatever the window's
+>   visibility.
+
 On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
 first run comes back FAIL on the passport line alone. That case is walked through step by step in
 [`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
