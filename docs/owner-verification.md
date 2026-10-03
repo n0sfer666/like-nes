@@ -1400,7 +1400,7 @@ that regression. Seeing no effects there is correct.
 
 ## 11. Gate 3 of #18 — hot-reload in front of a person
 
-<!-- gate: open | hot-reload на живом экране: правка меняет картинку не останавливая игру, опечатка её не гасит -->
+<!-- gate: open | hot-reload на живом экране: осталось глазами — нет ли рывка кадра в игре и мигания панели в момент перезагрузки (остальное снято 2026-10-03 на macOS) -->
 
 > **Open.** Everything about hot-reload that a machine can assert is asserted twice and headlessly:
 > `material_hot_reload` proves the cache-level contract on every OS in CI (a valid edit rebuilds all
@@ -1409,6 +1409,27 @@ that regression. Seeing no effects there is correct.
 > edit and is **byte-identical** after a broken one. What neither can answer is the only question the
 > feature exists for: does the picture on a real screen change while you keep playing, and does a
 > typo leave it alone instead of blanking it.
+>
+> **Run on 2026-10-03 on a MacBook with an M3 Pro (Metal): everything a still frame can show
+> passes.** What is left is the transient: a hitch in the game's frame rate or a flicker of the
+> panel at the moment of a reload. The captures were taken about four a second, which is too
+> coarse to see either, so that one look is yours.
+>
+> - **Editor, machine half:** `--gate3` printed `-> 6 pipeline(s) total`, the
+>   `rejected: …:1:1:` diagnostic and `gate 3: PASS (failures: 0)`, and exited 0.
+> - **Editor, window:** the panel reads `native watch`.
+>   1. The real edit turns the `flash*` column magenta and moves the counters to
+>      `6 pipeline(s), 1 reload(s)`.
+>   2. The broken edit adds `1 rejected` and a red
+>      `sprite_effects.wgsl:1:1: error: expected global item…`. The preview is byte-identical to
+>      the frame before the edit, once shifted down by that one new line (34 px).
+>   3. Restoring the file gives `2 reload(s)` with `rejected` still at 1, and a preview
+>      byte-identical to the one before any edit.
+> - **Game:** it printed the `(native watch)` line, then `-> 6 pipeline(s) total`, the diagnostic
+>   with `rejected, previous library still drawing`, and `-> 9 pipeline(s) total` on the restore.
+>   One window capture per ~0.25 s shows a live enemy pink before the edit. It is a magenta quad
+>   after the valid edit, and still magenta through the broken one — about 3 s, 3072 magenta px a
+>   frame, never blank. After the restore the magenta reads 0 and enemies flash pink again.
 
 ### The editor half
 
