@@ -1368,6 +1368,32 @@ With both halves answered, gate 9 is closed.
 > engine.
 >
 > **AMD is still unanswered** — it is the one adapter vendor nothing in this project has run on.
+>
+> **The NVIDIA answer cannot be had from Linux on this box, and the reason is named by the kernel,
+> 2026-10-03.** The MX150 is in the machine — `01:00.0 3D controller: NVIDIA Corporation GP108M
+> [GeForce MX150]` — but `Kernel driver in use` is blank for it, and Vulkan enumerates exactly two
+> devices, `Intel(R) UHD Graphics 620 (KBL GT2)` and `llvmpipe`. The driver userspace *is* installed
+> (`nvidia-driver-595.91.07-3.fc44`), and a module was built and did try to bind:
+>
+>     NVRM: The NVIDIA GPU 0000:01:00.0 (PCI ID: 10de:1d12)
+>     NVRM: installed in this system is not supported by open
+>     NVRM: nvidia.ko because it does not include the required GPU
+>     NVRM: System Processor (GSP).
+>     nvidia 0000:01:00.0: probe with driver nvidia failed with error -1
+>
+> The module akmods built is the **open** flavour (`modinfo … license: Dual MIT/GPL`), and the open
+> module needs GSP, which arrived with Turing; the MX150 is GP108, Pascal. Nouveau would take the
+> card, but `/usr/lib/modprobe.d/nvidia.conf` blacklists it, so nothing claims the GPU at all.
+> Getting it back is the proprietary kernel-module flavour or an unblacklisted nouveau, each a root
+> action plus a reboot — the owner's call, not this run's:
+>
+>     sudo dnf install -y akmod-nvidia
+>
+> (`akmod-nvidia` / `kmod-nvidia` 3:595.99.02-4.fc44 are in `nobara-nvidia-production`; which
+> flavour that builds has to be checked against the same NVRM line afterwards.) **This changes
+> nothing about the gate's standing**: the MX150 was answered on 2026-09-01 from Windows, on its
+> own driver stack, and what stays open is AMD. Evidence:
+> `build/owner-artifacts-linux/g8-nvidia-linux.txt`.
 
 ```sh
 ./build/game_sidescroller --frames 240 \
