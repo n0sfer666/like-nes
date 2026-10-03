@@ -1055,6 +1055,40 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 > say is whether the picture on the screen is the same picture. That is two recordings and your
 > eyes, **twice**: the two halves below are separate runs against separate "before" commits, and
 > either can be answered without the other.
+>
+> **Re-run of the Linux half, 2026-10-03** on commit `7902b20`, Nobara, because 6 commits touched
+> `engine/framework/graphics` since the closing date — the clip runtime and the F3 boxes
+> (`925c48b`), the Aseprite bake into the clip table (`6f8b070`), the Tiled layers at runtime
+> (`0e45039`), the subsystem header prefixes (`d91546e`), the four section readers checking their
+> base (`08a69c1`) and the FNV constants moving into the primitives (`b4b10ae`).
+>
+> **The gate's own positive control passes on this box, and it is the first run to use it:** in the
+> checkout `./build/game_sidescroller --golden-selftest` answers `golden control: PASS (blot,
+> scatter and one-pixel shift refused)` and `golden repeat: PASS` and gives the prompt back, while
+> the same command in `../like-nes-before-shooter` opens a window and starts the game, ignoring the
+> flag it does not know — so the two trees are provably two trees, not one binary run twice. The
+> weaker check agrees: 4 580 432 against 4 314 872 bytes, different md5. The old build also prints
+> its bundle path unredacted (`/home/petrk/_dev/like-nes-before-shooter/...`), which is `6e6f3bf`
+> landing after `ddd0efa`, not a finding. Evidence `build/owner-artifacts-linux/g7-control.txt`.
+>
+> **Everything the gate pins headless is green here:** `game_fx_test` with the documented numbers to
+> the digit (`alive: 53, peak: 113, dropped: 0`, hash `0xfd9ca7d2936ad48a`), `game_sprite_out_test`
+> (32 frames of 64 instances, 0 allocations), `framework_graphics_particle_refusal_test`,
+> `game_platformer_view_test` and the route hash `0xfead7a87477a9258` — see
+> `g7-headless.txt` and `g6-headless.txt`. The two startup lines the platformer half demands be
+> identical **are identical**, before and after, and both runs end on `[platformer] window clean
+> exit` with nothing on stderr and exit code 0: `g7-platformer-lines.txt`. That closes the one check
+> this half puts before the frames ("a difference in either line is a finding before you look at a
+> single frame").
+>
+> **The eleven picture questions — five for the platformer, six for the shooter — cannot be judged by
+> any AI on this box,** for the measured reason written up in section 6 and in finding Н9: a window the
+> compositor does not show is presented once a second here, so the loop runs 1.00 tick/s instead of
+> 60; GNOME denies `org.gnome.Shell.Screenshot` and the box has no `grim`/`gnome-screenshot`; and no
+> X11 call can raise an XWayland window to make its pixels trustworthy. Side-by-side recordings of
+> two builds need a screen and two eyes. The gate stays closed on its 2026-09-02 date — this is a
+> confirmation of the mechanical half plus the first live exercise of the positive control, not a
+> re-close.
 
 ### The platformer, after step A
 
