@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**9 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
+**10 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 10 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -26,7 +26,7 @@ names that surface.
 | The reference frame holds against a real GPU driver, not a software rasteriser | [#17](../.context/specs/2026-07-26-graphics-framework.md) 2 | **all three** (a real AMD/NVIDIA/Intel driver each) | — | `engine/render/*`, `example_ugly_game/golden/scene_960x540.png`, shader sources |
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | 2026-10-03 | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 | The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | 2026-10-03 | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
-| A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
+| A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | 2026-10-03 | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 | The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
@@ -37,9 +37,12 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
-The last to close were two gates of #18, on 2026-10-03 on the Metal machine the references are
-pinned on: the effect library's own frame (§9) and the sample game playing with it (§10). The same
-pass left §12 open with a finding in its question 7. Before them, the last to close was the look of
+The last to close were three gates of #18, all on 2026-10-03 and across two machines. Two went on
+the Metal machine the references are pinned on: the effect library's own frame (§9) and the sample
+game playing with it (§10); the same pass left §12 open with a finding in its question 7, and left
+hot-reload (§11) standing on one look alone — whether a reload costs a frame or blinks the panel.
+That look is a transient, which no still can hold, so it was taken on the Nobara box by sampling the
+window twenty times a frame: it does neither, and §11 closed the same day. Before them, the last to close was the look of
 the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
 cost stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
@@ -1400,11 +1403,11 @@ that regression. Seeing no effects there is correct.
 
 ## 11. Gate 3 of #18 — hot-reload in front of a person
 
-<!-- gate: open | hot-reload на живом экране: осталось глазами — нет ли рывка кадра в игре и мигания панели в момент перезагрузки (остальное снято 2026-10-03 на macOS) -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** Everything about hot-reload that a machine can assert is asserted twice and headlessly:
-> `material_hot_reload` proves the cache-level contract on every OS in CI (a valid edit rebuilds all
-> three pipelines; a broken one is refused, counted, and leaves *the same pipeline objects* drawing),
+> **Closed 2026-10-03** on two machines. Everything about hot-reload that a machine can assert is
+> asserted twice and headlessly: `material_hot_reload` proves the cache-level contract on every
+> OS in CI (a valid edit rebuilds all three pipelines; a broken one is refused, counted, and leaves *the same pipeline objects* drawing),
 > and `editor_shell --gate3` proves the panel half by pixels — the preview hash changes on a valid
 > edit and is **byte-identical** after a broken one. What neither can answer is the only question the
 > feature exists for: does the picture on a real screen change while you keep playing, and does a
@@ -1413,7 +1416,8 @@ that regression. Seeing no effects there is correct.
 > **Run on 2026-10-03 on a MacBook with an M3 Pro (Metal): everything a still frame can show
 > passes.** What is left is the transient: a hitch in the game's frame rate or a flicker of the
 > panel at the moment of a reload. The captures were taken about four a second, which is too
-> coarse to see either, so that one look is yours.
+> coarse to see either, and that one look was taken on Linux
+> the same day, in the block after this one.
 >
 > - **Editor, machine half:** `--gate3` printed `-> 6 pipeline(s) total`, the
 >   `rejected: …:1:1:` diagnostic and `gate 3: PASS (failures: 0)`, and exited 0.
@@ -1430,6 +1434,43 @@ that regression. Seeing no effects there is correct.
 >   One window capture per ~0.25 s shows a live enemy pink before the edit. It is a magenta quad
 >   after the valid edit, and still magenta through the broken one — about 3 s, 3072 magenta px a
 >   frame, never blank. After the restore the magenta reads 0 and enemies flash pink again.
+>
+> **The transient, 2026-10-03 on the Nobara box — Intel UHD 620, Vulkan, GNOME on Wayland with
+> the windows as XWayland clients, 59.96 Hz, on AC — which is what the macOS pass left open.**
+> Stills are the wrong instrument for it, so the window was read with `XGetImage` over a small
+> rectangle at about 1300 captures a second, twenty times the refresh: a one-frame flicker has
+> nowhere to hide between two samples.
+>
+> - **The panel does not flicker.** Over 22 s carrying four saves (valid → broken → valid →
+>   restore) the preview rectangle took exactly **five states, three of them unique**, and every
+>   transition was a single step: original → magenta on the valid edit → the frame shifted by the
+>   red diagnostic line → back to the *byte-identical* magenta hash → back to the *byte-identical*
+>   original hash. No blank, no flat colour, no intermediate frame of any kind. On screen the change
+>   lands 0.07-0.08 s after the engine prints the reload.
+> - **The game's frame rate does not stumble.** The same sampler timestamped every distinct frame of
+>   a moving region: median interval 16.68-16.71 ms — the 59.96 Hz refresh — and p99 19.3-23.4 ms.
+>   Over three runs and eighteen reload events the frame straddling a reload measured 8.4-24.5 ms;
+>   seventeen of the eighteen sit inside the idle jitter and one reached 24.5 ms once. The worst
+>   interval of each run (52.8, 55.5, 60.8, 65.4 ms) never falls on a reload, and a control run with
+>   no edits at all carries the same tail — max 52.8 ms. Wall clock agrees: 1200 frames take 20.65 /
+>   20.79 / 20.88 s with nothing edited and 20.89 s with four saves in flight.
+> - **Editor counters, saving atomically:** `3 pipeline(s), 0 reload(s), 0 rejected, 3 draw call(s),
+>   native watch` → valid `6, 1, 0` → broken `6, 1, 1`, where neither pipelines nor reloads move →
+>   fixed `9, 2, 1`, `rejected` stops growing → restored `12, 3, 1`. The broken frame's preview is
+>   byte-identical to the frame before it once shifted down by the one new diagnostic line: 0 of
+>   59 800 pixels differ, maximum channel difference 0. The 17 px here against the 34 px on the
+>   MacBook is the font, not the panel.
+> - **The game, from its own stdout:** `[game] materials: on (3 pipeline(s), 0 fallback(s))` and
+>   `[game] shader hot-reload: … (native watch)`, then `-> 6 pipeline(s) total` on the valid edit,
+>   the `:1:1:` diagnostic with `rejected, previous library still drawing` on the broken one — and
+>   the enemies keep drawing the magenta of the *previous* edit through it: 1824-9216 magenta pixels
+>   a frame for the two seconds the broken file is on disk, never blank. The valid edit that follows
+>   reloads (`-> 12`, `-> 15 pipeline(s) total`) and the next frame is magenta again; the zero
+>   magenta later in that run is the boss wave, where nothing on screen uses `fs_flash` at all.
+> - **Saving in place counts twice.** A save that truncates and rewrites fires two inotify events,
+>   so one edit moves the counter by two (`-> 6`, then `-> 9`); a save by temp file and rename,
+>   which is what editors do, gives exactly one. The watcher does not debounce, and the panel counts
+>   events rather than saves — worth knowing before reading a counter as a number of edits.
 
 ### The editor half
 
