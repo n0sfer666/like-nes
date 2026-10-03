@@ -2550,6 +2550,52 @@ into it, sliding against the street while the camera pans, a cell cut off by its
 neighbour's limb at an edge means a wrong cell rectangle), the cross away from her feet, the
 overlay not following a flip, or F3 doing nothing.
 
+### Step 7 on Linux 2026-10-03 (Nobara, Intel UHD 620, GNOME/XWayland): the window half passes
+
+Steps 1-6 stay blocked: Aseprite is in neither the Nobara repositories nor any configured flatpak
+remote, and building it from source is not something this run was allowed to do. Step 7 was run on
+its own, because it reads the pack already in the tree and says nothing about the export.
+
+`bash scripts/check_sdk_game.sh --keep` ended `sdk-game: PASS`, both configurations printing
+`bundle_hash 0x4e7f9ade1d27776a`, and `./build-sdk-work/game-Release/neon_rumble --frames 1200`
+ended `neon-rumble: window run ok, 1200 frames` with exit 0 in 20.7 s -- 58 frames a second against
+a 59.96 Hz screen, so the 1x frame numbers of the text apply unchanged. Above it the gate's line,
+verbatim: `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right`, and
+`[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes`.
+
+What the screen showed, measured off the captures in `build/owner-artifacts-linux/`:
+
+* The cyan frame is **148x150 screen pixels** at zoom 2 -- **74x75 sheet pixels**, the number the
+  text asks for -- and it stands clear of her silhouette on every side.
+* The white cross sits at **x = the frame's horizontal centre, y = 398** in every capture, and 398
+  is the first row of the street: her feet are on its top line, neither floating nor sunk.
+* **F3 again hides both.** The control is `g19-f3-off-queen-visible.png`: the queen is in view,
+  pure `#00FFFF` count is 0 and the cross is gone. The level never paints pure cyan itself, so that
+  count is a clean yes/no for the overlay.
+* **The overlay follows the flip.** She faces left on the pass that covers frames ~235-300 and
+  right from ~300 (`g19-f3-left.png`, `g19-f3-right.png`): across that boundary the frame keeps
+  moving 10 px per 95 ms sample with no sideways jump, and the cross stays on the frame's centre.
+* **No coloured boxes.** Scanned every capture for pure red, green, yellow, magenta, orange and
+  blue: none, as the text expects of a pack without slices.
+* **She does not slide.** Cropping the cell by its own frame and differencing consecutive captures
+  leaves 1.5-2.3 k changed pixels -- the clip is playing while she travels, not a still sprite
+  dragged along.
+
+Captures: `g19-f3-right-full.png` (the whole window, overlay on), `g19-f3-left-zoom.png` (4x on the
+cell, facing left), plus the two bursts `g19b/` and `g19c/` the numbers were read from.
+
+**Not a defect of the engine, but it costs an hour if it is not known.** On GNOME a blanked screen
+throttles mutter's compositing to about 1 fps, and an XWayland client then crawls: `neon_rumble`
+printed `surface texture status 1 - frame skipped`, sat in `drm_syncobj_array_wait_timeout` at 0%
+CPU and advanced eight pixels in four seconds, which reads exactly like a hung GPU. The screen was
+blanked -- `org.gnome.ScreenSaver.GetActive` answered `(true,)`. Run window gates with
+
+    gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver \
+        --method org.gnome.ScreenSaver.SetActive false
+    gnome-session-inhibit --inhibit idle:suspend --reason "owner gate run" <command>
+
+and the same binary finishes 1200 frames in 20.7 s. The gate stays **open** on steps 1-6.
+
 ## Beyond the gates
 
 The gates above are what the ADRs waited on; 7 of the 20 are closed, and the open 13 are listed by
