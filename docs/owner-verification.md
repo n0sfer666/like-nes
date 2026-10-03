@@ -840,6 +840,40 @@ shape of a gate that has quietly stopped gating.
 > (`game_platformer_sim_test`), the camera and the drawn geometry (`game_platformer_view_test`), the
 > layout-to-intent mapping (`game_platformer_input_test`). What is left is a hand on a key and an
 > eye on a screen.
+>
+> **Re-run of the Linux half, 2026-10-03** on commit `6f6a798`, the same Nobara box, because the
+> module underneath did move: 24 commits touched `engine/framework/character`,
+> `engine/framework/tilemap` and `example_ugly_game/platformer_*` since 2026-09-01 — among them the
+> surface seam every window loop now acquires its frame through (`db0156c`), the header prefixes
+> (`d91546e`) and the Tiled import that rewrote the tilemap side (`591cce4`). **The mechanical half
+> came back green, all five:** `game_platformer_sim_test` prints the route hash
+> `0xfead7a87477a9258` unmoved, with both numbers the 2026-09-01 findings pinned reproduced to the
+> digit (`edge: hero=24.125 leftmost=8.000`, `rider: hero=583.542 plate=555.999 slipped=1
+> crushed=0`), plus `game_platformer_view_test`, `game_platformer_input_test`,
+> `framework_character_push_test` and `framework_character_platform_test` — evidence
+> `build/owner-artifacts-linux/g6-headless.txt`. The live window opens and closes as the gate says
+> it must: `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes`, then the one startup line
+> with `gamepad: evdev (Linux)`, then `[platformer] window clean exit`, exit code 0, nothing on
+> stderr — `build/owner-artifacts-linux/g6-live-passport.txt`.
+>
+> **Questions 1-7 stay with the owner: on this box no AI can judge them,** and the measurement that
+> says so is in `build/owner-artifacts-linux/g6-input-probe.txt`. The input chain was proved alive
+> first, so that "the sample ignores the keys" could be ruled out rather than guessed: with a
+> temporary printf in front of `step_stage`, keys injected by `XSendEvent` straight into the window
+> id arrive as the right intent — `d` and `Right` give `mx=1.000`, space gives `j=1`. What does not
+> arrive is time: the loop runs **1.00 tick/s against the 60 it asks for** (14 ticks in 14.0 s of
+> idle), because the surface is on `Fifo` and the world step sits in the same iteration as
+> `win.draw`, so the sim advances at the pace the compositor presents. A window nobody can see gets
+> presented once a second here, and three seconds of a held key buy two or three ticks of world —
+> which is the whole of the "frozen hero" the pixel probes were reading. Raising the window to fix
+> that is not available either: `wmctrl -i -a`, `-i -R`, `-i -r -b add,above` and `XRaiseWindow` all
+> leave `_NET_ACTIVE_WINDOW` on XWayland's focus proxy `0x400003`, and GNOME denies
+> `org.gnome.Shell.Screenshot` with no `grim`/`gnome-screenshot` on the box. Seven questions about
+> whether a jump *feels* right need 60 Hz on a screen and a hand on a key, exactly as the banner
+> above says. The gate stays closed on its 2026-08-30 date — this is a confirmation of everything
+> mechanical, not a re-close. The 1 Hz itself is written up as finding Н9 of this run: the clock
+> comment in `platformer_live.cpp` guards against a display that is too *fast* and says nothing
+> about a present that blocks.
 
 The live target is behind `IDE_POC`, so CI never builds it — configure with the full option set:
 
