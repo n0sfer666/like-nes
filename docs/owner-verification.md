@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**7 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
+**9 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -24,8 +24,8 @@ names that surface.
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 | The reference frame holds against a real GPU driver, not a software rasteriser | [#17](../.context/specs/2026-07-26-graphics-framework.md) 2 | **all three** (a real AMD/NVIDIA/Intel driver each) | — | `engine/render/*`, `example_ugly_game/golden/scene_960x540.png`, shader sources |
-| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
-| The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | — | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
+| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | 2026-10-03 | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
+| The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | 2026-10-03 | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 | The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
@@ -37,7 +37,10 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
-The last to close was the look of the sample after the framework move, and it is the kind a runner
+The last to close were two gates of #18, on 2026-10-03 on the Metal machine the references are
+pinned on: the effect library's own frame (§9) and the sample game playing with it (§10). The same
+pass left §12 open with a finding in its question 7. Before them, the last to close was the look of
+the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
 cost stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
 *judge*, because it asks, as the physics gate does, whether a number fits a real frame budget on the
@@ -1248,12 +1251,28 @@ a comparison of your machine with itself.
 
 ## 9. Gate 1 of #18 — the effect library on a real GPU
 
-<!-- gate: open | material_golden на живом GPU: вспышка, обводка и растворение выглядят тем, что говорит материал -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** The numeric half of this seam is machine-side and green on all three runners: how many
-> pipelines the warm-up builds, in how many draw calls the frame is assembled, and whether a frame
-> after the warm-up compiles anything. What no runner can answer is the picture — whether flash,
-> outline and dissolve look like what the material *says*, on a screen.
+> **Closed 2026-10-03** on a MacBook with an M3 Pro, the Metal machine the reference is pinned on.
+> The numbers came out bit for bit: `[gpu] Apple M3 Pro | Metal | BC: yes`, `warm-up: 3 pipeline(s)
+> for 7 material(s), 0 fallback(s)`, `frame: 28 instance(s) in 3 draw call(s)`, `painted: 30.4% of
+> the frame`, `mean=0.00000 max=0.00000 frac=0.00000`, `material-gpu: PASS`. The `fs_nope` fallback
+> line is there; it prints after `painted` rather than first, which is two streams interleaving,
+> not a finding. All four picture questions come back yes:
+>
+> 1. Seven columns and four rows.
+> 2. White, red and gold ramp upward, and the bottom `flash_gold` sprite is already half-tinted.
+> 3. The ring closes all round, outside the silhouette. It is black in `outline` and red in
+>    `outline_danger` (2 px at the bottom), and it grows a pixel per row.
+> 4. The holes eat the sprite upward. The rim is orange in `dissolve` and wider ash-grey in
+>    `dissolve_ash`.
+>
+> One note, not a finding: the bottom dissolve sprites (threshold 0) have no holes, but a few
+> rim-coloured specks sit on their edge.
+>
+> The numeric half stays machine-side and green on all three runners: the pipeline count, the draw
+> calls, and no compile after the warm-up. Kept as the procedure — a change under the right-hand
+> column of the table re-runs it.
 
 ```sh
 cmake --build build --target material_golden
@@ -1321,12 +1340,30 @@ adapter agreeing bit for bit.
 
 ## 10. Gate 9 of #18 — the sample game plays with library materials
 
-<!-- gate: open | game_sidescroller: эффекты ложатся на те объекты и в тот момент, в движущейся игре -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** The library reaches the game through `library.bundle`, and everything a runner can say
-> about that path it already says: the bundle matches its sources byte for byte on three OSes, and
-> the run-splitting numbers are asserted headlessly. What no runner can answer is whether the
-> effects land on the right objects at the right moment, in a game that is moving.
+> **Closed 2026-10-03** on a MacBook with an M3 Pro (Metal), in a window 1144 px tall. The machine
+> half is `[game] materials: on (3 pipeline(s), 0 fallback(s))`. The eye half was judged on a
+> screenshot of the game window every few frames, measured per pixel:
+>
+> 1. **The flash is per instance.** An enemy that has just entered at x≈1848 reads rgb 201,137,161
+>    (r−b 40). One at x≈57, about to reach the hero, reads 228,143,134 (r−b 94), and the values
+>    in between rise monotonically. In one frame, enemies at x 386 and x 1874 carry different tints
+>    (226,146,145 against 200,137,161), so there is no lockstep pulse.
+> 2. **The red ring follows the boss's triangle, not its box.**
+> 3. **The switch happens once.** The ring stays steady at about 3520 red pixels down to a quarter of
+>    the boss's health. From then on it reads 0 until the boss dies, and no frame flickers back. As
+>    the holes widen, the boss's lilac area falls 3952 → 3506 → 2394 → 829, with a light-grey rim on
+>    the hole edges. After the restart, a healthy boss is ringed again.
+>
+> **Caveat:** the run that answered question 3 had to land the boss hits from an autopilot. It used
+> a local patch that stops the player losing lives in `example_ugly_game/combat.cpp`. The patch
+> touches only the player, not the boss, the enemies or the materials, and was reverted and rebuilt
+> afterwards.
+>
+> The bundle path stays machine-side: the bundle matches its sources byte for byte on three OSes,
+> and the run-splitting numbers are asserted headlessly. Kept as the procedure — a change under the
+> right-hand column of the table re-runs it.
 
 ```sh
 cmake --build build --target game_sidescroller
@@ -1455,6 +1492,24 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 > exactly: flipping the sign of Y in the dome generator leaves `--selftest` fully green (the frame
 > is different but just as stable, and every counter still reads 5/2/0) while the reference PNG goes
 > red at `frac=0.129`. Lit from below is a picture question, and the picture is yours.
+>
+> **Run on 2026-10-03 on the Metal reference machine (M3 Pro): the numbers are bit-exact and seven
+> questions of eight pass. Question 7 does not, so the gate stays open.** The numbers were
+> `mean=0.00000 max=0.00000 frac=0.00000`, `light-gpu: PASS`, lights 5/5, normals 5/2/0,
+> occluders 4/3/0, cost 1.462 / 2.636 ms. Questions 1–6 and 8 come back yes.
+>
+> In question 7, the orange streaks from `key` are there: they point right and down, solid behind
+> the disc and striped behind the grate. The blue ones from `fill` are not. `fill` at `0.44, 0.16`
+> sits INSIDE the row-2 `outline_danger` disc, and the occluder under the light blocks every ray it
+> casts:
+>
+> - A fill-only render reads `0 1 1` at (365,151) beside it.
+> - The same render with `fill` moved to `0.44, 0.50` lights that row: `5 10 26` at (365,90).
+>
+> A smaller oddity: the solid disc leaks 1–3 LSB radially. The fix is the owner's choice. Either
+> move `fill` out of the disc in `lights.txt` and re-bake the reference on this machine, or have
+> [`shaders_light.cpp`](../engine/render/shaders_light.cpp) stop a light being blocked by the
+> occluder it sits in.
 
 ```sh
 cmake --build build --target light_golden
