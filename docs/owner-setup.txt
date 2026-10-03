@@ -508,14 +508,15 @@ Nobara (и любая современная Fedora) логинит в Wayland �
 
   1. ./build/editor_shell — убедиться, что рисует
   2. ./build/game_sidescroller — посмотреть на фон
-  3. в example_ugly_game/draw.cpp заменить
-       a.clearValue = WGPUColor{0.02, 0.02, 0.07, 1.0}
+  3. в example_ugly_game/live.cpp (оконный путь; у offscreen-пути своя копия
+     строки в demo.cpp, её правит scripts/gate8_e2e.sh) заменить
+       begin_clear(enc, bloom.hdr_view(), WGPUColor{0.02, 0.02, 0.07, 1.0})
      на
-       a.clearValue = WGPUColor{0.25, 0.02, 0.05, 1.0}
+       begin_clear(enc, bloom.hdr_view(), WGPUColor{0.25, 0.02, 0.05, 1.0})
      (рендер-сторона: sim-хеш не двигается, а глазом видно)
   4. cmake --build build --target game_sidescroller
   5. ./build/game_sidescroller — фон стал тёмно-красным
-  6. git checkout example_ugly_game/draw.cpp  ← вернуть обязательно
+  6. git checkout example_ugly_game/live.cpp  ← вернуть обязательно
 
 Числа "best / median" из раздела про цикл в отчёте owner_check — тоже часть
 этого гейта, они нужны фактом для Linux и Windows.

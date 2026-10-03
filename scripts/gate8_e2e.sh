@@ -64,6 +64,19 @@ check $? "склонировано из $SOURCE"
 [ -d "$WORK" ] || { say ""; say "гейт 8: FAIL"; exit 1; }
 say "  commit    : $(git -C "$WORK" rev-parse HEAD) ($(git -C "$WORK" rev-parse --abbrev-ref HEAD))"
 
+# Константа ищется ДО сборки, а не в шаге 4: холодная сборка клона — четверть часа, и узнавать на
+# её исходе, что правка метит в файл, где цвета больше нет, — это полчаса на один и тот же ответ.
+# Так уже было: 2026-08-31 `begin_clear` съехал из draw.cpp, и гейт промахивался месяц.
+SRC="$WORK/example_ugly_game/demo.cpp"
+OLD='WGPUColor{0.02, 0.02, 0.07, 1.0}'
+NEW='WGPUColor{0.25, 0.02, 0.05, 1.0}'
+if grep -q "0.02, 0.02, 0.07" "$SRC" 2>/dev/null; then
+    ok "цвет очистки на месте: $(basename "$SRC")"
+else
+    bad "в $(basename "$SRC") нет '$OLD' — правка гейта метит мимо, обнови SRC/OLD в этом скрипте"
+    say ""; say "гейт 8: FAIL (сценарий отстал от кода)"; exit 1
+fi
+
 head_ "2. Сборка клона с нуля"
 GEN=""
 have ninja && GEN="-G Ninja"
@@ -98,9 +111,6 @@ HASH_BEFORE=$("$SIM" 2>/dev/null | sed -n 's/.*combat-golden-hash = //p')
 say "  sim-hash  : ${HASH_BEFORE:-НЕ ПОЛУЧЕН}"
 
 head_ "4. Правка кода игры"
-SRC="$WORK/example_ugly_game/draw.cpp"
-OLD='WGPUColor{0.02, 0.02, 0.07, 1.0}'
-NEW='WGPUColor{0.25, 0.02, 0.05, 1.0}'
 # sed -i писать нельзя: у GNU и BSD он требует разных аргументов, и портит файл ровно на той ОС,
 # где владелец гейт и гоняет. Через временный файл — одинаково везде.
 sed 's/0\.02, 0\.02, 0\.07/0.25, 0.02, 0.05/' "$SRC" > "$SRC.tmp" && mv "$SRC.tmp" "$SRC"

@@ -255,6 +255,26 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 > **Closed 2026-08-05/06** on commit `0e4294c`: Linux (Nobara 44, GCC) and Windows (MSVC 14.44),
 > both PASS, dR=+89.705 against a +4 threshold, sim-golden intact. Kept as the procedure.
 
+> **Re-run of the Linux half, 2026-10-03** on commit `a0f5894`, same Nobara box, gcc 16.2.1 — and
+> the first attempt came back **FAIL (failures: 2)**, on the script rather than on the engine. The
+> clear colour had left `draw.cpp` on 2026-08-31 (`b1dd1c7` folded the two copies of `begin_clear`
+> into `batch.cpp` and made the colour the caller's argument), so step 4 patched a file that no
+> longer holds it: `dR=+0.000 dG=+0.000 dB=+0.000`, two identical frames. **The gate caught its own
+> rot** because step 4 asserts that the edit *applied* and not merely that it was asked for — the
+> run without that assertion would have printed PASS over an unchanged frame for a month. Fixed in
+> the same commit as this note: the patch now targets `example_ugly_game/demo.cpp` (the `--demo`
+> offscreen path the gate actually renders), the "is the constant still where we think it is" check
+> moved **ahead of** the build — a cold clone build is a quarter of an hour on this machine, and
+> learning of a miss at the end of it costs half an hour for one answer — and the by-hand route in
+> `docs/owner-setup.txt` point H now names `live.cpp`, which is the copy the window draws.
+>
+> The re-run on the fix is **PASS, failures: 0**, and it reproduces the closing numbers of
+> 2026-08-05/06 to the third decimal, a month and a compiler version later:
+> `7.466 7.552 23.086` → `97.171 7.552 15.285`, `dR=+89.705 dG=+0.000 dB=-7.801` against the +4
+> threshold, sim-golden `0x32a094e89eacf2f2` unmoved in the same run. Evidence:
+> `build/owner-artifacts-linux/g2-gate8-report-linux.txt` and `g2-gate8-e2e.log`, with the failing
+> first attempt kept beside them as `g2-gate8-e2e-stale.log`. The gate keeps its 2026-08-05/06 date.
+
 The editor has no Play/Build buttons yet: spawning and the build loop are their own targets
 (`play_spawn_test`, `build_loop_test`), and the mechanism is what `owner_check.sh` already timed on
 this machine. What is left is the chain end to end — an edit reaching pixels — and that whole chain
@@ -265,7 +285,7 @@ bash scripts/gate8_e2e.sh
 ```
 
 It clones this repository into `build/gate8/clone`, builds it from scratch, renders frames, patches
-the clear colour in `example_ugly_game/draw.cpp` (`{0.02, 0.02, 0.07}` → `{0.25, 0.02, 0.05}`),
+the clear colour in `example_ugly_game/demo.cpp` (`{0.02, 0.02, 0.07}` → `{0.25, 0.02, 0.05}`),
 rebuilds, renders again, and then **measures** the two frames instead of asking you to look: the
 mean red channel has to rise and to outrun green and blue, because "the frame changed" would also
 be true of any render jitter. The sim hash has to stay `0x32a094e89eacf2f2` in the same run — the
