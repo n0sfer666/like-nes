@@ -170,6 +170,25 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 > one run each, both PASS. Kept as the procedure — it is what a new machine or a change to the
 > windowing path has to be re-run against.
 
+> **Re-run of the Wayland half, 2026-10-03**, on the same Nobara box, because the windowing path did
+> change: 29 commits touched `engine/platform`, `engine/gfx`, `tools/ide/editor` and the root
+> `CMakeLists.txt` since the closing date, among them the surface seam (`db0156c`), the Wayland
+> choice passed on to the glue (`4429658`) and the build-dir/session mismatch message (`4b91548`).
+> `build-way` configured and built clean against the three devel packages named below;
+> `./build-way/editor_shell --gate6 …` came back **PASS, failures: 0**, with `glfw: wayland` on the
+> passport — a native Wayland client, not XWayland. Evidence:
+> `build/owner-artifacts-linux/g1-gate6-wayland.{txt,png}`; the PNG is a live viewport (grid, the
+> gizmo on `entity_0`, the Inspector showing `x [fix32] = -8363008`, console `undo depth: 1`), not a
+> flat fill. The gate stays closed on its 2026-08-05 date — this is a confirmation, not a re-close.
+>
+> The two eye-questions above stayed with the owner, and on this box **no AI can judge them**: GNOME
+> here denies `org.gnome.Shell.Screenshot` (`AccessDenied: Screenshot is not allowed`) and the box
+> has no `grim`/`gnome-screenshot`, so a native Wayland window's pixels cannot be captured from
+> outside the process at all; and Wayland gives no client a way to inject input into another, so a
+> *real* mouse drag of the gizmo is literally a hand's job. The X11 half of this re-run is not done:
+> Fedora 44 dropped `gnome-session-xsession` from the repos, and picking the installed `i3` session
+> means logging out — an owner action.
+
 On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
 first run comes back FAIL on the passport line alone. That case is walked through step by step in
 [`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
