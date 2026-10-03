@@ -353,6 +353,40 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 > first attempt did not. The file the 2026-08-07 closure left behind was still on disk three weeks
 > later, holding `fire -> key:j` with `jump` slot 0 stripped, and it is why the fourth trap below is
 > written down at all.
+>
+> **Re-run 2026-10-03 on Linux (Nobara 44), steps 3 and 4 only, PASS** — on commit `21fddf8`,
+> because 9 commits touched `engine/input` and `engine/framework/input` since the 2026-08-29 re-run,
+> among them the bounded cursors and the pair naming another axis (`f94ab5c`), the caps on the
+> preset section (`95469d1`), counting logical axes once for baker, reader and runtime (`6f08e44`)
+> and the section reader's own gate (`feef73b`). Steps 3 and 4 are the keyboard half of this gate
+> and need no pad, so they were driven from a script — `XSendEvent` straight into the probe's
+> window, because XTEST does not reach XWayland clients on this box. Step 3 refused by name on the
+> first try, with the preset's own wording: `[probe] source already bound to 'jump' slot 0 - F takes
+> it, C cancels`, and `F` then took it — the table printed `fire [0]=key:j` against `jump [0]=none`,
+> which is `jump` losing that slot. Step 4 saved two edits (`bind | jump | 0 | none`, `bind | fire |
+> 0 | key:j`), the restart read them back as `overlay loaded … 2 edit(s)` — the same count the
+> 2026-08-07 closure reported — and `X` then `S` ended on `bye - overlay empty` with the preset
+> restored to `key:space` / `key:j`. Evidence `build/owner-artifacts-linux/g3-steps34.txt`.
+>
+> **Steps 1, 2, 5 and the stick half of step 6 are not re-run: there is no pad on this box.**
+> `/dev/input` holds no `js*` and no `by-id` directory, and the probe's own cold-start line says so
+> out loud — `cold-start scan: backend 'evdev (Linux)' reports NO pad on any of 8 slots` — with the
+> session's axis report ending in `stick pushed: right=NO left=NO up=NO down=NO`. Those four steps
+> are a hand on a stick, and `padaxis:-ly` is exactly the kind of per-platform sign no keyboard can
+> answer for. They stay open for the owner's next pass with the pad connected.
+>
+> **This re-run produced one finding of its own, in the gate's precondition** (finding Н10 of the
+> 2026-10-03 Linux run, fixed in the same commit as this note). The box was carrying
+> `~/.local/share/like-nes/controls_probe.txt` from the 2026-08-07 closure — fifteen bytes, zero
+> edits, written by *this gate's own* `X` + `S` cleanup, which saves an empty overlay rather than
+> deleting the file. The probe called it `overlay loaded … 0 edit(s)`, and the precondition block
+> below reads `overlay loaded` as "the previous run was never cleaned up: delete the file". So the
+> procedure rejected the state its own last step leaves behind, and the owner following it would
+> delete a file for no reason — while the condition the trap actually hunts, an overlay holding
+> *stripped bindings*, prints the same first three words. The probe now says `overlay at <path>
+> holds no edits - clean preset` for that case, and only a file with edits in it is called loaded;
+> all three branches were exercised on this box (`g3-overlay-three.txt`). The gate stays closed on
+> its 2026-08-07 date.
 
 ```sh
 cmake --build build --target framework_input_probe
@@ -404,16 +438,24 @@ the *first* start, before anything was saved, so its restart half is carried by 
 the binary. Both look exactly like a pass.
 
 The probe already prints the answer — second line of the run, right after the resolved move axes.
-Read it before step 1, and it must say
+Read it before step 1, and it must end in `clean preset`, which it does in two shapes:
 
 ```
 [probe] no overlay for preset 'probe' at <path> - clean preset
+[probe] overlay at <path> holds no edits - clean preset
 ```
 
-`overlay loaded` there instead means the previous run was never cleaned up: quit, delete the file
-the line names (the path is *in* the line, so there is nothing to look up per OS), start again. The
-`X` then `S` cleanup at the end of step 4 stays where it is — this is the check for the run where
-it was forgotten, and a gate whose precondition is only a habit is not a gate.
+The second shape is the ordinary state after a previous run was cleaned up properly: the `X` then
+`S` at the end of step 4 **writes a preset with no edits, it does not delete the file**. Until
+2026-10-03 the probe called that file "loaded" like any other, so this gate's own precondition
+rejected the state its own cleanup leaves behind — the Linux box was carrying such a file from the
+2026-08-07 closure, fifteen bytes and zero edits, and the line read `overlay loaded … 0 edit(s)`.
+Now only a file with edits in it is called loaded.
+
+`overlay loaded … N edit(s)` with N above zero means the previous run was never cleaned up: quit,
+delete the file the line names (the path is *in* the line, so there is nothing to look up per OS),
+start again. The `X` then `S` cleanup at the end of step 4 stays where it is — this is the check for
+the run where it was forgotten, and a gate whose precondition is only a habit is not a gate.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
