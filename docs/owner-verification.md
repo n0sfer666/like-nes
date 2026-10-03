@@ -2742,6 +2742,53 @@ and a doubled colour encoding would look exactly like that). A diff in the files
 is not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
 then replace the hand-written ones in the tree.
 
+> **Linux half, 2026-10-03** on commit `3bb7d69`, Nobara 44 (GNOME on Wayland, 59.96 Hz, on AC),
+> Intel UHD 620. **The gate stays open, and steps 1-2 are why: there is no Tiled on this box.**
+> `rpm -q tiled` answers `package tiled is not installed`; the package is in the enabled
+> repositories as `tiled.x86_64 1.12.2-1.fc44 nobara`, and flathub carries `org.mapeditor.Tiled`
+> 1.12.2. One command installs it:
+>
+>     sudo dnf install -y tiled
+>
+> Nothing was installed by this run, and that is not timidity: with no Tiled save there is no file
+> to bake, and step 5 asks for the window held next to the Tiled view — two pictures on one screen,
+> which is the half of this gate an AI on this box cannot have.
+>
+> What the run did settle, on the hand-written files exactly as they stand in the tree, so that the
+> Tiled pass has a before-value to differ from:
+>
+> * Step 3 `bash scripts/check_sdk_game.sh --keep` ends `sdk-game: PASS`, with
+>   `Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash` and the same `Debug:`
+>   line, each preceded by
+>   `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`. Five broken
+>   fixtures were refused, the MSVC CRT one skipped as it must on gcc. **So the hash in the banner
+>   is the hash this tree bakes today**: if the Tiled save moves it, the move is Tiled's, not the
+>   importer's drifting under the gate.
+> * Step 4 `git diff --stat games/neon-rumble/levels` is empty — which is exactly what it has to be
+>   while no Tiled has touched the files.
+> * Step 5 runs and exits clean: `./build-sdk-work/game-Release/neon_rumble --frames 120` ended
+>   `neon-rumble: window run ok, 120 frames` with exit code 0, above
+>   `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes` and
+>   `neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped`
+>   — zoom 2 on this 1x screen, the whole number the text asks for, and no rejected or dropped quad.
+>
+> **Steps 1, 2 and the picture half of step 5 cannot be judged by any AI on this box,** and the
+> reason was measured here, not assumed: the session screen was locked and every output powered
+> down — `org.gnome.ScreenSaver.GetActive = (true,)`, `card1-eDP-1/dpms: Off` and the same for
+> `DP-1`, `HDMI-A-1`, `HDMI-A-2` — and mutter presents a window to a dead output **once a second**.
+> Those 120 frames took 117.8 s, 1.0 a second, against 58 a second for the same binary on a live
+> screen earlier the same day (§19 step 7, `--frames 1200` in 20.7 s). On top of that, an AI on
+> this box can neither raise nor focus an XWayland window, and `org.gnome.Shell.Screenshot` is
+> denied to it. That is finding Н9 of this run, measured a second time here and on a second target.
+>
+> A practical consequence for whoever runs this next: `gnome-session-inhibit --inhibit idle:suspend`
+> does not undo a lock — it keeps the session from going idle, it does not wake a screen already
+> blanked. Start the window step on a woken, unlocked screen, or `--frames 600` takes ten minutes
+> instead of ten seconds and every picture question comes back unanswerable.
+>
+> Artefacts: `build/owner-artifacts-linux/g18-tiled-linux.txt` (the three steps and the screen
+> state side by side), `g18-sdk-game.txt`, `g18-window.txt`.
+
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
 <!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
