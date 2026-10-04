@@ -41,6 +41,11 @@ stage "Признак обхода: все копии совпадают кор�
 # копиями и четыре новых файла её не взяли, вторая покраснела прогоном 3381a95 уже после неё.
 stage "Кодировка на швах процесса — самопроверка правил" python3 scripts/check_py_utf8.py --selftest
 stage "Свой вывод переключён, чужой читается явно" python3 scripts/check_py_utf8.py
+# Второй конец того же шва, и предмет у него не кодировка, а ФОРМА запуска: `python3` в PATH
+# Windows это лончер, выбирающий рантайм по шебангу АРГУМЕНТА, и форма `python3 - <путь>`
+# запускает bash-фикстуру вместо тела, возвращая ноль. Мера (`py_run.sh`) жила без гейта.
+stage "Форма запуска python на швах — самопроверка правил" python3 scripts/check_py_seam.py --selftest
+stage "Тело python едет файлом или -c, но не из stdin" python3 scripts/check_py_seam.py
 stage "Бюджет длины файлов — самопроверка правил" \
     python3 scripts/line_budget.py --selftest
 stage "Бюджет длины файлов — дерево" python3 scripts/line_budget.py

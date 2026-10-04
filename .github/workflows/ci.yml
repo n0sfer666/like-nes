@@ -257,6 +257,19 @@ jobs:
         shell: bash
         run: python3 scripts/check_py_utf8.py
 
+      # Второй конец того же шва: `python3` в PATH Windows это ЛОНЧЕР, выбирающий рантайм по
+      # шебангу АРГУМЕНТА, поэтому `python3 - <путь.sh>` запускает bash вместо тела и отдаёт
+      # ноль. Самопроверка идёт на всех трёх ОС (предмет — переносимость разбора), сам гейт
+      # читает дерево, а дерево одно.
+      - name: Python-launch-form gate selftest (broken fixtures, portability of the assertions)
+        shell: bash
+        run: python3 scripts/check_py_seam.py --selftest
+
+      - name: Python bodies travel as a file or -c, never through stdin
+        if: runner.os == 'Linux'
+        shell: bash
+        run: python3 scripts/check_py_seam.py
+
       # Шов хешей (находка 5 аудита #21): тот же цикл FNV-1a был переписан по дереву около
       # четырнадцати раз ДВУМЯ семьями констант, и расхождение ничем себя не проявляло — оба хеша
       # просто считались, оба перепиниваются голденами. Копии сведены к двум примитивам, но

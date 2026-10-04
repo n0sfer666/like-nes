@@ -78,6 +78,7 @@ decisions, notes). Читать перед началом любой задач�
 | линтер workflow | `python3 scripts/ci_lint.py` | коммит | [ci-lint](.context/gates/ci-lint.md) |
 | бюджет длины файлов | `python3 scripts/line_budget.py` | коммит | [line-budget](.context/gates/line-budget.md) |
 | кодировка на швах процесса | `python3 scripts/check_py_utf8.py` | коммит | [py-utf8](.context/gates/py-utf8.md) |
+| форма запуска python на швах | `python3 scripts/check_py_seam.py` | коммит | [py-seam](.context/gates/py-seam.md) |
 | выбор bash на швах процесса | `python3 scripts/posix_bash_selftest.py` | preflight | [posix-bash](.context/gates/posix-bash.md) |
 | документация en/ru | `bash scripts/check_docs.sh` | коммит | [docs](.context/gates/docs.md) |
 | код в документации | `bash scripts/check_docs_snippets.sh` · `bash scripts/check_docs_examples.sh <каталог>` | коммит · preflight | [docs-examples](.context/gates/docs-examples.md) |
