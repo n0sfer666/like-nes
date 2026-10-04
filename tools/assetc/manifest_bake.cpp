@@ -6,6 +6,7 @@
 #include "baker_guid.hpp"
 #include "bakers.hpp"
 #include "clip_import.hpp"
+#include "layer_cover.hpp"
 #include "level_source.hpp"
 #include "platform_fs.hpp"
 
@@ -58,6 +59,8 @@ bool level(Bake& b, const Record& r, const std::string& file, LevelSource& src,
     std::string why;
     if (!framework::tiled::import_tmj(r.name, file, std::as_bytes(std::span<const uint8_t>(bytes)), src, lv, why))
         return fail(b, r.line, why);
+    if (r.viewport && !framework::graphics::check_layer_cover(lv.visual, lv.objects, why))
+        return fail(b, r.line, file + ": " + why);
     out.push_back(std::move(lv));
     return true;
 }

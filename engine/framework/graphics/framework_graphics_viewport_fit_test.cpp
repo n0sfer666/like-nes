@@ -20,7 +20,7 @@ void check(bool ok, const char* what) {
 using namespace framework;
 using namespace framework::graphics;
 
-bool same(ScreenRect r, int32_t x, int32_t y, uint32_t w, uint32_t h) {
+bool same(PixelRect r, int32_t x, int32_t y, uint32_t w, uint32_t h) {
     return r.x == x && r.y == y && r.w == w && r.h == h;
 }
 
@@ -29,7 +29,7 @@ bool same(ScreenRect r, int32_t x, int32_t y, uint32_t w, uint32_t h) {
 bool tiles_screen(const ViewportFit& f, PixelSize s) {
     uint64_t area = uint64_t{f.zone.w} * f.zone.h;
     for (uint32_t i = 0; i < f.strip_count; ++i) {
-        const ScreenRect r = f.strips[i];
+        const PixelRect r = f.strips[i];
         const bool inside_zone = r.x < f.zone.x + static_cast<int32_t>(f.zone.w) &&
                                  f.zone.x < r.x + static_cast<int32_t>(r.w) &&
                                  r.y < f.zone.y + static_cast<int32_t>(f.zone.h) &&
@@ -44,8 +44,8 @@ struct Case {
     PixelSize screen;
     uint32_t k;
     PixelSize visible;
-    ScreenRect zone;
-    ScreenRect shown;
+    PixelRect zone;
+    PixelRect shown;
     uint32_t strips;
     bool cropped;
     const char* what;

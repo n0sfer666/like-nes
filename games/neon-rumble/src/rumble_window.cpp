@@ -4,6 +4,7 @@
 #include <glfw3webgpu.h>
 #include <webgpu/webgpu.h>
 
+#include <cmath>
 #include <cstdio>
 #include <span>
 
@@ -17,13 +18,29 @@ namespace rumble {
 
 namespace {
 
-void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view,
-                const render::QuadRenderer& quads, std::span<const render::QuadRun> runs) {
+using framework::graphics::PixelRect;
+using framework::graphics::ViewportFit;
+
+double channel(uint32_t rgba, int shift, bool srgb) {
+    const double v = static_cast<double>((rgba >> shift) & 0xffu) / 255.0;
+    if (!srgb) return v;
+    return v <= 0.04045 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4);
+}
+
+WGPUColor background(const Level& level, WGPUTextureFormat format) {
+    const uint32_t rgba = level.map.row->background_rgba;
+    const bool srgb = render::quad_target_srgb(format);
+    return {channel(rgba, 24, srgb), channel(rgba, 16, srgb), channel(rgba, 8, srgb), 1.0};
+}
+
+void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
+                const PixelRect& shown, const render::QuadRenderer& quads,
+                std::span<const render::QuadRun> runs) {
     WGPURenderPassColorAttachment color = {};
     color.view = view;
     color.loadOp = WGPULoadOp_Clear;
     color.storeOp = WGPUStoreOp_Store;
-    color.clearValue = WGPUColor{0.06, 0.02, 0.12, 1.0};
+    color.clearValue = clear;
 
     WGPURenderPassDescriptor rp = {};
     rp.label = "neon-rumble-layers";
@@ -32,6 +49,8 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
 
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu.device, nullptr);
     WGPURenderPassEncoder pass = wgpuCommandEncoderBeginRenderPass(enc, &rp);
+    wgpuRenderPassEncoderSetScissorRect(pass, static_cast<uint32_t>(shown.x), static_cast<uint32_t>(shown.y),
+                                        shown.w, shown.h);
     quads.draw(pass, runs);
     wgpuRenderPassEncoderEnd(pass);
     wgpuRenderPassEncoderRelease(pass);
@@ -78,6 +97,8 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
     }
     Layers layers;
     FighterQuads fighter_quads;
+    const WGPUColor clear = background(level, spec.format);
+    bool cropped = false;
     bool overlay = false;
     bool f3_held = false;
     bool warned = false;
@@ -99,7 +120,12 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
         if (!sf.texture) continue;
         scene.step(static_cast<uint32_t>(drawn));
         const auto tick = static_cast<uint64_t>(drawn);
-        LayerStats st = layers.build(level, spec.width, spec.height, tick);
+        const ViewportFit fit = framework::graphics::viewport_fit({spec.width, spec.height});
+        if (fit.cropped && !cropped)
+            std::fprintf(stderr, "neon-rumble: window %ux%u is smaller than the %ux%u zone, the zone is cropped\n",
+                         spec.width, spec.height, framework::graphics::VIEW_ZONE.w, framework::graphics::VIEW_ZONE.h);
+        cropped = fit.cropped;
+        LayerStats st = layers.build(level, fit, tick);
         const FighterStats fs = fighter_quads.add(fighter, fighter.pose(tick), layers, st, level.texture_count, overlay);
         if (fs.rejected + fs.dropped > 0 && !fighter_warned) {
             std::fprintf(stderr, "neon-rumble: tick %llu: fighter %u quad(s) rejected, %u dropped\n",
@@ -111,7 +137,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
             upload_warned = true;
         }
         WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
-        draw_frame(gpu, surface, view, quads, layers.runs(st));
+        draw_frame(gpu, surface, view, clear, fit.shown, quads, layers.runs(st));
         wgpuTextureViewRelease(view);
         wgpuTextureRelease(sf.texture);
         if (++drawn == frames) glfwSetWindowShouldClose(window, GLFW_TRUE);

@@ -55,7 +55,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/debug_draw.hpp framework/graphics/graphics_sprite.hpp
   framework/graphics/machine.hpp framework/graphics/nine_slice.hpp
   framework/graphics/particles.hpp framework/graphics/player.hpp
-  framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp
+  framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp framework/graphics/viewport_fit.hpp
   framework/graphics/layer_draw.hpp framework/graphics/gpu/layer_quads.hpp
   framework/graphics/sprite_flip.hpp framework/graphics/clip_format.hpp
   framework/graphics/clip_read.hpp framework/graphics/clip_bake.hpp

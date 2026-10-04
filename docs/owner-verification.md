@@ -3066,14 +3066,14 @@ key.
        ./build-sdk-work/game-Release/neon_rumble --frames 1200
 
    The gate prints, for each configuration,
-   `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right`. In the window the
-   queen stands at the left end of the street with her feet on its top line, facing right, and
+   `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right`. In the window the
+   queen stands on the left of the street with her feet on its top line, facing right, and
    plays Walk for 60 frames, then Jab, Hook and Uppercut for 30 frames each; every second round
    of 150 frames she faces left. Both the showcase and the camera step once per drawn frame, and
    the window presents at the display rate: one second for Walk at 60 Hz, half a second on a
-   120 Hz ProMotion screen — that is not a finding. The camera pans her out of view at about frame
-   85 and brings her back at about frame 235 on a 1x screen (427 on a 2x one); the next pass
-   starts at frame 320 (512). Press **F3** while she is in view: a cyan frame around her cell
+   120 Hz ProMotion screen — that is not a finding. Since B7b the camera is held by the level's
+   `bounds` and pans only 48 map pixels right and back, so she stays in view the whole run, on a
+   1x screen and a 2x one alike. Press **F3**: a cyan frame around her cell
    (74×75 sheet pixels, larger than her silhouette) and a white cross at her feet; **F3** again
    hides them. The pack has no slices, so no coloured boxes appear — red hit, green hurt and yellow
    push frames show up once a sheet with boxes is in the bundle. Send back a screenshot with the

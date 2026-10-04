@@ -14,7 +14,7 @@ struct PixelSize {
     uint32_t h = 0;
 };
 
-struct ScreenRect {
+struct PixelRect {
     int32_t x = 0;
     int32_t y = 0;
     uint32_t w = 0;
@@ -29,11 +29,11 @@ struct ViewportFit {
     uint32_t scale = 0;
     // Видимое в мировых единицах — то, что бейк обязан закрыть слоями (`layer_cover`).
     PixelSize visible{};
-    ScreenRect zone{};
+    PixelRect zone{};
     // Вне `shown` — заливка цветом фона карты, а не мир.
-    ScreenRect shown{};
+    PixelRect shown{};
     // Экран вне зоны: полосы HUD и тача (#26). Пустые полосы не выдаются.
-    ScreenRect strips[4]{};
+    PixelRect strips[4]{};
     uint32_t strip_count = 0;
     // Окно меньше зоны: зона обрезана по центру, игрок видит не всё, что видит симуляция.
     bool cropped = false;

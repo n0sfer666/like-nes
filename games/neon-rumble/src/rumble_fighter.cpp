@@ -4,7 +4,6 @@
 #include <cstring>
 
 #include "clip.hpp"
-#include "hash.hpp"
 #include "object_read.hpp"
 #include "rumble_level.hpp"
 
@@ -27,23 +26,14 @@ constexpr uint64_t round_ticks() {
     return sum;
 }
 
-bool table(const Level& level, const char* name, const uint8_t*& data, size_t& size) {
-    const asset::LookupFault f = asset::raw_table(level.bundle, asset::fnv1a_str(name), data, size);
-    if (f == asset::LookupFault::Ok) return true;
-    std::fprintf(stderr, "neon-rumble: %s table: %s\n", name, asset::lookup_fault_name(f));
-    return false;
-}
-
 bool opened(bool ok, const char* name) {
     if (!ok) std::fprintf(stderr, "neon-rumble: %s table: does not open\n", name);
     return ok;
 }
 
 bool find_spawn(const Level& level, Fighter& out) {
-    const uint8_t* data = nullptr;
-    size_t size = 0;
     framework::tilemap::ObjectTable objects;
-    if (!table(level, "objects", data, size) || !opened(objects.open(data, size), "objects")) return false;
+    if (!level.open_objects(objects)) return false;
     const ObjectMap map = objects.find(level.name);
     for (const framework::tilemap::MapObject& o : framework::tilemap::objects_of_class(map, "spawn")) {
         if (std::strcmp(framework::tilemap::object_text(map, o.name_offset), "player") != 0) continue;
@@ -62,7 +52,7 @@ bool find_spawn(const Level& level, Fighter& out) {
 bool Fighter::open(const Level& level) {
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!table(level, "clips", data, size) || !opened(clips.open(data, size), "clips")) return false;
+    if (!level.read_table("clips", data, size) || !opened(clips.open(data, size), "clips")) return false;
     for (const Turn& t : SHOWCASE)
         if (clips.find(t.clip).row == nullptr) {
             std::fprintf(stderr, "neon-rumble: no clip %s in the clips table\n", t.clip);

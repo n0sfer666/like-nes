@@ -80,8 +80,11 @@ bool texture(const std::vector<std::string>& f, uint32_t line, Error& err) {
 }
 
 bool level(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 4 || f[2] != "tiled")
-        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj");
+    if ((f.size() != 4 && f.size() != 5) || f[2] != "tiled")
+        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj or "
+                               "level|<name>|tiled|<path>.tmj|viewport");
+    if (f.size() == 5 && f[4] != "viewport")
+        return fail(err, line, "unknown level option '" + f[4] + "', expected viewport");
     const std::string& path = f[3];
     if (path.size() < 4 || path.compare(path.size() - 4, 4, ".tmj") != 0)
         return fail(err, line, "level path '" + path + "' must be a Tiled JSON map (.tmj)");
@@ -111,7 +114,7 @@ bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
     std::string why;
     if (!path_ok(f[3], why)) return fail(err, line, why);
-    rec = Record{line, f[0], f[1], f[2], f[3]};
+    rec = Record{line, f[0], f[1], f[2], f[3], f.size() == 5 && f[4] == "viewport"};
     return true;
 }
 

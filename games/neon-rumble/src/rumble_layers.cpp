@@ -4,31 +4,22 @@
 
 #include "layer_draw.hpp"
 #include "layer_quads.hpp"
-#include "viewport.hpp"
 
 namespace rumble {
 
 namespace {
 
+using framework::graphics::CameraBounds;
 using framework::graphics::LayerFrame;
 
-// Левый край вида ходит 0 → span → 0 по пикселю за тик. Ширина вида — та же дробная `2·half`, что
-// у камеры: целое `screen / zoom` при нецелом частном уводило правый край за карту, в цвет очистки.
-// Карта уже вида стоит по центру.
-fix32 scroll_x(uint32_t map_w, fix32 half, uint64_t tick) {
-    const fix32 room = fix32::from_int(static_cast<int32_t>(map_w)) - half - half;
-    if (room.raw <= 0) return fix32::from_int(static_cast<int32_t>(map_w / 2));
-    const uint64_t span = static_cast<uint64_t>(room.raw / fix32::ONE);
-    if (span == 0) return half;
+framework::Vec2 sweep(const CameraBounds& b, framework::Vec2 half, uint64_t tick) {
+    const fix32 lo = b.min_x + half.x;
+    const fix32 room = b.max_x - half.x - lo;
+    const uint64_t span = room.raw > 0 ? static_cast<uint64_t>(room.raw / fix32::ONE) : 0;
+    if (span == 0) return {lo, b.max_y};
     const uint64_t pos = tick % (2 * span);
     const uint64_t left = pos <= span ? pos : 2 * span - pos;
-    return fix32::from_int(static_cast<int32_t>(left)) + half;
-}
-
-fix32 settle_y(uint32_t map_h, fix32 half) {
-    const fix32 bottom = fix32::from_int(static_cast<int32_t>(map_h));
-    if (bottom.raw <= (half + half).raw) return fix32::from_int(static_cast<int32_t>(map_h / 2));
-    return bottom - half;
+    return {lo + fix32::from_int(static_cast<int32_t>(left)), b.max_y};
 }
 
 } // namespace
@@ -36,19 +27,16 @@ fix32 settle_y(uint32_t map_h, fix32 half) {
 Layers::Layers()
     : sprites_(CAPACITY), keys_(CAPACITY), batches_(CAPACITY), quads_(CAPACITY), runs_(CAPACITY) {}
 
-LayerStats Layers::build(const Level& level, uint32_t screen_w, uint32_t screen_h, uint64_t tick) {
-    const auto& row = *level.map.row;
-    const uint32_t map_w = row.width * row.tile_size;
-    const uint32_t map_h = row.height * row.tile_size;
+LayerStats Layers::build(const Level& level, const framework::graphics::ViewportFit& fit, uint64_t tick) {
     LayerStats st;
-    st.zoom = map_h > 0 && screen_h / map_h > 1 ? screen_h / map_h : 1;
+    st.scale = fit.scale;
 
     LayerFrame f;
-    f.view.screen_half = {fix32::from_int(static_cast<int32_t>(screen_w)) / fix32::from_int(2),
-                          fix32::from_int(static_cast<int32_t>(screen_h)) / fix32::from_int(2)};
-    f.view.zoom = fix32::from_int(static_cast<int32_t>(st.zoom));
-    const framework::Vec2 half = framework::graphics::viewport_half_world(f.view);
-    f.camera.center = {scroll_x(map_w, half.x, tick), settle_y(map_h, half.y)};
+    f.view = fit.view;
+    f.config.policies = framework::graphics::CAMERA_BOUNDS;
+    f.config.half_view = framework::graphics::view_zone_half();
+    f.config.bounds = level.bounds;
+    framework::graphics::camera_follow(f.camera, f.config, sweep(level.bounds, f.config.half_view, tick), 0);
     f.tick = tick;
     f.textures = {level.guids, level.texture_count};
 

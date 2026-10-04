@@ -34,8 +34,24 @@ bool parse_frames(const char* text, int& frames) {
     return ec == std::errc() && ptr == end && frames > 0;
 }
 
+using framework::graphics::PixelRect;
+using framework::graphics::ViewportFit;
+
+ViewportFit report_viewport(uint32_t w, uint32_t h) {
+    const ViewportFit fit = framework::graphics::viewport_fit({w, h});
+    const auto rect = [](const PixelRect& r) { std::printf("%d,%d %ux%u", r.x, r.y, r.w, r.h); };
+    std::printf("neon-rumble: viewport %ux%u scale %u, visible %ux%u, zone ", w, h, fit.scale,
+                fit.visible.w, fit.visible.h);
+    rect(fit.zone);
+    std::printf(", shown ");
+    rect(fit.shown);
+    std::printf(", %u strip(s)%s\n", fit.strip_count, fit.cropped ? ", cropped" : "");
+    return fit;
+}
+
 // Сводка уровня и кадра — то, что headless доказывает о бандле без окна: таблица `visual` читается,
-// каждая текстура карты лежит сырым RGBA8, кадр в окне 960x540 весь ложится в квады.
+// каждая текстура карты лежит сырым RGBA8, политика вьюпорта на 960x540 и на окне меньше зоны,
+// камера в границах `bounds`, кадр 960x540 весь ложится в квады.
 void report_level(const rumble::Level& level) {
     const auto& row = *level.map.row;
     std::printf("neon-rumble: level %s %ux%u tile %u, %zu visual layer(s), %u texture(s)",
@@ -44,11 +60,17 @@ void report_level(const rumble::Level& level) {
     for (uint32_t i = 0; i < level.texture_count; ++i)
         std::printf(" %ux%u", level.sizes[i].w, level.sizes[i].h);
     std::printf("\n");
+    const ViewportFit fit = report_viewport(960, 540);
+    report_viewport(300, 200);
     rumble::Layers layers;
-    const rumble::LayerStats st = layers.build(level, 960, 540, 0);
-    std::printf("neon-rumble: frame 960x540 zoom %u: %u sprite(s), %u run(s), %u unknown, "
+    const rumble::LayerStats st = layers.build(level, fit, 0);
+    const auto& b = level.bounds;
+    const auto& c = layers.frame().camera.center;
+    std::printf("neon-rumble: bounds %d..%d x %d..%d, camera %d,%d\n", b.min_x.to_int(), b.max_x.to_int(),
+                b.min_y.to_int(), b.max_y.to_int(), c.x.to_int(), c.y.to_int());
+    std::printf("neon-rumble: frame 960x540 scale %u: %u sprite(s), %u run(s), %u unknown, "
                 "%u rejected, %u dropped\n",
-                st.zoom, st.sprites, st.runs, st.unknown, st.rejected, st.dropped);
+                st.scale, st.sprites, st.runs, st.unknown, st.rejected, st.dropped);
 }
 
 // Сводка бойца: клипы и лист из бандла, спавн из таблицы объектов и поза на двух тиках витрины —
@@ -60,8 +82,9 @@ void report_fighter(const rumble::Level& level, const rumble::Fighter& fighter) 
                 fighter.faces_left ? "left" : "right");
     rumble::Layers layers;
     rumble::FighterQuads quads;
+    const ViewportFit fit = framework::graphics::viewport_fit({960, 540});
     for (const uint64_t tick : {uint64_t{0}, uint64_t{215}}) {
-        rumble::LayerStats st = layers.build(level, 960, 540, tick);
+        rumble::LayerStats st = layers.build(level, fit, tick);
         const rumble::Pose p = fighter.pose(tick);
         const rumble::FighterStats fs = quads.add(fighter, p, layers, st, level.texture_count, true);
         std::printf("neon-rumble: fighter tick %llu: %s frame %u flip %d, %zu hit, %zu hurt, "

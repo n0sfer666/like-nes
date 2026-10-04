@@ -1804,28 +1804,35 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Release: SDK built and installed into the prefix
       sdk-game: OK   Debug: SDK built and installed into the prefix
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
-      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
-      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
-      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right
+      neon-rumble: level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+      neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+      neon-rumble: bounds 104..536 x 56..280, camera 296,172
+      neon-rumble: frame 960x540 scale 2: 261 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
+      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right
       neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0xee0b7e44a987efec matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
-      neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256
-      neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
-      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right
+      neon-rumble: level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256
+      neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+      neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+      neon-rumble: bounds 104..536 x 56..280, camera 296,172
+      neon-rumble: frame 960x540 scale 2: 261 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped
+      neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right
       neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xee0b7e44a987efec matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
       sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
       sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
+      sdk-game: OK   fixture: a level without a bounds object clamps the camera by the map
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
       sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
       sdk-game: prefix and game builds kept in build-sdk-work/
@@ -1845,26 +1852,37 @@ owner_check.sh гоняет это отдельным этапом сразу п
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
 
-  Строки level и frame — уровень level1 прочитан игрой из game.bundle
-  (таблица visual и тайлсет сырым RGBA8), а кадр 960x540 при зуме 2 целиком
-  лёг в квады: unknown, rejected и dropped обязаны быть нулями.
+  Строки level и frame — уровень level1 (40x21) прочитан игрой из game.bundle
+  (таблица visual и тайлсет сырым RGBA8), а кадр 960x540 при масштабе 2
+  целиком лёг в квады: unknown, rejected и dropped обязаны быть нулями.
+  Строки viewport — политика вьюпорта (спека #24, В7): на 960x540 масштаб 2,
+  зона 384x216 по центру, видно 480x270 мира без заливки; окно 300x200 меньше
+  зоны — масштаб 1 и cropped. Строка bounds — границы камеры из объекта
+  street класса bounds; на первом кадре зона прижата к их левому и нижнему краю.
+  Бейк сам проверяет, что слои уровня закрывают вид при этих границах:
+  запись level в game.manifest с полем viewport.
 
   Строки fighter — боец: 20 клипов из таблицы clips, лист 592x300 по guid
-  первого клипа витрины, стоит на объекте player (48,160) лицом вправо.
+  первого клипа витрины, стоит на объекте player (200,224) лицом вправо.
   Витрина по тику: Walk 60 тиков, Jab, Hook и Uppercut по 30, круг 150
   тиков, на каждом втором круге боец смотрит в другую сторону, поэтому на
   тике 215 — Jab с flip 1. Боксов у пака нет (0 hit, 0 hurt, 0 push), квады
   оверлея F3 — рамка клетки и крест пивота; rejected и dropped — нули.
 
-  Оконный запуск: окно «Neon Rumble» 960×540 на тёмно-фиолетовом фоне, в
-  нём уровень level1 — фасады над улицей, как в Tiled. Зум — наибольший
-  целый, при котором 192 px карты влезают по высоте кадра (Retina 2x: 5,
-  обычный экран: 2). Камера едет вдоль улицы на пиксель карты за кадр и обратно.
-  У левого края улицы стоит боец (королева в короне) ногами на линии улицы
-  и шагает на месте; камера уводит его из кадра около 85-го кадра, и в
-  прогоне на 120 кадров он не возвращается (возврат — около 235-го кадра на
-  1x и 427-го на 2x, §19). F3, пока боец в кадре, включает и выключает
-  оверлей: голубая рамка клетки и белый крест пивота у ступней.
+  Оконный запуск: окно «Neon Rumble» 960×540, в нём уровень level1 — фасады
+  над улицей, как в Tiled; над фасадами — небо цветом фона карты #0b0f1a
+  (тёмно-синий, как фон карты в Tiled; до В7б фон был тёмно-фиолетовым).
+  Других полос по краям нет: слои уровня по размеру закрывают всё окно.
+  Масштаб — наибольший целый, при котором зона 384x216 влезает в окно
+  (Retina 2x: 5 — видна ровно зона, обычный экран: 2 — видно 480x270). Камера едет вправо на пиксель карты за кадр 48 кадров и
+  столько же обратно — дальше её не пускают границы; улица у нижнего края.
+  Слева на улице стоит боец (королева в короне) ногами на линии улицы и
+  шагает на месте; из кадра он не уходит. F3 включает и выключает оверлей:
+  голубая рамка клетки и белый крест пивота у ступней. Если растянуть окно
+  шире 21:9 (около 2000x400 точек), по краям встают полосы того же
+  #0b0f1a, и мир в них не заходит: дальше предела 576x312 вид не открывает. Если сузить окно меньше 384x216 пикселей
+  (Retina — 192x108 точек), в stderr при каждом таком сужении: «neon-rumble:
+  window <W>x<H> is smaller than the 384x216 zone, the zone is cropped».
   Через 120 кадров окно закрывается само; последние строки:
 
       [gpu] <адаптер> | <бэкенд> | BC: <yes|no>

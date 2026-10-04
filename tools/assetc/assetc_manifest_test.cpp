@@ -44,10 +44,11 @@ void grammar() {
                        "\n"
                        "texture | street_tiles | pixel | assets/warped-city/tileset.png  # tiles\r\n"
                        "texture|hero.v2|hd|hero.png\n"
-                       "level|level1|tiled|content/level1.tmj\n";
+                       "level|level1|tiled|content/level1.tmj\n"
+                       "level | level2 | tiled | content/level2.tmj | viewport\n";
     check(manifest::parse(good, recs, err), "good manifest parses: " + err.message);
-    check(recs.size() == 3, "three records");
-    if (recs.size() == 3) {
+    check(recs.size() == 4, "four records");
+    if (recs.size() == 4) {
         check(recs[0].line == 3 && recs[0].name == "street_tiles" && recs[0].codec == "pixel" &&
                   recs[0].path == "assets/warped-city/tileset.png",
               "first record fields, comment and CR stripped");
@@ -56,6 +57,8 @@ void grammar() {
         check(recs[0].kind == "texture" && recs[2].kind == "level" && recs[2].name == "level1" &&
                   recs[2].codec == "tiled" && recs[2].path == "content/level1.tmj",
               "level record fields");
+        check(!recs[2].viewport && recs[3].viewport && recs[3].path == "content/level2.tmj",
+              "viewport option only on the record that names it");
     }
 
     rejects("texture|a|pixel|a.png\ntexture|b|pixel|b.png\ntexture|a|hd|c.png\n", 3,
@@ -70,6 +73,10 @@ void grammar() {
     rejects("\nlevel|l1|levels/one.tmj\n", 2, "level record expected as level|<name>|tiled|<path>.tmj");
     rejects("level|l1|tmx|levels/one.tmj\n", 1, "level record expected as");
     rejects("level|l1|tiled|levels/one.tmx\n", 1, "must be a Tiled JSON map (.tmj)");
+    rejects("level|l1|tiled|levels/one.tmj|fit\n", 1, "unknown level option 'fit', expected viewport");
+    rejects("level|l1|tiled|levels/one.tmj|viewport|x\n", 1,
+            "level record expected as level|<name>|tiled|<path>.tmj or level|<name>|tiled|<path>.tmj|viewport");
+    rejects("level|l1|tiled|levels/one.tmx|viewport\n", 1, "must be a Tiled JSON map (.tmj)");
     rejects("level|l1|tiled|../one.tmj\n", 1, "uses '..'");
     rejects("level|l 1|tiled|one.tmj\n", 1, "name 'l 1'");
     rejects("texture|a|pixel|a.png\nlevel|a|tiled|a.tmj\n", 2, "duplicate name 'a'");

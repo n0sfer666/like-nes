@@ -26,6 +26,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
 # shellcheck source=scripts/sdk_game_lib.sh
 . "$ROOT/scripts/sdk_game_lib.sh"
+# shellcheck source=scripts/sdk_game_bounds.sh
+. "$ROOT/scripts/sdk_game_bounds.sh"
 
 GEN=Ninja
 WORK=$(mktemp -d)
@@ -72,6 +74,7 @@ fixture_missing_library || FAIL=1
 fixture_bundle_hash "$OUT/game-Release" || FAIL=1
 fixture_manifest_no_codec || FAIL=1
 fixture_rebake || FAIL=1
+fixture_no_bounds || FAIL=1
 # Фикстура CRT — только у MSVC: у clang и gcc одна стандартная библиотека на обе конфигурации, и
 # расхождения, которое она ловит, там нет по построению.
 # Судит компилятор, который выбрал CMake, а не окружение: под vcvars с CXX=clang-cl компоновщик

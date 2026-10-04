@@ -5,7 +5,7 @@
 namespace framework::graphics {
 namespace {
 
-ScreenRect centered(PixelSize screen, uint64_t w, uint64_t h) {
+PixelRect centered(PixelSize screen, uint64_t w, uint64_t h) {
     const auto cw = static_cast<uint32_t>(std::min<uint64_t>(w, screen.w));
     const auto ch = static_cast<uint32_t>(std::min<uint64_t>(h, screen.h));
     return {static_cast<int32_t>((screen.w - cw) / 2), static_cast<int32_t>((screen.h - ch) / 2), cw,
