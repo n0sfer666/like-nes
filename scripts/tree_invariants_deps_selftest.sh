@@ -18,6 +18,8 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/py_run.sh
+. "$ROOT/scripts/py_run.sh"
 NAME=tree-invariants-deps-selftest
 pass=0; mut=0; fail=0
 
@@ -90,13 +92,13 @@ edge_to_consumer() {
 no_consumer_half() {
   local f="$1/scripts/tree_invariants.sh" before after
   before=$(cksum < "$f")
-  python3 - "$f" <<'PY2'
+  py_run "$f" <<'PY2'
 import pathlib, sys
 p = pathlib.Path(sys.argv[1])
 s = p.read_text(encoding="utf-8")
 a = s.index("    # Вторая половина того же направления")
 b = s.index('    echo "framework dependency direction: PASS"')
-p.write_text(s[:a] + s[b:], encoding="utf-8")
+p.write_text(s[:a] + s[b:], encoding="utf-8", newline="")
 PY2
   after=$(cksum < "$f")
   [ "$before" != "$after" ] || {
@@ -110,13 +112,13 @@ PY2
 handwritten() {
   local f="$1/scripts/tree_invariants.sh" before after
   before=$(cksum < "$f")
-  python3 - "$f" <<'PY'
+  py_run "$f" <<'PY'
 import pathlib, re, sys
 p = pathlib.Path(sys.argv[1])
 s = p.read_text(encoding="utf-8")
 old = s[s.index("    local layer=engine/framework"):s.index('    [ -n "$dirs" ] || fail')]
 new = '    local dirs="engine/render engine/light engine/material"\n'
-p.write_text(s.replace(old + '    [ -n "$dirs" ] || fail "no subsystem directories found — the gate is vacuous"\n', new), encoding="utf-8")
+p.write_text(s.replace(old + '    [ -n "$dirs" ] || fail "no subsystem directories found — the gate is vacuous"\n', new), encoding="utf-8", newline="")
 PY
   after=$(cksum < "$f")
   [ "$before" != "$after" ] || {

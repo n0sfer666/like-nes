@@ -91,14 +91,19 @@ expect fail "время в заголовке gzip" assert_pack_normalized "$TMP
 
 # Симлинк и пустой каталог `find -type f` не видит ОДИНАКОВО у упаковщика и у манифеста, поэтому
 # сверка архива с манифестом на них слепа: единственная защита — отказ до упаковки.
-LINKED="$TMP/linked"; cp -R "$SRC" "$LINKED"; ln -s bin/tool "$LINKED/alias" 2>/dev/null
+# `MSYS=winsymlinks:nativestrict` назван ЗДЕСЬ, а не оставлен окружению: git-bash по умолчанию
+# делает КОПИЮ, и фикстура переставала быть собой — пропуск брался на машине, где симлинк создать
+# можно. На macOS и Linux переменная не значит ничего.
+LINKED="$TMP/linked"; cp -R "$SRC" "$LINKED"
+MSYS=winsymlinks:nativestrict ln -s bin/tool "$LINKED/alias" 2>/dev/null
 if [ -L "$LINKED/alias" ]; then
   expect fail "в стейдже симлинк" pack_dir "$LINKED" "$TMP/linked.tar.gz" "$STAMP"
 else
-  # git-bash без прав на симлинки делает КОПИЮ, и фикстура перестаёт быть собой: «отбито» вышло бы
-  # из обычного файла, которого утверждение и не обязано отбивать. Пропуск назван вслух — молчаливый
-  # неотличим от пройденного, а на macOS и Linux эта ветка не берётся вовсе.
-  printf 'pack-selftest: ПРОПУЩЕНО в стейдже симлинк — ln -s дал не симлинк (нет прав на этой ФС)\n'
+  # Остался случай, когда симлинк не создать вовсе: на Windows для него нужен
+  # SeCreateSymbolicLinkPrivilege (режим разработчика либо элевация), и без него `nativestrict`
+  # отказывает. Тогда фикстура перестаёт быть собой — «отбито» вышло бы из обычного файла, которого
+  # утверждение и не обязано отбивать. Пропуск назван вслух: молчаливый неотличим от пройденного.
+  printf 'pack-selftest: ПРОПУЩЕНО в стейдже симлинк — ln -s дал не симлинк (нужен режим разработчика Windows)\n'
   rm -f "$LINKED/alias"
 fi
 HOLLOW="$TMP/hollow"; cp -R "$SRC" "$HOLLOW"; mkdir -p "$HOLLOW/empty"

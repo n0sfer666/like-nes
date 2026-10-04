@@ -10,6 +10,8 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/py_run.sh
+. "$ROOT/scripts/py_run.sh"
 # shellcheck source=scripts/release_crt_lib.sh
 . "$ROOT/scripts/release_crt_lib.sh"
 # shellcheck source=scripts/release_crt_fixture_lib.sh
@@ -138,7 +140,7 @@ else
   case_anchor_missing() {
     local d
     d=$(anchor_tree cut) || return 1
-    python3 - "$d/build-fix/_deps/webgpu-backend-wgpu-src/bin/windows-x86_64/wgpu_native.dll" <<'PY' || return 1
+    py_run "$d/build-fix/_deps/webgpu-backend-wgpu-src/bin/windows-x86_64/wgpu_native.dll" <<'PY' || return 1
 import sys
 p = sys.argv[1]
 b = open(p, 'rb').read()

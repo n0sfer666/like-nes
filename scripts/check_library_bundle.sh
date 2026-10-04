@@ -90,7 +90,7 @@ fi
 # позицией и НЕ оставленным бандлом. Без него утверждение выше держится на том, что библиотека
 # валидна, и осталось бы зелёным при выключенной проверке.
 if [ -n "${checked:-}" ] && [ "${checked:-0}" -ge 1 ]; then
-    python3 -c "import sys; l=open(sys.argv[1]).read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w').write(chr(10).join(l))" \
+    python3 -c "import sys; l=open(sys.argv[1], encoding='utf-8').read().split(chr(10)); l.insert(9, 'let broken_here: f32 = ;'); open(sys.argv[2],'w',encoding='utf-8',newline='').write(chr(10).join(l))" \
         engine/material/library/sprite_effects.wgsl "$tmp/bad.wgsl"
     if build-ci/assetc --materials "$tmp/library.mat" "$tmp/bad.wgsl" "$tmp/bad.bundle" \
             --lights "$tmp/lights.txt" >"$tmp/bad.txt" 2>&1; then

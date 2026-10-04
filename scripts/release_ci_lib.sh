@@ -49,7 +49,10 @@ ci_gh_hint() {
 ci_pick_run() {
   python3 - "$1" "$2" <<'PY'
 import json, sys
-runs = json.load(open(sys.argv[1]))
+# Кодировка названа ЯВНО: `gh` пишет JSON в UTF-8, а `open` без неё берёт её у локали — на русской
+# Windows это cp1251, и первый же не-ASCII заголовок коммита убивает выбор прогона
+# UnicodeDecodeError. Тот же шов и то же правило, что гейт `check_py_utf8.py` требует у .py.
+runs = json.load(open(sys.argv[1], encoding="utf-8"))
 sha = sys.argv[2]
 mine = [r for r in runs if r.get("headSha") == sha]
 if not mine:
