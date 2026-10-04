@@ -1,66 +1,59 @@
-{
- "columns":24,
- "image":"../assets/warped-city/tileset.png",
+{ "columns":24,
+ "image":"..\/assets\/warped-city\/tileset.png",
  "imageheight":256,
  "imagewidth":384,
  "margin":0,
  "name":"warped-city",
  "spacing":0,
  "tilecount":384,
- "tiledversion":"1.10.2",
+ "tiledversion":"1.12.2",
  "tileheight":16,
  "tiles":[
-  {
-   "id":45,
-   "properties":[
-    {
-     "name":"flags",
-     "type":"string",
-     "value":"solid"
-    }
-   ]
-  },
-  {
-   "id":147,
-   "properties":[
-    {
-     "name":"flags",
-     "type":"string",
-     "value":"ladder"
-    }
-   ]
-  },
-  {
-   "id":171,
-   "properties":[
-    {
-     "name":"flags",
-     "type":"string",
-     "value":"ladder"
-    }
-   ]
-  },
-  {
-   "id":271,
-   "properties":[
-    {
-     "name":"flags",
-     "type":"string",
-     "value":"solid oneway"
-    }
-   ]
-  },
-  {
-   "id":272,
-   "properties":[
-    {
-     "name":"flags",
-     "type":"string",
-     "value":"solid oneway"
-    }
-   ]
-  }
- ],
+        {
+         "id":45,
+         "properties":[
+                {
+                 "name":"flags",
+                 "type":"string",
+                 "value":"solid"
+                }]
+        }, 
+        {
+         "id":147,
+         "properties":[
+                {
+                 "name":"flags",
+                 "type":"string",
+                 "value":"ladder"
+                }]
+        }, 
+        {
+         "id":171,
+         "properties":[
+                {
+                 "name":"flags",
+                 "type":"string",
+                 "value":"ladder"
+                }]
+        }, 
+        {
+         "id":271,
+         "properties":[
+                {
+                 "name":"flags",
+                 "type":"string",
+                 "value":"solid oneway"
+                }]
+        }, 
+        {
+         "id":272,
+         "properties":[
+                {
+                 "name":"flags",
+                 "type":"string",
+                 "value":"solid oneway"
+                }]
+        }],
  "tilewidth":16,
  "type":"tileset",
  "version":"1.10"

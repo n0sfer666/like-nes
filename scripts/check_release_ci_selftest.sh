@@ -9,6 +9,8 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/py_run.sh
+. "$ROOT/scripts/py_run.sh"
 # shellcheck source=scripts/release_lib.sh
 . "$ROOT/scripts/release_lib.sh"
 # shellcheck source=scripts/release_check_lib.sh
@@ -136,14 +138,15 @@ expect fail "job просит права на запись поверх верх
 
 # Ровно та фикстура, что воспроизводит закрытую вертикаль: windows снова отказывает кодом 3.
 REFUSED=$(copy_release refused.sh)
-python3 - "$REFUSED" <<'PY'
+py_run "$REFUSED" <<'PY'
 import sys
 p = sys.argv[1]
-s = open(p).read()
+s = open(p, encoding='utf-8').read()
 head = '    windows)\n'
 i = s.index(head)
 j = s.index('      ;;\n', i) + len('      ;;\n')
-open(p, 'w').write(s[:i] + '    windows) echo "release: пакет Windows собирается задачей CI" >&2 ;;\n' + s[j:])
+open(p, 'w', encoding='utf-8', newline='').write(
+    s[:i] + '    windows) echo "release: пакет Windows собирается задачей CI" >&2 ;;\n' + s[j:])
 PY
 mutated "$REFUSED" "$ROOT/scripts/release.sh"
 expect fail "windows снова отказывает кодом 3" assert_windows_delegated "$REFUSED"

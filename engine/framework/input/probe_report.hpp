@@ -1,4 +1,6 @@
 #pragma once
+#include <string>
+
 #include "input_engine.hpp"
 #include "pad_registry.hpp"
 #include "presets.hpp"
@@ -17,6 +19,14 @@ void report_bindings(const PresetTable& table, uint32_t preset, const RebindStor
 // массив на MAX_DEVICES, probe владеет им сам.
 void report_pads(::input::InputEngine& engine, ::input::GamepadSource* pad, PadRegistry& reg,
                  const PresetTable& table, bool* prev);
+
+// Исходов ЧТЕНИЯ ОВЕРЛЕЯ три, а не два: уборка шага 4 гейта (`X` затем `S`) пишет пресет БЕЗ
+// правок, а не удаляет файл, и «загружен» про такой файл читался бы как «прошлый прогон не
+// убрали» — то есть процедура отвергала бы состояние, в которое сама же и приводит. `mine` —
+// файл наш и про этот пресет; строка печатается всегда, как и у report_cold_start, потому что
+// предусловием шагов гейта служит именно она.
+void report_overlay(const PresetTable& table, uint32_t preset, const RebindStore& store, bool mine,
+                    const std::string& path);
 
 // Итог ПЕРВОГО опроса: пад, воткнутый до запуска, обязан быть виден им же. Печатается всегда, в
 // том числе (и особенно) когда не видно ничего: молчание неотличимо от «пада и не было», а

@@ -9,6 +9,8 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/py_run.sh
+. "$ROOT/scripts/py_run.sh"
 # shellcheck source=scripts/release_crt_lib.sh
 . "$ROOT/scripts/release_crt_lib.sh"
 # shellcheck source=scripts/release_crt_wiring_lib.sh
@@ -64,7 +66,7 @@ expect fail "include статического CRT вырезан" case_cml_gone
 # только по номеру строки.
 case_cml_late() {
   local d; d=$(cml late)
-  python3 - "$d/CMakeLists.txt" <<'PY'
+  py_run "$d/CMakeLists.txt" <<'PY'
 import sys
 p = sys.argv[1]
 lines = open(p, encoding='utf-8').read().splitlines(True)
@@ -72,7 +74,7 @@ inc = [i for i, l in enumerate(lines) if 'cmake/msvc_runtime.cmake' in l and not
 dep = [i for i, l in enumerate(lines) if 'FetchContent_Declare' in l and not l.lstrip().startswith('#')]
 moved = lines.pop(inc[0])
 lines.insert(dep[-1], moved)
-open(p, 'w', encoding='utf-8').write(''.join(lines))
+open(p, 'w', encoding='utf-8', newline='').write(''.join(lines))
 PY
   cmp -s "$d/CMakeLists.txt" "$ROOT/CMakeLists.txt" && return 0
   assert_msvc_runtime_wired "$d"

@@ -109,12 +109,8 @@ int main(int argc, char** argv) {
     RebindStore store;
     std::string stored_preset;
     const std::string path = save_path();
-    if (store.load(path, stored_preset) && stored_preset == table.preset_name(preset))
-        std::printf("[probe] overlay loaded from %s: %zu edit(s) - the restart half of gate 4\n",
-                    path.c_str(), store.items().size());
-    else
-        std::printf("[probe] no overlay for preset '%s' at %s - clean preset\n",
-                    table.preset_name(preset), path.c_str());
+    const bool mine = store.load(path, stored_preset) && stored_preset == table.preset_name(preset);
+    report_overlay(table, preset, store, mine, path);
 
     ::input::ActionMap map;
     rebuild(table, preset, store, map);

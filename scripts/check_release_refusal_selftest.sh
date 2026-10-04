@@ -9,6 +9,8 @@
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+# shellcheck source=scripts/py_run.sh
+. "$ROOT/scripts/py_run.sh"
 # shellcheck source=scripts/release_lib.sh
 . "$ROOT/scripts/release_lib.sh"
 # shellcheck source=scripts/release_check_lib.sh
@@ -91,12 +93,13 @@ esac
 # утверждение звало только форму С `--version`, эта правка проходила молча.
 copy_script "$ROOT/scripts/release.sh" hoisted.sh
 HOISTED=$(copy_path hoisted.sh)
-python3 - "$HOISTED" <<'PY'
+py_run "$HOISTED" <<'PY'
 import sys
 p = sys.argv[1]
-s = open(p).read()
+s = open(p, encoding='utf-8').read()
 m = 'if [ "$ONLY" != "$HOST" ]; then\n'
-open(p, 'w').write(s.replace(m, 'VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2\n' + m, 1))
+open(p, 'w', encoding='utf-8', newline='').write(
+    s.replace(m, 'VERSION=$(resolve_version "$ROOT" "$VERSION") || exit 2\n' + m, 1))
 PY
 mutated hoisted.sh &&
   expect fail "версия резолвится над диспатчем" assert_foreign_platform_refused "$HOISTED"
@@ -111,14 +114,14 @@ mutated code2.sh &&
 
 copy_script "$ROOT/scripts/release.sh" refuse.sh
 REFUSE=$(copy_path refuse.sh)
-python3 - "$REFUSE" <<'PY'
+py_run "$REFUSE" <<'PY'
 import sys
 p = sys.argv[1]
-s = open(p).read()
+s = open(p, encoding='utf-8').read()
 i = s.index('    linux)\n')
 j = s.index('      ;;\n', i) + len('      ;;\n')
 s = s[:i] + '    linux) echo "release: linux не здесь" >&2 ;;\n' + s[j:]
-open(p, 'w').write(s)
+open(p, 'w', encoding='utf-8', newline='').write(s)
 PY
 mutated refuse.sh || REFUSE=""
 case "$(uname -s)" in
@@ -133,8 +136,12 @@ COND='if [ -n "$PLATFORM" ] && { [ "$ONLY" != linux ] || [ "$HOST" = linux ]; };
 swap_cond() {
   local dst
   dst=$(copy_path "$1")
-  python3 -c 'import sys;p,a,b=sys.argv[1:4];s=open(p).read();open(p,"w").write(s.replace(a,b,1))' \
-    "$dst" "$COND" "$2"
+  py_run "$dst" "$COND" "$2" <<'PY'
+import sys
+p, a, b = sys.argv[1:4]
+s = open(p, encoding='utf-8').read()
+open(p, 'w', encoding='utf-8', newline='').write(s.replace(a, b, 1))
+PY
 }
 
 copy_script "$ROOT/scripts/release.sh" eaten.sh
@@ -156,13 +163,13 @@ mutated oldcond.sh &&
 # Пока утверждение сравнивало только код, оно принимало такую копию за исправную — то есть говорило
 # «флаг отвергается» о скрипте, который про флаг не знает.
 copy_script "$ROOT/scripts/release.sh" unknownflag.sh
-python3 - "$(copy_path unknownflag.sh)" <<'PY2'
+py_run "$(copy_path unknownflag.sh)" <<'PY2'
 import sys
 p = sys.argv[1]
-s = open(p).read()
+s = open(p, encoding='utf-8').read()
 m = '    --platform) need_value $# "$1"; PLATFORM="$2"; shift 2 ;;\n'
 assert m in s
-open(p, 'w').write(s.replace(m, '', 1))
+open(p, 'w', encoding='utf-8', newline='').write(s.replace(m, '', 1))
 PY2
 mutated unknownflag.sh &&
   expect fail "--platform не разбирается вовсе" assert_platform_rejected_on_host "$(copy_path unknownflag.sh)"

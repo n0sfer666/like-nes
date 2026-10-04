@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**7 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
+**12 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 8 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -24,20 +24,34 @@ names that surface.
 | The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 | The reference frame holds against a real GPU driver, not a software rasteriser | [#17](../.context/specs/2026-07-26-graphics-framework.md) 2 | **all three** (a real AMD/NVIDIA/Intel driver each) | — | `engine/render/*`, `example_ugly_game/golden/scene_960x540.png`, shader sources |
-| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | — | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
-| The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | — | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
-| A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | — | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
+| The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | 2026-10-03 | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
+| The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | 2026-10-03 | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
+| A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | 2026-10-03 | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
-| The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
+| The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | 2026-10-04 | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | An engine package built here runs on a box that never saw this source tree | [#20](../.context/specs/2026-07-26-release-installers.md) 1 | **all three**, each a box that never built this tree | — | `cmake/install_engine.cmake`, `scripts/release*.sh`, `packaging/` |
 | The forms people actually install from — `.dmg`, `.AppImage`, `.msi` — install and start | [#20](../.context/specs/2026-07-26-release-installers.md) 3 | **all three** | — | `scripts/release_dmg*`, `scripts/release_appimage*`, `packaging/like-nes.wxs.in` |
 | No Visual C++ Redistributable on the box, and a silent install still lands | [#20](../.context/specs/2026-07-26-release-installers.md) 4 | **Windows** | — | `cmake/msvc_runtime.cmake`, `cmake/msvc_redist.cmake`, `packaging/like-nes.wxs.in` |
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
-| Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
+| Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
-The last to close was the look of the sample after the framework move, and it is the kind a runner
+The last to close was the network frame cost (§13), on 2026-10-04 on the Windows box — the slowest
+machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
+the day before, and the two halves disagree about which peer is the expensive one: the asymmetry the
+gate rests on is inverted here, and the receiver's rollback count turned out not to be pinned by the
+scripted route at all. Before it, level 1 out of a real Tiled (§18) closed on 2026-10-03/04 on that
+same box: the Linux run of 2026-10-03 could settle the bake and the numbers but had no Tiled on it at
+all, and the save, the decoded diff and the window held against the Tiled view are what the Windows
+box added the next morning. Before them, three gates of #18 closed on 2026-10-03 across two
+machines. Two went on
+the Metal machine the references are pinned on: the effect library's own frame (§9) and the sample
+game playing with it (§10); the same pass left §12 open with a finding in its question 7, and left
+hot-reload (§11) standing on one look alone — whether a reload costs a frame or blinks the panel.
+That look is a transient, which no still can hold, so it was taken on the Nobara box by sampling the
+window twenty times a frame: it does neither, and §11 closed the same day. Before them, the last to close was the look of
+the sample after the framework move, and it is the kind a runner
 cannot even *print* — it is recordings held side by side, one pair per sample. The character tick
 cost stood beside it until 2026-09-01 and was the other kind: an answer a runner could print but not
 *judge*, because it asks, as the physics gate does, whether a number fits a real frame budget on the
@@ -164,6 +178,62 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 > one run each, both PASS. Kept as the procedure — it is what a new machine or a change to the
 > windowing path has to be re-run against.
 
+> **Re-run of the Wayland half, 2026-10-03**, on the same Nobara box, because the windowing path did
+> change: 29 commits touched `engine/platform`, `engine/gfx`, `tools/ide/editor` and the root
+> `CMakeLists.txt` since the closing date, among them the surface seam (`db0156c`), the Wayland
+> choice passed on to the glue (`4429658`) and the build-dir/session mismatch message (`4b91548`).
+> `build-way` configured and built clean against the three devel packages named below;
+> `./build-way/editor_shell --gate6 …` came back **PASS, failures: 0**, with `glfw: wayland` on the
+> passport — a native Wayland client, not XWayland. Evidence:
+> `build/owner-artifacts-linux/g1-gate6-wayland.{txt,png}`; the PNG is a live viewport (grid, the
+> gizmo on `entity_0`, the Inspector showing `x [fix32] = -8363008`, console `undo depth: 1`), not a
+> flat fill. The gate stays closed on its 2026-08-05 date — this is a confirmation, not a re-close.
+>
+> The two eye-questions above stayed with the owner, and on this box **no AI can judge them**: GNOME
+> here denies `org.gnome.Shell.Screenshot` (`AccessDenied: Screenshot is not allowed`) and the box
+> has no `grim`/`gnome-screenshot`, so a native Wayland window's pixels cannot be captured from
+> outside the process at all; and Wayland gives no client a way to inject input into another, so a
+> *real* mouse drag of the gizmo is literally a hand's job. The X11 half of this re-run is not done:
+> Fedora 44 dropped `gnome-session-xsession` from the repos, and picking the installed `i3` session
+> means logging out — an owner action.
+
+> **Re-run of the X11 half, 2026-10-03**, same box, i3 on Xorg, commit `a8e67c0`:
+> `./build/editor_shell --gate6` came back **PASS, failures: 0** with `XDG_SESSION_TYPE=x11`,
+> `glfw: x11`, `DISPLAY=set WAYLAND_DISPLAY=unset`. Evidence: `build/owner-artifacts-linux/x11/`.
+>
+> * **The first run passed with the gizmo off screen.** i3 tiles a new window, so it came up
+>   1916x507; the camera keeps its zoom and centres the scene, and the top row of the grid —
+>   `entity_0` and its gizmo — fell above the viewport's edge (`gate6-x11.png`). Every check stayed
+>   green, because the hit-test checks are arithmetic on `world_to_screen` and never ask whether the
+>   point lies inside the viewport. Run fullscreen (`$mod+f`) instead: `gate6-x11-full.png`
+>   (1920x1080) shows the gizmo, and `screen-x11-gate6.png` — a grab of the X root window, i.e. the
+>   screen itself, with no compositor in between — shows the same window on screen.
+> * **The gizmo does not obey a mouse, real or synthetic, because the editor has no code for it.**
+>   An XTEST drag along the X axis (`780,227 → 972,227`, 24 steps, button 1 held) left the
+>   Inspector at `x [fix32] = -8388608` before and after, and `Ctrl+Z` changed nothing
+>   (`mouse-strip.png`). The reason is in the tree, not in the session: `viewport_panel`
+>   (`tools/ide/editor/editor_ui.hpp`) draws the axes and never reads the mouse; `gizmo_hit` is
+>   called only from `editor_selftest.cpp` and `editor_gate6.cpp`, and the gate's "drag" is
+>   `bus.set_component` called directly. `git log --all -S` finds no `IsMouseDragging`,
+>   `IsMouseClicked`, `IsMouseDown` or `GetMouseDragDelta` in the whole history — the hit-test has
+>   not been wired to input since it was added in `3aacd7a` (2026-07-21). The closing note's
+>   "the gizmo obeys a real mouse" cannot have been observed; what a mouse does move is the
+>   Inspector's `Position.raw` drag field. The gate stays on its 2026-08-05 date pending the owner's
+>   decision: this is the question the gate exists to ask, and the answer today is **no**.
+> * **GLFW 3.4 hangs on X11 when a window is created under a fullscreen window.** With the editor
+>   fullscreen on the same i3 workspace, `neon_rumble --frames 120` never shows a frame: 1189 s and
+>   counting at 99% CPU on one thread, stack `glfwCreateWindow → _glfwCreateWindowX11 →
+>   waitForVisibilityNotify → XCheckTypedWindowEvent`; reproduced 2 of 2 under `timeout 20`
+>   (`n9-x11.txt`). `waitForX11Event` returns true while *any* event is queued, so an event that
+>   `XCheckTypedWindowEvent` does not take keeps the loop spinning and the 0.1 s timeout is never
+>   spent. Upstream master has the same two functions unchanged. It affects every GLFW window of
+>   the engine, editor included.
+> * **Finding Н9 (a hidden window presents at 1 Hz) does not happen on Xorg.** Same binary,
+>   `--frames 120`: alone on screen 2.00 s, moved to a hidden i3 workspace (unmapped) 2.00 s;
+>   `--frames 600` covered by a fullscreen window *after* it was created 11.1 s. The 1 Hz is
+>   mutter's, not the engine's — on this session the loop runs at refresh whatever the window's
+>   visibility.
+
 On a Wayland-first GNOME (Nobara/Fedora) the login-screen gear offers no X11 entry at all, and the
 first run comes back FAIL on the passport line alone. That case is walked through step by step in
 [`gate6-linux.md`](gate6-linux.md); this section is the gate itself.
@@ -230,6 +300,26 @@ anv and lavapipe together, so there is no per-vendor package to hunt for).
 > **Closed 2026-08-05/06** on commit `0e4294c`: Linux (Nobara 44, GCC) and Windows (MSVC 14.44),
 > both PASS, dR=+89.705 against a +4 threshold, sim-golden intact. Kept as the procedure.
 
+> **Re-run of the Linux half, 2026-10-03** on commit `a0f5894`, same Nobara box, gcc 16.2.1 — and
+> the first attempt came back **FAIL (failures: 2)**, on the script rather than on the engine. The
+> clear colour had left `draw.cpp` on 2026-08-31 (`b1dd1c7` folded the two copies of `begin_clear`
+> into `batch.cpp` and made the colour the caller's argument), so step 4 patched a file that no
+> longer holds it: `dR=+0.000 dG=+0.000 dB=+0.000`, two identical frames. **The gate caught its own
+> rot** because step 4 asserts that the edit *applied* and not merely that it was asked for — the
+> run without that assertion would have printed PASS over an unchanged frame for a month. Fixed in
+> the same commit as this note: the patch now targets `example_ugly_game/demo.cpp` (the `--demo`
+> offscreen path the gate actually renders), the "is the constant still where we think it is" check
+> moved **ahead of** the build — a cold clone build is a quarter of an hour on this machine, and
+> learning of a miss at the end of it costs half an hour for one answer — and the by-hand route in
+> `docs/owner-setup.txt` point H now names `live.cpp`, which is the copy the window draws.
+>
+> The re-run on the fix is **PASS, failures: 0**, and it reproduces the closing numbers of
+> 2026-08-05/06 to the third decimal, a month and a compiler version later:
+> `7.466 7.552 23.086` → `97.171 7.552 15.285`, `dR=+89.705 dG=+0.000 dB=-7.801` against the +4
+> threshold, sim-golden `0x32a094e89eacf2f2` unmoved in the same run. Evidence:
+> `build/owner-artifacts-linux/g2-gate8-report-linux.txt` and `g2-gate8-e2e.log`, with the failing
+> first attempt kept beside them as `g2-gate8-e2e-stale.log`. The gate keeps its 2026-08-05/06 date.
+
 The editor has no Play/Build buttons yet: spawning and the build loop are their own targets
 (`play_spawn_test`, `build_loop_test`), and the mechanism is what `owner_check.sh` already timed on
 this machine. What is left is the chain end to end — an edit reaching pixels — and that whole chain
@@ -240,7 +330,7 @@ bash scripts/gate8_e2e.sh
 ```
 
 It clones this repository into `build/gate8/clone`, builds it from scratch, renders frames, patches
-the clear colour in `example_ugly_game/draw.cpp` (`{0.02, 0.02, 0.07}` → `{0.25, 0.02, 0.05}`),
+the clear colour in `example_ugly_game/demo.cpp` (`{0.02, 0.02, 0.07}` → `{0.25, 0.02, 0.05}`),
 rebuilds, renders again, and then **measures** the two frames instead of asking you to look: the
 mean red channel has to rise and to outrun green and blue, because "the frame changed" would also
 be true of any render jitter. The sim hash has to stay `0x32a094e89eacf2f2` in the same run — the
@@ -308,6 +398,40 @@ Native Tools Command Prompt for VS* plus `"C:\Program Files\Git\bin\bash.exe" sc
 > first attempt did not. The file the 2026-08-07 closure left behind was still on disk three weeks
 > later, holding `fire -> key:j` with `jump` slot 0 stripped, and it is why the fourth trap below is
 > written down at all.
+>
+> **Re-run 2026-10-03 on Linux (Nobara 44), steps 3 and 4 only, PASS** — on commit `21fddf8`,
+> because 9 commits touched `engine/input` and `engine/framework/input` since the 2026-08-29 re-run,
+> among them the bounded cursors and the pair naming another axis (`f94ab5c`), the caps on the
+> preset section (`95469d1`), counting logical axes once for baker, reader and runtime (`6f08e44`)
+> and the section reader's own gate (`feef73b`). Steps 3 and 4 are the keyboard half of this gate
+> and need no pad, so they were driven from a script — `XSendEvent` straight into the probe's
+> window, because XTEST does not reach XWayland clients on this box. Step 3 refused by name on the
+> first try, with the preset's own wording: `[probe] source already bound to 'jump' slot 0 - F takes
+> it, C cancels`, and `F` then took it — the table printed `fire [0]=key:j` against `jump [0]=none`,
+> which is `jump` losing that slot. Step 4 saved two edits (`bind | jump | 0 | none`, `bind | fire |
+> 0 | key:j`), the restart read them back as `overlay loaded … 2 edit(s)` — the same count the
+> 2026-08-07 closure reported — and `X` then `S` ended on `bye - overlay empty` with the preset
+> restored to `key:space` / `key:j`. Evidence `build/owner-artifacts-linux/g3-steps34.txt`.
+>
+> **Steps 1, 2, 5 and the stick half of step 6 are not re-run: there is no pad on this box.**
+> `/dev/input` holds no `js*` and no `by-id` directory, and the probe's own cold-start line says so
+> out loud — `cold-start scan: backend 'evdev (Linux)' reports NO pad on any of 8 slots` — with the
+> session's axis report ending in `stick pushed: right=NO left=NO up=NO down=NO`. Those four steps
+> are a hand on a stick, and `padaxis:-ly` is exactly the kind of per-platform sign no keyboard can
+> answer for. They stay open for the owner's next pass with the pad connected.
+>
+> **This re-run produced one finding of its own, in the gate's precondition** (finding Н10 of the
+> 2026-10-03 Linux run, fixed in the same commit as this note). The box was carrying
+> `~/.local/share/like-nes/controls_probe.txt` from the 2026-08-07 closure — fifteen bytes, zero
+> edits, written by *this gate's own* `X` + `S` cleanup, which saves an empty overlay rather than
+> deleting the file. The probe called it `overlay loaded … 0 edit(s)`, and the precondition block
+> below reads `overlay loaded` as "the previous run was never cleaned up: delete the file". So the
+> procedure rejected the state its own last step leaves behind, and the owner following it would
+> delete a file for no reason — while the condition the trap actually hunts, an overlay holding
+> *stripped bindings*, prints the same first three words. The probe now says `overlay at <path>
+> holds no edits - clean preset` for that case, and only a file with edits in it is called loaded;
+> all three branches were exercised on this box (`g3-overlay-three.txt`). The gate stays closed on
+> its 2026-08-07 date.
 
 ```sh
 cmake --build build --target framework_input_probe
@@ -359,16 +483,24 @@ the *first* start, before anything was saved, so its restart half is carried by 
 the binary. Both look exactly like a pass.
 
 The probe already prints the answer — second line of the run, right after the resolved move axes.
-Read it before step 1, and it must say
+Read it before step 1, and it must end in `clean preset`, which it does in two shapes:
 
 ```
 [probe] no overlay for preset 'probe' at <path> - clean preset
+[probe] overlay at <path> holds no edits - clean preset
 ```
 
-`overlay loaded` there instead means the previous run was never cleaned up: quit, delete the file
-the line names (the path is *in* the line, so there is nothing to look up per OS), start again. The
-`X` then `S` cleanup at the end of step 4 stays where it is — this is the check for the run where
-it was forgotten, and a gate whose precondition is only a habit is not a gate.
+The second shape is the ordinary state after a previous run was cleaned up properly: the `X` then
+`S` at the end of step 4 **writes a preset with no edits, it does not delete the file**. Until
+2026-10-03 the probe called that file "loaded" like any other, so this gate's own precondition
+rejected the state its own cleanup leaves behind — the Linux box was carrying such a file from the
+2026-08-07 closure, fifteen bytes and zero edits, and the line read `overlay loaded … 0 edit(s)`.
+Now only a file with edits in it is called loaded.
+
+`overlay loaded … N edit(s)` with N above zero means the previous run was never cleaned up: quit,
+delete the file the line names (the path is *in* the line, so there is nothing to look up per OS),
+start again. The `X` then `S` cleanup at the end of step 4 stays where it is — this is the check for
+the run where it was forgotten, and a gate whose precondition is only a habit is not a gate.
 
 1. **Passport → profile.** Plug the pad in *while the probe runs*. It must print one
    `pad 0 CONNECTED vid=… pid=… name="…" -> profile '…'` line. Check the profile matches the
@@ -795,6 +927,40 @@ shape of a gate that has quietly stopped gating.
 > (`game_platformer_sim_test`), the camera and the drawn geometry (`game_platformer_view_test`), the
 > layout-to-intent mapping (`game_platformer_input_test`). What is left is a hand on a key and an
 > eye on a screen.
+>
+> **Re-run of the Linux half, 2026-10-03** on commit `6f6a798`, the same Nobara box, because the
+> module underneath did move: 24 commits touched `engine/framework/character`,
+> `engine/framework/tilemap` and `example_ugly_game/platformer_*` since 2026-09-01 — among them the
+> surface seam every window loop now acquires its frame through (`db0156c`), the header prefixes
+> (`d91546e`) and the Tiled import that rewrote the tilemap side (`591cce4`). **The mechanical half
+> came back green, all five:** `game_platformer_sim_test` prints the route hash
+> `0xfead7a87477a9258` unmoved, with both numbers the 2026-09-01 findings pinned reproduced to the
+> digit (`edge: hero=24.125 leftmost=8.000`, `rider: hero=583.542 plate=555.999 slipped=1
+> crushed=0`), plus `game_platformer_view_test`, `game_platformer_input_test`,
+> `framework_character_push_test` and `framework_character_platform_test` — evidence
+> `build/owner-artifacts-linux/g6-headless.txt`. The live window opens and closes as the gate says
+> it must: `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes`, then the one startup line
+> with `gamepad: evdev (Linux)`, then `[platformer] window clean exit`, exit code 0, nothing on
+> stderr — `build/owner-artifacts-linux/g6-live-passport.txt`.
+>
+> **Questions 1-7 stay with the owner: on this box no AI can judge them,** and the measurement that
+> says so is in `build/owner-artifacts-linux/g6-input-probe.txt`. The input chain was proved alive
+> first, so that "the sample ignores the keys" could be ruled out rather than guessed: with a
+> temporary printf in front of `step_stage`, keys injected by `XSendEvent` straight into the window
+> id arrive as the right intent — `d` and `Right` give `mx=1.000`, space gives `j=1`. What does not
+> arrive is time: the loop runs **1.00 tick/s against the 60 it asks for** (14 ticks in 14.0 s of
+> idle), because the surface is on `Fifo` and the world step sits in the same iteration as
+> `win.draw`, so the sim advances at the pace the compositor presents. A window nobody can see gets
+> presented once a second here, and three seconds of a held key buy two or three ticks of world —
+> which is the whole of the "frozen hero" the pixel probes were reading. Raising the window to fix
+> that is not available either: `wmctrl -i -a`, `-i -R`, `-i -r -b add,above` and `XRaiseWindow` all
+> leave `_NET_ACTIVE_WINDOW` on XWayland's focus proxy `0x400003`, and GNOME denies
+> `org.gnome.Shell.Screenshot` with no `grim`/`gnome-screenshot` on the box. Seven questions about
+> whether a jump *feels* right need 60 Hz on a screen and a hand on a key, exactly as the banner
+> above says. The gate stays closed on its 2026-08-30 date — this is a confirmation of everything
+> mechanical, not a re-close. The 1 Hz itself is written up as finding Н9 of this run: the clock
+> comment in `platformer_live.cpp` guards against a display that is too *fast* and says nothing
+> about a present that blocks.
 
 The live target is behind `IDE_POC`, so CI never builds it — configure with the full option set:
 
@@ -976,6 +1142,40 @@ wherever the answer is no. A "no" here is not a failure of the gate — it is th
 > say is whether the picture on the screen is the same picture. That is two recordings and your
 > eyes, **twice**: the two halves below are separate runs against separate "before" commits, and
 > either can be answered without the other.
+>
+> **Re-run of the Linux half, 2026-10-03** on commit `7902b20`, Nobara, because 6 commits touched
+> `engine/framework/graphics` since the closing date — the clip runtime and the F3 boxes
+> (`925c48b`), the Aseprite bake into the clip table (`6f8b070`), the Tiled layers at runtime
+> (`0e45039`), the subsystem header prefixes (`d91546e`), the four section readers checking their
+> base (`08a69c1`) and the FNV constants moving into the primitives (`b4b10ae`).
+>
+> **The gate's own positive control passes on this box, and it is the first run to use it:** in the
+> checkout `./build/game_sidescroller --golden-selftest` answers `golden control: PASS (blot,
+> scatter and one-pixel shift refused)` and `golden repeat: PASS` and gives the prompt back, while
+> the same command in `../like-nes-before-shooter` opens a window and starts the game, ignoring the
+> flag it does not know — so the two trees are provably two trees, not one binary run twice. The
+> weaker check agrees: 4 580 432 against 4 314 872 bytes, different md5. The old build also prints
+> its bundle path unredacted (`/home/petrk/_dev/like-nes-before-shooter/...`), which is `6e6f3bf`
+> landing after `ddd0efa`, not a finding. Evidence `build/owner-artifacts-linux/g7-control.txt`.
+>
+> **Everything the gate pins headless is green here:** `game_fx_test` with the documented numbers to
+> the digit (`alive: 53, peak: 113, dropped: 0`, hash `0xfd9ca7d2936ad48a`), `game_sprite_out_test`
+> (32 frames of 64 instances, 0 allocations), `framework_graphics_particle_refusal_test`,
+> `game_platformer_view_test` and the route hash `0xfead7a87477a9258` — see
+> `g7-headless.txt` and `g6-headless.txt`. The two startup lines the platformer half demands be
+> identical **are identical**, before and after, and both runs end on `[platformer] window clean
+> exit` with nothing on stderr and exit code 0: `g7-platformer-lines.txt`. That closes the one check
+> this half puts before the frames ("a difference in either line is a finding before you look at a
+> single frame").
+>
+> **The eleven picture questions — five for the platformer, six for the shooter — cannot be judged by
+> any AI on this box,** for the measured reason written up in section 6 and in finding Н9: a window the
+> compositor does not show is presented once a second here, so the loop runs 1.00 tick/s instead of
+> 60; GNOME denies `org.gnome.Shell.Screenshot` and the box has no `grim`/`gnome-screenshot`; and no
+> X11 call can raise an XWayland window to make its pixels trustworthy. Side-by-side recordings of
+> two builds need a screen and two eyes. The gate stays closed on its 2026-09-02 date — this is a
+> confirmation of the mechanical half plus the first live exercise of the positive control, not a
+> re-close.
 
 ### The platformer, after step A
 
@@ -1213,6 +1413,32 @@ With both halves answered, gate 9 is closed.
 > engine.
 >
 > **AMD is still unanswered** — it is the one adapter vendor nothing in this project has run on.
+>
+> **The NVIDIA answer cannot be had from Linux on this box, and the reason is named by the kernel,
+> 2026-10-03.** The MX150 is in the machine — `01:00.0 3D controller: NVIDIA Corporation GP108M
+> [GeForce MX150]` — but `Kernel driver in use` is blank for it, and Vulkan enumerates exactly two
+> devices, `Intel(R) UHD Graphics 620 (KBL GT2)` and `llvmpipe`. The driver userspace *is* installed
+> (`nvidia-driver-595.91.07-3.fc44`), and a module was built and did try to bind:
+>
+>     NVRM: The NVIDIA GPU 0000:01:00.0 (PCI ID: 10de:1d12)
+>     NVRM: installed in this system is not supported by open
+>     NVRM: nvidia.ko because it does not include the required GPU
+>     NVRM: System Processor (GSP).
+>     nvidia 0000:01:00.0: probe with driver nvidia failed with error -1
+>
+> The module akmods built is the **open** flavour (`modinfo … license: Dual MIT/GPL`), and the open
+> module needs GSP, which arrived with Turing; the MX150 is GP108, Pascal. Nouveau would take the
+> card, but `/usr/lib/modprobe.d/nvidia.conf` blacklists it, so nothing claims the GPU at all.
+> Getting it back is the proprietary kernel-module flavour or an unblacklisted nouveau, each a root
+> action plus a reboot — the owner's call, not this run's:
+>
+>     sudo dnf install -y akmod-nvidia
+>
+> (`akmod-nvidia` / `kmod-nvidia` 3:595.99.02-4.fc44 are in `nobara-nvidia-production`; which
+> flavour that builds has to be checked against the same NVRM line afterwards.) **This changes
+> nothing about the gate's standing**: the MX150 was answered on 2026-09-01 from Windows, on its
+> own driver stack, and what stays open is AMD. Evidence:
+> `build/owner-artifacts-linux/g8-nvidia-linux.txt`.
 
 ```sh
 ./build/game_sidescroller --frames 240 \
@@ -1248,12 +1474,36 @@ a comparison of your machine with itself.
 
 ## 9. Gate 1 of #18 — the effect library on a real GPU
 
-<!-- gate: open | material_golden на живом GPU: вспышка, обводка и растворение выглядят тем, что говорит материал -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** The numeric half of this seam is machine-side and green on all three runners: how many
-> pipelines the warm-up builds, in how many draw calls the frame is assembled, and whether a frame
-> after the warm-up compiles anything. What no runner can answer is the picture — whether flash,
-> outline and dissolve look like what the material *says*, on a screen.
+> **Closed 2026-10-03** on a MacBook with an M3 Pro, the Metal machine the reference is pinned on.
+> The numbers came out bit for bit: `[gpu] Apple M3 Pro | Metal | BC: yes`, `warm-up: 3 pipeline(s)
+> for 7 material(s), 0 fallback(s)`, `frame: 28 instance(s) in 3 draw call(s)`, `painted: 30.4% of
+> the frame`, `mean=0.00000 max=0.00000 frac=0.00000`, `material-gpu: PASS`. The `fs_nope` fallback
+> line is there; it prints after `painted` rather than first, which is two streams interleaving,
+> not a finding. All four picture questions come back yes:
+>
+> 1. Seven columns and four rows.
+> 2. White, red and gold ramp upward, and the bottom `flash_gold` sprite is already half-tinted.
+> 3. The ring closes all round, outside the silhouette. It is black in `outline` and red in
+>    `outline_danger` (2 px at the bottom), and it grows a pixel per row.
+> 4. The holes eat the sprite upward. The rim is orange in `dissolve` and wider ash-grey in
+>    `dissolve_ash`.
+>
+> One note, not a finding: the bottom dissolve sprites (threshold 0) have no holes, but a few
+> rim-coloured specks sit on their edge.
+>
+> The numeric half stays machine-side and green on all three runners: the pipeline count, the draw
+> calls, and no compile after the warm-up. Kept as the procedure — a change under the right-hand
+> column of the table re-runs it.
+>
+> **Corroborated the same day on Linux** (Nobara, Intel UHD 620, Vulkan), where the harness runs
+> `--selftest` rather than `--golden` for the reason two paragraphs below: `[gpu] Intel(R) UHD
+> Graphics 620 (KBL GT2) | Vulkan | BC: yes`, then `warm-up: 3 pipeline(s) for 7 material(s), 0
+> fallback(s)`, `frame: 28 instance(s) in 3 draw call(s)`, `painted: 30.4% of the frame`, the
+> `fs_nope` fallback line and `material-gpu: PASS`. Every counter is identical to the Metal run,
+> `painted` included to the tenth of a percent — the scene the reference describes is the scene a
+> foreign driver draws, which is the part of the gate a pinned PNG cannot carry across adapters.
 
 ```sh
 cmake --build build --target material_golden
@@ -1321,12 +1571,30 @@ adapter agreeing bit for bit.
 
 ## 10. Gate 9 of #18 — the sample game plays with library materials
 
-<!-- gate: open | game_sidescroller: эффекты ложатся на те объекты и в тот момент, в движущейся игре -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** The library reaches the game through `library.bundle`, and everything a runner can say
-> about that path it already says: the bundle matches its sources byte for byte on three OSes, and
-> the run-splitting numbers are asserted headlessly. What no runner can answer is whether the
-> effects land on the right objects at the right moment, in a game that is moving.
+> **Closed 2026-10-03** on a MacBook with an M3 Pro (Metal), in a window 1144 px tall. The machine
+> half is `[game] materials: on (3 pipeline(s), 0 fallback(s))`. The eye half was judged on a
+> screenshot of the game window every few frames, measured per pixel:
+>
+> 1. **The flash is per instance.** An enemy that has just entered at x≈1848 reads rgb 201,137,161
+>    (r−b 40). One at x≈57, about to reach the hero, reads 228,143,134 (r−b 94), and the values
+>    in between rise monotonically. In one frame, enemies at x 386 and x 1874 carry different tints
+>    (226,146,145 against 200,137,161), so there is no lockstep pulse.
+> 2. **The red ring follows the boss's triangle, not its box.**
+> 3. **The switch happens once.** The ring stays steady at about 3520 red pixels down to a quarter of
+>    the boss's health. From then on it reads 0 until the boss dies, and no frame flickers back. As
+>    the holes widen, the boss's lilac area falls 3952 → 3506 → 2394 → 829, with a light-grey rim on
+>    the hole edges. After the restart, a healthy boss is ringed again.
+>
+> **Caveat:** the run that answered question 3 had to land the boss hits from an autopilot. It used
+> a local patch that stops the player losing lives in `example_ugly_game/combat.cpp`. The patch
+> touches only the player, not the boss, the enemies or the materials, and was reverted and rebuilt
+> afterwards.
+>
+> The bundle path stays machine-side: the bundle matches its sources byte for byte on three OSes,
+> and the run-splitting numbers are asserted headlessly. Kept as the procedure — a change under the
+> right-hand column of the table re-runs it.
 
 ```sh
 cmake --build build --target game_sidescroller
@@ -1363,15 +1631,74 @@ that regression. Seeing no effects there is correct.
 
 ## 11. Gate 3 of #18 — hot-reload in front of a person
 
-<!-- gate: open | hot-reload на живом экране: правка меняет картинку не останавливая игру, опечатка её не гасит -->
+<!-- gate: closed 2026-10-03 -->
 
-> **Open.** Everything about hot-reload that a machine can assert is asserted twice and headlessly:
-> `material_hot_reload` proves the cache-level contract on every OS in CI (a valid edit rebuilds all
-> three pipelines; a broken one is refused, counted, and leaves *the same pipeline objects* drawing),
+> **Closed 2026-10-03** on two machines. Everything about hot-reload that a machine can assert is
+> asserted twice and headlessly: `material_hot_reload` proves the cache-level contract on every
+> OS in CI (a valid edit rebuilds all three pipelines; a broken one is refused, counted, and leaves *the same pipeline objects* drawing),
 > and `editor_shell --gate3` proves the panel half by pixels — the preview hash changes on a valid
 > edit and is **byte-identical** after a broken one. What neither can answer is the only question the
 > feature exists for: does the picture on a real screen change while you keep playing, and does a
 > typo leave it alone instead of blanking it.
+>
+> **Run on 2026-10-03 on a MacBook with an M3 Pro (Metal): everything a still frame can show
+> passes.** What is left is the transient: a hitch in the game's frame rate or a flicker of the
+> panel at the moment of a reload. The captures were taken about four a second, which is too
+> coarse to see either, and that one look was taken on Linux
+> the same day, in the block after this one.
+>
+> - **Editor, machine half:** `--gate3` printed `-> 6 pipeline(s) total`, the
+>   `rejected: …:1:1:` diagnostic and `gate 3: PASS (failures: 0)`, and exited 0.
+> - **Editor, window:** the panel reads `native watch`.
+>   1. The real edit turns the `flash*` column magenta and moves the counters to
+>      `6 pipeline(s), 1 reload(s)`.
+>   2. The broken edit adds `1 rejected` and a red
+>      `sprite_effects.wgsl:1:1: error: expected global item…`. The preview is byte-identical to
+>      the frame before the edit, once shifted down by that one new line (34 px).
+>   3. Restoring the file gives `2 reload(s)` with `rejected` still at 1, and a preview
+>      byte-identical to the one before any edit.
+> - **Game:** it printed the `(native watch)` line, then `-> 6 pipeline(s) total`, the diagnostic
+>   with `rejected, previous library still drawing`, and `-> 9 pipeline(s) total` on the restore.
+>   One window capture per ~0.25 s shows a live enemy pink before the edit. It is a magenta quad
+>   after the valid edit, and still magenta through the broken one — about 3 s, 3072 magenta px a
+>   frame, never blank. After the restore the magenta reads 0 and enemies flash pink again.
+>
+> **The transient, 2026-10-03 on the Nobara box — Intel UHD 620, Vulkan, GNOME on Wayland with
+> the windows as XWayland clients, 59.96 Hz, on AC — which is what the macOS pass left open.**
+> Stills are the wrong instrument for it, so the window was read with `XGetImage` over a small
+> rectangle at about 1300 captures a second, twenty times the refresh: a one-frame flicker has
+> nowhere to hide between two samples.
+>
+> - **The panel does not flicker.** Over 22 s carrying four saves (valid → broken → valid →
+>   restore) the preview rectangle took exactly **five states, three of them unique**, and every
+>   transition was a single step: original → magenta on the valid edit → the frame shifted by the
+>   red diagnostic line → back to the *byte-identical* magenta hash → back to the *byte-identical*
+>   original hash. No blank, no flat colour, no intermediate frame of any kind. On screen the change
+>   lands 0.07-0.08 s after the engine prints the reload.
+> - **The game's frame rate does not stumble.** The same sampler timestamped every distinct frame of
+>   a moving region: median interval 16.68-16.71 ms — the 59.96 Hz refresh — and p99 19.3-23.4 ms.
+>   Over three runs and eighteen reload events the frame straddling a reload measured 8.4-24.5 ms;
+>   seventeen of the eighteen sit inside the idle jitter and one reached 24.5 ms once. The worst
+>   interval of each run (52.8, 55.5, 60.8, 65.4 ms) never falls on a reload, and a control run with
+>   no edits at all carries the same tail — max 52.8 ms. Wall clock agrees: 1200 frames take 20.65 /
+>   20.79 / 20.88 s with nothing edited and 20.89 s with four saves in flight.
+> - **Editor counters, saving atomically:** `3 pipeline(s), 0 reload(s), 0 rejected, 3 draw call(s),
+>   native watch` → valid `6, 1, 0` → broken `6, 1, 1`, where neither pipelines nor reloads move →
+>   fixed `9, 2, 1`, `rejected` stops growing → restored `12, 3, 1`. The broken frame's preview is
+>   byte-identical to the frame before it once shifted down by the one new diagnostic line: 0 of
+>   59 800 pixels differ, maximum channel difference 0. The 17 px here against the 34 px on the
+>   MacBook is the font, not the panel.
+> - **The game, from its own stdout:** `[game] materials: on (3 pipeline(s), 0 fallback(s))` and
+>   `[game] shader hot-reload: … (native watch)`, then `-> 6 pipeline(s) total` on the valid edit,
+>   the `:1:1:` diagnostic with `rejected, previous library still drawing` on the broken one — and
+>   the enemies keep drawing the magenta of the *previous* edit through it: 1824-9216 magenta pixels
+>   a frame for the two seconds the broken file is on disk, never blank. The valid edit that follows
+>   reloads (`-> 12`, `-> 15 pipeline(s) total`) and the next frame is magenta again; the zero
+>   magenta later in that run is the boss wave, where nothing on screen uses `fs_flash` at all.
+> - **Saving in place counts twice.** A save that truncates and rewrites fires two inotify events,
+>   so one edit moves the counter by two (`-> 6`, then `-> 9`); a save by temp file and rename,
+>   which is what editors do, gives exactly one. The watcher does not debounce, and the panel counts
+>   events rather than saves — worth knowing before reading a counter as a number of edits.
 
 ### The editor half
 
@@ -1455,6 +1782,24 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 > exactly: flipping the sign of Y in the dome generator leaves `--selftest` fully green (the frame
 > is different but just as stable, and every counter still reads 5/2/0) while the reference PNG goes
 > red at `frac=0.129`. Lit from below is a picture question, and the picture is yours.
+>
+> **Run on 2026-10-03 on the Metal reference machine (M3 Pro): the numbers are bit-exact and seven
+> questions of eight pass. Question 7 does not, so the gate stays open.** The numbers were
+> `mean=0.00000 max=0.00000 frac=0.00000`, `light-gpu: PASS`, lights 5/5, normals 5/2/0,
+> occluders 4/3/0, cost 1.462 / 2.636 ms. Questions 1–6 and 8 come back yes.
+>
+> In question 7, the orange streaks from `key` are there: they point right and down, solid behind
+> the disc and striped behind the grate. The blue ones from `fill` are not. `fill` at `0.44, 0.16`
+> sits INSIDE the row-2 `outline_danger` disc, and the occluder under the light blocks every ray it
+> casts:
+>
+> - A fill-only render reads `0 1 1` at (365,151) beside it.
+> - The same render with `fill` moved to `0.44, 0.50` lights that row: `5 10 26` at (365,90).
+>
+> A smaller oddity: the solid disc leaks 1–3 LSB radially. The fix is the owner's choice. Either
+> move `fill` out of the disc in `lights.txt` and re-bake the reference on this machine, or have
+> [`shaders_light.cpp`](../engine/render/shaders_light.cpp) stop a light being blocked by the
+> occluder it sits in.
 
 ```sh
 cmake --build build --target light_golden
@@ -1565,7 +1910,18 @@ bit.
 
 ## 13. Gate 8 of #22 — the network frame cost (Linux and Windows)
 
-<!-- gate: open | цена кадра сети: два числа (sim и net) сверить с бюджетом на САМОЙ МЕДЛЕННОЙ машине владельца -->
+<!-- gate: closed 2026-10-04 -->
+
+> **Closed 2026-10-04** by the Windows half at the foot of this section, on the same Intel UHD 620
+> box as the Linux half of 2026-10-03 — the slowest machine in the set, and this gate decides on both
+> OSes. Eight runs each side, every one exiting `0` with no `FAIL` line and both peers printing
+> `over 417 ticks`, `forced=0` and `aliens=0`. The worst network frame of the sixteen is **1.802 ms,
+> 10.8% of a 16.67 ms frame** (Windows, `send`), against 0.542 ms and 3.3% on Linux; added to the
+> physics step and character tick this box pays anyway, worst on worst on worst that is 6.53 ms —
+> **39% of a frame**. Two findings, both about *which* peer pays: question 4's asymmetry comes out
+> inverted on Windows in all eight runs — `send` is the costlier peer and it is the one whose socket
+> spins — and the receiver's rollback counters are not the same on the two OSes (20/72 on Linux,
+> 13/32 here), so they are not pinned by the scripted route the way the sender's 21/84 are.
 
 The third frame-cost gate, and the first one whose frame contains a *rollback*. Sections 4 and 5
 measure a physics step and a character tick; this one measures the step a networked peer actually
@@ -1641,6 +1997,122 @@ What to judge, in this order:
 **Measure on an idle machine**, for exactly the reason spelled out in §5: nothing in this output
 separates a loaded run from a quiet one, and a build in another window is enough to turn a 1.9%
 frame into a 20% one.
+
+### The Linux half, 2026-10-03 (Nobara, Intel UHD 620, gcc 16.2.1, Release, idle box on AC)
+
+This is the slowest machine in the set, and the one `owner-setup.txt` pins as such. Eight runs of
+`scripts/owner_net_budget.sh` on a quiet desktop, every one exiting `0` with no `FAIL` line:
+
+| | worst frame | of 16.67 ms | `sim worst` | `net worst` | socket passes | `resent` |
+|---|---|---|---|---|---|---|
+| `send` | 0.269-0.456 ms | 1.6-2.7% | 0.234-0.361 ms | 0.027-0.095 ms | 452-558 | 78-224 |
+| `recv` | 0.250-0.542 ms | 1.5-3.3% | 0.207-0.338 ms | 0.027-0.204 ms | 1158-1273 | 0 |
+
+Both peers printed `over 417 ticks`, `forced=0` and `aliens=0` in every run, so questions 1 and 2
+are answered by the run itself. The counters were identical run to run — `send` 21 rollbacks and 84
+replayed ticks, `recv` 20 and 72. That reads like the scripted route being the same route rather than
+the machine, and for the sender it is: Windows prints the same 21/84. For the receiver it is **not**,
+and the Windows half below is where that shows — 13 and 32 there, just as stable across its own eight
+runs.
+
+**The shared budget, which the script cannot see.** This box's physics step (§4) is
+`heap: worst=4.177 ms mean=3.276 ms` and its character tick (§5) `target: worst=0.2357 ms
+mean=0.0278 ms`. Adding the means to the worst network frame of the eight runs gives
+**3.28 + 0.03 + 0.54 = 3.85 ms, 23% of a frame**; worst on worst on worst it is
+**4.18 + 0.24 + 0.54 = 4.96 ms, 30%**. The network half is the smallest of the three terms by an
+order of magnitude: on this machine the frame is paid for by physics, and the rollback, the
+recording and the socket together cost about half a percent of it per peer on average
+(`sim mean` 0.032-0.052 ms, `net mean` 0.003-0.011 ms).
+
+**Question 4 is answered the other way round here, and that is a finding.** The gate expects `recv`
+to be the expensive peer because it is the one that rolls back. Its socket half behaves exactly as
+predicted — 1158-1273 passes against 452-558, a ratio of about 2.3, in every single run. Its
+simulation half does not: `recv sim worst` was *lower* than `send sim worst` in six runs of eight
+and equal in the other two (0.234 against 0.234), where the M3 Pro reference has `recv` at 1.9x
+`send` (0.208 against 0.112). The totals follow: `send` came out the costlier peer in four of the
+eight runs, and the two sets overlap completely, so on this box the ordering is noise rather than
+structure. What is *not* noise is that the asymmetry the gate rests on is visible on Metal and not
+here. The counters rule out a different route, which leaves the clock: every `sim` sample on this
+machine is two to three times the M3 Pro's, and whatever `recv`'s replay burst adds is inside that
+spread instead of above it. **Which of the two it is — the replay burst drowning in a slower
+baseline, or the sender paying something the Mac does not — is not judged from this run.**
+
+`resent=` sits at 78-224 on the sender and 0 on the receiver, exactly the reliable layer doing its
+job on a loopback. It is not the story the gate warns about: the sender's `net worst` is the
+*smallest* number in the whole report (0.027-0.095 ms), so those resends cost nothing measurable.
+
+The machine was quiet, and there is a cross-check for that rather than a claim: `target: worst=0.2357
+mean=0.0278` on this run against `worst=0.2600 mean=0.0242` measured on the same box on 2026-09-01 —
+the same numbers, where a loaded box turns them into 3.7 ms (§5 recorded a fourteenfold difference
+from three builds running alongside).
+
+**The Windows half runs on this same box**, and it is next: the box is the slowest machine on both
+OSes, and §5 closed only after both.
+
+### The Windows half, 2026-10-04 (Windows 11 build 26200, MSVC 14.44.35207, Release, idle box on AC)
+
+Same box, and `8a163ab` on it: `cmake --build build --target game_platformer_net_test` answered
+`ninja: no work to do`, which it can because that commit touches docs, gate scripts and two Tiled
+files and no engine source. Eight runs of `scripts/owner_net_budget.sh` from git-bash on a quiet
+desktop, every one exiting `0` with no `FAIL` line, both peers printing `over 417 ticks`, `forced=0`
+and `aliens=0` in all eight — so questions 1 and 2 are answered by the runs themselves.
+
+| | worst frame | of 16.67 ms | `sim worst` | `net worst` | socket passes | `resent` |
+|---|---|---|---|---|---|---|
+| `send` | 0.819-1.802 ms | 4.9-10.8% | 0.615-0.915 ms | 0.204-0.887 ms | 571-572 | 256-257 |
+| `recv` | 0.684-1.275 ms | 4.1-7.6% | 0.555-0.715 ms | 0.129-0.644 ms | 257-271 | 0 |
+
+The means over the same eight: `sim mean` 0.078-0.099 ms on `send` and 0.072-0.095 on `recv`,
+`net mean` 0.036-0.047 and 0.031-0.039. The Linux half's were 0.032-0.052 and 0.003-0.011 — about
+twice on the simulation, about five times on the socket, and the socket is where the gap is widest.
+
+**The shared budget, which the script cannot see.** This box under Windows steps physics (§4) at
+`heap: worst=4.398 ms mean=3.589 ms` and ticks the character (§5) at `target: worst=0.3339 ms
+mean=0.0302 ms`, measured immediately after the eight runs on the same quiet desktop. Means plus the
+worst network frame of the eight gives **3.59 + 0.03 + 1.80 = 5.42 ms, 33% of a frame**; worst on
+worst on worst, **4.40 + 0.33 + 1.80 = 6.53 ms, 39%**. The Linux half paid 23% and 30% for the same
+three terms, and nearly all of the difference is the network one: 1.80 ms here against 0.54 there.
+**On Windows the network frame stops being a rounding error.** On Linux it was an order of magnitude
+below physics; here it is the second-largest of the three terms and within a factor of two and a half
+of the solver.
+
+The box being quiet is cross-checked rather than claimed, the same way the Linux half does it: §4
+recorded `heap` mean **3.560 ms** on this box under Windows on 2026-08-22 against 3.589 now, 0.8%
+apart, and §5 recorded `target` mean **0.0304-0.0310 ms** over five idle runs on 2026-09-01 against
+0.0302 now. Both numbers become multiples of themselves on a loaded box, so agreeing with runs six
+weeks old is the evidence that nothing was building alongside.
+
+**Question 4 is inverted here, and harder than on Linux.** The gate expects `recv` to be the
+expensive peer because it is the one that rolls back, and expects its socket to make roughly twice
+the passes because it spins waiting for input the sender never waits for. On this box both halves of
+that come out backwards, in every run:
+
+1. `send` is the costlier peer in **eight of eight**. On Linux it was four of eight with the two sets
+   overlapping completely, which is noise; this is not noise — `send` 0.819-1.802 against `recv`
+   0.684-1.275, and the per-run ordering never once flips.
+2. The socket passes are `send` 571-572 against `recv` 257-271, a ratio of **2.2 in favour of the
+   sender**, where Linux has 1158-1273 against 452-558 — 2.3 the other way. The receiver here barely
+   spins at all.
+3. `net worst` is the larger one on `send` in eight of eight, and it is what carries the totals: the
+   two `sim worst` spreads overlap completely (`send` 0.615-0.915, `recv` 0.555-0.715, with `recv`
+   the higher one in four runs of the eight), so the inversion is the socket, not the simulation.
+
+**And the counters say why.** `recv` prints `rollbacks=13 replayed=32` in every one of the eight runs
+here, against `rollbacks=20 replayed=72` in every one of the eight on Linux, while `send` prints the
+same `21`/`84` on both. The receiver's rollback depth is therefore **not** pinned by the scripted
+route — it is pinned by when the late input lands, which is the socket's business, and the inference
+the Linux half drew from identical counters holds for the sender only. The two findings are one
+story: on this box the loopback delivers input early enough relative to the tick that the receiver
+spins about a third as much and rolls back about a third as far, which leaves the sender — with its
+256-257 resends, each one a pass — as the peer paying for the wire. `resent=` on the receiver is `0`
+here as it is on Linux, and question 5's warning does not fire: those resends sit beside a `net
+worst` that stays under a third of a millisecond in four runs of the eight.
+
+**What these runs do not say** is whether Winsock genuinely delivers earlier than the Linux loopback
+or the two peers merely interleave differently under a different scheduler. The replay counts are the
+symptom, and nothing in this output separates the causes. What they do answer is the gate's own
+question: 39% of a frame worst on worst on worst, with the sender as the expensive peer, is a frame
+that fits.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
 
@@ -2377,7 +2849,16 @@ as §17 — by typing what the page says and noting everything you had to add.
 
 ## 18. Gate 3 of #24 — level 1 comes out of a real Tiled
 
-<!-- gate: open | открыть games/neon-rumble/levels/level1.tmj в Tiled 1.10+, правка и отмена, Save; bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4e7f9ade1d27776a; окно neon_rumble --frames 600 против вида Tiled -->
+<!-- gate: closed 2026-10-03/04 -->
+
+> **Closed 2026-10-03/04** on the Windows box — Tiled 1.12.2, MSVC, NVIDIA GeForce MX150 on Vulkan
+> — after the Linux run of the day before had settled everything on this gate that a box without
+> Tiled can settle. The save is the whole point of the gate, and it did write fields the
+> hand-written files never carried: `"opacity":1` on every object of `spawns`, an escaped
+> `"..\/assets\/warped-city\/tileset.png"`, and `tiledversion` 1.10.2 → 1.12.2. The importer took
+> all three — `bundle_hash` did not move a bit — and the window drew the saved level as Tiled draws
+> it. The Windows record is the last block of this section; the Linux one before it is where the
+> before-value came from.
 
 `games/neon-rumble/levels/level1.tmj` and `warped-city.tsj` were written by hand to the Tiled 1.10
 JSON format, not saved by Tiled. The importer is tested on fixtures of the same hand, so a field
@@ -2420,9 +2901,113 @@ and a doubled colour encoding would look exactly like that). A diff in the files
 is not a finding — Tiled reorders keys and reflows arrays — but it is worth sending: the saved files
 then replace the hand-written ones in the tree.
 
+> **Linux half, 2026-10-03** on commit `3bb7d69`, Nobara 44 (GNOME on Wayland, 59.96 Hz, on AC),
+> Intel UHD 620. **The gate could not be closed from here, and steps 1-2 are why: there is no
+> Tiled on this box.**
+> `rpm -q tiled` answers `package tiled is not installed`; the package is in the enabled
+> repositories as `tiled.x86_64 1.12.2-1.fc44 nobara`, and flathub carries `org.mapeditor.Tiled`
+> 1.12.2. One command installs it:
+>
+>     sudo dnf install -y tiled
+>
+> Nothing was installed by this run, and that is not timidity: with no Tiled save there is no file
+> to bake, and step 5 asks for the window held next to the Tiled view — two pictures on one screen,
+> which is the half of this gate an AI on this box cannot have.
+>
+> What the run did settle, on the hand-written files exactly as they stand in the tree, so that the
+> Tiled pass has a before-value to differ from:
+>
+> * Step 3 `bash scripts/check_sdk_game.sh --keep` ends `sdk-game: PASS`, with
+>   `Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash` and the same `Debug:`
+>   line, each preceded by
+>   `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`. Five broken
+>   fixtures were refused, the MSVC CRT one skipped as it must on gcc. **So the hash in the banner
+>   is the hash this tree bakes today**: if the Tiled save moves it, the move is Tiled's, not the
+>   importer's drifting under the gate.
+> * Step 4 `git diff --stat games/neon-rumble/levels` is empty — which is exactly what it has to be
+>   while no Tiled has touched the files.
+> * Step 5 runs and exits clean: `./build-sdk-work/game-Release/neon_rumble --frames 120` ended
+>   `neon-rumble: window run ok, 120 frames` with exit code 0, above
+>   `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes` and
+>   `neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped`
+>   — zoom 2 on this 1x screen, the whole number the text asks for, and no rejected or dropped quad.
+>
+> **Steps 1, 2 and the picture half of step 5 cannot be judged by any AI on this box,** and the
+> reason was measured here, not assumed: the session screen was locked and every output powered
+> down — `org.gnome.ScreenSaver.GetActive = (true,)`, `card1-eDP-1/dpms: Off` and the same for
+> `DP-1`, `HDMI-A-1`, `HDMI-A-2` — and mutter presents a window to a dead output **once a second**.
+> Those 120 frames took 117.8 s, 1.0 a second, against 58 a second for the same binary on a live
+> screen earlier the same day (§19 step 7, `--frames 1200` in 20.7 s). On top of that, an AI on
+> this box can neither raise nor focus an XWayland window, and `org.gnome.Shell.Screenshot` is
+> denied to it. That is finding Н9 of this run, measured a second time here and on a second target.
+>
+> A practical consequence for whoever runs this next: `gnome-session-inhibit --inhibit idle:suspend`
+> does not undo a lock — it keeps the session from going idle, it does not wake a screen already
+> blanked. Start the window step on a woken, unlocked screen, or `--frames 600` takes ten minutes
+> instead of ten seconds and every picture question comes back unanswerable.
+>
+> Artefacts: `build/owner-artifacts-linux/g18-tiled-linux.txt` (the three steps and the screen
+> state side by side), `g18-sdk-game.txt`, `g18-window.txt`.
+
+> **Windows half, 2026-10-03/04** on commit `5241932`, Windows 11 build 26200, MSVC, Tiled 1.12.2
+> from the installer, NVIDIA GeForce MX150 on Vulkan. **This is what closes the gate: steps 1-5 all
+> ran, and the picture half of step 5 with them.**
+>
+> * **Steps 1-2, the save.** `level1.tmj` opened as a 40×12 map of 16 px with the three layers the
+>   text names, and both files were saved from that window (JSON, CSV). One thing to carry into the
+>   next run: **Save was not greyed out on an untouched document**, so the edit and undo the text
+>   prescribes were not needed to reach it — Ctrl+S wrote the file as it stood. If a later Tiled
+>   does gate Save on the dirty flag, the edit-and-undo is the way back in.
+> * **Step 3, the bake.** `bash scripts/check_sdk_game.sh --keep` ends `sdk-game: PASS` with
+>   `Release: game.bundle bundle_hash 0x4e7f9ade1d27776a matches bundle.hash` and the same `Debug:`
+>   line, each preceded by
+>   `neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256`. **That is
+>   the hash the Linux run measured on the hand-written files**, to the bit: the save changed the
+>   bytes on disk and not one byte of the bundle.
+> * **Step 4, the diff.** `git diff --stat games/neon-rumble/levels` gives
+>   `2 files changed, 167 insertions(+), 177 deletions(-)` — `level1.tmj | 239 +++---` and
+>   `warped-city.tsj | 105 ++--`. Decoded instead of eyeballed, the saved files differ from the
+>   hand-written ones in exactly three things beyond whitespace and key order:
+>   1. `tiledversion` `1.10.2` → `1.12.2` in both. The format `version` stays `1.10`.
+>   2. `"opacity":1` on each of the three objects of `spawns` (`player`, `street`, `walk`) — a
+>      field no fixture ever carried, and the importer ignores it.
+>   3. The tileset's image path comes back **escaped**: `"..\/assets\/warped-city\/tileset.png"`.
+>      Legal JSON, and the only string in either file with a slash in it, so a hand-written fixture
+>      could not have covered the escape by accident. The reader handles it — the texture loads
+>      (`1 texture(s) 384x256`) and the facades draw.
+>
+>   Everything else is formatting: Tiled collapses `{` onto the first key and reflows the CSV rows.
+>   Loaded as JSON and compared value by value, the two documents are equal apart from those three
+>   fields. The saved files now stand in the tree, as the paragraph above directs.
+> * **Step 5, the window.** `build-sdk-work\game-Release\neon_rumble.exe --frames 600` ends
+>   `neon-rumble: window run ok, 600 frames` with exit code 0, above
+>   `[gpu] NVIDIA GeForce MX150 | Vulkan | BC: yes` and
+>   `neon-rumble: frame 960x540 zoom 2: 127 sprite(s), 1 run(s), 0 unknown, 0 rejected, 0 dropped`.
+>   Zoom 2 is the whole number the text asks for, and nothing was rejected or dropped.
+> * **Step 5, the picture.** The facades and the street are what Tiled draws: the same fronts in the
+>   same order over the same street line, the one-way platform and the ladder where Tiled puts them,
+>   the queen's feet on the top row of the street. No seam or line between tiles, nothing mirrored,
+>   nothing displaced, no shimmer across the pan — and nothing washed out, which was worth checking
+>   by name here, because the finding list warns about a doubled colour encoding on a Windows sRGB
+>   surface and this is the first time that surface has been looked at.
+> * **The violet around the level is the game's own clear colour, not a finding.**
+>   `games/neon-rumble/src/rumble_window.cpp:26` sets
+>   `color.clearValue = WGPUColor{0.06, 0.02, 0.12, 1.0}`, which is that colour exactly. It reads
+>   like a background layer that failed to bake until you look — named here so the next run does not
+>   spend an hour on it.
+> * **Side by side at full size is not possible on this screen, and that is the screen.** Windows
+>   reports 1536×864 to a DPI-aware process on this box; Tiled's Qt layout will not go below about
+>   940 logical px of width and the game window is 976, so the two cannot sit unoccluded next to
+>   each other. The comparison was made from captures taken seconds apart instead, which answers the
+>   same question for a level that does not move — and would not answer the transient one §11 asks.
+>
+> Artefacts: `build/tiled4.png` (the Tiled view of the saved map), `build/nr2.png` and
+> `build/nr3.png` (the window at two points of the pan), `build-sdk-work/game-Release.log` and
+> `game-Debug.log`.
+
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows, JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
@@ -2442,10 +3027,17 @@ key.
    slice, leave it and say so — the box then stays on to the end of the tag, and that is a finding
    about the format, not about the drawing.
 3. Open the properties of tag `Death` and type `1:fall` into its user data text.
-4. **File → Export Sprite Sheet**: Layout **By Rows**; Sprite — no trim, no padding; Borders —
-   leave **Ignore Empty** and **Merge Duplicates** off; Output — **JSON Data**, **Array**, with
-   **Tags** and **Slices** ticked, and **Split Layers**/**Split Tags** off. Save the sheet as
-   `queen.png` and the data as `queen.json` into one new directory outside the repository.
+4. **File → Export Sprite Sheet**: Layout **By Rows** with **Columns = 8**; Sprite — no trim, no
+   padding; Borders — leave **Ignore Empty** and **Merge Duplicates** off; Output — **JSON Data**,
+   **Array**, with **Tags** and **Slices** ticked, and **Split Layers**/**Split Tags** off. Save the
+   sheet as `queen.png` and the data as `queen.json` into one new directory outside the repository.
+
+   **The column count is not a preference, and this step used to omit it.** By Rows with Columns
+   left empty lays all 29 frames in one row: 29 × 74 = **2146 px** wide, and `assetc` refuses that
+   outright —
+   `queen.png: PNG is 2146x75, a texture side is limited to 2048 px`, then `aseprite-export: FAIL`
+   with no clip table to look at. Eight columns give **592×300**, which is the sheet size step 7
+   expects; any count whose sheet stays under 2048 px on both sides will do.
 5. Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window), naming that
    directory:
 
@@ -2495,9 +3087,89 @@ into it, sliding against the street while the camera pans, a cell cut off by its
 neighbour's limb at an edge means a wrong cell rectangle), the cross away from her feet, the
 overlay not following a flip, or F3 doing nothing.
 
+### Step 7 on Linux 2026-10-03 (Nobara, Intel UHD 620, GNOME/XWayland): the window half passes
+
+Steps 1-6 stay blocked: Aseprite is in neither the Nobara repositories nor any configured flatpak
+remote, and building it from source is not something this run was allowed to do. Step 7 was run on
+its own, because it reads the pack already in the tree and says nothing about the export.
+
+`bash scripts/check_sdk_game.sh --keep` ended `sdk-game: PASS`, both configurations printing
+`bundle_hash 0x4e7f9ade1d27776a`, and `./build-sdk-work/game-Release/neon_rumble --frames 1200`
+ended `neon-rumble: window run ok, 1200 frames` with exit 0 in 20.7 s -- 58 frames a second against
+a 59.96 Hz screen, so the 1x frame numbers of the text apply unchanged. Above it the gate's line,
+verbatim: `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right`, and
+`[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes`.
+
+What the screen showed, measured off the captures in `build/owner-artifacts-linux/`:
+
+* The cyan frame is **148x150 screen pixels** at zoom 2 -- **74x75 sheet pixels**, the number the
+  text asks for -- and it stands clear of her silhouette on every side.
+* The white cross sits at **x = the frame's horizontal centre, y = 398** in every capture, and 398
+  is the first row of the street: her feet are on its top line, neither floating nor sunk.
+* **F3 again hides both.** The control is `g19-f3-off-queen-visible.png`: the queen is in view,
+  pure `#00FFFF` count is 0 and the cross is gone. The level never paints pure cyan itself, so that
+  count is a clean yes/no for the overlay.
+* **The overlay follows the flip.** She faces left on the pass that covers frames ~235-300 and
+  right from ~300 (`g19-f3-left.png`, `g19-f3-right.png`): across that boundary the frame keeps
+  moving 10 px per 95 ms sample with no sideways jump, and the cross stays on the frame's centre.
+* **No coloured boxes.** Scanned every capture for pure red, green, yellow, magenta, orange and
+  blue: none, as the text expects of a pack without slices.
+* **She does not slide.** Cropping the cell by its own frame and differencing consecutive captures
+  leaves 1.5-2.3 k changed pixels -- the clip is playing while she travels, not a still sprite
+  dragged along.
+
+Captures: `g19-f3-right-full.png` (the whole window, overlay on), `g19-f3-left-zoom.png` (4x on the
+cell, facing left), plus the two bursts `g19b/` and `g19c/` the numbers were read from.
+
+**Not a defect of the engine, but it costs an hour if it is not known.** On GNOME a blanked screen
+throttles mutter's compositing to about 1 fps, and an XWayland client then crawls: `neon_rumble`
+printed `surface texture status 1 - frame skipped`, sat in `drm_syncobj_array_wait_timeout` at 0%
+CPU and advanced eight pixels in four seconds, which reads exactly like a hung GPU. The screen was
+blanked -- `org.gnome.ScreenSaver.GetActive` answered `(true,)`. Run window gates with
+
+    gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver \
+        --method org.gnome.ScreenSaver.SetActive false
+    gnome-session-inhibit --inhibit idle:suspend --reason "owner gate run" <command>
+
+and the same binary finishes 1200 frames in 20.7 s. The gate stays **open** on steps 1-6.
+
+### Steps 4-6 rehearsed on Windows 2026-10-03/04: the script works, and step 4 was wrong
+
+Aseprite 1.3 was built from source on the Windows box (`C:\Users\n0sfe\_dev\gate19`, Skia from the
+pinned release, `build/bin/aseprite.exe` reporting `1.3.18.6-dev`) and `Queen.ase` from the
+Chewbatrij pack was exported through it headlessly. **Steps 1-2 and 7's screenshot still want your
+mouse** — a slice is drawn, not scripted, and the frame-5 key below was written by hand rather than
+cleared in the editor. What the rehearsal did settle is everything that would have cost you a
+drawing session to find out:
+
+* **Step 4 was wrong, and it is corrected above.** By Rows with no column count is one row of 29
+  frames, 2146 px wide, and the bake dies on it before any clip table exists:
+  `[assetc] …/queen.manifest:1: …/queen.png: PNG is 2146x75, a texture side is limited to 2048 px`
+  then `aseprite-export: FAIL`. With **Columns = 8** the sheet is 592×300 — the number step 7 reads
+  back — and the same export bakes clean.
+* **The user data of a tag does reach a real export.** Set through the Lua API
+  (`tag.data = "1:fall"`, which is the same field the properties dialog writes), it comes back in
+  `queen.json` as `{"name":"Death","from":3,"to":8,…,"data":"1:fall"}`. So the finding the text
+  warns about — a `Death` with no `data` after step 3 — is not what 1.3.18 does, and the
+  `ev:<name>` slice fallback is not going to be needed for this reason.
+* **The script itself is proved end to end.** With the hand-written `hit0` keys added to that real
+  export, `bash scripts/aseprite_owner_check.sh <dir>` prints
+  `[assetc] bundle_hash = 0x344dde92fd4dc61a` and the four rows exactly as step 5 predicts them:
+  `ok: queen/Death frame=0 boxes=hit0 event=-`, `frame=1 boxes=hit0 event=fall`,
+  `frame=2 boxes=- event=-`, `ok: queen/Hit frame=0 boxes=hit0 event=-`, then
+  `aseprite-export: PASS`. If your own export fails, the failure is in the export, not in the
+  script.
+* **What the slice half still does not know.** The keys fed to the bake were
+  `{"frame":3,"bounds":{20,30,10,12}}`, `{"frame":4,…}` and
+  `{"frame":5,"bounds":{"x":0,"y":0,"w":0,"h":0}}` — `assetc` accepts that shape and drops the box
+  from frame 2 of the clip, which is the behaviour step 5 asks for. But **a zero-bounds key is a
+  guess at how Aseprite writes a slice switched off on a frame**; it may write no key at all, or
+  omit the frame from `keys`. That is exactly the question step 2 exists to answer, and only the
+  editor can.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 7 of the 20 are closed, and the open 13 are listed by
+The gates above are what the ADRs waited on; 12 of the 20 are closed, and the open 8 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

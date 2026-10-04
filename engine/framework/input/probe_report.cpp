@@ -51,6 +51,18 @@ void report_pads(::input::InputEngine& engine, ::input::GamepadSource* pad, PadR
     }
 }
 
+void report_overlay(const PresetTable& table, const uint32_t preset, const RebindStore& store,
+                    const bool mine, const std::string& path) {
+    if (mine && !store.items().empty())
+        std::printf("[probe] overlay loaded from %s: %zu edit(s) - the restart half of gate 4\n",
+                    path.c_str(), store.items().size());
+    else if (mine)
+        std::printf("[probe] overlay at %s holds no edits - clean preset\n", path.c_str());
+    else
+        std::printf("[probe] no overlay for preset '%s' at %s - clean preset\n",
+                    table.preset_name(preset), path.c_str());
+}
+
 void report_cold_start(::input::InputEngine& engine, const ::input::GamepadSource* pad) {
     int seen = 0;
     for (int s = 0; s < ::input::MAX_DEVICES; ++s)
