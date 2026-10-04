@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**11 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
+**12 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 8 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -28,7 +28,7 @@ names that surface.
 | The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | 2026-10-03 | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | 2026-10-03 | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
 | Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
-| The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
+| The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | 2026-10-04 | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | An engine package built here runs on a box that never saw this source tree | [#20](../.context/specs/2026-07-26-release-installers.md) 1 | **all three**, each a box that never built this tree | — | `cmake/install_engine.cmake`, `scripts/release*.sh`, `packaging/` |
 | The forms people actually install from — `.dmg`, `.AppImage`, `.msi` — install and start | [#20](../.context/specs/2026-07-26-release-installers.md) 3 | **all three** | — | `scripts/release_dmg*`, `scripts/release_appimage*`, `packaging/like-nes.wxs.in` |
@@ -37,10 +37,15 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 
-The last to close was level 1 out of a real Tiled (§18), on 2026-10-03/04 on the Windows box: the
-Linux run of 2026-10-03 could settle the bake and the numbers but had no Tiled on it at all, and the
-save, the decoded diff and the window held against the Tiled view are what the Windows box added the
-next morning. Before it, three gates of #18 closed on 2026-10-03 across two machines. Two went on
+The last to close was the network frame cost (§13), on 2026-10-04 on the Windows box — the slowest
+machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
+the day before, and the two halves disagree about which peer is the expensive one: the asymmetry the
+gate rests on is inverted here, and the receiver's rollback count turned out not to be pinned by the
+scripted route at all. Before it, level 1 out of a real Tiled (§18) closed on 2026-10-03/04 on that
+same box: the Linux run of 2026-10-03 could settle the bake and the numbers but had no Tiled on it at
+all, and the save, the decoded diff and the window held against the Tiled view are what the Windows
+box added the next morning. Before them, three gates of #18 closed on 2026-10-03 across two
+machines. Two went on
 the Metal machine the references are pinned on: the effect library's own frame (§9) and the sample
 game playing with it (§10); the same pass left §12 open with a finding in its question 7, and left
 hot-reload (§11) standing on one look alone — whether a reload costs a frame or blinks the panel.
@@ -1905,7 +1910,18 @@ bit.
 
 ## 13. Gate 8 of #22 — the network frame cost (Linux and Windows)
 
-<!-- gate: open | цена кадра сети: Linux-половина снята 2026-10-03 на Nobara (та же коробка — самая медленная), осталась ВИНДОВАЯ половина на ней же: scripts\win-dev.bat check, затем bash scripts/owner_net_budget.sh -->
+<!-- gate: closed 2026-10-04 -->
+
+> **Closed 2026-10-04** by the Windows half at the foot of this section, on the same Intel UHD 620
+> box as the Linux half of 2026-10-03 — the slowest machine in the set, and this gate decides on both
+> OSes. Eight runs each side, every one exiting `0` with no `FAIL` line and both peers printing
+> `over 417 ticks`, `forced=0` and `aliens=0`. The worst network frame of the sixteen is **1.802 ms,
+> 10.8% of a 16.67 ms frame** (Windows, `send`), against 0.542 ms and 3.3% on Linux; added to the
+> physics step and character tick this box pays anyway, worst on worst on worst that is 6.53 ms —
+> **39% of a frame**. Two findings, both about *which* peer pays: question 4's asymmetry comes out
+> inverted on Windows in all eight runs — `send` is the costlier peer and it is the one whose socket
+> spins — and the receiver's rollback counters are not the same on the two OSes (20/72 on Linux,
+> 13/32 here), so they are not pinned by the scripted route the way the sender's 21/84 are.
 
 The third frame-cost gate, and the first one whose frame contains a *rollback*. Sections 4 and 5
 measure a physics step and a character tick; this one measures the step a networked peer actually
@@ -1994,7 +2010,10 @@ This is the slowest machine in the set, and the one `owner-setup.txt` pins as su
 
 Both peers printed `over 417 ticks`, `forced=0` and `aliens=0` in every run, so questions 1 and 2
 are answered by the run itself. The counters were identical run to run — `send` 21 rollbacks and 84
-replayed ticks, `recv` 20 and 72 — which is the scripted route being the same route, not the machine.
+replayed ticks, `recv` 20 and 72. That reads like the scripted route being the same route rather than
+the machine, and for the sender it is: Windows prints the same 21/84. For the receiver it is **not**,
+and the Windows half below is where that shows — 13 and 32 there, just as stable across its own eight
+runs.
 
 **The shared budget, which the script cannot see.** This box's physics step (§4) is
 `heap: worst=4.177 ms mean=3.276 ms` and its character tick (§5) `target: worst=0.2357 ms
@@ -2027,8 +2046,73 @@ mean=0.0278` on this run against `worst=0.2600 mean=0.0242` measured on the same
 the same numbers, where a loaded box turns them into 3.7 ms (§5 recorded a fourteenfold difference
 from three builds running alongside).
 
-**The gate stays open on the Windows half**, which runs on this same box: it is the slowest machine
-on both OSes, and §5 closed only after both.
+**The Windows half runs on this same box**, and it is next: the box is the slowest machine on both
+OSes, and §5 closed only after both.
+
+### The Windows half, 2026-10-04 (Windows 11 build 26200, MSVC 14.44.35207, Release, idle box on AC)
+
+Same box, and `8a163ab` on it: `cmake --build build --target game_platformer_net_test` answered
+`ninja: no work to do`, which it can because that commit touches docs, gate scripts and two Tiled
+files and no engine source. Eight runs of `scripts/owner_net_budget.sh` from git-bash on a quiet
+desktop, every one exiting `0` with no `FAIL` line, both peers printing `over 417 ticks`, `forced=0`
+and `aliens=0` in all eight — so questions 1 and 2 are answered by the runs themselves.
+
+| | worst frame | of 16.67 ms | `sim worst` | `net worst` | socket passes | `resent` |
+|---|---|---|---|---|---|---|
+| `send` | 0.819-1.802 ms | 4.9-10.8% | 0.615-0.915 ms | 0.204-0.887 ms | 571-572 | 256-257 |
+| `recv` | 0.684-1.275 ms | 4.1-7.6% | 0.555-0.715 ms | 0.129-0.644 ms | 257-271 | 0 |
+
+The means over the same eight: `sim mean` 0.078-0.099 ms on `send` and 0.072-0.095 on `recv`,
+`net mean` 0.036-0.047 and 0.031-0.039. The Linux half's were 0.032-0.052 and 0.003-0.011 — about
+twice on the simulation, about five times on the socket, and the socket is where the gap is widest.
+
+**The shared budget, which the script cannot see.** This box under Windows steps physics (§4) at
+`heap: worst=4.398 ms mean=3.589 ms` and ticks the character (§5) at `target: worst=0.3339 ms
+mean=0.0302 ms`, measured immediately after the eight runs on the same quiet desktop. Means plus the
+worst network frame of the eight gives **3.59 + 0.03 + 1.80 = 5.42 ms, 33% of a frame**; worst on
+worst on worst, **4.40 + 0.33 + 1.80 = 6.53 ms, 39%**. The Linux half paid 23% and 30% for the same
+three terms, and nearly all of the difference is the network one: 1.80 ms here against 0.54 there.
+**On Windows the network frame stops being a rounding error.** On Linux it was an order of magnitude
+below physics; here it is the second-largest of the three terms and within a factor of two and a half
+of the solver.
+
+The box being quiet is cross-checked rather than claimed, the same way the Linux half does it: §4
+recorded `heap` mean **3.560 ms** on this box under Windows on 2026-08-22 against 3.589 now, 0.8%
+apart, and §5 recorded `target` mean **0.0304-0.0310 ms** over five idle runs on 2026-09-01 against
+0.0302 now. Both numbers become multiples of themselves on a loaded box, so agreeing with runs six
+weeks old is the evidence that nothing was building alongside.
+
+**Question 4 is inverted here, and harder than on Linux.** The gate expects `recv` to be the
+expensive peer because it is the one that rolls back, and expects its socket to make roughly twice
+the passes because it spins waiting for input the sender never waits for. On this box both halves of
+that come out backwards, in every run:
+
+1. `send` is the costlier peer in **eight of eight**. On Linux it was four of eight with the two sets
+   overlapping completely, which is noise; this is not noise — `send` 0.819-1.802 against `recv`
+   0.684-1.275, and the per-run ordering never once flips.
+2. The socket passes are `send` 571-572 against `recv` 257-271, a ratio of **2.2 in favour of the
+   sender**, where Linux has 1158-1273 against 452-558 — 2.3 the other way. The receiver here barely
+   spins at all.
+3. `net worst` is the larger one on `send` in eight of eight, and it is what carries the totals: the
+   two `sim worst` spreads overlap completely (`send` 0.615-0.915, `recv` 0.555-0.715, with `recv`
+   the higher one in four runs of the eight), so the inversion is the socket, not the simulation.
+
+**And the counters say why.** `recv` prints `rollbacks=13 replayed=32` in every one of the eight runs
+here, against `rollbacks=20 replayed=72` in every one of the eight on Linux, while `send` prints the
+same `21`/`84` on both. The receiver's rollback depth is therefore **not** pinned by the scripted
+route — it is pinned by when the late input lands, which is the socket's business, and the inference
+the Linux half drew from identical counters holds for the sender only. The two findings are one
+story: on this box the loopback delivers input early enough relative to the tick that the receiver
+spins about a third as much and rolls back about a third as far, which leaves the sender — with its
+256-257 resends, each one a pass — as the peer paying for the wire. `resent=` on the receiver is `0`
+here as it is on Linux, and question 5's warning does not fire: those resends sit beside a `net
+worst` that stays under a third of a millisecond in four runs of the eight.
+
+**What these runs do not say** is whether Winsock genuinely delivers earlier than the Linux loopback
+or the two peers merely interleave differently under a different scheduler. The replay counts are the
+symptom, and nothing in this output separates the causes. What they do answer is the gate's own
+question: 39% of a frame worst on worst on worst, with the sender as the expensive peer, is a frame
+that fits.
 
 ## 14. Gate 9 of #22 — a live session (two machines)
 
@@ -3085,7 +3169,7 @@ drawing session to find out:
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 11 of the 20 are closed, and the open 9 are listed by
+The gates above are what the ADRs waited on; 12 of the 20 are closed, and the open 8 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
