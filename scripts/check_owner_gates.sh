@@ -100,41 +100,56 @@ assert_owner_table() {
 # не первые 20 строк: «Beyond the gates» в трёх тысячах строк ниже обещало «7 of the 20 are closed,
 # and the open 13» при одиннадцати закрытых и девяти открытых — та же list-drift, только копия лежит
 # далеко от эталона и глазами попадается последней. Тело ```-блоков пропускается тем же образцом,
-# что в owner_gates_sections, а форма ВВОДНОГО абзаца проверяется отдельно: без неё документ мог бы
-# потерять числа в шапке, сохранив их в хвосте, и мера уехала бы вместе с прозой.
-assert_owner_intro() {
-  local closed total open out
+# что в owner_gates_sections.
+#
+# Копий факта в документе ДВЕ, и утверждение требует ОБЕИХ. У вводного абзаца пришпилена ФОРМА, у
+# хвостовой копии — НАЛИЧИЕ: awk судит только те строки, где образец нашёлся, и проза, ПОТЕРЯВШАЯ
+# числа ниже шапки, отдавала пустой `out` и зелёный прогон. Та же асимметрия, от которой
+# пришпиленная форма защищает шапку, только в обратную сторону.
+assert_owner_prose_numbers() {
+  local closed total open out head tail_n re
   closed=$(owner_gates_flat "$DOC" | awk -F"$OWNER_FS" '$3 == "closed"' | wc -l | tr -d ' ')
   total=$(owner_gates_flat "$DOC" | wc -l | tr -d ' ')
   open=$((total - closed))
-  local head
   head=$(sed -n '1,20p' "$DOC")
   if ! grep -qE '\*\*[0-9]+ of the [0-9]+ gates below are closed\*\*' <<<"$head" \
-    || ! grep -qE 'other [0-9]+ stay here' <<<"$head"; then
+     || ! grep -qE 'other [0-9]+ stay here' <<<"$head"; then
     owner_bad "вводный абзац не называет чисел в ожидаемой форме — сверять нечего"
     return 1
   fi
-  out=$(awk -v C="$closed" -v T="$total" -v O="$open" '
+  # Образец ОДИН на оба суждения: вторая его копия, написанная для счёта хвоста, разъехалась бы с
+  # первой — ровно тот дефект, против которого заведён весь этот гейт.
+  re='[0-9]+ of the [0-9]+ [a-z ]*are closed|other [0-9]+ stay|the open [0-9]+'
+  out=$(awk -v C="$closed" -v T="$total" -v O="$open" -v RE="$re" '
     /^```/ { inb = !inb; next }
     inb { next }
     {
       t = $0
-      while (match(t, /[0-9]+ of the [0-9]+ [a-z ]*are closed|other [0-9]+ stay|the open [0-9]+/)) {
+      while (match(t, RE)) {
         s = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+        if (FNR > 20) tail++
         n = s; gsub(/[^0-9]/, " ", n); split(n, f, " ")
         if (s ~ /are closed/) {
           if (f[1] != C || f[2] != T) printf "строка %d: «%s», а в документе %s из %s\n", FNR, s, C, T
         } else if (f[1] != O) printf "строка %d: «%s», а открытых в документе %s\n", FNR, s, O
       }
     }
+    END { printf "ХВОСТ %d\n", tail + 0 }
   ' "$DOC")
+  tail_n=$(sed -n 's/^ХВОСТ //p' <<<"$out")
+  out=$(grep -v '^ХВОСТ ' <<<"$out")
+  [ "${tail_n:-0}" -gt 0 ] || {
+    owner_bad "ниже шапки числа гейтов не называются вовсе — копия факта в «Beyond the gates» пропала"
+    return 1
+  }
   [ -z "$out" ] || {
     owner_bad "вводный абзац и проза разъехались с разделами:"
     printf '%s\n' "$out" | sed 's/^/       /' >&2
     return 1
   }
-  owner_ok "проза называет $closed из $total закрытых и $open открытых, и нигде иначе"
+  owner_ok "проза называет $closed из $total закрытых и $open открытых — в шапке и ещё в $tail_n месте(ах) ниже"
 }
+
 # owner_check.sh обязан ЧИТАТЬ документ, а не хранить копию списка. Комментарии снимаются перед
 # грепом: слово, оставшееся в комментарии, объявляло бы меру существующей там, где её нет — тем и
 # был вакуумно-зелёным assert_ci_no_second_packer.
@@ -170,7 +185,7 @@ assert_owner_form || note
 assert_owner_banner || note
 assert_owner_numbering || note
 assert_owner_table || note
-assert_owner_intro || note
+assert_owner_prose_numbers || note
 assert_owner_check_reads_doc || note
 
 [ "$fails" = 0 ] || { printf 'owner-gates: FAIL нарушений: %d\n' "$fails" >&2; exit 1; }

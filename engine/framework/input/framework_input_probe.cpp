@@ -109,18 +109,8 @@ int main(int argc, char** argv) {
     RebindStore store;
     std::string stored_preset;
     const std::string path = save_path();
-    // Исходов три, а не два: уборка шага 4 гейта (`X` затем `S`) пишет пресет БЕЗ правок, а не
-    // удаляет файл, и «загружен» про такой файл читался бы как «прошлый прогон не убрали» — то
-    // есть процедура отвергала бы состояние, в которое сама же и приводит.
     const bool mine = store.load(path, stored_preset) && stored_preset == table.preset_name(preset);
-    if (mine && !store.items().empty())
-        std::printf("[probe] overlay loaded from %s: %zu edit(s) - the restart half of gate 4\n",
-                    path.c_str(), store.items().size());
-    else if (mine)
-        std::printf("[probe] overlay at %s holds no edits - clean preset\n", path.c_str());
-    else
-        std::printf("[probe] no overlay for preset '%s' at %s - clean preset\n",
-                    table.preset_name(preset), path.c_str());
+    report_overlay(table, preset, store, mine, path);
 
     ::input::ActionMap map;
     rebuild(table, preset, store, map);

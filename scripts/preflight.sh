@@ -182,6 +182,9 @@ if [ "$(uname -s)" = "Darwin" ]; then
     skip "Сборка gcc" "на macOS gcc не собирает .mm и Apple SDK — переносимые TU закрывает scripts/tu_sweep.py, Linux-only остаются за CI"
 elif [ -n "$GXX" ] && ! "$GXX" --version 2>/dev/null | grep -qi clang; then
     stage "Сборка gcc (диагностики, которых нет у clang)" gcc_build
+elif [ -n "$GXX" ]; then
+    # Два пропуска, а не один: где `g++` оказался clang, совет «поставь g++» прятал бы причину.
+    skip "Сборка gcc" "найденный $GXX это clang, а не gcc — класс -Wformat-truncation остаётся за CI"
 else
     skip "Сборка gcc" "gcc не найден ($(command -v dnf >/dev/null && echo 'sudo dnf install gcc-c++' || echo 'apt-get install g++')) — класс -Wformat-truncation остаётся за CI"
 fi
