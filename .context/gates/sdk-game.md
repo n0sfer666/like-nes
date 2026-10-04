@@ -35,7 +35,10 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `tools/assetc/`, импорт Tiled `engine/framework/tilemap/`, `levels/*.tmj`/`*.tsj`): значение из
    строки `[assetc] bundle_hash` лога сборки, `bundle.hash` — в том же коммите, после зелёного гейта
    на трёх ОС. С В5а в бандле уровень `level1` (секции `tilemap`, `visual`, `objects`); пересохранение
-   `level1.tmj` в настоящем Tiled хеш менять не должно. С В6б — ещё лист `queen_sheet` и клипы
+   `level1.tmj` в настоящем Tiled хеш не меняет — измерено 2026-10-04 на Tiled 1.12.2
+   (`0x4e7f9ade1d27776a` до и после), и это при том, что 1.12 дописывает `"opacity":1` каждому
+   объекту `spawns` и экранирует слэши в пути листа (`"..\/assets\/…"`): импортёр оба проезжает.
+   С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
