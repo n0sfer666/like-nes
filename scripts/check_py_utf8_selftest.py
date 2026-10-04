@@ -8,12 +8,22 @@
 старая форма `universal_newlines`, обход правила алиасом импорта, вызов в модуле БЕЗ шебанга — то
 есть там, где первое правило молчит по построению, — и дерево, где текстовых вызовов нет вовсе.
 
+У третьего (текстовый `open` без `encoding`) и у встроенного python в `.sh`/`.yml` — свой набор в
+`check_py_utf8_selftest_bodies.py`. Каждая порча сверяется по ТЕГУ причины, а не по коду возврата:
+код один на все находки, и сломанное извлечение, отдающее «не разбирается», иначе проходило бы
+любой контроль порчи.
+
 Дерево фикстуры — НАСТОЯЩИЙ git-репозиторий: обход берёт файлы у git, и подмена его на os.walk
 означала бы, что набор проверяет не тот механизм, которым гейт пользуется на дереве.
 """
+import contextlib
+import io
 import os
 import subprocess
 import sys
+
+from check_py_utf8_selftest_bodies import SH
+from check_py_utf8_selftest_bodies import cases as bodies_cases
 
 SHEBANG = "#!/usr/bin/env python3\n"
 CYR = 'print("вывод по-русски")\n'
@@ -22,13 +32,17 @@ CALL = 'subprocess.run(["git", "status"], capture_output=True, text=True%s)\n'
 # Дерево без единого текстового вызова гейт отвергает (vacuous-gate), поэтому исправный вызов лежит
 # в КАЖДОЙ фикстуре: иначе опорные `pass` первого правила падали бы по чужой причине.
 RUNNER = "import subprocess\n\n\n" + CALL % ', encoding="utf-8"'
+# Тот же довод для третьего правила и встроенных тел: исправное встроенное открытие файла — в каждой
+# фикстуре, иначе отказ по пустому счётчику подменял бы проверяемую причину.
+RUNNERS = {"scripts/runner.py": RUNNER,
+           "scripts/runner.sh": SH % "python3 -c 'open(\"x\", encoding=\"utf-8\")'"}
 
 
 def build(mkdtemp, files, runner=True):
     """Git-репозиторий из словаря «путь -> текст». Файлы добавляются ПОИМЁННО."""
     root = mkdtemp()
     if runner:
-        files = dict(files, **{"scripts/runner.py": RUNNER})
+        files = {**RUNNERS, **files}
     for rel, text in files.items():
         path = os.path.join(root, rel)
         os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -47,14 +61,21 @@ def build(mkdtemp, files, runner=True):
 def selftest(gate, mkdtemp):
     bad = 0
 
-    def case(want, name, files, runner=True):
+    def case(want, name, files, reason=None, place=None):
+        """Порча обязана упасть по СВОЕЙ причине: код возврата один на все находки, и сломанное
+        извлечение, отдающее «не разбирается», прошло бы любой контроль порчи. Причина — тег вида
+        находки, `place` — ещё и `файл:строка` в ней."""
         nonlocal bad
-        rc = gate(build(mkdtemp, files, runner), quiet=True)
-        ok = (want == "pass" and rc == 0) or (want == "fail" and rc != 0)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = gate(build(mkdtemp, files), quiet=True)
+        want_tag = "[%s] %s:" % (reason, place) if place else "[%s]" % reason
+        ok = rc == 0 if want == "pass" else rc != 0 and want_tag in err.getvalue()
         if ok:
-            print("py-utf8-selftest: OK   %s (%s)" % (name, want))
+            print("py-utf8-selftest: OK   %s (%s%s)" % (name, want, " " + want_tag if reason else ""))
         else:
-            sys.stderr.write("py-utf8-selftest: БРАК %s: ожидали %s, код %d\n" % (name, want, rc))
+            sys.stderr.write("py-utf8-selftest: БРАК %s: ожидали %s %s, код %d\n%s"
+                             % (name, want, want_tag if reason else "", rc, err.getvalue()))
             bad = 1
 
     case("pass", "кандидат зовёт py_utf8.enable()", {"scripts/a.py": GOOD})
@@ -66,20 +87,21 @@ def selftest(gate, mkdtemp):
     # доезжают. Без этого `pass` правило неотличимо от «зови всегда».
     case("pass", "шебанг с ASCII-литералами вызова не требует",
          {"scripts/a.py": GOOD, "scripts/b.py": SHEBANG + "# комментарий\nprint('ascii')\n"})
-    case("fail", "кандидат не зовёт вовсе", {"scripts/a.py": SHEBANG + CYR})
+    case("fail", "кандидат не зовёт вовсе", {"scripts/a.py": SHEBANG + CYR}, "enable")
     # Грep по подстроке был бы зелен на этом дереве: разбор обязан быть синтаксическим.
     case("fail", "вызов написан в комментарии",
-         {"scripts/a.py": SHEBANG + "# py_utf8.enable()\n" + CYR})
-    case("fail", "импорт есть, вызова нет", {"scripts/a.py": SHEBANG + "import py_utf8\n" + CYR})
+         {"scripts/a.py": SHEBANG + "# py_utf8.enable()\n" + CYR}, "enable")
+    case("fail", "импорт есть, вызова нет", {"scripts/a.py": SHEBANG + "import py_utf8\n" + CYR},
+         "enable")
     case("fail", "вызов есть, импорта нет",
-         {"scripts/a.py": SHEBANG + "py_utf8.enable()\n" + CYR})
+         {"scripts/a.py": SHEBANG + "py_utf8.enable()\n" + CYR}, "enable")
     # Пустое равно пустому: обход, промахнувшийся мимо дерева, обязан отличаться от чистого прогона.
-    case("fail", "в дереве нет ни одного кандидата", {"scripts/lib.py": CYR})
+    case("fail", "в дереве нет ни одного кандидата", {"scripts/lib.py": CYR}, "vacuous")
     # Собственный исходник, скрытый от обхода: гейт описывает не то дерево, по которому его
     # запустили, и молчание тут читалось бы как «нарушений нет».
     case("fail", "исходник гейта скрыт от обхода",
          {"scripts/a.py": GOOD, "scripts/check_py_utf8.py": GOOD,
-          ".gitignore": "scripts/check_py_utf8.py\n"})
+          ".gitignore": "scripts/check_py_utf8.py\n"}, "self")
 
     # Область второго правила — ВСЕ файлы .py: чужой вывод декодирует тот, кто его читает, и
     # молчание на модуле означало бы, что правило проверяет шебанг вместо чтения.
@@ -91,21 +113,25 @@ def selftest(gate, mkdtemp):
          {"scripts/a.py": GOOD,
           "scripts/lib.py": 'import subprocess\nsubprocess.run(["git"], capture_output=True)\n'})
     case("fail", "текстовый вызов берёт кодировку у локали",
-         {"scripts/a.py": GOOD, "scripts/lib.py": "import subprocess\n" + CALL % ""})
+         {"scripts/a.py": GOOD, "scripts/lib.py": "import subprocess\n" + CALL % ""}, "reads")
     # Старая форма того же режима: пропусти её — и правило обходится словом, а не смыслом.
     case("fail", "старая форма universal_newlines без encoding",
          {"scripts/a.py": GOOD,
-          "scripts/lib.py": 'import subprocess\nsubprocess.run(["git"], universal_newlines=True)\n'})
+          "scripts/lib.py": 'import subprocess\nsubprocess.run(["git"], universal_newlines=True)\n'},
+         "reads")
     # Имя модуля берётся из импорта: прибитая строка «subprocess» делала бы правило обходимым.
     case("fail", "правило обходится алиасом импорта",
          {"scripts/a.py": GOOD,
-          "scripts/lib.py": 'import subprocess as sp\nsp.run(["git"], text=True)\n'})
+          "scripts/lib.py": 'import subprocess as sp\nsp.run(["git"], text=True)\n'}, "reads")
     case("fail", "нарушение в самой точке входа",
          {"scripts/a.py": GOOD.replace("import py_utf8", "import py_utf8\nimport subprocess")
-          + CALL % ""})
+          + CALL % ""}, "reads")
     # Пустое равно пустому и здесь: обход, не нашедший ни одного текстового вызова, обязан
     # отличаться от чистого прогона.
-    case("fail", "в дереве нет ни одного текстового вызова", {"scripts/a.py": GOOD}, runner=False)
+    case("fail", "в дереве нет ни одного текстового вызова",
+         {"scripts/a.py": GOOD, "scripts/runner.py": ""}, "vacuous")
+
+    bodies_cases(case, GOOD, CALL)
 
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     rc = gate(root, quiet=True)

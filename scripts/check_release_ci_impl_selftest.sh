@@ -65,7 +65,7 @@ expect pass "нетронутая механика · разбор выбора"
 sub fail "выбор берёт первый попавшийся, а не свежайший" \
   'ci_pick_run() { python3 -c "
 import json,sys
-runs=json.load(open(sys.argv[1]))
+runs=json.load(open(sys.argv[1], encoding=\"utf-8\"))
 mine=[r for r in runs if r.get(\"headSha\")==sys.argv[2]]
 if not mine: sys.exit(1)
 r=mine[0]
@@ -76,7 +76,7 @@ print(r[\"databaseId\"], r[\"status\"], r.get(\"conclusion\",\"\"))
 sub fail "выбор игнорирует коммит" \
   'ci_pick_run() { python3 -c "
 import json,sys
-runs=json.load(open(sys.argv[1]))
+runs=json.load(open(sys.argv[1], encoding=\"utf-8\"))
 r=sorted(runs,key=lambda r:r.get(\"createdAt\",\"\"))[-1]
 print(r[\"databaseId\"], r[\"status\"], r.get(\"conclusion\",\"\"))
 " "$1" "$2"; }' \

@@ -33,17 +33,13 @@ import sys
 import tempfile
 
 import py_utf8
+from py_embedded import COMMENT, GLOBS, NAME
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MEASURE = "scripts/py_run.sh"
-GLOBS = ("*.sh", "*.yml", "*.yaml")
-# Хвост пути тоже вызов: `/usr/bin/python3 -` ломается точно так же, поэтому `/` в запрет перед
-# именем не входит. Входят `\w`, `.` и `-`: ими начинаются `mypython3`, `x.python3` и `--python3`.
-NAME = r"(?<![\w.\-])(?:python|python3)(?:\.exe)?"
 CALL = re.compile(NAME + r"(?=\s)")
 # `-` аргументом целиком: `--version` и `-c` отсекает требование пробела или конца строки за ним.
 STDIN = re.compile(NAME + r"\s+-(?=\s|$)")
-COMMENT = re.compile(r"^\s*#")
 
 
 def tracked(root):
