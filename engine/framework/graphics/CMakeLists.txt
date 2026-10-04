@@ -4,7 +4,7 @@
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
 add_library(framework_graphics STATIC clip.cpp clip_bake.cpp clip_read.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
-  particles.cpp viewport.cpp sprite_flip.cpp clip_debug.cpp)
+  particles.cpp viewport.cpp viewport_fit.cpp sprite_flip.cpp clip_debug.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
 # детерминированной векторной арифметики была бы вторым КОНТРАКТОМ, расходящимся на округлении.
@@ -194,3 +194,7 @@ add_executable(framework_graphics_viewport_refusal_test
   framework_graphics_viewport_refusal_test.cpp)
 target_link_libraries(framework_graphics_viewport_refusal_test PRIVATE framework_graphics
   platform_core)
+
+# Политика вьюпорта (спека #24, В7); покрытие слоёв под неё — в `import.cmake`.
+add_executable(framework_graphics_viewport_fit_test framework_graphics_viewport_fit_test.cpp)
+target_link_libraries(framework_graphics_viewport_fit_test PRIVATE framework_graphics platform_core)

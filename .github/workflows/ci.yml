@@ -2004,7 +2004,8 @@ jobs:
                    game_sprite_out_test game_fx_test game_star_test \
                    game_material_runs_test \
                    framework_graphics_viewport_test framework_graphics_zoom_reach_test \
-                   framework_graphics_viewport_refusal_test; do
+                   framework_graphics_viewport_refusal_test \
+                   framework_graphics_viewport_fit_test framework_graphics_layer_cover_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -2821,6 +2822,8 @@ jobs:
           framework_tilemap_objects_test:framework-tilemap-objects: PASS
           framework_graphics_layer_test:framework-graphics-layer: PASS
           framework_graphics_layer_kinds_test:framework-graphics-layer-kinds: PASS
+          framework_graphics_viewport_fit_test:framework-graphics-viewport-fit: PASS
+          framework_graphics_layer_cover_test:framework-graphics-layer-cover: PASS
           framework_tiled_test:framework-tiled: PASS
           framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")

@@ -119,6 +119,16 @@ void test_shake_does_not_move_the_camera() {
           "while the VIEW centre of the two does differ");
 }
 
+void test_shake_amplitude_capped() {
+    Camera c{};
+    camera_shake(c, 40, fx(20), 7);
+    same(c.shake_amp, CAMERA_SHAKE_MAX, "an amplitude above the cap is cut to the cap the bake covers");
+    camera_shake(c, 40, fx(-20), 7);
+    same(c.shake_amp, -CAMERA_SHAKE_MAX, "a negative amplitude is cut by magnitude");
+    camera_shake(c, 40, fx(5), 7);
+    same(c.shake_amp, fx(5), "an amplitude under the cap is kept");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -127,6 +137,7 @@ int main(int argc, char** argv) {
     test_shake_determinism();
     test_shake_decay();
     test_shake_does_not_move_the_camera();
+    test_shake_amplitude_capped();
     std::printf("framework-graphics-shake: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }
