@@ -76,3 +76,14 @@ path = "chewbatrij/queen-rows.png"
 pack = "chewbatrij"
 sha256 = "a4daa9dddfa580a4cf6a1baf8b1bc41b31d6a8d3cf55e0d67ea1cbced01df4ea"
 changes = "re-laid in rows of 8 cells"
+
+[[pack]]
+name = "monogram"
+url = "https://datagoblin.itch.io/monogram"
+author = "Vinícius Menézio (@vmenezio)"
+license = "CC0-1.0"
+
+[[file]]
+path = "monogram/monogram-bitmap.json"
+pack = "monogram"
+sha256 = "847e18d10ecd0fd4362ee0088a1bc56f9b203136b544d45db17426ff91913938"

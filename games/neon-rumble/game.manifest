@@ -2,6 +2,8 @@
 # texture|<name>|<pixel or hd>|<path from this directory>, level|<name>|tiled|<path>.tmj,
 # clips|<name>|aseprite|<path>.json (spec #24, B6) over a sheet that is a texture record by path.
 # A trailing |viewport on a level makes the bake prove its layers cover the viewport limit (B7).
+# font|<name>|bitmask|<path>.json bakes a glyph atlas and the fonts section, credits|<name>|<path>.txt
+# the credits section (B8b).
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png
@@ -10,3 +12,5 @@ texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
 texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
 clips | queen | aseprite | assets/chewbatrij/queen-rows.json
+font | monogram | bitmask | assets/monogram/monogram-bitmap.json
+credits | credits | assets/credits.txt

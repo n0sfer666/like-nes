@@ -6,6 +6,7 @@
 #include "baker_guid.hpp"
 #include "bakers.hpp"
 #include "clip_import.hpp"
+#include "font_import.hpp"
 #include "layer_cover.hpp"
 #include "level_source.hpp"
 #include "platform_fs.hpp"
@@ -83,9 +84,52 @@ bool clips(Bake& b, const Record& r, const std::string& file, LevelSource& src,
     return true;
 }
 
-bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src,
-                 std::vector<framework::tiled::Level>& levels, std::vector<framework::graphics::ClipSrc>& clipped) {
-    return r.kind == "level" ? level(b, r, file, src, levels) : clips(b, r, file, src, clipped);
+bool font(Bake& b, const Record& r, const std::string& file, std::vector<framework::graphics::FontSrc>& out) {
+    std::vector<uint8_t> bytes;
+    if (!platform::read_bytes_capped(file, bytes, MAX_LEVEL_BYTES))
+        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 64 MiB)");
+    framework::graphics::FontAtlas atlas;
+    std::string why;
+    if (!framework::graphics::import_bitmask_font(r.name, file, std::as_bytes(std::span<const uint8_t>(bytes)), atlas,
+                                                  why))
+        return fail(b, r.line, why);
+    atlas.font.texture_guid = bakers::guid_of(r.name.c_str());
+    bakers::rgba_texture(std::move(atlas.rgba), atlas.font.page_w, atlas.font.page_h, r.name.c_str(), b.assets);
+    out.push_back(std::move(atlas.font));
+    return true;
+}
+
+bool credits(Bake& b, const Record& r, const std::string& file) {
+    std::vector<uint8_t> bytes;
+    if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
+        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 1 MiB)");
+    std::vector<framework::core::CreditSrc> src;
+    std::string why;
+    if (!framework::core::parse_credits(std::string(bytes.begin(), bytes.end()), file, src, why) ||
+        !bakers::credits(r.name.c_str(), src, b.assets, why))
+        return fail(b, r.line, why);
+    return true;
+}
+
+struct Gathered {
+    std::vector<framework::tiled::Level> levels;
+    std::vector<framework::graphics::ClipSrc> clips;
+    std::vector<framework::graphics::FontSrc> fonts;
+    uint32_t last_level = 0, last_clips = 0, last_font = 0;
+};
+
+bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src, Gathered& g) {
+    if (r.kind == "credits") return credits(b, r, file);
+    if (r.kind == "level") {
+        g.last_level = r.line;
+        return level(b, r, file, src, g.levels);
+    }
+    if (r.kind == "clips") {
+        g.last_clips = r.line;
+        return clips(b, r, file, src, g.clips);
+    }
+    g.last_font = r.line;
+    return font(b, r, file, g.fonts);
 }
 
 } // namespace
@@ -106,24 +150,20 @@ bool bake(Bake& b) {
     const std::string base = dir_of(b.manifest);
     Textures textures;
     LevelSource src(base, textures, b.deps);
-    std::vector<framework::tiled::Level> levels;
-    std::vector<framework::graphics::ClipSrc> clipped;
-    uint32_t last_level = 0, last_clips = 0;
+    Gathered g;
     for (const bool textures_pass : {true, false}) {
         for (const Record& r : records) {
             if ((r.kind == "texture") != textures_pass) continue;
             std::string file, why;
             if (!resolve(base, r.path, file, why)) return fail(b, r.line, why);
             b.deps.push_back(file);
-            if (textures_pass ? !texture(b, r, file, textures) : !second_pass(b, r, file, src, levels, clipped))
-                return false;
-            if (r.kind == "level") last_level = r.line;
-            if (r.kind == "clips") last_clips = r.line;
+            if (textures_pass ? !texture(b, r, file, textures) : !second_pass(b, r, file, src, g)) return false;
         }
     }
     std::string why;
-    if (!levels.empty() && !bakers::levels(levels, b.assets, why)) return fail(b, last_level, why);
-    if (!clipped.empty() && !bakers::clips(clipped, b.assets, why)) return fail(b, last_clips, why);
+    if (!g.levels.empty() && !bakers::levels(g.levels, b.assets, why)) return fail(b, g.last_level, why);
+    if (!g.clips.empty() && !bakers::clips(g.clips, b.assets, why)) return fail(b, g.last_clips, why);
+    if (!g.fonts.empty() && !bakers::fonts(g.fonts, b.assets, why)) return fail(b, g.last_font, why);
     return true;
 }
 

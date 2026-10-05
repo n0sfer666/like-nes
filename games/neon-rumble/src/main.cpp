@@ -97,6 +97,28 @@ void report_fighter(const rumble::Level& level, const rumble::Fighter& fighter) 
     }
 }
 
+// Сводка титров: шрифт и атлас из бандла, строки секции `credits` и раскладка экрана F1 на 960x540 —
+// ноль неизвестных символов доказывает, что кириллица заголовка и тире есть в шрифте.
+void report_credits(const rumble::Level& level, const rumble::Credits& credits) {
+    const auto& f = *credits.font.row;
+    std::printf("neon-rumble: font %s line %u, %zu glyph(s), atlas %ux%u\n", rumble::Credits::FONT, f.line_height,
+                credits.font.glyphs.size(), credits.atlas.width, credits.atlas.height);
+    for (uint32_t i = 0; i < credits.table.count(); ++i) {
+        const framework::core::Credit c = credits.table.at(i);
+        std::printf("neon-rumble: credit %s | %s | %s | %s\n", c.pack, c.author, c.license, c.url);
+    }
+    rumble::Layers layers;
+    rumble::CreditsQuads quads;
+    const ViewportFit fit = framework::graphics::viewport_fit({960, 540});
+    rumble::LayerStats st = layers.build(level, fit, 0);
+    const uint32_t before = st.quads;
+    const rumble::CreditStats cs = quads.add(credits, fit, layers, st, level.texture_count + 2, level.texture_count + 1);
+    std::printf("neon-rumble: credits screen 960x540 scale %u: %u pack(s), %u line(s), %u glyph(s), %u unknown, "
+                "%u quad(s), %u dropped\n",
+                fit.scale, credits.table.count(), cs.lines, cs.glyphs, cs.unknown, st.quads - before,
+                cs.dropped + st.dropped);
+}
+
 int run_headless(rumble::Scene& scene, int frames) {
     for (int i = 0; i < frames; ++i) scene.step(static_cast<uint32_t>(i));
     if (scene.ticks != static_cast<uint32_t>(frames)) {
@@ -135,7 +157,10 @@ int main(int argc, char** argv) {
     rumble::Fighter fighter;
     if (!fighter.open(level)) return 1;
     report_fighter(level, fighter);
+    rumble::Credits credits;
+    if (!credits.open(level)) return 1;
+    report_credits(level, credits);
     rumble::Scene scene;
     if (!scene.init()) return 1;
-    return headless ? run_headless(scene, frames) : rumble::run_window(scene, level, fighter, frames);
+    return headless ? run_headless(scene, frames) : rumble::run_window(scene, level, fighter, credits, frames);
 }

@@ -1812,9 +1812,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right
       neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+      neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+      neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+      neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+      neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 12 line(s), 255 glyph(s), 0 unknown, 256 quad(s), 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x62dfbf79ff663b23 matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0x1c3f1ab85657a27a matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
@@ -1824,9 +1829,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right
       neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+      neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+      neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+      neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+      neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 12 line(s), 255 glyph(s), 0 unknown, 256 quad(s), 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x62dfbf79ff663b23 matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x1c3f1ab85657a27a matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1843,11 +1853,13 @@ owner_check.sh гоняет это отдельным этапом сразу п
   bundle_hash — от game.bundle, который assetc из SDK печёт по
   games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
   levels/level1.tmj из Tiled — секции tilemap, visual, objects; лист и клипы
-  бойца из Aseprite — chewbatrij/queen-rows.*), и тоже
+  бойца из Aseprite — chewbatrij/queen-rows.*; шрифт monogram/monogram-bitmap.json
+  и credits.txt — секции fonts и credits), и тоже
   один на всех ОС: он закоммичен в games/neon-rumble/bundle.hash. Другой хеш
   на одной из машин — находка, а не повод переписать файл. Законная смена —
-  только когда коммит намеренно меняет PNG, game.manifest, levels/ или байты
-  пекаря:
+  только когда коммит намеренно меняет PNG, JSON шрифта, credits.txt (его
+  пишет check_asset_licenses.py --write из LICENSES.toml), game.manifest,
+  levels/ или байты пекаря:
   новое значение — строка «[assetc] bundle_hash = 0x…» в логе сборки игры
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
@@ -1870,6 +1882,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
   тике 215 — Jab с flip 1. Боксов у пака нет (0 hit, 0 hurt, 0 push), квады
   оверлея F3 — рамка клетки и крест пивота; rejected и dropped — нули.
 
+  Строки font, credit и credits screen — титры (спека #24, В8б): шрифт
+  monogram из таблицы fonts (390 глифов, строка 12 пикселей, атлас 224x156
+  по guid строки шрифта), три пака секции credits по алфавиту — ровно
+  credits.txt, и раскладка экрана F1 на 960x540: заголовок и три пака в
+  зоне 384x216, URL chewbatrij переносится (12 строк). 0 unknown — каждый
+  символ титров (кириллица заголовка, «·», «—», «í», «é») есть в шрифте;
+  0 dropped — ни один глиф не ушёл за CAPACITY и за нижний край зоны.
+
   Оконный запуск: окно «Neon Rumble» 960×540, в нём уровень level1 — фасады
   над улицей, как в Tiled. За фасадами три плана (спека #24, В8а): небо sky
   стоит на месте, дальние здания far-city едут на четверть хода камеры,
@@ -1882,7 +1902,12 @@ owner_check.sh гоняет это отдельным этапом сразу п
   столько же обратно — дальше её не пускают границы; улица у нижнего края.
   Слева на улице стоит боец (королева в короне) ногами на линии улицы и
   шагает на месте; из кадра он не уходит. F3 включает и выключает оверлей:
-  голубая рамка клетки и белый крест пивота у ступней. Если растянуть окно
+  голубая рамка клетки и белый крест пивота у ступней. F1 включает и
+  выключает титры: уровень темнеет, вверху голубой заголовок «Credits ·
+  Титры», под ним белым три пака (chewbatrij, monogram, warped-city) —
+  «пак — автор, лицензия», ниже URL; длинный URL переносится, а не уходит
+  за край. Ни одного «?» вместо букв (кириллица, «·», «—», «í» и «é»
+  в шрифте есть). Если растянуть окно
   шире 21:9 (около 2000x400 точек), по краям встают полосы цвета фона карты
   #0b0f1a (тёмно-синий), и мир в них не заходит: дальше предела 576x312 вид не открывает. Если сузить окно меньше 384x216 пикселей
   (Retina — 192x108 точек), в stderr при каждом таком сужении: «neon-rumble:

@@ -11,6 +11,13 @@ Files:
   chewbatrij/queen.json
   chewbatrij/queen.png
 
+== monogram ==
+Author: Vinícius Menézio (@vmenezio)
+Source: https://datagoblin.itch.io/monogram
+License: CC0-1.0 (licenses/CC0-1.0.txt)
+Files:
+  monogram/monogram-bitmap.json
+
 == warped-city ==
 Author: ansimuz
 Source: https://opengameart.org/content/warped-city

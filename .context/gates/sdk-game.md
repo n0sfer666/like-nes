@@ -34,7 +34,12 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `fighter tick 0: queen/Walk frame 0 flip 0, …` и `fighter tick 215: queen/Jab frame 0 flip 1, …`:
    витрина по тику (Walk 60, Jab 30, Hook 30, Uppercut 30) и смена стороны на втором круге. Счёт
    боксов и квадов оверлея — регэкспом (у пака боксов нет, B6a); нули отказов и сброса пинятся:
-   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка;
+   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка.
+   С В8б — шрифт и титры: `font monogram line 12, 390 glyph(s), atlas 224x156` (таблица `fonts`,
+   атлас по `texture_guid`) пинится целиком; строк `credit …` ровно три, среди них `monogram`
+   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 3 pack(s), …`
+   — строки, глифы и квады регэкспом, а `0 unknown` и `0 dropped` пинятся: символ титров, которого
+   нет в monogram (`·`, `—`, кириллица, `í`), или квад сверх `CreditsQuads::CAPACITY` — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
    `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход
    `assetc`: грузит игра именно её. Другой хеш на одной ОС — находка. Законная смена — только
@@ -48,6 +53,7 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В7б хеш `0xee0b7e44a987efec`: уровень 40×21, `bounds` 104..536 × 56..280, спавн 200,224.
    С В8а хеш `0x62dfbf79ff663b23`: три image-слоя параллакса (`sky` p=0, `far-city` 0.25 и
    `near-city` 0.5 с `cover_y = false`), тайлсет `neon-signs.tsj` с анимацией и слой `signs`.
+   С В8б хеш `0x1c3f1ab85657a27a`: атлас и секция `fonts` шрифта `monogram`, секция `credits`.
    С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 

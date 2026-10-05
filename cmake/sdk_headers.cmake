@@ -18,7 +18,8 @@ set(LIKE_NES_SDK_HEADERS
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
   render/surface_frame.hpp render/quad_batch.hpp
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
-  framework/core/stage.hpp framework/core/text_fields.hpp
+  framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
+  framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
   framework/input/pad_profile.hpp framework/input/pad_registry.hpp
   framework/input/preset_axes.hpp framework/input/preset_bake.hpp
   framework/input/preset_format.hpp framework/input/preset_parse.hpp
@@ -60,6 +61,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/sprite_flip.hpp framework/graphics/clip_format.hpp
   framework/graphics/clip_read.hpp framework/graphics/clip_bake.hpp
   framework/graphics/clip_debug.hpp framework/graphics/gpu/cel_quads.hpp
+  framework/graphics/font_format.hpp framework/graphics/font_read.hpp framework/graphics/font_bake.hpp
+  framework/graphics/text_layout.hpp framework/graphics/gpu/text_quads.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
 )
