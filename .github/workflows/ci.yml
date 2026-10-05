@@ -2825,7 +2825,7 @@ jobs:
           framework_graphics_viewport_fit_test:framework-graphics-viewport-fit: PASS
           framework_graphics_layer_cover_test:framework-graphics-layer-cover: PASS
           framework_tiled_test:framework-tiled: PASS
-          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
+          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 53 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
           cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0
