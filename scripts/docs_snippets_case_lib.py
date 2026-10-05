@@ -35,9 +35,12 @@ int hello() { return 1; }
 STATE = {"bad": 0}
 
 
-def build(files):
-    """Фикстурное дерево из словаря «путь -> текст». Каталоги создаются по пути файла: список
-    каталогов, написанный отдельно, разъехался бы с самими файлами."""
+def build(files, git=True):
+    """Фикстурное дерево из словаря «путь -> текст или байты». Каталоги создаются по пути файла:
+    список каталогов, написанный отдельно, разъехался бы с самими файлами.
+
+    Дерево — git-репозиторий без коммитов: маркеры гейт ищет по `git ls-files`, и фикстура без
+    `git init` проверяла бы его отказ «не git-дерево», а не то, ради чего её написали."""
     root = tempfile.mkdtemp()
     # Каталоги убираются за собой: прогон, оставляющий два десятка деревьев во временном каталоге,
     # приучает не смотреть на них вовсе, а гейт 4 спеки #11 требует чистого следа от локального
@@ -46,8 +49,14 @@ def build(files):
     for rel, text in files.items():
         path = os.path.join(root, rel)
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(text)
+        if isinstance(text, bytes):
+            with open(path, "wb") as fh:
+                fh.write(text)
+        else:
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.write(text)
+    if git:
+        subprocess.run(["git", "init", "-q", root], check=True)
     return root
 
 
@@ -73,13 +82,13 @@ def expect(want, name, root, docs):
         STATE["bad"] = 1
 
 
-def case(want, name, doc=DOC_OK, src=SRC_OK, docs=("doc.md",), extra=None):
+def case(want, name, doc=DOC_OK, src=SRC_OK, docs=("doc.md",), extra=None, git=True):
     files = {"doc.md": doc}
     if src is not None:
         files["docs/examples/sample.cpp"] = src
     if extra:
         files.update(extra)
-    expect(want, name, build(files), list(docs))
+    expect(want, name, build(files, git), list(docs))
 
 
 def real_docs():

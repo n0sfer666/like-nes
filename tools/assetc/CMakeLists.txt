@@ -2,7 +2,7 @@
 # не линковали webgpu, который нужен исполняемому `assetc` только для валидации материалов.
 add_library(assetc_bake STATIC bakers.cpp bakers_pixel.cpp assetc_manifest.cpp
   assetc_manifest_paths.cpp assetc_depfile.cpp assetc_emit.cpp manifest_bake.cpp level_source.cpp
-  bakers_level.cpp bakers_clips.cpp push_table.cpp)
+  bakers_level.cpp bakers_clips.cpp bakers_fonts.cpp bakers_credits.cpp push_table.cpp)
 target_include_directories(assetc_bake PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(assetc_bake PUBLIC asset_core framework_core framework_tiled framework_graphics_import)
 
@@ -31,3 +31,5 @@ add_executable(assetc_level_test assetc_level_test.cpp)
 target_link_libraries(assetc_level_test PRIVATE assetc_bake)
 add_executable(assetc_clips_test assetc_clips_test.cpp)
 target_link_libraries(assetc_clips_test PRIVATE assetc_bake)
+add_executable(assetc_font_test assetc_font_test.cpp)
+target_link_libraries(assetc_font_test PRIVATE assetc_bake)

@@ -89,7 +89,7 @@ void camera_follow(Camera& c, const CameraConfig& cfg, Vec2 target, int32_t faci
 void camera_shake(Camera& c, uint32_t ticks, fix32 amp, uint32_t seed) {
     c.shake_ticks = ticks;
     c.shake_total = ticks;
-    c.shake_amp = amp;
+    c.shake_amp = clamp_fix(amp, -CAMERA_SHAKE_MAX, CAMERA_SHAKE_MAX);
     c.shake_seed = seed;
 }
 

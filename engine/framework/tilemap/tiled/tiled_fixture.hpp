@@ -15,7 +15,7 @@ inline const char* const TMJ = R"({"compressionlevel":-1,"type":"map","version":
   "image":"deco.png","imagewidth":32,"imageheight":16}],
 "layers":[
  {"id":1,"name":"sky","type":"imagelayer","image":"../art/sky.png","repeatx":true,"offsetx":4,"opacity":1,
-  "visible":true,"x":0,"y":0},
+  "visible":true,"x":0,"y":0,"properties":[{"name":"cover_y","type":"bool","value":false}]},
  {"id":2,"name":"world","type":"group","offsetx":16,"opacity":1,"visible":true,"x":0,"y":0,"layers":[
   {"id":3,"name":"solid","type":"tilelayer","width":4,"height":3,"offsety":-32,"opacity":1,"visible":true,
    "x":0,"y":0,"properties":[{"name":"collision","type":"bool","value":true},
@@ -24,7 +24,8 @@ inline const char* const TMJ = R"({"compressionlevel":-1,"type":"map","version":
  {"id":7,"name":"far","type":"group","opacity":0.5,"parallaxx":0.5,"offsety":8,"visible":true,"x":0,"y":0,
   "layers":[
   {"id":4,"name":"deco","type":"tilelayer","width":4,"height":3,"parallaxx":0.5,"opacity":0.5,"visible":true,
-   "x":0,"y":0,"properties":[{"name":"repeat_y","type":"bool","value":true}],
+   "x":0,"y":0,"properties":[{"name":"repeat_y","type":"bool","value":true},
+                             {"name":"cover_y","type":"bool","value":false}],
    "data":[6,0,0,0, 0,1610612745,0,0, 10,0,0,5]}]},
  {"id":8,"name":"off","type":"group","opacity":1,"visible":false,"x":0,"y":0,"layers":[
   {"id":5,"name":"hidden","type":"tilelayer","width":4,"height":3,"opacity":1,"visible":true,"x":0,"y":0,

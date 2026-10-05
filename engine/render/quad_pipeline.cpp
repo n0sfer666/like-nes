@@ -110,12 +110,12 @@ WGPURenderPipeline make_quad_pipeline(WGPUDevice device, WGPUTextureFormat targe
     return pipe;
 }
 
+bool quad_target_srgb(WGPUTextureFormat target) {
+    return target == WGPUTextureFormat_RGBA8UnormSrgb || target == WGPUTextureFormat_BGRA8UnormSrgb;
+}
+
 WGPUTextureFormat quad_texel_format(WGPUTextureFormat target) {
-    switch (target) {
-    case WGPUTextureFormat_RGBA8UnormSrgb:
-    case WGPUTextureFormat_BGRA8UnormSrgb: return WGPUTextureFormat_RGBA8UnormSrgb;
-    default:                               return WGPUTextureFormat_RGBA8Unorm;
-    }
+    return quad_target_srgb(target) ? WGPUTextureFormat_RGBA8UnormSrgb : WGPUTextureFormat_RGBA8Unorm;
 }
 
 } // namespace render

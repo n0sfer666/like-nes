@@ -1,4 +1,5 @@
 # Credits of the third-party assets, one pack per credit line.
 # Generated from LICENSES.toml by scripts/check_asset_licenses.py --write; do not edit.
 credit | chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+credit | monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
 credit | warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city

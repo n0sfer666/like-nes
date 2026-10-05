@@ -72,16 +72,17 @@ bool texture(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f.size() != 4)
         return fail(err, line, "texture record has " + std::to_string(f.size()) +
                                    " fields, expected texture|<name>|<codec>|<path>");
-    if (f[1] == "tilemap" || f[1] == "visual" || f[1] == "objects" || f[1] == "clips")
-        return fail(err, line, "texture name '" + f[1] + "' is reserved for the level and clip sections");
     if (f[2] != "pixel" && f[2] != "hd")
         return fail(err, line, "unknown codec '" + f[2] + "', expected pixel or hd");
     return true;
 }
 
 bool level(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 4 || f[2] != "tiled")
-        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj");
+    if ((f.size() != 4 && f.size() != 5) || f[2] != "tiled")
+        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj or "
+                               "level|<name>|tiled|<path>.tmj|viewport");
+    if (f.size() == 5 && f[4] != "viewport")
+        return fail(err, line, "unknown level option '" + f[4] + "', expected viewport");
     const std::string& path = f[3];
     if (path.size() < 4 || path.compare(path.size() - 4, 4, ".tmj") != 0)
         return fail(err, line, "level path '" + path + "' must be a Tiled JSON map (.tmj)");
@@ -97,21 +98,43 @@ bool clips(const std::vector<std::string>& f, uint32_t line, Error& err) {
     return true;
 }
 
+bool font(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 4 || f[2] != "bitmask")
+        return fail(err, line, "font record expected as font|<name>|bitmask|<path>.json");
+    if (!f[3].ends_with(".json")) return fail(err, line, "font path '" + f[3] + "' must end in .json");
+    return true;
+}
+
+bool credits(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 3) return fail(err, line, "credits record expected as credits|<name>|<path>.txt");
+    if (!f[2].ends_with(".txt")) return fail(err, line, "credits path '" + f[2] + "' must end in .txt");
+    return true;
+}
+
+bool kind_ok(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f[0] == "texture") return texture(f, line, err);
+    if (f[0] == "level") return level(f, line, err);
+    if (f[0] == "clips") return clips(f, line, err);
+    if (f[0] == "font") return font(f, line, err);
+    if (f[0] == "credits") return credits(f, line, err);
+    return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips, font, credits)");
+}
+
+bool reserved(const std::string& name) {
+    return name == "tilemap" || name == "visual" || name == "objects" || name == "clips" || name == "fonts";
+}
+
 bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error& err) {
-    if (f[0] == "texture") {
-        if (!texture(f, line, err)) return false;
-    } else if (f[0] == "level") {
-        if (!level(f, line, err)) return false;
-    } else if (f[0] == "clips") {
-        if (!clips(f, line, err)) return false;
-    } else {
-        return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips)");
-    }
+    if (!kind_ok(f, line, err)) return false;
     if (!name_ok(f[1]))
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
+    if (f[0] != "level" && f[0] != "clips" && reserved(f[1]))
+        return fail(err, line, f[0] + " name '" + f[1] + "' is reserved for the level, clip and font sections");
+    const bool no_codec = f[0] == "credits";
+    const std::string& path = no_codec ? f[2] : f[3];
     std::string why;
-    if (!path_ok(f[3], why)) return fail(err, line, why);
-    rec = Record{line, f[0], f[1], f[2], f[3]};
+    if (!path_ok(path, why)) return fail(err, line, why);
+    rec = Record{line, f[0], f[1], no_codec ? std::string() : f[2], path, f.size() == 5 && f[4] == "viewport"};
     return true;
 }
 

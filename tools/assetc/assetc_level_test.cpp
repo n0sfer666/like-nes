@@ -133,6 +133,16 @@ void refusals(const std::string& root) {
             "Tiled refusal carries the map file, line and column");
 }
 
+void uncovered(const std::string& root) {
+    tree(root, tiled_fixture::TMJ);
+    manifest::Bake b;
+    const std::string expect = root + "/game.manifest:2: " + root + "/levels/one.tmj: map 'one': layer 'solid' "
+                               "does not cover the view: x short by 280 px left, 248 px right; y short by 108 px top, "
+                               "172 px bottom";
+    check(!bake(root, with(MANIFEST, "levels/one.tmj\n", "levels/one.tmj|viewport\n"), b) && b.error == expect,
+          "level under the viewport option is refused by layer cover: " + b.error);
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -144,6 +154,7 @@ int main(int argc, char** argv) {
     }
     baked(root);
     refusals(root);
+    uncovered(root);
     for (const char* f : {"/art/city.png", "/art/sky.png", "/levels/deco.png", "/art/tiles.tsj", "/levels/one.tmj",
                           "/game.manifest"})
         platform::remove_file(root + f);

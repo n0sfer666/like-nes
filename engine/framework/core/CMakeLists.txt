@@ -2,7 +2,7 @@
 # Зависит только от engine_core: стрелка слоя направлена вниз, и проверить это должно быть можно
 # по этой строке, не читая код.
 add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp section_bake.cpp
-  section_open.cpp)
+  section_open.cpp utf8_decode.cpp credits_bake.cpp credits_read.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
 
@@ -29,6 +29,9 @@ target_link_libraries(framework_trig_test PRIVATE framework_core platform_core)
 # модуля, и падать он обязан именем слоя, а не именем первого пекаря, чей голден разошёлся.
 add_executable(framework_text_test framework_text_test.cpp)
 target_link_libraries(framework_text_test PRIVATE framework_core platform_core)
+
+add_executable(framework_credits_test framework_credits_test.cpp)
+target_link_libraries(framework_credits_test PRIVATE framework_core platform_core)
 
 # --- Разборщик JSON для пекарей контента (спека #24, В3). Отдельной целью, а не файлом внутри
 # framework_core: ему нужна `asset::ByteArena`, а ребро framework_core → asset_core протащило бы

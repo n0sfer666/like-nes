@@ -72,8 +72,9 @@ NVIDIA MX150 + Intel UHD 620 (AMD нет), Smart App Control = 0 (выключе
 `check_release_crt_wiring_selftest.sh`, `release_ci_lib.sh` (B, живой путь),
 `check_library_bundle.sh:93`, `.github/workflows/ci.yml:837`.
 
-**Дыра, которую стоит закрыть отдельным раундом:** `check_py_utf8.py` требует явной кодировки у
-`.py` и НЕ ВИДИТ python внутри `.sh` и `.yml` — ровно того класса, что дал дефект B. Пять мест
+**Дыра — закрыта 2026-10-04** (третье правило и встроенные тела в [py-utf8](../gates/py-utf8.md);
+гейт нашёл ещё три места — мутанты `check_release_ci_impl_selftest.sh:68,79` и тело под `"$PY" -`
+в `owner_check.sh:142`). Было: `check_py_utf8.py` требует явной кодировки у `.py` и НЕ ВИДИТ python внутри `.sh` и `.yml` — ровно того класса, что дал дефект B. Пять мест
 нашлись руками за одну сессию.
 
 ## Машина владельца: что доставлено этим прогоном

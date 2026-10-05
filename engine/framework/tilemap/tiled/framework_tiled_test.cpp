@@ -83,6 +83,7 @@ void test_visual(const VisualMapSrc& v) {
           "group parallax and opacity multiply into the layer");
     check(deco.offset_x.raw == 0 && deco.offset_y.raw == 8 * ONE, "a sibling group offset stays with its group");
     check(deco.repeat == REPEAT_Y && solid.repeat == 0, "tile layer repeat comes from its repeat_y property");
+    check(!sky.cover_y && !deco.cover_y && solid.cover_y, "cover_y on image and tile layers, true by default");
 }
 
 void test_objects(const ObjectMapSrc& o) {
@@ -132,6 +133,19 @@ void test_symmetric_flips(const Level& level) {
           "a flipped empty cell stays empty");
 }
 
+void test_image_cover_default() {
+    std::string tmj = tiled_fixture::TMJ;
+    const std::string from = R"(,"properties":[{"name":"cover_y","type":"bool","value":false}]})";
+    tmj.replace(tmj.find(from), from.size(), "}");
+    MemSource src;
+    Level plain;
+    std::string error;
+    check(tiled_fixture::import(tmj, src, plain, error), "sky without properties imports");
+    if (!error.empty()) std::printf("    %s\n", error.c_str());
+    check(!plain.visual.layers.empty() && plain.visual.layers[0].cover_y,
+          "an image layer without cover_y is judged on y");
+}
+
 } // namespace
 
 int main() {
@@ -146,6 +160,7 @@ int main() {
     test_objects(level.objects);
     test_sections(level);
     test_symmetric_flips(level);
+    test_image_cover_default();
     std::printf("framework-tiled: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

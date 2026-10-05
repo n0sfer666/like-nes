@@ -24,6 +24,10 @@ struct QuadRun {
     uint32_t texture = 0;
 };
 
+// Квады на этой цели кодируются в sRGB при записи: цвет очистки той же цели обязан прийти линейным,
+// иначе фон и тайлы окажутся на разных шкалах.
+bool quad_target_srgb(WGPUTextureFormat target);
+
 class QuadRenderer {
 public:
     QuadRenderer() = default;

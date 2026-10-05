@@ -1,8 +1,11 @@
+#include <cstddef>
 #include <cstdio>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "text_fields.hpp"
+#include "utf8_decode.hpp"
 
 // Слой, который до 2026-08-31 лежал в дереве ЧЕТЫРЬМЯ копиями и не имел ни одной собственной цели:
 // про trim/split/число из текста спрашивали пекари — пресетов, профиля, атласа и карты, — и каждый
@@ -62,6 +65,36 @@ void test_integers() {
     check(!framework::core::parse_u16("-4", w), "u16 takes no sign: -4 is not 65532");
 }
 
+struct Step {
+    uint32_t cp;
+    std::size_t at;
+};
+
+void decodes(std::string_view s, std::vector<Step> want, const char* what) {
+    std::vector<Step> got;
+    std::size_t at = 0;
+    uint32_t cp = 0;
+    while (framework::core::utf8_next(s, at, cp)) got.push_back(Step{cp, at});
+    bool same = got.size() == want.size();
+    for (std::size_t i = 0; same && i < got.size(); ++i) same = got[i].cp == want[i].cp && got[i].at == want[i].at;
+    check(same, what);
+}
+
+void test_utf8() {
+    constexpr uint32_t BAD = framework::core::UTF8_INVALID;
+    decodes("A\xD0\x96", {{0x41, 1}, {0x416, 3}}, "ASCII and a two-byte Cyrillic letter");
+    decodes("\xE2\x80\x94\xF0\x9F\x98\x80", {{0x2014, 3}, {0x1F600, 7}}, "three- and four-byte sequences");
+    decodes("\xF4\x8F\xBF\xBF", {{0x10FFFF, 4}}, "the last code point");
+    decodes("\xC0\x80" "A", {{BAD, 1}, {BAD, 2}, {0x41, 3}}, "an overlong NUL steps one byte at a time");
+    decodes("\xE0\x80\x80", {{BAD, 1}, {BAD, 2}, {BAD, 3}}, "an overlong three-byte form");
+    decodes("\xED\xA0\x80", {{BAD, 1}, {BAD, 2}, {BAD, 3}}, "an encoded surrogate");
+    decodes("\xF4\x90\x80\x80", {{BAD, 1}, {BAD, 2}, {BAD, 3}, {BAD, 4}}, "past U+10FFFF");
+    decodes("\xD0" "A", {{BAD, 1}, {0x41, 2}}, "a cut sequence does not swallow the next letter");
+    decodes("\xD0", {{BAD, 1}}, "a sequence cut by the end of text");
+    check(framework::core::utf8_valid("\xD0\x81\xD1\x91") && !framework::core::utf8_valid("\x80"),
+          "validity of the whole text");
+}
+
 } // namespace
 
 int main() {
@@ -69,6 +102,7 @@ int main() {
     test_fields();
     test_fix();
     test_integers();
+    test_utf8();
     std::printf("framework-text: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
 }

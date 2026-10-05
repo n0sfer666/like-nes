@@ -21,7 +21,7 @@ CelPlace place(const Fighter& fighter, const Pose& pose, const Layers& layers, c
     const LayerFrame& f = layers.frame();
     const framework::Vec2 center = camera_layer_center(f.camera, f.config, f.tick, fix32::from_int(1));
     const framework::Vec2 at = world_to_screen_snapped(f.view, center, fighter.spawn);
-    return {at.x.to_int(), at.y.to_int(), static_cast<int32_t>(st.zoom), pose.flip};
+    return {at.x.to_int(), at.y.to_int(), static_cast<int32_t>(st.scale), pose.flip};
 }
 
 } // namespace

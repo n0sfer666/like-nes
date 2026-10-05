@@ -12,6 +12,11 @@ bool pixel(const std::vector<uint8_t>& png, const char* name, std::vector<AssetI
     std::vector<uint8_t> rgba;
     uint32_t w = 0, h = 0;
     if (!codec::png_to_rgba8(png, rgba, w, h, error)) return false;
+    rgba_texture(std::move(rgba), w, h, name, out);
+    return true;
+}
+
+void rgba_texture(std::vector<uint8_t>&& rgba, uint32_t w, uint32_t h, const char* name, std::vector<AssetInput>& out) {
     AssetInput a;
     a.guid = guid_of(name);
     a.type = AssetType::Texture;
@@ -23,7 +28,6 @@ bool pixel(const std::vector<uint8_t>& png, const char* name, std::vector<AssetI
     a.tex_format = TEX_FORMAT_RGBA8_UNORM;
     a.payload = std::move(rgba);
     out.push_back(std::move(a));
-    return true;
 }
 
 } // namespace asset::bakers

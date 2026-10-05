@@ -16,18 +16,30 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    Debug (`cmake --fresh`) и запускает `--headless --frames 60`. Утверждение — rc 0 **и** строки
    `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
-   `level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256` — игра открыла
+   `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
+   layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
+   плана города, вывеска; число анимированных тайлов — `anims` уровня) — игра открыла
    `game.bundle` маппингом, прочитала таблицу `visual` (`raw_table`) и тайлсет сырым RGBA8
-   (`raw_rgba8`), — и `frame 960x540 zoom 2: <N> sprite(s), <M> run(s), 0 unknown, 0 rejected,
+   (`raw_rgba8`), — и `frame 960x540 scale 2: <N> sprite(s), <M> run(s), 0 unknown, 0 rejected,
    0 dropped` — кадр окна прошёл `draw_layer` и `layer_quads` из поставленных заголовков и целиком лёг
    в квады. Числа спрайтов и прогонов не пинятся (их судит голден в дереве), только ненулевые; нули
    отказов пинятся: чужой guid текстуры, источник за краем текстуры или нехватка буферов — находка.
-   С В6б — боец: `fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right` (таблица `clips`,
+   С В7б (уровень вырос до 40×21) ещё три строки пинятся целиком: `viewport 960x540 scale 2, visible
+   480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)` и `viewport 300x200 scale 1, …,
+   cropped` — `viewport_fit` из поставленного заголовка (до В7б его в SDK не было), — и `bounds
+   104..536 x 56..280, camera 296,172`: объект `bounds` из таблицы `objects` и кламп `camera_follow`
+   по половине зоны; кадр 960x540 строится этой политикой.
+   С В6б — боец: `fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right` (таблица `clips`,
    лист по `texture_guid` клипа, объект `player` из `objects`) и две строки позы —
    `fighter tick 0: queen/Walk frame 0 flip 0, …` и `fighter tick 215: queen/Jab frame 0 flip 1, …`:
    витрина по тику (Walk 60, Jab 30, Hook 30, Uppercut 30) и смена стороны на втором круге. Счёт
    боксов и квадов оверлея — регэкспом (у пака боксов нет, B6a); нули отказов и сброса пинятся:
-   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка;
+   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка.
+   С В8б — шрифт и титры: `font monogram line 12, 390 glyph(s), atlas 224x156` (таблица `fonts`,
+   атлас по `texture_guid`) пинится целиком; строк `credit …` ровно три, среди них `monogram`
+   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 3 pack(s), …`
+   — строки, глифы и квады регэкспом, а `0 unknown` и `0 dropped` пинятся: символ титров, которого
+   нет в monogram (`·`, `—`, кириллица, `í`), или квад сверх `CreditsQuads::CAPACITY` — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
    `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход
    `assetc`: грузит игра именно её. Другой хеш на одной ОС — находка. Законная смена — только
@@ -38,6 +50,10 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `level1.tmj` в настоящем Tiled хеш не меняет — измерено 2026-10-04 на Tiled 1.12.2
    (`0x4e7f9ade1d27776a` до и после), и это при том, что 1.12 дописывает `"opacity":1` каждому
    объекту `spawns` и экранирует слэши в пути листа (`"..\/assets\/…"`): импортёр оба проезжает.
+   С В7б хеш `0xee0b7e44a987efec`: уровень 40×21, `bounds` 104..536 × 56..280, спавн 200,224.
+   С В8а хеш `0x62dfbf79ff663b23`: три image-слоя параллакса (`sky` p=0, `far-city` 0.25 и
+   `near-city` 0.5 с `cover_y = false`), тайлсет `neon-signs.tsj` с анимацией и слой `signs`.
+   С В8б хеш `0x1c3f1ab85657a27a`: атлас и секция `fonts` шрифта `monogram`, секция `credits`.
    С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 
@@ -52,7 +68,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 Оба конфигурируются из одного состояния дерева — последняя установка перетирает Config в префиксе
 (так однажды и было: правленный `.in` поставился из Release, а Debug поставил старый поверх).
 
-## Сломанные фикстуры (в каждом прогоне, [`scripts/sdk_game_lib.sh`](../../scripts/sdk_game_lib.sh))
+## Сломанные фикстуры (в каждом прогоне, [`scripts/sdk_game_lib.sh`](../../scripts/sdk_game_lib.sh), [`scripts/sdk_game_bounds.sh`](../../scripts/sdk_game_bounds.sh))
 
 | фикстура | обязана упасть | по причине |
 |---|---|---|
@@ -62,6 +78,8 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 | `bundle.hash` с чужим значением против Release-сборки | сверка хеша | `bundle.hash says 0x0123456789abcdef` |
 | копия игры, манифест `texture\|street_tiles\|<путь>` без кодека | сборка игры | `game.manifest:1: texture record needs a codec` (строка `assetc` в логе сборки) |
 | копия игры: пересборка без правок; `ladder` → `solid` в `.tsj`; манифест без уровня; PNG подменён другим — между правками `sleep 2` | — | без правок нет строки `Baking game.bundle`; после каждой правки она есть, хеш рядом с exe после `.tsj` ≠ `bundle.hash`, после подмены PNG ≠ хешу до неё. Раунд PNG идёт без уровня: тайлсет сверяет размер картинки, и чужой PNG отбился бы отказом, а не перебейком. Отметка из будущего вместо `sleep` отравляла бы следующие раунды — файл «новее» навсегда |
+
+| копия игры: у объекта `street` класс `bounds` → `street`, запись уровня без `\|viewport` (В7б) | — | строка `bounds 0..640 x 0..336, camera 192,228`: без объекта `bounds` камера клампится по карте. Мутант «откат на нули» ловится только ею — level1 в дереве `bounds` имеет |
 
 Отказ без своей причины в логе — FAIL фикстуры: упало что-то другое, и она ничего не доказала.
 Фикстура CRT вне MSVC печатает SKIP — у clang/gcc нет второго CRT по построению. MSVC судится по

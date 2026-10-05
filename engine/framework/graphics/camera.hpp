@@ -60,6 +60,11 @@ void camera_follow(Camera& c, const CameraConfig& cfg, Vec2 target, int32_t faci
 // Тряска ПАРАМЕТРИЗУЕТСЯ ТИКОМ, а не `rand()`: смещение — чистая функция от (тик, seed), поэтому
 // перемотка записи даёт ту же тряску, а не другую. В `Camera` от неё лежит только заказ (сколько
 // тиков и какой амплитуды), но не накопленное смещение — иначе тряска сдвигала бы центр насовсем.
+//
+// Амплитуда режется потолком `CAMERA_SHAKE_MAX`: тряска сдвигает вид ПОСЛЕ клампа по границам, и
+// бейк закладывает в покрытие слоёв ровно этот потолок (`layer_cover`) — удар сильнее открыл бы у
+// края уровня дыру за слоем.
+constexpr fix32 CAMERA_SHAKE_MAX = fix32::from_int(8);
 void camera_shake(Camera& c, uint32_t ticks, fix32 amp, uint32_t seed);
 Vec2 camera_shake_offset(const Camera& c, uint64_t tick);
 

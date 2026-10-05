@@ -37,9 +37,13 @@ builds the game against that prefix and leaves it in `build-sdk-work/`. The game
 baked at build time by the SDK's `assetc` from `games/neon-rumble/game.manifest`, and its
 `bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The game maps that bundle
 and draws level 1 from it with a fighter on the spawn playing her clips (F3 toggles the cel, pivot
-and box overlay); `--headless` prints the level, frame and fighter summary the gate checks. The
+and box overlay, F1 the credits screen in the monogram font); `--headless` prints the level, viewport policy, camera
+bounds, frame, fighter, font and credits summary the gate checks. The
 steps for the owner's window run, with the expected output line by line, are section S of
 [`owner-setup.txt`](owner-setup.txt).
+The live check of the street — parallax, the signs, 21:9 and 4:3 windows, the credits screen and a
+fresh save in Tiled — is §20 of [`owner-verification.md`](owner-verification.md).
+How to write such a game yourself is the [guide](en/guide/sdk-and-your-game.md).
 
 ## Related
 

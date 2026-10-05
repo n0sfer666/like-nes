@@ -893,7 +893,7 @@ jobs:
         run: |
           for t in material_bake_test material_source_test material_table_test \
                    material_library_test light_table_test assetc_manifest_test assetc_bake_test \
-                   assetc_level_test assetc_clips_test; do
+                   assetc_level_test assetc_clips_test assetc_font_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -1373,10 +1373,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=13, а не 14, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=15, а не 16, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=13 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=15 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -1910,6 +1910,7 @@ jobs:
                    framework_preset_axes_test \
                    framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_golden_test framework_trig_test framework_text_test \
+                   framework_credits_test \
                    framework_json_test framework_json_string_test framework_json_number_test \
                    framework_tilemap_visual_test framework_tilemap_objects_test \
                    framework_tiled_test framework_tiled_refusal_test \
@@ -2004,7 +2005,10 @@ jobs:
                    game_sprite_out_test game_fx_test game_star_test \
                    game_material_runs_test \
                    framework_graphics_viewport_test framework_graphics_zoom_reach_test \
-                   framework_graphics_viewport_refusal_test; do
+                   framework_graphics_viewport_refusal_test \
+                   framework_graphics_viewport_fit_test framework_graphics_layer_cover_test \
+                   framework_graphics_font_test framework_graphics_font_import_test \
+                   framework_graphics_text_layout_test framework_text_quads_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -2754,7 +2758,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=14 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=16 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -2773,7 +2777,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=14 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=16 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -2813,6 +2817,12 @@ jobs:
           assetc_bake_test:assetc-bake: PASS
           assetc_level_test:assetc-level: PASS
           assetc_clips_test:assetc-clips: PASS
+          assetc_font_test:assetc-font: PASS
+          framework_text_test:framework-text: PASS
+          framework_credits_test:framework-credits: PASS
+          framework_graphics_font_test:framework-graphics-font: PASS
+          framework_graphics_font_import_test:framework-graphics-font-import: PASS
+          framework_graphics_text_layout_test:framework-graphics-text-layout: PASS
           framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
           framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
           framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS
@@ -2821,8 +2831,10 @@ jobs:
           framework_tilemap_objects_test:framework-tilemap-objects: PASS
           framework_graphics_layer_test:framework-graphics-layer: PASS
           framework_graphics_layer_kinds_test:framework-graphics-layer-kinds: PASS
+          framework_graphics_viewport_fit_test:framework-graphics-viewport-fit: PASS
+          framework_graphics_layer_cover_test:framework-graphics-layer-cover: PASS
           framework_tiled_test:framework-tiled: PASS
-          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 52 cases"
+          framework_tiled_refusal_test:framework-tiled-refusal: PASS - 53 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
           cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0

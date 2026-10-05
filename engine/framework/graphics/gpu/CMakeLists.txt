@@ -1,5 +1,5 @@
 # Квады бэкенда из отсортированного списка спрайтов слоёв `LNVL`.
-add_library(framework_graphics_gpu STATIC layer_quads.cpp cel_quads.cpp)
+add_library(framework_graphics_gpu STATIC layer_quads.cpp cel_quads.cpp text_quads.cpp)
 target_include_directories(framework_graphics_gpu PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_graphics_gpu PUBLIC framework_graphics_tiles render_core)
 
@@ -20,3 +20,8 @@ target_include_directories(framework_clip_golden PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
 target_copy_webgpu_binaries(framework_clip_golden)
 reproducible_rpath(framework_clip_golden)
+
+add_executable(framework_text_quads_test framework_text_quads_test.cpp)
+target_link_libraries(framework_text_quads_test PRIVATE framework_graphics_gpu)
+target_copy_webgpu_binaries(framework_text_quads_test)
+reproducible_rpath(framework_text_quads_test)

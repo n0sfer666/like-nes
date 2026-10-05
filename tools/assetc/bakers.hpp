@@ -7,6 +7,8 @@
 #include "bundle_writer.hpp"
 #include "clip_bake.hpp"
 #include "codec.hpp"
+#include "credits_bake.hpp"
+#include "font_bake.hpp"
 #include "tiled_import.hpp"
 
 namespace asset::bakers {
@@ -16,6 +18,7 @@ bool texture(const codec::Tools& t, const std::string& src, const char* name, co
 // Путь pixel (спека #24, В4): PNG → RGBA8 Raw, nearest, без мипов и внешних инструментов.
 bool pixel(const std::vector<uint8_t>& png, const char* name, std::vector<AssetInput>& out,
            std::string& error);
+void rgba_texture(std::vector<uint8_t>&& rgba, uint32_t w, uint32_t h, const char* name, std::vector<AssetInput>& out);
 bool shader(const codec::Tools& t, const std::string& src, const char* name, const std::string& ep,
             uint32_t stage, std::vector<AssetInput>& out);
 bool audio(const std::string& src, const char* name, bool loop, std::vector<AssetInput>& out);
@@ -29,6 +32,9 @@ bool materials(const std::string& src, const std::string& wgsl_src,
 bool lights(const std::string& src, std::vector<AssetInput>& out);
 bool levels(std::span<const framework::tiled::Level> levels, std::vector<AssetInput>& out, std::string& error);
 bool clips(std::span<const framework::graphics::ClipSrc> clips, std::vector<AssetInput>& out, std::string& error);
+bool fonts(std::span<const framework::graphics::FontSrc> fonts, std::vector<AssetInput>& out, std::string& error);
+bool credits(const char* name, std::span<const framework::core::CreditSrc> credits, std::vector<AssetInput>& out,
+             std::string& error);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);

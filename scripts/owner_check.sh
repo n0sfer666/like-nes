@@ -139,7 +139,7 @@ binary = os.path.abspath(sys.argv[1])
 times, bad = [], 0
 for i in range(3):
     t0 = time.perf_counter()
-    r = subprocess.run([binary], capture_output=True, text=True)
+    r = subprocess.run([binary], capture_output=True, text=True, encoding="utf-8")
     dt = time.perf_counter() - t0
     times.append(dt)
     print("  run %d: %.2f s (%s)" % (i + 1, dt, "PASS" if r.returncode == 0 else "FAIL"))

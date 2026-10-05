@@ -35,16 +35,24 @@ game_run() {
         sdk_bad "$cfg: no headless verdict line"; return 1; }
     grep -q '^neon-rumble: library.bundle [1-9][0-9]* bytes' <<< "$out" || {
         sdk_bad "$cfg: library.bundle next to the exe was not loaded"; return 1; }
-    grep -q '^neon-rumble: level level1 40x12 tile 16, 2 visual layer(s), 1 texture(s) 384x256$' \
+    grep -q '^neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209$' \
         <<< "$out" || { sdk_bad "$cfg: level1 from game.bundle: no summary line"; return 1; }
-    grep -Eq '^neon-rumble: frame 960x540 zoom 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
+    grep -q '^neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)$' \
+        <<< "$out" || { sdk_bad "$cfg: viewport policy on 960x540 is not scale 2 with the zone centred"; return 1; }
+    grep -q '^neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped$' \
+        <<< "$out" || { sdk_bad "$cfg: viewport policy on 300x200 does not crop the zone"; return 1; }
+    grep -q '^neon-rumble: bounds 104..536 x 56..280, camera 296,172$' <<< "$out" || {
+        sdk_bad "$cfg: camera bounds of level1 are not the street object"; return 1; }
+    grep -Eq '^neon-rumble: frame 960x540 scale 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
-    grep -q '^neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 48,160 facing right$' <<< "$out" || {
+    grep -q '^neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right$' <<< "$out" || {
         sdk_bad "$cfg: fighter from game.bundle: no summary line"; return 1; }
     grep -Eq '^neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: fighter on tick 0 is not Walk frame 0 facing right"; return 1; }
     grep -Eq '^neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: fighter on tick 215 is not Jab frame 0 flipped"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|warped-city) \| .*|credits screen 960x540 scale 2: 3 pack\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 5 ] || {
+        sdk_bad "$cfg: font monogram, three packs of credits.txt or a credits screen with 0 unknown and 0 dropped missing"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 60 headless frames"
 }
 

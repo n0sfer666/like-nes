@@ -7,6 +7,7 @@ add_executable(fuzz_readers
   fuzz_readers.cpp
   fuzz_targets.cpp
   fuzz_targets_ach.cpp
+  fuzz_targets_content.cpp
   fuzz_targets_engine.cpp
   fuzz_targets_framework.cpp
   fuzz_targets_json.cpp

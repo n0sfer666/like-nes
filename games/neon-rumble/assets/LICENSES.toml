@@ -27,6 +27,28 @@ path = "warped-city/tileset.png"
 pack = "warped-city"
 sha256 = "b84bbcac67eb7497c5be1644acced216e4cb170b1573b89bef1d2ba78be02536"
 
+[[file]]
+path = "warped-city/signs.png"
+pack = "warped-city"
+sha256 = "07c1d9efd4b1dfac495b011a59abc60f668af883b4a77a102ab58f82d097588b"
+changes = "banner-neon 1-4 and banner-coke 1-3 laid into one 16 px tileset, frames in columns"
+
+[[file]]
+path = "warped-city/sky.png"
+pack = "warped-city"
+sha256 = "e31278b66f442b6a2246cd11bcb58e202a1e2c38a871634a6c90760d74ce8419"
+changes = "skyline-a padded to 312 rows with its bottom colour, stored RGBA"
+
+[[file]]
+path = "warped-city/buildings-bg.png"
+pack = "warped-city"
+sha256 = "2bcf93444924a333a340920ad773421137bc2d59d629017d5eb886239e70e7df"
+
+[[file]]
+path = "warped-city/near-buildings-bg.png"
+pack = "warped-city"
+sha256 = "70eca49ce42f7c57135ade657d669ee9c7850f1bd02ba3eeece5f3f33c731205"
+
 [[pack]]
 name = "chewbatrij"
 url = "https://opengameart.org/sites/default/files/punchingqueen_gfx.zip"
@@ -54,3 +76,14 @@ path = "chewbatrij/queen-rows.png"
 pack = "chewbatrij"
 sha256 = "a4daa9dddfa580a4cf6a1baf8b1bc41b31d6a8d3cf55e0d67ea1cbced01df4ea"
 changes = "re-laid in rows of 8 cells"
+
+[[pack]]
+name = "monogram"
+url = "https://datagoblin.itch.io/monogram"
+author = "Vinícius Menézio (@vmenezio)"
+license = "CC0-1.0"
+
+[[file]]
+path = "monogram/monogram-bitmap.json"
+pack = "monogram"
+sha256 = "847e18d10ecd0fd4362ee0088a1bc56f9b203136b544d45db17426ff91913938"
