@@ -19,6 +19,7 @@ struct VisualLayerSrc {
     LayerKind kind = LayerKind::Tile;
     uint8_t opacity = 255;
     uint8_t repeat = 0;
+    bool cover_y = true;
     fix32 parallax_x = fix32::from_int(1);
     fix32 parallax_y = fix32::from_int(1);
     fix32 offset_x;

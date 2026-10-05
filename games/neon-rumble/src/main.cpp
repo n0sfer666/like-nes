@@ -54,9 +54,9 @@ ViewportFit report_viewport(uint32_t w, uint32_t h) {
 // камера в границах `bounds`, кадр 960x540 весь ложится в квады.
 void report_level(const rumble::Level& level) {
     const auto& row = *level.map.row;
-    std::printf("neon-rumble: level %s %ux%u tile %u, %zu visual layer(s), %u texture(s)",
+    std::printf("neon-rumble: level %s %ux%u tile %u, %zu visual layer(s), %zu animated tile(s), %u texture(s)",
                 level.name, row.width, row.height, row.tile_size, level.map.layers.size(),
-                level.texture_count);
+                level.map.anims.size(), level.texture_count);
     for (uint32_t i = 0; i < level.texture_count; ++i)
         std::printf(" %ux%u", level.sizes[i].w, level.sizes[i].h);
     std::printf("\n");

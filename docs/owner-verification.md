@@ -2865,8 +2865,10 @@ JSON format, not saved by Tiled. The importer is tested on fixtures of the same 
 Tiled actually writes and the importer refuses — or one it writes differently — stays invisible
 until a real Tiled saves the file. The gate has two halves: the bake (steps 1–4) and the window
 (step 5), where the game draws the saved level from `game.bundle` and the owner compares it with
-Tiled. Parallax layers and the animated sign are not in level 1 yet — they come with B8 and its own
-scenario; flips and tile animation are judged by the pixel golden on CI on all three OSes.
+Tiled. Parallax layers and the animated sign came to level 1 with B8a, after this gate closed: three
+image layers with `parallaxx`, `repeatx` and a `cover_y` property, and a second hand-written tileset
+`neon-signs.tsj` with `animation`. A fresh save of that level is part of the B8 scenario; flips and
+tile animation are judged by the pixel golden on CI on all three OSes.
 
 1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×12 tiles of 16
    px: a row of facades over a street, a one-way platform, a ladder, and the object layer `spawns`

@@ -136,8 +136,9 @@ void refusals(const std::string& root) {
 void uncovered(const std::string& root) {
     tree(root, tiled_fixture::TMJ);
     manifest::Bake b;
-    const std::string expect = root + "/game.manifest:2: " + root + "/levels/one.tmj: map 'one': layer 'sky' "
-                               "does not cover the view: y short by 140 px top, 124 px bottom";
+    const std::string expect = root + "/game.manifest:2: " + root + "/levels/one.tmj: map 'one': layer 'solid' "
+                               "does not cover the view: x short by 280 px left, 248 px right; y short by 108 px top, "
+                               "172 px bottom";
     check(!bake(root, with(MANIFEST, "levels/one.tmj\n", "levels/one.tmj|viewport\n"), b) && b.error == expect,
           "level under the viewport option is refused by layer cover: " + b.error);
 }

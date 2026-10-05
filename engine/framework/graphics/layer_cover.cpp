@@ -99,7 +99,7 @@ bool layer_covers(const tilemap::VisualMapSrc& map, const VisualLayerSrc& l, Spa
     if (!rx)
         describe(gaps, "x", shortfall(cx, l.parallax_x.raw, l.offset_x.raw, w, VIEW_LIMIT.w), "left",
                  "right");
-    if (!ry)
+    if (!ry && l.cover_y)
         describe(gaps, "y", shortfall(cy, l.parallax_y.raw, l.offset_y.raw, h, VIEW_LIMIT.h), "top",
                  "bottom");
     if (gaps.empty()) return true;

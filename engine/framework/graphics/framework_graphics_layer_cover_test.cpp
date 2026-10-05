@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <string>
 
-#include "layer_cover.hpp"
+#include "layer_cover_fixture.hpp"
 #include "platform_args.hpp"
 
 // Покрытие слоёв на бейке (спека #24, В7). Сломанные фикстуры — в обе стороны: законный арт
@@ -13,85 +13,7 @@
 // `p = 1` хватает карты ровно при bounds 104..536 × 56..280, поэтому каждый край — на пикселе.
 namespace {
 
-int fails = 0;
-
-void check(bool ok, const char* what) {
-    if (!ok) {
-        std::printf("  FAIL: %s\n", what);
-        ++fails;
-    }
-}
-
-using namespace framework;
-using namespace framework::tilemap;
-
-VisualLayerSrc tile_layer(const char* name) {
-    VisualLayerSrc l;
-    l.name = name;
-    return l;
-}
-
-VisualLayerSrc image_layer(const char* name, uint32_t w, uint32_t h) {
-    VisualLayerSrc l = tile_layer(name);
-    l.kind = LayerKind::Image;
-    l.image_w = w;
-    l.image_h = h;
-    return l;
-}
-
-VisualMapSrc map_of(std::initializer_list<VisualLayerSrc> layers) {
-    VisualMapSrc m;
-    m.name = "lv";
-    m.width = 40;
-    m.height = 21;
-    m.tile_size = 16;
-    m.layers = layers;
-    return m;
-}
-
-ObjectSrc rect(const char* cls, int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
-    ObjectSrc o;
-    o.name = "street";
-    o.cls = cls;
-    o.shape = ObjectShape::Rect;
-    o.x = fix32::from_int(x0);
-    o.y = fix32::from_int(y0);
-    o.w = fix32::from_int(x1 - x0);
-    o.h = fix32::from_int(y1 - y0);
-    return o;
-}
-
-ObjectMapSrc bounds(int32_t x0, int32_t y0, int32_t x1, int32_t y1) {
-    ObjectMapSrc m;
-    m.name = "lv";
-    m.objects.push_back(rect("spawn", 0, 0, 1, 1));
-    m.objects.push_back(rect("bounds", x0, y0, x1, y1));
-    return m;
-}
-
-const ObjectMapSrc FIT = bounds(104, 56, 536, 280);
-
-void passes(const VisualMapSrc& m, const ObjectMapSrc& o, const char* what) {
-    std::string error;
-    const bool ok = framework::graphics::check_layer_cover(m, o, error);
-    if (!ok) std::printf("  refused: %s\n", error.c_str());
-    check(ok, what);
-}
-
-std::string gap(const char* layer, const char* what) {
-    return std::string("map 'lv': layer '") + layer + "' does not cover the view: " + what;
-}
-
-void refuses(const VisualMapSrc& m, const ObjectMapSrc& o, const std::string& reason,
-             const char* what) {
-    std::string error;
-    const bool ok = framework::graphics::check_layer_cover(m, o, error);
-    const bool right = !ok && error == reason;
-    if (!right)
-        std::printf("  got %s: %s\n  want: %s\n", ok ? "pass" : "refusal", error.c_str(),
-                    reason.c_str());
-    check(right, what);
-}
+using namespace layer_cover_fixture;
 
 void test_bounds_edges() {
     const VisualMapSrc m = map_of({tile_layer("street")});
@@ -170,6 +92,25 @@ void test_parallax() {
     passes(map_of({tiled}), ObjectMapSrc{}, "a layer repeating on both axes covers any view");
 }
 
+void test_cover_y() {
+    VisualLayerSrc city = image_layer("city", 144, 124);
+    city.parallax_x = city.parallax_y = fix32::from_float(0.5);
+    city.repeat = tilemap::REPEAT_X;
+    refuses(map_of({city}), FIT, gap("city", "y short by 78 px top, 122 px bottom"),
+            "a skyline silhouette is judged on y unless it declares itself decor");
+    city.cover_y = false;
+    passes(map_of({city}), FIT, "cover_y = false lifts the y axis");
+    city.repeat = 0;
+    refuses(map_of({city}), FIT, "map 'lv': layer 'city' has parallax x below 1 and must repeat on x",
+            "cover_y = false keeps the repeat rule");
+
+    VisualLayerSrc street = tile_layer("street");
+    street.cover_y = false;
+    passes(map_of({street}), bounds(104, 0, 536, 336), "a y-decor layer ignores bounds past its height");
+    refuses(map_of({street}), bounds(103, 0, 536, 336), gap("street", "x short by 1 px left"),
+            "cover_y = false keeps the x axis");
+}
+
 void test_refusals() {
     refuses(map_of({tile_layer("street"), tile_layer("hole")}), bounds(103, 56, 536, 280),
             gap("street", "x short by 1 px left"), "the first layer that fails is the one named");
@@ -191,6 +132,7 @@ int main(int argc, char** argv) {
     test_bounds_edges();
     test_offset_sign();
     test_parallax();
+    test_cover_y();
     test_refusals();
 
     std::printf("framework-graphics-layer-cover: %s\n", fails == 0 ? "PASS" : "FAIL");

@@ -39,10 +39,11 @@ bool placement(const Doc& d, const json::Node& layer, const std::string& who, co
     return true;
 }
 
-bool prop_flag(const Doc& d, const json::Node& layer, std::string_view name, bool& out, std::string& error) {
+bool prop_flag(const Doc& d, const json::Node& layer, std::string_view name, bool& out, std::string& error,
+               bool fallback = false) {
     const json::Node* v = nullptr;
     if (!d.prop(layer, name, "bool", v, error)) return false;
-    out = v != nullptr && v->i != 0;
+    out = v == nullptr ? fallback : v->i != 0;
     return true;
 }
 
@@ -78,12 +79,12 @@ bool layer_data(const Map& map, const json::Node& layer, const std::string& who,
 bool tile_layer(Walk& w, const json::Node& layer, std::string_view name, const Placement& at, std::string& error) {
     const Doc& d = w.map.doc;
     const std::string who = "tile layer '" + std::string(name) + "'";
-    bool collision = false, visible_too = false, rx = false, ry = false;
+    bool collision = false, visible_too = false, rx = false, ry = false, cover_y = true;
     const json::Node* data = nullptr;
     if (!prop_flag(d, layer, "collision", collision, error) ||
         !prop_flag(d, layer, "visible_too", visible_too, error) ||
         !prop_flag(d, layer, "repeat_x", rx, error) || !prop_flag(d, layer, "repeat_y", ry, error) ||
-        !layer_data(w.map, layer, who, data, error))
+        !prop_flag(d, layer, "cover_y", cover_y, error, true) || !layer_data(w.map, layer, who, data, error))
         return false;
     if (collision) {
         if (w.collision)
@@ -98,6 +99,7 @@ bool tile_layer(Walk& w, const json::Node& layer, std::string_view name, const P
     if (!at.visible) return true;
     tilemap::VisualLayerSrc v = visual_of(name, at, tilemap::LayerKind::Tile);
     v.repeat = static_cast<uint8_t>((rx ? tilemap::REPEAT_X : 0) | (ry ? tilemap::REPEAT_Y : 0));
+    v.cover_y = cover_y;
     for (const json::Node& cell : d.items(*data)) {
         Gid g;
         const Tileset* ts = nullptr;
@@ -117,9 +119,10 @@ bool image_layer(Walk& w, const json::Node& layer, std::string_view name, const 
     if (d.field(layer, "transparentcolor") != nullptr)
         return d.fail(layer, who + " uses a transparent color; put transparency into the PNG alpha", error);
     const json::Node* image = nullptr;
-    bool rx = false, ry = false;
+    bool rx = false, ry = false, cover_y = true;
     if (!d.expect(layer, "image", json::Kind::String, Need::Required, image, error) ||
-        !d.get(layer, "repeatx", rx, error) || !d.get(layer, "repeaty", ry, error))
+        !d.get(layer, "repeatx", rx, error) || !d.get(layer, "repeaty", ry, error) ||
+        !prop_flag(d, layer, "cover_y", cover_y, error, true))
         return false;
     if (image->s.empty()) return d.fail(layer, who + " has no image", error);
     if (!at.visible) return true;
@@ -128,6 +131,7 @@ bool image_layer(Walk& w, const json::Node& layer, std::string_view name, const 
     if (!w.map.src.image(d.file, std::string(image->s), img, why)) return d.fail(*image, why, error);
     tilemap::VisualLayerSrc v = visual_of(name, at, tilemap::LayerKind::Image);
     v.repeat = static_cast<uint8_t>((rx ? tilemap::REPEAT_X : 0) | (ry ? tilemap::REPEAT_Y : 0));
+    v.cover_y = cover_y;
     v.image_guid = img.guid;
     v.image_w = img.width;
     v.image_h = img.height;

@@ -16,7 +16,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    Debug (`cmake --fresh`) и запускает `--headless --frames 60`. Утверждение — rc 0 **и** строки
    `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
-   `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` — игра открыла
+   `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
+   layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
+   плана города, вывеска; число анимированных тайлов — `anims` уровня) — игра открыла
    `game.bundle` маппингом, прочитала таблицу `visual` (`raw_table`) и тайлсет сырым RGBA8
    (`raw_rgba8`), — и `frame 960x540 scale 2: <N> sprite(s), <M> run(s), 0 unknown, 0 rejected,
    0 dropped` — кадр окна прошёл `draw_layer` и `layer_quads` из поставленных заголовков и целиком лёг
@@ -44,6 +46,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`0x4e7f9ade1d27776a` до и после), и это при том, что 1.12 дописывает `"opacity":1` каждому
    объекту `spawns` и экранирует слэши в пути листа (`"..\/assets\/…"`): импортёр оба проезжает.
    С В7б хеш `0xee0b7e44a987efec`: уровень 40×21, `bounds` 104..536 × 56..280, спавн 200,224.
+   С В8а хеш `0x62dfbf79ff663b23`: три image-слоя параллакса (`sky` p=0, `far-city` 0.25 и
+   `near-city` 0.5 с `cover_y = false`), тайлсет `neon-signs.tsj` с анимацией и слой `signs`.
    С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 

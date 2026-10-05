@@ -35,7 +35,7 @@ game_run() {
         sdk_bad "$cfg: no headless verdict line"; return 1; }
     grep -q '^neon-rumble: library.bundle [1-9][0-9]* bytes' <<< "$out" || {
         sdk_bad "$cfg: library.bundle next to the exe was not loaded"; return 1; }
-    grep -q '^neon-rumble: level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256$' \
+    grep -q '^neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209$' \
         <<< "$out" || { sdk_bad "$cfg: level1 from game.bundle: no summary line"; return 1; }
     grep -q '^neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)$' \
         <<< "$out" || { sdk_bad "$cfg: viewport policy on 960x540 is not scale 2 with the zone centred"; return 1; }
