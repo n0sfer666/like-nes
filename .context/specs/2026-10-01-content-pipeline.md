@@ -632,6 +632,25 @@ event|punch|2|swing
   ширине 360 px. `bundle.hash` `0x1c3f1ab85657a27a`. fuzz +2 цели (`fonts`, `credits`): 16/15;
   позитивный контроль — голый `at` в `font_read` и снятая проверка `attribution_offset` пойманы ASan.
 
+**Реализация В8в (2026-10-05, документация и сценарий), решения владельца** (опрос 2026-10-05: пять
+страниц — четыре из спеки и отдельная «Шрифты и титры»; корень врезок — весь `games/neon-rumble/`;
+три коммита + PR):
+
+- Гейт врезок: `SOURCE_ROOTS` — `docs/examples/` (поручитель — гейт 2) и `games/neon-rumble/`
+  (поручитель — `sdk-game`); фенс `cmake` по `CMakeLists.txt` и `.cmake`; маркеры без врезки — по
+  `git ls-files`, а не обходом (ревью: `build/_deps` и `.DS_Store` внутри корня). Selftest 34
+  контроля (8 pass, 26 fail), четыре мутанта гейта убиты.
+- Страницы `docs/{en,ru}/guide/`: `sdk-and-your-game`, `tiled-levels`, `aseprite-animations`,
+  `asset-licenses`, `fonts-and-credits`; врезки — `CMakeLists.txt`, `game.manifest`, `credits.txt`
+  целиком и `rumble_credits.cpp#credits-open/#credits-layout`.
+- Исключение для команды экспорта Aseprite — голый ` ```sh `, поручитель — шаг 5 §19: тот же
+  размеченный файл экспортируется ею во второй каталог, `aseprite_owner_check.sh` обязан дать те же
+  четыре строки `ok`.
+- `docs/owner-verification.md` §20 (гейт 7 #24, открыт): пересохранение `level1.tmj` и
+  `neon-signs.tsj` с `bundle_hash 0x1c3f1ab85657a27a`, параллакс и вывески, окна 21:9 и 4:3 (на 1x
+  960×720 — полосы по 48 px, на 2x — 384×288 без полос), F1. Ось y `far-city`/`near-city`
+  (`cover_y = false`) бейк не судит — её судит только этот шаг.
+
 ---
 
 ## Нефункциональные

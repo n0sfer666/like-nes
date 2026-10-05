@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**12 of the 20 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 8 stay here as the procedure, because each needs a machine a CI runner is not: a
+**12 of the 21 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -36,6 +36,7 @@ names that surface.
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
+| The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
 
 The last to close was the network frame cost (§13), on 2026-10-04 on the Windows box — the slowest
 machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
@@ -2867,7 +2868,7 @@ until a real Tiled saves the file. The gate has two halves: the bake (steps 1–
 (step 5), where the game draws the saved level from `game.bundle` and the owner compares it with
 Tiled. Parallax layers and the animated sign came to level 1 with B8a, after this gate closed: three
 image layers with `parallaxx`, `repeatx` and a `cover_y` property, and a second hand-written tileset
-`neon-signs.tsj` with `animation`. A fresh save of that level is part of the B8 scenario; flips and
+`neon-signs.tsj` with `animation`. A fresh save of that level is step 2 of §20; flips and
 tile animation are judged by the pixel golden on CI on all three OSes.
 
 1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×12 tiles of 16
@@ -3180,9 +3181,86 @@ drawing session to find out:
   omit the frame from `keys`. That is exactly the question step 2 exists to answer, and only the
   editor can.
 
+## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
+
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x1c3f1ab85657a27a в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры», 3 пака, URL chewbatrij переносится, ни одного «?» -->
+
+B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
+and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
+every position inside `bounds` and proves that each layer covers the widest view, the pixel golden
+draws parallax and a tile animation on two ticks, and `--headless` prints the counts of the credits
+layout with `0 unknown` and `0 dropped`. Four things are left. They need a real window, a real
+resize, real font pixels and a real Tiled:
+
+- **The y axis of `far-city` and `near-city`.** Both layers have `cover_y = false`, so the bake
+  checks them on x only. Whether their bottom edges stay hidden behind the facades in a tall window
+  is checked by nobody but this scenario.
+- **Motion.** A golden is one frame. Shimmer, a seam at the repeat of a layer, or a sign that
+  stutters shows only while the camera moves and the frames follow each other.
+- **The glyphs.** `0 unknown` says that every character has a glyph. It does not say that the glyph
+  is the right letter, or that the wrapped URL reads correctly.
+- **The save.** §18 closed on a level without image layers with properties and without a second
+  tileset with `animation`. `level1.tmj` and `neon-signs.tsj` are written by hand to the Tiled 1.10
+  format, and only a real Tiled shows what it writes for them.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Open `games/neon-rumble/levels/level1.tmj` in Tiled 1.10 or newer. The map is 40×21 tiles of 16
+   px. Its layers are, from the back: image layers `sky`, `far-city` and `near-city`, tile layers
+   `facade`, `signs` and `street`, and the object layer `spawns`. With **View → Show Tile
+   Animations** on, the two signs on the facades animate in the map view.
+2. Move any tile, undo it, and save the map with **File → Save** (keep JSON, keep CSV layer format).
+   Open `neon-signs.tsj` from the Tilesets panel and save it too.
+3. Run the gate:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, the lines
+   `Release: game.bundle bundle_hash 0x1c3f1ab85657a27a matches bundle.hash` and the same for
+   `Debug`, each run preceded by
+   `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
+4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
+5. Start the window with no frame limit, keep Tiled open next to it, and close the window yourself
+   when the steps below are done:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   **Parallax.** The camera pans 48 map pixels right and back. `sky` stands still, `far-city` moves
+   at a quarter of the camera, `near-city` at half, and the facades and the street move with the
+   camera. No layer shimmers, jumps by a pixel against its neighbours, or shows a seam where its
+   image repeats. **Signs.** Coca-Cola on the left plays 3 frames of 200 ms, the neon banner on
+   the right plays 4 frames of 150 ms, and both look and time like the animation in Tiled.
+6. Resize the window, by dragging, to about **21:9** (for example 1680×720 points) and then to about
+   **4:3** (for example 960×720 points). At 21:9 the view opens up along x: more of the city on
+   both sides. At 4:3 it opens up along y. The view never opens past 576×312 world pixels. What
+   lies beyond that is a band of the map colour `#0b0f1a` (dark blue). On a 1x screen a 960×720
+   window has such bands, 48 px tall, above and below. A 2x screen at the same size shows 384×288
+   of the world and no bands. In both shapes the world inside the bands has no holes. The sky shows
+   wherever the two cities do not reach, and the bottom edge of `far-city` or `near-city` never
+   shows as a straight line above the facades. Send back a screenshot of each shape.
+7. Press **F1**. The level dims, the title `Credits · Титры` stands at the top in cyan, and under
+   it, in white, the three packs `chewbatrij`, `monogram` and `warped-city` appear, each as
+   "pack — author, license" with its URL below. The long URL of `chewbatrij` wraps to the next line
+   instead of running out of the play area. Not a single `?` stands in for a letter. The Cyrillic
+   of the title, `·`, `—`, `í` and `é` are all in the font. In the 21:9 window the text stays
+   inside the central play area. **F1** again hides the screen. Send back a screenshot with the
+   credits on.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit
+code is 0.
+
+What counts as a finding: an import refusal (it names `level1.tmj:<line>:<column>` or
+`neon-signs.tsj:<line>:<column>` and what to change in Tiled), a different `bundle_hash`, a layer
+that shimmers or shows a seam, a sign whose timing differs from Tiled, a hole or a layer edge in
+the 21:9 or 4:3 window, a band of any colour but `#0b0f1a`, a `?` or a wrong letter in the credits,
+a URL cut at the edge, and any `neon-rumble: tick <n>: credits …` line in the terminal. A diff in
+the saved files with the same hash is not a finding, because Tiled reorders keys and reflows arrays.
+It is worth sending all the same: the saved files then replace the hand-written ones in the tree.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 12 of the 20 are closed, and the open 8 are listed by
+The gates above are what the ADRs waited on; 12 of the 21 are closed, and the open 9 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

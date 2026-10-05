@@ -31,4 +31,6 @@
 - [x] fuzz, CI-списки, SDK-заголовки
 - [x] игра + headless-сводка + sdk_game_lib.sh + owner-setup.txt + bundle.hash
 - [x] monogram в assets + LICENSES.toml + credits.txt/NOTICES.txt
-- [ ] ревью, коммит, CI; затем В8в (доки en/ru, snippets, owner-verification) и PR
+- [x] ревью, коммит, CI (`0cb520f`, CI зелёный на трёх ОС)
+- [x] В8в: гейт врезок на `games/neon-rumble/` и CMake (`1834473`), пять страниц en/ru (`7ed85a6`),
+  сценарий §20 и runbook; PR раунда `dev` → `main`
