@@ -5,7 +5,7 @@ bash scripts/check_docs_examples.sh [каталог]           # гейт 2: п�
 bash scripts/check_docs_examples_selftest.sh [каталог]  # правила на сломанных фикстурах
 bash scripts/check_docs_snippets.sh                     # гейт 3: врезки = помеченные куски примеров
 python3 scripts/check_docs_snippets_selftest.py         # правила на сломанных фикстурах
-python3 scripts/docs_snippet_sync.py                    # переписать врезки по источникам
+bash -c '. scripts/docs_content_lib.sh; docs_all_files . | python3 scripts/docs_snippet_sync.py .'  # переписать врезки
 ```
 
 **«Примерного кода» в документации нет** (решение 5 спеки #19): всё, что показано читателю,
@@ -55,6 +55,10 @@ python3 scripts/docs_snippet_sync.py                    # переписать �
   команду и вывод, компилируемого источника у них не бывает, и требовать его значило бы запретить
   документации показывать вызов. Опорный `pass` на голом ` ```sh ` стоит рядом с порчей: без него
   утверждение неотличимо от «запрещены все фенсы».
+  Команда экспорта Aseprite в `docs/*/guide/aseprite-animations.md` поэтому стоит голым ` ```sh `
+  вне врезки, и гейт её не судит: ни на одном раннере Aseprite нет. Её поручитель — шаг 5 сценария 19
+  `docs/owner-verification.md`: владелец экспортирует ею тот же размеченный файл во второй
+  каталог, и `bash scripts/aseprite_owner_check.sh` обязан дать те же четыре строки `ok`.
 - **Корни источников — закрытый список `SOURCE_ROOTS`, и у каждого корня свой поручитель** (В8в
   спеки #24): `docs/examples/` собирает и запускает гейт 2, `games/neon-rumble/` — `sdk-game`,
   который собирает игру против ПОСТАВЛЕННОГО SDK на трёх ОС. Файл игры показывается врезкой

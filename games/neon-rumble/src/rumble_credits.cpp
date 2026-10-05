@@ -30,6 +30,7 @@ std::string compose(const framework::core::CreditTable& table) {
 
 } // namespace
 
+// docs:begin(credits-open)
 bool Credits::open(const Level& level) {
     const uint8_t* data = nullptr;
     size_t size = 0;
@@ -56,6 +57,7 @@ bool Credits::open(const Level& level) {
     text = compose(table);
     return true;
 }
+// docs:end(credits-open)
 
 CreditsQuads::CreditsQuads() : places_(CAPACITY), quads_(CAPACITY) {}
 
@@ -78,6 +80,7 @@ CreditStats CreditsQuads::add(const Credits& credits, const ViewportFit& fit, La
     const auto margin = static_cast<int32_t>(MARGIN * scale);
     const auto line_px = static_cast<int32_t>(credits.font.row->line_height * scale);
     const int32_t bottom = r.y + static_cast<int32_t>(r.h) - margin;
+    // docs:begin(credits-layout)
     TextPen pen{r.x + margin, r.y + margin, scale, TITLE_RGBA};
     for (const char* text : {TITLE, credits.text.c_str()}) {
         const TextStats t = layout_text(credits.font, text, width, places_);
@@ -94,6 +97,7 @@ CreditStats CreditsQuads::add(const Credits& credits, const ViewportFit& fit, La
         pen.y += static_cast<int32_t>(t.lines + 1) * line_px;
         pen.rgba = BODY_RGBA;
     }
+    // docs:end(credits-layout)
     return out;
 }
 

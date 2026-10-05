@@ -3009,7 +3009,7 @@ then replace the hand-written ones in the tree.
 
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; тот же экспорт командой из docs/en/guide/aseprite-animations.md во второй каталог — те же четыре ok и PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
@@ -3059,6 +3059,17 @@ key.
 
    A `missing:` row is printed with every `Death` and `Hit` row of the table under it, and the
    script ends with `aseprite-export: FAIL`.
+
+   Then export the same marked file from the command line, with the command
+   [Animations in Aseprite](en/guide/aseprite-animations.md) shows, into a second new directory, and
+   run the script on it. No runner has Aseprite, so this step is the only check of that command:
+
+       aseprite -b Queen.ase --sheet <directory 2>/queen.png --sheet-type rows --sheet-columns 8 --data <directory 2>/queen.json --format json-array --list-tags --list-slices
+       bash scripts/aseprite_owner_check.sh <directory 2>
+
+   Expected: the same four `ok:` rows and `aseprite-export: PASS`. An unknown flag, a sheet that is
+   not 592×300 or a missing row is a finding about the page, and the page changes in the commit that
+   records it.
 6. Send back `queen.json` and the output of step 5. The JSON goes into the tree as a fixture that
    pins the hit box to frames 3 and 4 and the event `fall` to frame 4.
 7. Build the game against the SDK and run the window from the same shell (Windows: from the
