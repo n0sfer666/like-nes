@@ -8,11 +8,14 @@
 раздел, добавленный в `docs/`, молча остался бы без сверки врезок, ровно как в правиле `list-drift`
 из `ci_lint.py`.
 
-Источник фрагмента обязан лежать в `docs/examples/`. Тогда «показанный код собирается и
-запускается» ДОКАЗАНО гейтом 2 для каждого источника, а не заявлено: путь в произвольный файл
-дерева выглядел бы свободнее, но проверять его было бы нечем.
+Источник фрагмента обязан лежать в одном из корней `SOURCE_ROOTS`, и у каждого корня свой гейт,
+доказывающий, что показанное собирается: `docs/examples/` — гейт 2 (`check_docs_examples.sh`),
+`games/neon-rumble/` — `check_sdk_game.sh`, который собирает игру против поставленного SDK на трёх
+ОС (В8в спеки #24). Путь в произвольный файл дерева выглядел бы свободнее, но проверять его было бы
+нечем.
 """
 import os
+import subprocess
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -20,14 +23,30 @@ import docs_snippets_lib as lib  # noqa: E402
 import py_utf8  # noqa: E402
 
 EXAMPLES = "docs/examples/"
-# Языки КОДА — закрытым списком: код здесь тот, что собирает и запускает гейт 2, а `sh`, `text`,
-# `powershell` и `bat` показывают команды и вывод, для них компилируемого источника не бывает.
+SOURCE_ROOTS = {EXAMPLES: "check_docs_examples.sh", "games/neon-rumble/": "check_sdk_game.sh"}
+# Языки КОДА — закрытым списком: код здесь тот, что собирает поручитель его корня в `SOURCE_ROOTS`,
+# а `sh`, `text`, `powershell` и `bat` показывают команды и вывод, компилируемого источника у них нет.
 # Новый язык (rust, wgsl) требует осознанной записи — по тому же основанию, что `crt_is_foreign`
 # опознаёт чужие бинари поимённо.
-CODE_LANGS = {"cpp", "c", "cc", "h", "hpp"}
+CODE_LANGS = {"cpp", "c", "cc", "h", "hpp", "cmake"}
 # Язык фенса обязан соответствовать источнику: `.cpp` под ```text и `.out` под ```cpp рендерятся
 # неверно, а расширение механизму и так известно — утверждение бесплатное.
-EXT_LANG = {".cpp": "cpp", ".cc": "cpp", ".h": "cpp", ".hpp": "cpp", ".out": "text"}
+EXT_LANG = {".cpp": "cpp", ".cc": "cpp", ".h": "cpp", ".hpp": "cpp", ".out": "text",
+            ".cmake": "cmake"}
+
+
+def lang_of(src):
+    if os.path.basename(src) == "CMakeLists.txt":
+        return "cmake"
+    return EXT_LANG.get(os.path.splitext(src)[1])
+
+
+def roots_named():
+    return ", ".join("%s (%s)" % (r, g) for r, g in sorted(SOURCE_ROOTS.items()))
+
+
+def in_source_root(src):
+    return any(src.startswith(r) for r in SOURCE_ROOTS)
 
 
 def resolve(root, doc, line, src, name, lang, body, bad):
@@ -37,11 +56,11 @@ def resolve(root, doc, line, src, name, lang, body, bad):
     # начинается с нужного префикса и открывается — тот же класс, который гейт документации уже
     # закрыл у ссылок, уходящих выше корня дерева.
     if os.path.normpath(src).replace(os.sep, "/") != src.rstrip("/") \
-            or not src.startswith(EXAMPLES):
+            or not in_source_root(src):
         bad.append("%s: источник %s вне %s — про такой файл никто не утверждает, что он собирается"
-                   % (where, src, EXAMPLES))
+                   % (where, src, roots_named()))
         return
-    want_lang = EXT_LANG.get(os.path.splitext(src)[1])
+    want_lang = lang_of(src)
     if want_lang is not None and lang.strip() != want_lang:
         bad.append("%s: врезка из %s помечена ```%s, а не ```%s"
                    % (where, src, lang.strip(), want_lang))
@@ -77,18 +96,36 @@ def unused_markers(root, used, whole, bad):
     свой пример»). Файл, показанный ЦЕЛИКОМ, освобождает все свои маркеры: его строки уехали в
     документ и без имени.
     """
-    d = os.path.join(root, EXAMPLES)
-    if not os.path.isdir(d):
+    sources = marked_sources(root)
+    if sources is None:
+        bad.append("%s: не git-дерево — список источников с маркерами взять неоткуда" % root)
         return
-    for fn in sorted(os.listdir(d)):
-        rel = EXAMPLES + fn
-        path = os.path.join(d, fn)
-        if not os.path.isfile(path) or rel in whole:
+    for rel in sorted(sources):
+        if rel in whole:
             continue
-        bodies, _ = lib.markers(open(path, encoding="utf-8").read())
+        with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
+            bodies, _ = lib.markers(fh.read())
         for name in sorted(bodies):
             if (rel, name) not in used:
                 bad.append("%s: маркер docs:begin(%s) не показан ни одной врезкой" % (rel, name))
+
+
+def marked_sources(root):
+    """Файлы корней, где ищутся маркеры: отслеживаемые и неигнорируемые, а не рабочее дерево.
+
+    Обход каталога видел бы и то, что `.gitignore` убрал из дерева: `cmake -B build` внутри
+    `games/neon-rumble/` кладёт туда чужие `CMakeLists.txt` из `_deps/` с их маркерами, а Finder —
+    `.DS_Store`. Список берётся тем же вызовом, что у `check_fs_seam.py`; корень вне git — отказ,
+    а не обход: запасной путь проверял бы не то дерево, которое уходит в коммит.
+    """
+    got = subprocess.run(["git", "-C", root, "ls-files", "-z", "--cached", "--others",
+                          "--exclude-standard", "--"] + sorted(SOURCE_ROOTS),
+                         capture_output=True, text=True, encoding="utf-8")
+    if got.returncode != 0:
+        return None
+    return [rel for rel in got.stdout.split("\0")
+            if rel and (rel.startswith(EXAMPLES) or lang_of(rel) is not None)
+            and os.path.isfile(os.path.join(root, rel))]
 
 
 def main():
@@ -120,7 +157,7 @@ def main():
             # источниками, а блок кода, написанный руками рядом с ними, до этого утверждения
             # проходил молча — то есть инвариант держался дисциплиной, а не механикой.
             bad.append("%s:%d: блок ```%s вне врезки — показанный код обязан приходить из %s"
-                       % (rel, line, lang, EXAMPLES))
+                       % (rel, line, lang, roots_named()))
         for line, src, name, lang, body in found:
             total += 1
             if name is None:

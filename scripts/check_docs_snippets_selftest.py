@@ -2,8 +2,8 @@
 """Позитивный контроль гейта врезок (гейт 3 спеки #19).
 
 Утверждение, у которого нет фикстуры, где оно падает, неотличимо от отсутствующего, поэтому каждая
-находка разбора ломается своим деревом: источника нет, источник вне `docs/examples/`, маркера нет,
-маркер не закрыт, маркер объявлен дважды, тело разошлось, форма врезки испорчена, врезок нет вовсе.
+находка разбора ломается своим деревом: источника нет, источник вне корней `SOURCE_ROOTS`, маркера
+нет, маркер не закрыт, маркер объявлен дважды, тело разошлось, форма врезки испорчена, врезок нет.
 
 Файл — ПЕРЕЧЕНЬ кейсов; то, чем каждый из них запускается, живёт в `docs_snippets_case_lib.py`.
 """
@@ -81,6 +81,39 @@ int hello() { return 1; }
 ```
 <!-- /snippet -->
 """, src="// docs:begin(hello)\nint hello() { return 1; }\n")
+
+CMAKE_SRC = "# docs:begin(game)\nadd_executable(g main.cpp)\n# docs:end(game)\n"
+CMAKE_DOC = """<!-- snippet: games/neon-rumble/CMakeLists.txt#game -->
+```cmake
+add_executable(g main.cpp)
+```
+<!-- /snippet -->
+"""
+case("pass", "врезка cmake из games/neon-rumble/CMakeLists.txt",
+     doc=DOC_OK + CMAKE_DOC, extra={"games/neon-rumble/CMakeLists.txt": CMAKE_SRC})
+case("fail", "голый блок ```cmake вне врезки",
+     doc=DOC_OK + "\n```cmake\nadd_executable(g main.cpp)\n```\n")
+case("fail", "источник в игре, которую sdk-game не собирает",
+     doc=DOC_OK + CMAKE_DOC.replace("neon-rumble", "other"),
+     extra={"games/other/CMakeLists.txt": CMAKE_SRC})
+case("fail", "врезка из CMakeLists.txt помечена ```text",
+     doc=DOC_OK + CMAKE_DOC.replace("```cmake", "```text"),
+     extra={"games/neon-rumble/CMakeLists.txt": CMAKE_SRC})
+case("fail", "маркер games/neon-rumble/ не показан ни одной врезкой",
+     extra={"games/neon-rumble/CMakeLists.txt": CMAKE_SRC})
+case("fail", "маркер в .cmake игры не показан ни одной врезкой",
+     extra={"games/neon-rumble/cmake/rules.cmake": CMAKE_SRC})
+case("fail", "источник в соседнем каталоге games/neon-rumble-evil/",
+     doc=DOC_OK + CMAKE_DOC.replace("neon-rumble", "neon-rumble-evil"),
+     extra={"games/neon-rumble-evil/CMakeLists.txt": CMAKE_SRC})
+
+# Маркеры ищутся по `git ls-files`, а не обходом: сборка игры в её каталоге и мусор ОС не судятся.
+case("pass", "каталог сборки из .gitignore не судится",
+     extra={".gitignore": "build/\n", "games/neon-rumble/build/_deps/x/CMakeLists.txt": CMAKE_SRC,
+            "games/neon-rumble/build/CMakeFiles/y.cmake": b"\xff\xfe"})
+case("pass", "не-UTF-8 файл рядом с примерами не роняет гейт",
+     extra={"docs/examples/.DS_Store": b"\x00\x05\x16\x07\xff"})
+case("fail", "дерево вне git", git=False)
 
 # 1. Источника нет в дереве: врезка ссылается на файл, которого гейт 2 не собирает, потому что его
 # нет вовсе.
