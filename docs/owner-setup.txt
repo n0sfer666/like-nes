@@ -1826,8 +1826,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
-      neon-rumble: brawl tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
+      neon-rumble: brawl tick 0: hash 12e8ec6a8b655020, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
+      neon-rumble: brawl tick 60: hash f0682e033ec3cf0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
       sdk-game: OK   Release: game.bundle bundle_hash 0x4e5006e2c1647d5d matches bundle.hash
@@ -1852,8 +1852,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
-      neon-rumble: brawl tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
+      neon-rumble: brawl tick 0: hash 12e8ec6a8b655020, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
+      neon-rumble: brawl tick 60: hash f0682e033ec3cf0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
       sdk-game: OK   Debug: game.bundle bundle_hash 0x4e5006e2c1647d5d matches bundle.hash

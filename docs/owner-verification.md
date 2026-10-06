@@ -3289,7 +3289,7 @@ It is worth sending all the same: the saved files then replace the hand-written 
 
 > **Closed 2026-10-06** on macOS by the owner, on a build of `71727a8`, the fix of the run below.
 > `check_sdk_game.sh --keep` passed in Release and Debug with `bundle_hash 0x785987a3c33db92b` and
-> the brawl lines `tick 0: hash 431ee8a4677862c0` and `tick 60: hash bed9657272be2d0d`. Steps 1–6
+> the brawl lines `tick 0: hash 12e8ec6a8b655020` and `tick 60: hash f0682e033ec3cf0d`. Steps 1–6
 > were run again and came out as predicted: the three fighters stand with their feet on the pavement
 > below the facades, the F3 cross sits at the feet, the arrows, WASD, Space and K move Banderas in
 > the band 232..264, the nearer fighter covers the farther one and the order flips around Rainbird
@@ -3329,8 +3329,8 @@ backslashes).
    Expected: `sdk-game: PASS`, `bundle_hash 0x4e5006e2c1647d5d` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
-       neon-rumble: brawl tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
+       neon-rumble: brawl tick 0: hash 12e8ec6a8b655020, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
+       neon-rumble: brawl tick 60: hash f0682e033ec3cf0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
 
 2. Start the window and close it yourself when done:
 

@@ -50,7 +50,7 @@ game_run() {
         sdk_bad "$cfg: roster from game.bundle: a fighter sheet or spawn line is missing"; return 1; }
     [ "$(grep -Ec '^neon-rumble: pose tick 0: (rainbird/idle frame 0 flip 1|adler/idle frame 0 flip 1|banderas/idle frame 0 flip 0), 0 hit, 1 hurt, 0 push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' <<< "$out")" -eq 3 ] || {
         sdk_bad "$cfg: roster poses on tick 0 are not three idle fighters with one hurt box and an overlay"; return 1; }
-    [ "$(grep -Ec '^neon-rumble: brawl (tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas|tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler)$' <<< "$out")" -eq 2 ] || {
+    [ "$(grep -Ec '^neon-rumble: brawl (tick 0: hash 12e8ec6a8b655020, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas|tick 60: hash f0682e033ec3cf0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler)$' <<< "$out")" -eq 2 ] || {
         sdk_bad "$cfg: brawl hash, positions or draw order on tick 0 or after 60 scripted ticks moved"; return 1; }
     [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|puffolotti-bad-company|puffolotti-up2|warped-city) \| .*|credits screen 960x540 scale 2: 5 pack\(s\), 2 page\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 7 ] || {
         sdk_bad "$cfg: font monogram, five packs of credits.txt or a two-page credits screen with 0 unknown and 0 dropped missing"; return 1; }

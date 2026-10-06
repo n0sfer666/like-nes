@@ -25,8 +25,7 @@ struct Field {
 };
 
 const Field FIELDS[] = {
-    {"seq", [](BodyPool& p) { last(p).id.seq += 100; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.id = EntId{}; }); }},
+    {"seq", [](BodyPool& p) { last(p).id.seq += 100; }, [](BodyPool& p) { each(p, [](Body& b) { b.id = EntId{}; }); }},
     {"x", [](BodyPool& p) { last(p).pos.x.raw += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.pos.x = fix32{}; }); }},
     {"z", [](BodyPool& p) { last(p).pos.z.raw += 1; },
@@ -41,16 +40,27 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.pos.vy = fix32{}; }); }},
     {"facing", [](BodyPool& p) { last(p).facing = static_cast<int8_t>(-last(p).facing); },
      [](BodyPool& p) { each(p, [](Body& b) { b.facing = 0; }); }},
-    {"team", [](BodyPool& p) { last(p).team ^= 1u; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.team = 0; }); }},
+    {"team", [](BodyPool& p) { last(p).team ^= 1u; }, [](BodyPool& p) { each(p, [](Body& b) { b.team = 0; }); }},
     {"owner", [](BodyPool& p) { last(p).owner.seq += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.owner = EntId{}; }); }},
-    {"hp", [](BodyPool& p) { last(p).hp += 1; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.hp = 0; }); }},
+    {"hp", [](BodyPool& p) { last(p).hp += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.hp = 0; }); }},
     {"crushed", [](BodyPool& p) { last(p).crushed = !last(p).crushed; },
      [](BodyPool& p) { each(p, [](Body& b) { b.crushed = false; }); }},
-    {"age", [](BodyPool& p) { last(p).age += 1; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.age = 0; }); }},
+    {"age", [](BodyPool& p) { last(p).age += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.age = 0; }); }},
+    {"kind", [](BodyPool& p) { last(p).kind ^= 1u; }, [](BodyPool& p) { each(p, [](Body& b) { b.kind = 0; }); }},
+    {"clip", [](BodyPool& p) { last(p).clip += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.clip = 0; }); }},
+    {"elapsed", [](BodyPool& p) { last(p).elapsed += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.elapsed = 0; }); }},
+    {"hitstop", [](BodyPool& p) { last(p).hitstop += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.hitstop = 0; }); }},
+    {"hitstun", [](BodyPool& p) { last(p).hitstun += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.hitstun = 0; }); }},
+    {"struck count", [](BodyPool& p) { last(p).struck.count += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.struck.count = 0; }); }},
+    {"struck seq", [](BodyPool& p) { last(p).struck.at[0].seq += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].seq = 0; }); }},
+    {"struck box", [](BodyPool& p) { last(p).struck.at[0].box += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].box = 0; }); }},
     {"next_seq", [](BodyPool& p) { p.next_seq += 1; }, [](BodyPool& p) { p.next_seq = 0; }},
 };
 
@@ -69,6 +79,12 @@ BodyPool two_bodies() {
     Body a;
     a.pos = DepthBody{px(10), px(20), px(3), px(1), px(-1), px(2)};
     a.hp = 50;
+    a.kind = 1;
+    a.clip = 3;
+    a.elapsed = 4;
+    a.hitstop = 2;
+    a.hitstun = 5;
+    a.struck.add(EntId{7}, 2);
     pool.spawn(a);
     Body b = a;
     b.team = 1;
