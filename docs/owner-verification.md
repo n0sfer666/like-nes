@@ -3193,15 +3193,15 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x785987a3c33db92b в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4e5006e2c1647d5d в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
 
 > **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`, `bundle_hash 0xd69efa7c7e0f7a6c` at the
 > time): the owner reported steps 1–6 as predicted, in one line, with no screenshot of the 21:9 and
 > 4:3 windows or the credits pages and no `git diff --stat` of step 4. Whether the files were saved
 > by Tiled in step 2 is not on record, and the save is the point of this gate, so it stays open until
 > that is confirmed. The hash in step 3 has moved since: the fix of the §21 finding shifted the depth
-> band and the spawns of `level1.tmj` and set the fighters' pivot, so a re-run expects
-> `0x785987a3c33db92b`.
+> band and the spawns of `level1.tmj` and set the fighters' pivot, and B2a of #25 marked the hit and
+> hurt boxes on the Puffolotti sheets, so a re-run expects `0x4e5006e2c1647d5d`.
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3235,7 +3235,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, the lines
-   `Release: game.bundle bundle_hash 0x785987a3c33db92b matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0x4e5006e2c1647d5d matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
@@ -3326,7 +3326,7 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0x785987a3c33db92b` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x4e5006e2c1647d5d` in Release and Debug, and in each
    run the lines
 
        neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
