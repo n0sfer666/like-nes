@@ -165,9 +165,16 @@ City — принятый риск, сверка на живом кадре ур
 хеш по всей ёмкости его видит; отдельно `count` не смешивается, его определяет сама
 последовательность тел. Число полей `Body`, `DepthBody`, `EntId`, `BodyPool` пиннут `static_assert`
 в `body_hash.cpp`: новое поле не соберётся, пока его не смешают и не добавят строкой в тест.
-Кроссплей — шесть сценариев (`band-x-ends` доводит тела до `x0` и `x1` полосы) (`framework_brawl_scenarios.hpp`), хеш копится каждый тик, литералы в
+Кроссплей — шесть сценариев в `framework_brawl_scenarios.hpp` (`band-x-ends` доводит тела до `x0`
+и `x1` полосы), хеш копится каждый тик, литералы в
 `framework_brawl_crossplay_test.cpp`, число — `CROSSPLAY_SCENARIOS`; `--crossplay <файл>` пишет
 `имя 0x<хеш>\n` в бинарном режиме, флаг без пути — отказ с кодом 2.
+
+Факт В1г (2026-10-06): шаг `build-and-determinism` пишет `crossplay-<runner.os>.txt` и выкладывает
+артефактом; джоб `crossplay` (`needs: build-and-determinism`, Linux) скачивает три файла по
+`pattern: crossplay-*` и зовёт `scripts/check_crossplay.py <каталог>`. Число сценариев гейт читает
+из `CROSSPLAY_SCENARIOS`, расхождение печатает построчно `сценарий: Linux=…, Windows=…, macOS=…`.
+Устройство и фикстуры — `.context/gates/crossplay.md`.
 
 ### В2. Таблица бойца и удары
 
