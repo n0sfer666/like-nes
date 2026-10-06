@@ -13,6 +13,11 @@ namespace platformer::input_wire {
 
 constexpr size_t BYTES = 9;
 
+static_assert([] {
+    [[maybe_unused]] auto [move_x, jump_held, down_held, up_held, move_z] = ch::MoveInput{};
+    return true;
+}(), "a MoveInput field was added: carry it here or refuse it in put()");
+
 inline uint8_t bits_of(const ch::MoveInput& in) {
     return static_cast<uint8_t>((in.jump_held ? 1u : 0u) | (in.down_held ? 2u : 0u) |
                                 (in.up_held ? 4u : 0u));
@@ -22,6 +27,7 @@ inline uint8_t bits_of(const ch::MoveInput& in) {
 // байта без её правки, уехал бы в сеть НЕИНИЦИАЛИЗИРОВАННЫМ хвостом буфера. Разошлись бы пиры
 // именно по нему — то есть ровно по той набивке, ради которой этот файл и заведён.
 inline bool put(uint8_t* body, uint32_t tick, const ch::MoveInput& in) {
+    if (in.move_z.raw != 0) return false;
     net::Writer w(body, BYTES);
     w.u32(tick);
     w.u32(static_cast<uint32_t>(in.move_x.raw));
@@ -38,6 +44,7 @@ inline bool get(const uint8_t* body, size_t n, uint32_t& tick, ch::MoveInput& in
     in.jump_held = (bits & 1u) != 0;
     in.down_held = (bits & 2u) != 0;
     in.up_held = (bits & 4u) != 0;
+    in.move_z = fix32{};
     return true;
 }
 

@@ -24,8 +24,9 @@ inline void refused_check(int& fails, bool ok, const char* what) {
 
 // Прогон пары, от которой ждут ОТКАЗА: `spawn_pair` требует нулей от обоих и о кодах говорит
 // только строкой в лог.
-inline bool both_peers_exit_with(const std::string& exe, const std::string& bundle,
-                                 const std::string& prefix, const char* mode, int code) {
+inline bool peers_exit_with(const std::string& exe, const std::string& bundle,
+                            const std::string& prefix, const char* mode, int send_code,
+                            int recv_code) {
     platform::Child a;
     platform::Child b;
     const std::vector<std::string> hooks{"--hooks", mode};
@@ -41,8 +42,21 @@ inline bool both_peers_exit_with(const std::string& exe, const std::string& bund
     const bool wb = b.wait(sb);
     std::printf("  %s: send code=%d, %s | recv code=%d, %s\n", mode, sa.code,
                 runs::peer_said(sa, wa), sb.code, runs::peer_said(sb, wb));
-    return wa && wb && sa.kind == platform::ExitKind::Exited && sa.code == code &&
-           sb.kind == platform::ExitKind::Exited && sb.code == code;
+    return wa && wb && sa.kind == platform::ExitKind::Exited && sa.code == send_code &&
+           sb.kind == platform::ExitKind::Exited && sb.code == recv_code;
+}
+
+inline bool both_peers_exit_with(const std::string& exe, const std::string& bundle,
+                                 const std::string& prefix, const char* mode, int code) {
+    return peers_exit_with(exe, bundle, prefix, mode, code, code);
+}
+
+inline void a_depth_axis_is_named_not_stalled(int& fails, const std::string& exe,
+                                              const std::string& bundle, const std::string& prefix) {
+    refused_check(fails, peers_exit_with(exe, bundle, prefix, "depth", 12, 4),
+                  "an input with move_z stops the sender by name instead of stalling it to the deadline");
+    runs::forget(prefix);
+    fake::forget_witness(prefix);
 }
 
 // Потолок прогона называет шов, и он тоже обязан быть УСЛЫШАН: живая сессия втрое длиннее
@@ -105,6 +119,7 @@ inline int refusals(const std::string& exe, const std::string& bundle, const std
     a_deadline_comes_from_the_seam(fails, exe, bundle, prefix + "-late");
     show_can_stop_the_run(fails, exe, bundle, prefix + "-stop");
     an_unknown_mode_is_refused(fails, exe, bundle, prefix + "-bogus");
+    a_depth_axis_is_named_not_stalled(fails, exe, bundle, prefix + "-depth");
     return fails;
 }
 

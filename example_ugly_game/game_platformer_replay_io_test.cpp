@@ -64,6 +64,18 @@ void test_a_bent_claim_in_the_file_is_named(const std::string& path, const std::
     check(!v.ok() && v.tick == FORGED_AT, "and the replay names the tick it was bent at");
 }
 
+void test_a_depth_axis_is_refused_not_dropped(const std::string& file) {
+    platformer::ch::MoveInput in{};
+    in.move_x = fix32::from_int(1);
+    uint8_t body[ROW];
+    check(platformer::input_wire::put(body, 0, in), "control: a row without move_z is written");
+    in.move_z = fix32::from_raw(1);
+    check(!platformer::input_wire::put(body, 0, in), "a row with move_z is refused by the wire");
+    Stream s;
+    s.reset(1);
+    check(s.record(&in, 0), "the row with move_z is recorded");
+    check(!platformer::replay_io::write_file(file, s), "and the replay writer refuses it instead of losing the axis");
+}
 
 } // namespace
 
@@ -89,6 +101,9 @@ int main(int argc, char** argv) {
     } else {
         check(false, "the level loads for the recording");
     }
+    const std::string axis_file = platform::exe_path() + ".axis" + std::to_string(platform::process_id());
+    test_a_depth_axis_is_refused_not_dropped(axis_file);
+    platform::remove_file(axis_file);
     std::printf("game-platformer-replay-io: %s\n", platformer::replay_fixture::fails == 0 ? "PASS" : "FAIL");
     return platformer::replay_fixture::fails == 0 ? 0 : 1;
 }

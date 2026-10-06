@@ -2332,11 +2332,13 @@ machine, not about the wire.
 The seam itself — that the live half feeds input and shows frames through `PeerHooks` without
 changing the run — is not left to this page. `game_platformer_net_hooks_test` runs the same pair
 twice, once through the seam with a script behind it and once without, and requires the same mark
-and the same recording byte for byte. Eight stand-in live halves prove the assertions can fail and
+and the same recording byte for byte. Nine stand-in live halves prove the assertions can fail and
 that every branch of the seam is really asked: a sender that never moves, one that answers "not yet"
 every other question, one that names half a script as the session, one that names a one-millisecond
 deadline, a display that refuses on its first frame, a mode nobody implemented (which must be
-refused with its own code `11`, not run without the seam), and a pair whose sender is refused one
+refused with its own code `11`, not run without the seam), an input with the depth axis `move_z`
+the sample's wire does not carry (the sender leaves with its own code `12` instead of stalling to
+the deadline), and a pair whose sender is refused one
 send — the sample it already took from the seam has to survive that refusal, because a person
 cannot be asked twice about the same tick, and the same pair with that cache broken has to play a
 different run. What none of them can do is look at a screen, which is why run B is here.

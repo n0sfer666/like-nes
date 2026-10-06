@@ -120,6 +120,11 @@ int run_peer(const PeerConfig& cfg) {
                     }
                 }
             }
+            if (p->unsendable) {
+                std::printf("peer %s: the input of tick %u does not fit the wire\n", role_of(cfg.sender),
+                            p->queued);
+                return 12;
+            }
             channel::flush(p->ch, it);
             p->deaf.update(p->tick);
             if (!p->deaf.running()) got = drain(*p);

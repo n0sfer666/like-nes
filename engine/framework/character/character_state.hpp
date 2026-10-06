@@ -46,6 +46,7 @@ struct MoveInput {
     // скоростью профиля, и общая ось означала бы, что наполовину отклонённый стик лезет вдвое
     // медленнее — то есть аналоговое управление там, где механика дискретна.
     bool up_held = false;
+    fix32 move_z;
 
     // Сравнение ПОЛЯМИ, а не байтами: у структуры есть байт выравнивания, в который никто не пишет,
     // и байтовое сравнение объявляло бы два одинаковых нажатия разными. Наружу это нужно откату
@@ -53,7 +54,7 @@ struct MoveInput {
     // «да» там означает откат на каждом тике.
     bool operator==(const MoveInput& o) const {
         return move_x.raw == o.move_x.raw && jump_held == o.jump_held && down_held == o.down_held &&
-               up_held == o.up_held;
+               up_held == o.up_held && move_z.raw == o.move_z.raw;
     }
 };
 
