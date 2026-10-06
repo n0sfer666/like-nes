@@ -8,6 +8,7 @@
 #include "clip_bake.hpp"
 #include "codec.hpp"
 #include "credits_bake.hpp"
+#include "fighter_bake.hpp"
 #include "font_bake.hpp"
 #include "tiled_import.hpp"
 
@@ -35,6 +36,8 @@ bool clips(std::span<const framework::graphics::ClipSrc> clips, std::vector<Asse
 bool fonts(std::span<const framework::graphics::FontSrc> fonts, std::vector<AssetInput>& out, std::string& error);
 bool credits(const char* name, std::span<const framework::core::CreditSrc> credits, std::vector<AssetInput>& out,
              std::string& error);
+bool fighter(const char* name, const std::string& text, std::span<const framework::graphics::ClipSrc> clips,
+             std::vector<AssetInput>& out, framework::brawl::FighterBakeError& error);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);

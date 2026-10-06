@@ -1,3 +1,7 @@
+add_library(framework_brawl_fighter STATIC fighter_parse.cpp fighter_bake.cpp fighter_read.cpp)
+target_include_directories(framework_brawl_fighter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framework_core)
+
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_character framework_physics framework_core)
@@ -17,3 +21,9 @@ target_link_libraries(framework_brawl_snapshot_test PRIVATE framework_brawl fram
 add_executable(framework_brawl_crossplay_test framework_brawl_crossplay_test.cpp)
 target_link_libraries(framework_brawl_crossplay_test PRIVATE framework_brawl framework_character
   framework_tilemap platform_core)
+
+add_executable(framework_brawl_fighter_test framework_brawl_fighter_test.cpp)
+target_link_libraries(framework_brawl_fighter_test PRIVATE framework_brawl_fighter framework_physics)
+
+add_executable(framework_brawl_fighter_refusal_test framework_brawl_fighter_refusal_test.cpp)
+target_link_libraries(framework_brawl_fighter_refusal_test PRIVATE framework_brawl_fighter)
