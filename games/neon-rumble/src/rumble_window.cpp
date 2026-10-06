@@ -10,8 +10,9 @@
 
 #include "gpu.hpp"
 #include "quad_batch.hpp"
-#include "rumble_fighter_quads.hpp"
+#include "rumble_keys.hpp"
 #include "rumble_layers.hpp"
+#include "rumble_roster_quads.hpp"
 #include "surface_frame.hpp"
 
 namespace rumble {
@@ -62,38 +63,32 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
 }
 
 // Текстуры уровня уходят в GPU один раз, в порядке `Level::guids`: этот порядок и есть номер
-// материала спрайта, который `draw_layer` выдаёт по guid. Лист бойца и сплошная текстура оверлея
-// встают сразу за ними — их номера `texture_count` и `texture_count + 1`, атлас шрифта титров —
-// `texture_count + 2`.
+// материала спрайта, который `draw_layer` выдаёт по guid. Листы бойцов в порядке `ROSTER`, сплошная
+// текстура оверлея и атлас шрифта титров встают сразу за ними — номера дают `sheet_texture`,
+// `solid_texture` и `atlas_texture`.
 bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
-                const Level& level, const Fighter& fighter, const Credits& credits) {
+                const Level& level, const Fighters& fighters, const Credits& credits) {
     static constexpr uint8_t SOLID[4] = {255, 255, 255, 255};
     if (!quads.init(gpu.device, gpu.queue, format, Layers::CAPACITY)) return false;
     for (uint32_t i = 0; i < level.texture_count; ++i)
         if (!quads.add_texture(level.pixels[i].pixels, level.pixels[i].width,
                                level.pixels[i].height))
             return false;
-    return quads.add_texture(fighter.sheet.pixels, fighter.sheet.width, fighter.sheet.height)
-           && quads.add_texture(SOLID, 1, 1)
+    for (const Fighter& f : fighters)
+        if (!quads.add_texture(f.sheet.pixels, f.sheet.width, f.sheet.height)) return false;
+    return quads.add_texture(SOLID, 1, 1)
            && quads.add_texture(credits.atlas.pixels, credits.atlas.width, credits.atlas.height);
 }
 
-bool key_toggled(GLFWwindow* window, int key, bool& held) {
-    const bool down = glfwGetKey(window, key) == GLFW_PRESS;
-    const bool pressed = down && !held;
-    held = down;
-    return pressed;
-}
-
 int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& scene,
-               const Level& level, const Fighter& fighter, const Credits& credits, int frames, int& drawn) {
+               const Level& level, const Fighters& fighters, const Credits& credits, int frames, int& drawn) {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     SurfaceSpec spec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
                      static_cast<uint32_t>(fbh)};
     spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
     render::QuadRenderer quads;
-    if (!init_quads(quads, gpu, spec.format, level, fighter, credits)) {
+    if (!init_quads(quads, gpu, spec.format, level, fighters, credits)) {
         std::fprintf(stderr, "neon-rumble: quad renderer or level texture upload failed\n");
         return 1;
     }
@@ -106,6 +101,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
     bool f3_held = false;
     uint32_t shown = 0;
     bool f1_held = false;
+    bool jump_held = false;
     bool warned = false;
     bool upload_warned = false;
     bool fighter_warned = false;
@@ -125,6 +121,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
         const SurfaceFrame sf = acquire_frame(spec, gpu, "neon-rumble", warned);
         if (sf.quit) return 1;
         if (!sf.texture) continue;
+        scene.brawl->player = read_keys(window, jump_held);
         scene.step(static_cast<uint32_t>(drawn));
         const auto tick = static_cast<uint64_t>(drawn);
         const ViewportFit fit = framework::graphics::viewport_fit({spec.width, spec.height});
@@ -132,15 +129,18 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
             std::fprintf(stderr, "neon-rumble: window %ux%u is smaller than the %ux%u zone, the zone is cropped\n",
                          spec.width, spec.height, framework::graphics::VIEW_ZONE.w, framework::graphics::VIEW_ZONE.h);
         cropped = fit.cropped;
-        LayerStats st = layers.build(level, fit, tick);
-        const FighterStats fs = fighter_quads.add(fighter, fighter.pose(tick), layers, st, level.texture_count, overlay);
+        const framework::Vec2 follow = screen_plane(scene.brawl->body(PLAYER));
+        LayerStats st = layers.build(level, fit, tick, &follow);
+        const FighterStats fs = draw_roster(fighter_quads, fighters, *scene.brawl, layers, st, level.texture_count,
+                                            overlay);
         if (fs.rejected + fs.dropped > 0 && !fighter_warned) {
-            std::fprintf(stderr, "neon-rumble: tick %llu: fighter %u quad(s) rejected, %u dropped\n",
+            std::fprintf(stderr, "neon-rumble: tick %llu: fighters %u quad(s) rejected, %u dropped\n",
                          static_cast<unsigned long long>(tick), fs.rejected, fs.dropped);
             fighter_warned = true;
         }
         const CreditStats cs = shown > 0 ? credits_quads.add(credits, shown - 1, fit, layers, st,
-                                                             level.texture_count + 2, level.texture_count + 1)
+                                                             atlas_texture(level.texture_count),
+                                                             solid_texture(level.texture_count))
                                          : CreditStats{};
         if (shown > cs.pages) shown = 0;
         if (cs.unknown + cs.dropped > 0 && !credits_warned) {
@@ -163,7 +163,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
 
 } // namespace
 
-int run_window(Scene& scene, const Level& level, const Fighter& fighter, const Credits& credits, int frames) {
+int run_window(Scene& scene, const Level& level, const Fighters& fighters, const Credits& credits, int frames) {
     if (!glfwInit()) {
         std::fprintf(stderr, "neon-rumble: glfwInit failed\n");
         return 1;
@@ -181,7 +181,7 @@ int run_window(Scene& scene, const Level& level, const Fighter& fighter, const C
     } else if (!(surface = glfwGetWGPUSurface(gpu.instance, window)) || !gpu.init(surface)) {
         std::fprintf(stderr, "neon-rumble: no surface, adapter or device\n");
     } else {
-        rc = frame_loop(window, gpu, surface, scene, level, fighter, credits, frames, drawn);
+        rc = frame_loop(window, gpu, surface, scene, level, fighters, credits, frames, drawn);
         if (rc == 0 && drawn == 0) {
             std::fprintf(stderr, "neon-rumble: window closed before the first frame\n");
             rc = 1;

@@ -126,13 +126,15 @@ a polyline, a text object, a tile object, a rotated object and an object from a 
 refused, and each refusal says what to do instead.
 
 The bake gives meaning to one class only: **`bounds`**, the rectangle the camera stays within,
-which the cover check above walks. The rest is for the game to interpret. `level1.tmj` has three objects in the `spawns` layer:
+which the cover check above walks. The rest is for the game to interpret. `level1.tmj` has five objects in the `spawns` layer:
 
 | Class | Name | Shape | What Neon Rumble does with it |
 |---|---|---|---|
-| `spawn` | `player` | point at 200, 224, property `facing = right` | places the fighter |
+| `spawn` | `player` | point at 200, 224, property `facing = right` | places Banderas, the fighter under the keyboard |
+| `spawn` | `rainbird` | point at 264, 200, property `facing = left` | places Rainbird |
+| `spawn` | `adler` | point at 328, 212, property `facing = left` | places Adler |
 | `bounds` | `street` | rectangle 104, 56, 432×224 | limits the camera |
-| `depth_band` | `walk` | rectangle 0, 192, 640×32 | the strip the fighter walks along |
+| `depth_band` | `walk` | rectangle 104, 192, 432×32 | the strip the fighters walk along, in x and in depth |
 
 ## Checking a level after editing it
 

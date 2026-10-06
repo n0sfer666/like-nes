@@ -45,7 +45,8 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
-  src/rumble_credits.cpp)
+  src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
+  src/rumble_report.cpp src/rumble_brawl_report.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -91,8 +92,6 @@ texture | sky | pixel | assets/warped-city/sky.png
 texture | far_city | pixel | assets/warped-city/buildings-bg.png
 texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
-texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
-clips | queen | aseprite | assets/chewbatrij/queen-rows.json
 texture | rainbird_sheet | pixel | assets/puffolotti/rainbird.png
 clips | rainbird | aseprite | assets/puffolotti/rainbird.json
 texture | banderas_sheet | pixel | assets/puffolotti/banderas.png

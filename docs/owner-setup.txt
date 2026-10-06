@@ -1811,9 +1811,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
       neon-rumble: bounds 104..536 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
-      neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right
-      neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: clips 51 in the table
+      neon-rumble: fighter banderas sheet 657x642, body 200,224 facing right
+      neon-rumble: fighter rainbird sheet 602x605, body 264,200 facing left
+      neon-rumble: fighter adler sheet 548x1108, body 328,212 facing left
+      neon-rumble: depth band 104..536 x 192..224, 0 wall(s)
+      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
@@ -1821,18 +1826,25 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+      neon-rumble: brawl tick 0: hash 70870806303d445b, banderas 200,224 y 0, rainbird 264,200 y 0, adler 328,212 y 0, draw rainbird adler banderas
+      neon-rumble: brawl tick 60: hash 80a14e7796585315, banderas 320,194 y 32, rainbird 264,200 y 0, adler 328,212 y 0, draw banderas rainbird adler
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x6ad5abf90a751d04 matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0xd69efa7c7e0f7a6c matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
       neon-rumble: bounds 104..536 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
-      neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right
-      neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: clips 51 in the table
+      neon-rumble: fighter banderas sheet 657x642, body 200,224 facing right
+      neon-rumble: fighter rainbird sheet 602x605, body 264,200 facing left
+      neon-rumble: fighter adler sheet 548x1108, body 328,212 facing left
+      neon-rumble: depth band 104..536 x 192..224, 0 wall(s)
+      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 0 hurt, 0 push, 7 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
@@ -1840,9 +1852,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+      neon-rumble: brawl tick 0: hash 70870806303d445b, banderas 200,224 y 0, rainbird 264,200 y 0, adler 328,212 y 0, draw rainbird adler banderas
+      neon-rumble: brawl tick 60: hash 80a14e7796585315, banderas 320,194 y 32, rainbird 264,200 y 0, adler 328,212 y 0, draw banderas rainbird adler
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x6ad5abf90a751d04 matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xd69efa7c7e0f7a6c matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1858,8 +1872,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
   framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна;
   bundle_hash — от game.bundle, который assetc из SDK печёт по
   games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
-  levels/level1.tmj из Tiled — секции tilemap, visual, objects; лист и клипы
-  бойцов из Aseprite — chewbatrij/queen-rows.* и puffolotti/*; шрифт
+  levels/level1.tmj из Tiled — секции tilemap, visual, objects; листы и клипы
+  бойцов из Aseprite — puffolotti/*; шрифт
   monogram/monogram-bitmap.json и credits.txt — секции fonts и credits), и тоже
   один на всех ОС: он закоммичен в games/neon-rumble/bundle.hash. Другой хеш
   на одной из машин — находка, а не повод переписать файл. Законная смена —
@@ -1881,13 +1895,19 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Бейк сам проверяет, что слои уровня закрывают вид при этих границах:
   запись level в game.manifest с полем viewport.
 
-  Строки fighter — боец: 71 клип из таблицы clips (20 королевы и 3 × 17
-  Puffolotti), лист 592x300 — по-прежнему лист королевы, по guid первого
-  клипа витрины, стоит на объекте player (200,224) лицом вправо.
-  Витрина по тику: Walk 60 тиков, Jab, Hook и Uppercut по 30, круг 150
-  тиков, на каждом втором круге боец смотрит в другую сторону, поэтому на
-  тике 215 — Jab с flip 1. Боксов у пака нет (0 hit, 0 hurt, 0 push), квады
+  Строки clips, fighter, depth band, pose и brawl — драка (спека #25, В1):
+  таблица clips — 51 клип, 3 бойца Puffolotti по 17; у каждого бойца свой
+  лист по guid его первого клипа и тело на своём спавне: banderas на player
+  (200,224) лицом вправо, rainbird (264,200) и adler (328,212) лицом влево.
+  Полоса глубины — объект walk класса depth_band, x 104..536, z 192..224,
+  стен нет. Строки pose — idle каждого бойца на тике 0 в порядке отрисовки
+  (дальний по z первым); боксов у пака нет (0 hit, 0 hurt, 0 push), квады
   оверлея F3 — рамка клетки и крест пивота; rejected и dropped — нули.
+  Строки brawl — хеш состояния драки, позиции x,z и высота y каждого
+  бойца и порядок отрисовки до и после 60 тиков: banderas идёт по скрипту
+  вправо и вглубь 30 тиков и прыгает на тике 50, поэтому на тике 60 он
+  в воздухе (y 32) и дальше остальных — рисуется первым. Тот же хеш на всех
+  трёх ОС; другой — находка детерминизма, а не повод переписать пин.
 
   Строки font, credit и credits screen — титры (спека #24, В8б): шрифт
   monogram из таблицы fonts (390 глифов, строка 12 пикселей, атлас 224x156
@@ -1906,11 +1926,18 @@ owner_check.sh гоняет это отдельным этапом сразу п
   вывески: coke слева (3 кадра по 200 мс) и неоновая справа (4 кадра по
   150 мс). Небо закрывает вид до предела 576x312, поэтому полос в окне нет.
   Масштаб — наибольший целый, при котором зона 384x216 влезает в окно
-  (Retina 2x: 5 — видна ровно зона, обычный экран: 2 — видно 480x270). Камера едет вправо на пиксель карты за кадр 48 кадров и
-  столько же обратно — дальше её не пускают границы; улица у нижнего края.
-  Слева на улице стоит боец (королева в короне) ногами на линии улицы и
-  шагает на месте; из кадра он не уходит. F3 включает и выключает оверлей:
-  голубая рамка клетки и белый крест пивота у ступней. F1 листает титры
+  (Retina 2x: 5 — видна ровно зона, обычный экран: 2 — видно 480x270). Улица у нижнего края.
+  На улице три бойца ногами на её линии: слева banderas лицом вправо,
+  правее rainbird и adler лицом влево, rainbird выше на экране (дальше).
+  banderas ходит под стрелками или WASD: влево-вправо — вдоль улицы,
+  вверх-вниз — в глубину; Space или K — прыжок, один на нажатие. Из
+  полосы 104..536 x 192..224 он не выходит, камера следует за ним и стоит
+  у границ уровня. Тик драки — на каждый показанный кадр: на 120 Гц боец
+  вдвое быстрее, чем на 60 Гц, это не находка.
+  Кто ближе (ниже на экране), рисуется поверх. F3 включает и выключает
+  оверлей у всех троих: голубая рамка клетки и белый крест пивота у
+  ступней. Ходьба, порядок по глубине, прыжок и стиль бойцов против улицы —
+  гейт 1 спеки #25, docs/owner-verification.md §21. F1 листает титры
   по кругу: уровень темнеет, вверху голубой заголовок
   «Credits · Титры  1/2», под ним белым паки по алфавиту — с chewbatrij
   на первой странице до warped-city на второй (2/2), пак не рвётся между
@@ -1933,8 +1960,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: window run ok, 120 frames
 
   Код выхода 0. BC: no — не находка: сжатые текстуры игра не грузит.
-  Чтобы рассмотреть прокрутку, — --frames 600, без --frames окно живёт до
-  закрытия. Пересохранение level1.tmj и neon-signs.tsj в настоящем Tiled с
+  Чтобы походить бойцом, — без --frames: окно живёт до закрытия. Пересохранение level1.tmj и neon-signs.tsj в настоящем Tiled с
   тем же bundle_hash, параллакс, вывески, окна 21:9 и 4:3 и экран F1 —
   гейт 7 спеки #24, docs/owner-verification.md §20 (§18 закрыт на уровне
   без параллакса и вывесок). Находка — всё, что не так: окно не
@@ -1944,7 +1970,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
   тайлы светлее или бледнее, чем в Tiled (на Linux и Windows поверхность
   бывает sRGB — так проявилось бы двойное кодирование цвета),
   дрожание при прокрутке, боец висит над улицей или проваливается в неё,
-  отстаёт от улицы на прокрутке, крест F3 не у ступней или рамка клетки
+  отстаёт от улицы на прокрутке, выходит из полосы, дальний рисуется поверх
+  ближнего, крест F3 не у ступней или рамка клетки
   режет спрайт,
   ошибка про libwgpu_native / wgpu_native.dll
   (рантайм обязан лежать рядом с exe).

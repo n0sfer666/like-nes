@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**12 of the 21 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
+**12 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 10 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -37,6 +37,7 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 | The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
+| Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
 
 The last to close was the network frame cost (§13), on 2026-10-04 on the Windows box — the slowest
 machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
@@ -3012,14 +3013,18 @@ then replace the hand-written ones in the tree.
 
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; тот же экспорт командой из docs/en/guide/aseprite-animations.md во второй каталог — те же четыре ok и PASS; прислать queen.json; окно neon_rumble --frames 1200: боец на спавне, Walk→Jab→Hook→Uppercut, F3 — рамка клетки и крест пивота -->
+<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; тот же экспорт командой из docs/en/guide/aseprite-animations.md во второй каталог — те же четыре ok и PASS; прислать queen.json -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
 is an Aseprite 1.2.8 export with neither, so how 1.3 actually writes a slice key, a slice switched
 off on a frame, and the user data of a tag stays unknown until a real Aseprite exports them. The
-gate has two halves: the export (steps 1–6) and the window (step 7), where Neon Rumble plays the
-clips of the same pack from `game.bundle` and F3 draws what the engine thinks a frame is. Where the
+gate had two halves: the export (steps 1–6) and the window (step 7), where Neon Rumble played the
+clips of the same pack from `game.bundle` and F3 drew what the engine thinks a frame is. The window
+half was closed by the Linux run of 2026-10-03 below, and since B1e of spec #25 the queen is no
+longer in Neon Rumble's manifest: the game draws the Puffolotti fighters, §21 judges them, and
+`chewbatrij/queen-rows.*` stays in the tree as an import fixture. Step 7 is kept as the record of
+that run, not as a step to repeat. Where the
 cel, the boxes and the pivot cross land in pixels, flipped and zoomed, is judged by the pixel golden
 `framework_clip_golden` on CI on all three OSes; the window is about the real surface and the real
 key.
@@ -3075,7 +3080,8 @@ key.
    records it.
 6. Send back `queen.json` and the output of step 5. The JSON goes into the tree as a fixture that
    pins the hit box to frames 3 and 4 and the event `fall` to frame 4.
-7. Build the game against the SDK and run the window from the same shell (Windows: from the
+7. *Closed 2026-10-03 on Linux, retired by B1e of spec #25 — the build it describes no longer
+   draws the queen.* Build the game against the SDK and run the window from the same shell (Windows: from the
    `scripts\win-dev.bat shell` window, with `.exe` and backslashes):
 
        bash scripts/check_sdk_game.sh --keep
@@ -3185,7 +3191,7 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x6ad5abf90a751d04 в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0xd69efa7c7e0f7a6c в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3219,7 +3225,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, the lines
-   `Release: game.bundle bundle_hash 0x6ad5abf90a751d04 matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0xd69efa7c7e0f7a6c matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
@@ -3228,7 +3234,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
-   **Parallax.** The camera pans 48 map pixels right and back. `sky` stands still, `far-city` moves
+   **Parallax.** Walk Banderas, the fighter on the left, with the arrows or WASD: the camera
+   follows him and stops at the level's `bounds`. `sky` stands still, `far-city` moves
    at a quarter of the camera, `near-city` at half, and the facades and the street move with the
    camera. No layer shimmers, jumps by a pixel against its neighbours, or shows a seam where its
    image repeats. **Signs.** Coca-Cola on the left plays 3 frames of 200 ms, the neon banner on
@@ -3266,9 +3273,76 @@ a URL cut at the edge, and any `neon-rumble: tick <n>: credits …` line in the 
 the saved files with the same hash is not a finding, because Tiled reorders keys and reflows arrays.
 It is worth sending all the same: the saved files then replace the hand-written ones in the tree.
 
+## 21. Gate 1 of #25 — three fighters walk the street in depth
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, bundle_hash 0xd69efa7c7e0f7a6c в Release и Debug, строки brawl tick 0 hash 70870806303d445b и tick 60 hash 80a14e7796585315; окно neon_rumble: banderas под стрелками/WASD, вверх-вниз — глубина в полосе 104..536 x 192..224, Space или K — прыжок по нажатию, удержание не прыгает повторно; камера следует и стоит у bounds; ближний по z рисуется поверх, обход rainbird и adler сверху и снизу меняет порядок; F3 — оверлей у всех троих; 3D-рендер Puffolotti рядом с пиксельной улицей Warped City — скриншот и вердикт владельца -->
+
+B1 of spec #25 put three Puffolotti fighters into Neon Rumble: Banderas under the keyboard, Rainbird
+and Adler standing to his right at different depths, both facing left. CI holds the simulation:
+`--headless` drives Banderas by a script for 60 ticks and pins the state hash, the positions and the
+draw order before and after, and the crossplay job compares the brawl scenario hashes across the
+three OSes. Three things are left that only a screen answers:
+
+- **The keys.** The script feeds `move_x` and `move_z` directly. Whether the arrows, WASD, Space and
+  K reach the same input is seen only in a window.
+- **Depth on screen.** The draw order is a sorted list in the log. Whether the nearer fighter really
+  covers the farther one, and whether a jump lifts the sprite off its line instead of moving it in
+  depth, is a picture.
+- **The style.** Puffolotti is a 3D render scaled to pixels, Warped City is drawn pixel art. The
+  spec took the mismatch as an accepted risk, to be judged on a live frame of level 1. That frame is
+  this scenario.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, `bundle_hash 0xd69efa7c7e0f7a6c` in Release and Debug, and in each
+   run the lines
+
+       neon-rumble: brawl tick 0: hash 70870806303d445b, banderas 200,224 y 0, rainbird 264,200 y 0, adler 328,212 y 0, draw rainbird adler banderas
+       neon-rumble: brawl tick 60: hash 80a14e7796585315, banderas 320,194 y 32, rainbird 264,200 y 0, adler 328,212 y 0, draw banderas rainbird adler
+
+2. Start the window and close it yourself when done:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   Three fighters stand on the street: Banderas on the left facing right, Rainbird and Adler to his
+   right facing left, Rainbird higher on the screen (farther away) than Adler.
+3. **Walking.** Left and right arrows (or A and D) walk Banderas along the street; up and down (W and
+   S) move him away and towards you, up the screen and down it. He stops at the edges of the strip,
+   104 to 536 along the street and 192 to 224 in depth, and never leaves the street. The camera
+   follows him and stops where the level's `bounds` end; in a window at least as large as the
+   384×216 zone he stays in view along the whole strip. A window smaller than the zone is cropped
+   (the terminal says so), and there he may leave the frame near the ends of the strip — not a
+   finding. The simulation steps once per drawn frame, so on a 120 Hz screen he walks and jumps
+   twice as fast as on a 60 Hz one — not a finding either.
+4. **Depth order.** Walk him behind Adler (up, then right) and in front of him (down, then right).
+   Whoever is nearer, lower on the screen, is drawn on top. Do the same with Rainbird.
+5. **Jump.** Space or K jumps once per press; holding the key does not jump again after landing.
+   Without up or down held, he lands on the line he jumped from. In the air the arrows still steer
+   him along the street and in depth, so with up or down held he lands on another line.
+6. **F3** shows the cell frame and the pivot cross on all three fighters; the cross stays at the
+   feet, and during the jump it rises with the sprite.
+7. **Style.** Look at the fighters against the facades and the street: the render of Puffolotti next
+   to the pixel art of Warped City. Send back a screenshot with all three in view and a word on
+   whether the mismatch is acceptable for the prototype. A no is not a defect of the engine; it
+   reopens the choice of pack made in step 0 of the spec.
+
+What counts as a finding: a different hash or position in step 1, a key that does nothing or moves
+the wrong axis, a fighter leaving the strip or the street, the camera losing him in a window not
+smaller than the zone, a farther fighter drawn over a nearer one, a second jump from a held key, a
+landing on another line than the take-off with up and down untouched, a fighter floating above or
+sunk into the street, and the overlay not following the sprite.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 12 of the 21 are closed, and the open 9 are listed by
+The gates above are what the ADRs waited on; 12 of the 22 are closed, and the open 10 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

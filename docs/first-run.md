@@ -36,9 +36,10 @@ missing.
 builds the game against that prefix and leaves it in `build-sdk-work/`. The game's `game.bundle` is
 baked at build time by the SDK's `assetc` from `games/neon-rumble/game.manifest`, and its
 `bundle_hash` must equal `games/neon-rumble/bundle.hash` on every OS. The game maps that bundle
-and draws level 1 from it with a fighter on the spawn playing her clips (F3 toggles the cel, pivot
+and draws level 1 from it with three Puffolotti fighters on their spawns: Banderas walks under the arrows or WASD, up and down
+move in depth, Space or K jumps, the camera follows him, and the nearer fighter is drawn on top (F3 toggles the cel, pivot
 and box overlay, F1 the credits screen in the monogram font); `--headless` prints the level, viewport policy, camera
-bounds, frame, fighter, font and credits summary the gate checks. The
+bounds, frame, roster, depth band, brawl hash, font and credits summary the gate checks. The
 steps for the owner's window run, with the expected output line by line, are section S of
 [`owner-setup.txt`](owner-setup.txt).
 The live check of the street — parallax, the signs, 21:9 and 4:3 windows, the credits screen and a

@@ -198,6 +198,44 @@
                  "y":224
                 }, 
                 {
+                 "height":0,
+                 "id":4,
+                 "name":"rainbird",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"facing",
+                         "type":"string",
+                         "value":"left"
+                        }],
+                 "rotation":0,
+                 "type":"spawn",
+                 "visible":true,
+                 "width":0,
+                 "x":264,
+                 "y":200
+                }, 
+                {
+                 "height":0,
+                 "id":5,
+                 "name":"adler",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"facing",
+                         "type":"string",
+                         "value":"left"
+                        }],
+                 "rotation":0,
+                 "type":"spawn",
+                 "visible":true,
+                 "width":0,
+                 "x":328,
+                 "y":212
+                }, 
+                {
                  "height":224,
                  "id":2,
                  "name":"street",
@@ -217,8 +255,8 @@
                  "rotation":0,
                  "type":"depth_band",
                  "visible":true,
-                 "width":640,
-                 "x":0,
+                 "width":432,
+                 "x":104,
                  "y":192
                 }],
          "opacity":1,
@@ -228,7 +266,7 @@
          "y":0
         }],
  "nextlayerid":8,
- "nextobjectid":4,
+ "nextobjectid":6,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

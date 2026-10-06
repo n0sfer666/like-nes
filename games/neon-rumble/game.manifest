@@ -10,8 +10,6 @@ texture | sky | pixel | assets/warped-city/sky.png
 texture | far_city | pixel | assets/warped-city/buildings-bg.png
 texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
-texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
-clips | queen | aseprite | assets/chewbatrij/queen-rows.json
 texture | rainbird_sheet | pixel | assets/puffolotti/rainbird.png
 clips | rainbird | aseprite | assets/puffolotti/rainbird.json
 texture | banderas_sheet | pixel | assets/puffolotti/banderas.png

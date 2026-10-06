@@ -12,8 +12,9 @@ clips | queen | aseprite | assets/chewbatrij/queen-rows.json
 ```
 
 The clips record finds its texture by the `image` field of the JSON, so the texture record must
-use the same path. The bake reads the format written by Aseprite 1.3. The sheet in Neon Rumble was
-exported by an older Aseprite, and the bake reads it the same way.
+use the same path. The bake reads the format written by Aseprite 1.3. The queen sheet above was
+exported by an older Aseprite, and the bake reads it the same way; it stays in the tree as an
+import fixture, while Neon Rumble itself draws the Puffolotti fighters.
 
 ## Exporting the sheet
 

@@ -27,7 +27,8 @@ framework::Vec2 sweep(const CameraBounds& b, framework::Vec2 half, uint64_t tick
 Layers::Layers()
     : sprites_(CAPACITY), keys_(CAPACITY), batches_(CAPACITY), quads_(CAPACITY), runs_(CAPACITY) {}
 
-LayerStats Layers::build(const Level& level, const framework::graphics::ViewportFit& fit, uint64_t tick) {
+LayerStats Layers::build(const Level& level, const framework::graphics::ViewportFit& fit, uint64_t tick,
+                         const framework::Vec2* follow) {
     LayerStats st;
     st.scale = fit.scale;
 
@@ -36,7 +37,8 @@ LayerStats Layers::build(const Level& level, const framework::graphics::Viewport
     f.config.policies = framework::graphics::CAMERA_BOUNDS;
     f.config.half_view = framework::graphics::view_zone_half();
     f.config.bounds = level.bounds;
-    framework::graphics::camera_follow(f.camera, f.config, sweep(level.bounds, f.config.half_view, tick), 0);
+    const framework::Vec2 target = follow != nullptr ? *follow : sweep(level.bounds, f.config.half_view, tick);
+    framework::graphics::camera_follow(f.camera, f.config, target, 0);
     f.tick = tick;
     f.textures = {level.guids, level.texture_count};
 

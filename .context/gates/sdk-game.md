@@ -29,12 +29,16 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    cropped` — `viewport_fit` из поставленного заголовка (до В7б его в SDK не было), — и `bounds
    104..536 x 56..280, camera 296,172`: объект `bounds` из таблицы `objects` и кламп `camera_follow`
    по половине зоны; кадр 960x540 строится этой политикой.
-   С В6б — боец: `fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right` (таблица `clips`,
-   лист по `texture_guid` клипа, объект `player` из `objects`) и две строки позы —
-   `fighter tick 0: queen/Walk frame 0 flip 0, …` и `fighter tick 215: queen/Jab frame 0 flip 1, …`:
-   витрина по тику (Walk 60, Jab 30, Hook 30, Uppercut 30) и смена стороны на втором круге. Счёт
-   боксов и квадов оверлея — регэкспом (у пака боксов нет, B6a); нули отказов и сброса пинятся:
-   клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка.
+   С В1д спеки #25 — драка вместо витрины В6б: `clips 51 in the table`; три строки `fighter
+   <имя> sheet WxH, body x,z facing …` (лист по `texture_guid` первого клипа бойца, тело на спавне
+   из `objects`: banderas на `player`, rainbird, adler); `depth band 104..536 x 192..224, 0 wall(s)`
+   (объект `depth_band`); три строки `pose tick 0: <имя>/idle frame 0 flip …` в порядке отрисовки —
+   имя, клип и flip пинятся, боксы и квады оверлея регэкспом, нули отказов и сброса пинятся; и две
+   строки `brawl tick 0/60: hash …, <имя> x,z y …, draw …` целиком: хеш `state_hash` пула, позиции
+   и порядок отрисовки до и после 60 тиков скриптованного игрока (вправо и вглубь 30 тиков, прыжок
+   на тике 50). Хеш драки один на трёх ОС — та же гарантия, что у джоба `crossplay`, но на
+   поставленном SDK; сдвиг — находка детерминизма или намеренная правка шага, которую несёт тот же
+   коммит.
    С В8б — шрифт и титры: `font monogram line 12, 390 glyph(s), atlas 224x156` (таблица `fonts`,
    атлас по `texture_guid`) пинится целиком; строк `credit …` ровно пять, среди них `monogram`
    (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 5 pack(s),
@@ -60,8 +64,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В1а спеки #25 хеш `0x6ad5abf90a751d04`: три листа Puffolotti плотно перепакованы (обрезанные
    кадры полкой, отступ 1 px; 5,57 МБ RGBA8 вместо 12,2 МБ клетками) и вошли в манифест записями
    `<боец>_sheet` и `<боец>`; таблица `clips` — 71 клип (20 королевы + 3 × 17).
-   С В6б — ещё лист `queen_sheet` и клипы
-   `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
+   С В1д спеки #25 хеш `0xd69efa7c7e0f7a6c`: `queen_sheet` и `queen` ушли из манифеста
+   (`chewbatrij/queen-rows.*` остаются фикстурой импорта, пак — в титрах), таблица `clips` — 51,
+   спавны `rainbird` и `adler`, полоса `walk` сужена до 104..536 по границам камеры.
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

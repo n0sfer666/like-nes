@@ -21,9 +21,8 @@ game_build() {
 
 # Запуск --headless --frames 60: код выхода 0 И строка вердикта. Одного кода мало — exe, не
 # дошедший до цикла кадров (скажем, без бандла рядом), тоже может выйти нулём из чужой ветки.
-# Сводка уровня (В5б) — бандл прочитан игрой против SDK: таблица `visual`, RGBA8 тайлсета и кадр
-# 960x540, весь легший в квады без чужих текстур и выпавших за край источников. Сводка бойца (В6б) —
-# клипы, лист и спавн из бандла и поза витрины на тиках 0 и 215: клип, кадр и флип пинятся.
+# Сводка уровня (В5б): таблица `visual`, RGBA8 тайлсета и кадр 960x540 целиком в квадах. Ростер и
+# драка (В1д спеки #25): листы, тела, полоса, позы тика 0 и хеш снапшота до и после скрипта.
 game_run() {
     local dir=$1 cfg=$2 exe out
     exe="$dir/neon_rumble"
@@ -45,12 +44,14 @@ game_run() {
         sdk_bad "$cfg: camera bounds of level1 are not the street object"; return 1; }
     grep -Eq '^neon-rumble: frame 960x540 scale 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
-    grep -q '^neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right$' <<< "$out" || {
-        sdk_bad "$cfg: fighter from game.bundle: no summary line"; return 1; }
-    grep -Eq '^neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
-        <<< "$out" || { sdk_bad "$cfg: fighter on tick 0 is not Walk frame 0 facing right"; return 1; }
-    grep -Eq '^neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
-        <<< "$out" || { sdk_bad "$cfg: fighter on tick 215 is not Jab frame 0 flipped"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: (clips 51 in the table|depth band 104\.\.536 x 192\.\.224, 0 wall\(s\))$' <<< "$out")" -eq 2 ] || {
+        sdk_bad "$cfg: clips table is not 3 fighters x 17 clips or the depth band is not the walk object"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: fighter (banderas sheet 657x642, body 200,224 facing right|rainbird sheet 602x605, body 264,200 facing left|adler sheet 548x1108, body 328,212 facing left)$' <<< "$out")" -eq 3 ] || {
+        sdk_bad "$cfg: roster from game.bundle: a fighter sheet or spawn line is missing"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: pose tick 0: (rainbird/idle frame 0 flip 1|adler/idle frame 0 flip 1|banderas/idle frame 0 flip 0), [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' <<< "$out")" -eq 3 ] || {
+        sdk_bad "$cfg: roster poses on tick 0 are not three idle fighters with an overlay"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: brawl (tick 0: hash 70870806303d445b, banderas 200,224 y 0, rainbird 264,200 y 0, adler 328,212 y 0, draw rainbird adler banderas|tick 60: hash 80a14e7796585315, banderas 320,194 y 32, rainbird 264,200 y 0, adler 328,212 y 0, draw banderas rainbird adler)$' <<< "$out")" -eq 2 ] || {
+        sdk_bad "$cfg: brawl hash, positions or draw order on tick 0 or after 60 scripted ticks moved"; return 1; }
     [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|puffolotti-bad-company|puffolotti-up2|warped-city) \| .*|credits screen 960x540 scale 2: 5 pack\(s\), 2 page\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 7 ] || {
         sdk_bad "$cfg: font monogram, five packs of credits.txt or a two-page credits screen with 0 unknown and 0 dropped missing"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 60 headless frames"
