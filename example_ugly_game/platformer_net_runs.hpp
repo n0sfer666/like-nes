@@ -75,6 +75,7 @@ inline const char* peer_said(const platform::ExitStatus& s, bool waited) {
         // `--hooks` не разобран». Назван здесь же, потому что расшифровывает коды РОДИТЕЛЬ, и
         // «an unexpected code» на отказе разбора читалось бы как поломка оснастки.
         case 11: return "did not understand its --hooks mode";
+        case 12: return "its input does not fit the wire";
         default: return "an unexpected code";
     }
 }

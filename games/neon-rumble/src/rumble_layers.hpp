@@ -21,15 +21,17 @@ struct LayerStats {
     uint32_t dropped = 0;
 };
 
-// Кадр слоёв уровня в экранных пикселях: камера сама ходит туда-обратно по отрезку центров, который
-// оставляют `bounds` уровня при половине ЗОНЫ, масштаб и вид — из `viewport_fit`. Один и тот же кадр
-// печатает headless-сводку и уходит в окно — сводка судит ровно то, что видит игрок.
+// Кадр слоёв уровня в экранных пикселях: камера идёт за точкой `follow`, а без неё сама ходит
+// туда-обратно по отрезку центров, который оставляют `bounds` уровня при половине ЗОНЫ, масштаб и
+// вид — из `viewport_fit`. Один и тот же кадр печатает headless-сводку и уходит в окно — сводка
+// судит ровно то, что видит игрок.
 class Layers {
 public:
     static constexpr uint32_t CAPACITY = 4096;
 
     Layers();
-    LayerStats build(const Level& level, const framework::graphics::ViewportFit& fit, uint64_t tick);
+    LayerStats build(const Level& level, const framework::graphics::ViewportFit& fit, uint64_t tick,
+                     const framework::Vec2* follow = nullptr);
 
     std::span<const render::Quad> quads(const LayerStats& st) const {
         return {quads_.data(), st.quads};

@@ -1,17 +1,19 @@
 #pragma once
+#include <array>
 #include <cstdint>
+#include <string>
 
+#include "brawl_body.hpp"
 #include "bundle_lookup.hpp"
 #include "clip_read.hpp"
-#include "fixmath.hpp"
+#include "depth_profile.hpp"
 #include "layer_quads.hpp"
+#include "rumble_roster.hpp"
 
 namespace rumble {
 
 struct Level;
 
-// Поза бойца на тике: витрина перебирает клипы по кругу, каждый второй круг — лицом в другую
-// сторону, чтобы флип был виден без управления (оно приходит с #25).
 struct Pose {
     framework::graphics::ClipView clip;
     const char* name = "";
@@ -19,17 +21,19 @@ struct Pose {
     bool flip = false;
 };
 
-// Боец из `game.bundle` (спека #24, В6б): клипы `clips`, лист их текстуры сырым RGBA8 и точка
-// спавна класса `spawn` из таблицы `objects` уровня. Лист смотрит в маппинг файла уровня.
 struct Fighter {
+    enum Clip : uint32_t { IDLE, WALK, JUMP, CLIP_COUNT };
+
+    const char* name = "";
     framework::graphics::ClipTable clips;
+    std::array<std::string, CLIP_COUNT> clip_names;
     asset::RgbaView sheet;
     framework::graphics::TextureSize sheet_size;
-    framework::Vec2 spawn{};
-    bool faces_left = false;
 
-    bool open(const Level& level);
-    Pose pose(uint64_t tick) const;
+    bool open(const Level& level, const char* fighter);
+    Pose pose(const framework::brawl::Body& body, const framework::brawl::DepthProfile& profile) const;
 };
+
+using Fighters = std::array<Fighter, FIGHTERS>;
 
 } // namespace rumble

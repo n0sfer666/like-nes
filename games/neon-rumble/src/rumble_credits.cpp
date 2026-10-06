@@ -3,7 +3,6 @@
 #include <cstdio>
 
 #include "rumble_level.hpp"
-#include "text_quads.hpp"
 
 namespace rumble {
 
@@ -17,15 +16,19 @@ constexpr uint32_t DIM_RGBA = 0x000000C0u;
 constexpr uint32_t TITLE_RGBA = 0x5CF2FFFFu;
 constexpr uint32_t BODY_RGBA = 0xFFFFFFFFu;
 
-std::string compose(const framework::core::CreditTable& table) {
-    std::string out;
+std::vector<std::string> compose(const framework::core::CreditTable& table) {
+    std::vector<std::string> out;
     for (uint32_t i = 0; i < table.count(); ++i) {
         const framework::core::Credit c = table.at(i);
-        out += std::string(c.pack) + DASH + c.author + ", " + c.license + "\n" + c.url + "\n";
-        if (*c.attribution != '\0') out += std::string(c.attribution) + "\n";
-        out += "\n";
+        std::string block = std::string(c.pack) + DASH + c.author + ", " + c.license + "\n" + c.url;
+        if (*c.attribution != '\0') block += std::string("\n") + c.attribution;
+        out.push_back(std::move(block));
     }
     return out;
+}
+
+void title_text(char (&out)[64], uint32_t page, uint32_t pages) {
+    std::snprintf(out, sizeof out, "%s  %u/%u", TITLE, page, pages);
 }
 
 } // namespace
@@ -54,17 +57,73 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }
-    text = compose(table);
+    blocks = compose(table);
     return true;
 }
 // docs:end(credits-open)
 
 CreditsQuads::CreditsQuads() : places_(CAPACITY), quads_(CAPACITY) {}
 
-CreditStats CreditsQuads::add(const Credits& credits, const ViewportFit& fit, Layers& layers, LayerStats& st,
-                              uint32_t font_texture, uint32_t solid_texture) {
+CreditsQuads::Frame CreditsQuads::frame(const Credits& credits, const ViewportFit& fit) {
+    const PixelRect& r = fit.zone;
+    Frame f;
+    f.scale = fit.scale == 0 ? 1 : fit.scale;
+    f.width = r.w / f.scale > 2 * MARGIN ? r.w / f.scale - 2 * MARGIN : 1;
+    const auto margin = static_cast<int32_t>(MARGIN * f.scale);
+    f.left = r.x + margin;
+    f.top = r.y + margin;
+    f.bottom = r.y + static_cast<int32_t>(r.h) - margin;
+    f.line_px = static_cast<int32_t>(credits.font.row->line_height * f.scale);
+    return f;
+}
+
+// docs:begin(credits-pages)
+void CreditsQuads::paginate(const Credits& credits, const Frame& f) {
+    first_.assign(1, 0);
+    const auto most = static_cast<uint32_t>(credits.blocks.size() > 0 ? credits.blocks.size() : 1);
+    char text[64];
+    title_text(text, most, most);
+    const int32_t title = static_cast<int32_t>(layout_text(credits.font, text, f.width, places_).lines) + 1;
+    const int32_t rows = f.line_px > 0 ? (f.bottom - f.top) / f.line_px - title : 0;
+    int32_t used = 0;
+    for (uint32_t i = 0; i < credits.blocks.size(); ++i) {
+        const auto lines = static_cast<int32_t>(layout_text(credits.font, credits.blocks[i], f.width, places_).lines);
+        if (used > 0 && used + lines > rows) {
+            first_.push_back(i);
+            used = 0;
+        }
+        used += lines + 1;
+    }
+}
+// docs:end(credits-pages)
+
+// docs:begin(credits-layout)
+void CreditsQuads::draw(const Credits& credits, std::string_view text, const Frame& f, TextPen& pen,
+                        Layers& layers, LayerStats& st, uint32_t font_texture, CreditStats& out) {
+    const TextStats t = layout_text(credits.font, text, f.width, places_);
+    uint32_t kept = 0;
+    for (uint32_t i = 0; i < t.placed; ++i)
+        if (pen.y + places_[i].y * static_cast<int32_t>(f.scale) + f.line_px <= f.bottom) places_[kept++] = places_[i];
+    const TextQuadStats q = text_quads(credits.font, {places_.data(), kept}, pen, quads_);
+    layers.append(st, {quads_.data(), q.quads}, font_texture);
+    out.lines += t.lines;
+    out.glyphs += t.placed;
+    out.unknown += t.unknown;
+    out.quads += q.quads;
+    out.dropped += t.dropped + (t.placed - kept) + q.dropped;
+    pen.y += static_cast<int32_t>(t.lines + 1) * f.line_px;
+    pen.rgba = BODY_RGBA;
+}
+// docs:end(credits-layout)
+
+CreditStats CreditsQuads::add(const Credits& credits, uint32_t page, const ViewportFit& fit, Layers& layers,
+                              LayerStats& st, uint32_t font_texture, uint32_t solid_texture) {
     CreditStats out;
     if (credits.font.row == nullptr) return out;
+    const Frame f = frame(credits, fit);
+    paginate(credits, f);
+    out.pages = static_cast<uint32_t>(first_.size());
+    if (page >= out.pages) return out;
     render::Quad dim;
     dim.x = static_cast<float>(fit.shown.x);
     dim.y = static_cast<float>(fit.shown.y);
@@ -74,30 +133,12 @@ CreditStats CreditsQuads::add(const Credits& credits, const ViewportFit& fit, La
     dim.th = 1;
     dim.rgba = DIM_RGBA;
     layers.append(st, {&dim, 1}, solid_texture);
-    const PixelRect& r = fit.zone;
-    const uint32_t scale = fit.scale == 0 ? 1 : fit.scale;
-    const uint32_t width = r.w / scale > 2 * MARGIN ? r.w / scale - 2 * MARGIN : 1;
-    const auto margin = static_cast<int32_t>(MARGIN * scale);
-    const auto line_px = static_cast<int32_t>(credits.font.row->line_height * scale);
-    const int32_t bottom = r.y + static_cast<int32_t>(r.h) - margin;
-    // docs:begin(credits-layout)
-    TextPen pen{r.x + margin, r.y + margin, scale, TITLE_RGBA};
-    for (const char* text : {TITLE, credits.text.c_str()}) {
-        const TextStats t = layout_text(credits.font, text, width, places_);
-        uint32_t kept = 0;
-        for (uint32_t i = 0; i < t.placed; ++i)
-            if (pen.y + places_[i].y * static_cast<int32_t>(scale) + line_px <= bottom) places_[kept++] = places_[i];
-        const TextQuadStats q = text_quads(credits.font, {places_.data(), kept}, pen, quads_);
-        layers.append(st, {quads_.data(), q.quads}, font_texture);
-        out.lines += t.lines;
-        out.glyphs += t.placed;
-        out.unknown += t.unknown;
-        out.quads += q.quads;
-        out.dropped += t.dropped + (t.placed - kept) + q.dropped;
-        pen.y += static_cast<int32_t>(t.lines + 1) * line_px;
-        pen.rgba = BODY_RGBA;
-    }
-    // docs:end(credits-layout)
+    char title[64];
+    title_text(title, page + 1, out.pages);
+    TextPen pen{f.left, f.top, f.scale, TITLE_RGBA};
+    draw(credits, title, f, pen, layers, st, font_texture, out);
+    const uint32_t end = page + 1 < out.pages ? first_[page + 1] : static_cast<uint32_t>(credits.blocks.size());
+    for (uint32_t i = first_[page]; i < end; ++i) draw(credits, credits.blocks[i], f, pen, layers, st, font_texture, out);
     return out;
 }
 

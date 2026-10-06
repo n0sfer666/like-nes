@@ -25,6 +25,8 @@ namespace platformer::fake {
 // реализация сошлась бы с эталоном, ничего не сказав про кэш.
 constexpr int64_t STALL_AT = 7;
 
+constexpr int64_t DEPTH_DEADLINE_MS = 3000;
+
 struct Plan {
     bool idle = false;    // отправитель стоит на месте
     bool stop = false;    // показ отказывает сразу
@@ -34,6 +36,7 @@ struct Plan {
     int64_t stall = -1;   // тик, на котором отправка отказывает один раз
     uint32_t horizon = 0; // 0 — скриптовая длина
     int64_t deadline = 0; // 0 — headless-умолчание
+    bool depth = false;
 };
 
 // Незнакомый режим есть ОТКАЗ, а не «играем как обычно»: опечатка в нём тихо давала бы прогон БЕЗ
@@ -62,6 +65,11 @@ inline bool plan_of(const char* mode, Plan& out) {
     // непроверенными, отвечай шов теми же величинами.
     if (std::strcmp(mode, "short") == 0) { out.horizon = script_ticks() / 2; return true; }
     if (std::strcmp(mode, "impatient") == 0) { out.deadline = 1; return true; }
+    if (std::strcmp(mode, "depth") == 0) {
+        out.depth = true;
+        out.deadline = DEPTH_DEADLINE_MS;
+        return true;
+    }
     std::printf("peer: this --hooks mode was not understood: %s\n", mode);
     return false;
 }
@@ -90,6 +98,7 @@ public:
         const bool again = plan_.fickle && nth != 0 && tick == last_;
         last_ = tick;
         out = plan_.idle || again ? ch::MoveInput{} : script_input(tick);
+        if (plan_.depth) out.move_z = fix32::from_raw(1);
         return true;
     }
     bool show(const Stage&) override {

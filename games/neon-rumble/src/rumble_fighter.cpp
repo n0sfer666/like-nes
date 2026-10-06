@@ -1,89 +1,69 @@
 #include "rumble_fighter.hpp"
 
 #include <cstdio>
-#include <cstring>
 
 #include "clip.hpp"
-#include "object_read.hpp"
 #include "rumble_level.hpp"
 
 namespace rumble {
 
 namespace {
 
-using framework::tilemap::ObjectMap;
+constexpr const char* CLIP_TAGS[Fighter::CLIP_COUNT] = {"idle", "walk", "jump"};
 
-struct Turn {
-    const char* clip;
-    uint64_t ticks;
-};
-
-constexpr Turn SHOWCASE[] = {{"queen/Walk", 60}, {"queen/Jab", 30}, {"queen/Hook", 30}, {"queen/Uppercut", 30}};
-
-constexpr uint64_t round_ticks() {
-    uint64_t sum = 0;
-    for (const Turn& t : SHOWCASE) sum += t.ticks;
-    return sum;
+Fighter::Clip clip_of(const framework::brawl::DepthBody& d) {
+    if (fix32{} < d.y) return Fighter::JUMP;
+    if (d.vx.raw != 0 || d.vz.raw != 0) return Fighter::WALK;
+    return Fighter::IDLE;
 }
 
-bool opened(bool ok, const char* name) {
-    if (!ok) std::fprintf(stderr, "neon-rumble: %s table: does not open\n", name);
-    return ok;
-}
-
-bool find_spawn(const Level& level, Fighter& out) {
-    framework::tilemap::ObjectTable objects;
-    if (!level.open_objects(objects)) return false;
-    const ObjectMap map = objects.find(level.name);
-    for (const framework::tilemap::MapObject& o : framework::tilemap::objects_of_class(map, "spawn")) {
-        if (std::strcmp(framework::tilemap::object_text(map, o.name_offset), "player") != 0) continue;
-        out.spawn = {fix32::from_raw(o.x_raw), fix32::from_raw(o.y_raw)};
-        const framework::tilemap::ObjectProp* facing = framework::tilemap::object_prop(map, o, "facing");
-        out.faces_left = facing != nullptr && facing->type == static_cast<uint8_t>(framework::tilemap::PropType::String) &&
-                         std::strcmp(framework::tilemap::object_text(map, static_cast<uint32_t>(facing->value)), "left") == 0;
-        return true;
-    }
-    std::fprintf(stderr, "neon-rumble: level %s has no spawn named player\n", level.name);
-    return false;
+uint64_t airborne_ticks(const framework::brawl::DepthBody& d, const framework::brawl::DepthProfile& p) {
+    const int32_t t = ((p.jump_vy - d.vy) / p.gravity).to_int();
+    return t > 0 ? static_cast<uint64_t>(t) : 0;
 }
 
 } // namespace
 
-bool Fighter::open(const Level& level) {
+bool Fighter::open(const Level& level, const char* fighter) {
+    name = fighter;
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table("clips", data, size) || !opened(clips.open(data, size), "clips")) return false;
-    for (const Turn& t : SHOWCASE)
-        if (clips.find(t.clip).row == nullptr) {
-            std::fprintf(stderr, "neon-rumble: no clip %s in the clips table\n", t.clip);
+    if (!level.read_table("clips", data, size)) return false;
+    if (!clips.open(data, size)) {
+        std::fprintf(stderr, "neon-rumble: clips table: does not open\n");
+        return false;
+    }
+    uint64_t guid = 0;
+    for (uint32_t i = 0; i < CLIP_COUNT; ++i) {
+        clip_names[i] = std::string(fighter) + "/" + CLIP_TAGS[i];
+        const framework::graphics::ClipView v = clips.find(clip_names[i].c_str());
+        if (v.row == nullptr) {
+            std::fprintf(stderr, "neon-rumble: no clip %s in the clips table\n", clip_names[i].c_str());
             return false;
         }
-    const uint64_t guid = clips.find(SHOWCASE[0].clip).row->texture_guid;
-    for (const Turn& t : SHOWCASE)
-        if (clips.find(t.clip).row->texture_guid != guid) {
-            std::fprintf(stderr, "neon-rumble: clip %s is on another sheet than %s\n", t.clip, SHOWCASE[0].clip);
-            return false;
-        }
+        if (i == 0) guid = v.row->texture_guid;
+        if (v.row->texture_guid == guid) continue;
+        std::fprintf(stderr, "neon-rumble: clip %s is on another sheet than %s\n", clip_names[i].c_str(),
+                     clip_names[0].c_str());
+        return false;
+    }
     const asset::LookupFault f = asset::raw_rgba8(level.bundle, guid, sheet);
     if (f != asset::LookupFault::Ok) {
-        std::fprintf(stderr, "neon-rumble: fighter sheet %016llx: %s\n", static_cast<unsigned long long>(guid),
+        std::fprintf(stderr, "neon-rumble: %s sheet %016llx: %s\n", fighter, static_cast<unsigned long long>(guid),
                      asset::lookup_fault_name(f));
         return false;
     }
     sheet_size = {sheet.width, sheet.height};
-    return find_spawn(level, *this);
+    return true;
 }
 
-Pose Fighter::pose(uint64_t tick) const {
-    const uint64_t round = tick / round_ticks();
-    uint64_t local = tick % round_ticks();
-    const Turn* turn = SHOWCASE;
-    while (local >= turn->ticks) local -= (turn++)->ticks;
+Pose Fighter::pose(const framework::brawl::Body& body, const framework::brawl::DepthProfile& profile) const {
+    const Clip c = clip_of(body.pos);
     Pose p;
-    p.name = turn->clip;
-    p.clip = clips.find(turn->clip);
-    p.frame = framework::graphics::clip_frame_at(p.clip.clip, local);
-    p.flip = faces_left != (round % 2 == 1);
+    p.name = clip_names[c].c_str();
+    p.clip = clips.find(p.name);
+    p.frame = framework::graphics::clip_frame_at(p.clip.clip, c == JUMP ? airborne_ticks(body.pos, profile) : body.age);
+    p.flip = body.facing < 0;
     return p;
 }
 

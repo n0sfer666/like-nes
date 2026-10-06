@@ -8,6 +8,7 @@ add_subdirectory(tilemap)
 add_subdirectory(graphics)
 add_subdirectory(rollback)
 add_subdirectory(replay)
+add_subdirectory(brawl)
 
 # Выравнивание базы у ЧЕТЫРЁХ читателей секций (аудит #21, A·2·6) — одной целью над модулями:
 # дефект один и тот же строкой в каждом читателе, и цель на модуль утверждала бы его четырежды.

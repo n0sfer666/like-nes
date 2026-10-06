@@ -735,7 +735,7 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 | Шрифты | monogram (CC0, PNG + JSON, есть кириллица) — UI; Public Pixel (CC0) — заголовки |
 | Музыка | T&T Free Cyberpunk Pack 1 и 2 (CC0, OGA), Cyberpunk Menu Music (ZaninDevelopers, CC0) |
 | Звуки | Kenney Impact Sounds (CC0), 37 hits/punches (Independent.nu, CC0) |
-| Бойцы — кандидаты, выбор в начале #25 | Streets of Fight (ansimuz, CC0, только zip с OGA; нет захвата, броска, лежачего); Puffolotti Universal Prototype 1/2 + Bad Company + Armin (CC0, 3D-рендер, полный набор); Base for fighting (CapitanRasputin, CC-BY 3.0) — резерв |
+| Бойцы — выбран Puffolotti (шаг 0 #25, 2026-10-05) | Streets of Fight (ansimuz, CC0, только zip с OGA; нет захвата, броска, лежачего); Puffolotti Universal Prototype 1/2 + Bad Company + Armin (CC0, 3D-рендер, полный набор); Base for fighting (CapitanRasputin, CC-BY 3.0) — резерв |
 | Образец пайплайна | Beat em Up Graphics Pack (Chewbatrij, CC0, есть `.aseprite` + JSON) |
 
 Отклонено по лицензии: Ultimate Warped Collection, Warped Highway и платные аддоны ansimuz,

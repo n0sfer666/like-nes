@@ -6,11 +6,16 @@ namespace rumble {
 
 namespace {
 
-void count_tick(void* user, const framework::Tick&) { ++static_cast<Scene*>(user)->ticks; }
+void count_tick(void* user, const framework::Tick&) {
+    Scene& scene = *static_cast<Scene*>(user);
+    ++scene.ticks;
+    scene.brawl->step();
+}
 
 } // namespace
 
-bool Scene::init() {
+bool Scene::init(Brawl& fight) {
+    brawl = &fight;
     framework::SystemDesc tick;
     tick.name = "count_tick";
     tick.stage = framework::Stage::Sim;

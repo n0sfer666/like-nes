@@ -45,7 +45,8 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
-  src/rumble_credits.cpp)
+  src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
+  src/rumble_report.cpp src/rumble_brawl_report.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -91,8 +92,12 @@ texture | sky | pixel | assets/warped-city/sky.png
 texture | far_city | pixel | assets/warped-city/buildings-bg.png
 texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
-texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
-clips | queen | aseprite | assets/chewbatrij/queen-rows.json
+texture | rainbird_sheet | pixel | assets/puffolotti/rainbird.png
+clips | rainbird | aseprite | assets/puffolotti/rainbird.json
+texture | banderas_sheet | pixel | assets/puffolotti/banderas.png
+clips | banderas | aseprite | assets/puffolotti/banderas.json
+texture | adler_sheet | pixel | assets/puffolotti/adler.png
+clips | adler | aseprite | assets/puffolotti/adler.json
 font | monogram | bitmask | assets/monogram/monogram-bitmap.json
 credits | credits | assets/credits.txt
 ```
@@ -131,6 +136,7 @@ in the commit that changes the content or the baker.
 
 `--headless --frames 60` maps the bundle, opens every table and prints a summary of what it read.
 That run is what CI checks. Without `--headless` the game opens a 960×540 window that can be
-resized. **F3** toggles the debug overlay of the fighter, and **F1** toggles the credits screen.
+resized. **F3** toggles the debug overlay of the fighter, and **F1** opens the credits screen
+and turns its pages; the press after the last page closes it.
 `--frames <n>` closes the window after `n` frames with exit code 0. `--headless` needs `--frames`
 with `n` above 0, so a headless run always ends.

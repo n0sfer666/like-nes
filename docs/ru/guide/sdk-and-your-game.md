@@ -1,4 +1,4 @@
-<!-- en-sha256: 0d2c757fbe28775bc418ead6de7d900e099dc4a5c0f60c7a260e8104427b69c8 -->
+<!-- en-sha256: bbc5935de1906b21f631d282c57844dc358010e2c967aaf417ef360e69053da1 -->
 
 # SDK и своя игра
 
@@ -48,7 +48,8 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
-  src/rumble_credits.cpp)
+  src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
+  src/rumble_report.cpp src/rumble_brawl_report.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -94,8 +95,12 @@ texture | sky | pixel | assets/warped-city/sky.png
 texture | far_city | pixel | assets/warped-city/buildings-bg.png
 texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
-texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
-clips | queen | aseprite | assets/chewbatrij/queen-rows.json
+texture | rainbird_sheet | pixel | assets/puffolotti/rainbird.png
+clips | rainbird | aseprite | assets/puffolotti/rainbird.json
+texture | banderas_sheet | pixel | assets/puffolotti/banderas.png
+clips | banderas | aseprite | assets/puffolotti/banderas.json
+texture | adler_sheet | pixel | assets/puffolotti/adler.png
+clips | adler | aseprite | assets/puffolotti/adler.json
 font | monogram | bitmask | assets/monogram/monogram-bitmap.json
 credits | credits | assets/credits.txt
 ```
@@ -134,6 +139,7 @@ credits | credits | assets/credits.txt
 
 `--headless --frames 60` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
 Этот прогон и проверяет CI. Без `--headless` игра открывает окно 960×540, размер которого можно
-менять. **F3** переключает отладочный оверлей бойца, **F1** — экран титров. `--frames <n>` закрывает
+менять. **F3** переключает отладочный оверлей бойца, **F1** открывает экран титров и
+листает его страницы, нажатие после последней закрывает его. `--frames <n>` закрывает
 окно через `n` кадров с кодом выхода 0. `--headless` требует `--frames` с `n` больше 0, поэтому
 безоконный прогон всегда заканчивается.

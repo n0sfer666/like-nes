@@ -51,7 +51,11 @@ inline bool push_input(Peer& p, const PeerConfig& cfg, uint32_t total) {
     const bool skip = cfg.drop_tick >= 0 && static_cast<uint32_t>(cfg.drop_tick) == t;
     if (!skip) {
         uint8_t body[input_wire::BYTES];
-        if (!input_wire::put(body, t, in) || !offer(p, cfg, t, body)) {
+        if (!input_wire::put(body, t, in)) {
+            p.unsendable = true;
+            return false;
+        }
+        if (!offer(p, cfg, t, body)) {
             // Сломанная реализация контроля: сэмпл выбрасывается вместе с отказом отправки, и
             // следующий проход спрашивает шов о том же тике заново.
             if (cfg.forget_stalled) p.holding = false;
