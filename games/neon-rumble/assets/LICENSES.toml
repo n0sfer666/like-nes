@@ -103,8 +103,8 @@ changes = "102 cels of spritesheet.png in 17 clips, keyed out, trimmed, packed d
 [[file]]
 path = "puffolotti/rainbird.json"
 pack = "puffolotti-up2"
-sha256 = "f8246e29c726e9b636bf3479c67cebc7f9484a71d4d10e55c716a769cb3a572e"
-changes = "Aseprite JSON written for rainbird.png, clip names and timings are ours"
+sha256 = "8d27583f9df45db8255c361a49635e3227902bd17d5f7941a70b5ad3a03f4e56"
+changes = "Aseprite JSON written for rainbird.png, clip names, timings and pivot slices are ours"
 
 [[pack]]
 name = "puffolotti-bad-company"
@@ -121,8 +121,8 @@ changes = "102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed,
 [[file]]
 path = "puffolotti/banderas.json"
 pack = "puffolotti-bad-company"
-sha256 = "05b784fee5f6a5d5c89611c83af0a569d5869a8888befe1c7ffeb4ab4bba7ef5"
-changes = "Aseprite JSON written for banderas.png, clip names and timings are ours"
+sha256 = "740435867437d01ca07f0b30f3bdf903f76143c51e5662e57eba2ad4888ab0bc"
+changes = "Aseprite JSON written for banderas.png, clip names, timings and pivot slices are ours"
 
 [[file]]
 path = "puffolotti/adler.png"
@@ -133,5 +133,5 @@ changes = "102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, pa
 [[file]]
 path = "puffolotti/adler.json"
 pack = "puffolotti-bad-company"
-sha256 = "2f70c248c76b89ef460992bb275ed98a0acad834f41cde276716d3a7ca56aa55"
-changes = "Aseprite JSON written for adler.png, clip names and timings are ours"
+sha256 = "271a959c9d4877b48bddc382bfcd8b02dd99301f564173c29ab544b16c5aa102"
+changes = "Aseprite JSON written for adler.png, clip names, timings and pivot slices are ours"

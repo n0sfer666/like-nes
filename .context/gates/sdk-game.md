@@ -31,7 +31,7 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    по половине зоны; кадр 960x540 строится этой политикой.
    С В1д спеки #25 — драка вместо витрины В6б: `clips 51 in the table`; три строки `fighter
    <имя> sheet WxH, body x,z facing …` (лист по `texture_guid` первого клипа бойца, тело на спавне
-   из `objects`: banderas на `player`, rainbird, adler); `depth band 104..536 x 192..224, 0 wall(s)`
+   из `objects`: banderas на `player`, rainbird, adler); `depth band 104..536 x 232..264, 0 wall(s)`
    (объект `depth_band`); три строки `pose tick 0: <имя>/idle frame 0 flip …` в порядке отрисовки —
    имя, клип и flip пинятся, боксы и квады оверлея регэкспом, нули отказов и сброса пинятся; и две
    строки `brawl tick 0/60: hash …, <имя> x,z y …, draw …` целиком: хеш `state_hash` пула, позиции
@@ -67,6 +67,10 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В1д спеки #25 хеш `0xd69efa7c7e0f7a6c`: `queen_sheet` и `queen` ушли из манифеста
    (`chewbatrij/queen-rows.*` остаются фикстурой импорта, пак — в титрах), таблица `clips` — 51,
    спавны `rainbird` и `adler`, полоса `walk` сужена до 104..536 по границам камеры.
+   С находки §21 (2026-10-06) хеш `0x785987a3c33db92b`: полоса `walk` и спавны сдвинуты на +40 по z
+   (z 232..264 — мостовая, строки 14+; было 192..224 — фасад), в листах Puffolotti слайс `pivot`
+   на первом кадре каждого клипа ставит пивот на линию ног idle (8/7/9 px над низом клетки), а на
+   кадрах 29–31 `jump` — на ноги своего кадра (в воздухе под ними 25–41 px).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

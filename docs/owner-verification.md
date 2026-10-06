@@ -3191,7 +3191,15 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0xd69efa7c7e0f7a6c в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x785987a3c33db92b в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+
+> **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`, `bundle_hash 0xd69efa7c7e0f7a6c` at the
+> time): the owner reported steps 1–6 as predicted, in one line, with no screenshot of the 21:9 and
+> 4:3 windows or the credits pages and no `git diff --stat` of step 4. Whether the files were saved
+> by Tiled in step 2 is not on record, and the save is the point of this gate, so it stays open until
+> that is confirmed. The hash in step 3 has moved since: the fix of the §21 finding shifted the depth
+> band and the spawns of `level1.tmj` and set the fighters' pivot, so a re-run expects
+> `0x785987a3c33db92b`.
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3225,7 +3233,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, the lines
-   `Release: game.bundle bundle_hash 0xd69efa7c7e0f7a6c matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0x785987a3c33db92b matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
@@ -3275,7 +3283,15 @@ It is worth sending all the same: the saved files then replace the hand-written 
 
 ## 21. Gate 1 of #25 — three fighters walk the street in depth
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, bundle_hash 0xd69efa7c7e0f7a6c в Release и Debug, строки brawl tick 0 hash 70870806303d445b и tick 60 hash 80a14e7796585315; окно neon_rumble: banderas под стрелками/WASD, вверх-вниз — глубина в полосе 104..536 x 192..224, Space или K — прыжок по нажатию, удержание не прыгает повторно; камера следует и стоит у bounds; ближний по z рисуется поверх, обход rainbird и adler сверху и снизу меняет порядок; F3 — оверлей у всех троих; 3D-рендер Puffolotti рядом с пиксельной улицей Warped City — скриншот и вердикт владельца -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, bundle_hash 0x785987a3c33db92b в Release и Debug, строки brawl tick 0 hash 431ee8a4677862c0 и tick 60 hash bed9657272be2d0d; окно neon_rumble: banderas под стрелками/WASD, вверх-вниз — глубина в полосе 104..536 x 232..264, Space или K — прыжок по нажатию, удержание не прыгает повторно; камера следует и стоит у bounds; ближний по z рисуется поверх, обход rainbird и adler сверху и снизу меняет порядок; F3 — оверлей у всех троих; 3D-рендер Puffolotti рядом с пиксельной улицей Warped City — скриншот и вердикт владельца -->
+
+> **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`): everything but the feet was reported as
+> predicted, and the style of step 7 is accepted for the prototype. Finding: the three fighters stood
+> in the air in front of the facades. The `walk` band lay on facade rows 12–13 (z 192..224), not on
+> the pavement (rows 14 and below), and the pivot sat at the bottom of the cell, 7–9 px under the
+> feet, and 25–41 px under them on the top frames of `jump`. The fix moves the band and the spawns by
+> +40 in z and puts a `pivot` slice on the feet line of every clip and of each airborne frame of
+> `jump`. Steps 1–6 are to be run again on the fixed build; the verdict of step 7 stands.
 
 B1 of spec #25 put three Puffolotti fighters into Neon Rumble: Banderas under the keyboard, Rainbird
 and Adler standing to his right at different depths, both facing left. CI holds the simulation:
@@ -3299,21 +3315,22 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0xd69efa7c7e0f7a6c` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x785987a3c33db92b` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash 70870806303d445b, banderas 200,224 y 0, rainbird 264,200 y 0, adler 328,212 y 0, draw rainbird adler banderas
-       neon-rumble: brawl tick 60: hash 80a14e7796585315, banderas 320,194 y 32, rainbird 264,200 y 0, adler 328,212 y 0, draw banderas rainbird adler
+       neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
+       neon-rumble: brawl tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
 
 2. Start the window and close it yourself when done:
 
        ./build-sdk-work/game-Release/neon_rumble
 
    Three fighters stand on the street: Banderas on the left facing right, Rainbird and Adler to his
-   right facing left, Rainbird higher on the screen (farther away) than Adler.
+   right facing left, Rainbird higher on the screen (farther away) than Adler. All three stand with
+   their feet on the pavement below the facades, not in the air in front of them.
 3. **Walking.** Left and right arrows (or A and D) walk Banderas along the street; up and down (W and
    S) move him away and towards you, up the screen and down it. He stops at the edges of the strip,
-   104 to 536 along the street and 192 to 224 in depth, and never leaves the street. The camera
+   104 to 536 along the street and 232 to 264 in depth, and never leaves the street. The camera
    follows him and stops where the level's `bounds` end; in a window at least as large as the
    384×216 zone he stays in view along the whole strip. A window smaller than the zone is cropped
    (the terminal says so), and there he may leave the frame near the ends of the strip — not a
