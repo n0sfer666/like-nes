@@ -51,8 +51,8 @@ game_run() {
         <<< "$out" || { sdk_bad "$cfg: fighter on tick 0 is not Walk frame 0 facing right"; return 1; }
     grep -Eq '^neon-rumble: fighter tick 215: queen/Jab frame 0 flip 1, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: fighter on tick 215 is not Jab frame 0 flipped"; return 1; }
-    [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|warped-city) \| .*|credits screen 960x540 scale 2: 3 pack\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 5 ] || {
-        sdk_bad "$cfg: font monogram, three packs of credits.txt or a credits screen with 0 unknown and 0 dropped missing"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|warped-city) \| .*|credits screen 960x540 scale 2: 3 pack\(s\), 1 page\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 5 ] || {
+        sdk_bad "$cfg: font monogram, three packs of credits.txt or a one-page credits screen with 0 unknown and 0 dropped missing"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 60 headless frames"
 }
 

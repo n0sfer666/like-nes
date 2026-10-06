@@ -3183,7 +3183,7 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x1c3f1ab85657a27a в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры», 3 пака, URL chewbatrij переносится, ни одного «?» -->
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x1c3f1ab85657a27a в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/1», 3 пака, URL chewbatrij переносится, ни одного «?», второе F1 закрывает -->
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3239,13 +3239,14 @@ backslashes).
    of the world and no bands. In both shapes the world inside the bands has no holes. The sky shows
    wherever the two cities do not reach, and the bottom edge of `far-city` or `near-city` never
    shows as a straight line above the facades. Send back a screenshot of each shape.
-7. Press **F1**. The level dims, the title `Credits · Титры` stands at the top in cyan, and under
-   it, in white, the three packs `chewbatrij`, `monogram` and `warped-city` appear, each as
+7. Press **F1**. The level dims, the title `Credits · Титры  1/1` stands at the top in cyan, and
+   under it, in white, the three packs `chewbatrij`, `monogram` and `warped-city` appear, each as
    "pack — author, license" with its URL below. The long URL of `chewbatrij` wraps to the next line
    instead of running out of the play area. Not a single `?` stands in for a letter. The Cyrillic
    of the title, `·`, `—`, `í` and `é` are all in the font. In the 21:9 window the text stays
-   inside the central play area. **F1** again hides the screen. Send back a screenshot with the
-   credits on.
+   inside the central play area. All three packs fit one page, so the title reads `1/1`, and
+   **F1** again hides the screen: each press turns a page, the press after the last one closes the
+   credits. Send back a screenshot with the credits on.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit
 code is 0.

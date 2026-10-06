@@ -67,13 +67,15 @@ bigger instead of finding the problem by eye.
 ## The credits screen
 
 **F1** in the Neon Rumble window opens a screen over the level with the title `Credits · Титры`
-and the three asset packs of the game, each with its author, license and URL. The text comes from
+and the asset packs of the game, each with its author, license and URL. Each press turns a page,
+and the press after the last page closes the screen. The text comes from
 the `credits` table, which is baked from `credits.txt` (see [Asset licenses](asset-licenses.md)).
 The title is in two languages on purpose: it checks the Latin, the Cyrillic and the middle dot of
 the font in one line.
 
 The game opens both tables from the bundle once, when the level loads. It finds the font by name,
-checks that the atlas texture has the size the font row expects, and turns the credits into text:
+checks that the atlas texture has the size the font row expects, and turns every pack into a block
+of text:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-open -->
 ```cpp
@@ -100,23 +102,49 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }
-    text = compose(table);
+    blocks = compose(table);
     return true;
 }
 ```
 <!-- /snippet -->
 
-Each frame it lays out the title and then the body inside the 384×216 play area, scaled the same as
-the level, and drops the lines that would fall below the bottom margin:
+A page holds as many whole packs as fit the height of the 384×216 play area under the title, so a
+pack never breaks between two pages:
+
+<!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-pages -->
+```cpp
+void CreditsQuads::paginate(const Credits& credits, const Frame& f) {
+    first_.assign(1, 0);
+    const auto most = static_cast<uint32_t>(credits.blocks.size() > 0 ? credits.blocks.size() : 1);
+    char text[64];
+    title_text(text, most, most);
+    const int32_t title = static_cast<int32_t>(layout_text(credits.font, text, f.width, places_).lines) + 1;
+    const int32_t rows = f.line_px > 0 ? (f.bottom - f.top) / f.line_px - title : 0;
+    int32_t used = 0;
+    for (uint32_t i = 0; i < credits.blocks.size(); ++i) {
+        const auto lines = static_cast<int32_t>(layout_text(credits.font, credits.blocks[i], f.width, places_).lines);
+        if (used > 0 && used + lines > rows) {
+            first_.push_back(i);
+            used = 0;
+        }
+        used += lines + 1;
+    }
+}
+```
+<!-- /snippet -->
+
+Each frame it lays out the title with the page number `n/N` and then the packs of the page, scaled
+the same as the level. Only a pack taller than an empty page can still reach below the bottom
+margin; its glyphs there are not drawn and count as dropped:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-layout -->
 ```cpp
-TextPen pen{r.x + margin, r.y + margin, scale, TITLE_RGBA};
-for (const char* text : {TITLE, credits.text.c_str()}) {
-    const TextStats t = layout_text(credits.font, text, width, places_);
+void CreditsQuads::draw(const Credits& credits, std::string_view text, const Frame& f, TextPen& pen,
+                        Layers& layers, LayerStats& st, uint32_t font_texture, CreditStats& out) {
+    const TextStats t = layout_text(credits.font, text, f.width, places_);
     uint32_t kept = 0;
     for (uint32_t i = 0; i < t.placed; ++i)
-        if (pen.y + places_[i].y * static_cast<int32_t>(scale) + line_px <= bottom) places_[kept++] = places_[i];
+        if (pen.y + places_[i].y * static_cast<int32_t>(f.scale) + f.line_px <= f.bottom) places_[kept++] = places_[i];
     const TextQuadStats q = text_quads(credits.font, {places_.data(), kept}, pen, quads_);
     layers.append(st, {quads_.data(), q.quads}, font_texture);
     out.lines += t.lines;
@@ -124,19 +152,21 @@ for (const char* text : {TITLE, credits.text.c_str()}) {
     out.unknown += t.unknown;
     out.quads += q.quads;
     out.dropped += t.dropped + (t.placed - kept) + q.dropped;
-    pen.y += static_cast<int32_t>(t.lines + 1) * line_px;
+    pen.y += static_cast<int32_t>(t.lines + 1) * f.line_px;
     pen.rgba = BODY_RGBA;
 }
 ```
 <!-- /snippet -->
 
-`--headless` prints the counts of the same layout for a 960×540 window:
+`--headless` lays out every page for a 960×540 window and prints the totals:
 
 ```text
-neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 12 line(s), 255 glyph(s), 0 unknown, 256 quad(s), 0 dropped
+neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
 ```
 
 `0 unknown` means every character of the credits has a glyph in the font, and `0 dropped` means
-every glyph reached the screen: none was lost to a full buffer or below the bottom margin. `check_sdk_game.sh` matches this line by a pattern: it requires `3 pack(s)`,
+every glyph reached the screen: none was lost to a full buffer or below the bottom margin.
+`check_sdk_game.sh` matches this line by a pattern: it requires `3 pack(s)`, `1 page(s)`,
 `0 unknown` and `0 dropped`, and leaves the line, glyph and quad counts free, because they move
-with any edit of the credits text. A fourth pack changes the pattern in the same commit.
+with any edit of the credits text. A new pack or one more page changes the pattern in the same
+commit.

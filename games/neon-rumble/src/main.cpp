@@ -97,8 +97,8 @@ void report_fighter(const rumble::Level& level, const rumble::Fighter& fighter) 
     }
 }
 
-// Сводка титров: шрифт и атлас из бандла, строки секции `credits` и раскладка экрана F1 на 960x540 —
-// ноль неизвестных символов доказывает, что кириллица заголовка и тире есть в шрифте.
+// Сводка титров: шрифт и атлас из бандла, строки секции `credits` и раскладка всех страниц экрана F1 на
+// 960x540 — ноль неизвестных символов доказывает, что кириллица заголовка и тире есть в шрифте.
 void report_credits(const rumble::Level& level, const rumble::Credits& credits) {
     const auto& f = *credits.font.row;
     std::printf("neon-rumble: font %s line %u, %zu glyph(s), atlas %ux%u\n", rumble::Credits::FONT, f.line_height,
@@ -110,13 +110,25 @@ void report_credits(const rumble::Level& level, const rumble::Credits& credits) 
     rumble::Layers layers;
     rumble::CreditsQuads quads;
     const ViewportFit fit = framework::graphics::viewport_fit({960, 540});
-    rumble::LayerStats st = layers.build(level, fit, 0);
-    const uint32_t before = st.quads;
-    const rumble::CreditStats cs = quads.add(credits, fit, layers, st, level.texture_count + 2, level.texture_count + 1);
-    std::printf("neon-rumble: credits screen 960x540 scale %u: %u pack(s), %u line(s), %u glyph(s), %u unknown, "
-                "%u quad(s), %u dropped\n",
-                fit.scale, credits.table.count(), cs.lines, cs.glyphs, cs.unknown, st.quads - before,
-                cs.dropped + st.dropped);
+    rumble::CreditStats sum;
+    uint32_t drawn = 0;
+    uint32_t pages = 1;
+    for (uint32_t page = 0; page < pages; ++page) {
+        rumble::LayerStats st = layers.build(level, fit, 0);
+        const uint32_t before = st.quads;
+        const uint32_t lost = page == 0 ? 0 : st.dropped;
+        const rumble::CreditStats cs =
+            quads.add(credits, page, fit, layers, st, level.texture_count + 2, level.texture_count + 1);
+        pages = cs.pages;
+        sum.lines += cs.lines;
+        sum.glyphs += cs.glyphs;
+        sum.unknown += cs.unknown;
+        sum.dropped += cs.dropped + st.dropped - lost;
+        drawn += st.quads - before;
+    }
+    std::printf("neon-rumble: credits screen 960x540 scale %u: %u pack(s), %u page(s), %u line(s), %u glyph(s), "
+                "%u unknown, %u quad(s), %u dropped\n",
+                fit.scale, credits.table.count(), pages, sum.lines, sum.glyphs, sum.unknown, drawn, sum.dropped);
 }
 
 int run_headless(rumble::Scene& scene, int frames) {

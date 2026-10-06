@@ -104,7 +104,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
     bool cropped = false;
     bool overlay = false;
     bool f3_held = false;
-    bool titles = false;
+    uint32_t shown = 0;
     bool f1_held = false;
     bool warned = false;
     bool upload_warned = false;
@@ -113,7 +113,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         if (key_toggled(window, GLFW_KEY_F3, f3_held)) overlay = !overlay;
-        if (key_toggled(window, GLFW_KEY_F1, f1_held)) titles = !titles;
+        if (key_toggled(window, GLFW_KEY_F1, f1_held)) ++shown;
         int nw = 0, nh = 0;
         glfwGetFramebufferSize(window, &nw, &nh);
         if (nw > 0 && nh > 0 && (static_cast<uint32_t>(nw) != spec.width
@@ -139,9 +139,10 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
                          static_cast<unsigned long long>(tick), fs.rejected, fs.dropped);
             fighter_warned = true;
         }
-        const CreditStats cs = titles ? credits_quads.add(credits, fit, layers, st, level.texture_count + 2,
-                                                          level.texture_count + 1)
-                                      : CreditStats{};
+        const CreditStats cs = shown > 0 ? credits_quads.add(credits, shown - 1, fit, layers, st,
+                                                             level.texture_count + 2, level.texture_count + 1)
+                                         : CreditStats{};
+        if (shown > cs.pages) shown = 0;
         if (cs.unknown + cs.dropped > 0 && !credits_warned) {
             std::fprintf(stderr, "neon-rumble: tick %llu: credits %u unknown glyph(s), %u dropped\n",
                          static_cast<unsigned long long>(tick), cs.unknown, cs.dropped);

@@ -37,8 +37,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка.
    С В8б — шрифт и титры: `font monogram line 12, 390 glyph(s), atlas 224x156` (таблица `fonts`,
    атлас по `texture_guid`) пинится целиком; строк `credit …` ровно три, среди них `monogram`
-   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 3 pack(s), …`
-   — строки, глифы и квады регэкспом, а `0 unknown` и `0 dropped` пинятся: символ титров, которого
+   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 3 pack(s),
+   1 page(s), …` (страницы по целым пакам, сводка по всем страницам) — строки, глифы и квады
+   регэкспом, а `0 unknown` и `0 dropped` пинятся: символ титров, которого
    нет в monogram (`·`, `—`, кириллица, `í`), или квад сверх `CreditsQuads::CAPACITY` — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
    `games/neon-rumble/bundle.hash` в обеих конфигурациях. Читается копия рядом с exe, а не выход

@@ -67,14 +67,15 @@ Menézio). Neon Rumble поставляет его без изменений.
 
 ## Экран титров
 
-**F1** в окне Neon Rumble открывает поверх уровня экран с заголовком `Credits · Титры` и тремя
-паками ассетов игры, у каждого — автор, лицензия и URL. Текст берётся из таблицы `credits`, которая
+**F1** в окне Neon Rumble открывает поверх уровня экран с заголовком `Credits · Титры` и
+паками ассетов игры, у каждого — автор, лицензия и URL. Каждое нажатие листает страницу, нажатие
+после последней закрывает экран. Текст берётся из таблицы `credits`, которая
 пропекается из `credits.txt` (см. [Лицензии ассетов](asset-licenses.md)). Заголовок на двух языках
 намеренно: одна строка проверяет латиницу, кириллицу и точку посередине строки в шрифте.
 
 Игра открывает обе таблицы из бандла один раз, при загрузке уровня. Она находит шрифт по имени,
-проверяет, что текстура атласа того размера, которого ждёт строка шрифта, и превращает титры в
-текст:
+проверяет, что текстура атласа того размера, которого ждёт строка шрифта, и превращает каждый пак
+в блок текста:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-open -->
 ```cpp
@@ -101,23 +102,49 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }
-    text = compose(table);
+    blocks = compose(table);
     return true;
 }
 ```
 <!-- /snippet -->
 
-Каждый кадр она раскладывает заголовок, а затем тело внутри игрового поля 384×216 в том же
-масштабе, что и уровень, и отбрасывает строки, которые упали бы ниже нижнего поля:
+Страница вмещает столько целых паков, сколько влезает по высоте игрового поля 384×216 под
+заголовком, так что пак никогда не разрывается между двумя страницами:
+
+<!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-pages -->
+```cpp
+void CreditsQuads::paginate(const Credits& credits, const Frame& f) {
+    first_.assign(1, 0);
+    const auto most = static_cast<uint32_t>(credits.blocks.size() > 0 ? credits.blocks.size() : 1);
+    char text[64];
+    title_text(text, most, most);
+    const int32_t title = static_cast<int32_t>(layout_text(credits.font, text, f.width, places_).lines) + 1;
+    const int32_t rows = f.line_px > 0 ? (f.bottom - f.top) / f.line_px - title : 0;
+    int32_t used = 0;
+    for (uint32_t i = 0; i < credits.blocks.size(); ++i) {
+        const auto lines = static_cast<int32_t>(layout_text(credits.font, credits.blocks[i], f.width, places_).lines);
+        if (used > 0 && used + lines > rows) {
+            first_.push_back(i);
+            used = 0;
+        }
+        used += lines + 1;
+    }
+}
+```
+<!-- /snippet -->
+
+Каждый кадр она раскладывает заголовок с номером страницы `n/N`, а затем паки страницы в том же
+масштабе, что и уровень. Ниже нижнего поля может уйти только пак выше пустой страницы; его глифы
+там не рисуются и идут в dropped:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-layout -->
 ```cpp
-TextPen pen{r.x + margin, r.y + margin, scale, TITLE_RGBA};
-for (const char* text : {TITLE, credits.text.c_str()}) {
-    const TextStats t = layout_text(credits.font, text, width, places_);
+void CreditsQuads::draw(const Credits& credits, std::string_view text, const Frame& f, TextPen& pen,
+                        Layers& layers, LayerStats& st, uint32_t font_texture, CreditStats& out) {
+    const TextStats t = layout_text(credits.font, text, f.width, places_);
     uint32_t kept = 0;
     for (uint32_t i = 0; i < t.placed; ++i)
-        if (pen.y + places_[i].y * static_cast<int32_t>(scale) + line_px <= bottom) places_[kept++] = places_[i];
+        if (pen.y + places_[i].y * static_cast<int32_t>(f.scale) + f.line_px <= f.bottom) places_[kept++] = places_[i];
     const TextQuadStats q = text_quads(credits.font, {places_.data(), kept}, pen, quads_);
     layers.append(st, {quads_.data(), q.quads}, font_texture);
     out.lines += t.lines;
@@ -125,20 +152,21 @@ for (const char* text : {TITLE, credits.text.c_str()}) {
     out.unknown += t.unknown;
     out.quads += q.quads;
     out.dropped += t.dropped + (t.placed - kept) + q.dropped;
-    pen.y += static_cast<int32_t>(t.lines + 1) * line_px;
+    pen.y += static_cast<int32_t>(t.lines + 1) * f.line_px;
     pen.rgba = BODY_RGBA;
 }
 ```
 <!-- /snippet -->
 
-`--headless` печатает счётчики той же раскладки для окна 960×540:
+`--headless` раскладывает все страницы для окна 960×540 и печатает итог:
 
 ```text
-neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 12 line(s), 255 glyph(s), 0 unknown, 256 quad(s), 0 dropped
+neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
 ```
 
 `0 unknown` значит, что у каждого символа титров есть глиф в шрифте, а `0 dropped` — что каждый
 глиф дошёл до экрана: ни один не потерян ни в полном буфере, ни ниже нижнего поля.
-`check_sdk_game.sh` сверяет эту строку по шаблону: он требует `3 pack(s)`, `0 unknown` и
-`0 dropped`, а число строк, глифов и квадов оставляет свободным, потому что оно сдвигается от любой
-правки текста титров. Четвёртый пак меняет шаблон в том же коммите.
+`check_sdk_game.sh` сверяет эту строку по шаблону: он требует `3 pack(s)`, `1 page(s)`,
+`0 unknown` и `0 dropped`, а число строк, глифов и квадов оставляет свободным, потому что оно
+сдвигается от любой правки текста титров. Новый пак или лишняя страница меняют шаблон в том же
+коммите.
