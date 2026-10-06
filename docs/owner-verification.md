@@ -3249,6 +3249,10 @@ backslashes).
    `puffolotti-bad-company`, `puffolotti-up2` and `warped-city`. A third **F1** hides the screen.
    Send back a screenshot of each page.
 
+   > **Step 7 confirmed 2026-10-06 on macOS** (owner, build of `f61b3bc` from
+   > `bash scripts/check_sdk_game.sh --keep`): F1 opens page `1/2`, the second press shows `2/2`,
+   > the third hides the credits, as predicted. Steps 1–6 of this scenario stay open.
+
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit
 code is 0.
 
