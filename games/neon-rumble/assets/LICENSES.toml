@@ -87,3 +87,51 @@ license = "CC0-1.0"
 path = "monogram/monogram-bitmap.json"
 pack = "monogram"
 sha256 = "847e18d10ecd0fd4362ee0088a1bc56f9b203136b544d45db17426ff91913938"
+
+[[pack]]
+name = "puffolotti-up2"
+url = "https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen"
+author = "Puffolotti"
+license = "CC0-1.0"
+
+[[file]]
+path = "puffolotti/rainbird.png"
+pack = "puffolotti-up2"
+sha256 = "54de70b845a3fa3b29454822049dcfab868e832e7b4c8eb1debc4ff749404012"
+changes = "102 cels of spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+
+[[file]]
+path = "puffolotti/rainbird.json"
+pack = "puffolotti-up2"
+sha256 = "c79c6f35c3749af61ca42eb76e2e8db827c482cc3c32e712cb29926eb05b56b4"
+changes = "Aseprite JSON written for rainbird.png, clip names and timings are ours"
+
+[[pack]]
+name = "puffolotti-bad-company"
+url = "https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen"
+author = "Puffolotti"
+license = "CC0-1.0"
+
+[[file]]
+path = "puffolotti/banderas.png"
+pack = "puffolotti-bad-company"
+sha256 = "76e3dd2a17b28f413b69056199230884c8674fbc42788d66c57ecaa8e78bfdb5"
+changes = "102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+
+[[file]]
+path = "puffolotti/banderas.json"
+pack = "puffolotti-bad-company"
+sha256 = "e5bb0db79ee2ddb84790d329617b9d171c34c74296f487a93b9415cbfb52f86c"
+changes = "Aseprite JSON written for banderas.png, clip names and timings are ours"
+
+[[file]]
+path = "puffolotti/adler.png"
+pack = "puffolotti-bad-company"
+sha256 = "ffcc307b58f64152ec98be157fd3efd1288a6e5a9fbcb8b933ac34068bc0f646"
+changes = "102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+
+[[file]]
+path = "puffolotti/adler.json"
+pack = "puffolotti-bad-company"
+sha256 = "b73fdc9000c9480feb0c702e3f70c0675cff16e8dbab3df9a471c6d0a795aea3"
+changes = "Aseprite JSON written for adler.png, clip names and timings are ours"

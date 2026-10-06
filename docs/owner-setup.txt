@@ -1815,11 +1815,13 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+      neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+      neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
-      neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
+      neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Release: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x1c3f1ab85657a27a matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0x4762c9ad0956aa72 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
@@ -1832,11 +1834,13 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+      neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+      neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
-      neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
+      neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
       neon-rumble: headless run ok, 60 frames
       sdk-game: OK   Debug: built against the prefix and ran 60 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x1c3f1ab85657a27a matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x4762c9ad0956aa72 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1884,10 +1888,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
   Строки font, credit и credits screen — титры (спека #24, В8б): шрифт
   monogram из таблицы fonts (390 глифов, строка 12 пикселей, атлас 224x156
-  по guid строки шрифта), три пака секции credits по алфавиту — ровно
+  по guid строки шрифта), пять паков секции credits по алфавиту — ровно
   credits.txt, и раскладка всех страниц экрана F1 на 960x540: страница —
-  столько целых паков, сколько влезает в зону 384x216 под заголовком; три
-  пака — одна страница, URL chewbatrij переносится. 0 unknown — каждый
+  столько целых паков, сколько влезает в зону 384x216 под заголовком; пять
+  паков — две страницы, длинные URL переносятся. 0 unknown — каждый
   символ титров (кириллица заголовка, «·», «—», «í», «é») есть в шрифте;
   0 dropped — ни один глиф не ушёл за CAPACITY и за нижний край зоны.
 
@@ -1905,8 +1909,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   шагает на месте; из кадра он не уходит. F3 включает и выключает оверлей:
   голубая рамка клетки и белый крест пивота у ступней. F1 листает титры
   по кругу: уровень темнеет, вверху голубой заголовок
-  «Credits · Титры  1/1», под ним белым три пака (chewbatrij, monogram, warped-city) —
-  «пак — автор, лицензия», ниже URL; длинный URL переносится, а не уходит
+  «Credits · Титры  1/2», под ним белым паки по алфавиту — с chewbatrij
+  на первой странице до warped-city на второй (2/2), пак не рвётся между
+  страницами — «пак — автор, лицензия», ниже URL; длинный URL переносится, а не уходит
   за край. Ни одного «?» вместо букв (кириллица, «·», «—», «í» и «é»
   в шрифте есть). Следующее F1 после последней страницы закрывает
   титры. Если растянуть окно

@@ -77,6 +77,8 @@ game's `assets/` to 30 MiB.
 # Generated from LICENSES.toml by scripts/check_asset_licenses.py --write; do not edit.
 credit | chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
 credit | monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+credit | puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+credit | puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
 credit | warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
 ```
 <!-- /snippet -->

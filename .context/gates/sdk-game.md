@@ -36,9 +36,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    боксов и квадов оверлея — регэкспом (у пака боксов нет, B6a); нули отказов и сброса пинятся:
    клетка за листом или квад оверлея сверх `FighterQuads::OVERLAY` — находка.
    С В8б — шрифт и титры: `font monogram line 12, 390 glyph(s), atlas 224x156` (таблица `fonts`,
-   атлас по `texture_guid`) пинится целиком; строк `credit …` ровно три, среди них `monogram`
-   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 3 pack(s),
-   1 page(s), …` (страницы по целым пакам, сводка по всем страницам) — строки, глифы и квады
+   атлас по `texture_guid`) пинится целиком; строк `credit …` ровно пять, среди них `monogram`
+   (секция `credits` из `credits.txt` гейта лицензий); `credits screen 960x540 scale 2: 5 pack(s),
+   2 page(s), …` (страницы по целым пакам, сводка по всем страницам) — строки, глифы и квады
    регэкспом, а `0 unknown` и `0 dropped` пинятся: символ титров, которого
    нет в monogram (`·`, `—`, кириллица, `í`), или квад сверх `CreditsQuads::CAPACITY` — находка;
 4. сверяет `bundle_hash` `game.bundle` рядом с exe (смещение 32, `od`) с закоммиченным
@@ -55,6 +55,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В8а хеш `0x62dfbf79ff663b23`: три image-слоя параллакса (`sky` p=0, `far-city` 0.25 и
    `near-city` 0.5 с `cover_y = false`), тайлсет `neon-signs.tsj` с анимацией и слой `signs`.
    С В8б хеш `0x1c3f1ab85657a27a`: атлас и секция `fonts` шрифта `monogram`, секция `credits`.
+   С шага 0 спеки #25 хеш `0x4762c9ad0956aa72`: в `credits.txt` паки `puffolotti-bad-company` и
+   `puffolotti-up2` — кадры бойцов лежат в `assets/`, но в манифест входят только с В1.
    С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 

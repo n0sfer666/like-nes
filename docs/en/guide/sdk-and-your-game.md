@@ -131,6 +131,7 @@ in the commit that changes the content or the baker.
 
 `--headless --frames 60` maps the bundle, opens every table and prints a summary of what it read.
 That run is what CI checks. Without `--headless` the game opens a 960×540 window that can be
-resized. **F3** toggles the debug overlay of the fighter, and **F1** toggles the credits screen.
+resized. **F3** toggles the debug overlay of the fighter, and **F1** opens the credits screen
+and turns its pages; the press after the last page closes it.
 `--frames <n>` closes the window after `n` frames with exit code 0. `--headless` needs `--frames`
 with `n` above 0, so a headless run always ends.

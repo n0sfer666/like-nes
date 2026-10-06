@@ -161,12 +161,12 @@ void CreditsQuads::draw(const Credits& credits, std::string_view text, const Fra
 `--headless` lays out every page for a 960×540 window and prints the totals:
 
 ```text
-neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
 ```
 
 `0 unknown` means every character of the credits has a glyph in the font, and `0 dropped` means
 every glyph reached the screen: none was lost to a full buffer or below the bottom margin.
-`check_sdk_game.sh` matches this line by a pattern: it requires `3 pack(s)`, `1 page(s)`,
+`check_sdk_game.sh` matches this line by a pattern: it requires `5 pack(s)`, `2 page(s)`,
 `0 unknown` and `0 dropped`, and leaves the line, glyph and quad counts free, because they move
 with any edit of the credits text. A new pack or one more page changes the pattern in the same
 commit.

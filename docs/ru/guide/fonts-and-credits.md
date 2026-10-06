@@ -161,12 +161,12 @@ void CreditsQuads::draw(const Credits& credits, std::string_view text, const Fra
 `--headless` раскладывает все страницы для окна 960×540 и печатает итог:
 
 ```text
-neon-rumble: credits screen 960x540 scale 2: 3 pack(s), 1 page(s), 8 line(s), 258 glyph(s), 0 unknown, 259 quad(s), 0 dropped
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
 ```
 
 `0 unknown` значит, что у каждого символа титров есть глиф в шрифте, а `0 dropped` — что каждый
 глиф дошёл до экрана: ни один не потерян ни в полном буфере, ни ниже нижнего поля.
-`check_sdk_game.sh` сверяет эту строку по шаблону: он требует `3 pack(s)`, `1 page(s)`,
+`check_sdk_game.sh` сверяет эту строку по шаблону: он требует `5 pack(s)`, `2 page(s)`,
 `0 unknown` и `0 dropped`, а число строк, глифов и квадов оставляет свободным, потому что оно
 сдвигается от любой правки текста титров. Новый пак или лишняя страница меняют шаблон в том же
 коммите.
