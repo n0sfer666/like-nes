@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**12 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 10 stay here as the procedure, because each needs a machine a CI runner is not: a
+**13 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -37,9 +37,11 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 | The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
-| Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
+| Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
 
-The last to close was the network frame cost (§13), on 2026-10-04 on the Windows box — the slowest
+The last to close was the first gate of #25 (§21), on 2026-10-06 on macOS: the first run put the
+fighters in the air in front of the facades, and the second, on the fixed build, put their feet on
+the pavement. Before it, the network frame cost (§13) closed on 2026-10-04 on the Windows box — the slowest
 machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
 the day before, and the two halves disagree about which peer is the expensive one: the asymmetry the
 gate rests on is inverted here, and the receiver's rollback count turned out not to be pinned by the
@@ -3283,7 +3285,16 @@ It is worth sending all the same: the saved files then replace the hand-written 
 
 ## 21. Gate 1 of #25 — three fighters walk the street in depth
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, bundle_hash 0x785987a3c33db92b в Release и Debug, строки brawl tick 0 hash 431ee8a4677862c0 и tick 60 hash bed9657272be2d0d; окно neon_rumble: banderas под стрелками/WASD, вверх-вниз — глубина в полосе 104..536 x 232..264, Space или K — прыжок по нажатию, удержание не прыгает повторно; камера следует и стоит у bounds; ближний по z рисуется поверх, обход rainbird и adler сверху и снизу меняет порядок; F3 — оверлей у всех троих; 3D-рендер Puffolotti рядом с пиксельной улицей Warped City — скриншот и вердикт владельца -->
+<!-- gate: closed 2026-10-06 -->
+
+> **Closed 2026-10-06** on macOS by the owner, on a build of `71727a8`, the fix of the run below.
+> `check_sdk_game.sh --keep` passed in Release and Debug with `bundle_hash 0x785987a3c33db92b` and
+> the brawl lines `tick 0: hash 431ee8a4677862c0` and `tick 60: hash bed9657272be2d0d`. Steps 1–6
+> were run again and came out as predicted: the three fighters stand with their feet on the pavement
+> below the facades, the F3 cross sits at the feet, the arrows, WASD, Space and K move Banderas in
+> the band 232..264, the nearer fighter covers the farther one and the order flips around Rainbird
+> and Adler. The verdict of step 7 from the first run stands: the 3D-rendered Puffolotti next to
+> the pixel street is accepted for the prototype.
 
 > **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`): everything but the feet was reported as
 > predicted, and the style of step 7 is accepted for the prototype. Finding: the three fighters stood
@@ -3359,7 +3370,7 @@ is 0.
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 12 of the 22 are closed, and the open 10 are listed by
+The gates above are what the ADRs waited on; 13 of the 22 are closed, and the open 9 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
