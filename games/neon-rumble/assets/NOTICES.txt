@@ -24,9 +24,9 @@ Source: https://opengameart.org/content/bad-company-assorted-military-thugs-univ
 License: CC0-1.0 (licenses/CC0-1.0.txt)
 Files:
   puffolotti/adler.json (changes: Aseprite JSON written for adler.png, clip names and timings are ours)
-  puffolotti/adler.png (changes: 102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14)
+  puffolotti/adler.png (changes: 102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, packed densely)
   puffolotti/banderas.json (changes: Aseprite JSON written for banderas.png, clip names and timings are ours)
-  puffolotti/banderas.png (changes: 102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14)
+  puffolotti/banderas.png (changes: 102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed, packed densely)
 
 == puffolotti-up2 ==
 Author: Puffolotti
@@ -34,7 +34,7 @@ Source: https://opengameart.org/content/universal-prototype-2-for-scrolling-beat
 License: CC0-1.0 (licenses/CC0-1.0.txt)
 Files:
   puffolotti/rainbird.json (changes: Aseprite JSON written for rainbird.png, clip names and timings are ours)
-  puffolotti/rainbird.png (changes: 102 cels of spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14)
+  puffolotti/rainbird.png (changes: 102 cels of spritesheet.png in 17 clips, keyed out, trimmed, packed densely)
 
 == warped-city ==
 Author: ansimuz

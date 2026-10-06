@@ -93,6 +93,12 @@ texture | near_city | pixel | assets/warped-city/near-buildings-bg.png
 level | level1 | tiled | levels/level1.tmj | viewport
 texture | queen_sheet | pixel | assets/chewbatrij/queen-rows.png
 clips | queen | aseprite | assets/chewbatrij/queen-rows.json
+texture | rainbird_sheet | pixel | assets/puffolotti/rainbird.png
+clips | rainbird | aseprite | assets/puffolotti/rainbird.json
+texture | banderas_sheet | pixel | assets/puffolotti/banderas.png
+clips | banderas | aseprite | assets/puffolotti/banderas.json
+texture | adler_sheet | pixel | assets/puffolotti/adler.png
+clips | adler | aseprite | assets/puffolotti/adler.json
 font | monogram | bitmask | assets/monogram/monogram-bitmap.json
 credits | credits | assets/credits.txt
 ```

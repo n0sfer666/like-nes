@@ -29,7 +29,7 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    cropped` — `viewport_fit` из поставленного заголовка (до В7б его в SDK не было), — и `bounds
    104..536 x 56..280, camera 296,172`: объект `bounds` из таблицы `objects` и кламп `camera_follow`
    по половине зоны; кадр 960x540 строится этой политикой.
-   С В6б — боец: `fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right` (таблица `clips`,
+   С В6б — боец: `fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right` (таблица `clips`,
    лист по `texture_guid` клипа, объект `player` из `objects`) и две строки позы —
    `fighter tick 0: queen/Walk frame 0 flip 0, …` и `fighter tick 215: queen/Jab frame 0 flip 1, …`:
    витрина по тику (Walk 60, Jab 30, Hook 30, Uppercut 30) и смена стороны на втором круге. Счёт
@@ -57,6 +57,9 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В8б хеш `0x1c3f1ab85657a27a`: атлас и секция `fonts` шрифта `monogram`, секция `credits`.
    С шага 0 спеки #25 хеш `0x4762c9ad0956aa72`: в `credits.txt` паки `puffolotti-bad-company` и
    `puffolotti-up2` — кадры бойцов лежат в `assets/`, но в манифест входят только с В1.
+   С В1а спеки #25 хеш `0x6ad5abf90a751d04`: три листа Puffolotti плотно перепакованы (обрезанные
+   кадры полкой, отступ 1 px; 5,57 МБ RGBA8 вместо 12,2 МБ клетками) и вошли в манифест записями
+   `<боец>_sheet` и `<боец>`; таблица `clips` — 71 клип (20 королевы + 3 × 17).
    С В6б — ещё лист `queen_sheet` и клипы
    `queen` (`chewbatrij/queen-rows.*`, перекладка рядами по 8 клеток) — сценарий в `docs/owner-verification.md`.
 

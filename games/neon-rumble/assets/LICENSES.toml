@@ -97,13 +97,13 @@ license = "CC0-1.0"
 [[file]]
 path = "puffolotti/rainbird.png"
 pack = "puffolotti-up2"
-sha256 = "54de70b845a3fa3b29454822049dcfab868e832e7b4c8eb1debc4ff749404012"
-changes = "102 cels of spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+sha256 = "528c2848200d48285626dac09765321f90248b8f479ed0b7a8a6fac7c9c9e5ce"
+changes = "102 cels of spritesheet.png in 17 clips, keyed out, trimmed, packed densely"
 
 [[file]]
 path = "puffolotti/rainbird.json"
 pack = "puffolotti-up2"
-sha256 = "c79c6f35c3749af61ca42eb76e2e8db827c482cc3c32e712cb29926eb05b56b4"
+sha256 = "f8246e29c726e9b636bf3479c67cebc7f9484a71d4d10e55c716a769cb3a572e"
 changes = "Aseprite JSON written for rainbird.png, clip names and timings are ours"
 
 [[pack]]
@@ -115,23 +115,23 @@ license = "CC0-1.0"
 [[file]]
 path = "puffolotti/banderas.png"
 pack = "puffolotti-bad-company"
-sha256 = "76e3dd2a17b28f413b69056199230884c8674fbc42788d66c57ecaa8e78bfdb5"
-changes = "102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+sha256 = "58ebc37234b8a8ea667e5a3f05a364b45e27b39b1979091dca9cf0cb0e4a73ac"
+changes = "102 cels of banderas_spritesheet.png in 17 clips, keyed out, trimmed, packed densely"
 
 [[file]]
 path = "puffolotti/banderas.json"
 pack = "puffolotti-bad-company"
-sha256 = "e5bb0db79ee2ddb84790d329617b9d171c34c74296f487a93b9415cbfb52f86c"
+sha256 = "05b784fee5f6a5d5c89611c83af0a569d5869a8888befe1c7ffeb4ab4bba7ef5"
 changes = "Aseprite JSON written for banderas.png, clip names and timings are ours"
 
 [[file]]
 path = "puffolotti/adler.png"
 pack = "puffolotti-bad-company"
-sha256 = "ffcc307b58f64152ec98be157fd3efd1288a6e5a9fbcb8b933ac34068bc0f646"
-changes = "102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, laid in rows of 14"
+sha256 = "5637bf6de85fe6a5055b6a30ed6747e1c53e8204115306c8cee946d72d4a10fa"
+changes = "102 cels of adler_spritesheet.png in 17 clips, keyed out, trimmed, packed densely"
 
 [[file]]
 path = "puffolotti/adler.json"
 pack = "puffolotti-bad-company"
-sha256 = "b73fdc9000c9480feb0c702e3f70c0675cff16e8dbab3df9a471c6d0a795aea3"
+sha256 = "2f70c248c76b89ef460992bb275ed98a0acad834f41cde276716d3a7ca56aa55"
 changes = "Aseprite JSON written for adler.png, clip names and timings are ours"

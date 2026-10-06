@@ -3080,7 +3080,7 @@ key.
        ./build-sdk-work/game-Release/neon_rumble --frames 1200
 
    The gate prints, for each configuration,
-   `neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right`. In the window the
+   `neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right`. In the window the
    queen stands on the left of the street with her feet on its top line, facing right, and
    plays Walk for 60 frames, then Jab, Hook and Uppercut for 30 frames each; every second round
    of 150 frames she faces left. Both the showcase and the camera step once per drawn frame, and
@@ -3183,7 +3183,7 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4762c9ad0956aa72 в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x6ad5abf90a751d04 в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3217,7 +3217,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, the lines
-   `Release: game.bundle bundle_hash 0x4762c9ad0956aa72 matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0x6ad5abf90a751d04 matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.

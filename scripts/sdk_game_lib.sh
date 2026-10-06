@@ -45,7 +45,7 @@ game_run() {
         sdk_bad "$cfg: camera bounds of level1 are not the street object"; return 1; }
     grep -Eq '^neon-rumble: frame 960x540 scale 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
-    grep -q '^neon-rumble: fighter 20 clip(s), sheet 592x300, spawn 200,224 facing right$' <<< "$out" || {
+    grep -q '^neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right$' <<< "$out" || {
         sdk_bad "$cfg: fighter from game.bundle: no summary line"; return 1; }
     grep -Eq '^neon-rumble: fighter tick 0: queen/Walk frame 0 flip 0, [0-9]+ hit, [0-9]+ hurt, [0-9]+ push, [1-9][0-9]* overlay quad\(s\), 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: fighter on tick 0 is not Walk frame 0 facing right"; return 1; }
