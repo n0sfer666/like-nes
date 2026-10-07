@@ -21,13 +21,15 @@ rumble::PlayerCommand scripted(uint32_t t) {
     rumble::PlayerCommand c;
     framework::brawl::BrawlInput& in = c.input;
     in.present = true;
-    in.move.move_x = fix32::from_int(t < 40 || (t >= 100 && t < 134) ? 1 : 0);
+    in.move.move_x = fix32::from_int(t < 40 || (t >= 100 && t < 134) || (t >= 170 && t < 200) ? 1 : 0);
     in.move.move_z = fix32::from_int(t < 12 ? -1 : 0);
     if (t == 40) c.attack = rumble::Attack::Punch;
     if (t == 64) c.attack = rumble::Attack::Kick;
     if (t == 134) in.buttons = framework::brawl::button::JUMP;
     if (t == 135) c.attack = rumble::Attack::Kick;
+    if (t == 136) c.attack = rumble::Attack::Cross;
     if (t == 137) c.attack = rumble::Attack::Punch;
+    if (t == 200) c.attack = rumble::Attack::Cross;
     return c;
 }
 

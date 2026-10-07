@@ -5,7 +5,7 @@
 
 namespace rumble {
 
-enum class Attack : uint8_t { None, Punch, Kick };
+enum class Attack : uint8_t { None, Punch, Cross, Kick };
 
 struct PlayerCommand {
     framework::brawl::BrawlInput input;

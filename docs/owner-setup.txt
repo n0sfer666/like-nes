@@ -1830,10 +1830,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 49: banderas/jab -> adler, damage 6, hp 94
       neon-rumble: hit tick 81: banderas/kick -> adler, damage 12, hp 82
       neon-rumble: hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72
-      neon-rumble: brawl tick 180: hash 7a722bb3c5d6761c, banderas 344,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 432,252 y 0 hp 72, draw rainbird banderas adler
-      neon-rumble: headless run ok, 180 frames
-      sdk-game: OK   Release: built against the prefix and ran 180 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0xc5ddced635ce8597 matches bundle.hash
+      neon-rumble: hit tick 205: banderas/cross -> adler, damage 8, hp 64
+      neon-rumble: brawl tick 240: hash 4e6ba7b019b81dd8, banderas 400,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 450,252 y 0 hp 64, draw rainbird banderas adler
+      neon-rumble: headless run ok, 240 frames
+      sdk-game: OK   Release: built against the prefix and ran 240 headless frames
+      sdk-game: OK   Release: game.bundle bundle_hash 0xec3e2fd3582a91b1 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
@@ -1859,10 +1860,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 49: banderas/jab -> adler, damage 6, hp 94
       neon-rumble: hit tick 81: banderas/kick -> adler, damage 12, hp 82
       neon-rumble: hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72
-      neon-rumble: brawl tick 180: hash 7a722bb3c5d6761c, banderas 344,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 432,252 y 0 hp 72, draw rainbird banderas adler
-      neon-rumble: headless run ok, 180 frames
-      sdk-game: OK   Debug: built against the prefix and ran 180 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0xc5ddced635ce8597 matches bundle.hash
+      neon-rumble: hit tick 205: banderas/cross -> adler, damage 8, hp 64
+      neon-rumble: brawl tick 240: hash 4e6ba7b019b81dd8, banderas 400,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 450,252 y 0 hp 64, draw rainbird banderas adler
+      neon-rumble: headless run ok, 240 frames
+      sdk-game: OK   Debug: built against the prefix and ran 240 headless frames
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xec3e2fd3582a91b1 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1912,10 +1914,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
   толщины hurt0 по z на полу; rejected и dropped — нули.
   Строки brawl и hit — драка на step_brawl (спека #25, В2г): хеш состояния,
   позиции x,z, высота y и hp каждого бойца и порядок отрисовки до и после
-  180 тиков, между ними — попадания. banderas по скрипту идёт вправо и
+  240 тиков, между ними — попадания. banderas по скрипту идёт вправо и
   вглубь, бьёт jab (тик 40) и kick (тик 64), подходит к отброшенному adler и
-  бьёт jump_kick в прыжке: три строки hit, hp adler 100 → 94 → 82 → 72, он
-  отлетел до x 432. rainbird — союзник (team 0) и hp 100 не теряет. Тот же
+  бьёт jump_kick в прыжке (kick и cross в воздухе отброшены), потом
+  подходит снова и бьёт cross (В3а): четыре строки hit, hp adler
+  100 → 94 → 82 → 72 → 64, он отлетел до x 450. rainbird — союзник (team 0) и hp 100 не теряет. Тот же
   хеш на всех трёх ОС; другой — находка детерминизма, а не повод переписать
   пин.
 
@@ -1941,9 +1944,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
   правее rainbird и adler лицом влево, rainbird выше на экране (дальше).
   banderas ходит под стрелками или WASD: влево-вправо — вдоль улицы,
   вверх-вниз — в глубину; Space или K — прыжок, один на нажатие; J — jab,
-  L — kick, J в прыжке — jump_kick, один удар на нажатие (спека #25, В2г);
-  удар во время удара пропадает, J с L в одном кадре — jab, удар с Space в
-  одном кадре — удар на земле без прыжка.
+  U — cross (спека #25, В3а), L — kick, J в прыжке — jump_kick, один удар
+  на нажатие (В2г); удар во время удара пропадает, две клавиши удара в
+  одном кадре — первая по порядку J, U, L, удар с Space в одном кадре —
+  удар на земле без прыжка.
   rainbird и adler стоят без ввода. Удар по adler (team 1) — стоп-кадр,
   отброс и строка «neon-rumble: hit tick N: banderas/<удар> -> adler,
   damage D, hp H» в stdout; удар сквозь rainbird (team 0, союзник) урона

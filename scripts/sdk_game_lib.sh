@@ -19,7 +19,7 @@ game_build() {
     } > "$dir.log" 2>&1
 }
 
-# Запуск --headless --frames 180: код выхода 0 И строка вердикта. Одного кода мало — exe, не
+# Запуск --headless --frames 240: код выхода 0 И строка вердикта. Одного кода мало — exe, не
 # дошедший до цикла кадров (скажем, без бандла рядом), тоже может выйти нулём из чужой ветки.
 # Сводка уровня (В5б): таблица `visual`, RGBA8 тайлсета и кадр 960x540 целиком в квадах. Ростер и
 # драка (В1д, В2г спеки #25): листы, тела, полоса, позы тика 0, три попадания скрипта и хеш снапшота.
@@ -27,10 +27,10 @@ game_run() {
     local dir=$1 cfg=$2 exe out
     exe="$dir/neon_rumble"
     [ -f "$exe.exe" ] && exe="$exe.exe"
-    out=$("$exe" --headless --frames 180 2>&1) || {
+    out=$("$exe" --headless --frames 240 2>&1) || {
         printf '%s\n' "$out"; sdk_bad "$cfg: neon_rumble exited non-zero"; return 1; }
     printf '%s\n' "$out"
-    grep -q '^neon-rumble: headless run ok, 180 frames' <<< "$out" || {
+    grep -q '^neon-rumble: headless run ok, 240 frames' <<< "$out" || {
         sdk_bad "$cfg: no headless verdict line"; return 1; }
     grep -q '^neon-rumble: library.bundle [1-9][0-9]* bytes' <<< "$out" || {
         sdk_bad "$cfg: library.bundle next to the exe was not loaded"; return 1; }
@@ -50,11 +50,11 @@ game_run() {
         sdk_bad "$cfg: roster from game.bundle: a fighter sheet or spawn line is missing"; return 1; }
     [ "$(grep -Ec '^neon-rumble: pose tick 0: (rainbird/idle frame 0 flip 1|adler/idle frame 0 flip 1|banderas/idle frame 0 flip 0), 0 hit, 1 hurt, 0 push, 15 overlay quad\(s\), 0 rejected, 0 dropped$' <<< "$out")" -eq 3 ] || {
         sdk_bad "$cfg: roster poses on tick 0 are not three idle fighters with one hurt box and an overlay"; return 1; }
-    [ "$(grep -Ec '^neon-rumble: (brawl tick 0: hash cdd1b9734da568fd, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas|hit tick 49: banderas/jab -> adler, damage 6, hp 94|hit tick 81: banderas/kick -> adler, damage 12, hp 82|hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72|brawl tick 180: hash 7a722bb3c5d6761c, banderas 344,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 432,252 y 0 hp 72, draw rainbird banderas adler)$' <<< "$out")" -eq 5 ] || {
-        sdk_bad "$cfg: brawl hash, hits on adler, positions or draw order on tick 0 or after 180 scripted ticks moved"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: (brawl tick 0: hash cdd1b9734da568fd, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas|hit tick 49: banderas/jab -> adler, damage 6, hp 94|hit tick 81: banderas/kick -> adler, damage 12, hp 82|hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72|hit tick 205: banderas/cross -> adler, damage 8, hp 64|brawl tick 240: hash 4e6ba7b019b81dd8, banderas 400,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 450,252 y 0 hp 64, draw rainbird banderas adler)$' <<< "$out")" -eq 6 ] || {
+        sdk_bad "$cfg: brawl hash, hits on adler, positions or draw order on tick 0 or after 240 scripted ticks moved"; return 1; }
     [ "$(grep -Ec '^neon-rumble: (font monogram line 12, 390 glyph\(s\), atlas 224x156|credit (chewbatrij|monogram|puffolotti-bad-company|puffolotti-up2|warped-city) \| .*|credits screen 960x540 scale 2: 5 pack\(s\), 2 page\(s\), [1-9][0-9]* line\(s\), [1-9][0-9]* glyph\(s\), 0 unknown, [1-9][0-9]* quad\(s\), 0 dropped)$' <<< "$out")" -eq 7 ] || {
         sdk_bad "$cfg: font monogram, five packs of credits.txt or a two-page credits screen with 0 unknown and 0 dropped missing"; return 1; }
-    sdk_ok "$cfg: built against the prefix and ran 180 headless frames"
+    sdk_ok "$cfg: built against the prefix and ran 240 headless frames"
 }
 
 # Копия игры, которую фикстура портит; исходник в дереве не трогается.

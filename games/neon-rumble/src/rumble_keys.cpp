@@ -31,8 +31,10 @@ PlayerCommand read_keys(GLFWwindow* window, KeyLatch& latch) {
     if (jump && !latch.jump) in.buttons = framework::brawl::button::JUMP;
     latch.jump = jump;
     const bool punch = key_toggled(window, GLFW_KEY_J, latch.punch);
+    const bool cross = key_toggled(window, GLFW_KEY_U, latch.cross);
     const bool kick = key_toggled(window, GLFW_KEY_L, latch.kick);
     if (punch) c.attack = Attack::Punch;
+    else if (cross) c.attack = Attack::Cross;
     else if (kick) c.attack = Attack::Kick;
     return c;
 }

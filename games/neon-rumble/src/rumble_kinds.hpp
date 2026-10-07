@@ -12,6 +12,7 @@ struct Level;
 
 struct PlayerMoves {
     uint16_t jab = 0;
+    uint16_t cross = 0;
     uint16_t kick = 0;
     uint16_t jump_kick = 0;
 };

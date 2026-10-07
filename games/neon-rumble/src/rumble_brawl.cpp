@@ -101,6 +101,7 @@ br::BrawlInput standing() {
 uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
     const bool airborne = fix32{} < b.pos.y;
     if (attack == Attack::Punch) return airborne ? moves.jump_kick : moves.jab;
+    if (attack == Attack::Cross && !airborne) return moves.cross;
     if (attack == Attack::Kick && !airborne) return moves.kick;
     return br::NO_STRIKE;
 }

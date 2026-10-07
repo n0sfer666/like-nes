@@ -13,8 +13,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
-   Debug (`cmake --fresh`) и запускает `--headless --frames 180` (до В2г — 60). Утверждение — rc 0 **и** строки
-   `neon-rumble: headless run ok, 180 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
+   Debug (`cmake --fresh`) и запускает `--headless --frames 240` (до В2г — 60, до В3а — 180). Утверждение — rc 0 **и** строки
+   `neon-rumble: headless run ok, 240 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
    `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
    layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
@@ -82,6 +82,14 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    доходит до step_brawl» (`player.attack` подменён на `Attack::None`) и «kick и в воздухе» (снят
    `!airborne` у kick в `strike_of`) — скрипт жмёт L на тике 135, уже в прыжке, и верный код его
    отбрасывает. Позы тика 0 пинят `15 overlay quad(s)`: без полос z их 11.
+   С В3а спеки #25 хеш `0xec3e2fd3582a91b1`: ключи `pivot` по кадрам `jump_kick`, `fall`, `down`,
+   `thrown` на нижнем крае ног (у `jump` они стоят с В1а). Боксы меряются от пивота своего кадра и
+   опускаются вместе со спрайтом; хеши драки и три строки `hit` скрипта не сдвинулись — jump_kick на
+   тике 148 по-прежнему попадает. Ключи только у клипов в воздухе и лёжа: наземные кадры с
+   покачиванием 4–7 px (`kick` 48/51–54, у adler ещё 55, `run` 21/24, `getup` 68) оставлены нарочно —
+   там ноги на полу, сдвиг пивота дёрнул бы фигуру. Скрипт держит 240 тиков с U: cross в воздухе на
+   тике 136 отбрасывается, cross на тике 200 даёт `hit tick 205`; мутанты (снят `!airborne` у cross,
+   cross → jab, cross → без удара) сдвигают закреплённые строки.
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

@@ -8,6 +8,7 @@ namespace rumble {
 struct KeyLatch {
     bool jump = false;
     bool punch = false;
+    bool cross = false;
     bool kick = false;
 };
 

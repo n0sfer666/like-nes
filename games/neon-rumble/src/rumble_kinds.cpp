@@ -50,7 +50,8 @@ bool Kinds::open(const Level& level, const Fighters& fighters) {
         if (!open_kind(level, fighters[i], types[i], hp[i])) return false;
     const Fighter& f = fighters[PLAYER];
     const br::Archetype& a = types[PLAYER];
-    return key_move(f, a, "jab", player.jab) && key_move(f, a, "kick", player.kick) &&
+    return key_move(f, a, "jab", player.jab) && key_move(f, a, "cross", player.cross) &&
+           key_move(f, a, "kick", player.kick) &&
            key_move(f, a, "jump_kick", player.jump_kick);
 }
 
