@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 8 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 23 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -38,6 +38,7 @@ names that surface.
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 | The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | 2026-10-07 | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
 | Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
+| Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3380,9 +3381,91 @@ sunk into the street, and the overlay not following the sprite.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 22. Gate 2 of #25 — strikes, teams and the F3 depth bands
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки brawl/hit из шага 1; окно neon_rumble: J jab, L kick, J в прыжке jump_kick попадают в adler (стоп-кадр, отброс, строка hit с hp), удар сквозь rainbird без урона и без строки, F3 — красная рамка hit0 на активных кадрах и полосы z на полу; сверить кадр kick 54; прислать скриншот F3 с jab в adler -->
+
+B2d of spec #25 moved Neon Rumble from walking to `step_brawl`: the fighter tables in
+`games/neon-rumble/fighters/*.fighter` are baked into `game.bundle`, Banderas strikes, Adler is a
+dummy of team 1 and Rainbird an ally of team 0, both without input. CI holds the simulation:
+`--headless` drives Banderas by a script for 180 ticks — jab, kick, a walk to the knocked-back Adler
+and a jump kick — and pins the three hits, the hp left and the state hash before and after. Four
+things are left that only a screen answers:
+
+- **The keys.** The script feeds the strike directly. Whether J and L reach it, once per press, is
+  seen only in a window.
+- **The hit on screen.** The log says who hit whom and for how much. Whether the stop frame and the
+  knock-back read as a hit, and whether the red `hit0` frame lies on the fist or the foot, is a
+  picture.
+- **The team filter.** The script never puts Rainbird inside a strike; a jab through him is tried by
+  hand.
+- **The windows of B2a.** The active frames of `hit0` were chosen by eye from the sheets; the last
+  frame of `kick` is disputed and is judged here.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, `bundle_hash 0xc5ddced635ce8597` in Release and Debug, and in each
+   run the lines
+
+       neon-rumble: brawl tick 0: hash cdd1b9734da568fd, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+       neon-rumble: hit tick 49: banderas/jab -> adler, damage 6, hp 94
+       neon-rumble: hit tick 81: banderas/kick -> adler, damage 12, hp 82
+       neon-rumble: hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72
+       neon-rumble: brawl tick 180: hash 7a722bb3c5d6761c, banderas 344,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 432,252 y 0 hp 72, draw rainbird banderas adler
+
+2. Start the window from a terminal you can read, and close it yourself when done:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   Walking, depth and the jump are those of §21 and are not re-judged here.
+3. **Jab.** Walk Banderas to Adler on his line (Adler's feet level with his) and press J. Banderas
+   jabs once; holding J does not jab again. When the fist reaches Adler, both freeze for a moment
+   (the stop frame), then Adler is pushed a little to the right, and the terminal prints
+
+       neon-rumble: hit tick <n>: banderas/jab -> adler, damage 6, hp <hp>
+
+   with hp 6 lower each time. One jab hits once, however long the fist stays on him.
+4. **Kick.** L kicks: a longer move with a farther reach, damage 12 and a longer push. L in the air
+   does nothing. A key pressed while a strike is still playing is dropped — there is no buffer and
+   no chain until B3, so a fast J-J gives one jab, not two. Two keys in one frame give one move:
+   J and L together give the jab, and J or L together with Space give the strike on the ground
+   without the jump — a fighter striking on the ground stays on it. Neither is a finding.
+5. **Jump kick.** Space or K, then J in the air: `jump_kick`. On a hit Adler is thrown up and back
+   and lands on his line; the line in the terminal says `banderas/jump_kick`, damage 10.
+6. **Teams.** Walk to Rainbird on his line and jab and kick him. The strike goes through him: no stop
+   frame, no push, no line in the terminal. Rainbird is team 0, as Banderas.
+7. **F3.** On all three: the cell frame, the green `hurt0` frame, the pivot cross, and on the floor
+   under each fighter a green band — the thickness of his body in depth, ±6. During a strike, on its
+   active frames only, a red `hit0` frame appears on the fist or the foot, and a red band ±8 under
+   it. A hit lands only where the red frame overlaps Adler's green one and the bands overlap.
+8. **The disputed frame.** Watch the red frame of `kick` on its last active frame (sheet frame 54):
+   is the foot still out, or already coming back? Send a word: keep it or cut it. The other disputed
+   call of B2a, `cross` frames 46–47, has no key until B3 and is judged there.
+
+Adler's hp stops at 0 and he keeps standing: there is no knock-out in B2 — not a finding. As in §21,
+on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: a different hash, hit line or position in step 1; J or L that does nothing
+or strikes twice on one press; a hit without a line in the terminal or a line without a visible hit;
+a strike that hits Adler while the red and green frames do not touch, or misses while they overlap
+on one line; damage or hp different from the steps; any hit on Rainbird; a red frame outside the
+active frames or away from the fist or foot; bands that do not follow the fighter or sit off his
+feet.
+
+Send back: a screenshot with F3 on during a jab into Adler, the terminal lines of steps 3–5, and the
+verdict of step 8.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 22 are closed, and the open 8 are listed by
+The gates above are what the ADRs waited on; 14 of the 23 are closed, and the open 9 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

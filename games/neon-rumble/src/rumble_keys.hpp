@@ -1,11 +1,17 @@
 #pragma once
-#include "brawl_input.hpp"
+#include "rumble_command.hpp"
 
 struct GLFWwindow;
 
 namespace rumble {
 
+struct KeyLatch {
+    bool jump = false;
+    bool punch = false;
+    bool kick = false;
+};
+
 bool key_toggled(GLFWwindow* window, int key, bool& held);
-framework::brawl::BrawlInput read_keys(GLFWwindow* window, bool& jump_held);
+PlayerCommand read_keys(GLFWwindow* window, KeyLatch& latch);
 
 } // namespace rumble

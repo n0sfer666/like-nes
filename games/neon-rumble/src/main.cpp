@@ -17,13 +17,18 @@ bool parse_frames(const char* text, int& frames) {
     return ec == std::errc() && ptr == end && frames > 0;
 }
 
-framework::brawl::BrawlInput scripted(uint32_t t) {
-    framework::brawl::BrawlInput in;
+rumble::PlayerCommand scripted(uint32_t t) {
+    rumble::PlayerCommand c;
+    framework::brawl::BrawlInput& in = c.input;
     in.present = true;
-    in.move.move_x = fix32::from_int(1);
-    in.move.move_z = fix32::from_int(t < 30 ? -1 : 0);
-    if (t == 50) in.buttons = framework::brawl::button::JUMP;
-    return in;
+    in.move.move_x = fix32::from_int(t < 40 || (t >= 100 && t < 134) ? 1 : 0);
+    in.move.move_z = fix32::from_int(t < 12 ? -1 : 0);
+    if (t == 40) c.attack = rumble::Attack::Punch;
+    if (t == 64) c.attack = rumble::Attack::Kick;
+    if (t == 134) in.buttons = framework::brawl::button::JUMP;
+    if (t == 135) c.attack = rumble::Attack::Kick;
+    if (t == 137) c.attack = rumble::Attack::Punch;
+    return c;
 }
 
 int run_headless(rumble::Scene& scene, const rumble::Fighters& fighters, int frames) {
@@ -31,6 +36,7 @@ int run_headless(rumble::Scene& scene, const rumble::Fighters& fighters, int fra
     for (int i = 0; i < frames; ++i) {
         scene.brawl->player = scripted(static_cast<uint32_t>(i));
         scene.step(static_cast<uint32_t>(i));
+        rumble::report_hits(*scene.brawl, scene.ticks);
     }
     rumble::report_brawl(fighters, *scene.brawl, scene.ticks);
     if (scene.ticks != static_cast<uint32_t>(frames)) {
@@ -70,7 +76,7 @@ int main(int argc, char** argv) {
     for (uint32_t i = 0; i < rumble::FIGHTERS; ++i)
         if (!fighters[i].open(level, rumble::ROSTER[i].fighter)) return 1;
     rumble::Brawl brawl;
-    if (!brawl.open(level)) return 1;
+    if (!brawl.open(level, fighters)) return 1;
     rumble::report_fighters(level, fighters, brawl);
     rumble::Credits credits;
     if (!credits.open(level)) return 1;

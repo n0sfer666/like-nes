@@ -13,8 +13,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
-   Debug (`cmake --fresh`) и запускает `--headless --frames 60`. Утверждение — rc 0 **и** строки
-   `neon-rumble: headless run ok, 60 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
+   Debug (`cmake --fresh`) и запускает `--headless --frames 180` (до В2г — 60). Утверждение — rc 0 **и** строки
+   `neon-rumble: headless run ok, 180 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
    `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
    layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
@@ -74,6 +74,14 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    С В2а спеки #25 хеш `0x4e5006e2c1647d5d`: в листах Puffolotti слайсы `hurt0` (рамка непрозрачных
    пикселей на каждом из 102 кадров) и `hit0` (на активных кадрах jab, cross, kick, jump_kick); idle
    кадра 0 печатает `0 hit, 1 hurt, 0 push`, и `sdk_game_lib.sh` пинит эти числа.
+   С В2г спеки #25 хеш `0xc5ddced635ce8597`: в `game.manifest` три записи `fighter` (таблицы
+   `<боец>_fighter` из `games/neon-rumble/fighters/*.fighter`), игра на `step_brawl`. Скрипт
+   180 тиков бьёт adler (team 1) jab, kick и jump_kick: пять строк — `brawl` тиков 0 и 180 (хеш,
+   позиции, `hp`) и три `hit` (тики 49, 81, 148, hp 94/82/72) — сверяются одним счётчиком `-eq 5`.
+   Мутанты (T4, 2026-10-07) валят Release и Debug строкой `brawl hash, hits on adler…`: «удар не
+   доходит до step_brawl» (`player.attack` подменён на `Attack::None`) и «kick и в воздухе» (снят
+   `!airborne` у kick в `strike_of`) — скрипт жмёт L на тике 135, уже в прыжке, и верный код его
+   отбрасывает. Позы тика 0 пинят `15 overlay quad(s)`: без полос z их 11.
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

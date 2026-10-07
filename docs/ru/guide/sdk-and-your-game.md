@@ -49,7 +49,7 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
   src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
-  src/rumble_report.cpp src/rumble_brawl_report.cpp)
+  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -73,7 +73,7 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 ```sh
 cmake -S games/neon-rumble -B build-game -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=../like-nes-sdk
 cmake --build build-game
-./build-game/neon_rumble --headless --frames 60
+./build-game/neon_rumble --headless --frames 180
 ```
 
 ## Манифест
@@ -88,7 +88,7 @@ cmake --build build-game
 # clips|<name>|aseprite|<path>.json (spec #24, B6) over a sheet that is a texture record by path.
 # A trailing |viewport on a level makes the bake prove its layers cover the viewport limit (B7).
 # font|<name>|bitmask|<path>.json bakes a glyph atlas and the fonts section, credits|<name>|<path>.txt
-# the credits section (B8b).
+# the credits section (B8b). fighter|<name>|<path>.fighter bakes a fighter table (spec #25, B2b).
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png
@@ -103,6 +103,9 @@ texture | adler_sheet | pixel | assets/puffolotti/adler.png
 clips | adler | aseprite | assets/puffolotti/adler.json
 font | monogram | bitmask | assets/monogram/monogram-bitmap.json
 credits | credits | assets/credits.txt
+fighter | banderas_fighter | fighters/banderas.fighter
+fighter | rainbird_fighter | fighters/rainbird.fighter
+fighter | adler_fighter | fighters/adler.fighter
 ```
 <!-- /snippet -->
 
@@ -113,6 +116,7 @@ credits | credits | assets/credits.txt
 | `clips` | имя, `aseprite` или `sheet`, путь | клипы анимации: см. [Анимации в Aseprite](aseprite-animations.md) |
 | `font` | имя, `bitmask`, путь к `.json` | растровый шрифт и его атлас: см. [Шрифты и титры](fonts-and-credits.md) |
 | `credits` | имя, путь к `.txt` | таблицу титров: см. [Лицензии ассетов](asset-licenses.md) |
+| `fighter` | имя, путь к `.fighter` | таблицу бойца: скорости, прыжок, глубину, hp и удары по клипам бойца |
 
 Бейк отказывает строке, а не угадывает, что имелось в виду:
 
@@ -137,9 +141,10 @@ credits | credits | assets/credits.txt
 
 ## Запуск игры
 
-`--headless --frames 60` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
+`--headless --frames 180` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
 Этот прогон и проверяет CI. Без `--headless` игра открывает окно 960×540, размер которого можно
-менять. **F3** переключает отладочный оверлей бойца, **F1** открывает экран титров и
+менять. Стрелки или WASD водят Banderas, Space или K — прыжок, J — jab, L — kick, J в
+прыжке — jump_kick. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
 листает его страницы, нажатие после последней закрывает его. `--frames <n>` закрывает
 окно через `n` кадров с кодом выхода 0. `--headless` требует `--frames` с `n` больше 0, поэтому
 безоконный прогон всегда заканчивается.

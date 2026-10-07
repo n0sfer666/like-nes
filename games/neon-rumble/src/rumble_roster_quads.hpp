@@ -9,6 +9,7 @@
 namespace rumble {
 
 framework::Vec2 screen_plane(const framework::brawl::Body& body);
+DepthOverlay depth_overlay(const Brawl& brawl, uint32_t fighter);
 
 FighterStats draw_roster(FighterQuads& quads, const Fighters& fighters, const Brawl& brawl, Layers& layers,
                          LayerStats& st, uint32_t level_textures, bool overlay);
