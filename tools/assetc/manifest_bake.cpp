@@ -115,11 +115,26 @@ struct Gathered {
     std::vector<framework::tiled::Level> levels;
     std::vector<framework::graphics::ClipSrc> clips;
     std::vector<framework::graphics::FontSrc> fonts;
+    std::vector<std::pair<Record, std::string>> fighters;
     uint32_t last_level = 0, last_clips = 0, last_font = 0;
 };
 
+bool fighter(Bake& b, const Record& r, const std::string& file, std::span<const framework::graphics::ClipSrc> clips) {
+    std::vector<uint8_t> bytes;
+    if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
+        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 1 MiB)");
+    framework::brawl::FighterBakeError err;
+    if (bakers::fighter(r.name.c_str(), std::string(bytes.begin(), bytes.end()), clips, b.assets, err)) return true;
+    const std::string at = err.line > 0 ? ":" + std::to_string(err.line) : "";
+    return fail(b, r.line, file + at + ": " + err.message);
+}
+
 bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src, Gathered& g) {
     if (r.kind == "credits") return credits(b, r, file);
+    if (r.kind == "fighter") {
+        g.fighters.emplace_back(r, file);
+        return true;
+    }
     if (r.kind == "level") {
         g.last_level = r.line;
         return level(b, r, file, src, g.levels);
@@ -164,6 +179,8 @@ bool bake(Bake& b) {
     if (!g.levels.empty() && !bakers::levels(g.levels, b.assets, why)) return fail(b, g.last_level, why);
     if (!g.clips.empty() && !bakers::clips(g.clips, b.assets, why)) return fail(b, g.last_clips, why);
     if (!g.fonts.empty() && !bakers::fonts(g.fonts, b.assets, why)) return fail(b, g.last_font, why);
+    for (const auto& [r, file] : g.fighters)
+        if (!fighter(b, r, file, g.clips)) return false;
     return true;
 }
 

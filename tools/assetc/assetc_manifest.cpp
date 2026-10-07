@@ -111,13 +111,21 @@ bool credits(const std::vector<std::string>& f, uint32_t line, Error& err) {
     return true;
 }
 
+bool fighter(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 3) return fail(err, line, "fighter record expected as fighter|<name>|<path>.fighter");
+    if (!f[2].ends_with(".fighter")) return fail(err, line, "fighter path '" + f[2] + "' must end in .fighter");
+    return true;
+}
+
 bool kind_ok(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f[0] == "texture") return texture(f, line, err);
     if (f[0] == "level") return level(f, line, err);
     if (f[0] == "clips") return clips(f, line, err);
     if (f[0] == "font") return font(f, line, err);
     if (f[0] == "credits") return credits(f, line, err);
-    return fail(err, line, "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips, font, credits)");
+    if (f[0] == "fighter") return fighter(f, line, err);
+    return fail(err, line,
+                "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips, font, credits, fighter)");
 }
 
 bool reserved(const std::string& name) {
@@ -130,7 +138,7 @@ bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
     if (f[0] != "level" && f[0] != "clips" && reserved(f[1]))
         return fail(err, line, f[0] + " name '" + f[1] + "' is reserved for the level, clip and font sections");
-    const bool no_codec = f[0] == "credits";
+    const bool no_codec = f[0] == "credits" || f[0] == "fighter";
     const std::string& path = no_codec ? f[2] : f[3];
     std::string why;
     if (!path_ok(path, why)) return fail(err, line, why);

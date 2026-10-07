@@ -9,9 +9,10 @@ constexpr uint32_t PLAYER = 0;
 struct RosterEntry {
     const char* fighter;
     const char* spawn;
+    uint8_t team;
 };
 
-constexpr RosterEntry ROSTER[FIGHTERS] = {{"banderas", "player"}, {"rainbird", "rainbird"}, {"adler", "adler"}};
+constexpr RosterEntry ROSTER[FIGHTERS] = {{"banderas", "player", 0}, {"rainbird", "rainbird", 0}, {"adler", "adler", 1}};
 
 constexpr uint32_t sheet_texture(uint32_t level_textures, uint32_t fighter) { return level_textures + fighter; }
 constexpr uint32_t solid_texture(uint32_t level_textures) { return level_textures + FIGHTERS; }

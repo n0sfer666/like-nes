@@ -68,18 +68,22 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/ent_id.hpp framework/brawl/depth_body.hpp
   framework/brawl/brawl_body.hpp framework/brawl/brawl_input.hpp framework/brawl/depth_profile.hpp
   framework/brawl/body_pool.hpp framework/brawl/depth_floor.hpp framework/brawl/depth_step.hpp
-  framework/brawl/body_hash.hpp
+  framework/brawl/body_hash.hpp framework/brawl/fighter.hpp framework/brawl/fighter_format.hpp
+  framework/brawl/fighter_read.hpp framework/brawl/fighter_bake.hpp
+  framework/brawl/struck_list.hpp framework/brawl/archetype.hpp framework/brawl/body_clip.hpp
+  framework/brawl/hit_events.hpp framework/brawl/hit_geometry.hpp framework/brawl/hit_collect.hpp
+  framework/brawl/hit_apply.hpp framework/brawl/brawl_step.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
   framework_core framework_input framework_physics framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
-  framework_brawl asset_view input_core platform_core render_core render_surface glfw glfw3webgpu)
+  framework_brawl framework_brawl_fighter asset_view input_core platform_core render_core render_surface glfw glfw3webgpu)
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
 # То, что видит игра под like-nes::engine; окно — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
   engine_core asset_hash asset_view platform_core input_core render_core render_surface
   framework_core framework_input framework_physics framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
-  framework_replay framework_brawl)
+  framework_replay framework_brawl framework_brawl_fighter)

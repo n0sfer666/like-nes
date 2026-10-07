@@ -46,7 +46,7 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
   src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
-  src/rumble_report.cpp src/rumble_brawl_report.cpp)
+  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -70,7 +70,7 @@ Configure and build the game against the prefix:
 ```sh
 cmake -S games/neon-rumble -B build-game -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=../like-nes-sdk
 cmake --build build-game
-./build-game/neon_rumble --headless --frames 60
+./build-game/neon_rumble --headless --frames 180
 ```
 
 ## The manifest
@@ -85,7 +85,7 @@ each line, separated by `|`:
 # clips|<name>|aseprite|<path>.json (spec #24, B6) over a sheet that is a texture record by path.
 # A trailing |viewport on a level makes the bake prove its layers cover the viewport limit (B7).
 # font|<name>|bitmask|<path>.json bakes a glyph atlas and the fonts section, credits|<name>|<path>.txt
-# the credits section (B8b).
+# the credits section (B8b). fighter|<name>|<path>.fighter bakes a fighter table (spec #25, B2b).
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png
@@ -100,6 +100,9 @@ texture | adler_sheet | pixel | assets/puffolotti/adler.png
 clips | adler | aseprite | assets/puffolotti/adler.json
 font | monogram | bitmask | assets/monogram/monogram-bitmap.json
 credits | credits | assets/credits.txt
+fighter | banderas_fighter | fighters/banderas.fighter
+fighter | rainbird_fighter | fighters/rainbird.fighter
+fighter | adler_fighter | fighters/adler.fighter
 ```
 <!-- /snippet -->
 
@@ -110,6 +113,7 @@ credits | credits | assets/credits.txt
 | `clips` | name, `aseprite` or `sheet`, path | animation clips: see [Animations in Aseprite](aseprite-animations.md) |
 | `font` | name, `bitmask`, path to a `.json` | a bitmap font and its atlas: see [Fonts and credits](fonts-and-credits.md) |
 | `credits` | name, path to a `.txt` | the credits table: see [Asset licenses](asset-licenses.md) |
+| `fighter` | name, path to a `.fighter` | a fighter table: speeds, jump, depth, hp and the strikes of the fighter's clips |
 
 The bake refuses a line instead of guessing what it meant:
 
@@ -134,9 +138,10 @@ in the commit that changes the content or the baker.
 
 ## Running the game
 
-`--headless --frames 60` maps the bundle, opens every table and prints a summary of what it read.
+`--headless --frames 180` maps the bundle, opens every table and prints a summary of what it read.
 That run is what CI checks. Without `--headless` the game opens a 960×540 window that can be
-resized. **F3** toggles the debug overlay of the fighter, and **F1** opens the credits screen
+resized. The arrows or WASD walk Banderas, Space or K jumps, J jabs, L kicks and J in the air
+jump-kicks. **F3** toggles the debug overlay of the fighters, and **F1** opens the credits screen
 and turns its pages; the press after the last page closes it.
 `--frames <n>` closes the window after `n` frames with exit code 0. `--headless` needs `--frames`
 with `n` above 0, so a headless run always ends.

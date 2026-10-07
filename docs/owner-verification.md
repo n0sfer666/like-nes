@@ -1,6 +1,6 @@
 # Owner verification: the gates a runner cannot close
 
-**13 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
+**14 of the 23 gates below are closed**, and each closed one carries the run that closed it, with the
 evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
@@ -36,10 +36,13 @@ names that surface.
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
-| The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
+| The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | 2026-10-07 | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
 | Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
+| Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
 
-The last to close was the first gate of #25 (§21), on 2026-10-06 on macOS: the first run put the
+The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
+the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
+diff. Before it, the first gate of #25 (§21) closed on 2026-10-06 on macOS: the first run put the
 fighters in the air in front of the facades, and the second, on the fixed build, put their feet on
 the pavement. Before it, the network frame cost (§13) closed on 2026-10-04 on the Windows box — the slowest
 machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
@@ -3193,15 +3196,25 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x785987a3c33db92b в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: closed 2026-10-07 -->
+
+> **Closed 2026-10-07** on macOS by the owner, with Tiled 1.12.2, on a build of `0739aa9`. Step 2 is
+> now on record: `level1.tmj` was saved at 12:59 and `warped-city.tsj` and `neon-signs.tsj` later the
+> same day, each from Tiled, and `git diff --stat` after the saves held one line only: Tiled drops the
+> final newline of `neon-signs.tsj`, which the two other hand-written files never had. That is the
+> formatting this section says is not a finding, and the saved tileset is committed as Tiled wrote
+> it. `check_sdk_game.sh` passed in Release and Debug with `bundle_hash 0x4e5006e2c1647d5d`.
+> Steps 1 and 3–6 stand from the run below and the window of the same day: the parallax, the signs,
+> 21:9 and 4:3 and the credits came out as predicted. The sky of level 1 that the window showed above
+> the far city is kept as drawn by the owner's decision (`.context/notes/25-sky.md`).
 
 > **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`, `bundle_hash 0xd69efa7c7e0f7a6c` at the
 > time): the owner reported steps 1–6 as predicted, in one line, with no screenshot of the 21:9 and
 > 4:3 windows or the credits pages and no `git diff --stat` of step 4. Whether the files were saved
 > by Tiled in step 2 is not on record, and the save is the point of this gate, so it stays open until
 > that is confirmed. The hash in step 3 has moved since: the fix of the §21 finding shifted the depth
-> band and the spawns of `level1.tmj` and set the fighters' pivot, so a re-run expects
-> `0x785987a3c33db92b`.
+> band and the spawns of `level1.tmj` and set the fighters' pivot, and B2a of #25 marked the hit and
+> hurt boxes on the Puffolotti sheets, so a re-run expects `0x4e5006e2c1647d5d`.
 
 B8 gave level 1 three parallax layers and two animated signs (B8a) and gave the game a bitmap font
 and a credits screen (B8b). CI already holds what a runner can see: the bake walks the camera over
@@ -3235,7 +3248,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, the lines
-   `Release: game.bundle bundle_hash 0x785987a3c33db92b matches bundle.hash` and the same for
+   `Release: game.bundle bundle_hash 0x4e5006e2c1647d5d matches bundle.hash` and the same for
    `Debug`, each run preceded by
    `neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`.
 4. Send back `git diff --stat games/neon-rumble/levels` and, if the gate failed, its FAIL line.
@@ -3289,7 +3302,7 @@ It is worth sending all the same: the saved files then replace the hand-written 
 
 > **Closed 2026-10-06** on macOS by the owner, on a build of `71727a8`, the fix of the run below.
 > `check_sdk_game.sh --keep` passed in Release and Debug with `bundle_hash 0x785987a3c33db92b` and
-> the brawl lines `tick 0: hash 431ee8a4677862c0` and `tick 60: hash bed9657272be2d0d`. Steps 1–6
+> the brawl lines `tick 0: hash 12e8ec6a8b655020` and `tick 60: hash f0682e033ec3cf0d`. Steps 1–6
 > were run again and came out as predicted: the three fighters stand with their feet on the pavement
 > below the facades, the F3 cross sits at the feet, the arrows, WASD, Space and K move Banderas in
 > the band 232..264, the nearer fighter covers the farther one and the order flips around Rainbird
@@ -3326,11 +3339,11 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0x785987a3c33db92b` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x4e5006e2c1647d5d` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash 431ee8a4677862c0, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
-       neon-rumble: brawl tick 60: hash bed9657272be2d0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
+       neon-rumble: brawl tick 0: hash 12e8ec6a8b655020, banderas 200,264 y 0, rainbird 264,240 y 0, adler 328,252 y 0, draw rainbird adler banderas
+       neon-rumble: brawl tick 60: hash f0682e033ec3cf0d, banderas 320,234 y 32, rainbird 264,240 y 0, adler 328,252 y 0, draw banderas rainbird adler
 
 2. Start the window and close it yourself when done:
 
@@ -3368,9 +3381,91 @@ sunk into the street, and the overlay not following the sprite.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 22. Gate 2 of #25 — strikes, teams and the F3 depth bands
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки brawl/hit из шага 1; окно neon_rumble: J jab, L kick, J в прыжке jump_kick попадают в adler (стоп-кадр, отброс, строка hit с hp), удар сквозь rainbird без урона и без строки, F3 — красная рамка hit0 на активных кадрах и полосы z на полу; сверить кадр kick 54; прислать скриншот F3 с jab в adler -->
+
+B2d of spec #25 moved Neon Rumble from walking to `step_brawl`: the fighter tables in
+`games/neon-rumble/fighters/*.fighter` are baked into `game.bundle`, Banderas strikes, Adler is a
+dummy of team 1 and Rainbird an ally of team 0, both without input. CI holds the simulation:
+`--headless` drives Banderas by a script for 180 ticks — jab, kick, a walk to the knocked-back Adler
+and a jump kick — and pins the three hits, the hp left and the state hash before and after. Four
+things are left that only a screen answers:
+
+- **The keys.** The script feeds the strike directly. Whether J and L reach it, once per press, is
+  seen only in a window.
+- **The hit on screen.** The log says who hit whom and for how much. Whether the stop frame and the
+  knock-back read as a hit, and whether the red `hit0` frame lies on the fist or the foot, is a
+  picture.
+- **The team filter.** The script never puts Rainbird inside a strike; a jab through him is tried by
+  hand.
+- **The windows of B2a.** The active frames of `hit0` were chosen by eye from the sheets; the last
+  frame of `kick` is disputed and is judged here.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, `bundle_hash 0xc5ddced635ce8597` in Release and Debug, and in each
+   run the lines
+
+       neon-rumble: brawl tick 0: hash cdd1b9734da568fd, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+       neon-rumble: hit tick 49: banderas/jab -> adler, damage 6, hp 94
+       neon-rumble: hit tick 81: banderas/kick -> adler, damage 12, hp 82
+       neon-rumble: hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72
+       neon-rumble: brawl tick 180: hash 7a722bb3c5d6761c, banderas 344,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 432,252 y 0 hp 72, draw rainbird banderas adler
+
+2. Start the window from a terminal you can read, and close it yourself when done:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   Walking, depth and the jump are those of §21 and are not re-judged here.
+3. **Jab.** Walk Banderas to Adler on his line (Adler's feet level with his) and press J. Banderas
+   jabs once; holding J does not jab again. When the fist reaches Adler, both freeze for a moment
+   (the stop frame), then Adler is pushed a little to the right, and the terminal prints
+
+       neon-rumble: hit tick <n>: banderas/jab -> adler, damage 6, hp <hp>
+
+   with hp 6 lower each time. One jab hits once, however long the fist stays on him.
+4. **Kick.** L kicks: a longer move with a farther reach, damage 12 and a longer push. L in the air
+   does nothing. A key pressed while a strike is still playing is dropped — there is no buffer and
+   no chain until B3, so a fast J-J gives one jab, not two. Two keys in one frame give one move:
+   J and L together give the jab, and J or L together with Space give the strike on the ground
+   without the jump — a fighter striking on the ground stays on it. Neither is a finding.
+5. **Jump kick.** Space or K, then J in the air: `jump_kick`. On a hit Adler is thrown up and back
+   and lands on his line; the line in the terminal says `banderas/jump_kick`, damage 10.
+6. **Teams.** Walk to Rainbird on his line and jab and kick him. The strike goes through him: no stop
+   frame, no push, no line in the terminal. Rainbird is team 0, as Banderas.
+7. **F3.** On all three: the cell frame, the green `hurt0` frame, the pivot cross, and on the floor
+   under each fighter a green band — the thickness of his body in depth, ±6. During a strike, on its
+   active frames only, a red `hit0` frame appears on the fist or the foot, and a red band ±8 under
+   it. A hit lands only where the red frame overlaps Adler's green one and the bands overlap.
+8. **The disputed frame.** Watch the red frame of `kick` on its last active frame (sheet frame 54):
+   is the foot still out, or already coming back? Send a word: keep it or cut it. The other disputed
+   call of B2a, `cross` frames 46–47, has no key until B3 and is judged there.
+
+Adler's hp stops at 0 and he keeps standing: there is no knock-out in B2 — not a finding. As in §21,
+on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: a different hash, hit line or position in step 1; J or L that does nothing
+or strikes twice on one press; a hit without a line in the terminal or a line without a visible hit;
+a strike that hits Adler while the red and green frames do not touch, or misses while they overlap
+on one line; damage or hp different from the steps; any hit on Rainbird; a red frame outside the
+active frames or away from the fist or foot; bands that do not follow the fighter or sit off his
+feet.
+
+Send back: a screenshot with F3 on during a jab into Adler, the terminal lines of steps 3–5, and the
+verdict of step 8.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 13 of the 22 are closed, and the open 9 are listed by
+The gates above are what the ADRs waited on; 14 of the 23 are closed, and the open 9 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

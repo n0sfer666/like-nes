@@ -1,19 +1,41 @@
-add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp)
+add_library(framework_brawl_fighter STATIC fighter_parse.cpp fighter_bake.cpp fighter_read.cpp)
+target_include_directories(framework_brawl_fighter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framework_core)
+
+add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
+  archetype.cpp body_clip.cpp hit_geometry.cpp hit_collect.cpp hit_apply.cpp brawl_step.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(framework_brawl PUBLIC framework_character framework_physics framework_core)
+target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics
+  framework_core)
 
 add_executable(framework_brawl_test framework_brawl_test.cpp)
 target_link_libraries(framework_brawl_test PRIVATE framework_brawl framework_character
-  framework_tilemap platform_core)
+  framework_tilemap)
 
 add_executable(framework_brawl_floor_test framework_brawl_floor_test.cpp)
 target_link_libraries(framework_brawl_floor_test PRIVATE framework_brawl framework_character
-  framework_tilemap platform_core)
+  framework_tilemap)
 
 add_executable(framework_brawl_snapshot_test framework_brawl_snapshot_test.cpp)
 target_link_libraries(framework_brawl_snapshot_test PRIVATE framework_brawl framework_character
-  framework_tilemap platform_core)
+  framework_tilemap)
 
 add_executable(framework_brawl_crossplay_test framework_brawl_crossplay_test.cpp)
 target_link_libraries(framework_brawl_crossplay_test PRIVATE framework_brawl framework_character
-  framework_tilemap platform_core)
+  framework_tilemap)
+target_include_directories(framework_brawl_crossplay_test PRIVATE
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(framework_brawl_fighter_test framework_brawl_fighter_test.cpp)
+target_link_libraries(framework_brawl_fighter_test PRIVATE framework_brawl_fighter framework_physics)
+
+add_executable(framework_brawl_fighter_refusal_test framework_brawl_fighter_refusal_test.cpp)
+target_link_libraries(framework_brawl_fighter_refusal_test PRIVATE framework_brawl_fighter)
+
+add_executable(framework_brawl_hit_test framework_brawl_hit_test.cpp)
+target_link_libraries(framework_brawl_hit_test PRIVATE framework_brawl)
+
+add_executable(framework_brawl_hit_rules_test framework_brawl_hit_rules_test.cpp)
+target_link_libraries(framework_brawl_hit_rules_test PRIVATE framework_brawl)
+add_executable(framework_brawl_strike_test framework_brawl_strike_test.cpp)
+target_link_libraries(framework_brawl_strike_test PRIVATE framework_brawl)

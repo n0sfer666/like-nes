@@ -10,6 +10,7 @@
 
 #include "gpu.hpp"
 #include "quad_batch.hpp"
+#include "rumble_brawl_report.hpp"
 #include "rumble_keys.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_roster_quads.hpp"
@@ -101,7 +102,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
     bool f3_held = false;
     uint32_t shown = 0;
     bool f1_held = false;
-    bool jump_held = false;
+    KeyLatch keys;
     bool warned = false;
     bool upload_warned = false;
     bool fighter_warned = false;
@@ -121,8 +122,9 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
         const SurfaceFrame sf = acquire_frame(spec, gpu, "neon-rumble", warned);
         if (sf.quit) return 1;
         if (!sf.texture) continue;
-        scene.brawl->player = read_keys(window, jump_held);
+        scene.brawl->player = read_keys(window, keys);
         scene.step(static_cast<uint32_t>(drawn));
+        report_hits(*scene.brawl, scene.ticks);
         const auto tick = static_cast<uint64_t>(drawn);
         const ViewportFit fit = framework::graphics::viewport_fit({spec.width, spec.height});
         if (fit.cropped && !cropped)

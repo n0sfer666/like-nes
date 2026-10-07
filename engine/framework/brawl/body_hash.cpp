@@ -12,7 +12,10 @@ static_assert(std::is_trivially_copyable_v<BodyPool>, "the snapshot is a plain c
 static_assert([] {
     [[maybe_unused]] auto [seq] = EntId{};
     [[maybe_unused]] auto [x, z, y, vx, vz, vy] = DepthBody{};
-    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age] = Body{};
+    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, elapsed, hitstop, hitstun,
+                           struck] = Body{};
+    [[maybe_unused]] auto [struck_at, struck_count] = StruckList{};
+    [[maybe_unused]] auto [struck_seq, struck_box] = Struck{};
     [[maybe_unused]] auto [bodies, count, next_seq] = BodyPool{};
     return true;
 }(), "a snapshot field was added: mix it here and add its row to framework_brawl_snapshot_test");
@@ -33,6 +36,16 @@ void mix_body(uint64_t& h, const Body& b) {
     physics::mix(h, static_cast<uint32_t>(b.hp));
     physics::mix(h, b.crushed ? 1u : 0u);
     physics::mix(h, b.age);
+    physics::mix(h, b.kind);
+    physics::mix(h, b.clip);
+    physics::mix(h, b.elapsed);
+    physics::mix(h, b.hitstop);
+    physics::mix(h, b.hitstun);
+    physics::mix(h, b.struck.count);
+    for (const Struck& s : b.struck.at) {
+        physics::mix(h, s.seq);
+        physics::mix(h, s.box);
+    }
 }
 
 } // namespace

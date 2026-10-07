@@ -4,6 +4,7 @@
 
 #include "debug_draw.hpp"
 #include "quad_batch.hpp"
+#include "rumble_depth_overlay.hpp"
 #include "rumble_fighter.hpp"
 #include "rumble_layers.hpp"
 
@@ -22,8 +23,8 @@ public:
     static constexpr uint32_t OVERLAY = 128;
 
     FighterQuads();
-    FighterStats add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, Layers& layers, LayerStats& st,
-                     uint32_t sheet_texture, uint32_t solid_texture, bool overlay);
+    FighterStats add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, const DepthOverlay& depth,
+                     Layers& layers, LayerStats& st, uint32_t sheet_texture, uint32_t solid_texture, bool overlay);
 
 private:
     std::vector<framework::graphics::DebugQuad> debug_;

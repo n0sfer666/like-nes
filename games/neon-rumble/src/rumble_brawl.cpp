@@ -4,7 +4,7 @@
 #include <cstdio>
 #include <cstring>
 
-#include "depth_step.hpp"
+#include "brawl_step.hpp"
 #include "object_read.hpp"
 #include "rumble_level.hpp"
 
@@ -58,9 +58,11 @@ bool on_floor(const br::DepthFloor& floor, fix32 x, fix32 z) {
     return true;
 }
 
-bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthFloor& floor, br::BodyPool& pool) {
+bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthFloor& floor, const Kinds& kinds,
+                  br::BodyPool& pool) {
     const auto spawns = tl::objects_of_class(map, "spawn");
-    for (const RosterEntry& r : ROSTER) {
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        const RosterEntry& r = ROSTER[i];
         const auto it = std::find_if(spawns.begin(), spawns.end(), [&](const tl::MapObject& o) {
             return std::strcmp(tl::object_text(map, o.name_offset), r.spawn) == 0;
         });
@@ -73,7 +75,10 @@ bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthF
         b.pos.x = fix32::from_raw(it->x_raw);
         b.pos.z = fix32::from_raw(it->y_raw);
         b.facing = facing_of(map, *it);
-        b.hp = 100;
+        b.team = r.team;
+        b.hp = kinds.hp[i];
+        b.kind = static_cast<uint8_t>(i);
+        b.clip = kinds.types[i].idle;
         if (!on_floor(floor, b.pos.x, b.pos.z)) {
             std::fprintf(stderr, "neon-rumble: level %s: spawn %s is outside the depth band or inside a wall\n",
                          level.name, r.spawn);
@@ -93,24 +98,39 @@ br::BrawlInput standing() {
     return in;
 }
 
+uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
+    const bool airborne = fix32{} < b.pos.y;
+    if (attack == Attack::Punch) return airborne ? moves.jump_kick : moves.jab;
+    if (attack == Attack::Kick && !airborne) return moves.kick;
+    return br::NO_STRIKE;
+}
+
 } // namespace
 
-const br::DepthProfile Brawl::PROFILE{fix32::from_int(2), fix32::from_int(1), fix32::from_raw(fix32::ONE / 2),
-                                      fix32::from_int(6)};
-
-bool Brawl::open(const Level& level) {
+bool Brawl::open(const Level& level, const Fighters& fighters) {
     floor = br::DepthFloor{};
     pool = br::BodyPool{};
-    player = br::BrawlInput{};
+    events = br::HitEvents{};
+    player = PlayerCommand{};
     tl::ObjectTable objects;
-    if (!level.open_objects(objects)) return false;
+    if (!kinds.open(level, fighters) || !level.open_objects(objects)) return false;
     const tl::ObjectMap map = objects.find(level.name);
-    return read_floor(level, map, floor) && spawn_roster(level, map, floor, pool);
+    return read_floor(level, map, floor) && spawn_roster(level, map, floor, kinds, pool);
 }
 
 void Brawl::step() {
-    for (uint32_t i = 0; i < pool.count; ++i)
-        br::step_body(pool.bodies[i], i == PLAYER ? player : standing(), PROFILE, floor);
+    for (uint32_t i = 0; i < FIGHTERS; ++i) hp_before[i] = body(i).hp;
+    std::array<br::Command, FIGHTERS> commands{};
+    for (br::Command& c : commands) c.input = standing();
+    commands[PLAYER] = {player.input, strike_of(player.attack, kinds.player, body(PLAYER))};
+    const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}};
+    br::step_brawl(pool, commands, world, events);
+}
+
+uint32_t Brawl::fighter_of(br::EntId id) const {
+    for (uint32_t i = 0; i < FIGHTERS; ++i)
+        if (body(i).id == id) return i;
+    return FIGHTERS;
 }
 
 DrawOrder Brawl::draw_order() const {

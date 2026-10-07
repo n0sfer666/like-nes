@@ -39,6 +39,10 @@ void fall(DepthBody& d, const DepthProfile& p) {
 
 void step_body(Body& b, const BrawlInput& in, const DepthProfile& p, const DepthFloor& f) {
     drive(b.pos, b.facing, in, p);
+    coast_body(b, p, f);
+}
+
+void coast_body(Body& b, const DepthProfile& p, const DepthFloor& f) {
     fall(b.pos, p);
     slide(f, b.pos);
     ++b.age;

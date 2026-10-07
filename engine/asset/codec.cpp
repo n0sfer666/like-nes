@@ -36,7 +36,7 @@ std::vector<uint8_t> read_file(const std::string& path) {
 bool write_file(const std::string& path, const std::vector<uint8_t>& data) {
     FILE* f = platform::open_file(path, "wb");
     if (!f) return false;
-    bool ok = std::fwrite(data.data(), 1, data.size(), f) == data.size();
+    bool ok = data.empty() || std::fwrite(data.data(), 1, data.size(), f) == data.size();
     std::fclose(f);
     return ok;
 }

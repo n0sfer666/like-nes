@@ -3,9 +3,10 @@
 #include <cstdint>
 
 #include "body_pool.hpp"
-#include "brawl_input.hpp"
 #include "depth_floor.hpp"
-#include "depth_profile.hpp"
+#include "hit_events.hpp"
+#include "rumble_command.hpp"
+#include "rumble_kinds.hpp"
 #include "rumble_roster.hpp"
 
 namespace rumble {
@@ -17,15 +18,17 @@ static_assert(FIGHTERS <= framework::brawl::POOL_CAPACITY);
 using DrawOrder = std::array<uint32_t, FIGHTERS>;
 
 struct Brawl {
-    static const framework::brawl::DepthProfile PROFILE;
-
     framework::brawl::DepthFloor floor;
     framework::brawl::BodyPool pool;
-    framework::brawl::BrawlInput player;
+    Kinds kinds;
+    framework::brawl::HitEvents events;
+    PlayerCommand player;
+    std::array<int32_t, FIGHTERS> hp_before{};
 
-    bool open(const Level& level);
+    bool open(const Level& level, const Fighters& fighters);
     void step();
     const framework::brawl::Body& body(uint32_t fighter) const { return pool.bodies[fighter]; }
+    uint32_t fighter_of(framework::brawl::EntId id) const;
     DrawOrder draw_order() const;
 };
 

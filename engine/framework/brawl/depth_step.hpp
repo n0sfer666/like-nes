@@ -7,5 +7,6 @@
 namespace framework::brawl {
 
 void step_body(Body& b, const BrawlInput& in, const DepthProfile& p, const DepthFloor& f);
+void coast_body(Body& b, const DepthProfile& p, const DepthFloor& f);
 
 } // namespace framework::brawl

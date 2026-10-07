@@ -96,7 +96,7 @@ void grammar() {
     rejects("clips|hero|sheet|hero.json\n", 1, "clips path 'hero.json' must end in .sheet");
     rejects("clips|hero|sheet|../hero.sheet\n", 1, "uses '..'");
     rejects("texture|clips|pixel|a.png\n", 1, "reserved for the level, clip and font sections");
-    rejects("sound|a|a.wav\n", 1, "(this assetc bakes: texture, level, clips, font, credits)");
+    rejects("sound|a|a.wav\n", 1, "(this assetc bakes: texture, level, clips, font, credits, fighter)");
     rejects("font|mono|bitmask|mono.png\n", 1, "font path 'mono.png' must end in .json");
     rejects("font|mono|ttf|mono.json\n", 1, "font record expected as font|<name>|bitmask|<path>.json");
     rejects("font|mono|mono.json\n", 1, "font record expected as");

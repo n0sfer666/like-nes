@@ -21,15 +21,20 @@ bool key_toggled(GLFWwindow* window, int key, bool& held) {
     return pressed;
 }
 
-framework::brawl::BrawlInput read_keys(GLFWwindow* window, bool& jump_held) {
-    framework::brawl::BrawlInput in;
+PlayerCommand read_keys(GLFWwindow* window, KeyLatch& latch) {
+    PlayerCommand c;
+    framework::brawl::BrawlInput& in = c.input;
     in.present = true;
     in.move.move_x = axis(down(window, GLFW_KEY_LEFT, GLFW_KEY_A), down(window, GLFW_KEY_RIGHT, GLFW_KEY_D));
     in.move.move_z = axis(down(window, GLFW_KEY_UP, GLFW_KEY_W), down(window, GLFW_KEY_DOWN, GLFW_KEY_S));
     const bool jump = down(window, GLFW_KEY_SPACE, GLFW_KEY_K);
-    if (jump && !jump_held) in.buttons = framework::brawl::button::JUMP;
-    jump_held = jump;
-    return in;
+    if (jump && !latch.jump) in.buttons = framework::brawl::button::JUMP;
+    latch.jump = jump;
+    const bool punch = key_toggled(window, GLFW_KEY_J, latch.punch);
+    const bool kick = key_toggled(window, GLFW_KEY_L, latch.kick);
+    if (punch) c.attack = Attack::Punch;
+    else if (kick) c.attack = Attack::Kick;
+    return c;
 }
 
 } // namespace rumble

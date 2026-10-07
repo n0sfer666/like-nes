@@ -1,0 +1,48 @@
+sheet   | adler
+speed_x | 2
+speed_z | 1
+run_x   | 3
+gravity | 0.5
+jump_vy | 6
+depth   | 6
+hp      | 100
+
+move | jab | hit0
+type      | light
+damage    | 6
+depth     | 8
+hitstop   | 4
+hitstun   | 10
+knock_x   | 1
+knock_y   | 0
+hits_down | no
+
+move | cross | hit0
+type      | light
+damage    | 8
+depth     | 8
+hitstop   | 5
+hitstun   | 12
+knock_x   | 1.5
+knock_y   | 0
+hits_down | no
+
+move | kick | hit0
+type      | heavy
+damage    | 12
+depth     | 8
+hitstop   | 6
+hitstun   | 18
+knock_x   | 3
+knock_y   | 0
+hits_down | no
+
+move | jump_kick | hit0
+type      | launch
+damage    | 10
+depth     | 8
+hitstop   | 5
+hitstun   | 20
+knock_x   | 2
+knock_y   | 4
+hits_down | no
