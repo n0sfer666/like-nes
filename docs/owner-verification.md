@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**13 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 9 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 22 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 8 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -36,10 +36,12 @@ names that surface.
 | The install page followed by someone who did not write it | [#19](../.context/specs/2026-07-26-docs-en-ru.md) 5 | **macOS and Windows** (the container answered for Linux) | — | `docs/en/getting-started/**`, `docs/ru/getting-started/**` |
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
-| The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | — | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
+| The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | 2026-10-07 | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
 | Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
 
-The last to close was the first gate of #25 (§21), on 2026-10-06 on macOS: the first run put the
+The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
+the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
+diff. Before it, the first gate of #25 (§21) closed on 2026-10-06 on macOS: the first run put the
 fighters in the air in front of the facades, and the second, on the fixed build, put their feet on
 the pavement. Before it, the network frame cost (§13) closed on 2026-10-04 on the Windows box — the slowest
 machine in the set on both OSes, which is exactly what that gate asks for. Its Linux half was taken
@@ -3193,7 +3195,17 @@ drawing session to find out:
 
 ## 20. Gate 7 of #24 — the street of Neon Rumble on a real screen
 
-<!-- gate: open | пересохранить level1.tmj и neon-signs.tsj в Tiled 1.10+: bash scripts/check_sdk_game.sh --keep — bundle_hash 0x4e5006e2c1647d5d в Release и Debug; окно neon_rumble: три плана параллакса без дрожания и шва, вывески coke (3 кадра по 200 мс) и неон (4 по 150 мс) как в Tiled; окно 21:9 и 4:3 — без дыр и без нижнего края far-city/near-city, полосы только #0b0f1a; F1 — «Credits · Титры  1/2», 5 паков на 2 страницах, пак не рвётся, URL переносятся, ни одного «?», третье F1 закрывает -->
+<!-- gate: closed 2026-10-07 -->
+
+> **Closed 2026-10-07** on macOS by the owner, with Tiled 1.12.2, on a build of `0739aa9`. Step 2 is
+> now on record: `level1.tmj` was saved at 12:59 and `warped-city.tsj` and `neon-signs.tsj` later the
+> same day, each from Tiled, and `git diff --stat` after the saves held one line only: Tiled drops the
+> final newline of `neon-signs.tsj`, which the two other hand-written files never had. That is the
+> formatting this section says is not a finding, and the saved tileset is committed as Tiled wrote
+> it. `check_sdk_game.sh` passed in Release and Debug with `bundle_hash 0x4e5006e2c1647d5d`.
+> Steps 1 and 3–6 stand from the run below and the window of the same day: the parallax, the signs,
+> 21:9 and 4:3 and the credits came out as predicted. The sky of level 1 that the window showed above
+> the far city is kept as drawn by the owner's decision (`.context/notes/25-sky.md`).
 
 > **Run 2026-10-06 on macOS** (owner, build of `f1e0b61`, `bundle_hash 0xd69efa7c7e0f7a6c` at the
 > time): the owner reported steps 1–6 as predicted, in one line, with no screenshot of the 21:9 and
@@ -3370,7 +3382,7 @@ is 0.
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 13 of the 22 are closed, and the open 9 are listed by
+The gates above are what the ADRs waited on; 14 of the 22 are closed, and the open 8 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
