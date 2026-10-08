@@ -18,6 +18,8 @@ inline const char* FIGHTER_TEXT =
     "jump_vy | 6\n"
     "depth   | 4      # the tail after # is dropped\n"
     "hp      | 120\n"
+    "down    | 30\n"
+    "getup   | 24\n"
     "\n"
     "move | jab | hit0\n"
     "type      | light\n"

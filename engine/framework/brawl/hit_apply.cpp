@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "body_clip.hpp"
+#include "body_react.hpp"
 
 namespace framework::brawl {
 
@@ -13,8 +13,6 @@ struct Taken {
     uint16_t hitstop = 0;
     const HitEvent* top = nullptr;
 };
-
-uint16_t ticks(uint32_t v) { return static_cast<uint16_t>(std::min<uint32_t>(v, 0xffffu)); }
 
 const Strike& strike_of(const HitEvent& e, std::span<const Archetype> kinds) {
     return kinds[e.kind].moves[e.move].strike;
@@ -27,7 +25,7 @@ void remember(BodyPool& pool, std::span<const Archetype> kinds, HitEvents& event
         Body* a = pool.find(e.attacker);
         kept[i] = a != nullptr && pool.find(e.target) != nullptr && a->struck.add(e.target, e.box);
         if (!kept[i]) ++events.dropped;
-        if (kept[i]) a->hitstop = std::max(a->hitstop, ticks(strike_of(e, kinds).hitstop));
+        if (kept[i]) a->hitstop = std::max(a->hitstop, ticks16(strike_of(e, kinds).hitstop));
     }
 }
 
@@ -39,7 +37,7 @@ Taken taken_by(const Body& t, std::span<const Archetype> kinds, const HitEvents&
         if (!kept[i] || !(e.target == t.id)) continue;
         const Strike& s = strike_of(e, kinds);
         out.damage += s.damage;
-        out.hitstop = std::max(out.hitstop, ticks(s.hitstop));
+        out.hitstop = std::max(out.hitstop, ticks16(s.hitstop));
         if (out.top == nullptr || strike_of(*out.top, kinds).hitstun < s.hitstun) out.top = &e;
     }
     return out;
@@ -52,9 +50,7 @@ void take(Body& t, const Taken& hit, std::span<const Archetype> kinds) {
     t.pos.vx = hit.top->knock_vx;
     t.pos.vz = fix32{};
     t.pos.vy = fix32{} < s.knock_y || fix32{} < t.pos.y ? s.knock_y : fix32{};
-    if (s.hitstun == 0) return;
-    t.hitstun = ticks(s.hitstun);
-    if (t.kind < kinds.size()) end_strike(t, kinds[t.kind]);
+    if (t.kind < kinds.size()) react_to(t, s, kinds[t.kind]);
 }
 
 } // namespace

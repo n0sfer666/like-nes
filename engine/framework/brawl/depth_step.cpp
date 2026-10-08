@@ -22,8 +22,7 @@ void drive(DepthBody& d, int8_t& facing, const BrawlInput& in, const DepthProfil
     d.vz = unit(in.move.move_z) * p.speed_z;
     if (mx < fix32{}) facing = -1;
     if (fix32{} < mx) facing = 1;
-    const bool grounded = d.y == fix32{} && d.vy == fix32{};
-    if (grounded && (in.buttons & button::JUMP) != 0) d.vy = p.jump_vy;
+    if (grounded(d) && (in.buttons & button::JUMP) != 0) d.vy = p.jump_vy;
 }
 
 void fall(DepthBody& d, const DepthProfile& p) {
@@ -36,6 +35,8 @@ void fall(DepthBody& d, const DepthProfile& p) {
 }
 
 } // namespace
+
+bool grounded(const DepthBody& d) { return d.y == fix32{} && d.vy == fix32{}; }
 
 void step_body(Body& b, const BrawlInput& in, const DepthProfile& p, const DepthFloor& f) {
     drive(b.pos, b.facing, in, p);

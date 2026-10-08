@@ -77,6 +77,8 @@ bool bake_fighter(const std::string& name, const std::string& text, std::span<co
     row.jump_vy_raw = spec.jump_vy.raw;
     row.depth_raw = spec.depth.raw;
     row.hp = spec.hp;
+    row.down_ticks = spec.down;
+    row.getup_ticks = spec.getup;
     row.move_offset = b.block(strikes.data(), strikes.size() * sizeof(StrikeRow), alignof(StrikeRow));
     row.move_count = static_cast<uint32_t>(strikes.size());
     std::string why;

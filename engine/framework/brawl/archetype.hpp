@@ -21,6 +21,8 @@ struct Archetype {
     DepthProfile profile{};
     fix32 depth{};
     uint16_t idle = 0, walk = 0, jump = 0;
+    uint16_t hurt = 0, fall = 0, down = 0, getup = 0;
+    uint16_t down_ticks = 0, getup_ticks = 0;
     std::array<MoveSlot, MAX_MOVES> moves{};
     uint32_t move_count = 0;
 };

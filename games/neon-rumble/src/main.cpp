@@ -30,6 +30,7 @@ rumble::PlayerCommand scripted(uint32_t t) {
     if (t == 136) c.attack = rumble::Attack::Cross;
     if (t == 137) c.attack = rumble::Attack::Punch;
     if (t == 200) c.attack = rumble::Attack::Cross;
+    if (t == 229) c.attack = rumble::Attack::Punch;
     return c;
 }
 
@@ -38,7 +39,7 @@ int run_headless(rumble::Scene& scene, const rumble::Fighters& fighters, int fra
     for (int i = 0; i < frames; ++i) {
         scene.brawl->player = scripted(static_cast<uint32_t>(i));
         scene.step(static_cast<uint32_t>(i));
-        rumble::report_hits(*scene.brawl, scene.ticks);
+        rumble::report_step(*scene.brawl, scene.ticks);
     }
     rumble::report_brawl(fighters, *scene.brawl, scene.ticks);
     if (scene.ticks != static_cast<uint32_t>(frames)) {

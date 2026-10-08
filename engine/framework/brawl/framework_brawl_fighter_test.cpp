@@ -18,7 +18,7 @@ using namespace framework::brawl;
 using test::check;
 using test::same_strike;
 
-constexpr uint64_t GOLDEN = 0xb0c17d251452f44bull;
+constexpr uint64_t GOLDEN = 0x1a8d5bbe7e6bbfb6ull;
 
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
     uint64_t h = framework::physics::FNV_OFFSET;
@@ -48,6 +48,7 @@ void round_trip(const std::vector<uint8_t>& baked) {
     check(p.gravity == fix32::from_raw(1 << 15) && p.jump_vy == fix32::from_int(6), "gravity, jump_vy");
     check(t.run_x() == fix32::from_int(3) && t.depth() == fix32::from_int(4), "run_x, depth");
     check(t.hp() == 120, "hp");
+    check(t.down_ticks() == 30 && t.getup_ticks() == 24, "down, getup");
     check(t.move_count() == 2, "two moves");
     const Strike jab{0, HitType::Light, false, 8, fix32::from_int(5), 4, 12, fix32::from_raw(3 << 15), fix32{}};
     const Strike kick{1,  HitType::Launch,          true, 20, fix32::from_raw((25 << 16) / 4), 7, 30,
@@ -73,9 +74,14 @@ const uint32_t UNDER_KNOCK = static_cast<uint32_t>(-MAX_FIGHTER_SPEED.raw - 1);
 const uint32_t OVER_DEPTH = static_cast<uint32_t>(MAX_FIGHTER_DEPTH.raw + 1);
 
 const Corruption CORRUPTIONS[] = {
+    {"version 1", At::Header, offsetof(framework::core::SectionHeader, version), 4, 1},
     {"count 2", At::Header, offsetof(framework::core::SectionHeader, count), 4, 2},
     {"hp over the cap", At::Row, offsetof(FighterRow, hp), 4, MAX_HP + 1},
     {"zero hp", At::Row, offsetof(FighterRow, hp), 4, MIN_HP - 1},
+    {"zero down", At::Row, offsetof(FighterRow, down_ticks), 4, 0},
+    {"down over the cap", At::Row, offsetof(FighterRow, down_ticks), 4, MAX_HIT_TICKS + 1},
+    {"zero getup", At::Row, offsetof(FighterRow, getup_ticks), 4, 0},
+    {"getup over the cap", At::Row, offsetof(FighterRow, getup_ticks), 4, MAX_HIT_TICKS + 1},
     {"zero gravity", At::Row, offsetof(FighterRow, gravity_raw), 4, 0},
     {"gravity over the cap", At::Row, offsetof(FighterRow, gravity_raw), 4, OVER_SPEED},
     {"negative speed", At::Row, offsetof(FighterRow, speed_x_raw), 4, 0xffffffffu},

@@ -12,7 +12,8 @@ bool head_ok(const core::SectionView& v, const FighterRow& r) {
            fix_in(r.speed_x_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.speed_z_raw, none, MAX_FIGHTER_SPEED) &&
            fix_in(r.run_x_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.gravity_raw, tiny, MAX_FIGHTER_SPEED) &&
            fix_in(r.jump_vy_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.depth_raw, tiny, MAX_FIGHTER_DEPTH) &&
-           r.hp >= MIN_HP && r.hp <= MAX_HP;
+           r.hp >= MIN_HP && r.hp <= MAX_HP && r.down_ticks >= 1 && r.down_ticks <= MAX_HIT_TICKS &&
+           r.getup_ticks >= 1 && r.getup_ticks <= MAX_HIT_TICKS;
 }
 
 bool strike_ok(const core::SectionView& v, const StrikeRow& s) {
@@ -59,6 +60,10 @@ fix32 FighterTable::run_x() const { return valid() ? fix32::from_raw(row_->run_x
 fix32 FighterTable::depth() const { return valid() ? fix32::from_raw(row_->depth_raw) : fix32{}; }
 
 uint32_t FighterTable::hp() const { return valid() ? row_->hp : 0; }
+
+uint32_t FighterTable::down_ticks() const { return valid() ? row_->down_ticks : 0; }
+
+uint32_t FighterTable::getup_ticks() const { return valid() ? row_->getup_ticks : 0; }
 
 const char* FighterTable::move_clip(uint32_t index) const {
     return index < moves_.size() ? view_.strings + moves_[index].clip_offset : "";

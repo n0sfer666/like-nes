@@ -20,6 +20,8 @@ public:
     fix32 run_x() const;
     fix32 depth() const;
     uint32_t hp() const;
+    uint32_t down_ticks() const;
+    uint32_t getup_ticks() const;
 
     uint32_t move_count() const { return static_cast<uint32_t>(moves_.size()); }
     const char* move_clip(uint32_t index) const;

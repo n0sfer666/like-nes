@@ -18,6 +18,17 @@ namespace gfx = framework::graphics;
 
 const char* side(const br::Body& b) { return b.facing < 0 ? "left" : "right"; }
 
+const char* reaction_name(br::Reaction r) {
+    switch (r) {
+    case br::Reaction::Hurt: return "hurt";
+    case br::Reaction::Fall: return "fall";
+    case br::Reaction::Down: return "down";
+    case br::Reaction::Getup: return "getup";
+    case br::Reaction::None: break;
+    }
+    return "stand";
+}
+
 void report_floor(const br::DepthFloor& f) {
     std::printf("neon-rumble: depth band %d..%d x %d..%d, %u wall(s)", f.band.x0.to_int(), f.band.x1.to_int(),
                 f.band.z0.to_int(), f.band.z1.to_int(), f.wall_count);
@@ -87,6 +98,20 @@ void report_hits(const Brawl& brawl, uint32_t tick) {
     if (brawl.events.dropped > 0)
         std::printf("neon-rumble: hit tick %u: %u event(s) dropped\n", tick, brawl.events.dropped);
     if (brawl.events.count + brawl.events.dropped > 0) std::fflush(stdout);
+}
+
+void report_reactions(const Brawl& brawl, uint32_t tick) {
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        const br::Reaction now = brawl.body(i).react;
+        if (now == brawl.react_before[i]) continue;
+        std::printf("neon-rumble: react tick %u: %s %s\n", tick, ROSTER[i].fighter, reaction_name(now));
+        std::fflush(stdout);
+    }
+}
+
+void report_step(const Brawl& brawl, uint32_t tick) {
+    report_hits(brawl, tick);
+    report_reactions(brawl, tick);
 }
 
 } // namespace rumble

@@ -3,6 +3,7 @@
 
 #include "depth_body.hpp"
 #include "ent_id.hpp"
+#include "reaction.hpp"
 #include "struck_list.hpp"
 
 namespace framework::brawl {
@@ -20,7 +21,8 @@ struct Body {
     uint16_t clip = 0;
     uint32_t elapsed = 0;
     uint16_t hitstop = 0;
-    uint16_t hitstun = 0;
+    Reaction react = Reaction::None;
+    uint16_t react_ticks = 0;
     StruckList struck;
 };
 

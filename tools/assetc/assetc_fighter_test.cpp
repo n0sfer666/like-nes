@@ -41,6 +41,8 @@ const char* const FIGHTER = "sheet   | brawler\n"
                             "jump_vy | 6\n"
                             "depth   | 4\n"
                             "hp      | 100\n"
+                            "down    | 30\n"
+                            "getup   | 24\n"
                             "move | punch | hit0\n"
                             "type      | light\n"
                             "damage    | 10\n"
@@ -94,7 +96,7 @@ void baked(const std::string& root) {
     if (bundle.size() >= sizeof(BundleHeader))
         std::memcpy(&hash, bundle.data() + offsetof(BundleHeader, bundle_hash), sizeof(hash));
     std::printf("  bundle_hash = 0x%016llx\n", static_cast<unsigned long long>(hash));
-    check(hash == 0x88fb214bcc91e75full, "golden bundle_hash of the fighter manifest");
+    check(hash == 0x321ba03d7b226405ull, "golden bundle_hash of the fighter manifest");
 }
 
 std::string with(std::string text, const char* from, const char* to) {
@@ -113,7 +115,7 @@ void refused(const std::string& root, const std::string& manifest, const std::st
 void refusals(const std::string& root) {
     const std::string kick = with(FIGHTER, "move | punch", "move | kick");
     refused(root, MANIFEST, kick, "game.manifest:1: ", "fighter refusal names the record line");
-    refused(root, MANIFEST, kick, "/art/brawler.fighter:9: move 'kick' hit0: no clip 'brawler/kick' in the clips",
+    refused(root, MANIFEST, kick, "/art/brawler.fighter:11: move 'kick' hit0: no clip 'brawler/kick' in the clips",
             "a move without its clip names the fighter line");
     refused(root, MANIFEST, with(FIGHTER, "punch | hit0", "punch | hit1"),
             "move 'punch' hit1: no frame of clip 'brawler/punch' carries this hit box", "a move without its box");

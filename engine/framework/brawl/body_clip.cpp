@@ -12,6 +12,12 @@ graphics::ClipView view_of(const Body& b, const Archetype& a) {
     return a.clips == nullptr ? graphics::ClipView{} : a.clips->clip(b.clip);
 }
 
+uint32_t forward_ticks(const graphics::Clip& c) {
+    uint32_t total = 0;
+    for (uint16_t f = 0; f < c.frame_count; ++f) total += c.frames[f].duration;
+    return total;
+}
+
 bool has_box(const graphics::ClipView& v, uint16_t frame, uint8_t index) {
     for (const graphics::ClipBox& box : graphics::frame_boxes(v, frame, graphics::BoxKind::Hit))
         if (box.index == index) return true;
@@ -32,9 +38,11 @@ void enter(Body& b, const Archetype& a, uint16_t clip) {
 
 bool striking(const Body& b, const Archetype& a) { return is_move(a, b.clip); }
 
-bool can_strike(const Body& b, const Archetype& a) { return b.hitstop == 0 && b.hitstun == 0 && !striking(b, a); }
+bool can_strike(const Body& b, const Archetype& a) { return b.hitstop == 0 && b.react == Reaction::None && !striking(b, a); }
 
 void start_strike(Body& b, uint16_t clip) { switch_to(b, clip, 0); }
+
+void play_clip(Body& b, uint16_t clip) { switch_to(b, clip, 0); }
 
 void end_strike(Body& b, const Archetype& a) {
     if (striking(b, a)) enter(b, a, locomotion_clip(b, a));
@@ -52,9 +60,21 @@ uint16_t locomotion_clip(const Body& b, const Archetype& a) {
     return a.idle;
 }
 
+uint16_t reaction_clip(const Body& b, const Archetype& a) {
+    switch (b.react) {
+    case Reaction::Hurt: return a.hurt;
+    case Reaction::Fall: return a.fall;
+    case Reaction::Down: return a.down;
+    case Reaction::Getup: return a.getup;
+    case Reaction::None: break;
+    }
+    return locomotion_clip(b, a);
+}
+
 void advance_clip(Body& b, const Archetype& a) {
-    ++b.elapsed;
     const graphics::ClipView v = view_of(b, a);
+    if (b.react != Reaction::None && b.elapsed + 1u >= forward_ticks(v.clip)) return;
+    ++b.elapsed;
     if (striking(b, a) && b.elapsed >= graphics::clip_period(v.clip)) {
         end_strike(b, a);
         return;
@@ -66,7 +86,7 @@ void advance_clip(Body& b, const Archetype& a) {
 }
 
 void settle_clip(Body& b, const Archetype& a) {
-    const uint16_t want = locomotion_clip(b, a);
+    const uint16_t want = reaction_clip(b, a);
     if (!striking(b, a) && want != b.clip) enter(b, a, want);
 }
 

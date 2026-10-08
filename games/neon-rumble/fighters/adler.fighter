@@ -6,6 +6,8 @@ gravity | 0.5
 jump_vy | 6
 depth   | 6
 hp      | 100
+down    | 30
+getup   | 30
 
 move | jab | hit0
 type      | light

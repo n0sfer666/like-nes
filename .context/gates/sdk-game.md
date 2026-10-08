@@ -90,6 +90,11 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    там ноги на полу, сдвиг пивота дёрнул бы фигуру. Скрипт держит 240 тиков с U: cross в воздухе на
    тике 136 отбрасывается, cross на тике 200 даёт `hit tick 205`; мутанты (снят `!airborne` у cross,
    cross → jab, cross → без удара) сдвигают закреплённые строки.
+   С В3б хеш `0xe9c2e2cf1b4b6f9c`: ключи `down | 30`, `getup | 30` в `.fighter`, LNFT v2. Скрипт
+   печатает переходы реакций `react tick N: adler hurt|fall|down|getup|stand`; jump_kick на 148
+   валит adler (fall 148, down 168, getup 198, stand 228), cross на 200 приходит во встающего и
+   не попадает, добавленный jab на 229 даёт `hit tick 238`, hp 66; хеш тика 240 `f8f3af58e5cacb1a`.
+   `sdk_game_lib.sh` сверяет 15 точных строк (`-eq 15`) и число строк `hit|react` (`-eq 13`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

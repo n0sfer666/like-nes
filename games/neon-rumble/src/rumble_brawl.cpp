@@ -120,7 +120,10 @@ bool Brawl::open(const Level& level, const Fighters& fighters) {
 }
 
 void Brawl::step() {
-    for (uint32_t i = 0; i < FIGHTERS; ++i) hp_before[i] = body(i).hp;
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        hp_before[i] = body(i).hp;
+        react_before[i] = body(i).react;
+    }
     std::array<br::Command, FIGHTERS> commands{};
     for (br::Command& c : commands) c.input = standing();
     commands[PLAYER] = {player.input, strike_of(player.attack, kinds.player, body(PLAYER))};

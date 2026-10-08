@@ -19,6 +19,8 @@ constexpr uint32_t MAX_HIT_TICKS = 120;
 constexpr fix32 MAX_FIGHTER_SPEED = fix32::from_int(16);
 constexpr fix32 MAX_FIGHTER_DEPTH = fix32::from_int(64);
 
+constexpr uint16_t ticks16(uint32_t v) { return v < 0xffffu ? static_cast<uint16_t>(v) : uint16_t{0xffff}; }
+
 struct Strike {
     uint8_t box = 0;
     HitType type = HitType::Light;
@@ -41,6 +43,7 @@ struct FighterSpec {
     std::string sheet;
     fix32 speed_x{}, speed_z{}, run_x{}, gravity{}, jump_vy{}, depth{};
     uint32_t hp = 0;
+    uint32_t down = 0, getup = 0;
     int sheet_line = 0;
     std::vector<MoveSpec> moves;
 

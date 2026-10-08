@@ -33,7 +33,9 @@ const FixKey<FighterSpec> HEAD_FIX[] = {
     {"jump_vy", &FighterSpec::jump_vy, NO_SPEED, MAX_FIGHTER_SPEED},
     {"depth", &FighterSpec::depth, DEPTH_LO, MAX_FIGHTER_DEPTH},
 };
-const TickKey<FighterSpec> HEAD_TICK[] = {{"hp", &FighterSpec::hp, MIN_HP, MAX_HP}};
+const TickKey<FighterSpec> HEAD_TICK[] = {
+    {"hp", &FighterSpec::hp, MIN_HP, MAX_HP}, {"down", &FighterSpec::down, 1, MAX_HIT_TICKS},
+    {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}};
 const char* const HEAD_TEXT[] = {"sheet"};
 
 const FixKey<Strike> MOVE_FIX[] = {

@@ -15,14 +15,14 @@ using namespace framework::brawl;
 using test::check;
 
 const uint64_t PINS[] = {
-    0x6355ad5af1533844ull,
-    0xca7b73affdccacb3ull,
-    0xa7087e032b245e83ull,
-    0x245cfd4c72637269ull,
-    0xdecacb80b3ba1d83ull,
-    0xf0e83c5483b4d24dull,
-    0xd018613f733fbb08ull,
-    0x0c2b7fdfafd5e501ull,
+    0x10ac6489f82223d2ull,
+    0xcf9c7815b0459b7dull,
+    0xa2241e937db18561ull,
+    0x4964a12ecad52e76ull,
+    0xfe7a94cf1f4383fdull,
+    0xd4a1a6f7d50cc860ull,
+    0xa9556176ea84fca8ull,
+    0xd304465949f80838ull,
 };
 
 constexpr uint32_t SCENARIO_COUNT = sizeof(scenario::SCENARIOS) / sizeof(scenario::SCENARIOS[0]);

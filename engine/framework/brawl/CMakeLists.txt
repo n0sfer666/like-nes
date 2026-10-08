@@ -3,7 +3,7 @@ target_include_directories(framework_brawl_fighter PUBLIC ${CMAKE_CURRENT_SOURCE
 target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framework_core)
 
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
-  archetype.cpp body_clip.cpp hit_geometry.cpp hit_collect.cpp hit_apply.cpp brawl_step.cpp)
+  archetype.cpp body_clip.cpp body_react.cpp hit_geometry.cpp hit_collect.cpp hit_apply.cpp brawl_step.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics
   framework_core)
@@ -39,3 +39,5 @@ add_executable(framework_brawl_hit_rules_test framework_brawl_hit_rules_test.cpp
 target_link_libraries(framework_brawl_hit_rules_test PRIVATE framework_brawl)
 add_executable(framework_brawl_strike_test framework_brawl_strike_test.cpp)
 target_link_libraries(framework_brawl_strike_test PRIVATE framework_brawl)
+add_executable(framework_brawl_react_test framework_brawl_react_test.cpp)
+target_link_libraries(framework_brawl_react_test PRIVATE framework_brawl)

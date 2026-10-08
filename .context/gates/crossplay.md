@@ -12,6 +12,11 @@ python3 scripts/check_crossplay.py --selftest  # 12 контролей, в check
 не расхождение между ОС: перепиновка на одной машине зеленит её прогон, а две другие падают
 каждая своим `FAIL` без указания, кто из трёх прав. Джоб сравнивает прогоны ОС между собой.
 
+С В3б (2026-10-08) в хеш тела входят `react` и `react_ticks`, и все 8 литералов перепинены. Атрибуция
+мутантом: без `mix(react)` шесть сценариев ходьбы дают ровно прежние литералы — их сдвиг только от
+раскладки хеша; `jab-exchange` и `flurry-crowd` сдвинуло поведение (клип hurt, гашение скорости на
+выходе из реакции).
+
 - **Кто пишет.** Шаг «Brawl — crossplay hashes…» в `build-and-determinism` на каждой ОС зовёт
   `framework_brawl_crossplay_test --crossplay crossplay-<runner.os>.txt` и выкладывает файл
   артефактом `crossplay-<runner.os>` (`if-no-files-found: error`). Формат — `имя 0x<16 hex>\n`,

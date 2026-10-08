@@ -53,8 +53,10 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.elapsed = 0; }); }},
     {"hitstop", [](BodyPool& p) { last(p).hitstop += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.hitstop = 0; }); }},
-    {"hitstun", [](BodyPool& p) { last(p).hitstun += 1; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.hitstun = 0; }); }},
+    {"react", [](BodyPool& p) { last(p).react = Reaction::Down; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.react = Reaction::None; }); }},
+    {"react ticks", [](BodyPool& p) { last(p).react_ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.react_ticks = 0; }); }},
     {"struck count", [](BodyPool& p) { last(p).struck.count += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.count = 0; }); }},
     {"struck seq", [](BodyPool& p) { last(p).struck.at[0].seq += 1; },
@@ -83,7 +85,8 @@ BodyPool two_bodies() {
     a.clip = 3;
     a.elapsed = 4;
     a.hitstop = 2;
-    a.hitstun = 5;
+    a.react = Reaction::Hurt;
+    a.react_ticks = 5;
     a.struck.add(EntId{7}, 2);
     pool.spawn(a);
     Body b = a;

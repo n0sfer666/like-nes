@@ -51,7 +51,7 @@ void test_sum_and_top() {
     r.move(r.arena.jab).damage = 20;
     const HitEvents e = r.hit();
     check(e.count == 2 && t.hp == 73, "damage of every event on a target adds up");
-    check(t.hitstun == 10 && t.pos.vx == fix32::from_int(-2) && t.pos.vy == fix32::from_int(3),
+    check(t.react == Reaction::Hurt && t.react_ticks == 10 && t.pos.vx == fix32::from_int(-2) && t.pos.vy == fix32::from_int(3),
           "knock and hitstun come from the event with the largest hitstun, not the largest damage");
 }
 
@@ -146,11 +146,13 @@ void test_hitstun() {
     for (const uint16_t stun : {uint16_t{5}, uint16_t{0}}) {
         Ring r;
         Body& b = r.put(0, 1, 0);
-        b.hitstun = stun;
+        b.react = stun == 0 ? Reaction::None : Reaction::Hurt;
+        b.react_ticks = stun;
+        b.clip = stun == 0 ? b.clip : r.arena.kinds[0].hurt;
         Command c = walk_right();
         c.strike = r.arena.jab;
         test::tick(r.pool, r.arena, {c});
-        const bool held = b.pos.x == fix32::from_int(0) && b.clip == r.arena.kinds[0].idle && b.hitstun == 4;
+        const bool held = b.pos.x == fix32::from_int(0) && b.clip == r.arena.kinds[0].hurt && b.react_ticks == 4;
         check(stun == 0 ? b.clip == r.arena.jab && !held : held,
               stun == 0 ? "control: without hitstun the strike starts" : "hitstun ignores the input and the strike");
     }

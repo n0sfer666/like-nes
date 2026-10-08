@@ -19,6 +19,8 @@ inline const char* DUMMY_TEXT = "sheet   | dummy\n"
                                 "jump_vy | 6\n"
                                 "depth   | 4\n"
                                 "hp      | 100\n"
+                                "down    | 6\n"
+                                "getup   | 4\n"
                                 "move | jab | hit0\n"
                                 "type | light\ndamage | 5\ndepth | 4\nhitstop | 3\nhitstun | 8\n"
                                 "knock_x | 1\nknock_y | 0\nhits_down | no\n"
@@ -52,7 +54,10 @@ inline std::vector<graphics::ClipSrc> dummy_clips() {
     return {dummy_clip("idle", {false}, graphics::CLIP_LOOP), dummy_clip("walk", {false, false}, graphics::CLIP_LOOP),
             dummy_clip("jump", {false}, graphics::CLIP_ONCE),
             dummy_clip("jab", {false, true, true, false}, graphics::CLIP_ONCE),
-            dummy_clip("flurry", {true, false, true, true, false}, graphics::CLIP_LOOP)};
+            dummy_clip("flurry", {true, false, true, true, false}, graphics::CLIP_LOOP),
+            dummy_clip("hurt", {false, false}, graphics::CLIP_LOOP), dummy_clip("fall", {false}, graphics::CLIP_ONCE),
+            dummy_clip("down", {false}, graphics::CLIP_ONCE),
+            dummy_clip("getup", {false, false, false}, graphics::CLIP_LOOP | graphics::CLIP_PINGPONG)};
 }
 
 struct Arena {
@@ -65,8 +70,8 @@ struct Arena {
     std::string error;
 
     Arena(const Arena&) = delete;
-    Arena() {
-        const std::vector<graphics::ClipSrc> src = dummy_clips();
+    Arena() : Arena(dummy_clips()) {}
+    explicit Arena(const std::vector<graphics::ClipSrc>& src) {
         FighterBakeError fe;
         if (!graphics::bake_clips(src, clip_bytes, error) || !bake_fighter("dummy.fighter", DUMMY_TEXT, src,
                                                                            fighter_bytes, fe)) {

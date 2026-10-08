@@ -1,5 +1,6 @@
 #include "hit_collect.hpp"
 
+#include "body_react.hpp"
 #include "clip.hpp"
 #include "hit_geometry.hpp"
 
@@ -43,7 +44,7 @@ void collect_from(const BodyPool& pool, uint32_t slot, std::span<const Archetype
         const HitRect hit = place_box(a, box.rect);
         for (uint32_t j = 0; j < pool.count; ++j) {
             const Body& t = pool.bodies[j];
-            if (t.kind >= kinds.size() || !filter(a, t, rules) || a.struck.has(t.id, box.index)) continue;
+            if (t.kind >= kinds.size() || !vulnerable(t) || !filter(a, t, rules) || a.struck.has(t.id, box.index)) continue;
             if (!hurt_crossed(a, hit, s.depth, t, kinds)) continue;
             const fix32 knock = a.facing < 0 ? -s.knock_x : s.knock_x;
             out.push(HitEvent{a.id, t.id, box.index, knock, a.kind, move});
