@@ -25,8 +25,8 @@ struct Archetype {
     fix32 run_x{};
     fix32 depth{};
     uint16_t idle = 0, walk = 0, jump = 0;
-    uint16_t hurt = 0, fall = 0, down = 0, getup = 0;
-    uint16_t down_ticks = 0, getup_ticks = 0;
+    uint16_t hurt = 0, fall = 0, down = 0, getup = 0, block = 0, dodge = 0;
+    uint16_t down_ticks = 0, getup_ticks = 0, dodge_ticks = 0;
     std::array<MoveSlot, MAX_MOVES> moves{};
     uint32_t move_count = 0;
     std::array<uint16_t, MAX_CHAIN> chain{};

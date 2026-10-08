@@ -24,6 +24,7 @@ public:
     uint32_t getup_ticks() const;
     uint32_t buffer_ticks() const;
     uint32_t run_tap_ticks() const;
+    uint32_t dodge_ticks() const;
 
     uint32_t move_count() const { return static_cast<uint32_t>(moves_.size()); }
     const char* move_name(uint32_t index) const;

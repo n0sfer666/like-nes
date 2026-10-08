@@ -40,8 +40,9 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
         return false;
     }
     const std::string sheet = fighter.sheet();
-    const char* const tags[] = {"idle", "walk", "jump", "hurt", "fall", "down", "getup"};
-    uint16_t* const slots[] = {&out.idle, &out.walk, &out.jump, &out.hurt, &out.fall, &out.down, &out.getup};
+    const char* const tags[] = {"idle", "walk", "jump", "hurt", "fall", "down", "getup", "block", "dodge"};
+    uint16_t* const slots[] = {&out.idle, &out.walk, &out.jump, &out.hurt, &out.fall, &out.down, &out.getup,
+                                &out.block, &out.dodge};
     for (uint32_t i = 0; i < std::size(tags); ++i)
         if (!find_sheet_clip(clips, sheet, tags[i], *slots[i], error)) return false;
     if (fighter.move_count() > MAX_MOVES) {
@@ -71,6 +72,7 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
     out.run_tap = static_cast<uint8_t>(fighter.run_tap_ticks());
     out.down_ticks = ticks16(fighter.down_ticks());
     out.getup_ticks = ticks16(fighter.getup_ticks());
+    out.dodge_ticks = ticks16(fighter.dodge_ticks());
     return make_chain(fighter, clips, out, error);
 }
 

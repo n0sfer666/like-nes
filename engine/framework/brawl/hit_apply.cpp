@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include "body_guard.hpp"
 #include "body_react.hpp"
 
 namespace framework::brawl {
@@ -29,13 +30,15 @@ void remember(BodyPool& pool, std::span<const Archetype> kinds, HitEvents& event
     }
 }
 
-Taken taken_by(const Body& t, std::span<const Archetype> kinds, const HitEvents& events,
-               const std::array<bool, MAX_HIT_EVENTS>& kept) {
+Taken taken_by(const BodyPool& pool, const Body& t, std::span<const Archetype> kinds, const HitEvents& events,
+               const std::array<bool, MAX_HIT_EVENTS>& kept, bool guarded) {
     Taken out;
     for (uint32_t i = 0; i < events.count; ++i) {
         const HitEvent& e = events.at[i];
         if (!kept[i] || !(e.target == t.id)) continue;
         const Strike& s = strike_of(e, kinds);
+        const Body* a = pool.find(e.attacker);
+        if (a == nullptr || guards(t, *a, s) != guarded) continue;
         out.damage += s.damage;
         out.hitstop = std::max(out.hitstop, ticks16(s.hitstop));
         if (out.top == nullptr || strike_of(*out.top, kinds).hitstun < s.hitstun) out.top = &e;
@@ -51,6 +54,12 @@ void take(Body& t, const Taken& hit, std::span<const Archetype> kinds) {
     t.pos.vz = fix32{};
     t.pos.vy = fix32{} < s.knock_y || fix32{} < t.pos.y ? s.knock_y : fix32{};
     if (t.kind < kinds.size()) react_to(t, s, kinds[t.kind]);
+    if (t.react == Reaction::Block) guard_strike(t, hit.top->knock_vx, s);
+}
+
+void take_guarded(Body& t, const Taken& hit, std::span<const Archetype> kinds) {
+    t.hitstop = std::max(t.hitstop, hit.hitstop);
+    guard_strike(t, hit.top->knock_vx, strike_of(*hit.top, kinds));
 }
 
 } // namespace
@@ -59,8 +68,11 @@ void apply_hits(BodyPool& pool, std::span<const Archetype> kinds, HitEvents& eve
     std::array<bool, MAX_HIT_EVENTS> kept{};
     remember(pool, kinds, events, kept);
     for (uint32_t i = 0; i < pool.count; ++i) {
-        const Taken hit = taken_by(pool.bodies[i], kinds, events, kept);
-        if (hit.top != nullptr) take(pool.bodies[i], hit, kinds);
+        Body& t = pool.bodies[i];
+        const Taken hit = taken_by(pool, t, kinds, events, kept, false);
+        const Taken guard = taken_by(pool, t, kinds, events, kept, true);
+        if (hit.top != nullptr) take(t, hit, kinds);
+        else if (guard.top != nullptr) take_guarded(t, guard, kinds);
     }
 }
 

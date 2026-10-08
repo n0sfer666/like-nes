@@ -48,6 +48,8 @@ const Corruption CORRUPTIONS[] = {
     {"buffer over the cap", At::Row, offsetof(FighterRow, buffer_ticks), 4, MAX_HIT_TICKS + 1},
     {"zero run_tap", At::Row, offsetof(FighterRow, run_tap_ticks), 4, 0},
     {"run_tap over the cap", At::Row, offsetof(FighterRow, run_tap_ticks), 4, MAX_HIT_TICKS + 1},
+    {"zero dodge", At::Row, offsetof(FighterRow, dodge_ticks), 4, 0},
+    {"dodge over the cap", At::Row, offsetof(FighterRow, dodge_ticks), 4, MAX_HIT_TICKS + 1},
     {"move name past the strings", At::Strike, offsetof(StrikeRow, name_offset), 4, 0xffffu},
     {"empty chain", At::Row, offsetof(FighterRow, chain_count), 4, 0},
     {"chain past the end", At::Row, offsetof(FighterRow, chain_offset), 4, 0xfffffff0u},

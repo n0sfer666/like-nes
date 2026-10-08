@@ -47,7 +47,7 @@ struct FighterSpec {
     std::string sheet;
     fix32 speed_x{}, speed_z{}, run_x{}, gravity{}, jump_vy{}, depth{};
     uint32_t hp = 0;
-    uint32_t down = 0, getup = 0, buffer = 0, run_tap = 0;
+    uint32_t down = 0, getup = 0, buffer = 0, run_tap = 0, dodge = 0;
     std::vector<std::string> chain;
     int sheet_line = 0, chain_line = 0;
     std::vector<MoveSpec> moves;

@@ -10,6 +10,7 @@ struct KeyLatch {
     bool punch = false;
     bool cross = false;
     bool kick = false;
+    bool dodge = false;
 };
 
 bool key_toggled(GLFWwindow* window, int key, bool& held);

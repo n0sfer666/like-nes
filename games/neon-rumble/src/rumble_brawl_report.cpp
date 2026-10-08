@@ -24,6 +24,8 @@ const char* reaction_name(br::Reaction r) {
     case br::Reaction::Fall: return "fall";
     case br::Reaction::Down: return "down";
     case br::Reaction::Getup: return "getup";
+    case br::Reaction::Block: return "block";
+    case br::Reaction::Dodge: return "dodge";
     case br::Reaction::None: break;
     }
     return "stand";

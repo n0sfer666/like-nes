@@ -25,6 +25,8 @@ const uint64_t PINS[] = {
     0x5b946ec9e8e217d7ull,
     0x4b31a39954b5d667ull,
     0xfd0ba0a7210cec62ull,
+    0xd7a4870ab27314b6ull,
+    0xfb8f36535a5c9175ull,
 };
 
 constexpr uint32_t SCENARIO_COUNT = sizeof(scenario::SCENARIOS) / sizeof(scenario::SCENARIOS[0]);

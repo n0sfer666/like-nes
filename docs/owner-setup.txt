@@ -1832,6 +1832,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
       neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
       neon-rumble: react tick 92: adler stand
+      neon-rumble: react tick 101: banderas block
+      neon-rumble: react tick 111: banderas stand
       neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
       neon-rumble: react tick 154: adler fall
       neon-rumble: react tick 174: adler down
@@ -1843,10 +1845,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
       neon-rumble: react tick 329: adler fall
       neon-rumble: react tick 346: adler down
-      neon-rumble: brawl tick 360: hash db0f9c26c206148a, banderas 426,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
+      neon-rumble: react tick 353: banderas dodge
+      neon-rumble: brawl tick 360: hash 280bec44e5a5207f, banderas 434,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
       neon-rumble: headless run ok, 360 frames
       sdk-game: OK   Release: built against the prefix and ran 360 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x1896759115fb869a matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0x1a70456ab7d054f3 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
@@ -1874,6 +1877,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
       neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
       neon-rumble: react tick 92: adler stand
+      neon-rumble: react tick 101: banderas block
+      neon-rumble: react tick 111: banderas stand
       neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
       neon-rumble: react tick 154: adler fall
       neon-rumble: react tick 174: adler down
@@ -1885,10 +1890,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
       neon-rumble: react tick 329: adler fall
       neon-rumble: react tick 346: adler down
-      neon-rumble: brawl tick 360: hash db0f9c26c206148a, banderas 426,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
+      neon-rumble: react tick 353: banderas dodge
+      neon-rumble: brawl tick 360: hash 280bec44e5a5207f, banderas 434,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
       neon-rumble: headless run ok, 360 frames
       sdk-game: OK   Debug: built against the prefix and ran 360 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x1896759115fb869a matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x1a70456ab7d054f3 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused

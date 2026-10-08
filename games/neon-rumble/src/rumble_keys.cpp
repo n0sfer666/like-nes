@@ -30,6 +30,10 @@ PlayerCommand read_keys(GLFWwindow* window, KeyLatch& latch) {
     const bool jump = down(window, GLFW_KEY_SPACE, GLFW_KEY_K);
     if (jump && !latch.jump) in.buttons = framework::brawl::button::JUMP;
     latch.jump = jump;
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        in.buttons = static_cast<uint16_t>(in.buttons | framework::brawl::button::BLOCK);
+    if (key_toggled(window, GLFW_KEY_O, latch.dodge))
+        in.buttons = static_cast<uint16_t>(in.buttons | framework::brawl::button::DODGE);
     const bool punch = key_toggled(window, GLFW_KEY_J, latch.punch);
     const bool cross = key_toggled(window, GLFW_KEY_U, latch.cross);
     const bool kick = key_toggled(window, GLFW_KEY_L, latch.kick);

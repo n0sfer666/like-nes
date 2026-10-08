@@ -40,7 +40,7 @@ const FixKey<FighterSpec> HEAD_FIX[] = {
 const TickKey<FighterSpec> HEAD_TICK[] = {
     {"hp", &FighterSpec::hp, MIN_HP, MAX_HP}, {"down", &FighterSpec::down, 1, MAX_HIT_TICKS},
     {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}, {"buffer", &FighterSpec::buffer, 1, MAX_HIT_TICKS},
-    {"run_tap", &FighterSpec::run_tap, 1, MAX_HIT_TICKS}};
+    {"run_tap", &FighterSpec::run_tap, 1, MAX_HIT_TICKS}, {"dodge", &FighterSpec::dodge, 1, MAX_HIT_TICKS}};
 const char* const HEAD_TEXT[] = {"sheet", "chain"};
 
 const FixKey<Strike> MOVE_FIX[] = {

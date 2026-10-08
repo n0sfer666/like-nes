@@ -71,6 +71,8 @@ uint16_t reaction_clip(const Body& b, const Archetype& a) {
     case Reaction::Fall: return a.fall;
     case Reaction::Down: return a.down;
     case Reaction::Getup: return a.getup;
+    case Reaction::Block: return a.block;
+    case Reaction::Dodge: return a.dodge;
     case Reaction::None: break;
     }
     return locomotion_clip(b, a);

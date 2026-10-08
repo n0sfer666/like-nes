@@ -114,6 +114,12 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `kick`» в `strike_of` теряет попадание (хеш тика 360 `cb612ab9eaef59e2` против
    `db0f9c26c206148a`). Хеш тика 0 `b82ff3c456aef8aa` (в хеш тела вошли ход и бег). `sdk_game_lib.sh`
    сверяет 18 точных строк (`-eq 18`) и число строк `hit|react` (`-eq 16`).
+   С В3д хеш `0x1a70456ab7d054f3`: ключ `dodge | N` в `.fighter` (LNFT v5). Скрипт держит BLOCK на
+   100..109 (`react tick 101: banderas block`, `111: banderas stand`) и жмёт DODGE на 352 (`353:
+   banderas dodge`, перекат сквозь лежащего adler, финал banderas 434,252, хеш тика 360
+   `280bec44e5a5207f`). Тайминг не вкус: первый вариант (BLOCK 80..100, DODGE 340) падал на ещё
+   играющие `cross` и `run_kick`, тело занято — ни одной строки, сверка честно молчала бы о блоке.
+   `sdk_game_lib.sh` сверяет 21 точную строку (`-eq 21`) и число строк `hit|react` (`-eq 19`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

@@ -15,6 +15,7 @@ bool head_ok(const core::SectionView& v, const FighterRow& r) {
            r.hp >= MIN_HP && r.hp <= MAX_HP && r.down_ticks >= 1 && r.down_ticks <= MAX_HIT_TICKS &&
            r.getup_ticks >= 1 && r.getup_ticks <= MAX_HIT_TICKS && r.buffer_ticks >= 1 &&
            r.buffer_ticks <= MAX_HIT_TICKS && r.run_tap_ticks >= 1 && r.run_tap_ticks <= MAX_HIT_TICKS &&
+           r.dodge_ticks >= 1 && r.dodge_ticks <= MAX_HIT_TICKS &&
            r.chain_count >= 1 && r.chain_count <= MAX_CHAIN;
 }
 
@@ -77,6 +78,8 @@ uint32_t FighterTable::getup_ticks() const { return valid() ? row_->getup_ticks 
 uint32_t FighterTable::buffer_ticks() const { return valid() ? row_->buffer_ticks : 0; }
 
 uint32_t FighterTable::run_tap_ticks() const { return valid() ? row_->run_tap_ticks : 0; }
+
+uint32_t FighterTable::dodge_ticks() const { return valid() ? row_->dodge_ticks : 0; }
 
 const char* FighterTable::move_name(uint32_t index) const {
     return index < moves_.size() ? view_.strings + moves_[index].name_offset : "";

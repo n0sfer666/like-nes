@@ -25,7 +25,9 @@ rumble::PlayerCommand scripted(uint32_t t) {
     in.move.move_x = fix32::from_int(right ? 1 : t >= 244 && t < 300 ? -1 : 0);
     in.move.move_z = fix32::from_int(t < 12 ? -1 : 0);
     if (t == 44 || t == 56 || t == 68) c.attack = rumble::Attack::Punch;
+    if (t >= 100 && t < 110) in.buttons = framework::brawl::button::BLOCK;
     if (t == 140) in.buttons = framework::brawl::button::JUMP;
+    if (t == 352) in.buttons = framework::brawl::button::DODGE;
     if (t == 141) c.attack = rumble::Attack::Kick;
     if (t == 142) c.attack = rumble::Attack::Cross;
     if (t == 143) c.attack = rumble::Attack::Punch;

@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 26 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 12 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 27 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -42,6 +42,7 @@ names that surface.
 | Adler, jump-kicked, falls, lies and gets up with his feet on his shadow; nothing hits him while he is down or rising | [#25](../.context/specs/2026-10-05-brawl-framework.md) 3 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
 | Banderas's J chains jab, jab and cross on a hit and starts over on a miss; a key pressed during a strike waits for it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 4 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_chain.*`, `engine/framework/brawl/strike_queue.*`, `engine/framework/brawl/archetype_chain.*`, `engine/framework/brawl/fighter_chain.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 | Banderas runs on a double tap, L on the run is a kick that rolls on into Adler; the run ends on release, reversal, strike or hurt | [#25](../.context/specs/2026-10-05-brawl-framework.md) 5 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_brawl.cpp`, `engine/framework/brawl/body_run.*`, `engine/framework/brawl/run_state.hpp`, `engine/framework/brawl/fighter_move_parse.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
+| Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3413,7 +3414,7 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0x1896759115fb869a` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x1a70456ab7d054f3` in Release and Debug, and in each
    run the lines
 
        neon-rumble: brawl tick 0: hash b82ff3c456aef8aa, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
@@ -3422,6 +3423,8 @@ backslashes).
        neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
        neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
        neon-rumble: react tick 92: adler stand
+       neon-rumble: react tick 101: banderas block
+       neon-rumble: react tick 111: banderas stand
        neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
        neon-rumble: react tick 154: adler fall
        neon-rumble: react tick 174: adler down
@@ -3433,7 +3436,8 @@ backslashes).
        neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
        neon-rumble: react tick 329: adler fall
        neon-rumble: react tick 346: adler down
-       neon-rumble: brawl tick 360: hash db0f9c26c206148a, banderas 426,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
+       neon-rumble: react tick 353: banderas dodge
+       neon-rumble: brawl tick 360: hash 280bec44e5a5207f, banderas 434,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
 
    The cross of tick 200 lands while Adler is getting up and makes no line: since B3b a fighter who
    falls, lies or rises cannot be hit. Falling, lying and rising are judged in §23.
@@ -3446,6 +3450,9 @@ backslashes).
    Since B3d the script runs 360 ticks: Banderas walks back to the left from tick 244, taps right on
    ticks 304 and 306, runs, and presses L on tick 312. Kick on the run is `run_kick`, which rolls on
    with the run and launches Adler; it is judged in §25.
+
+   Since B3e the script holds I on ticks 100–109 (the block, `banderas block` then `banderas stand`)
+   and presses O on tick 352 (the roll past the fallen Adler); both are judged in §26.
 
 2. Start the window from a terminal you can read, and close it yourself when done:
 
@@ -3682,9 +3689,77 @@ Send back: the terminal lines of steps 4–5 and one word on the pace of the dou
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 26. Gate 6 of #25 — the block and the roll
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 101 banderas block, react tick 111 banderas stand, react tick 353 banderas dodge; окно neon_rumble: I держит позу блока на месте, отпускание выходит; O — перекат вперёд около 0,4 с сквозь adler, J/K/I/O во время переката ничего не делают; I и O в прыжке и в ударе не срабатывают; прислать строки react, слово о длине переката и частоту экрана -->
+
+B3e of spec #25 gave the fighters a block and a roll. I held on the ground is the block: the fighter
+takes the `block` pose, stands where he is while it is held and leaves it on the release, with no
+recovery. A light or heavy strike from the front into the block deals nothing: both fighters stop for
+the strike's hitstop and the blocker slides back at half the strike's push. A strike from behind, a
+launch and (from B3f) a grab go through as usual, and the attacker's chain goes on after a blocked
+strike as after a hit. O on the ground is the roll: the fighter rolls forward at `run_x` for `dodge`
+ticks (Rainbird 20, Banderas 24, Adler 28 — a third to half a second at 60 Hz), cannot be hit on any
+of them, and nothing stops or restarts it. The simulation steps once per drawn frame, so on a 120 Hz
+screen the roll is half as long — not a finding. The roll may start from the block. Neither starts in the air, in a
+strike or in a hurt.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS` and, in each run, among the lines of §25 step 1,
+
+       neon-rumble: react tick 101: banderas block
+       neon-rumble: react tick 111: banderas stand
+       neon-rumble: react tick 353: banderas dodge
+
+   The script holds I for ticks 100–109 and presses O on tick 352, right after the run kick of §25
+   ends; Banderas rolls on past the fallen Adler and is still rolling at tick 360.
+
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+3. **The block.** Hold I. Banderas takes the block pose and the terminal prints
+   `neon-rumble: react tick <n>: banderas block`. Hold a direction as well: he does not walk. Let go of
+   I — `banderas stand`, and the held direction walks him at once. Hold I in a jump or in the middle of
+   a jab: nothing happens until he lands or the jab ends, and then the block starts if I is still held.
+   Press J while blocking and let go of I within 8 ticks (0.13 s at 60 Hz): the jab comes out after
+   the release. A J held in the block longer than that expires in the buffer — not a finding.
+4. **The roll.** Press O. Banderas rolls forward, the way he faces, at the speed of the run (1.5× the
+   walk), for 24 ticks — 0.4 s at 60 Hz, and the terminal prints `banderas dodge` and then
+   `banderas stand`. Press J, K, I or O during the roll: it goes on to its end unchanged. Roll at
+   Adler on his line: Banderas passes through him. O in a jump or in a strike does nothing; O while
+   holding I rolls out of the block.
+
+What counts as a finding: a block in the air or in a strike; a block that walks or does not end on the
+release; a roll that goes backwards, stops early, turns or starts again on a second O; a roll in the
+air; a pose that is not the block or the roll; a roll that feels too long or too short to use — send a
+word on its length either way.
+
+Four known edges are not findings. Nobody strikes Banderas in Neon Rumble until the AI of B5, so the
+blocked strike (no damage, the shared stop, the half push) and the roll through a strike are not
+visible in the window — they are pinned by `framework_brawl_guard_test`, `framework_brawl_dodge_test`
+and the `block-turn` and `dodge-through` scenarios of the crossplay gate. Fighters do not push each
+other until B3f, so the roll passing through Adler says nothing about invulnerability. Only Banderas
+is under the keyboard, so the rolls of Rainbird (20 ticks) and Adler (28) wait for the AI of B5. The
+`dodge` clip is 7 frames of 60 ms, 4 ticks each, 28 in all, and the roll of Banderas is 24: its last
+frame is never shown and he snaps to the stand pose (Rainbird's 20 would lose two). The lengths are the
+owner's choice of 2026-10-09; say so if the cut reads wrong.
+
+Send back: the terminal lines of steps 3–4, one word on the length of the roll and the refresh rate of
+the screen it was judged on.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 26 are closed, and the open 12 are listed by
+The gates above are what the ADRs waited on; 14 of the 27 are closed, and the open 13 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

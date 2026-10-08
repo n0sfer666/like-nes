@@ -2,6 +2,7 @@
 
 #include "body_chain.hpp"
 #include "body_clip.hpp"
+#include "body_guard.hpp"
 #include "body_react.hpp"
 #include "body_run.hpp"
 #include "depth_step.hpp"
@@ -31,7 +32,8 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w) {
         ++b.age;
         return;
     }
-    if (!take_strike(b, a)) advance_clip(b, a);
+    const bool guarded = track_guard(b, cmd.input, a);
+    if (!take_strike(b, a) && !guarded) advance_clip(b, a);
     move(b, cmd.input, a, *w.floor);
     tick_reaction(b, a);
     settle_clip(b, a);

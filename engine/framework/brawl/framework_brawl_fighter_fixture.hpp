@@ -23,7 +23,7 @@ inline const char* FIGHTER_TEXT =
     "buffer  | 7\n"
     "run_tap | 9\n"
     "chain   | jab  jab kick\n"
-    "\n"
+    "dodge   | 18\n"
     "move | jab | hit0\n"
     "type      | light\n"
     "damage    | 8\n"

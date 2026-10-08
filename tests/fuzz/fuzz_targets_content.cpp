@@ -89,7 +89,7 @@ bool read_fighter(const uint8_t* data, size_t size) {
     consume_str(t.sheet());
     const br::DepthProfile p = t.profile();
     consume_all(p.speed_x.raw, p.speed_z.raw, p.gravity.raw, p.jump_vy.raw, t.run_x().raw, t.depth().raw, t.hp(),
-                t.down_ticks(), t.getup_ticks(), t.buffer_ticks(), t.run_tap_ticks());
+                t.down_ticks(), t.getup_ticks(), t.buffer_ticks(), t.run_tap_ticks(), t.dodge_ticks());
     for (uint32_t i = 0; i < t.move_count(); ++i) {
         consume_str(t.move_name(i));
         consume_str(t.move_clip(i));

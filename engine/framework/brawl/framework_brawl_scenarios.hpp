@@ -97,6 +97,30 @@ inline BrawlInput dash(uint32_t t, uint32_t body) {
 
 inline Move run_jabs(uint32_t t, uint32_t body) { return body == 1 && t == 36 ? Move::RunJab : Move::None; }
 
+inline BrawlInput guard_and_turn(uint32_t t, uint32_t body) {
+    if (body == 1) return stick(part(1, 2), fix32{});
+    const uint32_t k = t % 80;
+    if (k >= 30 && k < 33) return stick(part(1, 8), fix32{});
+    if (k >= 60 && k < 63) return stick(part(-1, 8), fix32{});
+    return stick(fix32{}, fix32{}, button::BLOCK);
+}
+
+inline Move jab_and_flurry(uint32_t t, uint32_t body) {
+    if (body != 1) return Move::None;
+    if (t == 20 || t == 110) return Move::Flurry;
+    return t % 9 == 0 && (t < 85 || t >= 105) ? Move::Jab : Move::None;
+}
+
+inline BrawlInput roll_through(uint32_t t, uint32_t body) {
+    if (body == 1) return stick(t < 20 ? px(1) : fix32{}, fix32{});
+    if (t == 6 || t == 40 || t == 42 || t == 74) return stick(fix32{}, fix32{}, button::DODGE);
+    if (t == 72) return stick(fix32{}, fix32{}, button::JUMP);
+    if (t >= 100 && t < 110) return stick(px(-1), fix32{}, t == 104 ? button::BLOCK | button::DODGE : button::BLOCK);
+    return stick(t >= 50 && t < 56 ? px(1) : fix32{}, fix32{});
+}
+
+inline Move steady_jabs(uint32_t t, uint32_t body) { return body == 1 && t % 10 == 0 ? Move::Jab : Move::None; }
+
 const Scenario SCENARIOS[] = {
     {"walk-band-edges", &WALKER, 180, walk, no_event},
     {"slide-wall-corner", &WALKER, 120, corner, no_event},
@@ -108,6 +132,8 @@ const Scenario SCENARIOS[] = {
     {"flurry-crowd", &HEAVY, 90, crowd_moves, crowd, flurries},
     {"jab-chain", &WALKER, 120, close_in, face_off, chain_jabs},
     {"run-slide", &WALKER, 120, dash, far_foe, run_jabs},
+    {"block-turn", &WALKER, 160, guard_and_turn, face_off, jab_and_flurry},
+    {"dodge-through", &WALKER, 140, roll_through, face_off, steady_jabs},
 };
 
 } // namespace framework::brawl::scenario

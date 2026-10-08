@@ -10,6 +10,7 @@ down    | 30
 getup   | 30
 buffer  | 8
 run_tap | 12
+dodge   | 28
 chain   | jab jab kick
 
 move | jab | hit0

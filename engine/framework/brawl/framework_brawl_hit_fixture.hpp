@@ -23,6 +23,7 @@ inline const char* DUMMY_TEXT = "sheet   | dummy\n"
                                 "getup   | 4\n"
                                 "buffer  | 6\n"
                                 "run_tap | 5\n"
+                                "dodge   | 5\n"
                                 "chain   | jab jab flurry\n"
                                 "move | jab | hit0\n"
                                 "type | light\ndamage | 5\ndepth | 4\nhitstop | 3\nhitstun | 8\n"
@@ -68,7 +69,9 @@ inline std::vector<graphics::ClipSrc> dummy_clips() {
             dummy_clip("flurry", {true, false, true, true, false}, graphics::CLIP_LOOP),
             dummy_clip("hurt", {false, false}, graphics::CLIP_LOOP), dummy_clip("fall", {false}, graphics::CLIP_ONCE),
             dummy_clip("down", {false}, graphics::CLIP_ONCE),
-            dummy_clip("getup", {false, false, false}, graphics::CLIP_LOOP | graphics::CLIP_PINGPONG)};
+            dummy_clip("getup", {false, false, false}, graphics::CLIP_LOOP | graphics::CLIP_PINGPONG),
+            dummy_clip("block", {false, false}, graphics::CLIP_ONCE),
+            dummy_clip("dodge", {false, false, false}, graphics::CLIP_ONCE)};
 }
 
 struct Arena {

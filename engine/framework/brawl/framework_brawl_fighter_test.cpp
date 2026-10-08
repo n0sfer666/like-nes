@@ -23,7 +23,7 @@ using test::CORRUPTIONS;
 using test::Corruption;
 using test::same_strike;
 
-constexpr uint64_t GOLDEN = 0xe74f5abb2384663aull;
+constexpr uint64_t GOLDEN = 0x34030b3c5a326d2dull;
 
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
     uint64_t h = framework::physics::FNV_OFFSET;
@@ -55,7 +55,8 @@ void round_trip(const std::vector<uint8_t>& baked) {
     check(t.hp() == 120, "hp");
     check(t.down_ticks() == 30 && t.getup_ticks() == 24, "down, getup");
     check(t.move_count() == 3, "three moves");
-    check(t.buffer_ticks() == 7 && t.run_tap_ticks() == 9, "buffer, run_tap");
+    check(t.buffer_ticks() == 7 && t.run_tap_ticks() == 9 && t.dodge_ticks() == 18,
+          "buffer, run_tap, dodge");
     check(t.chain_count() == 3 && t.chain_move(0) == 0 && t.chain_move(1) == 0 && t.chain_move(2) == 1,
           "chain jab jab kick by move row");
     const Strike jab{0, HitType::Light, false, false, 8, fix32::from_int(5), 4, 12, fix32::from_raw(3 << 15), fix32{}};
