@@ -19,10 +19,11 @@ bool make_chain(const FighterTable& fighter, const graphics::ClipTable& clips, A
     out.buffer_ticks = ticks16(fighter.buffer_ticks());
     out.chain_count = static_cast<uint8_t>(fighter.chain_count());
     for (uint32_t i = 0; i < out.chain_count; ++i) {
-        out.chain[i] = out.moves[fighter.chain_move(i)].clip;
-        out.cancel[i] = cancel_tick(clips.clip(out.chain[i]));
+        const MoveSlot& m = out.moves[fighter.chain_move(i)];
+        out.chain[i] = m.head;
+        out.cancel[i] = cancel_tick(clips.clip(m.clip));
         if (i + 1 == out.chain_count || out.cancel[i] != NO_CANCEL) continue;
-        error = no_cancel_error(i, clips.name(out.chain[i]));
+        error = no_cancel_error(i, clips.name(m.clip));
         return false;
     }
     return true;

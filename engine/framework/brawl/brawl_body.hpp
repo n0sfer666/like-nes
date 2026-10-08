@@ -4,6 +4,7 @@
 #include "depth_body.hpp"
 #include "ent_id.hpp"
 #include "reaction.hpp"
+#include "run_state.hpp"
 #include "strike_queue.hpp"
 #include "struck_list.hpp"
 
@@ -20,6 +21,7 @@ struct Body {
     uint32_t age = 0;
     uint8_t kind = 0;
     uint16_t clip = 0;
+    uint16_t move = NO_STRIKE;
     uint32_t elapsed = 0;
     uint16_t hitstop = 0;
     Reaction react = Reaction::None;
@@ -27,6 +29,7 @@ struct Body {
     StruckList struck;
     uint8_t chain = NO_CHAIN;
     StrikeQueue queued;
+    RunState run;
 };
 
 } // namespace framework::brawl

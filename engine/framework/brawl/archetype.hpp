@@ -14,12 +14,15 @@ constexpr uint32_t NO_CANCEL = 0xffffffffu;
 
 struct MoveSlot {
     uint16_t clip = 0;
+    uint16_t head = 0;
+    const char* name = "";
     Strike strike;
 };
 
 struct Archetype {
     const graphics::ClipTable* clips = nullptr;
     DepthProfile profile{};
+    fix32 run_x{};
     fix32 depth{};
     uint16_t idle = 0, walk = 0, jump = 0;
     uint16_t hurt = 0, fall = 0, down = 0, getup = 0;
@@ -30,12 +33,13 @@ struct Archetype {
     std::array<uint32_t, MAX_CHAIN> cancel{};
     uint8_t chain_count = 0;
     uint16_t buffer_ticks = 1;
+    uint8_t run_tap = 1;
 };
 
 bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clips, Archetype& out,
                     std::string& error);
 bool clip_index(const graphics::ClipTable& clips, const char* name, uint16_t& out);
-bool is_move(const Archetype& a, uint16_t clip);
-bool find_move(const Archetype& a, uint16_t clip, uint8_t box, uint8_t& slot);
+bool find_named(const Archetype& a, const char* name, uint16_t& move);
+bool find_move(const Archetype& a, uint16_t move, uint8_t box, uint8_t& slot);
 
 } // namespace framework::brawl

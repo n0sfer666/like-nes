@@ -26,6 +26,7 @@ bool has_box(const graphics::ClipView& v, uint16_t frame, uint8_t index) {
 
 void switch_to(Body& b, uint16_t clip, uint32_t elapsed) {
     b.clip = clip;
+    b.move = NO_STRIKE;
     b.elapsed = elapsed;
     b.struck = StruckList{};
     b.chain = NO_CHAIN;
@@ -37,11 +38,14 @@ void enter(Body& b, const Archetype& a, uint16_t clip) {
 
 } // namespace
 
-bool striking(const Body& b, const Archetype& a) { return is_move(a, b.clip); }
+bool striking(const Body& b, const Archetype& a) { return b.move < a.move_count; }
 
 bool can_strike(const Body& b, const Archetype& a) { return b.hitstop == 0 && b.react == Reaction::None && !striking(b, a); }
 
-void start_strike(Body& b, uint16_t clip) { switch_to(b, clip, 0); }
+void start_strike(Body& b, uint16_t move, const Archetype& a) {
+    switch_to(b, a.moves[move].clip, 0);
+    b.move = move;
+}
 
 void play_clip(Body& b, uint16_t clip) { switch_to(b, clip, 0); }
 

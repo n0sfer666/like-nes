@@ -3,6 +3,7 @@
 #include "body_chain.hpp"
 #include "body_clip.hpp"
 #include "body_react.hpp"
+#include "body_run.hpp"
 #include "depth_step.hpp"
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
@@ -12,13 +13,11 @@ namespace framework::brawl {
 namespace {
 
 void move(Body& b, const BrawlInput& in, const Archetype& a, const DepthFloor& f) {
+    track_run(b, in, a);
     const bool strikes = striking(b, a);
-    if (strikes && grounded(b.pos)) {
-        b.pos.vx = fix32{};
-        b.pos.vz = fix32{};
-    }
+    if (strikes && grounded(b.pos)) slide_strike(b, a);
     if (strikes || b.react != Reaction::None) coast_body(b, a.profile, f);
-    else step_body(b, in, a.profile, f);
+    else step_body(b, in, run_profile(b, a), f);
 }
 
 } // namespace

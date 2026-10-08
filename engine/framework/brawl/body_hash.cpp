@@ -12,8 +12,9 @@ static_assert(std::is_trivially_copyable_v<BodyPool>, "the snapshot is a plain c
 static_assert([] {
     [[maybe_unused]] auto [seq] = EntId{};
     [[maybe_unused]] auto [x, z, y, vx, vz, vy] = DepthBody{};
-    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, elapsed, hitstop, react,
-                           react_ticks, struck, chain, queued] = Body{};
+    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, move, elapsed, hitstop, react,
+                           react_ticks, struck, chain, queued, run] = Body{};
+    [[maybe_unused]] auto [run_dir, run_held, run_tap, run_tap_ticks] = RunState{};
     [[maybe_unused]] auto [queued_strike, queued_ticks] = StrikeQueue{};
     [[maybe_unused]] auto [struck_at, struck_count] = StruckList{};
     [[maybe_unused]] auto [struck_seq, struck_box] = Struck{};
@@ -39,6 +40,7 @@ void mix_body(uint64_t& h, const Body& b) {
     physics::mix(h, b.age);
     physics::mix(h, b.kind);
     physics::mix(h, b.clip);
+    physics::mix(h, b.move);
     physics::mix(h, b.elapsed);
     physics::mix(h, b.hitstop);
     physics::mix(h, static_cast<uint32_t>(b.react));
@@ -51,6 +53,10 @@ void mix_body(uint64_t& h, const Body& b) {
     physics::mix(h, b.chain);
     physics::mix(h, b.queued.strike);
     physics::mix(h, b.queued.ticks);
+    physics::mix(h, static_cast<uint32_t>(b.run.dir));
+    physics::mix(h, static_cast<uint32_t>(b.run.held));
+    physics::mix(h, static_cast<uint32_t>(b.run.tap));
+    physics::mix(h, b.run.tap_ticks);
 }
 
 } // namespace

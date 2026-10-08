@@ -1,8 +1,10 @@
 #include <iterator>
+#include <string_view>
 
 #include "fighter_bake.hpp"
 #include "fighter_chain.hpp"
 #include "fighter_fail.hpp"
+#include "fighter_move_parse.hpp"
 #include "fighter_name.hpp"
 #include "text_fields.hpp"
 
@@ -37,7 +39,8 @@ const FixKey<FighterSpec> HEAD_FIX[] = {
 };
 const TickKey<FighterSpec> HEAD_TICK[] = {
     {"hp", &FighterSpec::hp, MIN_HP, MAX_HP}, {"down", &FighterSpec::down, 1, MAX_HIT_TICKS},
-    {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}, {"buffer", &FighterSpec::buffer, 1, MAX_HIT_TICKS}};
+    {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}, {"buffer", &FighterSpec::buffer, 1, MAX_HIT_TICKS},
+    {"run_tap", &FighterSpec::run_tap, 1, MAX_HIT_TICKS}};
 const char* const HEAD_TEXT[] = {"sheet", "chain"};
 
 const FixKey<Strike> MOVE_FIX[] = {
@@ -50,13 +53,14 @@ const TickKey<Strike> MOVE_TICK[] = {
     {"hitstop", &Strike::hitstop, 0, MAX_HIT_TICKS},
     {"hitstun", &Strike::hitstun, 0, MAX_HIT_TICKS},
 };
-const char* const MOVE_TEXT[] = {"type", "hits_down"};
-const char* const TYPE_NAMES[] = {"light", "heavy", "launch", "grab", "throw"};
+constexpr const char* MOVE_TEXT[] = {"type", "hits_down", "slide", "clip"};
 
 constexpr uint32_t HEAD_KEYS = std::size(HEAD_FIX) + std::size(HEAD_TICK) + std::size(HEAD_TEXT);
 constexpr uint32_t MOVE_KEYS = std::size(MOVE_FIX) + std::size(MOVE_TICK) + std::size(MOVE_TEXT);
-static_assert(std::size(TYPE_NAMES) == HIT_TYPE_LAST + 1u);
+constexpr uint32_t MOVE_NUMBERS = std::size(MOVE_FIX) + std::size(MOVE_TICK);
+constexpr uint32_t MOVE_CLIP = MOVE_KEYS - 1;
 static_assert(HEAD_KEYS <= 32 && MOVE_KEYS <= 32);
+static_assert(std::string_view{MOVE_TEXT[MOVE_CLIP - MOVE_NUMBERS]} == "clip");
 
 template <class T, std::size_t NF, std::size_t NT, std::size_t NS>
 const char* key_name(const FixKey<T> (&fix)[NF], const TickKey<T> (&tick)[NT], const char* const (&text)[NS],
@@ -103,26 +107,16 @@ bool set_head(FighterSpec& f, uint32_t i, const std::string& key, const std::str
     return true;
 }
 
-bool set_move(Strike& s, uint32_t i, const std::string& key, const std::string& value, int line,
+bool set_move(MoveSpec& m, uint32_t i, const std::string& key, const std::string& value, int line,
               FighterBakeError& err) {
-    if (key == "hits_down") {
-        if (value != "yes" && value != "no") return fighter_fail(err, line, "hits_down must be yes or no");
-        s.hits_down = value == "yes";
-        return true;
-    }
-    if (key != "type") return set_number(s, MOVE_FIX, MOVE_TICK, i, key, value, line, err);
-    for (uint8_t t = 0; t <= HIT_TYPE_LAST; ++t)
-        if (value == TYPE_NAMES[t]) {
-            s.type = static_cast<HitType>(t);
-            return true;
-        }
-    return fighter_fail(err, line, "type must be light, heavy, launch, grab or throw");
+    if (i < MOVE_NUMBERS) return set_number(m.strike, MOVE_FIX, MOVE_TICK, i, key, value, line, err);
+    return set_move_text(m, key, value, line, err);
 }
 
 bool close_block(const FighterSpec& f, uint32_t seen, int line, FighterBakeError& err) {
     const bool head = f.moves.empty();
     for (uint32_t i = 0; i < (head ? HEAD_KEYS : MOVE_KEYS); ++i) {
-        if ((seen & (1u << i)) != 0) continue;
+        if ((seen & (1u << i)) != 0 || (!head && i == MOVE_CLIP)) continue;
         if (head) {
             const std::string key = key_name(HEAD_FIX, HEAD_TICK, HEAD_TEXT, i);
             return fighter_fail(err, line, "the fighter is missing " + key);
@@ -130,23 +124,6 @@ bool close_block(const FighterSpec& f, uint32_t seen, int line, FighterBakeError
         return fighter_fail(err, line, move_label(f.moves.back()) + " is missing " +
                                            key_name(MOVE_FIX, MOVE_TICK, MOVE_TEXT, i));
     }
-    return true;
-}
-
-bool open_move(FighterSpec& f, const std::vector<std::string>& fields, int line, FighterBakeError& err) {
-    const std::string& box = fields[2];
-    if (box.size() != 4 || box.compare(0, 3, "hit") != 0 || box[3] < '0' || box[3] >= '0' + MAX_HIT_BOXES)
-        return fighter_fail(err, line, "move box '" + box + "' must be hit0..hit3");
-    if (!name_ok(fields[1]))
-        return fighter_fail(err, line, "a move clip must be a name without '/' or control characters");
-    MoveSpec m;
-    m.clip = fields[1];
-    m.line = line;
-    m.strike.box = static_cast<uint8_t>(box[3] - '0');
-    for (const MoveSpec& o : f.moves)
-        if (o.clip == m.clip && o.strike.box == m.strike.box)
-            return fighter_fail(err, line, "move '" + m.clip + "' " + box + " is declared twice");
-    f.moves.push_back(m);
     return true;
 }
 
@@ -172,7 +149,7 @@ bool parse_fighter(const std::string& text, FighterSpec& out, FighterBakeError& 
         for (const std::string& field : f)
             if (field.empty()) return fighter_fail(err, line, "an empty field");
         if (f[0] == "move") {
-            if (f.size() != 3) return fighter_fail(err, line, "expected 'move | <clip> | hit<N>'");
+            if (f.size() != 3) return fighter_fail(err, line, "expected 'move | <name> | hit<N>'");
             if (!close_block(out, seen, prev > 0 ? prev : line, err) || !open_move(out, f, line, err))
                 return false;
             seen = 0;
@@ -187,12 +164,12 @@ bool parse_fighter(const std::string& text, FighterSpec& out, FighterBakeError& 
         if ((seen & bit) != 0) return fighter_fail(err, line, f[0] + " is set twice");
         seen |= bit;
         const bool ok = head ? set_head(out, static_cast<uint32_t>(i), f[0], f[1], line, err)
-                             : set_move(out.moves.back().strike, static_cast<uint32_t>(i), f[0], f[1], line, err);
+                             : set_move(out.moves.back(), static_cast<uint32_t>(i), f[0], f[1], line, err);
         if (!ok) return false;
     }
     if (content == 0) return fighter_fail(err, line, "the fighter file is empty");
     std::vector<uint32_t> chain;
-    return close_block(out, seen, content, err) && chain_moves(out, chain, err);
+    return close_block(out, seen, content, err) && same_rows(out, err) && chain_moves(out, chain, err);
 }
 
 } // namespace framework::brawl

@@ -14,7 +14,7 @@ DepthOverlay depth_overlay(const Brawl& brawl, uint32_t fighter) {
     d.body = a.depth;
     for (uint8_t k = 0; k < d.hit.size(); ++k) {
         uint8_t slot = 0;
-        if (framework::brawl::find_move(a, b.clip, k, slot)) d.hit[k] = a.moves[slot].strike.depth;
+        if (framework::brawl::find_move(a, b.move, k, slot)) d.hit[k] = a.moves[slot].strike.depth;
     }
     return d;
 }

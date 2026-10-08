@@ -10,6 +10,8 @@ namespace framework::brawl {
 
 namespace {
 
+static_assert(MAX_HIT_TICKS <= UINT8_MAX);
+
 bool find_sheet_clip(const graphics::ClipTable& clips, const std::string& sheet, const char* tag, uint16_t& out,
                      std::string& error) {
     const std::string name = sheet_clip(sheet, tag);
@@ -48,6 +50,10 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
     }
     for (uint32_t i = 0; i < fighter.move_count(); ++i) {
         MoveSlot& m = out.moves[i];
+        m.name = fighter.move_name(i);
+        m.head = static_cast<uint16_t>(i);
+        uint16_t first = 0;
+        if (find_named(out, m.name, first)) m.head = first;
         if (!clip_index(clips, fighter.move_clip(i), m.clip)) {
             error = std::string("no clip '") + fighter.move_clip(i) + "' in the clips";
             return false;
@@ -56,25 +62,31 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
             error = "move " + std::to_string(i) + " does not read";
             return false;
         }
+        out.move_count = i + 1;
     }
     out.clips = &clips;
     out.profile = fighter.profile();
     out.depth = fighter.depth();
-    out.move_count = fighter.move_count();
+    out.run_x = fighter.run_x();
+    out.run_tap = static_cast<uint8_t>(fighter.run_tap_ticks());
     out.down_ticks = ticks16(fighter.down_ticks());
     out.getup_ticks = ticks16(fighter.getup_ticks());
     return make_chain(fighter, clips, out, error);
 }
 
-bool is_move(const Archetype& a, uint16_t clip) {
-    for (uint32_t i = 0; i < a.move_count; ++i)
-        if (a.moves[i].clip == clip) return true;
+bool find_named(const Archetype& a, const char* name, uint16_t& move) {
+    for (uint32_t i = 0; i < a.move_count; ++i) {
+        if (std::strcmp(a.moves[i].name, name) != 0) continue;
+        move = a.moves[i].head;
+        return true;
+    }
     return false;
 }
 
-bool find_move(const Archetype& a, uint16_t clip, uint8_t box, uint8_t& slot) {
+bool find_move(const Archetype& a, uint16_t move, uint8_t box, uint8_t& slot) {
+    if (move >= a.move_count) return false;
     for (uint32_t i = 0; i < a.move_count; ++i) {
-        if (a.moves[i].clip != clip || a.moves[i].strike.box != box) continue;
+        if (a.moves[i].head != a.moves[move].head || a.moves[i].strike.box != box) continue;
         slot = static_cast<uint8_t>(i);
         return true;
     }

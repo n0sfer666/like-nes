@@ -75,6 +75,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/hit_apply.hpp framework/brawl/brawl_step.hpp framework/brawl/reaction.hpp
   framework/brawl/body_react.hpp framework/brawl/strike_queue.hpp framework/brawl/body_chain.hpp
   framework/brawl/archetype_chain.hpp framework/brawl/fighter_chain.hpp framework/brawl/fighter_name.hpp
+  framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/fighter_move_parse.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.

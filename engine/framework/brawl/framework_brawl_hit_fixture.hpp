@@ -22,13 +22,17 @@ inline const char* DUMMY_TEXT = "sheet   | dummy\n"
                                 "down    | 6\n"
                                 "getup   | 4\n"
                                 "buffer  | 6\n"
+                                "run_tap | 5\n"
                                 "chain   | jab jab flurry\n"
                                 "move | jab | hit0\n"
                                 "type | light\ndamage | 5\ndepth | 4\nhitstop | 3\nhitstun | 8\n"
-                                "knock_x | 1\nknock_y | 0\nhits_down | no\n"
+                                "knock_x | 1\nknock_y | 0\nhits_down | no\nslide | no\n"
                                 "move | flurry | hit0\n"
                                 "type | heavy\ndamage | 7\ndepth | 4\nhitstop | 2\nhitstun | 10\n"
-                                "knock_x | 2\nknock_y | 3\nhits_down | no\n";
+                                "knock_x | 2\nknock_y | 3\nhits_down | no\nslide | no\n"
+                                "move | run_jab | hit0\nclip | jab\n"
+                                "type | heavy\ndamage | 9\ndepth | 4\nhitstop | 3\nhitstun | 12\n"
+                                "knock_x | 3\nknock_y | 2\nhits_down | no\nslide | yes\n";
 
 constexpr graphics::Rect16 HURT{-8, -32, 16, 32};
 constexpr graphics::Rect16 REACH{8, -24, 12, 6};
@@ -78,10 +82,10 @@ struct Arena {
 
     Arena(const Arena&) = delete;
     Arena() : Arena(dummy_clips()) {}
-    explicit Arena(const std::vector<graphics::ClipSrc>& src) {
+    explicit Arena(const std::vector<graphics::ClipSrc>& src, const std::string& text = DUMMY_TEXT) {
         FighterBakeError fe;
-        if (!graphics::bake_clips(src, clip_bytes, error) || !bake_fighter("dummy.fighter", DUMMY_TEXT, src,
-                                                                           fighter_bytes, fe)) {
+        if (!graphics::bake_clips(src, clip_bytes, error) ||
+            !bake_fighter("dummy.fighter", text, src, fighter_bytes, fe)) {
             error += fe.message;
             return;
         }
@@ -108,9 +112,11 @@ inline Body dummy(int32_t x, int32_t z, int8_t facing, uint8_t team, const Arche
     return b;
 }
 
-inline Command strike(uint16_t clip) {
+inline Command strike(const Arena& arena, uint16_t clip) {
     Command c;
-    c.strike = clip;
+    const Archetype& a = arena.kinds[0];
+    for (uint32_t i = a.move_count; i-- > 0;)
+        if (a.moves[i].clip == clip) c.strike = static_cast<uint16_t>(i);
     return c;
 }
 
@@ -132,11 +138,22 @@ struct Ring {
     Arena arena;
     BodyPool pool;
 
+    Ring() = default;
+    explicit Ring(const std::vector<graphics::ClipSrc>& src, const std::string& text = DUMMY_TEXT) : arena(src, text) {}
+
     Body& put(int32_t x, int8_t facing, uint8_t team) {
         return *pool.find(pool.spawn(dummy(x, 0, facing, team, arena.kinds[0])));
     }
+    void play(Body& b, uint16_t clip) const {
+        b.clip = clip;
+        b.move = strike(arena, clip).strike;
+    }
+    uint16_t row(const char* name) const {
+        uint16_t m = NO_STRIKE;
+        return find_named(arena.kinds[0], name, m) ? m : NO_STRIKE;
+    }
     void mid_jab(Body& b) const {
-        b.clip = arena.jab;
+        play(b, arena.jab);
         b.elapsed = 1;
     }
     Strike& move(uint16_t clip) {

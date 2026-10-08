@@ -128,7 +128,7 @@ bool strike_starts(Reaction react) {
     Body& b = r.put(0, 1, 0);
     b.react = react;
     b.react_ticks = 3;
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     return b.clip == r.arena.jab;
 }
 

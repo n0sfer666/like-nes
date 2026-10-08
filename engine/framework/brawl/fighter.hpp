@@ -27,6 +27,7 @@ struct Strike {
     uint8_t box = 0;
     HitType type = HitType::Light;
     bool hits_down = false;
+    bool slides = false;
     uint32_t damage = 0;
     fix32 depth{};
     uint32_t hitstop = 0;
@@ -36,6 +37,7 @@ struct Strike {
 };
 
 struct MoveSpec {
+    std::string name;
     std::string clip;
     Strike strike;
     int line = 0;
@@ -45,7 +47,7 @@ struct FighterSpec {
     std::string sheet;
     fix32 speed_x{}, speed_z{}, run_x{}, gravity{}, jump_vy{}, depth{};
     uint32_t hp = 0;
-    uint32_t down = 0, getup = 0, buffer = 0;
+    uint32_t down = 0, getup = 0, buffer = 0, run_tap = 0;
     std::vector<std::string> chain;
     int sheet_line = 0, chain_line = 0;
     std::vector<MoveSpec> moves;

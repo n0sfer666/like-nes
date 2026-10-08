@@ -14,12 +14,14 @@ bool head_ok(const core::SectionView& v, const FighterRow& r) {
            fix_in(r.jump_vy_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.depth_raw, tiny, MAX_FIGHTER_DEPTH) &&
            r.hp >= MIN_HP && r.hp <= MAX_HP && r.down_ticks >= 1 && r.down_ticks <= MAX_HIT_TICKS &&
            r.getup_ticks >= 1 && r.getup_ticks <= MAX_HIT_TICKS && r.buffer_ticks >= 1 &&
-           r.buffer_ticks <= MAX_HIT_TICKS && r.chain_count >= 1 && r.chain_count <= MAX_CHAIN;
+           r.buffer_ticks <= MAX_HIT_TICKS && r.run_tap_ticks >= 1 && r.run_tap_ticks <= MAX_HIT_TICKS &&
+           r.chain_count >= 1 && r.chain_count <= MAX_CHAIN;
 }
 
 bool strike_ok(const core::SectionView& v, const StrikeRow& s) {
-    return v.text(s.clip_offset) && v.strings[s.clip_offset] != '\0' && s.box < MAX_HIT_BOXES &&
-           s.type <= HIT_TYPE_LAST && (s.flags & ~STRIKE_HITS_DOWN) == 0 && s.pad == 0 && s.damage <= MAX_DAMAGE &&
+    return v.text(s.name_offset) && v.strings[s.name_offset] != '\0' && v.text(s.clip_offset) &&
+           v.strings[s.clip_offset] != '\0' && s.box < MAX_HIT_BOXES && s.type <= HIT_TYPE_LAST &&
+           (s.flags & ~(STRIKE_HITS_DOWN | STRIKE_SLIDES)) == 0 && s.pad == 0 && s.damage <= MAX_DAMAGE &&
            fix_in(s.depth_raw, fix32::from_raw(1), MAX_FIGHTER_DEPTH) && s.hitstop <= MAX_HIT_TICKS &&
            s.hitstun <= MAX_HIT_TICKS && fix_in(s.knock_x_raw, -MAX_FIGHTER_SPEED, MAX_FIGHTER_SPEED) &&
            fix_in(s.knock_y_raw, -MAX_FIGHTER_SPEED, MAX_FIGHTER_SPEED);
@@ -74,6 +76,12 @@ uint32_t FighterTable::getup_ticks() const { return valid() ? row_->getup_ticks 
 
 uint32_t FighterTable::buffer_ticks() const { return valid() ? row_->buffer_ticks : 0; }
 
+uint32_t FighterTable::run_tap_ticks() const { return valid() ? row_->run_tap_ticks : 0; }
+
+const char* FighterTable::move_name(uint32_t index) const {
+    return index < moves_.size() ? view_.strings + moves_[index].name_offset : "";
+}
+
 const char* FighterTable::move_clip(uint32_t index) const {
     return index < moves_.size() ? view_.strings + moves_[index].clip_offset : "";
 }
@@ -84,6 +92,7 @@ bool FighterTable::move(uint32_t index, Strike& out) const {
     out.box = s.box;
     out.type = static_cast<HitType>(s.type);
     out.hits_down = (s.flags & STRIKE_HITS_DOWN) != 0;
+    out.slides = (s.flags & STRIKE_SLIDES) != 0;
     out.damage = s.damage;
     out.depth = fix32::from_raw(s.depth_raw);
     out.hitstop = s.hitstop;

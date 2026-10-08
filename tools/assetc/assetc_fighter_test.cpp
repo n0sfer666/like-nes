@@ -44,6 +44,7 @@ const char* const FIGHTER = "sheet   | brawler\n"
                             "down    | 30\n"
                             "getup   | 24\n"
                             "buffer  | 8\n"
+                            "run_tap | 12\n"
                             "chain   | punch\n"
                             "move | punch | hit0\n"
                             "type      | light\n"
@@ -53,7 +54,8 @@ const char* const FIGHTER = "sheet   | brawler\n"
                             "hitstun   | 12\n"
                             "knock_x   | 1\n"
                             "knock_y   | 0\n"
-                            "hits_down | no\n";
+                            "hits_down | no\n"
+                            "slide     | no\n";
 
 void write(const std::string& path, const std::string& text) {
     codec::write_file(path, std::vector<uint8_t>(text.begin(), text.end()));
@@ -98,7 +100,7 @@ void baked(const std::string& root) {
     if (bundle.size() >= sizeof(BundleHeader))
         std::memcpy(&hash, bundle.data() + offsetof(BundleHeader, bundle_hash), sizeof(hash));
     std::printf("  bundle_hash = 0x%016llx\n", static_cast<unsigned long long>(hash));
-    check(hash == 0xfa15f010a7e379fcull, "golden bundle_hash of the fighter manifest");
+    check(hash == 0x1ab422376fce0a12ull, "golden bundle_hash of the fighter manifest");
 }
 
 std::string with(std::string text, const char* from, const char* to) {
@@ -117,7 +119,7 @@ void refused(const std::string& root, const std::string& manifest, const std::st
 void refusals(const std::string& root) {
     const std::string kick = with(with(FIGHTER, "move | punch", "move | kick"), "| punch\n", "| kick\n");
     refused(root, MANIFEST, kick, "game.manifest:1: ", "fighter refusal names the record line");
-    refused(root, MANIFEST, kick, "/art/brawler.fighter:13: move 'kick' hit0: no clip 'brawler/kick' in the clips",
+    refused(root, MANIFEST, kick, "/art/brawler.fighter:14: move 'kick' hit0: no clip 'brawler/kick' in the clips",
             "a move without its clip names the fighter line");
     refused(root, MANIFEST, with(FIGHTER, "punch | hit0", "punch | hit1"),
             "move 'punch' hit1: no frame of clip 'brawler/punch' carries this hit box", "a move without its box");

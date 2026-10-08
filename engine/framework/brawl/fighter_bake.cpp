@@ -27,10 +27,11 @@ bool sheet_listed(const std::string& sheet, std::span<const graphics::ClipSrc> c
 StrikeRow row_of(core::SectionBuilder& b, const FighterSpec& spec, const MoveSpec& m) {
     const Strike& s = m.strike;
     StrikeRow r{};
+    r.name_offset = b.text(m.name);
     r.clip_offset = b.text(sheet_clip(spec.sheet, m.clip));
     r.box = s.box;
     r.type = static_cast<uint8_t>(s.type);
-    r.flags = s.hits_down ? STRIKE_HITS_DOWN : 0;
+    r.flags = static_cast<uint8_t>((s.hits_down ? STRIKE_HITS_DOWN : 0) | (s.slides ? STRIKE_SLIDES : 0));
     r.damage = s.damage;
     r.depth_raw = s.depth.raw;
     r.hitstop = s.hitstop;
@@ -82,6 +83,7 @@ bool bake_fighter(const std::string& name, const std::string& text, std::span<co
     row.down_ticks = spec.down;
     row.getup_ticks = spec.getup;
     row.buffer_ticks = spec.buffer;
+    row.run_tap_ticks = spec.run_tap;
     row.move_offset = b.block(strikes.data(), strikes.size() * sizeof(StrikeRow), alignof(StrikeRow));
     row.move_count = static_cast<uint32_t>(strikes.size());
     row.chain_offset = b.block(chain.data(), chain.size() * sizeof(uint32_t), alignof(uint32_t));

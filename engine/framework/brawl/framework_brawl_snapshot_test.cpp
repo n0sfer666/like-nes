@@ -68,6 +68,15 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.queued.strike = 0; }); }},
     {"queued ticks", [](BodyPool& p) { last(p).queued.ticks += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.queued.ticks = 0; }); }},
+    {"move", [](BodyPool& p) { last(p).move += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.move = 0; }); }},
+    {"run dir", [](BodyPool& p) { last(p).run.dir += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.dir = 0; }); }},
+    {"run held", [](BodyPool& p) { last(p).run.held += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.held = 0; }); }},
+    {"run tap", [](BodyPool& p) { last(p).run.tap += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.tap = 0; }); }},
+    {"run tap ticks", [](BodyPool& p) { last(p).run.tap_ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.tap_ticks = 0; }); }},
     {"next_seq", [](BodyPool& p) { p.next_seq += 1; }, [](BodyPool& p) { p.next_seq = 0; }},
 };
 
@@ -95,6 +104,8 @@ BodyPool two_bodies() {
     a.struck.add(EntId{7}, 2);
     a.chain = 1;
     a.queued = StrikeQueue{2, 3};
+    a.move = 1;
+    a.run = RunState{-1, -1, 1, 4};
     pool.spawn(a);
     Body b = a;
     b.team = 1;

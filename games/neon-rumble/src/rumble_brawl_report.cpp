@@ -91,8 +91,8 @@ void report_hits(const Brawl& brawl, uint32_t tick) {
         if (a == FIGHTERS || t == FIGHTERS || !brawl.body(a).struck.has(e.target, e.box)) continue;
         const br::MoveSlot& m = brawl.kinds.types[e.kind].moves[e.move];
         hp[t] = std::max<int64_t>(hp[t] - m.strike.damage, 0);
-        std::printf("neon-rumble: hit tick %u: %s -> %s, damage %u, hp %lld\n", tick,
-                    brawl.kinds.types[e.kind].clips->name(m.clip), ROSTER[t].fighter, m.strike.damage,
+        std::printf("neon-rumble: hit tick %u: %s/%s -> %s, damage %u, hp %lld\n", tick, ROSTER[a].fighter, m.name,
+                    ROSTER[t].fighter, m.strike.damage,
                     static_cast<long long>(hp[t]));
     }
     if (brawl.events.dropped > 0)

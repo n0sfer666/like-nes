@@ -25,8 +25,8 @@
 [fuzz] clips: cases=16000 accepts=1364
 [fuzz] fonts: cases=16000 accepts=943
 [fuzz] credits: cases=16000 accepts=2429
-[fuzz] fighter: cases=16000 accepts=1460
-[fuzz] PASS targets=17 seeds=8 cases=272000 accepts=30033
+[fuzz] fighter: cases=16000 accepts=1308
+[fuzz] PASS targets=17 seeds=8 cases=272000 accepts=29881
 ```
 
 Гейт 9 аудита #21. Предмет — не «читатель отвергает мусор», а **что он делает, пока отвергает**:
@@ -193,9 +193,11 @@
   ASan даёт `heap-buffer-overflow` в `font_glyph_ok` на первых случаях `--target fonts`; снятая
   проверка `attribution_offset` в `credits_read.cpp` даёт `BUS` в `strlen` у `--target credits`.
   Цель `fighter` (спека #25 В2б, там же, после `credits`): таблица бойца `LNFT`, семя — фикстура
-  `framework_brawl_fighter_fixture.hpp` с двумя ударами. Позитивный контроль (2026-10-07): снятая
-  проверка `clip_offset` удара в `fighter_read.cpp` даёт `BUS` (код 138) у `--target fighter` в
-  релизе без санитайзера.
+  `framework_brawl_fighter_fixture.hpp` с тремя ударами (с В3г — `run_kick`, LNFT v4). Позитивный
+  контроль (2026-10-07): снятая проверка `clip_offset` удара в `fighter_read.cpp` даёт `BUS` (код
+  138) у `--target fighter` в релизе без санитайзера. С В3г цель читает и `move_name`, `slides`,
+  `buffer_ticks`, `run_tap_ticks`; снятая проверка `name_offset` — тот же `BUS` (2026-10-09), а
+  `accepts` цели 1460 → 1308 (семя и читатель изменились вместе).
 - **Группы целей — по ЗАВИСИМОСТЯМ линковки, а не по числу строк** (`fuzz_targets_engine.cpp` —
   бандл и материалы, `fuzz_targets_ach.cpp` — достижения, дальше framework, плагин, сцена). Держать
   все семнадцать в одной единице трансляции значило бы тянуть в неё полдерева. Порядок групп в
@@ -301,4 +303,4 @@ ASan/UBSan. Переписывание мутатора на сдвиги вме
 (19120 до и после) — это и есть доказательство, что на little-endian байты те же, а заявленная
 воспроизводимость тройки теперь держится и на big-endian. От того замера текущее число отличается по
 трём другим причинам: копии семени перестали считаться принятыми (вниз), `ach-state` из вакуумной
-стала давать 1600 принятых (вверх), а цели спеки #24 добавили свои: `json` 198, `visual` 1698, `objects` 1626, `clips` 1364, `fonts` 943, `credits` 2429, и спеки #25: `fighter` 1460 (вверх).
+стала давать 1600 принятых (вверх), а цели спеки #24 добавили свои: `json` 198, `visual` 1698, `objects` 1626, `clips` 1364, `fonts` 943, `credits` 2429, и спеки #25: `fighter` 1308 (вверх; до В3г — 1460).

@@ -39,7 +39,7 @@ void collect_from(const BodyPool& pool, uint32_t slot, std::span<const Archetype
     const graphics::ClipView v = body_clip(a, kinds);
     for (const ClipBox& box : graphics::frame_boxes(v, frame_now(v, a), BoxKind::Hit)) {
         uint8_t move = 0;
-        if (!find_move(kinds[a.kind], a.clip, box.index, move)) continue;
+        if (!find_move(kinds[a.kind], a.move, box.index, move)) continue;
         const Strike& s = kinds[a.kind].moves[move].strike;
         const HitRect hit = place_box(a, box.rect);
         for (uint32_t j = 0; j < pool.count; ++j) {

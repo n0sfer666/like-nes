@@ -36,9 +36,8 @@ bool open_kind(const Level& level, const Fighter& f, br::Archetype& out, int32_t
 }
 
 bool key_move(const Fighter& f, const br::Archetype& a, const char* tag, uint16_t& out) {
-    const std::string name = std::string(f.name) + "/" + tag;
-    if (br::clip_index(f.clips, name.c_str(), out) && br::is_move(a, out)) return true;
-    std::fprintf(stderr, "neon-rumble: %s is not a move of %s_fighter, its key would do nothing\n", name.c_str(),
+    if (br::find_named(a, tag, out)) return true;
+    std::fprintf(stderr, "neon-rumble: %s/%s is not a move of %s_fighter, its key would do nothing\n", f.name, tag,
                  f.name);
     return false;
 }
@@ -52,7 +51,7 @@ bool Kinds::open(const Level& level, const Fighters& fighters) {
     const br::Archetype& a = types[PLAYER];
     return key_move(f, a, "jab", player.jab) && key_move(f, a, "cross", player.cross) &&
            key_move(f, a, "kick", player.kick) &&
-           key_move(f, a, "jump_kick", player.jump_kick);
+           key_move(f, a, "jump_kick", player.jump_kick) && key_move(f, a, "run_kick", player.run_kick);
 }
 
 } // namespace rumble

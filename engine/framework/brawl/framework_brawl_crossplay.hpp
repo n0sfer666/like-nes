@@ -3,6 +3,6 @@
 
 namespace framework::brawl {
 
-constexpr uint32_t CROSSPLAY_SCENARIOS = 9;
+constexpr uint32_t CROSSPLAY_SCENARIOS = 10;
 
 } // namespace framework::brawl

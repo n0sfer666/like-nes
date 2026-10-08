@@ -11,6 +11,6 @@ inline bool fighter_fail(FighterBakeError& err, int line, const std::string& mes
     return false;
 }
 
-inline std::string move_label(const MoveSpec& m) { return "move '" + m.clip + "' hit" + std::to_string(m.strike.box); }
+inline std::string move_label(const MoveSpec& m) { return "move '" + m.name + "' hit" + std::to_string(m.strike.box); }
 
 } // namespace framework::brawl

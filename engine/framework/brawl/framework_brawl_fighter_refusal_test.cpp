@@ -32,46 +32,57 @@ const Refusal REFUSALS[] = {
     {11, "down | soon", 11, "down must be a whole number"},
     {11, "down | 0", 11, "down is outside the range the engine accepts"},
     {12, "getup | 121", 12, "getup is outside the range the engine accepts"},
-    {11, "", 14, "the fighter is missing down"},
-    {12, "", 14, "the fighter is missing getup"},
+    {11, "", 15, "the fighter is missing down"},
+    {12, "", 15, "the fighter is missing getup"},
     {3, "sheet | rainbird", 3, "no clip of sheet 'rainbird' in the clips of this manifest"},
     {3, "sheet | rain/bird", 3, "sheet must be a name without '/' or control characters"},
     {3, "sheet | rain\x01" "bird", 3, "sheet must be a name without '/' or control characters"},
     {10, "power | 3", 10, "unknown key 'power'"},
     {10, "speed_x | 2", 10, "speed_x is set twice"},
-    {3, "", 14, "the fighter is missing sheet"},
-    {16, "", 17, "unknown key 'type'"},
-    {17, "type | sweep", 17, "type must be light, heavy, launch, grab or throw"},
-    {17, "sheet | banderas", 17, "unknown key 'sheet' in a move"},
-    {18, "damage | 1000", 18, "damage is outside the range the engine accepts"},
-    {19, "depth | 0", 19, "depth is outside the range the engine accepts"},
-    {21, "hitstun | 121", 21, "hitstun is outside the range the engine accepts"},
-    {23, "knock_y | -17", 23, "knock_y is outside the range the engine accepts"},
-    {24, "hits_down | maybe", 24, "hits_down must be yes or no"},
-    {24, "", 23, "move 'jab' hit0 is missing hits_down"},
-    {34, "", 33, "move 'kick' hit1 is missing hits_down"},
-    {26, "move | jab | hit0", 26, "move 'jab' hit0 is declared twice"},
-    {26, "move | kick | hit4", 26, "move box 'hit4' must be hit0..hit3"},
-    {26, "move | kick", 26, "expected 'move | <clip> | hit<N>'"},
-    {26, "move | ki/ck | hit1", 26, "a move clip must be a name without '/' or control characters"},
-    {26, "move | ki\x7f" "ck | hit1", 26, "a move clip must be a name without '/' or control characters"},
+    {3, "", 15, "the fighter is missing sheet"},
+    {17, "", 18, "unknown key 'type'"},
+    {18, "type | sweep", 18, "type must be light, heavy, launch, grab or throw"},
+    {18, "sheet | banderas", 18, "unknown key 'sheet' in a move"},
+    {19, "damage | 1000", 19, "damage is outside the range the engine accepts"},
+    {20, "depth | 0", 20, "depth is outside the range the engine accepts"},
+    {22, "hitstun | 121", 22, "hitstun is outside the range the engine accepts"},
+    {24, "knock_y | -17", 24, "knock_y is outside the range the engine accepts"},
+    {25, "hits_down | maybe", 25, "hits_down must be yes or no"},
+    {25, "", 26, "move 'jab' hit0 is missing hits_down"},
+    {36, "", 37, "move 'kick' hit1 is missing hits_down"},
+    {28, "move | jab | hit0", 28, "move 'jab' hit0 is declared twice"},
+    {28, "move | kick | hit4", 28, "move box 'hit4' must be hit0..hit3"},
+    {28, "move | kick", 28, "expected 'move | <name> | hit<N>'"},
+    {28, "move | ki/ck | hit1", 28, "a move name must be a name without '/' or control characters"},
+    {28, "move | ki\x7f" "ck | hit1", 28, "a move name must be a name without '/' or control characters"},
     {13, "buffer | 0", 13, "buffer is outside the range the engine accepts"},
     {13, "buffer | 121", 13, "buffer is outside the range the engine accepts"},
-    {13, "", 14, "the fighter is missing buffer"},
-    {14, "", 13, "the fighter is missing chain"},
-    {14, "chain | jab punch", 14, "chain move 'punch' has no move row"},
-    {14, "chain | jab ja/b", 14, "a chain move must be a name without '/' or control characters"},
-    {14, "chain | jab jab jab jab jab jab jab jab kick", 14, "chain must name 1 to 8 moves"},
-    {14, "chain | kick jab", 14, "chain step 0: clip 'banderas/kick' has no 'cancel' event to chain from"},
-    {14, "chain | jab kick jab", 14, "chain step 1: clip 'banderas/kick' has no 'cancel' event to chain from"},
+    {13, "", 15, "the fighter is missing buffer"},
+    {15, "", 14, "the fighter is missing chain"},
+    {15, "chain | jab punch", 15, "chain move 'punch' has no move row"},
+    {15, "chain | jab ja/b", 15, "a chain move must be a name without '/' or control characters"},
+    {15, "chain | jab jab jab jab jab jab jab jab kick", 15, "chain must name 1 to 8 moves"},
+    {15, "chain | kick jab", 15, "chain step 0: clip 'banderas/kick' has no 'cancel' event to chain from"},
+    {15, "chain | jab kick jab", 15, "chain step 1: clip 'banderas/kick' has no 'cancel' event to chain from"},
+    {14, "run_tap | 0", 14, "run_tap is outside the range the engine accepts"},
+    {14, "run_tap | 121", 14, "run_tap is outside the range the engine accepts"},
+    {14, "", 15, "the fighter is missing run_tap"},
+    {10, "clip | kick", 10, "unknown key 'clip'"},
+    {26, "slide | maybe", 26, "slide must be yes or no"},
+    {26, "", 25, "move 'jab' hit0 is missing slide"},
+    {40, "clip | ki/ck", 40, "a move clip must be a name without '/' or control characters"},
+    {41, "clip | kick", 41, "clip is set twice"},
+    {40, "clip | punch", 39, "move 'run_kick' hit1: no clip 'banderas/punch' in the clips of this manifest"},
+    {39, "move | jab | hit1", 39, "move 'jab' plays two clips"},
+    {39, "move | kick | hit0", 39, "move 'kick' rows disagree on slide"},
 };
 
 std::string edge_text(const std::string& speed, const std::string& gravity, const std::string& depth,
                       const std::string& hp, const std::string& ticks, const std::string& move) {
     return "sheet | banderas\nspeed_x | " + speed + "\nspeed_z | " + speed + "\nrun_x | " + speed +
            "\ngravity | " + gravity + "\njump_vy | " + speed + "\ndepth | " + depth + "\nhp | " + hp +
-           "\ndown | " + ticks + "\ngetup | " + ticks + "\nbuffer | " + ticks + "\nchain | jab\nmove | jab | hit0\n" +
-           move;
+           "\ndown | " + ticks + "\ngetup | " + ticks + "\nbuffer | " + ticks + "\nrun_tap | " + ticks +
+           "\nchain | jab\nmove | jab | hit0\n" + move;
 }
 
 void edge(const char* what, const std::string& text, fix32 speed, fix32 gravity, fix32 depth, uint32_t hp,
@@ -86,7 +97,7 @@ void edge(const char* what, const std::string& text, fix32 speed, fix32 gravity,
     const bool head = p.speed_x == speed && p.speed_z == speed && t.run_x() == speed && p.jump_vy == speed &&
                       p.gravity == gravity && t.depth() == depth && t.hp() == hp &&
                       t.down_ticks() == ticks && t.getup_ticks() == ticks && t.buffer_ticks() == ticks &&
-                      t.chain_count() == 1;
+                      t.run_tap_ticks() == ticks && t.chain_count() == 1;
     check(baked && head && t.move(0, s) && test::same_strike(s, want), what);
 }
 
@@ -94,16 +105,16 @@ void edges() {
     edge("every field at its upper limit bakes and reads back",
          edge_text("16", "16", "64", "9999", "120",
                    "type | throw\ndamage | 999\ndepth | 64\nhitstop | 120\nhitstun | 120\nknock_x | 16\n"
-                   "knock_y | 16\nhits_down | yes\n"),
+                   "knock_y | 16\nhits_down | yes\nslide | yes\n"),
          MAX_FIGHTER_SPEED, MAX_FIGHTER_SPEED, MAX_FIGHTER_DEPTH, MAX_HP, MAX_HIT_TICKS,
-         Strike{0, HitType::Throw, true, MAX_DAMAGE, MAX_FIGHTER_DEPTH, MAX_HIT_TICKS, MAX_HIT_TICKS,
+         Strike{0, HitType::Throw, true, true, MAX_DAMAGE, MAX_FIGHTER_DEPTH, MAX_HIT_TICKS, MAX_HIT_TICKS,
                 MAX_FIGHTER_SPEED, MAX_FIGHTER_SPEED});
     edge("every field at its lower limit bakes and reads back",
          edge_text("0", "1", "1", "1", "1",
                    "type | light\ndamage | 0\ndepth | 1\nhitstop | 0\nhitstun | 0\nknock_x | -16\n"
-                   "knock_y | -16\nhits_down | no\n"),
+                   "knock_y | -16\nhits_down | no\nslide | no\n"),
          fix32::from_int(0), fix32::from_int(1), fix32::from_int(1), MIN_HP, 1,
-         Strike{0, HitType::Light, false, 0, fix32::from_int(1), 0, 0, -MAX_FIGHTER_SPEED, -MAX_FIGHTER_SPEED});
+         Strike{0, HitType::Light, false, false, 0, fix32::from_int(1), 0, 0, -MAX_FIGHTER_SPEED, -MAX_FIGHTER_SPEED});
 }
 
 std::string with_line(int number, const std::string& replacement) {
@@ -143,16 +154,16 @@ int main() {
 
     std::vector<framework::graphics::ClipSrc> no_kick = clips;
     no_kick.pop_back();
-    expect(test::FIGHTER_TEXT, no_kick, 26, "move 'kick' hit1: no clip 'banderas/kick' in the clips of this manifest");
+    expect(test::FIGHTER_TEXT, no_kick, 28, "move 'kick' hit1: no clip 'banderas/kick' in the clips of this manifest");
     std::vector<framework::graphics::ClipSrc> wrong_box = clips;
     wrong_box.back() = test::fixture_clip("banderas/kick", 0);
-    expect(test::FIGHTER_TEXT, wrong_box, 26,
+    expect(test::FIGHTER_TEXT, wrong_box, 28,
            "move 'kick' hit1: no frame of clip 'banderas/kick' carries this hit box");
 
     const std::string head = std::string(test::FIGHTER_TEXT).substr(0, std::string(test::FIGHTER_TEXT).find("move"));
     std::vector<uint8_t> out;
     FighterBakeError err;
-    check(!bake_fighter("bare.fighter", head, clips, out, err) && err.line == 14 &&
+    check(!bake_fighter("bare.fighter", head, clips, out, err) && err.line == 15 &&
               err.message == "chain move 'jab' has no move row",
           "a fighter without moves has nothing to chain");
     edges();

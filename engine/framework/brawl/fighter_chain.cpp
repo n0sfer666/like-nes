@@ -36,7 +36,7 @@ bool parse_chain(const std::string& value, int line, FighterSpec& f, FighterBake
 bool chain_moves(const FighterSpec& f, std::vector<uint32_t>& out, FighterBakeError& err) {
     out.clear();
     for (const std::string& name : f.chain) {
-        const auto it = std::find_if(f.moves.begin(), f.moves.end(), [&](const MoveSpec& m) { return m.clip == name; });
+        const auto it = std::find_if(f.moves.begin(), f.moves.end(), [&](const MoveSpec& m) { return m.name == name; });
         if (it == f.moves.end()) return fighter_fail(err, f.chain_line, "chain move '" + name + "' has no move row");
         out.push_back(static_cast<uint32_t>(it - f.moves.begin()));
     }
@@ -44,8 +44,10 @@ bool chain_moves(const FighterSpec& f, std::vector<uint32_t>& out, FighterBakeEr
 }
 
 bool check_chain_cancels(const FighterSpec& f, std::span<const graphics::ClipSrc> clips, FighterBakeError& err) {
-    for (std::size_t i = 0; i + 1 < f.chain.size(); ++i) {
-        const std::string name = sheet_clip(f.sheet, f.chain[i]);
+    std::vector<uint32_t> rows;
+    if (!chain_moves(f, rows, err)) return false;
+    for (std::size_t i = 0; i + 1 < rows.size(); ++i) {
+        const std::string name = sheet_clip(f.sheet, f.moves[rows[i]].clip);
         const auto it =
             std::find_if(clips.begin(), clips.end(), [&](const graphics::ClipSrc& c) { return c.name == name; });
         if (it == clips.end() || !cancels(*it))

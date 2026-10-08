@@ -6,7 +6,7 @@ namespace framework::brawl {
 
 bool striking(const Body& b, const Archetype& a);
 bool can_strike(const Body& b, const Archetype& a);
-void start_strike(Body& b, uint16_t clip);
+void start_strike(Body& b, uint16_t move, const Archetype& a);
 void play_clip(Body& b, uint16_t clip);
 void end_strike(Body& b, const Archetype& a);
 uint16_t locomotion_clip(const Body& b, const Archetype& a);

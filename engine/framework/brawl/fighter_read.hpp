@@ -23,8 +23,10 @@ public:
     uint32_t down_ticks() const;
     uint32_t getup_ticks() const;
     uint32_t buffer_ticks() const;
+    uint32_t run_tap_ticks() const;
 
     uint32_t move_count() const { return static_cast<uint32_t>(moves_.size()); }
+    const char* move_name(uint32_t index) const;
     const char* move_clip(uint32_t index) const;
     bool move(uint32_t index, Strike& out) const;
 

@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "body_chain.hpp"
+#include "body_clip.hpp"
 #include "framework_brawl_check.hpp"
 #include "framework_brawl_hit_fixture.hpp"
 
@@ -22,9 +23,9 @@ std::vector<Start> starts(Ring& r, int ticks, int every, Body* away = nullptr) {
     const Archetype& a = r.arena.kinds[0];
     bool held = false;
     for (int t = 0; t < ticks; ++t) {
-        test::tick(r.pool, r.arena, {t % every == 0 ? test::strike(r.arena.jab) : Command{}});
+        test::tick(r.pool, r.arena, {t % every == 0 ? test::strike(r.arena, r.arena.jab) : Command{}});
         const Body& b = r.pool.bodies[0];
-        const bool fresh = is_move(a, b.clip) && b.elapsed == 0;
+        const bool fresh = striking(b, a) && b.elapsed == 0;
         if (fresh && !held) out.push_back({b.clip, b.chain});
         if (fresh && away && b.chain == 1) away->pos.x = fix32::from_int(200);
         held = fresh;
@@ -74,21 +75,23 @@ void test_not_a_move() {
     Ring r;
     Body& b = r.put(0, 1, 0);
     const uint16_t idle = r.arena.kinds[0].idle;
-    test::tick(r.pool, r.arena, {test::strike(idle)});
-    check(b.queued.strike == NO_STRIKE && b.clip == idle && b.elapsed > 0, "a clip that is not a move is not buffered");
+    Command past;
+    past.strike = static_cast<uint16_t>(r.arena.kinds[0].move_count);
+    test::tick(r.pool, r.arena, {past});
+    check(b.queued.strike == NO_STRIKE && b.clip == idle && b.elapsed > 0, "a row past the move table is not buffered");
 }
 
 uint32_t chained_at(std::size_t cancel_frame) {
     std::vector<framework::graphics::ClipSrc> src = test::dummy_clips();
     src[3] = test::cancels_at(test::dummy_clip("jab", {false, true, true, false}, framework::graphics::CLIP_ONCE),
                               cancel_frame);
-    Ring r{test::Arena{src}, BodyPool{}};
+    Ring r{src};
     Body& b = r.put(0, 1, 0);
     r.put(24, -1, 1);
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     for (int t = 0; t < 12; ++t) {
         const uint32_t elapsed = b.elapsed;
-        test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+        test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
         if (b.chain == 1) return elapsed;
     }
     return 99;
@@ -104,12 +107,12 @@ void test_buffer_expires() {
     Body& b = r.put(0, 1, 0);
     b.react = Reaction::Hurt;
     b.react_ticks = 12;
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     const uint16_t first = b.queued.ticks;
     for (int t = 0; t < 2; ++t) test::tick(r.pool, r.arena, {});
     check(first == 5 && b.queued.ticks == 3, "a queued strike loses a tick for every tick it cannot start");
     for (int t = 0; t < 14; ++t) test::tick(r.pool, r.arena, {});
-    check(!is_move(r.arena.kinds[0], b.clip) && b.queued.ticks == 0 && b.queued.strike == NO_STRIKE,
+    check(!striking(b, r.arena.kinds[0]) && b.queued.ticks == 0 && b.queued.strike == NO_STRIKE,
           "a strike buffered longer than the buffer is dropped");
 }
 
@@ -118,7 +121,7 @@ void test_buffer_starts_late() {
     Body& b = r.put(0, 1, 0);
     b.react = Reaction::Hurt;
     b.react_ticks = 3;
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     for (int t = 0; t < 4; ++t) test::tick(r.pool, r.arena, {});
     check(b.clip == r.arena.jab && b.chain == 0, "a strike buffered during a reaction starts once it ends");
 }
@@ -127,7 +130,7 @@ void test_buffer_in_hitstop() {
     Ring r;
     Body& b = r.put(0, 1, 0);
     b.hitstop = 10;
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     for (int t = 0; t < 9; ++t) test::tick(r.pool, r.arena, {});
     check(b.queued.ticks == r.arena.kinds[0].buffer_ticks, "hitstop freezes the buffer with the body");
     test::tick(r.pool, r.arena, {});
@@ -138,9 +141,9 @@ void test_other_strike_breaks() {
     Ring r;
     Body& b = r.put(0, 1, 0);
     r.put(24, -1, 1);
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     for (int t = 0; t < 12 && b.clip != r.arena.flurry; ++t)
-        test::tick(r.pool, r.arena, {test::strike(r.arena.flurry)});
+        test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.flurry)});
     check(b.clip == r.arena.flurry && b.chain == NO_CHAIN,
           "a strike off the chain waits for the jab to end and leaves the chain");
 }
@@ -148,7 +151,7 @@ void test_other_strike_breaks() {
 void test_chain_cleared() {
     Ring r;
     Body& b = r.put(0, 1, 0);
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     const uint8_t during = b.chain;
     for (int t = 0; t < 6; ++t) test::tick(r.pool, r.arena, {});
     check(during == 0 && b.clip == r.arena.kinds[0].idle && b.chain == NO_CHAIN,

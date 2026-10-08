@@ -15,6 +15,7 @@ struct PlayerMoves {
     uint16_t cross = 0;
     uint16_t kick = 0;
     uint16_t jump_kick = 0;
+    uint16_t run_kick = 0;
 };
 
 struct Kinds {
