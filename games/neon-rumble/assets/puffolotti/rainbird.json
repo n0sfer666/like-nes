@@ -2188,13 +2188,15 @@
     "name": "jab",
     "from": 38,
     "to": 41,
-    "direction": "forward"
+    "direction": "forward",
+    "data": "2:cancel"
    },
    {
     "name": "cross",
     "from": 42,
     "to": 47,
-    "direction": "forward"
+    "direction": "forward",
+    "data": "1:cancel"
    },
    {
     "name": "kick",

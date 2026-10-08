@@ -4,7 +4,7 @@
 namespace framework::brawl {
 
 constexpr uint8_t FIGHTER_MAGIC[4] = {'L', 'N', 'F', 'T'};
-constexpr uint32_t FIGHTER_VERSION = 2;
+constexpr uint32_t FIGHTER_VERSION = 3;
 constexpr uint8_t STRIKE_HITS_DOWN = 1;
 
 struct FighterRow {
@@ -19,10 +19,13 @@ struct FighterRow {
     uint32_t hp;
     uint32_t down_ticks;
     uint32_t getup_ticks;
+    uint32_t buffer_ticks;
     uint32_t move_offset;
     uint32_t move_count;
+    uint32_t chain_offset;
+    uint32_t chain_count;
 };
-static_assert(sizeof(FighterRow) == 52, "FighterRow layout pinned (zero-parse ABI)");
+static_assert(sizeof(FighterRow) == 64, "FighterRow layout pinned (zero-parse ABI)");
 
 struct StrikeRow {
     uint32_t clip_offset;

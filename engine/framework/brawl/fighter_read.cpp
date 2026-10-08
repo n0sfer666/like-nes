@@ -13,7 +13,8 @@ bool head_ok(const core::SectionView& v, const FighterRow& r) {
            fix_in(r.run_x_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.gravity_raw, tiny, MAX_FIGHTER_SPEED) &&
            fix_in(r.jump_vy_raw, none, MAX_FIGHTER_SPEED) && fix_in(r.depth_raw, tiny, MAX_FIGHTER_DEPTH) &&
            r.hp >= MIN_HP && r.hp <= MAX_HP && r.down_ticks >= 1 && r.down_ticks <= MAX_HIT_TICKS &&
-           r.getup_ticks >= 1 && r.getup_ticks <= MAX_HIT_TICKS;
+           r.getup_ticks >= 1 && r.getup_ticks <= MAX_HIT_TICKS && r.buffer_ticks >= 1 &&
+           r.buffer_ticks <= MAX_HIT_TICKS && r.chain_count >= 1 && r.chain_count <= MAX_CHAIN;
 }
 
 bool strike_ok(const core::SectionView& v, const StrikeRow& s) {
@@ -30,18 +31,24 @@ bool FighterTable::open(const void* data, std::size_t size) {
     view_ = core::SectionView{};
     row_ = nullptr;
     moves_ = {};
+    chain_ = {};
     core::SectionView v;
     if (!core::open_section(data, size, FIGHTER_MAGIC, FIGHTER_VERSION, sizeof(FighterRow), alignof(FighterRow), v))
         return false;
     if (v.header->count != 1) return false;
     const FighterRow& r = v.at<FighterRow>(v.header->rows_offset, 1)[0];
     std::span<const StrikeRow> moves;
-    if (!head_ok(v, r) || !v.take(r.move_offset, r.move_count, moves)) return false;
+    std::span<const uint32_t> chain;
+    if (!head_ok(v, r) || !v.take(r.move_offset, r.move_count, moves) || !v.take(r.chain_offset, r.chain_count, chain))
+        return false;
     for (const StrikeRow& s : moves)
         if (!strike_ok(v, s)) return false;
+    for (const uint32_t m : chain)
+        if (m >= moves.size()) return false;
     view_ = v;
     row_ = &r;
     moves_ = moves;
+    chain_ = chain;
     return true;
 }
 
@@ -64,6 +71,8 @@ uint32_t FighterTable::hp() const { return valid() ? row_->hp : 0; }
 uint32_t FighterTable::down_ticks() const { return valid() ? row_->down_ticks : 0; }
 
 uint32_t FighterTable::getup_ticks() const { return valid() ? row_->getup_ticks : 0; }
+
+uint32_t FighterTable::buffer_ticks() const { return valid() ? row_->buffer_ticks : 0; }
 
 const char* FighterTable::move_clip(uint32_t index) const {
     return index < moves_.size() ? view_.strings + moves_[index].clip_offset : "";

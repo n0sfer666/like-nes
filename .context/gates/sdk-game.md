@@ -95,6 +95,18 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    валит adler (fall 148, down 168, getup 198, stand 228), cross на 200 приходит во встающего и
    не попадает, добавленный jab на 229 даёт `hit tick 238`, hp 66; хеш тика 240 `f8f3af58e5cacb1a`.
    `sdk_game_lib.sh` сверяет 15 точных строк (`-eq 15`) и число строк `hit|react` (`-eq 13`).
+   С В3в хеш `0x5aacc4b29e4a78fb`: ключи `buffer | 8` и `chain` в `.fighter` (LNFT v3), события
+   `cancel` на jab 2 и cross 1 в трёх JSON. Скрипт жмёт J на тиках 44, 56, 68 и получает цепочку
+   banderas `jab jab cross` (hit 53, 66, 75, hp 94/88/80) — единственная автоматическая сверка, что
+   `cancel` из настоящих JSON и строка `chain` настоящего `.fighter` работают вместе; мутант
+   `chain | jab` даёт jab 53, jab 77 и сдвигает jump_kick. Наземного kick в скрипте больше нет: он
+   отбрасывает adler так, что jump_kick догоняет его к тику ~197 и `getup` не успевает до 240.
+   Прыжок сдвинут на 140 (walk 110..140): jump_kick на 154 валит adler (fall 154, down 174, getup
+   204, stand 234), cross на 200 приходит во встающего, jab на 229 даёт `hit tick 238`, hp 64; хеш
+   тика 0 `3ccaade87a80692c` (в хеш пула вошли шаг цепочки и буфер), тика 240 `f04ce6c22decb53a`.
+   Мутанты скрипта перепроверены на новом тайминге: снятые `!airborne` у kick и у cross и
+   `Attack::None` вместо удара игрока валят сверку. `sdk_game_lib.sh` сверяет 14 точных строк
+   (`-eq 14`) и число строк `hit|react` (`-eq 12`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

@@ -20,6 +20,8 @@ inline const char* FIGHTER_TEXT =
     "hp      | 120\n"
     "down    | 30\n"
     "getup   | 24\n"
+    "buffer  | 7\n"
+    "chain   | jab  jab kick\n"
     "\n"
     "move | jab | hit0\n"
     "type      | light\n"
@@ -57,7 +59,9 @@ inline bool same_strike(const Strike& a, const Strike& b) {
 }
 
 inline std::vector<graphics::ClipSrc> fixture_clips() {
-    return {fixture_clip("banderas/idle", 0), fixture_clip("banderas/jab", 0), fixture_clip("banderas/kick", 1)};
+    graphics::ClipSrc jab = fixture_clip("banderas/jab", 0);
+    jab.frames[1].event = CANCEL_EVENT;
+    return {fixture_clip("banderas/idle", 0), jab, fixture_clip("banderas/kick", 1)};
 }
 
 } // namespace framework::brawl::test

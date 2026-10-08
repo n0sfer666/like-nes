@@ -16,6 +16,8 @@ constexpr uint32_t MIN_HP = 1;
 constexpr uint32_t MAX_HP = 9999;
 constexpr uint32_t MAX_DAMAGE = 999;
 constexpr uint32_t MAX_HIT_TICKS = 120;
+constexpr uint32_t MAX_CHAIN = 8;
+constexpr const char* CANCEL_EVENT = "cancel";
 constexpr fix32 MAX_FIGHTER_SPEED = fix32::from_int(16);
 constexpr fix32 MAX_FIGHTER_DEPTH = fix32::from_int(64);
 
@@ -43,8 +45,9 @@ struct FighterSpec {
     std::string sheet;
     fix32 speed_x{}, speed_z{}, run_x{}, gravity{}, jump_vy{}, depth{};
     uint32_t hp = 0;
-    uint32_t down = 0, getup = 0;
-    int sheet_line = 0;
+    uint32_t down = 0, getup = 0, buffer = 0;
+    std::vector<std::string> chain;
+    int sheet_line = 0, chain_line = 0;
     std::vector<MoveSpec> moves;
 
     DepthProfile profile() const { return DepthProfile{speed_x, speed_z, gravity, jump_vy}; }

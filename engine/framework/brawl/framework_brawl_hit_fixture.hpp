@@ -21,6 +21,8 @@ inline const char* DUMMY_TEXT = "sheet   | dummy\n"
                                 "hp      | 100\n"
                                 "down    | 6\n"
                                 "getup   | 4\n"
+                                "buffer  | 6\n"
+                                "chain   | jab jab flurry\n"
                                 "move | jab | hit0\n"
                                 "type | light\ndamage | 5\ndepth | 4\nhitstop | 3\nhitstun | 8\n"
                                 "knock_x | 1\nknock_y | 0\nhits_down | no\n"
@@ -50,10 +52,15 @@ inline graphics::ClipSrc dummy_clip(const char* tag, std::vector<bool> hits, uin
     return c;
 }
 
+inline graphics::ClipSrc cancels_at(graphics::ClipSrc c, std::size_t frame) {
+    c.frames[frame].event = CANCEL_EVENT;
+    return c;
+}
+
 inline std::vector<graphics::ClipSrc> dummy_clips() {
     return {dummy_clip("idle", {false}, graphics::CLIP_LOOP), dummy_clip("walk", {false, false}, graphics::CLIP_LOOP),
             dummy_clip("jump", {false}, graphics::CLIP_ONCE),
-            dummy_clip("jab", {false, true, true, false}, graphics::CLIP_ONCE),
+            cancels_at(dummy_clip("jab", {false, true, true, false}, graphics::CLIP_ONCE), 1),
             dummy_clip("flurry", {true, false, true, true, false}, graphics::CLIP_LOOP),
             dummy_clip("hurt", {false, false}, graphics::CLIP_LOOP), dummy_clip("fall", {false}, graphics::CLIP_ONCE),
             dummy_clip("down", {false}, graphics::CLIP_ONCE),

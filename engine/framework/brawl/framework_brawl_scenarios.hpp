@@ -158,6 +158,8 @@ inline Move trade_jabs(uint32_t t, uint32_t body) {
     return t % 15 == 0 ? Move::Jab : Move::None;
 }
 
+inline Move chain_jabs(uint32_t t, uint32_t body) { return body == 1 && t % 3 == 0 ? Move::Jab : Move::None; }
+
 inline void crowd(uint32_t t, BodyPool& pool) {
     if (t != 0) return;
     replace(pool, 0, at(100, 208));
@@ -182,6 +184,7 @@ const Scenario SCENARIOS[] = {
     {"band-x-ends", &WALKER, 60, to_the_ends, third_at_the_far_end},
     {"jab-exchange", &WALKER, 150, close_in, face_off, trade_jabs},
     {"flurry-crowd", &HEAVY, 90, crowd_moves, crowd, flurries},
+    {"jab-chain", &WALKER, 120, close_in, face_off, chain_jabs},
 };
 
 } // namespace framework::brawl::scenario

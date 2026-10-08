@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 24 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 10 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 25 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 11 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -40,6 +40,7 @@ names that surface.
 | Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
 | Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
 | Adler, jump-kicked, falls, lies and gets up with his feet on his shadow; nothing hits him while he is down or rising | [#25](../.context/specs/2026-10-05-brawl-framework.md) 3 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
+| Banderas's J chains jab, jab and cross on a hit and starts over on a miss; a key pressed during a strike waits for it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 4 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_chain.*`, `engine/framework/brawl/strike_queue.*`, `engine/framework/brawl/archetype_chain.*`, `engine/framework/brawl/fighter_chain.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3411,27 +3412,31 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0xe9c2e2cf1b4b6f9c` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x5aacc4b29e4a78fb` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash 23ee52a6df40e68d, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
-       neon-rumble: hit tick 49: banderas/jab -> adler, damage 6, hp 94
-       neon-rumble: react tick 49: adler hurt
-       neon-rumble: react tick 63: adler stand
-       neon-rumble: hit tick 81: banderas/kick -> adler, damage 12, hp 82
-       neon-rumble: react tick 81: adler hurt
-       neon-rumble: react tick 105: adler stand
-       neon-rumble: hit tick 148: banderas/jump_kick -> adler, damage 10, hp 72
-       neon-rumble: react tick 148: adler fall
-       neon-rumble: react tick 168: adler down
-       neon-rumble: react tick 198: adler getup
-       neon-rumble: react tick 228: adler stand
-       neon-rumble: hit tick 238: banderas/jab -> adler, damage 6, hp 66
+       neon-rumble: brawl tick 0: hash 3ccaade87a80692c, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
+       neon-rumble: react tick 53: adler hurt
+       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
+       neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
+       neon-rumble: react tick 92: adler stand
+       neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
+       neon-rumble: react tick 154: adler fall
+       neon-rumble: react tick 174: adler down
+       neon-rumble: react tick 204: adler getup
+       neon-rumble: react tick 234: adler stand
+       neon-rumble: hit tick 238: banderas/jab -> adler, damage 6, hp 64
        neon-rumble: react tick 238: adler hurt
-       neon-rumble: brawl tick 240: hash f8f3af58e5cacb1a, banderas 400,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 422,252 y 0 hp 66, draw rainbird banderas adler
+       neon-rumble: brawl tick 240: hash f04ce6c22decb53a, banderas 392,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 390,252 y 0 hp 64, draw rainbird banderas adler
 
    The cross of tick 200 lands while Adler is getting up and makes no line: since B3b a fighter who
    falls, lies or rises cannot be hit. Falling, lying and rising are judged in §23.
+
+   Since B3c the script presses J on ticks 44, 56 and 68 and gets the chain of Banderas — jab, jab,
+   cross, judged in §24 — instead of a jab and a kick. The kick on the ground is no longer in the
+   script: it pushes Adler out of reach of the jump kick until he could not get up within 240 ticks.
+   L is judged by hand in step 4.
 
 2. Start the window from a terminal you can read, and close it yourself when done:
 
@@ -3446,11 +3451,13 @@ backslashes).
        neon-rumble: hit tick <n>: banderas/jab -> adler, damage 6, hp <hp>
        neon-rumble: react tick <n>: adler hurt
 
-   with hp 6 lower each time. One jab hits once, however long the fist stays on him.
+   with hp 6 lower each time — wait for each jab to end before the next J: since B3c a J pressed
+   while a jab that landed is still out goes on along the chain, and the third is a cross (§24).
+   One jab hits once, however long the fist stays on him.
 4. **Cross and kick.** U throws a cross: the jab's longer twin, damage 8, and its line says
    `banderas/cross`. L kicks: a longer move with a farther reach, damage 12 and a longer push. U and
-   L in the air do nothing. A key pressed while a strike is still playing is dropped — the buffer
-   and the chain come later in B3, so a fast J-J gives one jab, not two. Two keys in one frame give
+   L in the air do nothing. Since B3c a key pressed while a strike is still playing waits for it for
+   up to 8 ticks, and J after a jab that landed goes on along the chain — §24 judges both. Two keys
    one move, in the order J, U, L: J with U or L gives the jab, U with L the cross, and a strike key
    together with Space gives the strike on the ground without the jump — a fighter striking on the
    ground stays on it. Neither is a finding.
@@ -3459,7 +3466,10 @@ backslashes).
    then lies and gets up instead of landing on his feet — §23 judges that. Since B3a
    the pivot of `jump_kick` sits on the feet of each frame, as that of `jump` does: when the jump
    turns into the kick, the sprite does not hop up or down, the feet go on along the arc of the
-   jump, and the fighter lands with his feet on the shadow.
+   jump, and the fighter lands with his feet on the shadow. A J pressed late in the jump, while the
+   first `jump_kick` still plays, waits in the buffer and may start a `jump_kick` on the ground after
+   landing: the move is chosen at the press, not at the start. That is a known edge left to B3d, not
+   a finding.
 6. **Teams.** Walk to Rainbird on his line and jab, cross and kick him. The strike goes through him: no stop
    frame, no push, no line in the terminal. Rainbird is team 0, as Banderas.
 7. **F3.** On all three: the cell frame, the green `hurt0` frame, the pivot cross, and on the floor
@@ -3490,7 +3500,7 @@ is 0.
 
 ## 23. Gate 3 of #25 — Adler falls, lies and gets up
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 148 fall, 168 down, 198 getup, 228 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 154 fall, 174 down, 204 getup, 234 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
 
 B3b of spec #25 gave the fighters reactions: a light or heavy hit puts the target on its `hurt` clip
 for the hitstun of the strike, a `launch` hit — `jump_kick` — throws it into `fall` until it lands,
@@ -3509,10 +3519,10 @@ backslashes).
 
    Expected: `sdk-game: PASS` and, in each run, among the lines of §22 step 1,
 
-       neon-rumble: react tick 148: adler fall
-       neon-rumble: react tick 168: adler down
-       neon-rumble: react tick 198: adler getup
-       neon-rumble: react tick 228: adler stand
+       neon-rumble: react tick 154: adler fall
+       neon-rumble: react tick 174: adler down
+       neon-rumble: react tick 204: adler getup
+       neon-rumble: react tick 234: adler stand
 
 2. Start the window from a terminal you can read and press **F3**:
 
@@ -3542,9 +3552,63 @@ steps 3–6.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 24. Gate 4 of #25 — the chain and the buffer
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 53 jab, 66 jab, 75 cross; окно neon_rumble: J J J в adler — jab, jab, cross с одной строкой hit на каждый; J мимо — снова jab; J во время удара ждёт его конца; U после jab цепочку не продолжает; прислать строки hit и слово о темпе цепочки -->
+
+B3c of spec #25 gave the fighters a chain and an input buffer. Each `.fighter` names its chain in
+the `chain` row, the last move being the finisher: Banderas `jab jab cross`, Rainbird `jab jab cross
+kick`, Adler `jab jab kick`. J during a jab that has landed goes on to the next move of the chain
+once the jab reaches its `cancel` frame (frame 2 of `jab`, frame 1 of `cross`); a jab that misses
+leaves no chain, and the next J is a jab again. A strike key pressed while the fighter cannot strike
+yet — a strike, a hurt, the stop frame — waits for up to `buffer` ticks (8), not counting the stop
+frame, which freezes the buffer with the fighter, and starts as soon as it can. Only Banderas is under the keys; the chains of Rainbird and Adler are pinned by the tests.
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS` and, in each run, among the lines of §22 step 1,
+
+       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
+       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
+       neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
+
+   The script presses J three times; the third J gives the cross, the finisher of Banderas.
+
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+3. **The chain.** Walk Banderas to Adler on his line and press J three times, one press after the
+   other, not too fast. Banderas throws jab, jab, cross: three `hit` lines, `banderas/jab`,
+   `banderas/jab`, `banderas/cross`, with damage 6, 6, 8. A fourth J starts a jab again.
+4. **The miss.** Step back out of reach and press J three times. Three jabs, no cross: a jab that
+   hits nothing does not chain.
+5. **The buffer.** Next to Adler, press J and press it again at once, while the first jab is still
+   out. The second press is not lost: the second jab follows when the first reaches its cancel frame,
+   or when it ends. A press waiting longer than 8 ticks (the stop frame not counted) before the
+   fighter is free is dropped — that is the buffer, not a finding.
+6. **Off the chain.** Next to Adler, press J and then U. The cross waits for the jab to end and comes
+   out on its own: it does not continue the chain, and the next J starts it over.
+
+What counts as a finding: different `hit` lines in step 1; a cross out of two jabs that missed; a
+fourth move after the cross; a J pressed during a jab that does nothing; a chain that waits so long
+that it reads as two separate strikes, or is so quick that the jab never shows — send a word on the
+pace either way. A `jump_kick` on the ground after a late J in the air is the known edge of §22
+step 5, not a finding.
+
+Send back: the terminal lines of steps 3–6 and one word on the pace of the chain.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 24 are closed, and the open 10 are listed by
+The gates above are what the ADRs waited on; 14 of the 25 are closed, and the open 11 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

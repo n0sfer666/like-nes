@@ -28,6 +28,7 @@ void switch_to(Body& b, uint16_t clip, uint32_t elapsed) {
     b.clip = clip;
     b.elapsed = elapsed;
     b.struck = StruckList{};
+    b.chain = NO_CHAIN;
 }
 
 void enter(Body& b, const Archetype& a, uint16_t clip) {

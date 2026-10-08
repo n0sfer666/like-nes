@@ -3,13 +3,16 @@
 #include <cstring>
 #include <iterator>
 
+#include "archetype_chain.hpp"
+#include "fighter_name.hpp"
+
 namespace framework::brawl {
 
 namespace {
 
-bool sheet_clip(const graphics::ClipTable& clips, const std::string& sheet, const char* tag, uint16_t& out,
-                std::string& error) {
-    const std::string name = sheet + "/" + tag;
+bool find_sheet_clip(const graphics::ClipTable& clips, const std::string& sheet, const char* tag, uint16_t& out,
+                     std::string& error) {
+    const std::string name = sheet_clip(sheet, tag);
     if (clip_index(clips, name.c_str(), out)) return true;
     error = "no clip '" + name + "' in the clips";
     return false;
@@ -38,7 +41,7 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
     const char* const tags[] = {"idle", "walk", "jump", "hurt", "fall", "down", "getup"};
     uint16_t* const slots[] = {&out.idle, &out.walk, &out.jump, &out.hurt, &out.fall, &out.down, &out.getup};
     for (uint32_t i = 0; i < std::size(tags); ++i)
-        if (!sheet_clip(clips, sheet, tags[i], *slots[i], error)) return false;
+        if (!find_sheet_clip(clips, sheet, tags[i], *slots[i], error)) return false;
     if (fighter.move_count() > MAX_MOVES) {
         error = "more than " + std::to_string(MAX_MOVES) + " moves";
         return false;
@@ -60,7 +63,7 @@ bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clip
     out.move_count = fighter.move_count();
     out.down_ticks = ticks16(fighter.down_ticks());
     out.getup_ticks = ticks16(fighter.getup_ticks());
-    return true;
+    return make_chain(fighter, clips, out, error);
 }
 
 bool is_move(const Archetype& a, uint16_t clip) {

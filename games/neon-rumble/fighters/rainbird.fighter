@@ -8,6 +8,8 @@ depth   | 6
 hp      | 100
 down    | 30
 getup   | 30
+buffer  | 8
+chain   | jab jab cross kick
 
 move | jab | hit0
 type      | light

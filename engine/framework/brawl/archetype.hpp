@@ -10,6 +10,7 @@
 namespace framework::brawl {
 
 constexpr uint32_t MAX_MOVES = 16;
+constexpr uint32_t NO_CANCEL = 0xffffffffu;
 
 struct MoveSlot {
     uint16_t clip = 0;
@@ -25,6 +26,10 @@ struct Archetype {
     uint16_t down_ticks = 0, getup_ticks = 0;
     std::array<MoveSlot, MAX_MOVES> moves{};
     uint32_t move_count = 0;
+    std::array<uint16_t, MAX_CHAIN> chain{};
+    std::array<uint32_t, MAX_CHAIN> cancel{};
+    uint8_t chain_count = 0;
+    uint16_t buffer_ticks = 1;
 };
 
 bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clips, Archetype& out,

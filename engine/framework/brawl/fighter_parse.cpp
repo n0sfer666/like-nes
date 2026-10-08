@@ -1,7 +1,9 @@
 #include <iterator>
 
 #include "fighter_bake.hpp"
+#include "fighter_chain.hpp"
 #include "fighter_fail.hpp"
+#include "fighter_name.hpp"
 #include "text_fields.hpp"
 
 namespace framework::brawl {
@@ -35,8 +37,8 @@ const FixKey<FighterSpec> HEAD_FIX[] = {
 };
 const TickKey<FighterSpec> HEAD_TICK[] = {
     {"hp", &FighterSpec::hp, MIN_HP, MAX_HP}, {"down", &FighterSpec::down, 1, MAX_HIT_TICKS},
-    {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}};
-const char* const HEAD_TEXT[] = {"sheet"};
+    {"getup", &FighterSpec::getup, 1, MAX_HIT_TICKS}, {"buffer", &FighterSpec::buffer, 1, MAX_HIT_TICKS}};
+const char* const HEAD_TEXT[] = {"sheet", "chain"};
 
 const FixKey<Strike> MOVE_FIX[] = {
     {"depth", &Strike::depth, DEPTH_LO, MAX_FIGHTER_DEPTH},
@@ -55,12 +57,6 @@ constexpr uint32_t HEAD_KEYS = std::size(HEAD_FIX) + std::size(HEAD_TICK) + std:
 constexpr uint32_t MOVE_KEYS = std::size(MOVE_FIX) + std::size(MOVE_TICK) + std::size(MOVE_TEXT);
 static_assert(std::size(TYPE_NAMES) == HIT_TYPE_LAST + 1u);
 static_assert(HEAD_KEYS <= 32 && MOVE_KEYS <= 32);
-
-bool name_ok(const std::string& name) {
-    for (const char c : name)
-        if (c == '/' || static_cast<unsigned char>(c) < 0x20 || c == 0x7f) return false;
-    return true;
-}
 
 template <class T, std::size_t NF, std::size_t NT, std::size_t NS>
 const char* key_name(const FixKey<T> (&fix)[NF], const TickKey<T> (&tick)[NT], const char* const (&text)[NS],
@@ -99,6 +95,7 @@ bool set_number(T& obj, const FixKey<T> (&fix)[NF], const TickKey<T> (&tick)[NT]
 
 bool set_head(FighterSpec& f, uint32_t i, const std::string& key, const std::string& value, int line,
               FighterBakeError& err) {
+    if (key == "chain") return parse_chain(value, line, f, err);
     if (key != "sheet") return set_number(f, HEAD_FIX, HEAD_TICK, i, key, value, line, err);
     if (!name_ok(value)) return fighter_fail(err, line, "sheet must be a name without '/' or control characters");
     f.sheet = value;
@@ -194,7 +191,8 @@ bool parse_fighter(const std::string& text, FighterSpec& out, FighterBakeError& 
         if (!ok) return false;
     }
     if (content == 0) return fighter_fail(err, line, "the fighter file is empty");
-    return close_block(out, seen, content, err);
+    std::vector<uint32_t> chain;
+    return close_block(out, seen, content, err) && chain_moves(out, chain, err);
 }
 
 } // namespace framework::brawl

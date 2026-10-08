@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "fighter_bake.hpp"
@@ -18,7 +19,7 @@ using namespace framework::brawl;
 using test::check;
 using test::same_strike;
 
-constexpr uint64_t GOLDEN = 0x1a8d5bbe7e6bbfb6ull;
+constexpr uint64_t GOLDEN = 0xfce7a1ab20ac624aull;
 
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
     uint64_t h = framework::physics::FNV_OFFSET;
@@ -50,6 +51,9 @@ void round_trip(const std::vector<uint8_t>& baked) {
     check(t.hp() == 120, "hp");
     check(t.down_ticks() == 30 && t.getup_ticks() == 24, "down, getup");
     check(t.move_count() == 2, "two moves");
+    check(t.buffer_ticks() == 7, "buffer");
+    check(t.chain_count() == 3 && t.chain_move(0) == 0 && t.chain_move(1) == 0 && t.chain_move(2) == 1,
+          "chain jab jab kick by move row");
     const Strike jab{0, HitType::Light, false, 8, fix32::from_int(5), 4, 12, fix32::from_raw(3 << 15), fix32{}};
     const Strike kick{1,  HitType::Launch,          true, 20, fix32::from_raw((25 << 16) / 4), 7, 30,
                       fix32::from_int(3), fix32::from_raw((19 << 16) / 4)};
@@ -96,6 +100,10 @@ const Corruption CORRUPTIONS[] = {
     {"depth over the cap", At::Row, offsetof(FighterRow, depth_raw), 4, OVER_DEPTH},
     {"name past the strings", At::Row, offsetof(FighterRow, name_offset), 4, 0xffffu},
     {"moves past the end", At::Row, offsetof(FighterRow, move_count), 4, 9999},
+    {"zero buffer", At::Row, offsetof(FighterRow, buffer_ticks), 4, 0},
+    {"buffer over the cap", At::Row, offsetof(FighterRow, buffer_ticks), 4, MAX_HIT_TICKS + 1},
+    {"empty chain", At::Row, offsetof(FighterRow, chain_count), 4, 0},
+    {"chain past the end", At::Row, offsetof(FighterRow, chain_offset), 4, 0xfffffff0u},
     {"box 4", At::Strike, offsetof(StrikeRow, box), 1, MAX_HIT_BOXES},
     {"type 5", At::Strike, offsetof(StrikeRow, type), 1, HIT_TYPE_LAST + 1u},
     {"unknown flag", At::Strike, offsetof(StrikeRow, flags), 1, 2},
@@ -135,8 +143,33 @@ void reader_refusals(const std::vector<uint8_t>& baked) {
     bad[strings + load<uint32_t>(baked, strike + offsetof(StrikeRow, clip_offset))] = '\0';
     check(refused(bad), "empty move clip");
     bad = baked;
+    store<uint32_t>(bad, load<uint32_t>(baked, row + offsetof(FighterRow, chain_offset)), 2);
+    check(refused(bad), "chain step past the moves");
+    bad = baked;
     bad.pop_back();
     check(refused(bad), "truncated section");
+}
+
+bool opens_with_chain_at(const std::vector<uint8_t>& baked, uint32_t count) {
+    std::vector<uint8_t> bad = baked;
+    const std::size_t row = load<uint32_t>(baked, offsetof(framework::core::SectionHeader, rows_offset));
+    const uint32_t at = load<uint32_t>(baked, row + offsetof(FighterRow, chain_offset)) - sizeof(uint32_t);
+    store<int32_t>(bad, at, 0);
+    store<uint32_t>(bad, row + offsetof(FighterRow, chain_offset), at);
+    store<uint32_t>(bad, row + offsetof(FighterRow, chain_count), count);
+    FighterTable t;
+    return t.open(bad.data(), bad.size()) && t.chain_count() == count;
+}
+
+void chain_cap(const std::vector<framework::graphics::ClipSrc>& clips) {
+    std::string text = test::FIGHTER_TEXT;
+    const std::string from = "jab  jab kick";
+    text.replace(text.find(from), from.size(), "jab jab jab jab jab jab jab kick");
+    std::vector<uint8_t> baked;
+    FighterBakeError err;
+    const bool ok = bake_fighter("banderas.fighter", text, clips, baked, err);
+    check(ok && opens_with_chain_at(baked, MAX_CHAIN), "control: a chain moved onto a zeroed knock_y opens");
+    check(ok && !opens_with_chain_at(baked, MAX_CHAIN + 1), "a chain one step over the cap");
 }
 
 } // namespace
@@ -154,5 +187,6 @@ int main() {
     check(h == GOLDEN, "byte golden of the fighter table");
     round_trip(baked);
     reader_refusals(baked);
+    chain_cap(clips);
     return test::verdict("framework-brawl-fighter");
 }

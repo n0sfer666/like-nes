@@ -63,6 +63,11 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].seq = 0; }); }},
     {"struck box", [](BodyPool& p) { last(p).struck.at[0].box += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].box = 0; }); }},
+    {"chain", [](BodyPool& p) { last(p).chain += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.chain = 0; }); }},
+    {"queued strike", [](BodyPool& p) { last(p).queued.strike += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.queued.strike = 0; }); }},
+    {"queued ticks", [](BodyPool& p) { last(p).queued.ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.queued.ticks = 0; }); }},
     {"next_seq", [](BodyPool& p) { p.next_seq += 1; }, [](BodyPool& p) { p.next_seq = 0; }},
 };
 
@@ -88,6 +93,8 @@ BodyPool two_bodies() {
     a.react = Reaction::Hurt;
     a.react_ticks = 5;
     a.struck.add(EntId{7}, 2);
+    a.chain = 1;
+    a.queued = StrikeQueue{2, 3};
     pool.spawn(a);
     Body b = a;
     b.team = 1;

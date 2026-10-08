@@ -1,5 +1,6 @@
 #include "brawl_step.hpp"
 
+#include "body_chain.hpp"
 #include "body_clip.hpp"
 #include "body_react.hpp"
 #include "depth_step.hpp"
@@ -25,13 +26,13 @@ void move(Body& b, const BrawlInput& in, const Archetype& a, const DepthFloor& f
 void step_one(Body& b, const Command& cmd, const BrawlWorld& w) {
     if (b.kind >= w.kinds.size() || w.floor == nullptr) return;
     const Archetype& a = w.kinds[b.kind];
+    queue_strike(b, cmd.strike, a);
     if (b.hitstop > 0) {
         --b.hitstop;
         ++b.age;
         return;
     }
-    if (cmd.strike != NO_STRIKE && can_strike(b, a) && is_move(a, cmd.strike)) start_strike(b, cmd.strike);
-    else advance_clip(b, a);
+    if (!take_strike(b, a)) advance_clip(b, a);
     move(b, cmd.input, a, *w.floor);
     tick_reaction(b, a);
     settle_clip(b, a);

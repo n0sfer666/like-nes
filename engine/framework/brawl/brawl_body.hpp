@@ -4,6 +4,7 @@
 #include "depth_body.hpp"
 #include "ent_id.hpp"
 #include "reaction.hpp"
+#include "strike_queue.hpp"
 #include "struck_list.hpp"
 
 namespace framework::brawl {
@@ -24,6 +25,8 @@ struct Body {
     Reaction react = Reaction::None;
     uint16_t react_ticks = 0;
     StruckList struck;
+    uint8_t chain = NO_CHAIN;
+    StrikeQueue queued;
 };
 
 } // namespace framework::brawl

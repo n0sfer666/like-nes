@@ -13,7 +13,8 @@ static_assert([] {
     [[maybe_unused]] auto [seq] = EntId{};
     [[maybe_unused]] auto [x, z, y, vx, vz, vy] = DepthBody{};
     [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, elapsed, hitstop, react,
-                           react_ticks, struck] = Body{};
+                           react_ticks, struck, chain, queued] = Body{};
+    [[maybe_unused]] auto [queued_strike, queued_ticks] = StrikeQueue{};
     [[maybe_unused]] auto [struck_at, struck_count] = StruckList{};
     [[maybe_unused]] auto [struck_seq, struck_box] = Struck{};
     [[maybe_unused]] auto [bodies, count, next_seq] = BodyPool{};
@@ -47,6 +48,9 @@ void mix_body(uint64_t& h, const Body& b) {
         physics::mix(h, s.seq);
         physics::mix(h, s.box);
     }
+    physics::mix(h, b.chain);
+    physics::mix(h, b.queued.strike);
+    physics::mix(h, b.queued.ticks);
 }
 
 } // namespace
