@@ -16,6 +16,9 @@ target_link_libraries(input_rt_test PRIVATE input_core platform_core)   # шов
 add_executable(input_actionmap_test input_actionmap_test.cpp)
 target_link_libraries(input_actionmap_test PRIVATE input_core)
 
+add_executable(input_players_test input_players_test.cpp)
+target_link_libraries(input_players_test PRIVATE input_core)
+
 # Live-демо: GLFW-пумп (kbd/mouse) + native gamepad (GameController/XInput/evdev) + rumble.
 # Реальные устройства → owner-HW (macOS live). OFF в headless CI (нужен дисплей/HID).
 if(INPUT_NATIVE)

@@ -52,7 +52,7 @@ static uint64_t single_thread(uint32_t T) {
     SimState st; uint64_t h = asset::FNV_OFFSET; TickInput prev{false, false, 0, 0, 0}; g_seq = 0;
     for (uint32_t t = 0; t < T; ++t) {
         TickInput cur = scenario(t); emit(e, cur, prev);
-        while (!e.begin_tick_marked(t, 0)) {}
+        while (!e.begin_tick_marked(t)) {}
         sim_step(st, e.frame()); h = hash_state(st, e.frame(), h); prev = cur;
     }
     return h;
@@ -82,7 +82,7 @@ static uint64_t threaded(uint32_t T) {
     SimState st; uint64_t h = asset::FNV_OFFSET;
     for (uint32_t t = 0; t < T; ++t) {
         spin((t % 3) * 30); // джиттер консюмера
-        while (!e.begin_tick_marked(t, 0)) spin(64);
+        while (!e.begin_tick_marked(t)) spin(64);
         sim_step(st, e.frame()); h = hash_state(st, e.frame(), h);
         consumer_tick.store(t + 1, std::memory_order_release);
     }

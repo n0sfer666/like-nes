@@ -82,7 +82,7 @@ static uint64_t run(const ActionMap& map, uint32_t ticks, int density, std::vect
     for (uint32_t t = 0; t < ticks; ++t) {
         TickInput cur = scenario(t);
         emit_tick(e, cur, prev, density);
-        const InputFrame& f = e.begin_tick(t, 0);
+        const InputFrame& f = e.begin_tick(t);
         sim_step(st, f);
         h = hash_state(st, f, h);
         prev = cur;

@@ -1157,11 +1157,15 @@ jobs:
           grep -q "0xcc26a1897a326f6f" id.txt || { echo "INPUT DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "input-determinism: PASS" id.txt
 
-      - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + rt-safety (gate #3)
+      - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + per-player engine + rt-safety (gate #3)
         shell: bash
         run: |
           AM=$(find build -maxdepth 2 -type f \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
           RT=$(find build -maxdepth 2 -type f \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
+          PL=$(find build -maxdepth 2 -type f \( -name 'input_players_test' -o -name 'input_players_test.exe' \) | head -1)
+          [ -n "$PL" ] || { echo "input_players_test not built"; exit 1; }
+          "$PL" | tee ipl.txt
+          grep -q "input-players: PASS - 6 cases" ipl.txt
 
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
@@ -1177,6 +1181,7 @@ jobs:
           c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
           c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
+          c++ $SAN engine/input/action_map.cpp engine/input/input_players_test.cpp -o input_pl_san && ./input_pl_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine/core -Iengine/asset -pthread \
             engine/input/action_map.cpp engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
 

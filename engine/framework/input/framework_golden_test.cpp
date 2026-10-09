@@ -82,7 +82,7 @@ uint64_t run(const ::input::ActionMap& map) {
             e.post(ev);
             ++i;
         }
-        const ::input::InputFrame& f = e.begin_tick(t, 0);
+        const ::input::InputFrame& f = e.begin_tick(t);
         h = mix(h, f.held);
         h = mix(h, f.pressed);
         h = mix(h, f.released);

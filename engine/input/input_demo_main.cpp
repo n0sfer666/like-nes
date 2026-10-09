@@ -79,7 +79,7 @@ int main() {
         std::this_thread::sleep_until(next);          // кап частоты: дельта мыши копится за кадр
         glfwPollEvents();                 // kbd/mouse/focus → engine.post
         if (have_pad_backend) pad->poll(engine); // native gamepad → engine.post
-        const InputFrame& f = engine.begin_tick(t, 0);
+        const InputFrame& f = engine.begin_tick(t);
 
         for (int s = 0; s < MAX_DEVICES; ++s) {
             bool now = engine.device().pad_connected[s];

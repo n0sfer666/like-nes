@@ -115,7 +115,7 @@ int run_window(int frame_cap) {
         std::this_thread::sleep_until(next);
         glfwPollEvents();
         if (have_pad) pad->poll(engine);
-        const input::InputFrame& f = engine.begin_tick(t, 0);
+        const input::InputFrame& f = engine.begin_tick(t);
         sink.events.clear();
         step(world, gs, f, dt, &sink);
         fx.emit(sink);
