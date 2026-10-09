@@ -24,7 +24,8 @@ void begin(Body& b, const Archetype& a, uint16_t move, uint8_t step) {
 bool chain_root(const Archetype& a, uint16_t move) { return a.chain_count > 0 && a.chain[0] == move; }
 
 void queue_strike(Body& b, uint16_t strike, const Archetype& a) {
-    if (strike < a.move_count) b.queued = StrikeQueue{a.moves[strike].head, a.buffer_ticks};
+    if (strike >= a.move_count || a.moves[strike].strike.type == HitType::Throw) return;
+    b.queued = StrikeQueue{a.moves[strike].head, a.buffer_ticks};
 }
 
 bool take_strike(Body& b, const Archetype& a) {

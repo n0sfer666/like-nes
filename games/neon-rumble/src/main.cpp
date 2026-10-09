@@ -21,19 +21,21 @@ rumble::PlayerCommand scripted(uint32_t t) {
     rumble::PlayerCommand c;
     framework::brawl::BrawlInput& in = c.input;
     in.present = true;
-    const bool right = t < 44 || (t >= 110 && t < 140) || (t >= 170 && t < 200) || t == 304 || t >= 306;
-    in.move.move_x = fix32::from_int(right ? 1 : t >= 244 && t < 300 ? -1 : 0);
+    const bool right = t < 44 || (t >= 110 && t < 140) || (t >= 170 && t < 200) || t == 304 || (t >= 306 && t < 378);
+    const bool left = (t >= 244 && t < 300) || (t >= 378 && t < 391);
+    in.move.move_x = fix32::from_int(right ? 1 : left ? -1 : 0);
     in.move.move_z = fix32::from_int(t < 12 ? -1 : 0);
     if (t == 44 || t == 56 || t == 68) c.attack = rumble::Attack::Punch;
     if (t >= 100 && t < 110) in.buttons = framework::brawl::button::BLOCK;
-    if (t == 140) in.buttons = framework::brawl::button::JUMP;
+    if (t == 140 || t == 180) in.buttons = framework::brawl::button::JUMP;
     if (t == 352) in.buttons = framework::brawl::button::DODGE;
     if (t == 141) c.attack = rumble::Attack::Kick;
     if (t == 142) c.attack = rumble::Attack::Cross;
-    if (t == 143) c.attack = rumble::Attack::Punch;
+    if (t == 143 || t == 181) c.attack = rumble::Attack::Punch;
     if (t == 200) c.attack = rumble::Attack::Cross;
     if (t == 229) c.attack = rumble::Attack::Punch;
     if (t == 312) c.attack = rumble::Attack::Kick;
+    if (t == 408) c.attack = rumble::Attack::Grab;
     return c;
 }
 

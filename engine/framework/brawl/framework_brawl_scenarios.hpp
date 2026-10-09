@@ -121,6 +121,23 @@ inline BrawlInput roll_through(uint32_t t, uint32_t body) {
 
 inline Move steady_jabs(uint32_t t, uint32_t body) { return body == 1 && t % 10 == 0 ? Move::Jab : Move::None; }
 
+inline BrawlInput chase(uint32_t t, uint32_t body) {
+    return stick(body == 1 && t >= 9 && t < 22 ? px(1) : fix32{}, fix32{});
+}
+
+inline Move grab_and_stomp(uint32_t t, uint32_t body) {
+    if (body != 1) return Move::None;
+    if (t == 2) return Move::Grab;
+    return t == 22 || t == 27 || t == 40 ? Move::Stomp : Move::None;
+}
+
+inline BrawlInput stand(uint32_t, uint32_t) { return stick(fix32{}, fix32{}); }
+
+inline Move clashes(uint32_t t, uint32_t body) {
+    if (t == 2 || (body == 1 && t == 30)) return Move::Grab;
+    return body == 2 && t == 30 ? Move::Jab : Move::None;
+}
+
 const Scenario SCENARIOS[] = {
     {"walk-band-edges", &WALKER, 180, walk, no_event},
     {"slide-wall-corner", &WALKER, 120, corner, no_event},
@@ -134,6 +151,8 @@ const Scenario SCENARIOS[] = {
     {"run-slide", &WALKER, 120, dash, far_foe, run_jabs},
     {"block-turn", &WALKER, 160, guard_and_turn, face_off, jab_and_flurry},
     {"dodge-through", &WALKER, 140, roll_through, face_off, steady_jabs},
+    {"grab-throw-stomp", &WALKER, 90, chase, face_off, grab_and_stomp},
+    {"grab-clash", &WALKER, 60, stand, face_off, clashes},
 };
 
 } // namespace framework::brawl::scenario

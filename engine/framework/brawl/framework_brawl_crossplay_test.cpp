@@ -15,18 +15,20 @@ using namespace framework::brawl;
 using test::check;
 
 const uint64_t PINS[] = {
-    0x868b62bb31aa1826ull,
-    0x9ef4c94d66a788a1ull,
-    0xef7c14523b3df17aull,
-    0xe5cda1e4d9ba3183ull,
-    0xb1be3a8a84b3e865ull,
-    0x6c5664eb9f36bac0ull,
-    0x5667f12db0aa05e5ull,
-    0x5b946ec9e8e217d7ull,
-    0x4b31a39954b5d667ull,
-    0xfd0ba0a7210cec62ull,
-    0xd7a4870ab27314b6ull,
-    0xfb8f36535a5c9175ull,
+    0xa70eb2cd6249f74full,
+    0xe057cebd8e97cfc1ull,
+    0x3f41843317a62785ull,
+    0x762f70a3827b81f4ull,
+    0xa2c3676c3cb8d0a5ull,
+    0x7506a45cbafc85cbull,
+    0xad0f6b918fe7262full,
+    0xd5a325718aba740cull,
+    0x05da614cbed96e42ull,
+    0x123ecac0db34d219ull,
+    0x2a479795a8f74494ull,
+    0x0e26ef837ac73822ull,
+    0x71382948f5a53c17ull,
+    0xb66b117a190530bbull,
 };
 
 constexpr uint32_t SCENARIO_COUNT = sizeof(scenario::SCENARIOS) / sizeof(scenario::SCENARIOS[0]);

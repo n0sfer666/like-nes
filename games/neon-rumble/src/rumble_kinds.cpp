@@ -51,7 +51,8 @@ bool Kinds::open(const Level& level, const Fighters& fighters) {
     const br::Archetype& a = types[PLAYER];
     return key_move(f, a, "jab", player.jab) && key_move(f, a, "cross", player.cross) &&
            key_move(f, a, "kick", player.kick) &&
-           key_move(f, a, "jump_kick", player.jump_kick) && key_move(f, a, "run_kick", player.run_kick);
+           key_move(f, a, "jump_kick", player.jump_kick) && key_move(f, a, "run_kick", player.run_kick) &&
+           key_move(f, a, "grab", player.grab);
 }
 
 } // namespace rumble

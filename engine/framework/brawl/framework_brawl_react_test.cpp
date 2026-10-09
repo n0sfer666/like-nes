@@ -82,14 +82,15 @@ void test_hurt_again_restarts_the_timer() {
     check(t.react == Reaction::Hurt && t.react_ticks == 8 && t.elapsed == 0, "a second hurt restarts its timer and clip");
 }
 
-void test_hurt_in_the_air() {
+void test_hit_in_the_air_falls() {
     Launched low(HitType::Light, 2);
     const Archetype& a = low.r.arena.kinds[0];
-    check(low.target->react == Reaction::Hurt, "control: a light hit in the air hurts");
-    low.settle();
-    check(low.target->pos.y == fix32{} && low.target->pos.vx == fix32{} && low.target->clip == a.idle,
-          "a body hurt in the air lands, and the hurt ends at rest on the ground");
-    Launched high(HitType::Light, 2);
+    check(low.target->react == Reaction::Fall && low.target->clip == a.fall, "any hit in the air drops the body");
+    bool lay = false;
+    for (uint32_t k = 0; k < STEPS && low.target->react != Reaction::None; ++k) lay |= low.step() == Reaction::Down;
+    check(lay && low.target->pos.y == fix32{} && low.target->clip == a.idle, "a juggled body lies down, then rises");
+    Launched high(HitType::Light);
+    check(high.target->react == Reaction::Hurt, "control: the same light hit on the ground hurts");
     high.target->pos.vy = fix32::from_int(6);
     high.settle();
     check(fix32{} < high.target->pos.y && high.target->pos.vx != fix32{} && high.target->clip == a.jump,
@@ -189,7 +190,7 @@ int main() {
     test_launch_falls_lies_and_gets_up();
     test_light_hurts_for_its_hitstun();
     test_hurt_again_restarts_the_timer();
-    test_hurt_in_the_air();
+    test_hit_in_the_air_falls();
     test_only_standing_bodies_are_hit();
     test_no_strike_while_rising();
     test_short_clip_holds_its_last_frame();

@@ -37,9 +37,11 @@ PlayerCommand read_keys(GLFWwindow* window, KeyLatch& latch) {
     const bool punch = key_toggled(window, GLFW_KEY_J, latch.punch);
     const bool cross = key_toggled(window, GLFW_KEY_U, latch.cross);
     const bool kick = key_toggled(window, GLFW_KEY_L, latch.kick);
+    const bool grab = key_toggled(window, GLFW_KEY_H, latch.grab);
     if (punch) c.attack = Attack::Punch;
     else if (cross) c.attack = Attack::Cross;
     else if (kick) c.attack = Attack::Kick;
+    else if (grab) c.attack = Attack::Grab;
     return c;
 }
 

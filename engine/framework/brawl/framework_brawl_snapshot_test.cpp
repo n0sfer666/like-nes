@@ -77,6 +77,12 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.run.tap = 0; }); }},
     {"run tap ticks", [](BodyPool& p) { last(p).run.tap_ticks += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.run.tap_ticks = 0; }); }},
+    {"grip by", [](BodyPool& p) { last(p).grip.by.seq += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.by = EntId{}; }); }},
+    {"grip team", [](BodyPool& p) { last(p).grip.team ^= 1u; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.team = 0; }); }},
+    {"grip kind", [](BodyPool& p) { last(p).grip.kind ^= 1u; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.kind = 0; }); }},
     {"next_seq", [](BodyPool& p) { p.next_seq += 1; }, [](BodyPool& p) { p.next_seq = 0; }},
 };
 
@@ -106,6 +112,7 @@ BodyPool two_bodies() {
     a.queued = StrikeQueue{2, 3};
     a.move = 1;
     a.run = RunState{-1, -1, 1, 4};
+    a.grip = Grip{EntId{3}, 1, 1};
     pool.spawn(a);
     Body b = a;
     b.team = 1;

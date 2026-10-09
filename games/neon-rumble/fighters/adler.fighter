@@ -54,7 +54,7 @@ hitstop   | 5
 hitstun   | 20
 knock_x   | 2
 knock_y   | 4
-hits_down | no
+hits_down | yes
 slide     | no
 
 move | run_kick | hit0
@@ -68,3 +68,27 @@ knock_x   | 3
 knock_y   | 3
 hits_down | no
 slide     | yes
+
+move | grab | hit0
+clip      | reach
+type      | grab
+damage    | 6
+depth     | 6
+hitstop   | 4
+hitstun   | 0
+knock_x   | 3
+knock_y   | 4
+hits_down | no
+slide     | no
+
+move | throw | hit0
+clip      | thrown
+type      | throw
+damage    | 10
+depth     | 8
+hitstop   | 5
+hitstun   | 20
+knock_x   | 2
+knock_y   | 3
+hits_down | no
+slide     | no

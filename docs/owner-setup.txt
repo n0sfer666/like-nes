@@ -1816,9 +1816,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
       neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
       neon-rumble: depth band 104..536 x 232..264, 0 wall(s)
-      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
@@ -1826,7 +1826,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash b82ff3c456aef8aa, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+      neon-rumble: brawl tick 0: hash 7ff578b61c84afda, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
       neon-rumble: react tick 53: adler hurt
       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
@@ -1837,19 +1837,24 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
       neon-rumble: react tick 154: adler fall
       neon-rumble: react tick 174: adler down
-      neon-rumble: react tick 204: adler getup
-      neon-rumble: react tick 234: adler stand
-      neon-rumble: hit tick 238: banderas/jab -> adler, damage 6, hp 64
-      neon-rumble: react tick 238: adler hurt
-      neon-rumble: react tick 252: adler stand
-      neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
+      neon-rumble: hit tick 198: banderas/jump_kick -> adler, damage 10, hp 60
+      neon-rumble: react tick 209: adler getup
+      neon-rumble: react tick 239: adler stand
+      neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 48
       neon-rumble: react tick 329: adler fall
       neon-rumble: react tick 346: adler down
       neon-rumble: react tick 353: banderas dodge
-      neon-rumble: brawl tick 360: hash 280bec44e5a5207f, banderas 434,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
-      neon-rumble: headless run ok, 360 frames
-      sdk-game: OK   Release: built against the prefix and ran 360 headless frames
-      sdk-game: OK   Release: game.bundle bundle_hash 0x1a70456ab7d054f3 matches bundle.hash
+      neon-rumble: react tick 376: adler getup
+      neon-rumble: react tick 377: banderas stand
+      neon-rumble: react tick 406: adler stand
+      neon-rumble: hit tick 417: banderas/grab -> adler, damage 6, hp 42
+      neon-rumble: react tick 417: adler thrown
+      neon-rumble: react tick 436: adler down
+      neon-rumble: react tick 466: adler getup
+      neon-rumble: brawl tick 480: hash b82f61c720937664, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: headless run ok, 480 frames
+      sdk-game: OK   Release: built against the prefix and ran 480 headless frames
+      sdk-game: OK   Release: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
@@ -1861,9 +1866,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
       neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
       neon-rumble: depth band 104..536 x 232..264, 0 wall(s)
-      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
-      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 0 push, 15 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: rainbird/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+      neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
       neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
       neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
@@ -1871,7 +1876,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash b82ff3c456aef8aa, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+      neon-rumble: brawl tick 0: hash 7ff578b61c84afda, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
       neon-rumble: react tick 53: adler hurt
       neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
@@ -1882,19 +1887,24 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
       neon-rumble: react tick 154: adler fall
       neon-rumble: react tick 174: adler down
-      neon-rumble: react tick 204: adler getup
-      neon-rumble: react tick 234: adler stand
-      neon-rumble: hit tick 238: banderas/jab -> adler, damage 6, hp 64
-      neon-rumble: react tick 238: adler hurt
-      neon-rumble: react tick 252: adler stand
-      neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
+      neon-rumble: hit tick 198: banderas/jump_kick -> adler, damage 10, hp 60
+      neon-rumble: react tick 209: adler getup
+      neon-rumble: react tick 239: adler stand
+      neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 48
       neon-rumble: react tick 329: adler fall
       neon-rumble: react tick 346: adler down
       neon-rumble: react tick 353: banderas dodge
-      neon-rumble: brawl tick 360: hash 280bec44e5a5207f, banderas 434,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 433,252 y 0 hp 52, draw rainbird banderas adler
-      neon-rumble: headless run ok, 360 frames
-      sdk-game: OK   Debug: built against the prefix and ran 360 headless frames
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x1a70456ab7d054f3 matches bundle.hash
+      neon-rumble: react tick 376: adler getup
+      neon-rumble: react tick 377: banderas stand
+      neon-rumble: react tick 406: adler stand
+      neon-rumble: hit tick 417: banderas/grab -> adler, damage 6, hp 42
+      neon-rumble: react tick 417: adler thrown
+      neon-rumble: react tick 436: adler down
+      neon-rumble: react tick 466: adler getup
+      neon-rumble: brawl tick 480: hash b82f61c720937664, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: headless run ok, 480 frames
+      sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1939,9 +1949,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   (200,264) лицом вправо, rainbird (264,240) и adler (328,252) лицом влево.
   Полоса глубины — объект walk класса depth_band, x 104..536, z 232..264,
   стен нет. Строки pose — idle каждого бойца на тике 0 в порядке отрисовки
-  (дальний по z первым); на кадре idle один hurt0 (0 hit, 1 hurt, 0 push), 15
-  квадов оверлея F3 — рамка клетки, рамка hurt0, крест пивота и полоса
-  толщины hurt0 по z на полу; rejected и dropped — нули.
+  (дальний по z первым); на кадре idle один hurt0 и один push (0 hit, 1 hurt,
+  1 push), 19 квадов оверлея F3 — рамка клетки, рамки hurt0 и push, крест
+  пивота и полоса толщины hurt0 по z на полу; rejected и dropped — нули.
   Строки brawl и hit — драка на step_brawl (спека #25, В2г): хеш состояния,
   позиции x,z, высота y и hp каждого бойца и порядок отрисовки до и после
   240 тиков, между ними — попадания. banderas по скрипту идёт вправо и
@@ -1950,7 +1960,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   подходит снова и бьёт cross (В3а): четыре строки hit, hp adler
   100 → 94 → 82 → 72 → 64, он отлетел до x 450. rainbird — союзник (team 0) и hp 100 не теряет. Тот же
   хеш на всех трёх ОС; другой — находка детерминизма, а не повод переписать
-  пин.
+  пин. С В3е прогон 480 тиков: jump_kick на тике 198 добивает лежащего
+  adler (hits_down, hp 60), на тике 417 banderas хватает его (grab, hp 42),
+  adler летит брошенным (thrown), ложится на 436 и встаёт на 466.
 
   Строки font, credit и credits screen — титры (спека #24, В8б): шрифт
   monogram из таблицы fonts (390 глифов, строка 12 пикселей, атлас 224x156

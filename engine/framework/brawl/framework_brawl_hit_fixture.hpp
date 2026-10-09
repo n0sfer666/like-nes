@@ -35,25 +35,36 @@ inline const char* DUMMY_TEXT = "sheet   | dummy\n"
                                 "type | heavy\ndamage | 9\ndepth | 4\nhitstop | 3\nhitstun | 12\n"
                                 "knock_x | 3\nknock_y | 2\nhits_down | no\nslide | yes\n";
 
-constexpr graphics::Rect16 HURT{-8, -32, 16, 32};
-constexpr graphics::Rect16 REACH{8, -24, 12, 6};
+inline const char* GRAB_ROWS = "move | grab | hit0\nclip | reach\n"
+                               "type | grab\ndamage | 6\ndepth | 4\nhitstop | 2\nhitstun | 0\n"
+                               "knock_x | 3\nknock_y | 4\nhits_down | no\nslide | no\n"
+                               "move | throw | hit0\nclip | thrown\n"
+                               "type | throw\ndamage | 8\ndepth | 4\nhitstop | 2\nhitstun | 10\n"
+                               "knock_x | 2\nknock_y | 3\nhits_down | no\nslide | no\n";
 
-inline graphics::ClipFrameSrc frame(bool hit) {
+constexpr graphics::Rect16 HURT{-8, -32, 16, 32};
+constexpr graphics::Rect16 PUSH{-8, -16, 16, 16};
+constexpr graphics::Rect16 REACH{8, -24, 12, 6};
+constexpr graphics::Rect16 GRASP{8, -12, 12, 6};
+
+inline graphics::ClipFrameSrc frame(bool hit, graphics::Rect16 reach = REACH) {
     graphics::ClipFrameSrc f;
     f.w = 16;
     f.h = 32;
     f.anchor_x = 8;
     f.anchor_y = 32;
     f.boxes.push_back({graphics::BoxKind::Hurt, 0, HURT});
-    if (hit) f.boxes.push_back({graphics::BoxKind::Hit, 0, REACH});
+    f.boxes.push_back({graphics::BoxKind::Push, 0, PUSH});
+    if (hit) f.boxes.push_back({graphics::BoxKind::Hit, 0, reach});
     return f;
 }
 
-inline graphics::ClipSrc dummy_clip(const char* tag, std::vector<bool> hits, uint16_t flags) {
+inline graphics::ClipSrc dummy_clip(const char* tag, std::vector<bool> hits, uint16_t flags,
+                                    graphics::Rect16 reach = REACH) {
     graphics::ClipSrc c;
     c.name = std::string("dummy/") + tag;
     c.flags = flags;
-    for (const bool h : hits) c.frames.push_back(frame(h));
+    for (const bool h : hits) c.frames.push_back(frame(h, reach));
     return c;
 }
 
@@ -71,7 +82,10 @@ inline std::vector<graphics::ClipSrc> dummy_clips() {
             dummy_clip("down", {false}, graphics::CLIP_ONCE),
             dummy_clip("getup", {false, false, false}, graphics::CLIP_LOOP | graphics::CLIP_PINGPONG),
             dummy_clip("block", {false, false}, graphics::CLIP_ONCE),
-            dummy_clip("dodge", {false, false, false}, graphics::CLIP_ONCE)};
+            dummy_clip("dodge", {false, false, false}, graphics::CLIP_ONCE),
+            dummy_clip("reach", {false, true, true, false}, graphics::CLIP_ONCE, GRASP),
+            dummy_clip("throw", {false, false, false, false}, graphics::CLIP_ONCE),
+            dummy_clip("thrown", {true, true, true}, graphics::CLIP_ONCE, HURT)};
 }
 
 struct Arena {

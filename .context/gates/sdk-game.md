@@ -13,8 +13,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
-   Debug (`cmake --fresh`) и запускает `--headless --frames 360` (до В2г — 60, до В3а — 180, до В3г — 240). Утверждение — rc 0 **и** строки
-   `neon-rumble: headless run ok, 360 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
+   Debug (`cmake --fresh`) и запускает `--headless --frames 480` (до В2г — 60, до В3а — 180, до В3г — 240, до В3е — 360). Утверждение — rc 0 **и** строки
+   `neon-rumble: headless run ok, 480 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
    `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
    layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
@@ -120,6 +120,14 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `280bec44e5a5207f`). Тайминг не вкус: первый вариант (BLOCK 80..100, DODGE 340) падал на ещё
    играющие `cross` и `run_kick`, тело занято — ни одной строки, сверка честно молчала бы о блоке.
    `sdk_game_lib.sh` сверяет 21 точную строку (`-eq 21`) и число строк `hit|react` (`-eq 19`).
+   С В3е хеш `0x6afe949291c3d9b2`: слайс `push0` листов переименован в `push` (assetc принимает
+   только `push`), строки `grab`/`throw` и `hits_down yes` у `jump_kick` в `.fighter`. Позы тика 0 —
+   `1 push, 19 overlay quad(s)`. Прогон 480 тиков: J в прыжке на 181 добивает лежащего adler
+   (`hit tick 198: banderas/jump_kick`, hp 60, без реакции; getup 204 → 209 стоп-кадром), jab 238
+   исчез — adler ещё встаёт; влево 378..390 и H на 408 — `hit tick 417: banderas/grab`, hp 42,
+   `adler thrown`, down 436, getup 466. Хеш тика 0 `7ff578b61c84afda` (в хеш тела вошёл `grip`), тика
+   480 `b82f61c720937664`. `sdk_game_lib.sh` сверяет 26 точных строк (`-eq 26`) и число строк
+   `hit|react` (`-eq 24`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

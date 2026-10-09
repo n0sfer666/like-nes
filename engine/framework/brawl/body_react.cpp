@@ -20,15 +20,18 @@ bool vulnerable(const Body& b) {
     return b.react == Reaction::None || b.react == Reaction::Hurt || b.react == Reaction::Block;
 }
 
+bool fells(const Strike& s) { return s.type == HitType::Launch || s.type == HitType::Throw; }
+
 void react_to(Body& b, const Strike& s, const Archetype& a) {
-    if (s.type == HitType::Launch) start_reaction(b, Reaction::Fall, 0, a);
+    if (fells(s) || fix32{} < b.pos.y) start_reaction(b, Reaction::Fall, 0, a);
     else if (s.hitstun > 0) start_reaction(b, Reaction::Hurt, ticks16(s.hitstun), a);
 }
 
 void tick_reaction(Body& b, const Archetype& a) {
-    if (b.react == Reaction::Fall) {
+    if (b.react == Reaction::Fall || b.react == Reaction::Thrown) {
         if (!grounded(b.pos)) return;
         halt_body(b);
+        b.grip = Grip{};
         start_reaction(b, Reaction::Down, a.down_ticks, a);
         return;
     }

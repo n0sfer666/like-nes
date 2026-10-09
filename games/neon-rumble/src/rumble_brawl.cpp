@@ -103,6 +103,7 @@ uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
     if (attack == Attack::Punch) return airborne ? moves.jump_kick : moves.jab;
     if (attack == Attack::Cross && !airborne) return moves.cross;
     if (attack == Attack::Kick && !airborne) return b.run.dir != 0 ? moves.run_kick : moves.kick;
+    if (attack == Attack::Grab && !airborne) return moves.grab;
     return br::NO_STRIKE;
 }
 

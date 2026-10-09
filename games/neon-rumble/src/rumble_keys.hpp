@@ -10,6 +10,7 @@ struct KeyLatch {
     bool punch = false;
     bool cross = false;
     bool kick = false;
+    bool grab = false;
     bool dodge = false;
 };
 

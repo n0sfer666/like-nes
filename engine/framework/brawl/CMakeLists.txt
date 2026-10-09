@@ -3,7 +3,7 @@ target_include_directories(framework_brawl_fighter PUBLIC ${CMAKE_CURRENT_SOURCE
 target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framework_core)
 
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
-  archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_apply.cpp brawl_step.cpp)
+  archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics
   framework_core)
@@ -49,3 +49,9 @@ add_executable(framework_brawl_guard_test framework_brawl_guard_test.cpp)
 target_link_libraries(framework_brawl_guard_test PRIVATE framework_brawl)
 add_executable(framework_brawl_dodge_test framework_brawl_dodge_test.cpp)
 target_link_libraries(framework_brawl_dodge_test PRIVATE framework_brawl)
+add_executable(framework_brawl_grab_test framework_brawl_grab_test.cpp)
+target_link_libraries(framework_brawl_grab_test PRIVATE framework_brawl)
+add_executable(framework_brawl_clash_test framework_brawl_clash_test.cpp)
+target_link_libraries(framework_brawl_clash_test PRIVATE framework_brawl)
+add_executable(framework_brawl_throw_test framework_brawl_throw_test.cpp)
+target_link_libraries(framework_brawl_throw_test PRIVATE framework_brawl)

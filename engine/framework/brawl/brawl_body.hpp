@@ -3,6 +3,7 @@
 
 #include "depth_body.hpp"
 #include "ent_id.hpp"
+#include "grip.hpp"
 #include "reaction.hpp"
 #include "run_state.hpp"
 #include "strike_queue.hpp"
@@ -30,6 +31,7 @@ struct Body {
     uint8_t chain = NO_CHAIN;
     StrikeQueue queued;
     RunState run;
+    Grip grip;
 };
 
 } // namespace framework::brawl

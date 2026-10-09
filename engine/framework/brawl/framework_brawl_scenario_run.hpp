@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <string>
 #include <vector>
 
 #include "body_hash.hpp"
@@ -47,7 +48,11 @@ inline Body foe(int32_t x, int32_t z) {
     return b;
 }
 
-enum class Move : uint8_t { None, Jab, Flurry, RunJab };
+inline const char* STOMP_ROW = "move | stomp | hit0\nclip | jab\n"
+                               "type | light\ndamage | 3\ndepth | 4\nhitstop | 1\nhitstun | 4\n"
+                               "knock_x | 0\nknock_y | 0\nhits_down | yes\nslide | no\n";
+
+enum class Move : uint8_t { None, Jab, Flurry, RunJab, Grab, Stomp };
 
 using Script = BrawlInput (*)(uint32_t tick, uint32_t body);
 using Event = void (*)(uint32_t tick, BodyPool& pool);
@@ -66,15 +71,21 @@ struct Scenario {
 
 inline void no_event(uint32_t, BodyPool&) {}
 
+inline uint16_t named(const test::Arena& a, const char* name) {
+    uint16_t row = NO_STRIKE;
+    return find_named(a.kinds[0], name, row) ? row : NO_STRIKE;
+}
+
 inline uint16_t row_of(const test::Arena& a, Move m) {
-    uint16_t run_jab = NO_STRIKE;
     if (m == Move::Jab) return test::strike(a, a.jab).strike;
-    if (m == Move::RunJab) return find_named(a.kinds[0], "run_jab", run_jab) ? run_jab : NO_STRIKE;
-    return m == Move::Flurry ? test::strike(a, a.flurry).strike : NO_STRIKE;
+    if (m == Move::Flurry) return test::strike(a, a.flurry).strike;
+    if (m == Move::RunJab) return named(a, "run_jab");
+    if (m == Move::Grab) return named(a, "grab");
+    return m == Move::Stomp ? named(a, "stomp") : NO_STRIKE;
 }
 
 inline uint64_t run(const Scenario& s, uint32_t* hits = nullptr) {
-    test::Arena arena;
+    test::Arena arena{test::dummy_clips(), std::string(test::DUMMY_TEXT) + test::GRAB_ROWS + STOMP_ROW};
     arena.kinds[0].profile = *s.profile;
     arena.floor = stage();
     BodyPool pool;
