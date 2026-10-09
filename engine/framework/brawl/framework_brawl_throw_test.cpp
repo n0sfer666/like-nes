@@ -32,7 +32,7 @@ void test_thrown_body_strikes_as_a_projectile() {
     for (const int32_t way : {1, -1}) {
         Flight f(3 * way);
         Body& mate = f.g.r.put(4 * way, -1, 0);
-        Body& d = f.g.r.put(40 * way, -way, 1);
+        Body& d = f.g.r.put(40 * way, static_cast<int8_t>(-way), 1);
         bool hit = false;
         for (uint32_t k = 0; k < STEPS && f.b->react == Reaction::Thrown && !hit; ++k) {
             f.step();
