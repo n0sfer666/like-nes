@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 28 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 14 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 29 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 15 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -44,6 +44,7 @@ names that surface.
 | Banderas runs on a double tap, L on the run is a kick that rolls on into Adler; the run ends on release, reversal, strike or hurt | [#25](../.context/specs/2026-10-05-brawl-framework.md) 5 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_brawl.cpp`, `engine/framework/brawl/body_run.*`, `engine/framework/brawl/run_state.hpp`, `engine/framework/brawl/fighter_move_parse.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 | Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 | Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
+| Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3529,7 +3530,7 @@ is 0.
 
 ## 23. Gate 3 of #25 — Adler falls, lies and gets up
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 154 fall, 174 down, 204 getup, 234 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 154 fall, 174 down, 209 getup, 239 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
 
 B3b of spec #25 gave the fighters reactions: a light or heavy hit puts the target on its `hurt` clip
 for the hitstun of the strike, a `launch` hit — `jump_kick` — throws it into `fall` until it lands,
@@ -3550,8 +3551,8 @@ backslashes).
 
        neon-rumble: react tick 154: adler fall
        neon-rumble: react tick 174: adler down
-       neon-rumble: react tick 204: adler getup
-       neon-rumble: react tick 234: adler stand
+       neon-rumble: react tick 209: adler getup
+       neon-rumble: react tick 239: adler stand
 
 2. Start the window from a terminal you can read and press **F3**:
 
@@ -3573,7 +3574,8 @@ backslashes).
 What counts as a finding: different `react` lines in step 1; a frame of `fall`, `down` or `getup`
 whose feet are off the shadow by more than a few pixels, or a sprite that hops between two frames
 of one clip; Adler standing up before the `getup` line or staying down after the `stand` one; any
-`hit` line while he is down or rising.
+`hit` line while he is down or rising, but for the jump kick at him lying, which hits the ground since
+B3f (§27).
 
 Send back: a screenshot with F3 on while Adler lies, one while he gets up, and the terminal lines of
 steps 3–6.
@@ -3656,7 +3658,7 @@ backslashes).
 
    Expected: `sdk-game: PASS` and, in each run, among the lines of §22 step 1,
 
-       neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 52
+       neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 48
        neon-rumble: react tick 329: adler fall
        neon-rumble: react tick 346: adler down
 
@@ -3762,7 +3764,8 @@ other (the `push` box of B3f is what a grab takes, not a wall), so the roll pass
 is under the keyboard, so the rolls of Rainbird (20 ticks) and Adler (28) wait for the AI of B5. The
 `dodge` clip is 7 frames of 60 ms, 4 ticks each, 28 in all, and the roll of Banderas is 24: its last
 frame is never shown and he snaps to the stand pose (Rainbird's 20 would lose two). The lengths are the
-owner's choice of 2026-10-09; say so if the cut reads wrong.
+owner's choice of 2026-10-09, kept at the close of B3 the same day with the cut known; say so if
+it reads wrong in the window.
 
 Send back: the terminal lines of steps 3–4, one word on the length of the roll and the refresh rate of
 the screen it was judged on.
@@ -3813,7 +3816,8 @@ backslashes).
    then `adler down`, `adler getup` and `adler stand`. Banderas stands in the `throw` pose until it
    ends and no key cuts it short; a key pressed in its last 8 ticks waits for its end, as in §24.
    Press H while Adler falls, lies or rises, and H in a jump: nothing is taken.
-4. **The hit on the ground.** Knock Adler down (L on the run), jump next to him (K or Space) and press
+4. **The hit on the ground.** Knock Adler down with a jump kick (K or Space, then J in the air), jump
+   again as soon as you land and press
    J in the air: the jump kick hits him lying — `hit tick <n>: banderas/jump_kick -> adler`, no
    `react` line, and his hp goes down. A jab or a cross at the lying Adler makes no line.
 
@@ -3835,16 +3839,79 @@ lying timer as it holds everything else, so the getup comes later by that much (
 script). One grab may take two targets standing in its reach in one tick. A grab torn in one tick may
 take on the next active frame of the same `reach`. The thrown Adler faces the way Banderas faces, and
 frame 101 of `thrown` draws him 5–7 px below his pivot. The length of the roll against its 28-tick clip
-is the open question of §26, not of this gate.
+is settled in §26. After a run kick Adler lies 30 ticks while Banderas still plays `kick` for most of
+them, and a jump pressed during a strike is dropped: a jump kick reaches him lying only from a jump in
+about 6 ticks after the kick ends — hence the jump kick to knock him down in step 4.
 
 Send back: the terminal lines of steps 3–4 and one word on the distance of the throw.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 28. Gate 8 of #25 — the whole of B3 in one fight
+
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 24 строки hit/react §22 шага 1 (порядок — глазами) и хеш тика 480 b82f61c720937664; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+
+§22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
+goes through all of them in a row, because what breaks when states follow each other is invisible from
+any single one: a pose that sticks after a throw, a run that never starts again after a roll, a block
+key that dies after a grab. The rules of each state are those of its own section; the decisions of
+2026-10-09 stand — the roll keeps its lengths (20, 24, 28) and cuts the tail of the clip (§26), and a
+grab is torn by anything collected against the grabber in the same tick, a torn grab included (spec
+§В3, «Модель В3е»).
+
+Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
+backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS` and, in each run, all 24 `hit` and `react` lines of §22 step 1 and its
+   hash of tick 480, `b82f61c720937664`. The script checks that each line is there and that there are
+   24 of them; their order is checked by eye. That is the scripted half of this gate: chain, block,
+   jump kick, the hit on the ground, run kick, roll and grab in one run of 480 ticks.
+
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+3. **One fight, no restart.** Walk Banderas to Adler's line and go through these in order, each as
+   soon as the one before it ends:
+   1. J J J into Adler: `banderas/jab`, `banderas/jab`, `banderas/cross` (§24).
+   2. Jump at him (K or Space) and press J in the air: `banderas/jump_kick`, `adler fall`,
+      `adler down` (§23).
+   3. Jump again as soon as you land and press J in the air: `banderas/jump_kick` with no `react`
+      line (§27). He lies half a second and the kick reaches him about 0.3 s after the jump, so the
+      second jump must follow the landing at once.
+   4. Once your jump kick has ended on the ground and while he still rises, face him and press O:
+      Banderas rolls through him, `banderas dodge`, `banderas stand` (§26). An O pressed while the
+      jump kick still plays on the ground is dropped, as any key but a strike is in a strike.
+   5. Turn back to him (tap toward him), hold I, press J and let go of I at once: `banderas block`,
+      `banderas stand`, then `banderas/jab` and `adler hurt` (§26).
+   6. Press H next to him: `banderas/grab`, `adler thrown`, `adler down`, `adler getup` (§27).
+   7. When he stands, every key once more, after the throw: J J J starts the chain from its root;
+      step back, double-tap toward him and L — `banderas/run_kick`, `adler fall`; hold and release I —
+      `banderas block`, `banderas stand`; O — `banderas dodge`; H on him once he stands again —
+      `banderas/grab`.
+
+What counts as a finding: any line that breaks the rules of its own section; a pose that stays on after
+its state ended; a key that stops working after another state, until the window is restarted; a state
+that refuses to start from the one before it where its section says it may; a fight that does not read
+as one — send a word, «plays» or «does not play», with the reason.
+
+Known edges are those of §22–§27 and are not findings here either. Nobody strikes back until the AI of
+B5, so the blocked strike, the roll through a strike, a grab against a strike and the torn grabs are not
+visible in the window — the tests and crossplay scenarios named in §26 and §27 pin them.
+
+Send back: the terminal lines of step 3 and the word on the fight.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 28 are closed, and the open 14 are listed by
+The gates above are what the ADRs waited on; 14 of the 29 are closed, and the open 15 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
