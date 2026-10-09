@@ -124,7 +124,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Scene& 
         if (!sf.texture) continue;
         scene.brawl->player = read_keys(window, keys);
         scene.step(static_cast<uint32_t>(drawn));
-        report_hits(*scene.brawl, scene.ticks);
+        report_step(*scene.brawl, scene.ticks);
         const auto tick = static_cast<uint64_t>(drawn);
         const ViewportFit fit = framework::graphics::viewport_fit({spec.width, spec.height});
         if (fit.cropped && !cropped)

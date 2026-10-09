@@ -21,13 +21,21 @@ rumble::PlayerCommand scripted(uint32_t t) {
     rumble::PlayerCommand c;
     framework::brawl::BrawlInput& in = c.input;
     in.present = true;
-    in.move.move_x = fix32::from_int(t < 40 || (t >= 100 && t < 134) ? 1 : 0);
+    const bool right = t < 44 || (t >= 110 && t < 140) || (t >= 170 && t < 200) || t == 304 || (t >= 306 && t < 378);
+    const bool left = (t >= 244 && t < 300) || (t >= 378 && t < 391);
+    in.move.move_x = fix32::from_int(right ? 1 : left ? -1 : 0);
     in.move.move_z = fix32::from_int(t < 12 ? -1 : 0);
-    if (t == 40) c.attack = rumble::Attack::Punch;
-    if (t == 64) c.attack = rumble::Attack::Kick;
-    if (t == 134) in.buttons = framework::brawl::button::JUMP;
-    if (t == 135) c.attack = rumble::Attack::Kick;
-    if (t == 137) c.attack = rumble::Attack::Punch;
+    if (t == 44 || t == 56 || t == 68) c.attack = rumble::Attack::Punch;
+    if (t >= 100 && t < 110) in.buttons = framework::brawl::button::BLOCK;
+    if (t == 140 || t == 180) in.buttons = framework::brawl::button::JUMP;
+    if (t == 352) in.buttons = framework::brawl::button::DODGE;
+    if (t == 141) c.attack = rumble::Attack::Kick;
+    if (t == 142) c.attack = rumble::Attack::Cross;
+    if (t == 143 || t == 181) c.attack = rumble::Attack::Punch;
+    if (t == 200) c.attack = rumble::Attack::Cross;
+    if (t == 229) c.attack = rumble::Attack::Punch;
+    if (t == 312) c.attack = rumble::Attack::Kick;
+    if (t == 408) c.attack = rumble::Attack::Grab;
     return c;
 }
 
@@ -36,7 +44,7 @@ int run_headless(rumble::Scene& scene, const rumble::Fighters& fighters, int fra
     for (int i = 0; i < frames; ++i) {
         scene.brawl->player = scripted(static_cast<uint32_t>(i));
         scene.step(static_cast<uint32_t>(i));
-        rumble::report_hits(*scene.brawl, scene.ticks);
+        rumble::report_step(*scene.brawl, scene.ticks);
     }
     rumble::report_brawl(fighters, *scene.brawl, scene.ticks);
     if (scene.ticks != static_cast<uint32_t>(frames)) {

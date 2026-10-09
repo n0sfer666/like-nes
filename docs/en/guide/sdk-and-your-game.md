@@ -70,7 +70,7 @@ Configure and build the game against the prefix:
 ```sh
 cmake -S games/neon-rumble -B build-game -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=../like-nes-sdk
 cmake --build build-game
-./build-game/neon_rumble --headless --frames 180
+./build-game/neon_rumble --headless --frames 240
 ```
 
 ## The manifest
@@ -138,10 +138,10 @@ in the commit that changes the content or the baker.
 
 ## Running the game
 
-`--headless --frames 180` maps the bundle, opens every table and prints a summary of what it read.
+`--headless --frames 240` maps the bundle, opens every table and prints a summary of what it read.
 That run is what CI checks. Without `--headless` the game opens a 960×540 window that can be
-resized. The arrows or WASD walk Banderas, Space or K jumps, J jabs, L kicks and J in the air
-jump-kicks. **F3** toggles the debug overlay of the fighters, and **F1** opens the credits screen
-and turns its pages; the press after the last page closes it.
+resized. The arrows or WASD walk Banderas, Space or K jumps, J jabs, U throws a cross, L kicks
+and J in the air jump-kicks. **F3** toggles the debug overlay of the fighters, and **F1** opens the
+credits screen and turns its pages; the press after the last page closes it.
 `--frames <n>` closes the window after `n` frames with exit code 0. `--headless` needs `--frames`
 with `n` above 0, so a headless run always ends.

@@ -18,7 +18,12 @@ inline const char* FIGHTER_TEXT =
     "jump_vy | 6\n"
     "depth   | 4      # the tail after # is dropped\n"
     "hp      | 120\n"
-    "\n"
+    "down    | 30\n"
+    "getup   | 24\n"
+    "buffer  | 7\n"
+    "run_tap | 9\n"
+    "chain   | jab  jab kick\n"
+    "dodge   | 18\n"
     "move | jab | hit0\n"
     "type      | light\n"
     "damage    | 8\n"
@@ -28,6 +33,7 @@ inline const char* FIGHTER_TEXT =
     "knock_x   | 1.5\n"
     "knock_y   | 0\n"
     "hits_down | no\n"
+    "slide     | no\n"
     "\n"
     "move | kick | hit1\n"
     "type      | launch\n"
@@ -37,7 +43,20 @@ inline const char* FIGHTER_TEXT =
     "hitstun   | 30\n"
     "knock_x   | 3\n"
     "knock_y   | 4.75\n"
-    "hits_down | yes\n";
+    "hits_down | yes\n"
+    "slide     | no\n"
+    "\n"
+    "move | run_kick | hit1\n"
+    "clip      | kick\n"
+    "type      | heavy\n"
+    "damage    | 12\n"
+    "depth     | 6\n"
+    "hitstop   | 5\n"
+    "hitstun   | 18\n"
+    "knock_x   | 2\n"
+    "knock_y   | 0\n"
+    "hits_down | no\n"
+    "slide     | yes\n";
 
 inline graphics::ClipSrc fixture_clip(const std::string& name, uint8_t hit) {
     graphics::ClipSrc c;
@@ -49,13 +68,15 @@ inline graphics::ClipSrc fixture_clip(const std::string& name, uint8_t hit) {
 }
 
 inline bool same_strike(const Strike& a, const Strike& b) {
-    return a.box == b.box && a.type == b.type && a.hits_down == b.hits_down && a.damage == b.damage &&
-           a.depth == b.depth && a.hitstop == b.hitstop && a.hitstun == b.hitstun && a.knock_x == b.knock_x &&
-           a.knock_y == b.knock_y;
+    return a.box == b.box && a.type == b.type && a.hits_down == b.hits_down && a.slides == b.slides &&
+           a.damage == b.damage && a.depth == b.depth && a.hitstop == b.hitstop && a.hitstun == b.hitstun &&
+           a.knock_x == b.knock_x && a.knock_y == b.knock_y;
 }
 
 inline std::vector<graphics::ClipSrc> fixture_clips() {
-    return {fixture_clip("banderas/idle", 0), fixture_clip("banderas/jab", 0), fixture_clip("banderas/kick", 1)};
+    graphics::ClipSrc jab = fixture_clip("banderas/jab", 0);
+    jab.frames[1].event = CANCEL_EVENT;
+    return {fixture_clip("banderas/idle", 0), jab, fixture_clip("banderas/kick", 1)};
 }
 
 } // namespace framework::brawl::test

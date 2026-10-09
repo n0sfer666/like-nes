@@ -16,13 +16,18 @@ constexpr uint32_t MIN_HP = 1;
 constexpr uint32_t MAX_HP = 9999;
 constexpr uint32_t MAX_DAMAGE = 999;
 constexpr uint32_t MAX_HIT_TICKS = 120;
+constexpr uint32_t MAX_CHAIN = 8;
+constexpr const char* CANCEL_EVENT = "cancel";
 constexpr fix32 MAX_FIGHTER_SPEED = fix32::from_int(16);
 constexpr fix32 MAX_FIGHTER_DEPTH = fix32::from_int(64);
+
+constexpr uint16_t ticks16(uint32_t v) { return v < 0xffffu ? static_cast<uint16_t>(v) : uint16_t{0xffff}; }
 
 struct Strike {
     uint8_t box = 0;
     HitType type = HitType::Light;
     bool hits_down = false;
+    bool slides = false;
     uint32_t damage = 0;
     fix32 depth{};
     uint32_t hitstop = 0;
@@ -32,6 +37,7 @@ struct Strike {
 };
 
 struct MoveSpec {
+    std::string name;
     std::string clip;
     Strike strike;
     int line = 0;
@@ -41,7 +47,9 @@ struct FighterSpec {
     std::string sheet;
     fix32 speed_x{}, speed_z{}, run_x{}, gravity{}, jump_vy{}, depth{};
     uint32_t hp = 0;
-    int sheet_line = 0;
+    uint32_t down = 0, getup = 0, buffer = 0, run_tap = 0, dodge = 0;
+    std::vector<std::string> chain;
+    int sheet_line = 0, chain_line = 0;
     std::vector<MoveSpec> moves;
 
     DepthProfile profile() const { return DepthProfile{speed_x, speed_z, gravity, jump_vy}; }

@@ -10,8 +10,6 @@
 
 namespace framework::brawl {
 
-constexpr uint16_t NO_STRIKE = 0xffffu;
-
 struct Command {
     BrawlInput input;
     uint16_t strike = NO_STRIKE;

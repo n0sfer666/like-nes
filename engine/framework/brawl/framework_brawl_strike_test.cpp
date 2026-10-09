@@ -8,13 +8,14 @@ namespace {
 using namespace framework::brawl;
 using test::check;
 using test::Ring;
+namespace graphics = framework::graphics;
 
 fix32 walk_after(bool strike) {
     Ring r;
     r.put(0, 1, 0);
     test::tick(r.pool, r.arena, {test::walk_right()});
     Command c = test::walk_right();
-    if (strike) c.strike = r.arena.jab;
+    if (strike) c.strike = test::strike(r.arena, r.arena.jab).strike;
     test::tick(r.pool, r.arena, {c});
     return r.pool.bodies[0].pos.vx;
 }
@@ -27,7 +28,7 @@ void test_ground_stop() {
 void test_jump_clip() {
     Ring r;
     Body& b = r.put(0, 1, 0);
-    b.clip = r.arena.jab;
+    r.play(b, r.arena.jab);
     b.elapsed = 3;
     b.pos.y = fix32::from_int(20);
     b.pos.vy = fix32::from_int(4);
@@ -55,7 +56,7 @@ bool strike_kept(uint32_t hitstun) {
     r.move(r.arena.jab).hitstun = hitstun;
     r.mid_jab(r.put(0, 1, 0));
     Body& t = r.put(24, -1, 1);
-    t.clip = r.arena.flurry;
+    r.play(t, r.arena.flurry);
     r.hit();
     return t.clip == r.arena.flurry && t.hp < 100;
 }
@@ -63,6 +64,50 @@ bool strike_kept(uint32_t hitstun) {
 void test_no_stun() {
     check(strike_kept(0), "a hit without hitstun leaves the target's strike running");
     check(!strike_kept(8), "control: a hit with hitstun breaks the target's strike");
+}
+
+const char* UPPERCUT = "move | uppercut | hit0\n"
+                       "type | light\ndamage | 3\ndepth | 4\nhitstop | 0\nhitstun | 0\n"
+                       "knock_x | 0\nknock_y | 0\nhits_down | no\nslide | no\n"
+                       "move | uppercut | hit1\n"
+                       "type | launch\ndamage | 11\ndepth | 4\nhitstop | 0\nhitstun | 0\n"
+                       "knock_x | 0\nknock_y | 0\nhits_down | no\nslide | no\n";
+
+std::vector<graphics::ClipSrc> uppercut_clips() {
+    std::vector<graphics::ClipSrc> clips = test::dummy_clips();
+    graphics::ClipSrc c = test::dummy_clip("uppercut", {false, false, false}, graphics::CLIP_ONCE);
+    c.frames[1].boxes.push_back({graphics::BoxKind::Hit, 0, {-60, -24, 4, 4}});
+    c.frames[1].boxes.push_back({graphics::BoxKind::Hit, 1, test::REACH});
+    clips.push_back(c);
+    return clips;
+}
+
+struct Uppercut {
+    Ring r{uppercut_clips(), std::string(test::DUMMY_TEXT) + UPPERCUT};
+    Body* b = &r.put(0, 1, 0);
+    Body* t = &r.put(24, -1, 1);
+
+    void start(uint16_t row) {
+        Command c;
+        c.strike = row;
+        test::tick(r.pool, r.arena, {c});
+    }
+    void finish() {
+        for (int k = 0; k < 4; ++k) test::tick(r.pool, r.arena, {});
+    }
+};
+
+void test_rows_of_one_move() {
+    Uppercut u;
+    const uint16_t head = u.r.row("uppercut");
+    check(u.r.arena.error.empty() && head != NO_STRIKE && u.r.arena.kinds[0].moves[head + 1].head == head,
+          "two rows of one name share the first row as their head");
+    u.start(head);
+    u.finish();
+    check(u.t->hp == 100 - 11, "box 1 of a move is judged by its own row");
+    Uppercut v;
+    v.start(static_cast<uint16_t>(head + 1));
+    check(v.b->move == head, "a command naming the second row plays the move from its head");
 }
 
 } // namespace
@@ -73,5 +118,6 @@ int main() {
     test_jump_clip();
     test_knock_y();
     test_no_stun();
+    test_rows_of_one_move();
     return test::verdict("framework-brawl-strike");
 }

@@ -53,14 +53,36 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.elapsed = 0; }); }},
     {"hitstop", [](BodyPool& p) { last(p).hitstop += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.hitstop = 0; }); }},
-    {"hitstun", [](BodyPool& p) { last(p).hitstun += 1; },
-     [](BodyPool& p) { each(p, [](Body& b) { b.hitstun = 0; }); }},
+    {"react", [](BodyPool& p) { last(p).react = Reaction::Down; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.react = Reaction::None; }); }},
+    {"react ticks", [](BodyPool& p) { last(p).react_ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.react_ticks = 0; }); }},
     {"struck count", [](BodyPool& p) { last(p).struck.count += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.count = 0; }); }},
     {"struck seq", [](BodyPool& p) { last(p).struck.at[0].seq += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].seq = 0; }); }},
     {"struck box", [](BodyPool& p) { last(p).struck.at[0].box += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.struck.at[0].box = 0; }); }},
+    {"chain", [](BodyPool& p) { last(p).chain += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.chain = 0; }); }},
+    {"queued strike", [](BodyPool& p) { last(p).queued.strike += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.queued.strike = 0; }); }},
+    {"queued ticks", [](BodyPool& p) { last(p).queued.ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.queued.ticks = 0; }); }},
+    {"move", [](BodyPool& p) { last(p).move += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.move = 0; }); }},
+    {"run dir", [](BodyPool& p) { last(p).run.dir += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.dir = 0; }); }},
+    {"run held", [](BodyPool& p) { last(p).run.held += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.held = 0; }); }},
+    {"run tap", [](BodyPool& p) { last(p).run.tap += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.tap = 0; }); }},
+    {"run tap ticks", [](BodyPool& p) { last(p).run.tap_ticks += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.run.tap_ticks = 0; }); }},
+    {"grip by", [](BodyPool& p) { last(p).grip.by.seq += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.by = EntId{}; }); }},
+    {"grip team", [](BodyPool& p) { last(p).grip.team ^= 1u; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.team = 0; }); }},
+    {"grip kind", [](BodyPool& p) { last(p).grip.kind ^= 1u; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.grip.kind = 0; }); }},
     {"next_seq", [](BodyPool& p) { p.next_seq += 1; }, [](BodyPool& p) { p.next_seq = 0; }},
 };
 
@@ -83,8 +105,14 @@ BodyPool two_bodies() {
     a.clip = 3;
     a.elapsed = 4;
     a.hitstop = 2;
-    a.hitstun = 5;
+    a.react = Reaction::Hurt;
+    a.react_ticks = 5;
     a.struck.add(EntId{7}, 2);
+    a.chain = 1;
+    a.queued = StrikeQueue{2, 3};
+    a.move = 1;
+    a.run = RunState{-1, -1, 1, 4};
+    a.grip = Grip{EntId{3}, 1, 1};
     pool.spawn(a);
     Body b = a;
     b.team = 1;

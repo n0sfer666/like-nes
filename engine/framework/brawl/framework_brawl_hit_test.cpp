@@ -79,7 +79,7 @@ void one_phase(BodyPool& pool, const test::Arena& arena, const std::vector<Comma
 int32_t mutual_hp(bool right_first, bool split) {
     Duel d;
     face_off(d, right_first);
-    const std::vector<Command> jabs{test::strike(d.arena.jab), test::strike(d.arena.jab)};
+    const std::vector<Command> jabs{test::strike(d.arena, d.arena.jab), test::strike(d.arena, d.arena.jab)};
     if (split) one_phase(d.pool, d.arena, jabs);
     else test::tick(d.pool, d.arena, jabs);
     for (int t = 0; t < 2; ++t) {
@@ -99,7 +99,7 @@ int32_t jab_damage(bool forget_every_tick) {
     Duel d;
     d.pool.spawn(test::dummy(0, 0, 1, 0, d.arena.kinds[0]));
     d.pool.spawn(test::dummy(24, 0, -1, 1, d.arena.kinds[0]));
-    test::tick(d.pool, d.arena, {test::strike(d.arena.jab)});
+    test::tick(d.pool, d.arena, {test::strike(d.arena, d.arena.jab)});
     for (int t = 0; t < 8; ++t) {
         if (forget_every_tick) d.pool.bodies[0].struck = StruckList{};
         test::tick(d.pool, d.arena, {});
@@ -111,7 +111,7 @@ int32_t flurry_damage() {
     Duel d;
     d.pool.spawn(test::dummy(0, 0, 1, 0, d.arena.kinds[0]));
     d.pool.spawn(test::dummy(20, 0, -1, 1, d.arena.kinds[0]));
-    test::tick(d.pool, d.arena, {test::strike(d.arena.flurry)});
+    test::tick(d.pool, d.arena, {test::strike(d.arena, d.arena.flurry)});
     for (int t = 0; t < 6; ++t) test::tick(d.pool, d.arena, {});
     return 100 - d.pool.bodies[1].hp;
 }
@@ -126,7 +126,7 @@ void test_dropped_hit() {
     Duel d;
     Body& a = *d.pool.find(d.pool.spawn(test::dummy(0, 0, 1, 0, d.arena.kinds[0])));
     const Body& t = *d.pool.find(d.pool.spawn(test::dummy(24, 0, -1, 1, d.arena.kinds[0])));
-    test::tick(d.pool, d.arena, {test::strike(d.arena.jab)});
+    test::tick(d.pool, d.arena, {test::strike(d.arena, d.arena.jab)});
     for (uint32_t i = 0; i < MAX_STRUCK; ++i) a.struck.add(EntId{900 + i}, 1);
     HitEvents e;
     step_brawl(d.pool, std::vector<Command>(2), d.arena.world(), e);

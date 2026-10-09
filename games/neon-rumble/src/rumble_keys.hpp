@@ -8,7 +8,10 @@ namespace rumble {
 struct KeyLatch {
     bool jump = false;
     bool punch = false;
+    bool cross = false;
     bool kick = false;
+    bool grab = false;
+    bool dodge = false;
 };
 
 bool key_toggled(GLFWwindow* window, int key, bool& held);

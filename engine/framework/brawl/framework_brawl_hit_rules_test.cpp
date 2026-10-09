@@ -15,7 +15,7 @@ bool bystander_moves(bool freeze_world) {
     r.put(0, 1, 0);
     r.put(24, -1, 1);
     r.put(-300, 1, 0);
-    test::tick(r.pool, r.arena, {test::strike(r.arena.jab)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, r.arena.jab)});
     test::tick(r.pool, r.arena, {});
     const Body* b = r.pool.bodies.data();
     const bool stopped = b[0].hitstop == 3 && b[1].hitstop == 3 && b[2].hitstop == 0;
@@ -47,11 +47,11 @@ void test_sum_and_top() {
     Body& b = r.put(48, -1, 0);
     Body& t = r.put(24, -1, 1);
     r.mid_jab(a);
-    b.clip = r.arena.flurry;
+    r.play(b, r.arena.flurry);
     r.move(r.arena.jab).damage = 20;
     const HitEvents e = r.hit();
     check(e.count == 2 && t.hp == 73, "damage of every event on a target adds up");
-    check(t.hitstun == 10 && t.pos.vx == fix32::from_int(-2) && t.pos.vy == fix32::from_int(3),
+    check(t.react == Reaction::Hurt && t.react_ticks == 10 && t.pos.vx == fix32::from_int(-2) && t.pos.vy == fix32::from_int(3),
           "knock and hitstun come from the event with the largest hitstun, not the largest damage");
 }
 
@@ -61,7 +61,7 @@ fix32 tie_knock(bool left_first) {
     r.put(48, -1, 0);
     if (!left_first) r.put(0, 1, 0);
     r.put(24, -1, 1);
-    const Command jab = test::strike(r.arena.jab);
+    const Command jab = test::strike(r.arena, r.arena.jab);
     test::tick(r.pool, r.arena, {jab, jab});
     test::tick(r.pool, r.arena, {});
     const Body& t = r.pool.bodies[2];
@@ -129,7 +129,7 @@ void test_overflow() {
 uint16_t clip_after(uint16_t strike, int ticks) {
     Ring r;
     r.put(0, 1, 0);
-    test::tick(r.pool, r.arena, {test::strike(strike)});
+    test::tick(r.pool, r.arena, {test::strike(r.arena, strike)});
     for (int t = 1; t < ticks; ++t) test::tick(r.pool, r.arena, {});
     return r.pool.bodies[0].clip;
 }
@@ -146,11 +146,13 @@ void test_hitstun() {
     for (const uint16_t stun : {uint16_t{5}, uint16_t{0}}) {
         Ring r;
         Body& b = r.put(0, 1, 0);
-        b.hitstun = stun;
+        b.react = stun == 0 ? Reaction::None : Reaction::Hurt;
+        b.react_ticks = stun;
+        b.clip = stun == 0 ? b.clip : r.arena.kinds[0].hurt;
         Command c = walk_right();
-        c.strike = r.arena.jab;
+        c.strike = test::strike(r.arena, r.arena.jab).strike;
         test::tick(r.pool, r.arena, {c});
-        const bool held = b.pos.x == fix32::from_int(0) && b.clip == r.arena.kinds[0].idle && b.hitstun == 4;
+        const bool held = b.pos.x == fix32::from_int(0) && b.clip == r.arena.kinds[0].hurt && b.react_ticks == 4;
         check(stun == 0 ? b.clip == r.arena.jab && !held : held,
               stun == 0 ? "control: without hitstun the strike starts" : "hitstun ignores the input and the strike");
     }

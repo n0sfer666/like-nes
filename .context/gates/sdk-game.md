@@ -13,8 +13,8 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
-   Debug (`cmake --fresh`) и запускает `--headless --frames 180` (до В2г — 60). Утверждение — rc 0 **и** строки
-   `neon-rumble: headless run ok, 180 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
+   Debug (`cmake --fresh`) и запускает `--headless --frames 480` (до В2г — 60, до В3а — 180, до В3г — 240, до В3е — 360). Утверждение — rc 0 **и** строки
+   `neon-rumble: headless run ok, 480 frames` и `neon-rumble: library.bundle <N> bytes`: бандлы рядом
    с exe кладёт `like_nes_bake`, рантайм wgpu — `like_nes_add_game`. С В5б ещё две строки сводки:
    `level level1 40x21 tile 16, 2 visual layer(s), 1 texture(s) 384x256` (с В8а — `6 visual
    layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209`: небо, два
@@ -82,6 +82,52 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    доходит до step_brawl» (`player.attack` подменён на `Attack::None`) и «kick и в воздухе» (снят
    `!airborne` у kick в `strike_of`) — скрипт жмёт L на тике 135, уже в прыжке, и верный код его
    отбрасывает. Позы тика 0 пинят `15 overlay quad(s)`: без полос z их 11.
+   С В3а спеки #25 хеш `0xec3e2fd3582a91b1`: ключи `pivot` по кадрам `jump_kick`, `fall`, `down`,
+   `thrown` на нижнем крае ног (у `jump` они стоят с В1а). Боксы меряются от пивота своего кадра и
+   опускаются вместе со спрайтом; хеши драки и три строки `hit` скрипта не сдвинулись — jump_kick на
+   тике 148 по-прежнему попадает. Ключи только у клипов в воздухе и лёжа: наземные кадры с
+   покачиванием 4–7 px (`kick` 48/51–54, у adler ещё 55, `run` 21/24, `getup` 68) оставлены нарочно —
+   там ноги на полу, сдвиг пивота дёрнул бы фигуру. Скрипт держит 240 тиков с U: cross в воздухе на
+   тике 136 отбрасывается, cross на тике 200 даёт `hit tick 205`; мутанты (снят `!airborne` у cross,
+   cross → jab, cross → без удара) сдвигают закреплённые строки.
+   С В3б хеш `0xe9c2e2cf1b4b6f9c`: ключи `down | 30`, `getup | 30` в `.fighter`, LNFT v2. Скрипт
+   печатает переходы реакций `react tick N: adler hurt|fall|down|getup|stand`; jump_kick на 148
+   валит adler (fall 148, down 168, getup 198, stand 228), cross на 200 приходит во встающего и
+   не попадает, добавленный jab на 229 даёт `hit tick 238`, hp 66; хеш тика 240 `f8f3af58e5cacb1a`.
+   `sdk_game_lib.sh` сверяет 15 точных строк (`-eq 15`) и число строк `hit|react` (`-eq 13`).
+   С В3в хеш `0x5aacc4b29e4a78fb`: ключи `buffer | 8` и `chain` в `.fighter` (LNFT v3), события
+   `cancel` на jab 2 и cross 1 в трёх JSON. Скрипт жмёт J на тиках 44, 56, 68 и получает цепочку
+   banderas `jab jab cross` (hit 53, 66, 75, hp 94/88/80) — единственная автоматическая сверка, что
+   `cancel` из настоящих JSON и строка `chain` настоящего `.fighter` работают вместе; мутант
+   `chain | jab` даёт jab 53, jab 77 и сдвигает jump_kick. Наземного kick в скрипте больше нет: он
+   отбрасывает adler так, что jump_kick догоняет его к тику ~197 и `getup` не успевает до 240.
+   Прыжок сдвинут на 140 (walk 110..140): jump_kick на 154 валит adler (fall 154, down 174, getup
+   204, stand 234), cross на 200 приходит во встающего, jab на 229 даёт `hit tick 238`, hp 64; хеш
+   тика 0 `3ccaade87a80692c` (в хеш пула вошли шаг цепочки и буфер), тика 240 `f04ce6c22decb53a`.
+   Мутанты скрипта перепроверены на новом тайминге: снятые `!airborne` у kick и у cross и
+   `Attack::None` вместо удара игрока валят сверку. `sdk_game_lib.sh` сверяет 14 точных строк
+   (`-eq 14`) и число строк `hit|react` (`-eq 12`).
+   С В3г хеш `0x1896759115fb869a`: ключи `run_tap | 12` и `slide` в `.fighter`, строка `run_kick`
+   (LNFT v4). Прогон 360 тиков: после jab 238 banderas отходит влево (244..300), тапает вправо на 304
+   и 306, бежит и жмёт L на 312 — `hit tick 329: banderas/run_kick`, hp 52, adler fall 329, down 346.
+   Удар за 17 тиков до попадания: обычный kick с этой дистанции не долетает, мутант «L всегда
+   `kick`» в `strike_of` теряет попадание (хеш тика 360 `cb612ab9eaef59e2` против
+   `db0f9c26c206148a`). Хеш тика 0 `b82ff3c456aef8aa` (в хеш тела вошли ход и бег). `sdk_game_lib.sh`
+   сверяет 18 точных строк (`-eq 18`) и число строк `hit|react` (`-eq 16`).
+   С В3д хеш `0x1a70456ab7d054f3`: ключ `dodge | N` в `.fighter` (LNFT v5). Скрипт держит BLOCK на
+   100..109 (`react tick 101: banderas block`, `111: banderas stand`) и жмёт DODGE на 352 (`353:
+   banderas dodge`, перекат сквозь лежащего adler, финал banderas 434,252, хеш тика 360
+   `280bec44e5a5207f`). Тайминг не вкус: первый вариант (BLOCK 80..100, DODGE 340) падал на ещё
+   играющие `cross` и `run_kick`, тело занято — ни одной строки, сверка честно молчала бы о блоке.
+   `sdk_game_lib.sh` сверяет 21 точную строку (`-eq 21`) и число строк `hit|react` (`-eq 19`).
+   С В3е хеш `0x6afe949291c3d9b2`: слайс `push0` листов переименован в `push` (assetc принимает
+   только `push`), строки `grab`/`throw` и `hits_down yes` у `jump_kick` в `.fighter`. Позы тика 0 —
+   `1 push, 19 overlay quad(s)`. Прогон 480 тиков: J в прыжке на 181 добивает лежащего adler
+   (`hit tick 198: banderas/jump_kick`, hp 60, без реакции; getup 204 → 209 стоп-кадром), jab 238
+   исчез — adler ещё встаёт; влево 378..390 и H на 408 — `hit tick 417: banderas/grab`, hp 42,
+   `adler thrown`, down 436, getup 466. Хеш тика 0 `7ff578b61c84afda` (в хеш тела вошёл `grip`), тика
+   480 `b82f61c720937664`. `sdk_game_lib.sh` сверяет 26 точных строк (`-eq 26`) и число строк
+   `hit|react` (`-eq 24`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

@@ -2,12 +2,14 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "fighter_bake.hpp"
 #include "fighter_format.hpp"
 #include "fighter_read.hpp"
 #include "framework_brawl_check.hpp"
+#include "framework_brawl_fighter_corruptions.hpp"
 #include "framework_brawl_fighter_fixture.hpp"
 #include "hash_mix.hpp"
 #include "section_format.hpp"
@@ -16,9 +18,12 @@ namespace {
 
 using namespace framework::brawl;
 using test::check;
+using test::At;
+using test::CORRUPTIONS;
+using test::Corruption;
 using test::same_strike;
 
-constexpr uint64_t GOLDEN = 0xb0c17d251452f44bull;
+constexpr uint64_t GOLDEN = 0x34030b3c5a326d2dull;
 
 uint64_t hash_bytes(const std::vector<uint8_t>& b) {
     uint64_t h = framework::physics::FNV_OFFSET;
@@ -48,62 +53,28 @@ void round_trip(const std::vector<uint8_t>& baked) {
     check(p.gravity == fix32::from_raw(1 << 15) && p.jump_vy == fix32::from_int(6), "gravity, jump_vy");
     check(t.run_x() == fix32::from_int(3) && t.depth() == fix32::from_int(4), "run_x, depth");
     check(t.hp() == 120, "hp");
-    check(t.move_count() == 2, "two moves");
-    const Strike jab{0, HitType::Light, false, 8, fix32::from_int(5), 4, 12, fix32::from_raw(3 << 15), fix32{}};
-    const Strike kick{1,  HitType::Launch,          true, 20, fix32::from_raw((25 << 16) / 4), 7, 30,
+    check(t.down_ticks() == 30 && t.getup_ticks() == 24, "down, getup");
+    check(t.move_count() == 3, "three moves");
+    check(t.buffer_ticks() == 7 && t.run_tap_ticks() == 9 && t.dodge_ticks() == 18,
+          "buffer, run_tap, dodge");
+    check(t.chain_count() == 3 && t.chain_move(0) == 0 && t.chain_move(1) == 0 && t.chain_move(2) == 1,
+          "chain jab jab kick by move row");
+    const Strike jab{0, HitType::Light, false, false, 8, fix32::from_int(5), 4, 12, fix32::from_raw(3 << 15), fix32{}};
+    const Strike kick{1,  HitType::Launch, true, false, 20, fix32::from_raw((25 << 16) / 4), 7, 30,
                       fix32::from_int(3), fix32::from_raw((19 << 16) / 4)};
+    const Strike run_kick{1, HitType::Heavy, false, true, 12, fix32::from_int(6), 5, 18, fix32::from_int(2), fix32{}};
     Strike s;
-    check(std::strcmp(t.move_clip(0), "banderas/jab") == 0 && t.move(0, s) && same_strike(s, jab), "move jab");
-    check(std::strcmp(t.move_clip(1), "banderas/kick") == 0 && t.move(1, s) && same_strike(s, kick), "move kick");
-    check(!t.move(2, s) && t.move_clip(2)[0] == '\0', "move past the end is refused");
+    check(std::strcmp(t.move_name(0), "jab") == 0 && std::strcmp(t.move_clip(0), "banderas/jab") == 0 &&
+              t.move(0, s) && same_strike(s, jab),
+          "move jab");
+    check(std::strcmp(t.move_name(1), "kick") == 0 && std::strcmp(t.move_clip(1), "banderas/kick") == 0 &&
+              t.move(1, s) && same_strike(s, kick),
+          "move kick");
+    check(std::strcmp(t.move_name(2), "run_kick") == 0 && std::strcmp(t.move_clip(2), "banderas/kick") == 0 &&
+              t.move(2, s) && same_strike(s, run_kick),
+          "a run_kick row plays the kick clip and slides");
+    check(!t.move(3, s) && t.move_clip(3)[0] == '\0' && t.move_name(3)[0] == '\0', "move past the end is refused");
 }
-
-enum class At { Header, Row, Strike };
-
-struct Corruption {
-    const char* what;
-    At at;
-    std::size_t offset;
-    std::size_t width;
-    uint32_t value;
-};
-
-const uint32_t OVER_SPEED = static_cast<uint32_t>(MAX_FIGHTER_SPEED.raw + 1);
-const uint32_t UNDER_KNOCK = static_cast<uint32_t>(-MAX_FIGHTER_SPEED.raw - 1);
-const uint32_t OVER_DEPTH = static_cast<uint32_t>(MAX_FIGHTER_DEPTH.raw + 1);
-
-const Corruption CORRUPTIONS[] = {
-    {"count 2", At::Header, offsetof(framework::core::SectionHeader, count), 4, 2},
-    {"hp over the cap", At::Row, offsetof(FighterRow, hp), 4, MAX_HP + 1},
-    {"zero hp", At::Row, offsetof(FighterRow, hp), 4, MIN_HP - 1},
-    {"zero gravity", At::Row, offsetof(FighterRow, gravity_raw), 4, 0},
-    {"gravity over the cap", At::Row, offsetof(FighterRow, gravity_raw), 4, OVER_SPEED},
-    {"negative speed", At::Row, offsetof(FighterRow, speed_x_raw), 4, 0xffffffffu},
-    {"speed over the cap", At::Row, offsetof(FighterRow, speed_x_raw), 4, OVER_SPEED},
-    {"negative speed_z", At::Row, offsetof(FighterRow, speed_z_raw), 4, 0xffffffffu},
-    {"speed_z over the cap", At::Row, offsetof(FighterRow, speed_z_raw), 4, OVER_SPEED},
-    {"negative run_x", At::Row, offsetof(FighterRow, run_x_raw), 4, 0xffffffffu},
-    {"run_x over the cap", At::Row, offsetof(FighterRow, run_x_raw), 4, OVER_SPEED},
-    {"negative jump_vy", At::Row, offsetof(FighterRow, jump_vy_raw), 4, 0xffffffffu},
-    {"jump_vy over the cap", At::Row, offsetof(FighterRow, jump_vy_raw), 4, OVER_SPEED},
-    {"zero depth", At::Row, offsetof(FighterRow, depth_raw), 4, 0},
-    {"depth over the cap", At::Row, offsetof(FighterRow, depth_raw), 4, OVER_DEPTH},
-    {"name past the strings", At::Row, offsetof(FighterRow, name_offset), 4, 0xffffu},
-    {"moves past the end", At::Row, offsetof(FighterRow, move_count), 4, 9999},
-    {"box 4", At::Strike, offsetof(StrikeRow, box), 1, MAX_HIT_BOXES},
-    {"type 5", At::Strike, offsetof(StrikeRow, type), 1, HIT_TYPE_LAST + 1u},
-    {"unknown flag", At::Strike, offsetof(StrikeRow, flags), 1, 2},
-    {"pad set", At::Strike, offsetof(StrikeRow, pad), 1, 1},
-    {"damage over the cap", At::Strike, offsetof(StrikeRow, damage), 4, MAX_DAMAGE + 1},
-    {"zero strike depth", At::Strike, offsetof(StrikeRow, depth_raw), 4, 0},
-    {"strike depth over the cap", At::Strike, offsetof(StrikeRow, depth_raw), 4, OVER_DEPTH},
-    {"hitstop over the cap", At::Strike, offsetof(StrikeRow, hitstop), 4, MAX_HIT_TICKS + 1},
-    {"hitstun over the cap", At::Strike, offsetof(StrikeRow, hitstun), 4, MAX_HIT_TICKS + 1},
-    {"knock_x over the cap", At::Strike, offsetof(StrikeRow, knock_x_raw), 4, OVER_SPEED},
-    {"knock_y over the cap", At::Strike, offsetof(StrikeRow, knock_y_raw), 4, OVER_SPEED},
-    {"knock_x under the floor", At::Strike, offsetof(StrikeRow, knock_x_raw), 4, UNDER_KNOCK},
-    {"knock_y under the floor", At::Strike, offsetof(StrikeRow, knock_y_raw), 4, UNDER_KNOCK},
-};
 
 bool refused(const std::vector<uint8_t>& bad) {
     FighterTable t;
@@ -129,8 +100,36 @@ void reader_refusals(const std::vector<uint8_t>& baked) {
     bad[strings + load<uint32_t>(baked, strike + offsetof(StrikeRow, clip_offset))] = '\0';
     check(refused(bad), "empty move clip");
     bad = baked;
+    bad[strings + load<uint32_t>(baked, strike + offsetof(StrikeRow, name_offset))] = '\0';
+    check(refused(bad), "empty move name");
+    bad = baked;
+    store<uint32_t>(bad, load<uint32_t>(baked, row + offsetof(FighterRow, chain_offset)), 3);
+    check(refused(bad), "chain step past the moves");
+    bad = baked;
     bad.pop_back();
     check(refused(bad), "truncated section");
+}
+
+bool opens_with_chain_at(const std::vector<uint8_t>& baked, uint32_t count) {
+    std::vector<uint8_t> bad = baked;
+    const std::size_t row = load<uint32_t>(baked, offsetof(framework::core::SectionHeader, rows_offset));
+    const uint32_t at = load<uint32_t>(baked, row + offsetof(FighterRow, chain_offset)) - sizeof(uint32_t);
+    store<int32_t>(bad, at, 0);
+    store<uint32_t>(bad, row + offsetof(FighterRow, chain_offset), at);
+    store<uint32_t>(bad, row + offsetof(FighterRow, chain_count), count);
+    FighterTable t;
+    return t.open(bad.data(), bad.size()) && t.chain_count() == count;
+}
+
+void chain_cap(const std::vector<framework::graphics::ClipSrc>& clips) {
+    std::string text = test::FIGHTER_TEXT;
+    const std::string from = "jab  jab kick";
+    text.replace(text.find(from), from.size(), "jab jab jab jab jab jab jab kick");
+    std::vector<uint8_t> baked;
+    FighterBakeError err;
+    const bool ok = bake_fighter("banderas.fighter", text, clips, baked, err);
+    check(ok && opens_with_chain_at(baked, MAX_CHAIN), "control: a chain moved onto a zeroed knock_y opens");
+    check(ok && !opens_with_chain_at(baked, MAX_CHAIN + 1), "a chain one step over the cap");
 }
 
 } // namespace
@@ -148,5 +147,6 @@ int main() {
     check(h == GOLDEN, "byte golden of the fighter table");
     round_trip(baked);
     reader_refusals(baked);
+    chain_cap(clips);
     return test::verdict("framework-brawl-fighter");
 }

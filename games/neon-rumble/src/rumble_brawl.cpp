@@ -101,7 +101,9 @@ br::BrawlInput standing() {
 uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
     const bool airborne = fix32{} < b.pos.y;
     if (attack == Attack::Punch) return airborne ? moves.jump_kick : moves.jab;
-    if (attack == Attack::Kick && !airborne) return moves.kick;
+    if (attack == Attack::Cross && !airborne) return moves.cross;
+    if (attack == Attack::Kick && !airborne) return b.run.dir != 0 ? moves.run_kick : moves.kick;
+    if (attack == Attack::Grab && !airborne) return moves.grab;
     return br::NO_STRIKE;
 }
 
@@ -119,7 +121,10 @@ bool Brawl::open(const Level& level, const Fighters& fighters) {
 }
 
 void Brawl::step() {
-    for (uint32_t i = 0; i < FIGHTERS; ++i) hp_before[i] = body(i).hp;
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        hp_before[i] = body(i).hp;
+        react_before[i] = body(i).react;
+    }
     std::array<br::Command, FIGHTERS> commands{};
     for (br::Command& c : commands) c.input = standing();
     commands[PLAYER] = {player.input, strike_of(player.attack, kinds.player, body(PLAYER))};

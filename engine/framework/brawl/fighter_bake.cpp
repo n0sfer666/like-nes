@@ -1,14 +1,14 @@
 #include "fighter_bake.hpp"
 
+#include "fighter_chain.hpp"
 #include "fighter_fail.hpp"
 #include "fighter_format.hpp"
+#include "fighter_name.hpp"
 #include "fighter_read.hpp"
 #include "section_bake.hpp"
 
 namespace framework::brawl {
 namespace {
-
-std::string full_clip(const FighterSpec& spec, const MoveSpec& m) { return spec.sheet + "/" + m.clip; }
 
 bool carries(const graphics::ClipSrc& clip, uint8_t box) {
     for (const graphics::ClipFrameSrc& f : clip.frames)
@@ -27,10 +27,11 @@ bool sheet_listed(const std::string& sheet, std::span<const graphics::ClipSrc> c
 StrikeRow row_of(core::SectionBuilder& b, const FighterSpec& spec, const MoveSpec& m) {
     const Strike& s = m.strike;
     StrikeRow r{};
-    r.clip_offset = b.text(full_clip(spec, m));
+    r.name_offset = b.text(m.name);
+    r.clip_offset = b.text(sheet_clip(spec.sheet, m.clip));
     r.box = s.box;
     r.type = static_cast<uint8_t>(s.type);
-    r.flags = s.hits_down ? STRIKE_HITS_DOWN : 0;
+    r.flags = static_cast<uint8_t>((s.hits_down ? STRIKE_HITS_DOWN : 0) | (s.slides ? STRIKE_SLIDES : 0));
     r.damage = s.damage;
     r.depth_raw = s.depth.raw;
     r.hitstop = s.hitstop;
@@ -47,7 +48,7 @@ bool check_fighter_clips(const FighterSpec& spec, std::span<const graphics::Clip
         return fighter_fail(err, spec.sheet_line,
                             "no clip of sheet '" + spec.sheet + "' in the clips of this manifest");
     for (const MoveSpec& m : spec.moves) {
-        const std::string name = full_clip(spec, m);
+        const std::string name = sheet_clip(spec.sheet, m.clip);
         const std::string what = move_label(m);
         const graphics::ClipSrc* found = nullptr;
         for (const graphics::ClipSrc& c : clips)
@@ -57,7 +58,7 @@ bool check_fighter_clips(const FighterSpec& spec, std::span<const graphics::Clip
         if (!carries(*found, m.strike.box))
             return fighter_fail(err, m.line, what + ": no frame of clip '" + name + "' carries this hit box");
     }
-    return true;
+    return check_chain_cancels(spec, clips, err);
 }
 
 bool bake_fighter(const std::string& name, const std::string& text, std::span<const graphics::ClipSrc> clips,
@@ -67,6 +68,8 @@ bool bake_fighter(const std::string& name, const std::string& text, std::span<co
     core::SectionBuilder b(sizeof(FighterRow));
     std::vector<StrikeRow> strikes;
     for (const MoveSpec& m : spec.moves) strikes.push_back(row_of(b, spec, m));
+    std::vector<uint32_t> chain;
+    if (!chain_moves(spec, chain, err)) return false;
     FighterRow row{};
     row.name_offset = b.text(name);
     row.sheet_offset = b.text(spec.sheet);
@@ -77,8 +80,15 @@ bool bake_fighter(const std::string& name, const std::string& text, std::span<co
     row.jump_vy_raw = spec.jump_vy.raw;
     row.depth_raw = spec.depth.raw;
     row.hp = spec.hp;
+    row.down_ticks = spec.down;
+    row.getup_ticks = spec.getup;
+    row.buffer_ticks = spec.buffer;
+    row.run_tap_ticks = spec.run_tap;
+    row.dodge_ticks = spec.dodge;
     row.move_offset = b.block(strikes.data(), strikes.size() * sizeof(StrikeRow), alignof(StrikeRow));
     row.move_count = static_cast<uint32_t>(strikes.size());
+    row.chain_offset = b.block(chain.data(), chain.size() * sizeof(uint32_t), alignof(uint32_t));
+    row.chain_count = static_cast<uint32_t>(chain.size());
     std::string why;
     if (!b.finish(FIGHTER_MAGIC, FIGHTER_VERSION, 1, &row, out, why)) return fighter_fail(err, 0, why);
     FighterTable probe;

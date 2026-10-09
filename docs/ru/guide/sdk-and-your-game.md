@@ -73,7 +73,7 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 ```sh
 cmake -S games/neon-rumble -B build-game -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=../like-nes-sdk
 cmake --build build-game
-./build-game/neon_rumble --headless --frames 180
+./build-game/neon_rumble --headless --frames 240
 ```
 
 ## Манифест
@@ -141,10 +141,10 @@ fighter | adler_fighter | fighters/adler.fighter
 
 ## Запуск игры
 
-`--headless --frames 180` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
+`--headless --frames 240` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
 Этот прогон и проверяет CI. Без `--headless` игра открывает окно 960×540, размер которого можно
-менять. Стрелки или WASD водят Banderas, Space или K — прыжок, J — jab, L — kick, J в
-прыжке — jump_kick. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
+менять. Стрелки или WASD водят Banderas, Space или K — прыжок, J — jab, U — cross, L —
+kick, J в прыжке — jump_kick. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
 листает его страницы, нажатие после последней закрывает его. `--frames <n>` закрывает
 окно через `n` кадров с кодом выхода 0. `--headless` требует `--frames` с `n` больше 0, поэтому
 безоконный прогон всегда заканчивается.

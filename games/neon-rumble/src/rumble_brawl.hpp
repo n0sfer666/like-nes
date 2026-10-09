@@ -5,6 +5,7 @@
 #include "body_pool.hpp"
 #include "depth_floor.hpp"
 #include "hit_events.hpp"
+#include "reaction.hpp"
 #include "rumble_command.hpp"
 #include "rumble_kinds.hpp"
 #include "rumble_roster.hpp"
@@ -24,6 +25,7 @@ struct Brawl {
     framework::brawl::HitEvents events;
     PlayerCommand player;
     std::array<int32_t, FIGHTERS> hp_before{};
+    std::array<framework::brawl::Reaction, FIGHTERS> react_before{};
 
     bool open(const Level& level, const Fighters& fighters);
     void step();
