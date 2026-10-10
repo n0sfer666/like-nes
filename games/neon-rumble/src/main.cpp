@@ -77,6 +77,7 @@ int main(int argc, char** argv) {
         return 2;
     }
     if (!rumble::report_library_bundle()) return 1;
+    rumble::report_pad_backend();
     rumble::Level level;
     if (!level.open(platform::exe_dir() + "/game.bundle", "level1")) return 1;
     rumble::report_level(level);

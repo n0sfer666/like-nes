@@ -107,7 +107,7 @@ if(NOT TARGET like-nes::engine)
     INTERFACE_COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
   add_library(like-nes::window INTERFACE IMPORTED)
   set_target_properties(like-nes::window PROPERTIES
-    INTERFACE_LINK_LIBRARIES like-nes::glfw3webgpu
+    INTERFACE_LINK_LIBRARIES "like-nes::glfw3webgpu;like-nes::input_native"
     INTERFACE_INCLUDE_DIRECTORIES "${_ln_prefix}/include/like-nes/third_party")
 endif()
 

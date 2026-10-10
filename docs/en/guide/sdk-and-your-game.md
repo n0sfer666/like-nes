@@ -56,7 +56,9 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 - `find_package(like-nes 0.1 REQUIRED CONFIG)` accepts any 0.1.x. While the major version is 0,
   the API may break between minor versions, so 0.2 is a different package.
 - `like-nes::engine` brings the framework, the renderer and the platform layer. `like-nes::window`
-  brings the desktop window.
+  brings the desktop window and native input: the GLFW keyboard and mouse pump and the gamepad
+  backend of the OS (`input/source.hpp`, `make_gamepad_source`): GameController on macOS, XInput on
+  Windows, evdev on Linux.
 - `like_nes_add_game(<target>)` makes the game use the same C runtime as the engine. On MSVC the
   engine links the CRT statically, and a Debug game without this call fails to link with
   `LNK2038`. The call also copies the wgpu runtime next to the executable.

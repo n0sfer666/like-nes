@@ -59,7 +59,9 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 - `find_package(like-nes 0.1 REQUIRED CONFIG)` принимает любой 0.1.x. Пока мажорная версия 0, API
   может ломаться между минорными, поэтому 0.2 — другой пакет.
 - `like-nes::engine` приносит фреймворк, рендерер и платформенный слой. `like-nes::window` —
-  настольное окно.
+  настольное окно и нативный ввод: GLFW-пумп клавиатуры и мыши и бэкенд пада ОС
+  (`input/source.hpp`, `make_gamepad_source`): GameController на macOS, XInput на Windows, evdev на
+  Linux.
 - `like_nes_add_game(<цель>)` заставляет игру использовать тот же C-рантайм, что и движок. На MSVC
   движок линкует CRT статически, и Debug-игра без этого вызова не слинкуется с `LNK2038`. Вызов
   также копирует рантайм wgpu рядом с исполняемым файлом.

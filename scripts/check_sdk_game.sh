@@ -26,6 +26,8 @@ ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$ROOT" || exit 1
 # shellcheck source=scripts/sdk_game_lib.sh
 . "$ROOT/scripts/sdk_game_lib.sh"
+# shellcheck source=scripts/sdk_game_run.sh
+. "$ROOT/scripts/sdk_game_run.sh"
 # shellcheck source=scripts/sdk_game_bounds.sh
 . "$ROOT/scripts/sdk_game_bounds.sh"
 

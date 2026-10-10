@@ -1806,6 +1806,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Release: SDK built and installed into the prefix
       sdk-game: OK   Debug: SDK built and installed into the prefix
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: pad backend GameController.framework (macOS)
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
@@ -1856,6 +1857,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
       sdk-game: OK   Release: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+      neon-rumble: pad backend GameController.framework (macOS)
       neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
@@ -1917,7 +1919,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
   На Windows вместо SKIP — «OK   fixture: Debug game without
   like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
-  framework_physics.lib. Сумма fnv1a — от library.bundle и на всех ОС одна;
+  framework_physics.lib. Бэкенд пада в строке pad backend — свой у ОС:
+  «XInput (Windows)» на Windows, «evdev (Linux)» на Linux; гейт требует
+  именно имя этой ОС. Сумма fnv1a — от library.bundle и на всех ОС одна;
   bundle_hash — от game.bundle, который assetc из SDK печёт по
   games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
   levels/level1.tmj из Tiled — секции tilemap, visual, objects; листы и клипы
