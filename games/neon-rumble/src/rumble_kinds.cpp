@@ -42,17 +42,20 @@ bool key_move(const Fighter& f, const br::Archetype& a, const char* tag, uint16_
     return false;
 }
 
+bool player_moves(const Fighter& f, const br::Archetype& a, PlayerMoves& m) {
+    return key_move(f, a, "jab", m.jab) && key_move(f, a, "cross", m.cross) && key_move(f, a, "kick", m.kick) &&
+           key_move(f, a, "jump_kick", m.jump_kick) && key_move(f, a, "run_kick", m.run_kick) &&
+           key_move(f, a, "grab", m.grab);
+}
+
 } // namespace
 
 bool Kinds::open(const Level& level, const Fighters& fighters) {
     for (uint32_t i = 0; i < FIGHTERS; ++i)
         if (!open_kind(level, fighters[i], types[i], hp[i])) return false;
-    const Fighter& f = fighters[PLAYER];
-    const br::Archetype& a = types[PLAYER];
-    return key_move(f, a, "jab", player.jab) && key_move(f, a, "cross", player.cross) &&
-           key_move(f, a, "kick", player.kick) &&
-           key_move(f, a, "jump_kick", player.jump_kick) && key_move(f, a, "run_kick", player.run_kick) &&
-           key_move(f, a, "grab", player.grab);
+    for (uint32_t p = 0; p < moves.size(); ++p)
+        if (!player_moves(fighters[p], types[p], moves[p])) return false;
+    return true;
 }
 
 } // namespace rumble

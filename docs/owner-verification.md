@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 29 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 15 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 30 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 16 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -37,14 +37,15 @@ names that surface.
 | Level 1 survives a save in a real Tiled and bakes to the same bytes | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Tiled 1.10+ | 2026-10-03/04 | `games/neon-rumble/levels/*`, `engine/framework/tilemap/tiled/*`, `tools/assetc/level_source.*` |
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 | The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | 2026-10-07 | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
-| Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
+| Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
 | Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
 | Adler, jump-kicked, falls, lies and gets up with his feet on his shadow; nothing hits him while he is down or rising | [#25](../.context/specs/2026-10-05-brawl-framework.md) 3 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
 | Banderas's J chains jab, jab and cross on a hit and starts over on a miss; a key pressed during a strike waits for it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 4 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_chain.*`, `engine/framework/brawl/strike_queue.*`, `engine/framework/brawl/archetype_chain.*`, `engine/framework/brawl/fighter_chain.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
 | Banderas runs on a double tap, L on the run is a kick that rolls on into Adler; the run ends on release, reversal, strike or hurt | [#25](../.context/specs/2026-10-05-brawl-framework.md) 5 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_brawl.cpp`, `engine/framework/brawl/body_run.*`, `engine/framework/brawl/run_state.hpp`, `engine/framework/brawl/fighter_move_parse.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
-| Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
-| Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
-| Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_keys.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
+| Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
+| Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
+| Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
+| Two players on two devices: a pad or a key joins, the banner asks, a pulled pad pauses and comes back, each leaves on his own key | [#25](../.context/specs/2026-10-05-brawl-framework.md) 9 | **all three**, with two pads and a keyboard with a numpad | — | `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_banner.*`, `engine/framework/input/lobby*`, `engine/input/source_*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3263,11 +3264,11 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
-   **Parallax.** Walk Banderas, the fighter on the left, with the arrows or WASD: the camera
-   follows him and stops at the level's `bounds`. `sky` stands still, `far-city` moves
-   at a quarter of the camera, `near-city` at half, and the facades and the street move with the
-   camera. No layer shimmers, jumps by a pixel against its neighbours, or shows a seam where its
-   image repeats. **Signs.** Coca-Cola on the left plays 3 frames of 200 ms, the neon banner on
+   **Parallax.** Walk Banderas, the fighter on the left, with WASD (since B4d the arrows are
+   player 2's, §29): the camera follows him and stops at the level's `bounds`. `sky` stands still,
+   `far-city` moves at a quarter of the camera, `near-city` at half, and the facades and the street
+   move with the camera. No layer shimmers, jumps by a pixel against its neighbours, or shows a seam
+   where its image repeats. **Signs.** Coca-Cola on the left plays 3 frames of 200 ms, the neon banner on
    the right plays 4 frames of 150 ms, and both look and time like the animation in Tiled.
 6. Resize the window, by dragging, to about **21:9** (for example 1680×720 points) and then to about
    **4:3** (for example 960×720 points). At 21:9 the view opens up along x: more of the city on
@@ -3337,6 +3338,10 @@ three OSes. Three things are left that only a screen answers:
 - **The style.** Puffolotti is a 3D render scaled to pixels, Warped City is drawn pixel art. The
   spec took the mismatch as an accepted risk, to be judged on a live frame of level 1. That frame is
   this scenario.
+
+Since B4d Rainbird is player 2 and walks the street only once P2 has joined (§29), and the arrows
+are his, not Banderas's: steps 3–5 run on WASD, Space and K, and Rainbird of steps 2 and 4 needs 1 on
+the numpad first. The hashes of step 1 are those of the closing run; the current ones are in §22.
 
 Run from the repository root (Windows: from the `scripts\win-dev.bat shell` window, with `.exe` and
 backslashes).
@@ -3419,7 +3424,11 @@ backslashes).
    Expected: `sdk-game: PASS`, `bundle_hash 0x6afe949291c3d9b2` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash 7ff578b61c84afda, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252 y 0 hp 100, draw rainbird adler banderas
+       neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+       neon-rumble: seat tick 2: P2 joining
+       neon-rumble: seat tick 3: P2 present
+       neon-rumble: react tick 31: rainbird block
+       neon-rumble: react tick 41: rainbird stand
        neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
        neon-rumble: react tick 53: adler hurt
        neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
@@ -3444,7 +3453,7 @@ backslashes).
        neon-rumble: react tick 417: adler thrown
        neon-rumble: react tick 436: adler down
        neon-rumble: react tick 466: adler getup
-       neon-rumble: brawl tick 480: hash b82f61c720937664, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+       neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
 
    U on tick 200 makes no line: Adler lies until tick 209, and since B3f a lying fighter is hit only
    by a strike with `hits_down` (§27) — the cross has none. Falling, lying and rising are judged in
@@ -3462,6 +3471,12 @@ backslashes).
    Since B3e the script holds I on ticks 100–109 (the block, `banderas block` then `banderas stand`)
    and presses O on tick 352 (the roll past the fallen Adler); both are judged in §26.
 
+   Since B4d Rainbird is player 2 and stands on the street only once P2 has joined (§29): tick 0
+   has Banderas and Adler alone, the script presses 1 on the numpad on tick 2 (`seat` lines — P2
+   joins on tick 2 and is present from tick 3) and holds 3 on ticks 31–40, Rainbird's block. Hits
+   and Adler's reactions are those from before B4d, bit for bit; the hashes moved because the seats
+   are part of the state.
+
    Since B3f the script runs 480 ticks. The jump kick of tick 198 hits Adler where he lies (`jump_kick`
    has `hits_down`): no reaction line, and his getup moves from 204 to 209 by the hitstop. The jab of
    tick 238 is gone — Adler is still rising. Banderas walks left on ticks 378–390 and presses H on
@@ -3472,7 +3487,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
-   Walking, depth and the jump are those of §21 and are not re-judged here.
+   Walking, depth and the jump are those of §21 and are not re-judged here. Rainbird is not on the
+   street until P2 joins: press 1 on the numpad before step 6.
 3. **Jab.** Walk Banderas to Adler on his line (Adler's feet level with his) and press J. Banderas
    jabs once; holding J does not jab again. When the fist reaches Adler, both freeze for a moment
    (the stop frame), then Adler is pushed a little to the right on his hurt pose, and the terminal
@@ -3500,9 +3516,9 @@ backslashes).
    first `jump_kick` still plays, waits in the buffer and may start a `jump_kick` on the ground after
    landing: the move is chosen at the press, not at the start. That is a known edge left to B3d, not
    a finding.
-6. **Teams.** Walk to Rainbird on his line and jab, cross and kick him. The strike goes through him: no stop
+6. **Teams.** With P2 in (numpad 1, §29), walk to Rainbird on his line and jab, cross and kick him. The strike goes through him: no stop
    frame, no push, no line in the terminal. Rainbird is team 0, as Banderas.
-7. **F3.** On all three: the cell frame, the green `hurt0` frame, the pivot cross, and on the floor
+7. **F3.** On every fighter on the street: the cell frame, the green `hurt0` frame, the pivot cross, and on the floor
    under each fighter a green band — the thickness of his body in depth, ±6. During a strike, on its
    active frames only, a red `hit0` frame appears on the fist or the foot (for `jump_kick` — on the
    foot, which B3a lowered together with the sprite), and a red band ±8 under
@@ -3850,7 +3866,7 @@ is 0.
 
 ## 28. Gate 8 of #25 — the whole of B3 in one fight
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 24 строки hit/react §22 шага 1 (порядок — глазами) и хеш тика 480 b82f61c720937664; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 35645b13b45f46a0; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
 
 §22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
 goes through all of them in a row, because what breaks when states follow each other is invisible from
@@ -3867,9 +3883,9 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS` and, in each run, all 24 `hit` and `react` lines of §22 step 1 and its
-   hash of tick 480, `b82f61c720937664`. The script checks that each line is there and that there are
-   24 of them; their order is checked by eye. That is the scripted half of this gate: chain, block,
+   Expected: `sdk-game: PASS` and, in each run, all 28 `hit`, `react` and `seat` lines of §22 step 1
+   and its hash of tick 480, `35645b13b45f46a0`. The script checks that each line is there and that
+   there are 28 of them; their order is checked by eye. That is the scripted half of this gate: chain, block,
    jump kick, the hit on the ground, run kick, roll and grab in one run of 480 ticks.
 
 2. Start the window from a terminal you can read:
@@ -3909,9 +3925,118 @@ Send back: the terminal lines of step 3 and the word on the fight.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 29. Gate 9 of #25 — two players on two devices
+
+<!-- gate: open | окно neon_rumble на каждой из трёх ОС: надпись «P2: press a button to join» без rainbird; пад + клавиатура — кнопка пада сажает P2 (seat joining/present, rainbird на спавне, надпись гаснет, нажатие входа не прыжок), Back снимает; одна клавиатура — стрелка или нампад сажает P2, оба играют разом, минус нампада снимает; два пада — Backspace снимает P1, кнопки падов сажают P1 и P2, клавиатура никого не ведёт; выдернуть пад P2 — пауза, «P2: reconnect the pad», вставить и нажать кнопку — бой идёт с места; прислать строки seat шагов 3–6 по ОС, скриншот надписи и сочетания клавиш, которые клавиатура глотает -->
+
+B4 of spec #25 made input per player: `InputEngine` and `ActionMap` keep a layout per player, and
+`Lobby` hands devices to seats. B4d put Neon Rumble on them: Banderas is player 1, on the keyboard
+from the first tick; Rainbird is player 2 and stands on the street only once P2 has joined; Adler
+stays the dummy. CI holds the simulation of a join: `--headless` presses 1 on the numpad on tick 2
+and holds 3 on ticks 31–40, and pins the `seat` lines, Rainbird's block and the hashes (§22 step 1);
+`framework_lobby_test`, `framework_lobby_pause_test` and `framework_brawl_hotseat_test` pin the
+seats, the pause and a replay with a join in the middle. Three things are left that only real
+devices answer:
+
+- **Real pads.** The tests post events. Whether the backend of each OS — GameController, XInput,
+  evdev — delivers a button of a second pad as a join and a pulled cable as a lost pad is seen only
+  with the pads in hand.
+- **One keyboard for two.** The two layouts share no key, but a keyboard may drop a key while
+  others are held (ghosting). Which combinations survive is a property of the keyboard, and only a
+  real one tells.
+- **The banner.** Whether the line at the bottom reads over the street and goes away when it should.
+
+The controls. A, B, X and Y are named as on an Xbox pad; on a PlayStation pad they are cross,
+circle, square and triangle.
+
+| | P1 on the keyboard | P2 on the keyboard | on a pad |
+|---|---|---|---|
+| walk | W A S D | arrows | left stick |
+| jump | Space, K | numpad 0 | A |
+| jab | J | numpad 1 | X |
+| cross | U | numpad 4 | Y |
+| kick | L | numpad 2 | B |
+| grab | H | numpad 5 | RB |
+| block (hold) | I | numpad 3 | LB |
+| roll | O | numpad 6 | right stick click |
+| leave | Backspace | numpad − | Back / Select / View |
+
+A free seat is taken by the first press of a free device: any button of a pad that nobody holds
+takes the lowest free seat, and a key of P2's layout (an arrow, numpad 0–6 or numpad −) takes P2's. The press that
+joins is used up by the join — it does not jump or strike. A seat that joins prints `joining` and
+its fighter appears on his spawn on the next tick, with `present`. Leaving takes the fighter off the
+street; joining again brings a new one, on his spawn and with full hp, not where he left.
+
+Run from the repository root on each of the three OSes (Windows: from the
+`scripts\win-dev.bat shell` window, with `.exe` and backslashes), with a keyboard that has a numpad
+(NumLock on) and two pads.
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, and in each run the lines of §22 step 1 and the line
+   `neon-rumble: pad backend <name>` with the backend of this OS.
+2. Start the window from a terminal you can read, with no pad connected:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   Banderas and Adler stand on the street, Rainbird does not. At the bottom of the picture, on a dark
+   strip, a yellow line: `P2: press a button to join`. WASD walks Banderas at once.
+3. **Pad and keyboard.** Connect one pad and press any button on it. The terminal prints
+
+       neon-rumble: seat tick <n>: P2 joining
+       neon-rumble: seat tick <n+1>: P2 present
+
+   Rainbird appears on his spawn, above and to the right of Banderas, and the yellow line goes away.
+   Play both at once: Banderas from the keyboard, Rainbird from the pad, every row of the table. A
+   strike of Rainbird into Adler prints `hit tick <n>: rainbird/<move> -> adler`, and goes through
+   Banderas without a line: both are team 0. The arrows and the numpad move nobody now: P2 is on
+   the pad. Press Back on the pad: `seat tick <n>: P2 free`, Rainbird leaves the street and the
+   line comes back. Press a button once more: Rainbird is back, on his spawn.
+4. **A pulled pad.** With P2 on the pad, pull its cable (a wireless one — switch it off). The
+   terminal prints `seat tick <n>: P2 lost the pad, paused`. Everything on the street freezes, the
+   keyboard moves nobody, the window keeps drawing, and the line at the bottom says
+   `P2: reconnect the pad`. Plug it back and press any button: `seat tick <n>: P2 resuming`, then
+   `P2 present`, and the fight goes on from where it froze, Rainbird where he stood. The clock of
+   the fight stands during the pause, so `lost`, `resuming` and `present` carry the same `<n>`. Then press Back and disconnect the pad.
+5. **One keyboard for two.** Press an arrow or numpad 0–6: the same two `seat` lines, Rainbird on
+   his spawn. Play both at once on the one keyboard: Banderas on WASD and J U L H I O Space K,
+   Rainbird on the arrows and numpad 0–6. Hold a diagonal for each (W and D, up and right) and jab
+   with both. If a key of one player stops responding only while the other holds keys, note which
+   keys were held: that is the keyboard, and the list is part of the answer. Numpad − leaves P2:
+   `P2 free`.
+6. **Two pads.** Connect both pads. Press Backspace: `seat tick <n>: P1 free`, Banderas leaves the
+   street, the line says `P1: press a button to join`, and the camera stays where it was — it
+   follows the first player on the street, and with nobody there it keeps his last point. Press a button on the first pad: P1 joins on it,
+   Banderas is back on his spawn, and the line says `P2: press a button to join`. Press a button on
+   the second pad: P2 joins on it. Play both; the keyboard moves nobody now. Pull either pad: the
+   pause of step 4, with the number of the player who held it. Plug it back, press a button; then
+   Back on each pad takes off its own player.
+
+A knock-out is not reachable here: nobody strikes the players until the AI of B5. Its rule — the
+fighter with hp 0 is taken off and a new one stands on his spawn on the next tick — is half pinned:
+`framework_brawl_seat_test` pins that a seat whose body was taken off gets a new one, while the
+taking off at hp 0 is the game's code and has no test yet. As in §21, on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: a join without the two `seat` lines, or the lines without a fighter on his
+spawn; a joining press that also jumps or strikes; a button of a seated pad that seats anyone else; a
+key of one player that moves the other fighter, or a keyboard key that moves a player seated on a
+pad; the line at the bottom missing, naming the wrong player or staying after the join; a pulled pad
+that does not pause, a pause that the plugged-back pad does not end, or a fighter that moved during
+the pause; a leave key that does nothing or takes off the wrong player; a fighter who joins again
+anywhere but on his spawn.
+
+Send back: per OS, the `seat` lines of steps 3–6 and the `pad backend` line; one screenshot with
+the yellow line; and the list of key combinations the keyboard dropped in step 5, or the words «none
+dropped».
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 29 are closed, and the open 15 are listed by
+The gates above are what the ADRs waited on; 14 of the 30 are closed, and the open 16 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

@@ -6,6 +6,7 @@
 namespace rumble {
 
 bool report_library_bundle();
+void report_pad_backend();
 void report_level(const Level& level);
 void report_credits(const Level& level, const Credits& credits);
 

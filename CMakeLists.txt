@@ -48,7 +48,7 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/determinism.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/msvc_runtime.cmake)
 
 option(AUDIO_MINIAUDIO "Real audio device via miniaudio (local; OFF в headless CI)" ON)
-option(INPUT_NATIVE "Build native input demo (GLFW + platform gamepad backend)" ON)
+option(INPUT_NATIVE "Build the live native input demo (input_demo)" ON)
 option(PLUGIN_UI "Build live plugin UI-shell (Dear ImGui docking + GLFW + WebGPU)" ON)
 option(PLUGIN_WASM "Build WASM-sandbox gate (wasmtime C-API from deps/)" ON)
 option(IDE_POC "Build IDE editor foundation (flecs scene-doc + round-trip + undo)" ON)

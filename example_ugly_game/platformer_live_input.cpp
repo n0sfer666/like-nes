@@ -22,7 +22,7 @@ bool LiveInput::open(GLFWwindow* win, const std::string& bundle) {
 
 ch::MoveInput LiveInput::read(uint32_t t) {
     if (have_pad_) pad_->poll(*engine_);
-    return read_input(engine_->begin_tick(t, 0), bind_);
+    return read_input(engine_->begin_tick(t), bind_);
 }
 
 const char* LiveInput::pad_name() const { return have_pad_ ? pad_->backend_name() : "none"; }

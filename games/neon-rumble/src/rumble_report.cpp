@@ -8,6 +8,7 @@
 #include "platform_fs.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_roster.hpp"
+#include "source.hpp"
 
 namespace rumble {
 
@@ -42,6 +43,12 @@ bool report_library_bundle() {
     std::printf("neon-rumble: library.bundle %zu bytes fnv1a %016llx\n", bytes.size(),
                 static_cast<unsigned long long>(asset::fnv1a(bytes.data(), bytes.size())));
     return true;
+}
+
+// Строка доказывает, что нативный ввод этой ОС слинкован из префикса: без вызова линкер выбросил бы
+// архив, и гейт sdk-game судил бы игру без него.
+void report_pad_backend() {
+    std::printf("neon-rumble: pad backend %s\n", ::input::make_gamepad_source()->backend_name());
 }
 
 // Сводка уровня и кадра — то, что headless доказывает о бандле без окна: таблица `visual` читается,

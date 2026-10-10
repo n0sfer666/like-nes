@@ -4,6 +4,7 @@
 #include "rumble_brawl.hpp"
 #include "rumble_credits.hpp"
 #include "rumble_fighter.hpp"
+#include "rumble_hotseat.hpp"
 #include "rumble_level.hpp"
 #include "schedule.hpp"
 
@@ -21,6 +22,6 @@ struct Scene {
     void step(uint32_t index);
 };
 
-int run_window(Scene& scene, const Level& level, const Fighters& fighters, const Credits& credits, int frames);
+int run_window(Scene& scene, Hotseat& hotseat, const Level& level, const Fighters& fighters, const Credits& credits, int frames);
 
 } // namespace rumble

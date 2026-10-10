@@ -1157,11 +1157,19 @@ jobs:
           grep -q "0xcc26a1897a326f6f" id.txt || { echo "INPUT DETERMINISM GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "input-determinism: PASS" id.txt
 
-      - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + rt-safety (gate #3)
+      - name: Input — action-map layer (contexts/consume, rebind, per-player, buffer) + per-player engine + layouts + rt-safety (gate #3)
         shell: bash
         run: |
           AM=$(find build -maxdepth 2 -type f \( -name 'input_actionmap_test' -o -name 'input_actionmap_test.exe' \) | head -1); "$AM"
           RT=$(find build -maxdepth 2 -type f \( -name 'input_rt_test' -o -name 'input_rt_test.exe' \) | head -1); "$RT"
+          PL=$(find build -maxdepth 2 -type f \( -name 'input_players_test' -o -name 'input_players_test.exe' \) | head -1)
+          [ -n "$PL" ] || { echo "input_players_test not built"; exit 1; }
+          "$PL" | tee ipl.txt
+          grep -q "input-players: PASS - 6 cases" ipl.txt
+          LY=$(find build -maxdepth 2 -type f \( -name 'input_layouts_test' -o -name 'input_layouts_test.exe' \) | head -1)
+          [ -n "$LY" ] || { echo "input_layouts_test not built"; exit 1; }
+          "$LY" | tee ily.txt
+          grep -q "input-layouts: PASS - 11 cases" ily.txt
 
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
@@ -1174,11 +1182,22 @@ jobs:
         run: |
           # -Iengine/platform: rt-проба берёт оттуда PLATFORM_NOINLINE (см. audio-шаг выше).
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -Iengine/core -Iengine/asset -Iengine/platform -std=gnu++20"
-          c++ $SAN engine/input/action_map.cpp engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
-          c++ $SAN engine/input/action_map.cpp engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
-          c++ $SAN engine/input/action_map.cpp engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
+          # Исходники input_core — из самой цели: рукописный список разошёлся бы с ней на первом же
+          # новом TU, и ошибкой это стало бы у компоновщика, а не у читателя.
+          CORE=$(bash scripts/cmake_target_sources.sh engine/input/CMakeLists.txt input_core)
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_determinism_test.cpp -o input_det_san && ./input_det_san
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_rt_test.cpp -o input_rt_san && ./input_rt_san
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_actionmap_test.cpp -o input_am_san && ./input_am_san
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_players_test.cpp -o input_pl_san && ./input_pl_san
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_layouts_test.cpp -o input_ly_san && ./input_ly_san
+          # shellcheck disable=SC2086
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine/core -Iengine/asset -pthread \
-            engine/input/action_map.cpp engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
+            $CORE engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
 
       # --- Плагин-вертикаль (спека #6) — determinism/seam/isolation/manifest на ВСЕХ 3 ОС: спека
       # #12 увела загрузку и крэш-изоляцию за швы platform_module/platform_guard (dlopen+сигналы
@@ -1918,6 +1937,7 @@ jobs:
                    framework_preset_refusal_test framework_preset_reader_test \
                    framework_preset_axes_test \
                    framework_section_align_test framework_pad_test framework_rebind_test \
+                   framework_layout_test framework_lobby_test framework_lobby_pause_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_credits_test \
                    framework_json_test framework_json_string_test framework_json_number_test \
@@ -1933,15 +1953,18 @@ jobs:
           # совпасть на трёх ОС — расхождение здесь и есть та регрессия, ради которой гейт заведён.
           grep -q "preset-input-hash = 0x416969081dcf230d" fw_framework_golden_test.txt \
             || { echo "PRESET INPUT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-lobby: PASS - 46 cases" fw_framework_lobby_test.txt \
+            || { echo "framework_lobby_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-lobby-pause: PASS - 20 cases" fw_framework_lobby_pause_test.txt \
+            || { echo "framework_lobby_pause_test lost cases on ${{ matrix.os }}"; exit 1; }
 
       # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
       # случилось чтения мимо буфера. Ровно так и была поймана нижняя граница `name_fits`: без
       # ASan тот же набор был зелёным. Список TU — целиком каталоги библиотек, а не выборка «что
-      # зовёт прогон»: рукописное подмножество расходится с целью молча. Одно исключение названо
-      # руками — `engine/input/action_map.cpp`: каталог `engine/input` целиком не собирается без
-      # GLFW и evdev (`source_glfw.cpp`, `source_gamepad_linux.cpp`), а `input_core` — ровно один
-      # TU, и добавление второго увидит компоновщик.
+      # зовёт прогон»: рукописное подмножество расходится с целью молча. `engine/input` целиком не
+      # собирается без GLFW и evdev (`source_glfw.cpp`, `source_gamepad_linux.cpp`), поэтому оттуда
+      # берутся исходники ровно цели `input_core` — списком из её же CMakeLists.
       - name: Framework — section readers ASan/UBSan (gates A·2·1/A·2·1b/A·2·6, Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -1959,9 +1982,10 @@ jobs:
           FW=$(find engine/framework/graphics engine/framework/character \
             engine/framework/tilemap engine/framework/physics \
             -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$' | grep -vF "$IMPORT")
+          CORE=$(bash scripts/cmake_target_sources.sh engine/input/CMakeLists.txt input_core)
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_reader_test.cpp \
-            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_reader_san
+            $CORE $COMMON -ldl -lpthread -o preset_reader_san
           ./preset_reader_san | tee reader_san.txt
           grep -q "framework-preset-reader: PASS" reader_san.txt
           # Сквозной прогон «манифест → InputFrame» под тем же санитайзером: карта «строка → ось»
@@ -1970,21 +1994,36 @@ jobs:
           # Под ASan обязаны быть оба, а не один.
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_test.cpp \
-            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_san
+            $CORE $COMMON -ldl -lpthread -o preset_san
           ./preset_san | tee preset_san.txt
           grep -q "framework-preset: PASS" preset_san.txt
           # Второй её вызывающий — прямой вопрос счётчикам, и ровно он бьёт по буферу ШИРИНОЙ
           # РОВНО В ПОТОЛОК формата: запись на единицу мимо обычный прогон не заметит (ревью A·2).
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/input/framework_preset_axes_test.cpp \
-            engine/input/action_map.cpp $COMMON -ldl -lpthread -o preset_axes_san
+            $CORE $COMMON -ldl -lpthread -o preset_axes_san
           ./preset_axes_san | tee preset_axes_san.txt
           grep -q "framework-preset-axes: PASS" preset_axes_san.txt
           # shellcheck disable=SC2086
           c++ $SAN $INC engine/framework/framework_section_align_test.cpp \
-            engine/input/action_map.cpp $COMMON $FW -ldl -lpthread -o section_align_san
+            $CORE $COMMON $FW -ldl -lpthread -o section_align_san
           ./section_align_san | tee align_san.txt
           grep -q "framework-section-align: PASS" align_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_layout_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o layout_san
+          ./layout_san | tee layout_san.txt
+          grep -q "framework-layout: PASS" layout_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_lobby_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o lobby_san
+          ./lobby_san | tee lobby_san.txt
+          grep -q "framework-lobby: PASS - 46 cases" lobby_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_lobby_pause_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o lobby_pause_san
+          ./lobby_pause_san | tee lobby_pause_san.txt
+          grep -q "framework-lobby-pause: PASS - 20 cases" lobby_pause_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —
@@ -2202,6 +2241,7 @@ jobs:
                    framework_replay_test \
                    framework_brawl_test framework_brawl_floor_test \
                    framework_brawl_snapshot_test framework_brawl_crossplay_test \
+                   framework_brawl_seat_test framework_brawl_hotseat_test \
                    framework_brawl_fighter_test framework_brawl_fighter_refusal_test \
                    framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_strike_test \
                    framework_brawl_react_test framework_brawl_chain_test framework_brawl_run_test \
@@ -2341,7 +2381,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_rollback_plan_test framework_rollback_test framework_replay_test framework_brawl_test framework_brawl_floor_test framework_brawl_snapshot_test framework_brawl_crossplay_test framework_brawl_fighter_test framework_brawl_fighter_refusal_test framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_strike_test framework_brawl_chain_test framework_brawl_react_test framework_brawl_run_test framework_brawl_guard_test framework_brawl_dodge_test framework_brawl_grab_test framework_brawl_clash_test framework_brawl_throw_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_rollback_plan_test framework_rollback_test framework_replay_test framework_brawl_test framework_brawl_floor_test framework_brawl_snapshot_test framework_brawl_seat_test framework_brawl_hotseat_test framework_brawl_crossplay_test framework_brawl_fighter_test framework_brawl_fighter_refusal_test framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_strike_test framework_brawl_chain_test framework_brawl_react_test framework_brawl_run_test framework_brawl_guard_test framework_brawl_dodge_test framework_brawl_grab_test framework_brawl_clash_test framework_brawl_throw_test framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -2367,6 +2407,7 @@ jobs:
                    framework_replay_test \
                    framework_brawl_test framework_brawl_floor_test \
                    framework_brawl_snapshot_test framework_brawl_crossplay_test \
+                   framework_brawl_seat_test framework_brawl_hotseat_test \
                    framework_brawl_fighter_test framework_brawl_fighter_refusal_test \
                    framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_strike_test \
                    framework_brawl_react_test framework_brawl_chain_test framework_brawl_run_test \
@@ -2882,6 +2923,8 @@ jobs:
           framework_brawl_test:framework-brawl: PASS
           framework_brawl_floor_test:framework-brawl-floor: PASS
           framework_brawl_snapshot_test:framework-brawl-snapshot: PASS
+          framework_brawl_seat_test:framework-brawl-seat: PASS
+          framework_brawl_hotseat_test:framework-brawl-hotseat: PASS
           framework_brawl_crossplay_test:framework-brawl-crossplay: PASS
           framework_brawl_fighter_test:framework-brawl-fighter: PASS
           framework_brawl_fighter_refusal_test:framework-brawl-fighter-refusal: PASS

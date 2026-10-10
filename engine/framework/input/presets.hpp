@@ -2,7 +2,7 @@
 #include <cstdint>
 #include <cstddef>
 
-#include "action_map.hpp"
+#include "action_layout.hpp"
 #include "pad_profile.hpp"
 #include "preset_format.hpp"
 #include "stick.hpp"
@@ -43,8 +43,8 @@ public:
     // подошло — generic Xbox-раскладка МОЛЧА: неизвестный пад обязан играть из коробки.
     PadProfile profile_for(const ::input::PadInfo& info) const;
 
-    // Заливка пресета в карту действий: действия и оси получают индексы в порядке объявления.
-    bool bind(uint32_t preset, ::input::ActionMap& map, int context = 0) const;
+    // Заливка пресета в раскладку игрока: действия и оси получают индексы в порядке объявления.
+    bool bind(uint32_t preset, ::input::ActionLayout& layout, int context = 0) const;
 
 private:
     const char* string_at(uint32_t offset) const;

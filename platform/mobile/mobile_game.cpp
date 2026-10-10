@@ -38,7 +38,7 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     surface_warned_ = lost_ = false;
     fmt_ = configure_surface(surface, gpu.adapter, gpu.device, fb_w, fb_h);
 
-    // Пресет дописывает привязки, а не заменяет: повторный init без сброса удваивал бы ActionMap.
+    // Сброс целиком: повторный init не наследует от прошлого ни карту, ни накладку перебиндов.
     controls_ = Controls{};
     if (!load_controls(controls_)) {
         std::fprintf(stderr, "[game] controls unavailable\n");
@@ -136,7 +136,7 @@ void MobileGame::frame(WGPUSurface surface) {
     if (demo_ && stick_id_ == -1 && fire_id_ == -1) demo_drive();
     const fix32 dt = fix32::from_float(1.0 / 60);
     const uint32_t t = tick_++;
-    const input::InputFrame& f = engine_->begin_tick(t, 0);
+    const input::InputFrame& f = engine_->begin_tick(t);
     sink_.events.clear();
     step(world_, gs_, f, dt, &sink_);
     fx_.emit(sink_);

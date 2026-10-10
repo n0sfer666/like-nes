@@ -1,24 +1,19 @@
 #include "action_map.hpp"
 
+#include <utility>
+
 namespace input {
+namespace {
 
 // Индекс «пола» контекстного стека: верхний consume-контекст блокирует нижние.
-static int consume_floor(const std::vector<Context>& stack) {
+int consume_floor(const std::vector<Context>& stack) {
     int floor = 0;
     for (int i = 0; i < static_cast<int>(stack.size()); ++i)
         if (stack[i].consume) floor = i;
     return floor;
 }
 
-bool ActionMap::context_active(int ctx) const {
-    if (stack_.empty()) return ctx == 0; // без контекстов активен дефолтный 0
-    int floor = consume_floor(stack_);
-    for (int i = floor; i < static_cast<int>(stack_.size()); ++i)
-        if (stack_[i].id == ctx) return true;
-    return false;
-}
-
-bool ActionMap::source_pressed(const Source& s, const DeviceState& d, const PlayerAssign& pa) const {
+bool source_pressed(const Source& s, const DeviceState& d, const PlayerAssign& pa) {
     switch (s.kind) {
     case SourceKind::Key:         return pa.use_kbd_mouse && d.key_down(s.code);
     case SourceKind::MouseButton: return pa.use_kbd_mouse && d.mouse_down(s.code);
@@ -27,7 +22,7 @@ bool ActionMap::source_pressed(const Source& s, const DeviceState& d, const Play
     }
 }
 
-fix32 ActionMap::source_axis(const Source& s, const DeviceState& d, const PlayerAssign& pa) const {
+fix32 source_axis(const Source& s, const DeviceState& d, const PlayerAssign& pa) {
     switch (s.kind) {
     case SourceKind::PadAxis:
         if (pa.pad_slot < 0) return fix32{};
@@ -43,7 +38,7 @@ fix32 ActionMap::source_axis(const Source& s, const DeviceState& d, const Player
 
 // Линейная мёртвая зона по модулю (целочисл. fix32, детерм.): |v|<=dz → 0; иначе
 // нормализуем остаток на (1-dz), сохраняя знак и диапазон [-1,1].
-static fix32 apply_deadzone(fix32 v, fix32 dz) {
+fix32 apply_deadzone(fix32 v, fix32 dz) {
     if (dz.raw < 0) dz = fix32{};                                  // кламп dz в [0, 1)
     if (dz.raw >= fix32::ONE) dz = fix32::from_raw(fix32::ONE - 1); // denom > 0 гарантирован
     fix32 mag = v.raw < 0 ? -v : v;
@@ -55,16 +50,65 @@ static fix32 apply_deadzone(fix32 v, fix32 dz) {
     return v.raw < 0 ? -scaled : scaled;
 }
 
+} // namespace
+
+bool ActionMap::context_active(int ctx) const {
+    if (stack_.empty()) return ctx == 0; // без контекстов активен дефолтный 0
+    int floor = consume_floor(stack_);
+    for (int i = floor; i < static_cast<int>(stack_.size()); ++i)
+        if (stack_[i].id == ctx) return true;
+    return false;
+}
+
+bool ActionMap::shared_with_others(int player, const ActionLayout& l, const PlayerAssign& pa,
+                                   SharedInput* shared) const {
+    for (int other = 0; other < MAX_PLAYERS; ++other) {
+        Source src;
+        if (other == player || !find_shared_input(l, pa, layouts_[other], players_[other], src)) continue;
+        if (shared != nullptr) {
+            const bool pad = src.kind == SourceKind::PadButton || src.kind == SourceKind::PadAxis;
+            *shared = {player, other, src, pad ? pa.pad_slot : -1};
+        }
+        return true;
+    }
+    return false;
+}
+
+bool ActionMap::set_layout(int player, ActionLayout layout, SharedInput* shared) {
+    if (player < 0 || player >= MAX_PLAYERS) return false;
+    if (shared_with_others(player, layout, players_[player], shared)) return false;
+    layouts_[player] = std::move(layout);
+    return true;
+}
+
+bool ActionMap::assign_player(int player, PlayerAssign a, SharedInput* shared) {
+    if (player < 0 || player >= MAX_PLAYERS) return false;
+    if (shared_with_others(player, layouts_[player], a, shared)) return false;
+    players_[player] = a;
+    return true;
+}
+
+const ActionLayout& ActionMap::layout(int player) const {
+    static const ActionLayout NOBODY;
+    return player >= 0 && player < MAX_PLAYERS ? layouts_[player] : NOBODY;
+}
+
+PlayerAssign ActionMap::assignment(int player) const {
+    return player >= 0 && player < MAX_PLAYERS ? players_[player] : PlayerAssign{};
+}
+
 InputFrame ActionMap::resolve(const DeviceState& d, int player, uint32_t tick, uint64_t prev_held) const {
     InputFrame f;
     f.tick = tick;
-    const PlayerAssign& pa = (player >= 0 && player < MAX_PLAYERS) ? players_[player] : players_[0];
+    if (player < 0 || player >= MAX_PLAYERS) return f;
+    const PlayerAssign& pa = players_[player];
+    const ActionLayout& layout = layouts_[player];
 
-    for (const ActionBinding& b : buttons_) {
+    for (const ActionBinding& b : layout.buttons()) {
         if (!context_active(b.context)) continue;
         if (source_pressed(b.src, d, pa)) f.held |= (1ull << b.action); // OR-семантика
     }
-    for (const AxisBinding& b : axes_) {
+    for (const AxisBinding& b : layout.axes()) {
         if (!context_active(b.context)) continue;
         if (b.axis < 0 || b.axis >= MAX_AXES) continue;
         fix32 v;

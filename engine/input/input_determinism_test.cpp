@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <vector>
 #include "action_map.hpp"
 #include "codes.hpp"
@@ -55,18 +56,19 @@ static void emit_tick(InputEngine& e, const TickInput& cur, const TickInput& pre
 }
 
 static ActionMap make_map() {
-    ActionMap m;
-    m.bind(A_Jump, {SourceKind::Key, c::Space, 1});
-    m.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
-    m.bind(A_Fire, {SourceKind::MouseButton, c::MLeft, 1});
-    m.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
-    m.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
+    ActionLayout l;
+    l.bind(A_Jump, {SourceKind::Key, c::Space, 1});
+    l.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
+    l.bind(A_Fire, {SourceKind::MouseButton, c::MLeft, 1});
+    l.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
+    l.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
     // Мышь со scale=1/16 → дельта (0..3 px) остаётся суб-единичной и НЕ клампится dead-zone →
     // ВЕЛИЧИНА суммы дельт входит в sim-hash: гейт реально ловит регресс суммирования/частоты.
-    m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 16));
-    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
+    l.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 16));
+    l.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
+    ActionMap m;
     PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0;
-    m.assign_player(0, pa);
+    if (!m.set_layout(0, l) || !m.assign_player(0, pa)) { printf("input-determinism: FAIL - map refused\n"); exit(1); }
     return m;
 }
 
@@ -82,7 +84,7 @@ static uint64_t run(const ActionMap& map, uint32_t ticks, int density, std::vect
     for (uint32_t t = 0; t < ticks; ++t) {
         TickInput cur = scenario(t);
         emit_tick(e, cur, prev, density);
-        const InputFrame& f = e.begin_tick(t, 0);
+        const InputFrame& f = e.begin_tick(t);
         sim_step(st, f);
         h = hash_state(st, f, h);
         prev = cur;

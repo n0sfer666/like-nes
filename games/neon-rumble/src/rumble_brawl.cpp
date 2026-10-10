@@ -4,9 +4,13 @@
 #include <cstdio>
 #include <cstring>
 
+#include "body_hash.hpp"
 #include "brawl_step.hpp"
+#include "hash_mix.hpp"
 #include "object_read.hpp"
 #include "rumble_level.hpp"
+#include "seat_hash.hpp"
+#include "seat_step.hpp"
 
 namespace rumble {
 
@@ -58,8 +62,8 @@ bool on_floor(const br::DepthFloor& floor, fix32 x, fix32 z) {
     return true;
 }
 
-bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthFloor& floor, const Kinds& kinds,
-                  br::BodyPool& pool) {
+bool read_spawns(const Level& level, const tl::ObjectMap& map, const br::DepthFloor& floor, const Kinds& kinds,
+                 std::array<br::Body, FIGHTERS>& out) {
     const auto spawns = tl::objects_of_class(map, "spawn");
     for (uint32_t i = 0; i < FIGHTERS; ++i) {
         const RosterEntry& r = ROSTER[i];
@@ -71,7 +75,8 @@ bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthF
                          r.fighter);
             return false;
         }
-        br::Body b;
+        br::Body& b = out[i];
+        b = br::Body{};
         b.pos.x = fix32::from_raw(it->x_raw);
         b.pos.z = fix32::from_raw(it->y_raw);
         b.facing = facing_of(map, *it);
@@ -84,18 +89,12 @@ bool spawn_roster(const Level& level, const tl::ObjectMap& map, const br::DepthF
                          level.name, r.spawn);
             return false;
         }
-        if (pool.spawn(b) == br::EntId{}) {
-            std::fprintf(stderr, "neon-rumble: body pool is full, %s is not spawned\n", r.fighter);
-            return false;
-        }
     }
     return true;
 }
 
-br::BrawlInput standing() {
-    br::BrawlInput in;
-    in.present = true;
-    return in;
+std::span<const br::Body, br::SEATS> seat_spawns(const std::array<br::Body, FIGHTERS>& spawns) {
+    return std::span<const br::Body, br::SEATS>(spawns.data(), br::SEATS);
 }
 
 uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
@@ -113,41 +112,76 @@ bool Brawl::open(const Level& level, const Fighters& fighters) {
     floor = br::DepthFloor{};
     pool = br::BodyPool{};
     events = br::HitEvents{};
-    player = PlayerCommand{};
+    seats = br::Seats{};
+    players = {};
     tl::ObjectTable objects;
     if (!kinds.open(level, fighters) || !level.open_objects(objects)) return false;
     const tl::ObjectMap map = objects.find(level.name);
-    return read_floor(level, map, floor) && spawn_roster(level, map, floor, kinds, pool);
+    if (!read_floor(level, map, floor) || !read_spawns(level, map, floor, kinds, spawns)) return false;
+    std::array<br::BrawlInput, br::SEATS> first{};
+    first[PLAYER].present = true;
+    br::step_seats(seats, pool, first, seat_spawns(spawns));
+    return !(pool.spawn(spawns[DUMMY]) == br::EntId{});
 }
 
+// Тело с hp 0 снимается до шага, а не сразу после: удар, выбивший его, ещё попадает в отчёт тика,
+// а step_seats ставит место новым телом на спавне в этом же тике.
 void Brawl::step() {
-    for (uint32_t i = 0; i < FIGHTERS; ++i) {
-        hp_before[i] = body(i).hp;
-        react_before[i] = body(i).react;
+    for (const br::Seat& s : seats.at) {
+        const br::Body* b = s.present ? pool.find(s.body) : nullptr;
+        if (b != nullptr && b->hp <= 0) pool.despawn(s.body);
     }
-    std::array<br::Command, FIGHTERS> commands{};
-    for (br::Command& c : commands) c.input = standing();
-    commands[PLAYER] = {player.input, strike_of(player.attack, kinds.player, body(PLAYER))};
+    std::array<br::BrawlInput, br::SEATS> inputs{};
+    for (uint32_t p = 0; p < br::SEATS; ++p) inputs[p] = players[p].input;
+    br::step_seats(seats, pool, inputs, seat_spawns(spawns));
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        const br::Body* b = find(i);
+        hp_before[i] = b != nullptr ? b->hp : 0;
+        react_before[i] = b != nullptr ? b->react : br::Reaction::None;
+    }
+    std::array<br::Command, br::POOL_CAPACITY> commands{};
+    br::seat_commands(seats, pool, inputs, commands);
+    for (uint32_t i = 0; i < pool.count; ++i) {
+        const br::Body& b = pool.bodies[i];
+        if (b.kind < br::SEATS) commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
+    }
     const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}};
-    br::step_brawl(pool, commands, world, events);
+    br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
+}
+
+const br::Body* Brawl::find(uint32_t fighter) const {
+    for (uint32_t i = 0; i < pool.count; ++i)
+        if (pool.bodies[i].kind == fighter) return &pool.bodies[i];
+    return nullptr;
 }
 
 uint32_t Brawl::fighter_of(br::EntId id) const {
-    for (uint32_t i = 0; i < FIGHTERS; ++i)
-        if (body(i).id == id) return i;
-    return FIGHTERS;
+    const br::Body* b = pool.find(id);
+    return b != nullptr ? b->kind : FIGHTERS;
 }
 
 DrawOrder Brawl::draw_order() const {
-    DrawOrder order{};
-    for (uint32_t i = 0; i < FIGHTERS; ++i) order[i] = i;
-    std::sort(order.begin(), order.end(), [&](uint32_t a, uint32_t b) {
-        const br::Body& p = body(a);
-        const br::Body& q = body(b);
-        if (p.pos.z.raw != q.pos.z.raw) return p.pos.z.raw < q.pos.z.raw;
-        return p.id.seq < q.id.seq;
+    DrawOrder order;
+    for (uint32_t i = 0; i < FIGHTERS; ++i) {
+        order.at[i] = i;
+        if (find(i) != nullptr) ++order.count;
+    }
+    // Весь массив, а не префикс длины count: GCC 13 -O3 на sort по переменной длине выдаёт ложный
+    // array-bounds. Бойцы не на улице уходят в хвост и за count не видны.
+    std::sort(order.at.begin(), order.at.end(), [&](uint32_t a, uint32_t b) {
+        const br::Body* p = find(a);
+        const br::Body* q = find(b);
+        if (p == nullptr || q == nullptr) return p != nullptr && q == nullptr;
+        if (p->pos.z.raw != q->pos.z.raw) return p->pos.z.raw < q->pos.z.raw;
+        return p->id.seq < q->id.seq;
     });
     return order;
+}
+
+uint64_t Brawl::hash() const {
+    uint64_t h = br::state_hash(pool);
+    framework::physics::mix_u64(h, br::seats_hash(seats));
+    return h;
 }
 
 } // namespace rumble

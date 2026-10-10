@@ -12,20 +12,21 @@ set(LIKE_NES_SDK_HEADERS
   platform/platform_module.hpp platform/platform_noinline.hpp platform/platform_path.hpp
   platform/platform_process.hpp platform/platform_redact.hpp platform/platform_shmem.hpp
   platform/platform_watch.hpp
-  input/action_map.hpp input/codes.hpp input/device_state.hpp input/input_buffer.hpp
-  input/input_engine.hpp input/input_sim.hpp input/input_spsc.hpp input/input_types.hpp
-  input/source.hpp
+  input/action_layout.hpp input/action_map.hpp input/action_shared.hpp input/codes.hpp
+  input/device_state.hpp input/input_buffer.hpp input/input_engine.hpp input/input_sim.hpp
+  input/input_spsc.hpp input/input_types.hpp input/player_assign.hpp input/source.hpp
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
   render/surface_frame.hpp render/quad_batch.hpp
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
   framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
-  framework/input/pad_profile.hpp framework/input/pad_registry.hpp
+  framework/input/pad_profile.hpp framework/input/pad_registry.hpp framework/input/player_layout.hpp
   framework/input/preset_axes.hpp framework/input/preset_bake.hpp
   framework/input/preset_format.hpp framework/input/preset_parse.hpp
-  framework/input/presets.hpp framework/input/rebind_session.hpp
+  framework/input/presets.hpp framework/input/profile_file.hpp framework/input/rebind_session.hpp
   framework/input/rebind_store.hpp framework/input/source_names.hpp
-  framework/input/stick.hpp
+  framework/input/stick.hpp framework/input/seat_state.hpp framework/input/layout_keys.hpp
+  framework/input/lobby.hpp
   framework/physics/axis_terms.hpp framework/physics/body.hpp framework/physics/broadphase.hpp
   framework/physics/cast.hpp framework/physics/contact.hpp framework/physics/counters.hpp
   framework/physics/distance.hpp framework/physics/event_hash.hpp framework/physics/events.hpp
@@ -77,15 +78,17 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/archetype_chain.hpp framework/brawl/fighter_chain.hpp framework/brawl/fighter_name.hpp
   framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/fighter_move_parse.hpp
   framework/brawl/body_guard.hpp framework/brawl/grip.hpp framework/brawl/hit_grab.hpp framework/brawl/hit_strike.hpp
+  framework/brawl/seat.hpp framework/brawl/seat_step.hpp framework/brawl/seat_hash.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
   framework_core framework_input framework_physics framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
-  framework_brawl framework_brawl_fighter asset_view input_core platform_core render_core render_surface glfw glfw3webgpu)
+  framework_brawl framework_brawl_fighter asset_view input_core input_native platform_core render_core
+  render_surface glfw glfw3webgpu)
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
-# То, что видит игра под like-nes::engine; окно — отдельно, like-nes::window.
+# То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
   engine_core asset_hash asset_view platform_core input_core render_core render_surface
   framework_core framework_input framework_physics framework_tilemap framework_character

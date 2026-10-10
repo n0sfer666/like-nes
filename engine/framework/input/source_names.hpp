@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 
-#include "action_map.hpp"
+#include "action_layout.hpp"
 
 // Имена источников ввода в текстовом манифесте пресетов: `key:W`, `pad:south`, `padaxis:-ly`,
 // `mouse:left`, `trigger:rt`. Разбор нужен `assetc` при бейке, обратное преобразование — UI

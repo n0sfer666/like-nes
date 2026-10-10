@@ -1,5 +1,6 @@
 #include <chrono>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 #include <GLFW/glfw3.h>
 #include "action_map.hpp"
@@ -18,23 +19,25 @@ static const char* kActionName[] = {"Jump", "Fire"};
 static const char* kAxisName[] = {"MoveX", "MoveY", "AimX", "AimY"};
 
 static ActionMap make_map() {
-    ActionMap m;
-    m.bind(A_Jump, {SourceKind::Key, c::Space, 1});
-    m.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
-    m.bind(A_Fire, {SourceKind::MouseButton, c::MLeft, 1});
-    m.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
-    m.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
-    m.bind_axis(AX_MoveX, {SourceKind::PadAxis, c::LX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
-    m.bind_axis(AX_MoveY, {SourceKind::Key, c::W, 1}, {SourceKind::Key, c::S, 1}, fix32{}, 0);
+    ActionLayout l;
+    l.bind(A_Jump, {SourceKind::Key, c::Space, 1});
+    l.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
+    l.bind(A_Fire, {SourceKind::MouseButton, c::MLeft, 1});
+    l.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
+    l.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
+    l.bind_axis(AX_MoveX, {SourceKind::PadAxis, c::LX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
+    l.bind_axis(AX_MoveY, {SourceKind::Key, c::W, 1}, {SourceKind::Key, c::S, 1}, fix32{}, 0);
     // sign -1: клавиша W выше даёт +MoveY (вверх), а сырая LY по контракту codes.hpp растёт ВНИЗ —
     // без инверсии пад и клавиатура в одном и том же демо ехали бы в разные стороны.
-    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, -1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
+    l.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, -1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
     // Мышь/трекпад: scale 1/32 → дельта видна пропорционально (не мгновенный clamp до ±1). 2D-aim.
-    m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 32));
-    m.bind_axis(AX_AimX, {SourceKind::PadAxis, c::RX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
-    m.bind_axis(AX_AimY, {SourceKind::MouseAxis, c::MAxY, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 32));
-    m.bind_axis(AX_AimY, {SourceKind::PadAxis, c::RY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
-    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0; m.assign_player(0, pa);
+    l.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 32));
+    l.bind_axis(AX_AimX, {SourceKind::PadAxis, c::RX, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
+    l.bind_axis(AX_AimY, {SourceKind::MouseAxis, c::MAxY, 1}, {SourceKind::None, 0, 0}, fix32{}, 0, fix32::from_float(1.0 / 32));
+    l.bind_axis(AX_AimY, {SourceKind::PadAxis, c::RY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.15), 0);
+    ActionMap m;
+    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0;
+    if (!m.set_layout(0, l) || !m.assign_player(0, pa)) { printf("input-demo: FAIL - map refused\n"); exit(1); }
     return m;
 }
 
@@ -79,7 +82,7 @@ int main() {
         std::this_thread::sleep_until(next);          // кап частоты: дельта мыши копится за кадр
         glfwPollEvents();                 // kbd/mouse/focus → engine.post
         if (have_pad_backend) pad->poll(engine); // native gamepad → engine.post
-        const InputFrame& f = engine.begin_tick(t, 0);
+        const InputFrame& f = engine.begin_tick(t);
 
         for (int s = 0; s < MAX_DEVICES; ++s) {
             bool now = engine.device().pad_connected[s];

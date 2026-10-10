@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <vector>
 
+#include "action_map.hpp"
 #include "codes.hpp"
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
@@ -50,14 +51,15 @@ int main() {
         return 1;
     }
     ::input::ActionMap map;
-    if (!table.bind(0, map)) {
+    ::input::ActionLayout layout;
+    if (!table.bind(0, layout) || !map.set_layout(0, layout)) {
         std::printf("  FAIL: preset did not bind\n");
         return 1;
     }
-    ::input::PlayerAssign assign;
-    assign.use_kbd_mouse = true;
-    assign.pad_slot = 0;
-    map.assign_player(0, assign);
+    if (!map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true})) {
+        std::printf("  FAIL: devices were not assigned\n");
+        return 1;
+    }
 
     framework::Schedule sched;
     framework::SystemDesc d;

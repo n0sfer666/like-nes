@@ -1,5 +1,6 @@
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 #include "action_map.hpp"
 #include "codes.hpp"
@@ -36,13 +37,15 @@ static void emit(InputEngine& e, const TickInput& cur, const TickInput& prev) {
 }
 
 static ActionMap make_map() {
+    ActionLayout l;
+    l.bind(A_Jump, {SourceKind::Key, c::Space, 1});
+    l.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
+    l.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
+    l.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0);
+    l.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
     ActionMap m;
-    m.bind(A_Jump, {SourceKind::Key, c::Space, 1});
-    m.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
-    m.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
-    m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0);
-    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
-    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0; m.assign_player(0, pa);
+    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0;
+    if (!m.set_layout(0, l) || !m.assign_player(0, pa)) { printf("input-race: FAIL - map refused\n"); exit(1); }
     return m;
 }
 
@@ -52,7 +55,7 @@ static uint64_t single_thread(uint32_t T) {
     SimState st; uint64_t h = asset::FNV_OFFSET; TickInput prev{false, false, 0, 0, 0}; g_seq = 0;
     for (uint32_t t = 0; t < T; ++t) {
         TickInput cur = scenario(t); emit(e, cur, prev);
-        while (!e.begin_tick_marked(t, 0)) {}
+        while (!e.begin_tick_marked(t)) {}
         sim_step(st, e.frame()); h = hash_state(st, e.frame(), h); prev = cur;
     }
     return h;
@@ -82,7 +85,7 @@ static uint64_t threaded(uint32_t T) {
     SimState st; uint64_t h = asset::FNV_OFFSET;
     for (uint32_t t = 0; t < T; ++t) {
         spin((t % 3) * 30); // джиттер консюмера
-        while (!e.begin_tick_marked(t, 0)) spin(64);
+        while (!e.begin_tick_marked(t)) spin(64);
         sim_step(st, e.frame()); h = hash_state(st, e.frame(), h);
         consumer_tick.store(t + 1, std::memory_order_release);
     }
