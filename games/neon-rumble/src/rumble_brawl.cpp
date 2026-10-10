@@ -106,74 +106,83 @@ uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
     return br::NO_STRIKE;
 }
 
+bool read_foes(const Level& level, const br::DepthFloor& floor, const br::Body& leader,
+               std::array<br::Body, WAVE_FOES>& out) {
+    for (uint32_t i = 0; i < WAVE_FOES; ++i) {
+        out[i] = leader;
+        out[i].pos.x = leader.pos.x + fix32::from_int(FORMATION[i].x);
+        out[i].pos.z = leader.pos.z + fix32::from_int(FORMATION[i].z);
+        if (on_floor(floor, out[i].pos.x, out[i].pos.z)) continue;
+        std::fprintf(stderr, "neon-rumble: level %s: wave foe %u is outside the depth band or inside a wall\n",
+                     level.name, i);
+        return false;
+    }
+    return true;
+}
+
 } // namespace
 
-bool Brawl::open(const Level& level, const Fighters& fighters) {
+bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
     floor = br::DepthFloor{};
     pool = br::BodyPool{};
     events = br::HitEvents{};
     seats = br::Seats{};
     players = {};
+    wave = Wave{};
+    wave.on = waves;
     tl::ObjectTable objects;
     if (!kinds.open(level, fighters) || !level.open_objects(objects)) return false;
     const tl::ObjectMap map = objects.find(level.name);
     if (!read_floor(level, map, floor) || !read_spawns(level, map, floor, kinds, spawns)) return false;
+    if (waves && !read_foes(level, floor, spawns[DUMMY], wave.foes)) return false;
     std::array<br::BrawlInput, br::SEATS> first{};
     first[PLAYER].present = true;
     br::step_seats(seats, pool, first, seat_spawns(spawns));
+    if (waves) return wave.open(pool);
     return !(pool.spawn(spawns[DUMMY]) == br::EntId{});
 }
 
 // Тело с hp 0 снимается до шага, а не сразу после: удар, выбивший его, ещё попадает в отчёт тика,
-// а step_seats ставит место новым телом на спавне в этом же тике.
+// а step_seats ставит место новым телом на спавне в этом же тике. Манекен вне волны не снимается.
 void Brawl::step() {
-    for (const br::Seat& s : seats.at) {
-        const br::Body* b = s.present ? pool.find(s.body) : nullptr;
-        if (b != nullptr && b->hp <= 0) pool.despawn(s.body);
+    knocked.count = 0;
+    for (uint32_t i = 0; i < pool.count; ++i) {
+        const br::Body& b = pool.bodies[i];
+        if (b.hp <= 0 && (b.team == 0 || wave.on)) knocked.at[knocked.count++] = Knockout{b.id, b.kind};
     }
+    for (uint32_t i = 0; i < knocked.count; ++i) pool.despawn(knocked.at[i].body);
     std::array<br::BrawlInput, br::SEATS> inputs{};
     for (uint32_t p = 0; p < br::SEATS; ++p) inputs[p] = players[p].input;
     br::step_seats(seats, pool, inputs, seat_spawns(spawns));
-    for (uint32_t i = 0; i < FIGHTERS; ++i) {
-        const br::Body* b = find(i);
-        hp_before[i] = b != nullptr ? b->hp : 0;
-        react_before[i] = b != nullptr ? b->react : br::Reaction::None;
+    if (wave.on) wave.refill(pool);
+    for (uint32_t i = 0; i < pool.count; ++i) {
+        hp_before[i] = pool.bodies[i].hp;
+        react_before[i] = pool.bodies[i].react;
     }
     std::array<br::Command, br::POOL_CAPACITY> commands{};
     br::seat_commands(seats, pool, inputs, commands);
     for (uint32_t i = 0; i < pool.count; ++i) {
         const br::Body& b = pool.bodies[i];
-        if (b.kind < br::SEATS) commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
+        if (b.team == 0 && b.kind < br::SEATS)
+            commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
     }
     const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}};
+    if (wave.on) wave.think(pool, seats, world, commands);
     br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
-}
-
-const br::Body* Brawl::find(uint32_t fighter) const {
-    for (uint32_t i = 0; i < pool.count; ++i)
-        if (pool.bodies[i].kind == fighter) return &pool.bodies[i];
-    return nullptr;
-}
-
-uint32_t Brawl::fighter_of(br::EntId id) const {
-    const br::Body* b = pool.find(id);
-    return b != nullptr ? b->kind : FIGHTERS;
 }
 
 DrawOrder Brawl::draw_order() const {
     DrawOrder order;
-    for (uint32_t i = 0; i < FIGHTERS; ++i) {
-        order.at[i] = i;
-        if (find(i) != nullptr) ++order.count;
-    }
+    for (uint32_t i = 0; i < order.at.size(); ++i) order.at[i] = i;
+    order.count = pool.count;
     // Весь массив, а не префикс длины count: GCC 13 -O3 на sort по переменной длине выдаёт ложный
-    // array-bounds. Бойцы не на улице уходят в хвост и за count не видны.
+    // array-bounds. Пустые слоты уходят в хвост и за count не видны.
     std::sort(order.at.begin(), order.at.end(), [&](uint32_t a, uint32_t b) {
-        const br::Body* p = find(a);
-        const br::Body* q = find(b);
-        if (p == nullptr || q == nullptr) return p != nullptr && q == nullptr;
-        if (p->pos.z.raw != q->pos.z.raw) return p->pos.z.raw < q->pos.z.raw;
-        return p->id.seq < q->id.seq;
+        if (a >= pool.count || b >= pool.count) return a < pool.count && b >= pool.count;
+        const br::Body& p = pool.bodies[a];
+        const br::Body& q = pool.bodies[b];
+        if (p.pos.z.raw != q.pos.z.raw) return p.pos.z.raw < q.pos.z.raw;
+        return p.id.seq < q.id.seq;
     });
     return order;
 }
@@ -181,6 +190,7 @@ DrawOrder Brawl::draw_order() const {
 uint64_t Brawl::hash() const {
     uint64_t h = br::state_hash(pool);
     framework::physics::mix_u64(h, br::seats_hash(seats));
+    if (wave.on) framework::physics::mix_u64(h, wave.hash());
     return h;
 }
 

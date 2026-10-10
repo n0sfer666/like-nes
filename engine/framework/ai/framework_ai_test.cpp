@@ -3,13 +3,16 @@
 #include <vector>
 
 #include "ai_step.hpp"
+#include "framework_ai_target_test.hpp"
 #include "framework_brawl_check.hpp"
 
 namespace {
 
 using namespace framework::ai;
+using framework::brawl::Archetype;
 using framework::brawl::Body;
 using framework::brawl::BodyPool;
+using framework::brawl::BrawlWorld;
 using framework::brawl::Command;
 using framework::brawl::EntId;
 using framework::brawl::test::check;
@@ -64,9 +67,11 @@ void test_brains_are_ordered_by_seq() {
 }
 
 std::vector<uint32_t> order;
+size_t kinds_seen = 0;
 
 void note(Mind& m, Command& out) {
     order.push_back(m.body.id.seq);
+    kinds_seen = m.world.kinds.size();
     out.strike = m.brain.timer;
 }
 
@@ -84,9 +89,11 @@ void test_step_ai_walks_brains_in_seq_order() {
     pool.despawn(c);
     std::vector<Command> cmd(pool.count);
     const std::array<Think, 1> states{note};
+    const std::array<Archetype, 3> kinds{};
     order.clear();
-    step_ai(ai, pool, 1, states, cmd);
+    step_ai(ai, pool, BrawlWorld{kinds, nullptr, {}}, 1, states, cmd);
     check(order == std::vector<uint32_t>{a.seq, b.seq}, "live brains think in seq order, not insertion order");
+    check(kinds_seen == kinds.size(), "a state sees the brawl world it was stepped in");
     check(ai.brains.count == 2 && find_brain(ai.brains, c) == nullptr, "the brain of a vanished body is dropped");
     check(ai.brains.at[0].target.seq == 0, "a target without a body is cleared");
     check(cmd[0].strike == 2, "the timer ran down before the state was called");
@@ -102,7 +109,7 @@ void test_step_ai_skips_what_it_cannot_run() {
     std::vector<Command> cmd(1);
     const std::array<Think, 1> states{note};
     order.clear();
-    step_ai(ai, pool, 1, states, cmd);
+    step_ai(ai, pool, BrawlWorld{}, 1, states, cmd);
     check(order.empty(), "neither a state outside the table nor a slot past the commands runs");
     check(holds_token(ai.tokens, a) && cmd[0].strike == Command{}.strike, "the skipped brain keeps its token and command");
 }
@@ -119,7 +126,7 @@ void test_a_dead_holder_hands_over_in_the_same_step() {
     pool.despawn(b);
     std::vector<Command> cmd(pool.count);
     const std::array<Think, 1> states{grab};
-    step_ai(ai, pool, 1, states, cmd);
+    step_ai(ai, pool, BrawlWorld{}, 1, states, cmd);
     check(ai.tokens.count == 1 && holds_token(ai.tokens, a), "the token of a vanished body is released before anyone thinks");
 }
 
@@ -176,5 +183,6 @@ int main() {
     test_step_ai_skips_what_it_cannot_run();
     test_a_dead_holder_hands_over_in_the_same_step();
     test_rng_is_pinned();
+    framework::ai::test::test_nearest_body();
     return framework::brawl::test::verdict("framework-ai");
 }

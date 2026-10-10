@@ -89,7 +89,33 @@ int32_t mutual_hp(bool right_first, bool split) {
     return d.pool.bodies[0].hp + d.pool.bodies[1].hp * 1000;
 }
 
+struct Trade {
+    uint32_t kept = 0;
+    uint32_t remembered = 0;
+};
+
+Trade mutual_trade() {
+    Duel d;
+    face_off(d, false);
+    const std::vector<Command> jabs{test::strike(d.arena, d.arena.jab), test::strike(d.arena, d.arena.jab)};
+    Trade out;
+    for (int t = 0; t < 3; ++t) {
+        HitEvents events;
+        step_brawl(d.pool, t == 0 ? jabs : std::vector<Command>(2), d.arena.world(), events);
+        for (uint32_t i = 0; i < events.count; ++i) {
+            const HitEvent& e = events.at[i];
+            out.kept += e.kept ? 1 : 0;
+            const Body* a = d.pool.find(e.attacker);
+            out.remembered += a != nullptr && a->struck.has(e.target, e.box) ? 1 : 0;
+        }
+    }
+    return out;
+}
+
 void test_mutual_hit() {
+    const Trade trade = mutual_trade();
+    check(trade.kept == 2, "both hits of a mutual jab are marked kept on their events");
+    check(trade.remembered == 0, "control: the struck list of a fighter hit in the same tick forgets his hit");
     check(mutual_hp(false, false) == 95095, "a mutual jab in one tick hits both fighters");
     check(mutual_hp(true, false) == 95095, "the mutual outcome does not depend on the seq order");
     check(mutual_hp(false, true) != 95095, "control: applying inside the collect loses the mutual hit");
@@ -130,8 +156,8 @@ void test_dropped_hit() {
     for (uint32_t i = 0; i < MAX_STRUCK; ++i) a.struck.add(EntId{900 + i}, 1);
     HitEvents e;
     step_brawl(d.pool, std::vector<Command>(2), d.arena.world(), e);
-    check(e.count == 1 && e.dropped == 1 && a.hitstop == 0 && t.hp == 100 && t.hitstop == 0,
-          "a hit the struck list cannot remember neither lands nor freezes anyone");
+    check(e.count == 1 && e.dropped == 1 && !e.at[0].kept && a.hitstop == 0 && t.hp == 100 && t.hitstop == 0,
+          "a hit the struck list cannot remember neither lands, nor freezes anyone, nor is marked kept");
 }
 
 } // namespace

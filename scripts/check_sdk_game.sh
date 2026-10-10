@@ -2,8 +2,9 @@
 # Гейт SDK (спека #24, В1, В4): игра собирается ПРОТИВ ПОСТАВЛЕННОГО ПРЕФИКСА, а не против дерева.
 # Поставить компонент sdk из двух своих каталогов (Release и Debug) в один временный префикс,
 # собрать games/neon-rumble в обеих конфигурациях через find_package(like-nes) и прогнать
-# `--headless --frames 480`. Сборка внутри дерева этого не доказывает: там видны все заголовки и
-# все цели, и забытый в списке поставки заголовок или библиотека проявились бы только у игрока.
+# `--headless --frames 480` и `--headless --wave --frames 1980`. Сборка внутри дерева этого не
+# доказывает: там видны все заголовки и все цели, и забытый в списке поставки заголовок или
+# библиотека проявились бы только у игрока.
 # С В4 сборка печёт game.bundle поставленным assetc по game.manifest, и его bundle_hash рядом с
 # exe сверяется с закоммиченным games/neon-rumble/bundle.hash в обеих конфигурациях.
 #
@@ -63,6 +64,7 @@ sdk_build build-sdk-debug Debug like_nes_sdk || exit 1
 for cfg in Release Debug; do
     if game_build "$ROOT/games/neon-rumble" "$OUT/game-$cfg" "$cfg"; then
         game_run "$OUT/game-$cfg" "$cfg" || FAIL=1
+        game_wave_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
     else
         tail -30 "$OUT/game-$cfg.log"

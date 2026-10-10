@@ -13,8 +13,8 @@ void drop_brain(AiState& ai, uint32_t i) {
 
 } // namespace
 
-void step_ai(AiState& ai, const brawl::BodyPool& pool, uint32_t tick, std::span<const Think> states,
-             std::span<brawl::Command> commands) {
+void step_ai(AiState& ai, const brawl::BodyPool& pool, const brawl::BrawlWorld& world, uint32_t tick,
+             std::span<const Think> states, std::span<brawl::Command> commands) {
     expire_tokens(ai.tokens, tick);
     for (uint32_t i = ai.brains.count; i-- > 0;)
         if (pool.find(ai.brains.at[i].body) == nullptr) drop_brain(ai, i);
@@ -25,7 +25,7 @@ void step_ai(AiState& ai, const brawl::BodyPool& pool, uint32_t tick, std::span<
         if (b.timer > 0) --b.timer;
         const auto slot = static_cast<size_t>(body - pool.bodies.data());
         if (b.state >= states.size() || slot >= commands.size()) continue;
-        Mind mind{b, *body, pool, ai.tokens, ai.rng, tick};
+        Mind mind{b, *body, pool, world, ai.tokens, ai.rng, tick};
         states[b.state](mind, commands[slot]);
     }
 }

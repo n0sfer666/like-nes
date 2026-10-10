@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 30 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 16 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 31 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 17 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -46,6 +46,7 @@ names that surface.
 | Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
 | Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
 | Two players on two devices: a pad or a key joins, the banner asks, a pulled pad pauses and comes back, each leaves on his own key | [#25](../.context/specs/2026-10-05-brawl-framework.md) 9 | **all three**, with two pads and a keyboard with a numpad | — | `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_banner.*`, `engine/framework/input/lobby*`, `engine/input/source_*` |
+| Three AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back on his spawn, a cleared wave is followed by a new one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -4014,10 +4015,9 @@ Run from the repository root on each of the three OSes (Windows: from the
    pause of step 4, with the number of the player who held it. Plug it back, press a button; then
    Back on each pad takes off its own player.
 
-A knock-out is not reachable here: nobody strikes the players until the AI of B5. Its rule — the
-fighter with hp 0 is taken off and a new one stands on his spawn on the next tick — is half pinned:
-`framework_brawl_seat_test` pins that a seat whose body was taken off gets a new one, while the
-taking off at hp 0 is the game's code and has no test yet. As in §21, on a 120 Hz screen everything runs twice as fast.
+A knock-out is not reachable here: nobody strikes the players in this mode. It is reachable with
+`--wave` (§30), and its rule — the fighter with hp 0 is taken off and a new one stands on his spawn
+in the same tick — is pinned by the `--wave` run of the gate. As in §21, on a 120 Hz screen everything runs twice as fast.
 
 What counts as a finding: a join without the two `seat` lines, or the lines without a fighter on his
 spawn; a joining press that also jumps or strikes; a button of a seated pad that seats anyone else; a
@@ -4034,9 +4034,83 @@ dropped».
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 30. Gate 10 of #25 — a wave of AI enemies
+
+<!-- gate: open | окно neon_rumble --wave на любой ОС: три adler встают кольцом вокруг banderas, сближается и бьёт по одному, остальные держатся сбоку от его линии; стоя на месте, дождаться нокаута — строка knockout и banderas на спавне с hp 100; выбить всех трёх — wave N cleared и через ~2 с новая тройка на тех же местах; с P2 (нампад 1) бьют по двое; прислать строки knockout/wave и снимок кольца -->
+
+B5 of spec #25 brought `framework::ai`: a world RNG in the snapshot, attack tokens and brains stepped
+in `seq` order. B5b put it into Neon Rumble behind `--wave`: instead of the dummy, three copies of
+Adler stand on his spawn and two points to its right, each with a brain of two states. Without the
+token an enemy walks to a point 64–96 px (by his `seq`) to the side of his target and 12 px off his
+line in depth — the ring; with the token he closes in, turns and jabs, and gives the token back when
+it times out (90 ticks), when he is hit or when the target is gone. The target is the nearest living
+player by `|dx| + |dz|`, the lower seat on a tie; it is chosen anew on every tick in the ring and kept
+while he closes in. One player gives one token, two players give two. A body with hp 0 is taken off
+at the start of the next tick; a player's seat gets a new body on the spawn in the same tick. A wave
+with nobody left is followed by the next one, on the same spots, 120 ticks later.
+
+CI holds the simulation: the gate runs `--headless --wave --frames 1980`, where P1 stands still
+until the AI knocks him out, then lines up in depth with the nearest enemy and punches whoever comes within reach, and pins every knock-out,
+the lethal hits, the cleared wave, the second wave 120 ticks later and the hashes on ticks 0 and 1980
+(§22 step 1 lists the default run; the `--wave` lines are under section S of
+`docs/owner-setup.txt`). Mutants of the token capacity, the token timeout, the pause, the removal
+of a knocked-out enemy, the AI step and the wave hash all fail that run. What it cannot answer is
+whether it reads as a fight on a screen:
+
+- **The ring.** Whether the two waiting Adlers stand off to the sides and out of Banderas's line,
+  or crowd him, stand in one another, or jitter in place.
+- **One at a time.** Whether the attacks visibly come one by one, and the one coming in is obvious.
+- **The knock-out and the wave.** Whether Banderas disappearing and standing up on his spawn, and
+  the new wave appearing, look like events and not like a glitch.
+
+Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat shell` window, with
+`.exe` and backslashes).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, and in each configuration the `--wave` lines of section S of
+   `docs/owner-setup.txt`, ending with `--wave ran 1980 headless frames`.
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble --wave
+
+   Banderas stands on his spawn, three Adlers to his right, Rainbird is not on the street. Do not
+   touch the keyboard. Within a second or two the Adlers spread: one walks up to Banderas and jabs,
+   the other two stop to his right, one above his line and one below. After a few jabs the attacker
+   backs off to the ring and, a little later, another one comes in. At no time do two Adlers strike
+   Banderas together. Each strike prints `hit tick <n>: adler#<k>/<move> -> banderas#1`.
+3. **The knock-out.** Keep standing. When Banderas's hp reaches 0 (`… hp 0` in the terminal) the
+   next tick prints
+
+       neon-rumble: knockout tick <n>: banderas#1, back as banderas#5
+
+   Banderas vanishes and stands up on his spawn, with full hp. The Adlers turn to him there.
+4. **The wave.** Fight: walk to an Adler, jab, cross, kick, jump-kick. Each one that falls prints
+   `knockout tick <n>: adler#<k>` and is gone from the street. After the third one the terminal
+   prints `wave tick <n>: wave 1 cleared`, and about two seconds later (120 ticks; one second on a
+   120 Hz screen) `wave tick <n+120>: wave 2, adler#… adler#… adler#…`: three Adlers are back on the
+   same spots and the ring starts again.
+5. **Two players.** Press numpad 1: P2 joins (§29) and Rainbird stands on his spawn. Now two Adlers
+   may strike at once — one token per player. Each Adler goes for the nearer of the two.
+
+As in §21, on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: two Adlers striking one player at once with only P1 on the street; an
+Adler in the ring standing on Banderas's line, inside another Adler, or twitching in place; an
+attacker who never gives the token back; a knock-out without the `knockout` line or without
+Banderas on his spawn with full hp; a knocked-out Adler who stays on the street; a new wave that does
+not come, comes at once, or comes somewhere else.
+
+Send back: the `knockout` and `wave` lines of steps 3–4, and one screenshot of the ring of step 2.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 30 are closed, and the open 16 are listed by
+The gates above are what the ADRs waited on; 14 of the 31 are closed, and the open 17 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

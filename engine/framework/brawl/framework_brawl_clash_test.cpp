@@ -13,6 +13,7 @@ using test::Grapple;
 struct Double {
     bool thrown = false;
     bool struck = false;
+    bool kept = false;
     uint16_t hitstop = 0;
 };
 
@@ -22,8 +23,9 @@ Double double_grab(bool left_first, bool both) {
     g.reaching(0, 1, 0);
     if (left_first && both) g.reaching(32, -1, 0);
     Body& b = g.r.put(16, -1, 1);
-    g.hit();
-    Double out{b.react == Reaction::Thrown, false, 0};
+    const HitEvents e = g.hit();
+    Double out{b.react == Reaction::Thrown, false, false, 0};
+    for (uint32_t i = 0; i < e.count; ++i) out.kept |= e.at[i].kept;
     for (uint32_t i = 0; i < g.r.pool.count; ++i) {
         out.struck |= g.r.pool.bodies[i].struck.count > 0;
         if (!(g.r.pool.bodies[i].id == b.id)) out.hitstop = std::max(out.hitstop, g.r.pool.bodies[i].hitstop);
@@ -32,11 +34,11 @@ Double double_grab(bool left_first, bool both) {
 }
 
 void test_double_grab_tears_both() {
-    check(double_grab(true, false).thrown, "control: one grab throws the target");
+    check(double_grab(true, false).thrown && double_grab(true, false).kept, "control: one grab throws the target");
     for (const bool left_first : {true, false}) {
         const Double d = double_grab(left_first, true);
-        check(!d.thrown && !d.struck && d.hitstop == 0,
-              "two grabs of one target in one tick tear both, without contact or hitstop, in any seq order");
+        check(!d.thrown && !d.struck && !d.kept && d.hitstop == 0,
+              "two grabs of one target in one tick tear both, without contact, hitstop or a kept event, in any seq order");
     }
 }
 

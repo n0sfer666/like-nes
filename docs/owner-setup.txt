@@ -1786,7 +1786,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
   cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
   engine/asset/, engine/framework/tilemap/, engine/framework/graphics/,
-  engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
+  engine/framework/ai/, engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
 
   macOS и Linux, в корне репозитория:
 
@@ -1858,6 +1858,16 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
+      neon-rumble: brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1
+      neon-rumble: knockout tick 459: banderas#1, back as banderas#5
+      neon-rumble: knockout tick 1312: banderas#5, back as banderas#6
+      neon-rumble: knockout tick 1480: adler#4
+      neon-rumble: knockout tick 1770: adler#2
+      neon-rumble: knockout tick 1846: adler#3
+      neon-rumble: wave tick 1846: wave 1 cleared
+      neon-rumble: wave tick 1966: wave 2, adler#7 adler#8 adler#9
+      neon-rumble: brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9
+      sdk-game: OK   Release: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks
       sdk-game: OK   Release: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
@@ -1912,6 +1922,16 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
+      neon-rumble: brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1
+      neon-rumble: knockout tick 459: banderas#1, back as banderas#5
+      neon-rumble: knockout tick 1312: banderas#5, back as banderas#6
+      neon-rumble: knockout tick 1480: adler#4
+      neon-rumble: knockout tick 1770: adler#2
+      neon-rumble: knockout tick 1846: adler#3
+      neon-rumble: wave tick 1846: wave 1 cleared
+      neon-rumble: wave tick 1966: wave 2, adler#7 adler#8 adler#9
+      neon-rumble: brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9
+      sdk-game: OK   Debug: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks
       sdk-game: OK   Debug: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
@@ -2003,7 +2023,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
   экране (дальше), лицом влево, в stdout «neon-rumble: seat tick N: P2
   joining», затем «… P2 present». Хотсит целиком — два пада, пад и
   клавиатура, одна клавиатура на двоих, выдернутый пад и выход — §29
-  docs/owner-verification.md.
+  docs/owner-verification.md. С флагом --wave вместо манекена три adler с
+  ИИ: держат кольцо, бьёт тот, у кого жетон; нокаут печатает «knockout
+  tick N: …», игрок встаёт на спавне, зачищенная волна сменяется новой
+  через 120 тиков — §30 docs/owner-verification.md.
   banderas (P1) ходит под WASD (стрелки — у P2): влево-вправо — вдоль улицы,
   вверх-вниз — в глубину; Space или K — прыжок, один на нажатие; J — jab,
   U — cross (спека #25, В3а), L — kick, J в прыжке — jump_kick, один удар

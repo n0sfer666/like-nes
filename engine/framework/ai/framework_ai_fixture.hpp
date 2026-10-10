@@ -69,7 +69,7 @@ struct AiBrawl {
         for (uint32_t i = 0; i < ai.tokens.count; ++i)
             if (pool.find(ai.tokens.held[i].body) == nullptr) ++tokens_orphaned;
         const uint32_t held = ai.tokens.count, brains = ai.brains.count;
-        step_ai(ai, pool, tick, THINK, commands);
+        step_ai(ai, pool, arena().world(), tick, THINK, commands);
         if (ai.tokens.count > held) ++taken;
         brains_dropped += brains - ai.brains.count;
         brawl::step_brawl(pool, commands, arena().world(), events);

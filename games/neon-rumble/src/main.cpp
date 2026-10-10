@@ -8,6 +8,7 @@
 #include "rumble_brawl_report.hpp"
 #include "rumble_controls.hpp"
 #include "rumble_report.hpp"
+#include "rumble_wave_script.hpp"
 
 namespace {
 
@@ -51,20 +52,22 @@ void p2_keys(input::InputEngine& engine, uint32_t t) {
     if (t == 31 || t == 41) key(t == 31, rumble::KEY_KP3);
 }
 
-int run_headless(rumble::Scene& scene, rumble::Hotseat& hotseat, const rumble::Fighters& fighters, int frames) {
-    rumble::report_brawl(fighters, *scene.brawl, 0);
+// Прогон --wave играет один P1: ёмкость жетонов 1, и ИИ доводит его до hp 0 одним жетоном.
+int run_headless(rumble::Scene& scene, rumble::Hotseat& hotseat, int frames, bool waves) {
+    rumble::WaveScript wave;
+    rumble::report_brawl(*scene.brawl, 0);
     for (int i = 0; i < frames; ++i) {
         const auto t = static_cast<uint32_t>(i);
-        p2_keys(hotseat.engine(), scene.ticks + 1);
+        if (!waves) p2_keys(hotseat.engine(), scene.ticks + 1);
         if (!hotseat.tick(scene.ticks + 1, scene.brawl->players)) {
             std::fprintf(stderr, "neon-rumble: tick %u paused without a pad\n", scene.ticks + 1);
             return 1;
         }
-        scene.brawl->players[rumble::PLAYER] = scripted(t);
+        scene.brawl->players[rumble::PLAYER] = waves ? wave.next(*scene.brawl, t) : scripted(t);
         scene.step(t);
         rumble::report_step(*scene.brawl, scene.ticks);
     }
-    rumble::report_brawl(fighters, *scene.brawl, scene.ticks);
+    rumble::report_brawl(*scene.brawl, scene.ticks);
     if (scene.ticks != static_cast<uint32_t>(frames)) {
         std::fprintf(stderr, "neon-rumble: %d frames ran %u ticks\n", frames, scene.ticks);
         return 1;
@@ -78,15 +81,18 @@ int run_headless(rumble::Scene& scene, rumble::Hotseat& hotseat, const rumble::F
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
     bool headless = false;
+    bool waves = false;
     int frames = 0;
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "--headless")) {
             headless = true;
+        } else if (!std::strcmp(argv[i], "--wave")) {
+            waves = true;
         } else if (!std::strcmp(argv[i], "--frames") && i + 1 < argc
                    && parse_frames(argv[i + 1], frames)) {
             ++i;
         } else {
-            std::fprintf(stderr, "usage: neon_rumble [--headless] [--frames N]\n");
+            std::fprintf(stderr, "usage: neon_rumble [--headless] [--wave] [--frames N]\n");
             return 2;
         }
     }
@@ -103,7 +109,7 @@ int main(int argc, char** argv) {
     for (uint32_t i = 0; i < rumble::FIGHTERS; ++i)
         if (!fighters[i].open(level, rumble::ROSTER[i].fighter)) return 1;
     rumble::Brawl brawl;
-    if (!brawl.open(level, fighters)) return 1;
+    if (!brawl.open(level, fighters, waves)) return 1;
     rumble::report_fighters(level, fighters, brawl);
     rumble::Credits credits;
     if (!credits.open(level)) return 1;
@@ -112,6 +118,6 @@ int main(int argc, char** argv) {
     if (!hotseat.open()) return 1;
     rumble::Scene scene;
     if (!scene.init(brawl)) return 1;
-    return headless ? run_headless(scene, hotseat, fighters, frames)
+    return headless ? run_headless(scene, hotseat, frames, waves)
                     : rumble::run_window(scene, hotseat, level, fighters, credits, frames);
 }
