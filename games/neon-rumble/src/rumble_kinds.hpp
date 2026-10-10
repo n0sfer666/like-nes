@@ -5,6 +5,7 @@
 #include "archetype.hpp"
 #include "rumble_fighter.hpp"
 #include "rumble_roster.hpp"
+#include "seat.hpp"
 
 namespace rumble {
 
@@ -22,7 +23,7 @@ struct PlayerMoves {
 struct Kinds {
     std::array<framework::brawl::Archetype, FIGHTERS> types{};
     std::array<int32_t, FIGHTERS> hp{};
-    PlayerMoves player;
+    std::array<PlayerMoves, framework::brawl::SEATS> moves{};
 
     bool open(const Level& level, const Fighters& fighters);
 };

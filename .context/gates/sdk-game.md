@@ -132,6 +132,12 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
    `adler thrown`, down 436, getup 466. Хеш тика 0 `7ff578b61c84afda` (в хеш тела вошёл `grip`), тика
    480 `b82f61c720937664`. `sdk_game_lib.sh` (с В4г спеки #25 — `sdk_game_run.sh`) сверяет 26
    точных строк (`-eq 26`) и число строк `hit|react` (`-eq 24`).
+   С В4г спеки #25 rainbird — игрок 2 (`Hotseat`: `InputEngine` + `Lobby`) и стоит на улице только
+   после входа P2: тик 0 — `banderas` и `adler`, `draw adler banderas`, хеш `7b9fe44a593a9b1e`. Прогон
+   жмёт KP1 на тике 2 (`seat tick 2: P2 joining`, `seat tick 3: P2 present`) и держит KP3 на 31..40
+   (`react tick 31: rainbird block`, `41: rainbird stand`) — улика, что ввод P2 дошёл до тела. Хиты и
+   реакции adler бит-в-бит прежние; хеш тика 480 `35645b13b45f46a0` (места — в хеше). Поз ровно 2
+   строки. Сверяются 30 точных строк (`-eq 30`) и число строк `hit|react|seat` (`-eq 28`).
 
 `like_nes_bake` (В4) печёт `assetc --manifest … --depfile …` поставленным `assetc` в
 `<build>/like_nes_bake/<цель>/`, а в каталог exe кладёт цель `<игра>_bundle` (всегда исполняемая,

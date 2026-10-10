@@ -6,6 +6,7 @@
 #include "platform_fs.hpp"
 #include "rumble.hpp"
 #include "rumble_brawl_report.hpp"
+#include "rumble_controls.hpp"
 #include "rumble_report.hpp"
 
 namespace {
@@ -39,11 +40,28 @@ rumble::PlayerCommand scripted(uint32_t t) {
     return c;
 }
 
-int run_headless(rumble::Scene& scene, const rumble::Fighters& fighters, int frames) {
+// Тик — по часам драки (первый шаг — тик 1). P2 входит нажатием нампада на тике 2 (тик 1 только
+// засевает лобби), сидит с тика 3 и держит блок 31..40 — улика, что его ввод доходит до драки.
+void p2_keys(input::InputEngine& engine, uint32_t t) {
+    const auto key = [&](bool down, uint16_t code) {
+        engine.post(input::RawEvent{down ? input::RawKind::KeyDown : input::RawKind::KeyUp,
+                                    input::DeviceKind::Keyboard, 0, code, 0, t});
+    };
+    if (t == 2 || t == 3) key(t == 2, rumble::KEY_KP1);
+    if (t == 31 || t == 41) key(t == 31, rumble::KEY_KP3);
+}
+
+int run_headless(rumble::Scene& scene, rumble::Hotseat& hotseat, const rumble::Fighters& fighters, int frames) {
     rumble::report_brawl(fighters, *scene.brawl, 0);
     for (int i = 0; i < frames; ++i) {
-        scene.brawl->player = scripted(static_cast<uint32_t>(i));
-        scene.step(static_cast<uint32_t>(i));
+        const auto t = static_cast<uint32_t>(i);
+        p2_keys(hotseat.engine(), scene.ticks + 1);
+        if (!hotseat.tick(scene.ticks + 1, scene.brawl->players)) {
+            std::fprintf(stderr, "neon-rumble: tick %u paused without a pad\n", scene.ticks + 1);
+            return 1;
+        }
+        scene.brawl->players[rumble::PLAYER] = scripted(t);
+        scene.step(t);
         rumble::report_step(*scene.brawl, scene.ticks);
     }
     rumble::report_brawl(fighters, *scene.brawl, scene.ticks);
@@ -90,7 +108,10 @@ int main(int argc, char** argv) {
     rumble::Credits credits;
     if (!credits.open(level)) return 1;
     rumble::report_credits(level, credits);
+    rumble::Hotseat hotseat;
+    if (!hotseat.open()) return 1;
     rumble::Scene scene;
     if (!scene.init(brawl)) return 1;
-    return headless ? run_headless(scene, fighters, frames) : rumble::run_window(scene, level, fighters, credits, frames);
+    return headless ? run_headless(scene, hotseat, fighters, frames)
+                    : rumble::run_window(scene, hotseat, level, fighters, credits, frames);
 }

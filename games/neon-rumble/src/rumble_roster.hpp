@@ -5,6 +5,7 @@ namespace rumble {
 
 constexpr uint32_t FIGHTERS = 3;
 constexpr uint32_t PLAYER = 0;
+constexpr uint32_t DUMMY = 2;
 
 struct RosterEntry {
     const char* fighter;

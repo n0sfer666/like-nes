@@ -6,9 +6,18 @@ framework::Vec2 screen_plane(const framework::brawl::Body& body) {
     return {body.pos.x, body.pos.z - body.pos.y};
 }
 
-DepthOverlay depth_overlay(const Brawl& brawl, uint32_t fighter) {
-    const framework::brawl::Body& b = brawl.body(fighter);
-    const framework::brawl::Archetype& a = brawl.kinds.types[fighter];
+bool follow_point(const Brawl& brawl, framework::Vec2& out) {
+    for (const framework::brawl::Seat& s : brawl.seats.at) {
+        const framework::brawl::Body* b = s.present ? brawl.pool.find(s.body) : nullptr;
+        if (b == nullptr) continue;
+        out = screen_plane(*b);
+        return true;
+    }
+    return false;
+}
+
+DepthOverlay depth_overlay(const Brawl& brawl, const framework::brawl::Body& b) {
+    const framework::brawl::Archetype& a = brawl.kinds.types[b.kind];
     DepthOverlay d;
     d.lift = b.pos.y;
     d.body = a.depth;
@@ -23,8 +32,8 @@ FighterStats draw_roster(FighterQuads& quads, const Fighters& fighters, const Br
                          LayerStats& st, uint32_t level_textures, bool overlay) {
     FighterStats sum;
     for (const uint32_t i : brawl.draw_order()) {
-        const framework::brawl::Body& b = brawl.body(i);
-        const FighterStats fs = quads.add(fighters[i], fighters[i].pose(b), screen_plane(b), depth_overlay(brawl, i),
+        const framework::brawl::Body& b = *brawl.find(i);
+        const FighterStats fs = quads.add(fighters[i], fighters[i].pose(b), screen_plane(b), depth_overlay(brawl, b),
                                           layers, st, sheet_texture(level_textures, i), solid_texture(level_textures),
                                           overlay);
         sum.overlay += fs.overlay;

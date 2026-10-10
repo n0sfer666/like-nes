@@ -49,7 +49,8 @@ find_package(like-nes 0.1 REQUIRED CONFIG)
 add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
   src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
-  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp)
+  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp
+  src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp src/rumble_gpu_frame.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -145,8 +146,10 @@ fighter | adler_fighter | fighters/adler.fighter
 
 `--headless --frames 240` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
 Этот прогон и проверяет CI. Без `--headless` игра открывает окно 960×540, размер которого можно
-менять. Стрелки или WASD водят Banderas, Space или K — прыжок, J — jab, U — cross, L —
-kick, J в прыжке — jump_kick. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
+менять. Banderas — игрок 1: WASD водят его, Space или K — прыжок, J — jab, U — cross, L —
+kick, J в прыжке — jump_kick. Rainbird — игрок 2, он выходит на улицу по любой кнопке свободного
+пада или по клавише своей раскладки: стрелка, нампад 0–6 или минус нампада. Backspace снимает игрока 1 с клавиатуры,
+минус нампада — игрока 2, Back на паде — его игрока. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
 листает его страницы, нажатие после последней закрывает его. `--frames <n>` закрывает
 окно через `n` кадров с кодом выхода 0. `--headless` требует `--frames` с `n` больше 0, поэтому
 безоконный прогон всегда заканчивается.
