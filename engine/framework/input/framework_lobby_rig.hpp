@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdio>
 
+#include "action_map.hpp"
 #include "codes.hpp"
 #include "input_engine.hpp"
 #include "lobby.hpp"
@@ -28,25 +29,11 @@ enum Action : int { JUMP = 0, PUNCH = 1 };
 inline ::input::Source key(uint16_t code) { return {::input::SourceKind::Key, code, 1}; }
 inline ::input::Source pad(uint16_t code) { return {::input::SourceKind::PadButton, code, 1}; }
 
-inline ::input::ActionLayout p1_layout() {
-    ::input::ActionLayout l;
-    l.bind(JUMP, key(::input::code::Space));
-    l.bind(PUNCH, key(KEY_J));
-    l.bind(JUMP, pad(::input::code::PadA));
-    l.bind(PUNCH, pad(::input::code::PadX));
-    l.bind_axis(0, key(::input::code::D), key(::input::code::A), fix32{});
-    return l;
-}
-
+// Раскладка уходит в карту, а не возвращается значением: GCC 13 -O3 на возврате видит в третьем
+// push_back запись за буфером (stringop-overflow), которой нет.
+[[nodiscard]] bool set_p1_layout(::input::ActionMap& map, int player);
 // Половина игрока 2 у владельца: стрелки — ось, нампад — кнопки.
-inline ::input::ActionLayout p2_layout(uint16_t punch_key = KEY_KP1) {
-    ::input::ActionLayout l;
-    l.bind(PUNCH, key(punch_key));
-    l.bind(JUMP, pad(::input::code::PadA));
-    l.bind(PUNCH, pad(::input::code::PadX));
-    l.bind_axis(0, key(KEY_RIGHT), key(KEY_LEFT), fix32{});
-    return l;
-}
+[[nodiscard]] bool set_p2_layout(::input::ActionMap& map, int player, uint16_t punch_key = KEY_KP1);
 
 struct Rig {
     ::input::ActionMap map;
@@ -57,7 +44,7 @@ struct Rig {
 
     // Первый update лобби только засевает прошлое состояние, поэтому сценарии начинают со второго.
     explicit Rig(uint16_t p2_punch = KEY_KP1, bool seed = true) {
-        check(map.set_layout(0, p1_layout()) && map.set_layout(1, p2_layout(p2_punch)), "both layouts are set");
+        check(set_p1_layout(map, 0) && set_p2_layout(map, 1, p2_punch), "both layouts are set");
         if (seed) step();
     }
 

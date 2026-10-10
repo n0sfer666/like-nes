@@ -55,5 +55,12 @@ bash scripts/build_check.sh      # то же, что гоняет CI и pre-comm
   из индекса он не наследует. По той же причине `.gitattributes` держит `*.sh` и `*.py` в `eol=lf`:
   скрипт, выехавший из checkout с CRLF, умирает на собственном шебанге.
 
+- **Локальный зелёный — это clang.** GCC 13 на ubuntu-раннере (`-O3`) находит своё: 2026-10-10
+  `ActionLayout`, собранная из 4 `bind` и возвращённая значением, дала ложный
+  `stringop-overflow` в `push_back` (В4в, `framework_lobby_rig.cpp`). Глушить нельзя, а
+  обход — отдать раскладку в `ActionMap::set_layout`, как в `input_determinism_test`. Новый TU
+  до push собирать тем же компилятором: `docker run ubuntu:24.04` + `g++` с флагами CI
+  (`-O3 -Wall -Wextra -Wold-style-cast -Werror`, `-c` по одному файлу).
+
 **Без зелёного `build_check.sh` коммит запрещён.** Команда прописана в
 [`.context/checks.json`](../../.context/checks.json) — её читает pre-commit hook и шаг `Build` в CI.

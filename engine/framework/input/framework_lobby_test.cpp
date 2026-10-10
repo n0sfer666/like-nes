@@ -106,7 +106,7 @@ void test_leave_frees_the_seat_and_the_pad() {
 
 void test_out_of_range_players_touch_nothing() {
     ::input::ActionMap map;
-    check(map.set_layout(0, p1_layout()) && map.assign_player(0, {0, true}), "P1 has a layout and a pad");
+    check(set_p1_layout(map, 0) && map.assign_player(0, {0, true}), "P1 has a layout and a pad");
     Lobby wide{map, 9};
     check(wide.seats() == ::input::MAX_PLAYERS && wide.join(3, {-1, true}) && !wide.join(4, {2, false}),
           "nine seats clamp to MAX_PLAYERS");
