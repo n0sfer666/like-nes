@@ -32,9 +32,10 @@ FighterStats draw_roster(FighterQuads& quads, const Fighters& fighters, const Br
                          LayerStats& st, uint32_t level_textures, bool overlay) {
     FighterStats sum;
     for (const uint32_t i : brawl.draw_order()) {
-        const framework::brawl::Body& b = *brawl.find(i);
-        const FighterStats fs = quads.add(fighters[i], fighters[i].pose(b), screen_plane(b), depth_overlay(brawl, b),
-                                          layers, st, sheet_texture(level_textures, i), solid_texture(level_textures),
+        const framework::brawl::Body& b = brawl.pool.bodies[i];
+        const Fighter& f = fighters[b.kind];
+        const FighterStats fs = quads.add(f, f.pose(b), screen_plane(b), depth_overlay(brawl, b), layers, st,
+                                          sheet_texture(level_textures, b.kind), solid_texture(level_textures),
                                           overlay);
         sum.overlay += fs.overlay;
         sum.rejected += fs.rejected;

@@ -25,6 +25,7 @@ void remember(BodyPool& pool, std::span<const Archetype> kinds, HitEvents& event
         const HitEvent& e = events.at[i];
         Body* a = pool.find(e.attacker);
         kept[i] = a != nullptr && pool.find(e.target) != nullptr && a->struck.add(e.target, e.box);
+        events.at[i].kept = kept[i];
         if (!kept[i]) ++events.dropped;
         if (kept[i]) a->hitstop = std::max(a->hitstop, ticks16(strike_of(e, kinds).hitstop));
     }

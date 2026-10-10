@@ -53,3 +53,23 @@ game_run() {
         sdk_bad "$cfg: font monogram, five packs of credits.txt or a two-page credits screen with 0 unknown and 0 dropped missing"; return 1; }
     sdk_ok "$cfg: built against the prefix and ran 480 headless frames"
 }
+
+# Режим --wave (В5б спеки #25): три adler с ИИ против одного P1. Скрипт держит P1 на месте, пока
+# ИИ не доведёт его до hp 0, и step_seats ставит место новым телом (banderas#5) на том же тике;
+# потом бот P1 бьёт подошедшего, пока волна не зачищена, и через 120 тиков на тех же спавнах встаёт
+# вторая. Пиннутые удары по hp 0 — улика, что нокаут случился от удара, а не от снятия тела; удар на
+# 1845 — размен, его строка держится на флаге kept события, а не на списке struck атакующего.
+game_wave_run() {
+    local dir=$1 cfg=$2 exe out
+    exe="$dir/neon_rumble"
+    [ -f "$exe.exe" ] && exe="$exe.exe"
+    out=$("$exe" --headless --wave --frames 1980 2>&1) || {
+        printf '%s\n' "$out"; sdk_bad "$cfg: neon_rumble --wave exited non-zero"; return 1; }
+    grep -E '^neon-rumble: (brawl|knockout|wave) tick ' <<< "$out"
+    grep -q '^neon-rumble: headless run ok, 1980 frames$' <<< "$out" || {
+        printf '%s\n' "$out"; sdk_bad "$cfg: --wave: no headless verdict line"; return 1; }
+    [ "$(grep -Ec '^neon-rumble: (brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1|hit tick 458: adler#2/jab -> banderas#1, damage 6, hp 0|knockout tick 459: banderas#1, back as banderas#5|hit tick 1311: adler#2/jab -> banderas#5, damage 6, hp 0|knockout tick 1312: banderas#5, back as banderas#6|hit tick 1479: banderas#6/jab -> adler#4, damage 6, hp 0|knockout tick 1480: adler#4|hit tick 1769: banderas#6/cross -> adler#2, damage 8, hp 0|knockout tick 1770: adler#2|hit tick 1845: banderas#6/jab -> adler#3, damage 6, hp 0|knockout tick 1846: adler#3|wave tick 1846: wave 1 cleared|wave tick 1966: wave 2, adler#7 adler#8 adler#9|brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9)$' <<< "$out")" -eq 14 ] && [ "$(grep -Ec '^neon-rumble: (knockout|wave) tick ' <<< "$out")" -eq 7 ] && [ "$(grep -Ec '^neon-rumble: (hit|react|seat|knockout|wave) tick ' <<< "$out")" -eq 169 ] || {
+        printf '%s\n' "$out"
+        sdk_bad "$cfg: --wave: AI knockout of P1 and its respawn, wave 1 cleared, wave 2 after 120 ticks, the brawl hash or the tick count of the fight moved"; return 1; }
+    sdk_ok "$cfg: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks"
+}

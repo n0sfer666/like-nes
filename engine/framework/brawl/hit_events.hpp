@@ -20,6 +20,9 @@ struct HitEvent {
     fix32 knock_vx{};
     uint8_t kind = 0;
     uint8_t move = 0;
+    // Засчитан применением. По списку struck атакующего этого не узнать: принятый в том же тике
+    // удар переводит его в реакцию, и список обнуляется.
+    bool kept = false;
 };
 
 struct HitEvents {
