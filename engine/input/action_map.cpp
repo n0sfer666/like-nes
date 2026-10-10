@@ -88,6 +88,15 @@ bool ActionMap::assign_player(int player, PlayerAssign a, SharedInput* shared) {
     return true;
 }
 
+const ActionLayout& ActionMap::layout(int player) const {
+    static const ActionLayout NOBODY;
+    return player >= 0 && player < MAX_PLAYERS ? layouts_[player] : NOBODY;
+}
+
+PlayerAssign ActionMap::assignment(int player) const {
+    return player >= 0 && player < MAX_PLAYERS ? players_[player] : PlayerAssign{};
+}
+
 InputFrame ActionMap::resolve(const DeviceState& d, int player, uint32_t tick, uint64_t prev_held) const {
     InputFrame f;
     f.tick = tick;

@@ -30,6 +30,10 @@ public:
     [[nodiscard]] bool set_layout(int player, ActionLayout layout, SharedInput* shared = nullptr);
     [[nodiscard]] bool assign_player(int player, PlayerAssign a, SharedInput* shared = nullptr);
 
+    // Игрок вне диапазона читает пустые раскладку и назначение.
+    const ActionLayout& layout(int player) const;
+    PlayerAssign assignment(int player) const;
+
     void push_context(int id, bool consume) { stack_.push_back({id, consume}); }
     void pop_context() { if (!stack_.empty()) stack_.pop_back(); }
 

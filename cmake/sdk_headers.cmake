@@ -25,7 +25,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/input/preset_format.hpp framework/input/preset_parse.hpp
   framework/input/presets.hpp framework/input/profile_file.hpp framework/input/rebind_session.hpp
   framework/input/rebind_store.hpp framework/input/source_names.hpp
-  framework/input/stick.hpp
+  framework/input/stick.hpp framework/input/seat_state.hpp framework/input/layout_keys.hpp
+  framework/input/lobby.hpp
   framework/physics/axis_terms.hpp framework/physics/body.hpp framework/physics/broadphase.hpp
   framework/physics/cast.hpp framework/physics/contact.hpp framework/physics/counters.hpp
   framework/physics/distance.hpp framework/physics/event_hash.hpp framework/physics/events.hpp
@@ -77,6 +78,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/archetype_chain.hpp framework/brawl/fighter_chain.hpp framework/brawl/fighter_name.hpp
   framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/fighter_move_parse.hpp
   framework/brawl/body_guard.hpp framework/brawl/grip.hpp framework/brawl/hit_grab.hpp framework/brawl/hit_strike.hpp
+  framework/brawl/seat.hpp framework/brawl/seat_step.hpp framework/brawl/seat_hash.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
