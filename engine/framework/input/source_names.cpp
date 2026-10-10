@@ -15,9 +15,9 @@ struct Named {
     uint16_t code;
 };
 
-// Именованные клавиши. Буквы, цифры и F-ряд сюда НЕ выписаны: они выводятся арифметикой ниже,
-// а список из тридцати строк вида {"b", 66} — это пропущенная абстракция, которая расходится с
-// кодами при первой же опечатке.
+// Именованные клавиши. Буквы, цифры, F-ряд и цифры нампада сюда НЕ выписаны: они выводятся
+// арифметикой ниже, а список из тридцати строк вида {"b", 66} — это пропущенная абстракция, которая
+// расходится с кодами при первой же опечатке.
 const Named KEYS[] = {
     {"space", 32},  {"esc", 256},   {"enter", 257}, {"tab", 258},  {"backspace", 259},
     {"right", 262}, {"left", 263},  {"down", 264},  {"up", 265},   {"lshift", 340},
@@ -70,6 +70,10 @@ bool parse_key(const std::string& name, uint16_t& out) {
         if (c >= 'a' && c <= 'z') { out = static_cast<uint16_t>(c - 'a' + 'A'); return true; }
         if (c >= '0' && c <= '9') { out = static_cast<uint16_t>(c); return true; }
     }
+    if (name.size() == 3 && name[0] == 'k' && name[1] == 'p' && name[2] >= '0' && name[2] <= '9') {
+        out = static_cast<uint16_t>(320 + (name[2] - '0'));  // GLFW KP_0 = 320
+        return true;
+    }
     if (name.size() >= 2 && name[0] == 'f') {
         int n = 0;
         for (std::size_t i = 1; i < name.size(); ++i) {
@@ -84,6 +88,7 @@ bool parse_key(const std::string& name, uint16_t& out) {
 std::string key_name(uint16_t code) {
     if (code >= 'A' && code <= 'Z') return std::string(1, static_cast<char>(code - 'A' + 'a'));
     if (code >= '0' && code <= '9') return std::string(1, static_cast<char>(code));
+    if (code >= 320 && code <= 329) return "kp" + std::string(1, static_cast<char>('0' + code - 320));
     if (code >= 290 && code <= 301) {
         char buf[8];
         std::snprintf(buf, sizeof(buf), "f%d", code - 289);

@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include "action_map.hpp"
+#include "action_layout.hpp"
 #include "presets.hpp"
 
 // Перебинды игрока — НАКЛАДКА поверх пресета, а не копия раскладки. Хранится только то, что игрок
@@ -27,9 +27,9 @@ public:
     bool empty() const { return items_.empty(); }
     const std::vector<Rebind>& items() const { return items_; }
 
-    // Заливка поверх уже привязанного пресета: ActionMap::rebind заменяет which-й биндинг.
+    // Заливка поверх уже привязанного пресета: ActionLayout::rebind заменяет which-й биндинг.
     // Имя, которого нет в пресете, игнорируется — это старый файл, а не повод отказать в запуске.
-    void apply(const PresetTable& table, uint32_t preset, ::input::ActionMap& map) const;
+    void apply(const PresetTable& table, uint32_t preset, ::input::ActionLayout& layout) const;
 
     // Текстовый формат того же вида, что манифест: `bind | action | which | source`. Имя пресета
     // пишется первой строкой — накладка от другой раскладки не должна применяться к этой.

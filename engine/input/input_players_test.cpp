@@ -16,15 +16,19 @@ constexpr uint32_t P1_PRESS_TICK = 3;
 
 static RawEvent ev(RawKind k, DeviceKind d, uint16_t code, int32_t value = 0) { return {k, d, 0, code, value, 0}; }
 
-static void bind_hotseat(ActionMap& m) {
-    m.bind(A_Jump, {SourceKind::Key, c::Space, 1});
-    m.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
-    m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {}, fix32{});
+static const fix32 MOUSE_SCALE = fix32::from_float(1.0 / 16);
+
+static bool bind_hotseat(ActionMap& m) {
+    ActionLayout l;
+    l.bind(A_Jump, {SourceKind::Key, c::Space, 1});
+    l.bind(A_Jump, {SourceKind::PadButton, c::PadA, 1});
+    l.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {}, fix32{}, 0, MOUSE_SCALE);
+    ActionLayout mouse_y;
+    mouse_y.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxY, 1}, {}, fix32{}, 0, MOUSE_SCALE);
     PlayerAssign kbd; kbd.use_kbd_mouse = true;
     PlayerAssign pad; pad.pad_slot = 0;
-    m.assign_player(0, kbd);
-    m.assign_player(1, pad);
-    m.assign_player(2, kbd);
+    return m.set_layout(0, l) && m.set_layout(1, l) && m.set_layout(2, mouse_y) && m.assign_player(0, kbd) &&
+           m.assign_player(1, pad) && m.assign_player(2, kbd);
 }
 
 class SharedPrevHeld {
@@ -125,10 +129,13 @@ static bool test_player0_unaffected(const ActionMap& m) {
 static bool test_mouse_latched_once(const ActionMap& m) {
     InputEngine e(m);
     e.post(ev(RawKind::MouseMove, DeviceKind::Mouse, c::MAxX, 3));
+    e.post(ev(RawKind::MouseMove, DeviceKind::Mouse, c::MAxY, 5));
     e.drain();
     InputFrame p0 = e.resolve(0, 0);
     InputFrame p2 = e.resolve(0, 2);
-    return !(p0.axes[AX_AimX] == fix32{}) && same(p0, p2);
+    InputFrame again = e.resolve(0, 0);
+    return p0.axes[AX_AimX] == fix32::from_int(3) * MOUSE_SCALE && p2.axes[AX_AimX] == fix32::from_int(5) * MOUSE_SCALE &&
+           same(p0, again);
 }
 
 static bool test_slot_untouched(const ActionMap& m) {
@@ -163,7 +170,7 @@ static bool test_shared_prev_held_caught(const ActionMap& m) {
 
 int main() {
     ActionMap m;
-    bind_hotseat(m);
+    if (!bind_hotseat(m)) { printf("input-players: FAIL - hotseat map refused\n"); return 1; }
     struct { const char* n; bool ok; } t[] = {
         {"p2 pressed ignores p1", test_pressed_independent(m)},
         {"resolve order free", test_order_free(m)},

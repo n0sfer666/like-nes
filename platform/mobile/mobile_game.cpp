@@ -38,7 +38,7 @@ bool MobileGame::init(GpuContext& gpu, WGPUSurface surface, uint32_t fb_w, uint3
     surface_warned_ = lost_ = false;
     fmt_ = configure_surface(surface, gpu.adapter, gpu.device, fb_w, fb_h);
 
-    // Пресет дописывает привязки, а не заменяет: повторный init без сброса удваивал бы ActionMap.
+    // Сброс целиком: повторный init не наследует от прошлого ни карту, ни накладку перебиндов.
     controls_ = Controls{};
     if (!load_controls(controls_)) {
         std::fprintf(stderr, "[game] controls unavailable\n");

@@ -6,6 +6,7 @@
 #include "codes.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
+#include "player_layout.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
 #include "rebind_session.hpp"
@@ -99,11 +100,9 @@ int main(int argc, char** argv) {
 
     // Перебинды доезжают до ActionMap поверх залитого пресета.
     ::input::ActionMap map;
-    check(t.bind(P, map), "the preset binds");
-    store.apply(t, P, map);
-    ::input::PlayerAssign assign;
-    assign.use_kbd_mouse = true;
-    map.assign_player(0, assign);
+    std::string error;
+    check(build_layout(t, P, store, map, 0, error) && map.assign_player(0, {.pad_slot = -1, .use_kbd_mouse = true}),
+          "the preset binds");
     ::input::DeviceState d;
     d.keys[c::Enter / 64] |= (1ull << (c::Enter % 64));
     const ::input::InputFrame f = map.resolve(d, 0, 0, 0);

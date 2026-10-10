@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 
+#include "action_map.hpp"
 #include "codes.hpp"
 #include "platform_args.hpp"
 #include "preset_bake.hpp"
@@ -119,11 +120,10 @@ int main(int argc, char** argv) {
           "pairs in a later preset are local indices, not global ones");
 
     ::input::ActionMap map;
-    check(t.bind(static_cast<uint32_t>(def), map), "the preset binds into the action map");
-    ::input::PlayerAssign pa;
-    pa.use_kbd_mouse = true;
-    pa.pad_slot = 0;
-    map.assign_player(0, pa);
+    ::input::ActionLayout layout;
+    check(t.bind(static_cast<uint32_t>(def), layout) && map.set_layout(0, layout) &&
+              map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true}),
+          "the preset binds into the action map");
 
     namespace c = ::input::code;
     const int A_JUMP = t.find_action(static_cast<uint32_t>(def), "jump");
@@ -188,15 +188,14 @@ int main(int argc, char** argv) {
     std::vector<uint8_t> wide_blob;
     PresetTable wt;
     ::input::ActionMap wmap;
+    ::input::ActionLayout wlayout;
     check(bake_presets(wide, wide_blob, err), "the baker counts axes, not rows: 24 rows still bake");
     check(wt.open(wide_blob.data(), wide_blob.size()), "the table of 24 rows opens");
     check(wt.axis_count(0) == static_cast<uint32_t>(::input::MAX_AXES),
           "the reader counts the same eight axes the baker allowed");
-    check(wt.bind(0, wmap), "the runtime binds them: its own count agrees with the reader's");
-    ::input::PlayerAssign wpa;
-    wpa.use_kbd_mouse = true;
-    wpa.pad_slot = 0;
-    wmap.assign_player(0, wpa);
+    check(wt.bind(0, wlayout) && wmap.set_layout(0, wlayout) &&
+              wmap.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true}),
+          "the runtime binds them: its own count agrees with the reader's");
     bool slots_agree = true;
     int tick = 100;
     for (int a = 0; a < ::input::MAX_AXES; ++a) {

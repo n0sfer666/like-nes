@@ -106,14 +106,15 @@ int main(int argc, char** argv) {
     }
     PresetTable table;
     ::input::ActionMap map;
-    if (!table.open(blob.data(), blob.size()) || !table.bind(0, map)) {
+    ::input::ActionLayout layout;
+    if (!table.open(blob.data(), blob.size()) || !table.bind(0, layout) || !map.set_layout(0, layout)) {
         std::printf("  FAIL: preset did not load\n");
         return 1;
     }
-    ::input::PlayerAssign assign;
-    assign.use_kbd_mouse = true;
-    assign.pad_slot = 0;
-    map.assign_player(0, assign);
+    if (!map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true})) {
+        std::printf("  FAIL: devices were not assigned\n");
+        return 1;
+    }
 
     const uint64_t one = run(map);
     const uint64_t two = run(map);

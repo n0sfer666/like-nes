@@ -12,18 +12,18 @@ set(LIKE_NES_SDK_HEADERS
   platform/platform_module.hpp platform/platform_noinline.hpp platform/platform_path.hpp
   platform/platform_process.hpp platform/platform_redact.hpp platform/platform_shmem.hpp
   platform/platform_watch.hpp
-  input/action_map.hpp input/codes.hpp input/device_state.hpp input/input_buffer.hpp
-  input/input_engine.hpp input/input_sim.hpp input/input_spsc.hpp input/input_types.hpp
-  input/source.hpp
+  input/action_layout.hpp input/action_map.hpp input/action_shared.hpp input/codes.hpp
+  input/device_state.hpp input/input_buffer.hpp input/input_engine.hpp input/input_sim.hpp
+  input/input_spsc.hpp input/input_types.hpp input/player_assign.hpp input/source.hpp
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
   render/surface_frame.hpp render/quad_batch.hpp
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
   framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
-  framework/input/pad_profile.hpp framework/input/pad_registry.hpp
+  framework/input/pad_profile.hpp framework/input/pad_registry.hpp framework/input/player_layout.hpp
   framework/input/preset_axes.hpp framework/input/preset_bake.hpp
   framework/input/preset_format.hpp framework/input/preset_parse.hpp
-  framework/input/presets.hpp framework/input/rebind_session.hpp
+  framework/input/presets.hpp framework/input/profile_file.hpp framework/input/rebind_session.hpp
   framework/input/rebind_store.hpp framework/input/source_names.hpp
   framework/input/stick.hpp
   framework/physics/axis_terms.hpp framework/physics/body.hpp framework/physics/broadphase.hpp

@@ -11,6 +11,7 @@
 #include "platform_args.hpp"
 #include "platform_env.hpp"
 #include "platform_fs.hpp"
+#include "player_layout.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
 #include "probe_axis_report.hpp"
@@ -60,13 +61,12 @@ std::string save_path() {
 
 void rebuild(const PresetTable& table, uint32_t preset, const RebindStore& store,
              ::input::ActionMap& map) {
-    map = ::input::ActionMap{};
-    table.bind(preset, map);
-    store.apply(table, preset, map);
-    ::input::PlayerAssign pa;
-    pa.use_kbd_mouse = true;
-    pa.pad_slot = 0;
-    map.assign_player(0, pa);
+    std::string error;
+    if (!build_layout(table, preset, store, map, 0, error)) {
+        std::printf("[probe] layout refused: %s\n", error.c_str());
+        if (!map.set_layout(0, {})) std::printf("[probe] controls were not cleared\n");
+    }
+    if (!map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true})) std::printf("[probe] no devices\n");
 }
 
 bool edge(GLFWwindow* win, int key, bool& prev) {

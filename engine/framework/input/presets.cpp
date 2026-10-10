@@ -175,7 +175,7 @@ PadProfile PresetTable::profile_for(const ::input::PadInfo& info) const {
     return p;
 }
 
-bool PresetTable::bind(uint32_t preset, ::input::ActionMap& map, int context) const {
+bool PresetTable::bind(uint32_t preset, ::input::ActionLayout& layout, int context) const {
     const PresetRow* p = preset_at(preset);
     if (p == nullptr) return false;
     if (p->action_count > ::input::MAX_ACTIONS || axis_count(preset) > ::input::MAX_AXES)
@@ -184,14 +184,14 @@ bool PresetTable::bind(uint32_t preset, ::input::ActionMap& map, int context) co
     for (uint32_t i = 0; i < p->action_count; ++i) {
         const ActionRow& a = actions_[p->action_begin + i];
         for (uint32_t b = 0; b < a.binding_count; ++b)
-            map.bind(static_cast<int>(i), to_source(bindings_[a.binding_begin + b]), context);
+            layout.bind(static_cast<int>(i), to_source(bindings_[a.binding_begin + b]), context);
     }
-    // Мёртвая зона уходит в ActionMap как есть: радиальную по паре осей считает уже слой
+    // Мёртвая зона уходит в раскладку как есть: радиальную по паре осей считает уже слой
     // фреймворка (`radial`), потому что ActionMap знает про оси поодиночке.
     for (uint32_t i = 0; i < p->axis_count; ++i) {
         const AxisRow& a = axes_[p->axis_begin + i];
-        map.bind_axis(static_cast<int>(logical_axis(*p, i)), to_source(a.pos), to_source(a.neg),
-                      fix32::from_raw(a.deadzone_raw), context);
+        layout.bind_axis(static_cast<int>(logical_axis(*p, i)), to_source(a.pos), to_source(a.neg),
+                         fix32::from_raw(a.deadzone_raw), context);
     }
     return true;
 }

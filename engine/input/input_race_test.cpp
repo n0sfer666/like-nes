@@ -1,5 +1,6 @@
 #include <atomic>
 #include <cstdio>
+#include <cstdlib>
 #include <thread>
 #include "action_map.hpp"
 #include "codes.hpp"
@@ -36,13 +37,15 @@ static void emit(InputEngine& e, const TickInput& cur, const TickInput& prev) {
 }
 
 static ActionMap make_map() {
+    ActionLayout l;
+    l.bind(A_Jump, {SourceKind::Key, c::Space, 1});
+    l.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
+    l.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
+    l.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0);
+    l.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
     ActionMap m;
-    m.bind(A_Jump, {SourceKind::Key, c::Space, 1});
-    m.bind(A_Fire, {SourceKind::PadButton, c::PadB, 1});
-    m.bind_axis(AX_MoveX, {SourceKind::Key, c::D, 1}, {SourceKind::Key, c::A, 1}, fix32{}, 0);
-    m.bind_axis(AX_AimX, {SourceKind::MouseAxis, c::MAxX, 1}, {SourceKind::None, 0, 0}, fix32{}, 0);
-    m.bind_axis(AX_MoveY, {SourceKind::PadAxis, c::LY, 1}, {SourceKind::None, 0, 0}, fix32::from_float(0.2), 0);
-    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0; m.assign_player(0, pa);
+    PlayerAssign pa; pa.use_kbd_mouse = true; pa.pad_slot = 0;
+    if (!m.set_layout(0, l) || !m.assign_player(0, pa)) { printf("input-race: FAIL - map refused\n"); exit(1); }
     return m;
 }
 

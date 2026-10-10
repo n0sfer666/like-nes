@@ -2,6 +2,7 @@
 #include <cstring>
 #include <vector>
 
+#include "action_map.hpp"
 #include "codes.hpp"
 #include "pad_registry.hpp"
 #include "platform_args.hpp"
@@ -84,10 +85,10 @@ int main(int argc, char** argv) {
     // только надписи для подсказок.
     namespace c = ::input::code;
     ::input::ActionMap map;
-    check(t.bind(0, map), "the preset binds");
-    ::input::PlayerAssign assign;
-    assign.pad_slot = 0;
-    map.assign_player(0, assign);
+    ::input::ActionLayout layout;
+    check(t.bind(0, layout) && map.set_layout(0, layout) &&
+              map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = false}),
+          "the preset binds");
     ::input::DeviceState d;
     d.pad_connected[0] = true;
     d.pad_btns[0] |= (1u << c::PadA);

@@ -61,11 +61,11 @@ void RebindStore::reset(const std::string& action) {
         it->action == action ? it = items_.erase(it) : ++it;
 }
 
-void RebindStore::apply(const PresetTable& table, uint32_t preset, ::input::ActionMap& map) const {
+void RebindStore::apply(const PresetTable& table, uint32_t preset, ::input::ActionLayout& layout) const {
     for (const Rebind& r : items_) {
         const int action = table.find_action(preset, r.action.c_str());
         if (action < 0) continue;
-        map.rebind(action, static_cast<int>(r.which), r.src);
+        layout.rebind(action, static_cast<int>(r.which), r.src);
     }
 }
 
