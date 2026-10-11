@@ -1943,7 +1943,7 @@ jobs:
                    framework_json_test framework_json_string_test framework_json_number_test \
                    framework_tilemap_visual_test framework_tilemap_objects_test \
                    framework_tiled_test framework_tiled_refusal_test \
-                   framework_scene_test framework_scene_refusal_test \
+                   framework_scene_test framework_scene_refusal_test framework_scene_stack_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -2968,7 +2968,8 @@ jobs:
           framework_ai_test:framework-ai: PASS
           framework_ai_resim_test:framework-ai-resim: PASS
           framework_scene_test:framework-scene: PASS
-          framework_scene_refusal_test:framework-scene-refusal: PASS - 39 cases"
+          framework_scene_refusal_test:framework-scene-refusal: PASS - 39 cases
+          framework_scene_stack_test:framework-scene-stack: PASS"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
           cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0

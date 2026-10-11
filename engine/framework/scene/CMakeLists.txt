@@ -1,4 +1,4 @@
-add_library(framework_scene STATIC scene_object.cpp scene_read.cpp scene_links.cpp)
+add_library(framework_scene STATIC scene_object.cpp scene_read.cpp scene_links.cpp scene_stack.cpp)
 target_include_directories(framework_scene PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_scene PUBLIC framework_tilemap)
 
@@ -7,3 +7,6 @@ target_link_libraries(framework_scene_test PRIVATE framework_scene)
 
 add_executable(framework_scene_refusal_test framework_scene_refusal_test.cpp)
 target_link_libraries(framework_scene_refusal_test PRIVATE framework_scene)
+
+add_executable(framework_scene_stack_test framework_scene_stack_test.cpp)
+target_link_libraries(framework_scene_stack_test PRIVATE framework_scene)
