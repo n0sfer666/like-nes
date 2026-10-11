@@ -18,6 +18,8 @@ fix32 sweep(fix32 from, fix32 to, fix32 lo, fix32 hi) {
     return to;
 }
 
+} // namespace
+
 fix32 move_z(const DepthFloor& f, fix32 x, fix32 z, fix32 to) {
     for (uint32_t i = 0; i < f.wall_count; ++i) {
         const FloorRect& w = f.walls[i];
@@ -26,7 +28,14 @@ fix32 move_z(const DepthFloor& f, fix32 x, fix32 z, fix32 to) {
     return clamp(to, f.band.z0, f.band.z1);
 }
 
-} // namespace
+bool blocked(const DepthFloor& f, fix32 x, fix32 z) {
+    if (!inside(x, f.band.x0, f.band.x1) || !inside(z, f.band.z0, f.band.z1)) return true;
+    for (uint32_t i = 0; i < f.wall_count; ++i) {
+        const FloorRect& w = f.walls[i];
+        if (inside(x, w.x0, w.x1) && inside(z, w.z0, w.z1)) return true;
+    }
+    return false;
+}
 
 fix32 move_x(const DepthFloor& f, fix32 x, fix32 z, fix32 to) {
     for (uint32_t i = 0; i < f.wall_count; ++i) {

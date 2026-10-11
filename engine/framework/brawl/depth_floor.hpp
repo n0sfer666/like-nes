@@ -24,6 +24,11 @@ struct DepthFloor {
 // поводка сим-камеры: поводок, писавший `x` в обход, вставлял тело внутрь стены, а `sweep` такое тело
 // уже не держит — оно проходило стену насквозь.
 fix32 move_x(const DepthFloor& f, fix32 x, fix32 z, fix32 to);
+// Ход по `z` — пара к `move_x`; публичный ради поводка автоскролла по `y`, который толкает тело belt
+// по глубине.
+fix32 move_z(const DepthFloor& f, fix32 x, fix32 z, fix32 to);
+// Точка вне полосы или внутри стены (края замкнуты, как у `sweep`): выход из platform туда отказан.
+bool blocked(const DepthFloor& f, fix32 x, fix32 z);
 
 void slide(const DepthFloor& f, DepthBody& b);
 

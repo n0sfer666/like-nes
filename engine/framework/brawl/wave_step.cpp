@@ -5,6 +5,7 @@
 
 #include "camera.hpp"
 #include "scene_objects.hpp"
+#include "section_mode.hpp"
 #include "viewport_fit.hpp"
 
 namespace framework::brawl {
@@ -20,9 +21,22 @@ const scene::Arena* next_arena(const scene::LevelObjects& level, int16_t cleared
     return next;
 }
 
-bool reached(fix32 seen, fix32 x, const scene::LevelRect& r) {
-    const fix32 target = graphics::clamp_axis(x, r.x0, r.x1, graphics::view_zone_half().x);
-    return clamp_fix(target, min_fix(seen, x), max_fix(seen, x)) == target;
+bool crossed(fix32 seen, fix32 at, fix32 lo, fix32 hi, fix32 half) {
+    const fix32 target = graphics::clamp_axis(at, lo, hi, half);
+    return clamp_fix(target, min_fix(seen, at), max_fix(seen, at)) == target;
+}
+
+bool covers(fix32 at, fix32 lo, fix32 hi, fix32 half) {
+    const fix32 a = lo + half;
+    const fix32 b = hi - half;
+    return clamp_fix(at, min_fix(a, b), max_fix(a, b)) == at;
+}
+
+bool reached(fix32 seen, Vec2 at, const scene::LevelRect& r, const scene::LevelObjects& level) {
+    const Vec2 half = graphics::view_zone_half();
+    const bool x = crossed(seen, at.x, r.x0, r.x1, half.x);
+    if (mode_at(level, at.x) == scene::SectionMode::Belt) return x;
+    return (x || covers(at.x, r.x0, r.x1, half.x)) && clamp_fix(at.y, r.y0, r.y1) == at.y;
 }
 
 int32_t present(const Seats& seats) {
@@ -85,7 +99,7 @@ void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, co
     const int32_t players = present(seats);
     if (camera.arena == NO_ARENA) {
         const scene::Arena* arena = next_arena(level, waves.cleared);
-        if (arena == nullptr || !reached(seen, camera.center.x, arena->area.rect)) return;
+        if (arena == nullptr || !reached(seen, camera.center, arena->area.rect, level)) return;
         camera.arena = static_cast<int16_t>(arena->id);
         out.locked = true;
         start(waves, camera, level, players, out);

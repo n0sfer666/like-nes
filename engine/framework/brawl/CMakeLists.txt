@@ -4,7 +4,9 @@ target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framewor
 
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
   archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp
-  seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp stage_waves_hash.cpp)
+  seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp stage_waves_hash.cpp
+  stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
+  autoscroll_step.cpp stage_leash.cpp level_clamp.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics framework_scene
   framework_core)
@@ -67,3 +69,13 @@ add_executable(framework_brawl_wave_test framework_brawl_wave_test.cpp)
 target_link_libraries(framework_brawl_wave_test PRIVATE framework_brawl)
 add_executable(framework_brawl_wave_lock_test framework_brawl_wave_lock_test.cpp)
 target_link_libraries(framework_brawl_wave_lock_test PRIVATE framework_brawl)
+add_executable(framework_brawl_section_test framework_brawl_section_test.cpp)
+target_link_libraries(framework_brawl_section_test PRIVATE framework_brawl)
+add_executable(framework_brawl_platform_test framework_brawl_platform_test.cpp)
+target_link_libraries(framework_brawl_platform_test PRIVATE framework_brawl)
+add_executable(framework_brawl_scroll_test framework_brawl_scroll_test.cpp)
+target_link_libraries(framework_brawl_scroll_test PRIVATE framework_brawl)
+add_executable(framework_brawl_settle_test framework_brawl_settle_test.cpp)
+target_link_libraries(framework_brawl_settle_test PRIVATE framework_brawl)
+add_executable(framework_brawl_leash_test framework_brawl_leash_test.cpp)
+target_link_libraries(framework_brawl_leash_test PRIVATE framework_brawl)

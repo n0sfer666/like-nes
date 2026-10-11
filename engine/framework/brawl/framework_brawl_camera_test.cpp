@@ -11,20 +11,20 @@ using test::at;
 using test::check;
 using test::Stage;
 
-using CameraStep = void (*)(StageCamera&, BodyPool&, const Seats&, const BrawlWorld&);
+using CameraStep = void (*)(StageCamera&, BodyPool&, const Seats&, StageSections&, const BrawlWorld&);
 
 // Сломанная фикстура «камера по одному игроку»: второе место для неё не существует.
-void follow_first(StageCamera& c, BodyPool& pool, const Seats& seats, const BrawlWorld& w) {
+void follow_first(StageCamera& c, BodyPool& pool, const Seats& seats, StageSections& sections, const BrawlWorld& w) {
     Seats one = seats;
     one.at[1].present = false;
-    step_camera(c, pool, one, w);
+    step_camera(c, pool, one, sections, w);
 }
 
 bool follows_both(CameraStep step) {
     Stage s;
     s.seat(0, 100);
     s.seat(1, 300);
-    step(s.camera, s.pool, s.seats, s.world());
+    step(s.camera, s.pool, s.seats, s.sections, s.world());
     return s.camera.center.x == at(200);
 }
 
@@ -162,6 +162,10 @@ const Field FIELDS[] = {
     {"center y", [](StageCamera& c) { c.center.y.raw += 1; }},
     {"arena", [](StageCamera& c) { c.arena = 1; }},
     {"scroll", [](StageCamera& c) { c.scroll.raw += 1; }},
+    {"ride", [](StageCamera& c) { c.ride = 1; }},
+    {"riding", [](StageCamera& c) { c.riding = true; }},
+    {"settle x", [](StageCamera& c) { c.settle.x.raw += 1; }},
+    {"settle y", [](StageCamera& c) { c.settle.y.raw += 1; }},
 };
 
 void fields() {

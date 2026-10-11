@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "framework_brawl_check.hpp"
 #include "framework_brawl_wave_fixture.hpp"
 
@@ -5,6 +7,7 @@ namespace {
 
 using namespace framework::brawl;
 using framework::scene::LevelObjects;
+using framework::scene::SectionMode;
 using test::area;
 using test::at;
 using test::check;
@@ -50,6 +53,64 @@ void crossing() {
     check(!w.facts.locked && w.waves.seen == at(1410), "the lock judges the path from a stale camera");
 }
 
+// Арена 0 по `y` от 0 до 600 — вид от 108 до 492; секция одна на весь уровень.
+bool locks_y(SectionMode mode, int32_t y, int32_t y0 = 0, int32_t y1 = 600) {
+    LevelObjects l;
+    l.arenas.push_back({area(400, y0, 1000, y1), 0});
+    l.sections.push_back({area(0, 0, 2000, 600), mode});
+    Waves w(700, l);
+    w.s.camera.center.y = at(y);
+    w.step();
+    return w.facts.locked;
+}
+
+void platform_y() {
+    check(!locks_y(SectionMode::Platform, 650) && !locks_y(SectionMode::Platform, -1),
+          "a platform arena locks with the view at another height");
+    check(locks_y(SectionMode::Platform, 600) && locks_y(SectionMode::Platform, 0),
+          "a platform arena misses the lock with the view on its y edge");
+    check(locks_y(SectionMode::Platform, 230, 100, 316),
+          "a view-high platform arena misses the lock off its y target point");
+    check(locks_y(SectionMode::Belt, 700), "a belt arena judges y");
+}
+
+// Арена 0 по `x` от 1100 до 1400 в platform: вид накрывает её при центре от 1208 до 1292. Первый шаг
+// пересекает цель на другой высоте, второй — `y` уже в пролёте.
+LevelObjects narrow() {
+    LevelObjects l;
+    l.arenas.push_back({area(1100, 0, 1400, 600), 0});
+    l.sections.push_back({area(0, 0, 2000, 600), SectionMode::Platform});
+    return l;
+}
+
+std::pair<bool, bool> narrow_late(int32_t x, int32_t y) {
+    Waves w(1000, narrow());
+    w.s.camera.center = {at(1300), at(650)};
+    w.step();
+    const bool first = w.facts.locked;
+    w.s.camera.center = {at(x), at(y)};
+    w.step();
+    return {first, w.facts.locked};
+}
+
+void platform_x() {
+    check(narrow_late(1280, 300) == std::pair{false, true} && narrow_late(1208, 300) == std::pair{false, true},
+          "a narrow platform arena passed at another height never locks");
+    Waves leap(1200, narrow());
+    leap.s.camera.center = {at(1300), at(300)};
+    leap.step();
+    check(leap.facts.locked, "a narrow platform arena stepped over past its cover window never locks");
+    check(narrow_late(1293, 300) == std::pair{false, false} && narrow_late(1280, 601) == std::pair{false, false},
+          "a narrow platform arena locks with the view off it");
+    LevelObjects l;
+    l.arenas.push_back({area(400, 0, 1000, 600), 0});
+    l.sections.push_back({area(0, 0, 2000, 600), SectionMode::Platform});
+    Waves wide(500, l);
+    wide.s.camera.center = {at(591), at(300)};
+    wide.step();
+    check(!wide.facts.locked, "a wide platform arena locks short of its edge target");
+}
+
 void order() {
     check(!locks(1300), "an arena locks before the one with a lower id is cleared");
     check(!locks(700, 0), "a cleared arena locks again");
@@ -78,6 +139,8 @@ void first() {
 int main() {
     edges();
     crossing();
+    platform_y();
+    platform_x();
     order();
     first();
     return test::verdict("framework-brawl-wave-lock");

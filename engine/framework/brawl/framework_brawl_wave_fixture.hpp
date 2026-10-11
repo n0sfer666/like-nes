@@ -32,7 +32,7 @@ struct Waves {
     explicit Waves(int32_t x, scene::LevelObjects l = level()) {
         s.level = std::move(l);
         s.camera.center.x = at(x);
-        waves.seen = at(x);
+        waves.seen = s.camera.center.x;
         s.seat(0, x);
     }
 

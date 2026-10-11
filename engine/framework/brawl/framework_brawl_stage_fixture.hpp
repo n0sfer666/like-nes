@@ -19,6 +19,7 @@ struct Stage {
     BodyPool pool;
     Seats seats;
     StageCamera camera;
+    StageSections sections;
     scene::LevelObjects level;
 
     Body& seat(uint32_t s, int32_t x) {
@@ -35,7 +36,7 @@ struct Stage {
         return w;
     }
 
-    void camera_step() { step_camera(camera, pool, seats, world()); }
+    void camera_step() { step_camera(camera, pool, seats, sections, world()); }
 };
 
 inline BrawlInput walk(int32_t dir) {

@@ -22,7 +22,7 @@ using test::strike;
 using test::Stage;
 using test::walk;
 
-constexpr uint64_t GOLDEN = 0x1a8c62e0f88c32e9;
+constexpr uint64_t GOLDEN = 0x105fa7e3f6ce33ce;
 // Края попадания jab места 1: на NEAR_X его достаёт только позиция после поводка этого тика, на
 // FAR_X — только позиция до него. Порядок «удары до камеры» меняет исход на обоих.
 constexpr int32_t NEAR_X = 418;
@@ -62,10 +62,10 @@ uint32_t order_hits(bool leash_first, int32_t enemy_x) {
         c[0].input = walk(-1);
         if (t == 0) c[1] = strike(s.arena, s.arena.jab);
         if (leash_first) {
-            step_stage(s.pool, c, w, s.camera, s.seats, events);
+            step_stage(s.pool, c, w, s.camera, s.seats, s.sections, events);
         } else {
             step_brawl(s.pool, c, w, events);
-            step_camera(s.camera, s.pool, s.seats, w);
+            step_camera(s.camera, s.pool, s.seats, s.sections, w);
         }
         hits += events.count;
     }
@@ -87,7 +87,7 @@ uint64_t shaken(bool shake, bool leak) {
     const BrawlWorld w = s.world();
     HitEvents events;
     for (uint64_t t = 0; t < 60; ++t) {
-        step_stage(s.pool, apart(s), w, s.camera, s.seats, events);
+        step_stage(s.pool, apart(s), w, s.camera, s.seats, s.sections, events);
         drawn.center = s.camera.center;
         if (shake && t == 20) framework::graphics::camera_shake(drawn, 10, at(6), static_cast<uint32_t>(t));
         const framework::Vec2 seen = framework::graphics::camera_layer_center(drawn, cfg, t, at(1));
@@ -109,7 +109,7 @@ void locked_arena(Stage& s) {
 void run(Stage& s, uint32_t ticks) {
     const BrawlWorld w = s.world();
     HitEvents events;
-    for (uint32_t t = 0; t < ticks; ++t) step_stage(s.pool, apart(s), w, s.camera, s.seats, events);
+    for (uint32_t t = 0; t < ticks; ++t) step_stage(s.pool, apart(s), w, s.camera, s.seats, s.sections, events);
 }
 
 // Ресим из снапшота «пул + места + камера». Сломанная фикстура — `forget_camera`: камера не в снимке.
@@ -141,7 +141,7 @@ uint64_t golden_run(Stage& s) {
     for (uint32_t t = 0; t < 240; ++t) {
         if (t == 50) s.camera.arena = NO_ARENA;
         if (t == 100) s.player(0).hp = 0;
-        step_stage(s.pool, apart(s), w, s.camera, s.seats, events);
+        step_stage(s.pool, apart(s), w, s.camera, s.seats, s.sections, events);
         if (t == 49)
             check(s.camera.center.x == at(250) && s.player(0).pos.x == at(58), "the locked arena loses the leash");
         if (t == 99)
