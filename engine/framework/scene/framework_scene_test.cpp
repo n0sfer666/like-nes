@@ -89,18 +89,18 @@ void test_level(const Baked& b) {
           "second read replaces the first instead of appending");
 }
 
-void test_level1_shape() {
-    ObjectMapSrc src{"level1",
+void test_players_only() {
+    ObjectMapSrc src{"players",
                      {with(point(1, "player", "spawn", 200, 264), {text_prop("facing", "right")}),
                       rect(2, "street", "bounds", 104, 56, 432, 224), rect(3, "walk", "depth_band", 104, 232, 432, 32),
                       with(point(4, "rainbird", "spawn", 264, 240), {text_prop("facing", "left")}),
                       with(point(5, "adler", "spawn", 328, 252), {text_prop("facing", "left")})}};
     Baked b;
-    check(bake(src, b), "level1 shape bakes");
+    check(bake(src, b), "player points without waves bake");
     sc::LevelObjects l;
     std::string error;
     check(sc::read_level_objects(b.map, l, error) && l.players.size() == 3 && l.waves.empty() && l.arenas.empty(),
-          "level1 of Neon Rumble reads as three player points");
+          "three player points without wave or arena objects read as players only");
     if (!error.empty()) std::printf("    %s\n", error.c_str());
 }
 
@@ -121,7 +121,7 @@ int main() {
     check(bake(level(), b), "fixture level bakes");
     if (!b.error.empty()) std::printf("    %s\n", b.error.c_str());
     test_level(b);
-    test_level1_shape();
+    test_players_only();
     test_empty();
     std::printf("framework-scene: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

@@ -1,4 +1,4 @@
-<!-- en-sha256: 1a5f73e138f6b4aa3ed28ed688ed01697043eb6356fb674d3407d7d7ebe6a31e -->
+<!-- en-sha256: 98b751957a1385a640f8dfd178f3a6360abe2d0e927cd6e57b782a76c0b3309a -->
 
 # Уровни в Tiled
 
@@ -15,7 +15,7 @@
 Бейк читает Tiled **1.10 и новее**. `level1.tmj` сохранён Tiled 1.12. Карта обязана быть:
 
 - **ортогональной** с **квадратными тайлами** от 1 до 1024 px. Изометрические и гексагональные
-  карты отбиваются. Neon Rumble использует карту 40×21 из тайлов 16 px;
+  карты отбиваются. Neon Rumble использует карту 104×21 из тайлов 16 px;
 - **конечной**: `the map is infinite; turn Map Properties -> Infinite off`;
 - сохранённой с **Tile Layer Format = CSV**. Слои в Base64 и zlib отбиваются с той же подсказкой;
 - с **Parallax Origin 0,0**. Начало отсчёта сдвигает сразу все слои с параллаксом, а движок меряет
@@ -140,7 +140,7 @@ level | level1 | tiled | levels/level1.tmj | viewport
 
 `bash scripts/check_sdk_game.sh --keep` пропекает игру против поставленного SDK и печатает сводку
 уровня, например
-`level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) …`. Он же
+`level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) …`. Он же
 сравнивает хеш бандла с `games/neon-rumble/bundle.hash`. Сохранение карты в Tiled без изменений
 обязано оставить тот же хеш. Другой хеш значит, что бейк зависит от форматирования файла, и это
 дефект бейка, а не карты.

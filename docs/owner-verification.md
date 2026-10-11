@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 31 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 17 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 32 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 18 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -46,7 +46,8 @@ names that surface.
 | Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
 | Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
 | Two players on two devices: a pad or a key joins, the banner asks, a pulled pad pauses and comes back, each leaves on his own key | [#25](../.context/specs/2026-10-05-brawl-framework.md) 9 | **all three**, with two pads and a keyboard with a numpad | — | `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_banner.*`, `engine/framework/input/lobby*`, `engine/input/source_*` |
-| Three AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back on his spawn, a cleared wave is followed by a new one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
+| AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back inside the view, a cleared wave is followed by the next one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
+| The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3422,7 +3423,7 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0x6afe949291c3d9b2` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x59357a54fe472c77` in Release and Debug, and in each
    run the lines
 
        neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
@@ -4016,8 +4017,8 @@ Run from the repository root on each of the three OSes (Windows: from the
    Back on each pad takes off its own player.
 
 A knock-out is not reachable here: nobody strikes the players in this mode. It is reachable with
-`--wave` (§30), and its rule — the fighter with hp 0 is taken off and a new one stands on his spawn
-in the same tick — is pinned by the `--wave` run of the gate. As in §21, on a 120 Hz screen everything runs twice as fast.
+`--wave` (§30), and its rule — the fighter with hp 0 is taken off and a new one stands up in the
+same tick, on his spawn moved into the camera's view (§31) — is pinned by the `--wave` run of the gate. As in §21, on a 120 Hz screen everything runs twice as fast.
 
 What counts as a finding: a join without the two `seat` lines, or the lines without a fighter on his
 spawn; a joining press that also jumps or strikes; a button of a seated pad that seats anyone else; a
@@ -4036,32 +4037,34 @@ is 0.
 
 ## 30. Gate 10 of #25 — a wave of AI enemies
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: три adler встают кольцом вокруг banderas, сближается и бьёт по одному, остальные держатся сбоку от его линии; стоя на месте, дождаться нокаута — строка knockout и banderas на спавне с hp 100; выбить всех трёх — wave N cleared и через ~2 с новая тройка на тех же местах; с P2 (нампад 1) бьют по двое; прислать строки knockout/wave и снимок кольца -->
+<!-- gate: open | окно neon_rumble --wave на любой ОС: дойти до арены 0, два adler встают кольцом вокруг banderas, сближается и бьёт по одному, остальные держатся сбоку от его линии; стоя на месте, дождаться нокаута — строка knockout … back as banderas#K at x,z и banderas внутри вида с hp 100; выбить волну — arena 0 wave 0 cleared и через ~2 с тройка wave 1; с P2 (нампад 1) бьют по двое; прислать строки knockout/wave и снимок кольца -->
 
 B5 of spec #25 brought `framework::ai`: a world RNG in the snapshot, attack tokens and brains stepped
-in `seq` order. B5b put it into Neon Rumble behind `--wave`: instead of the dummy, three copies of
-Adler stand on his spawn and two points to its right, each with a brain of two states. Without the
+in `seq` order. B5b put it into Neon Rumble behind `--wave`, and B6e moved the waves into the level:
+the enemies stand up on spawn points of `level1` (§31), each with a brain of two states. Without the
 token an enemy walks to a point 64–96 px (by his `seq`) to the side of his target and 12 px off his
 line in depth — the ring; with the token he closes in, turns and jabs, and gives the token back when
 it times out (90 ticks), when he is hit or when the target is gone. The target is the nearest living
 player by `|dx| + |dz|`, the lower seat on a tie; it is chosen anew on every tick in the ring and kept
 while he closes in. One player gives one token, two players give two. A body with hp 0 is taken off
-at the start of the next tick; a player's seat gets a new body on the spawn in the same tick. A wave
-with nobody left is followed by the next one, on the same spots, 120 ticks later.
+at the start of the next tick; a player's seat gets a new body in the same tick, on his spawn moved
+along the street into the camera's view, 32 px inside its edge. A wave with nobody left is followed
+by the next one of the same arena 120 ticks later.
 
-CI holds the simulation: the gate runs `--headless --wave --frames 1980`, where P1 stands still
-until the AI knocks him out, then lines up in depth with the nearest enemy and punches whoever comes within reach, and pins every knock-out,
-the lethal hits, the cleared wave, the second wave 120 ticks later and the hashes on ticks 0 and 1980
-(§22 step 1 lists the default run; the `--wave` lines are under section S of
-`docs/owner-setup.txt`). Mutants of the token capacity, the token timeout, the pause, the removal
-of a knocked-out enemy, the AI step and the wave hash all fail that run. What it cannot answer is
-whether it reads as a fight on a screen:
+CI holds the simulation: the gate runs `--headless --wave --frames 6600`, where P1 walks right while
+no enemy is on the street, stands still under the first enemy until the AI knocks him out, then lines
+up in depth with the nearest enemy and punches whoever comes within reach. It pins every knock-out
+with the place the player stands up on, the lethal hits, every lock, wave and release, and the
+hashes on ticks 0 and 6600 (§22 step 1 lists the default run; the `--wave` lines are under section S
+of `docs/owner-setup.txt`). Mutants of the token capacity, the token timeout, the pause, the removal
+of a knocked-out enemy, the AI step, the wave hash and the place of a respawn all fail that run. What
+it cannot answer is whether it reads as a fight on a screen:
 
-- **The ring.** Whether the two waiting Adlers stand off to the sides and out of Banderas's line,
+- **The ring.** Whether the waiting Adlers stand off to the sides and out of Banderas's line,
   or crowd him, stand in one another, or jitter in place.
 - **One at a time.** Whether the attacks visibly come one by one, and the one coming in is obvious.
-- **The knock-out and the wave.** Whether Banderas disappearing and standing up on his spawn, and
-  the new wave appearing, look like events and not like a glitch.
+- **The knock-out and the wave.** Whether Banderas disappearing and standing up again, and the new
+  wave appearing, look like events and not like a glitch.
 
 Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat shell` window, with
 `.exe` and backslashes).
@@ -4071,46 +4074,138 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, and in each configuration the `--wave` lines of section S of
-   `docs/owner-setup.txt`, ending with `--wave ran 1980 headless frames`.
+   `docs/owner-setup.txt`, ending with `--wave ran 6600 headless frames`.
 2. Start the window from a terminal you can read:
 
        ./build-sdk-work/game-Release/neon_rumble --wave
 
-   Banderas stands on his spawn, three Adlers to his right, Rainbird is not on the street. Do not
-   touch the keyboard. Within a second or two the Adlers spread: one walks up to Banderas and jabs,
-   the other two stop to his right, one above his line and one below. After a few jabs the attacker
-   backs off to the ring and, a little later, another one comes in. At no time do two Adlers strike
-   Banderas together. Each strike prints `hit tick <n>: adler#<k>/<move> -> banderas#1`.
+   Banderas stands on his spawn, the street is empty, Rainbird is not on it. Walk right (D) until the
+   terminal prints `arena tick <n>: arena 0 locked` and two Adlers stand up at the right of the view
+   (§31 step 3), then let go of the keyboard. Within a second or two the Adlers spread: one walks up
+   to Banderas and jabs, the other stops to his right, above or below his line. After a few jabs the
+   attacker backs off to the ring and, a little later, the other one comes in. At no time do two
+   Adlers strike Banderas together. Each strike prints `hit tick <n>: adler#<k>/<move> -> banderas#1`.
 3. **The knock-out.** Keep standing. When Banderas's hp reaches 0 (`… hp 0` in the terminal) the
    next tick prints
 
-       neon-rumble: knockout tick <n>: banderas#1, back as banderas#5
+       neon-rumble: knockout tick <n>: banderas#1, back as banderas#4 at <x>,264
 
-   Banderas vanishes and stands up on his spawn, with full hp. The Adlers turn to him there.
+   Banderas vanishes and stands up near the left edge of the view with full hp — not on his spawn at
+   200, which the locked camera no longer shows. The Adlers turn to him there. `<x>` is the centre of
+   the view minus 160: the camera of arena 0 still moves between 712 and 776, so `<x>` is anything
+   from 552 to 616, and 552 (the CI run, where P1 stands still) only if the view did not move.
 4. **The wave.** Fight: walk to an Adler, jab, cross, kick, jump-kick. Each one that falls prints
-   `knockout tick <n>: adler#<k>` and is gone from the street. After the third one the terminal
-   prints `wave tick <n>: wave 1 cleared`, and about two seconds later (120 ticks; one second on a
-   120 Hz screen) `wave tick <n+120>: wave 2, adler#… adler#… adler#…`: three Adlers are back on the
-   same spots and the ring starts again.
-5. **Two players.** Press numpad 1: P2 joins (§29) and Rainbird stands on his spawn. Now two Adlers
-   may strike at once — one token per player. Each Adler goes for the nearer of the two.
+   `knockout tick <n>: adler#<k>` and is gone from the street. After the second one the terminal
+   prints `wave tick <n>: arena 0 wave 0 cleared`, and about two seconds later (120 ticks; one second
+   on a 120 Hz screen) `wave tick <n+120>: arena 0 wave 1, adler#… adler#… adler#…`: three Adlers
+   stand up at the right of the view and the ring starts again.
+5. **Two players.** Press numpad 1: P2 joins (§29) and Rainbird stands up inside the view. Now two
+   Adlers may strike at once — one token per player. Each Adler goes for the nearer of the two.
 
 As in §21, on a 120 Hz screen everything runs twice as fast.
 
 What counts as a finding: two Adlers striking one player at once with only P1 on the street; an
 Adler in the ring standing on Banderas's line, inside another Adler, or twitching in place; an
-attacker who never gives the token back; a knock-out without the `knockout` line or without
-Banderas on his spawn with full hp; a knocked-out Adler who stays on the street; a new wave that does
-not come, comes at once, or comes somewhere else.
+attacker who never gives the token back; a knock-out without the `knockout` line, or a player who
+stands up outside the view or without full hp; a knocked-out Adler who stays on the street; a new
+wave that does not come, comes at once, or comes somewhere else.
 
 Send back: the `knockout` and `wave` lines of steps 3–4, and one screenshot of the ring of step 2.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
+
+<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 (wave 1 только для двоих пропущена); нокаут — banderas встаёт внутри вида; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+
+B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
+and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
+level (B6a–B6d, `framework/brawl/stage_*`, `wave_step`). B6e put them into Neon Rumble behind
+`--wave`. `level1` is a street three screens long now, `bounds` 104..1560, with two `arena` objects
+and thirteen `spawn` points made in Tiled:
+
+| arena | area along the street | the camera stops at | waves |
+|---|---|---|---|
+| 0 | 520..968 | 712 | wave 0: two Adlers, a third with `players 2`; wave 1: three |
+| 1 | 1176..1560 | 1368 | wave 0: two; wave 1: two, only with `players 2`; wave 4: three |
+
+The camera locks when its centre reaches the left end of an arena plus half the view (712 and 1368);
+inside the arena it moves only as far as the arena reaches, and no player can walk out of the view.
+The first wave starts on the lock, the next one 120 ticks after the last enemy of the current one is
+knocked out; a wave whose points all want two players is skipped when one is on the street, so one
+player goes from wave 0 of arena 1 straight to wave 4. After the last wave the lock is released and
+the camera follows again. The default run (no `--wave`) has the same longer street and no lock: its
+fighters and hashes are those of §22–§29.
+
+CI holds the order and the places (§30 step 1). What it cannot answer is what the screen shows:
+
+- **The camera.** Whether it follows Banderas without jerks and stops at both ends of the street, with
+  no layer edge or hole in the backgrounds anywhere along the three screens.
+- **The lock.** Whether the view visibly stops on the arena and its edges feel like walls, not like a
+  fighter stuck on nothing.
+- **The waves.** Whether the enemies stand up where the level puts them, inside the view, and the
+  pause between waves reads as a pause.
+
+Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat shell` window, with
+`.exe` and backslashes).
+
+1. Build and check as in §30 step 1. The default run of section S of `docs/owner-setup.txt` prints
+   the longer street,
+
+       neon-rumble: bounds 104..1560 x 56..280, camera 296,172
+
+   and its `--wave` lines show both locks and releases. The gate also pins
+   `stage camera 296,172, 2 arena(s), 13 wave spawn(s)` of the `--wave` run without printing it.
+
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble --wave
+
+   Walk left first: Banderas stops at the left end of the street, and the camera does not move past
+   it. Then walk right. The camera follows him; the facades and the street go by over three screens.
+3. **The lock.** When the camera reaches the first arena the terminal prints
+
+       neon-rumble: arena tick <n>: arena 0 locked
+       neon-rumble: wave tick <n>: arena 0 wave 0, adler#2 adler#3
+
+   The view stops moving, and two Adlers stand up at its right side, facing left. Walk right and left:
+   the view moves a little further right inside the arena and no more; Banderas stops at the edges of
+   the view and cannot leave it.
+4. **The waves.** Knock out both Adlers (`arena 0 wave 0 cleared`). About two seconds later three
+   Adlers stand up on the right: `arena 0 wave 1, adler#… adler#… adler#…`. Knock them out: the same
+   tick prints `arena 0 wave 1 cleared` and `arena tick <n>: arena 0 released`, and the camera follows
+   Banderas again.
+5. **The second arena.** Walk on to the right end of the street. The camera stops there and prints
+   `arena 1 locked` with `arena 1 wave 0` (two Adlers). After they fall, about two seconds pass and
+   `arena 1 wave 4` brings three: wave 1 of this arena wants two players and is skipped. After them
+   `arena 1 released`; the camera stays at the end of the street, which is the end of `bounds`.
+6. **The respawn.** At any lock, let the Adlers knock Banderas out. The line ends with
+   `back as banderas#<k> at <x>,264`, and he stands up near the left edge of the view, not off screen
+   on his spawn: `<x>` is the centre of the view minus 160 — 552 to 616 in arena 0, whose view still
+   moves between 712 and 776, and exactly 1208 in arena 1, which is as wide as the view.
+7. **Two players.** Restart the window and press numpad 1 before the first arena: Rainbird joins. The
+   camera follows the middle of the two and neither of them can leave the view. Wave 0 of arena 0
+   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4.
+
+As in §21, on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: the camera running past an end of the street, jerking, or losing a player;
+a seam, a hole or a layer edge anywhere on the three screens; a lock that does not stop the view or a
+player who walks out of a locked view; an enemy standing up outside the view or somewhere else than
+at its right side; a wave that does not come, comes at once, or comes with the wrong number; wave 1 of
+arena 1 coming with one player, or not coming with two; a release that does not let the camera go; a
+player who stands up outside the view.
+
+Send back: the `arena`, `wave` and `knockout` lines of steps 3–7, and one screenshot of a locked view
+with a wave on it.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 31 are closed, and the open 17 are listed by
+The gates above are what the ADRs waited on; 14 of the 32 are closed, and the open 18 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

@@ -14,7 +14,7 @@ about.
 The bake reads Tiled **1.10 or newer**. `level1.tmj` is saved by Tiled 1.12. The map must be:
 
 - **orthogonal** with **square tiles** of 1 to 1024 px. Isometric and hexagonal maps are refused.
-  Neon Rumble uses a 40×21 map of 16 px tiles;
+  Neon Rumble uses a 104×21 map of 16 px tiles;
 - **finite**: `the map is infinite; turn Map Properties -> Infinite off`;
 - saved with **Tile Layer Format = CSV**. Base64 and zlib layers are refused with the same hint;
 - with **Parallax Origin 0,0**. The origin moves every parallax layer at once, and the engine
@@ -140,7 +140,7 @@ which the cover check above walks. The rest is for the game to interpret. `level
 
 `bash scripts/check_sdk_game.sh --keep` bakes the game against the installed SDK and prints the
 summary of the level, for example
-`level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) …`. It also
+`level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) …`. It also
 compares the bundle hash with `games/neon-rumble/bundle.hash`. Saving the map in Tiled without
 changing anything must keep the same hash. A different hash means the bake depends on how the file
 is formatted, which is a bug in the bake and not in the map.

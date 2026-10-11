@@ -53,7 +53,7 @@ struct Brawl {
     Knockouts knocked;
 
     // Место p играет бойцом p. P1 сидит с открытия: его тело встаёт в пул раньше манекена. С `waves`
-    // вместо манекена — волна из трёх adler с ИИ.
+    // вместо манекена — арены и волны из объектов уровня, тела врагов с ИИ ставит `Wave`.
     bool open(const Level& level, const Fighters& fighters, bool waves);
     void step();
     DrawOrder draw_order() const;

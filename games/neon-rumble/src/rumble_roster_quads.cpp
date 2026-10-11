@@ -7,6 +7,10 @@ framework::Vec2 screen_plane(const framework::brawl::Body& body) {
 }
 
 bool follow_point(const Brawl& brawl, framework::Vec2& out) {
+    if (brawl.wave.on) {
+        out = brawl.wave.camera.center;
+        return true;
+    }
     for (const framework::brawl::Seat& s : brawl.seats.at) {
         const framework::brawl::Body* b = s.present ? brawl.pool.find(s.body) : nullptr;
         if (b == nullptr) continue;
