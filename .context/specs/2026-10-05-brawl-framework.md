@@ -401,7 +401,7 @@ City — принятый риск, сверка на живом кадре ур
 | `depth_band` | Rect | — |
 | `wall` | Rect | — |
 | `arena` | Rect | `id` (int) |
-| `spawn` | Point | `arena` (int), `wave` (int), `kind` (string) |
+| `spawn` | Point | `arena` (int), `wave` (int), `kind` (string), `players` (int, по умолчанию 1) |
 | `checkpoint` | Point | `order` (int) |
 | `kill` | Rect | — |
 | `conveyor` | Rect | `speed` (fix) |
@@ -411,7 +411,11 @@ City — принятый риск, сверка на живом кадре ур
 | `bounds` | Rect | как в #24 |
 
   Волна — множество `spawn` с одинаковыми `arena` и `wave`: ссылки int-свойствами, без
-  `object`-свойств, которые #24 отбивает. Байты `LNOB` и голдены #24 не меняются.
+  `object`-свойств, которые #24 отбивает. Байты `LNOB` и голдены #24 не меняются. Решения
+  владельца 2026-10-11 ([`notes/25-b6.md`](../notes/25-b6.md)): `spawn` без `wave` — точка игрока,
+  её прочие свойства (`facing`) — игре; точка волны участвует, если игроков на старте волны
+  ≥ `players`; `StageCamera`, арены и волны из Tiled в Neon Rumble — только `--wave`, `level1`
+  расширяется до двух арен.
 - **Переход belt ↔ platform**, одно правило: тело стоит на опоре (`y = 0` в belt, `on_ground` в
   platform) и его `x` пересёк границу `section` — переход в этом тике; в воздухе — откладывается
   до приземления. В platform тело ведёт контроллер #16 в `(x, y_экран)` с замороженным `z`; при
