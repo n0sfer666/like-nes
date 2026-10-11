@@ -67,4 +67,9 @@ constexpr fix32 min_fix(fix32 a, fix32 b) { return a < b ? a : b; }
 constexpr fix32 max_fix(fix32 a, fix32 b) { return a < b ? b : a; }
 constexpr fix32 clamp_fix(fix32 v, fix32 lo, fix32 hi) { return min_fix(max_fix(v, lo), hi); }
 
+// Сумма в int64: два края мира у потолка fix32 переполнили бы её до деления.
+constexpr fix32 mid_fix(fix32 a, fix32 b) {
+    return fix32::from_raw(fix32::sat((static_cast<int64_t>(a.raw) + static_cast<int64_t>(b.raw)) / 2));
+}
+
 } // namespace framework

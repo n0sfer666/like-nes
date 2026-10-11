@@ -73,9 +73,14 @@ void report_fighters(const Level& level, const Fighters& fighters, const Brawl& 
                     fighters[i].sheet.width, fighters[i].sheet.height, b.pos.x.to_int(), b.pos.z.to_int(), side(b));
     }
     report_floor(brawl.floor);
+    if (brawl.wave.on)
+        std::printf("neon-rumble: stage camera %d,%d, %zu arena(s), %zu wave spawn(s)\n",
+                    brawl.wave.camera.center.x.to_int(), brawl.wave.camera.center.y.to_int(),
+                    brawl.wave.level.arenas.size(), brawl.wave.level.waves.size());
     Layers layers;
     FighterQuads quads;
-    const framework::Vec2 follow = screen_plane(brawl.spawns[PLAYER]);
+    framework::Vec2 follow = screen_plane(brawl.spawns[PLAYER]);
+    if (!follow_point(brawl, follow)) follow = screen_plane(brawl.spawns[PLAYER]);
     LayerStats st = layers.build(level, gfx::viewport_fit({960, 540}), 0, &follow);
     for (const uint32_t i : brawl.draw_order()) {
         const br::Body& b = brawl.pool.bodies[i];
@@ -103,6 +108,9 @@ void report_brawl(const Brawl& brawl, uint32_t tick) {
             std::printf(" %s %d,%d y %d hp %d,", label(brawl, b).text.data(), b.pos.x.to_int(), b.pos.z.to_int(),
                         b.pos.y.to_int(), b.hp);
         }
+    if (brawl.wave.on)
+        std::printf(" camera %d,%d arena %d,", brawl.wave.camera.center.x.to_int(), brawl.wave.camera.center.y.to_int(),
+                    brawl.wave.camera.arena);
     std::printf(" draw");
     for (const uint32_t i : brawl.draw_order()) std::printf(" %s", label(brawl, brawl.pool.bodies[i]).text.data());
     std::printf("\n");
@@ -147,17 +155,27 @@ void report_wave(const Brawl& brawl, uint32_t tick) {
         const Knockout& k = brawl.knocked.at[i];
         std::printf("neon-rumble: knockout tick %u: %s", tick, label(brawl, k.body, k.kind).text.data());
         const br::Body* back = k.kind < br::SEATS ? brawl.pool.find(brawl.seats.at[k.kind].body) : nullptr;
-        if (back != nullptr) std::printf(", back as %s", label(brawl, *back).text.data());
+        if (back != nullptr)
+            std::printf(", back as %s at %d,%d", label(brawl, *back).text.data(), back->pos.x.to_int(),
+                        back->pos.z.to_int());
         std::printf("\n");
     }
-    if (brawl.wave.cleared) std::printf("neon-rumble: wave tick %u: wave %u cleared\n", tick, brawl.wave.number);
-    if (brawl.wave.spawned) {
-        std::printf("neon-rumble: wave tick %u: wave %u,", tick, brawl.wave.number);
-        for (uint32_t i = 0; i < brawl.pool.count; ++i)
-            if (brawl.pool.bodies[i].team != 0) std::printf(" %s", label(brawl, brawl.pool.bodies[i]).text.data());
+    const Wave& w = brawl.wave;
+    const br::WaveFacts& f = w.facts;
+    if (f.locked) std::printf("neon-rumble: arena tick %u: arena %d locked\n", tick, w.camera.arena);
+    if (f.cleared) std::printf("neon-rumble: wave tick %u: arena %d wave %d cleared\n", tick, w.was_arena, w.was_wave);
+    if (f.released) std::printf("neon-rumble: arena tick %u: arena %d released\n", tick, w.waves.cleared);
+    if (w.spawned_count > 0) {
+        std::printf("neon-rumble: wave tick %u: arena %d wave %d,", tick, w.camera.arena, w.waves.wave);
+        for (uint32_t i = 0; i < w.spawned_count; ++i) {
+            const br::Body* b = brawl.pool.find(w.spawned[i]);
+            if (b != nullptr) std::printf(" %s", label(brawl, *b).text.data());
+        }
         std::printf("\n");
     }
-    if (brawl.knocked.count > 0 || brawl.wave.cleared || brawl.wave.spawned) std::fflush(stdout);
+    if (f.dropped > 0) std::printf("neon-rumble: wave tick %u: %u spawn(s) dropped\n", tick, f.dropped);
+    if (brawl.knocked.count > 0 || f.locked || f.cleared || f.released || w.spawned_count + f.dropped > 0)
+        std::fflush(stdout);
 }
 
 void report_step(const Brawl& brawl, uint32_t tick) {

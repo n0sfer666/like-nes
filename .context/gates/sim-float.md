@@ -10,8 +10,8 @@ python3 scripts/check_sim_float.py --selftest  # 24 контроля на фик
 Гейт называет причину строкой.
 
 - **Где.** `engine/framework/{brawl,ai,scene}` — файлы глазами `git ls-files --cached --others
-  --exclude-standard`, расширения C/C++. `ai` и `scene` появятся в В5 и В6; пока их нет, обход
-  их молча пропускает.
+  --exclude-standard`, расширения C/C++. `ai` — с В5, `scene` — с В6а
+  (2026-10-11): `float leak;` в конце `scene_objects.hpp` → FAIL, строка 94; откат — PASS, 120 файлов.
 - **Что.** Три правила. Типы и конверсии словом целиком: `float`, `double`, `float_t`, `double_t`,
   `_FloatN`, `floatN_t`, а также `from_float` и `to_double` из `fixed.hpp` — они для границ
   (авторинг, рендер), не для шага; `long double` — одна находка. Плавающие литералы: `0.5`, `1.f`,

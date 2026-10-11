@@ -1,0 +1,29 @@
+#pragma once
+#include "body_pool.hpp"
+#include "brawl_step.hpp"
+#include "stage_sections.hpp"
+
+namespace framework::brawl {
+
+// Пятая система тика (спека #25, «Порядок систем»), после движения и ДО камеры: переход belt ↔
+// platform одним правилом. Тело на опоре (`grounded` в belt, `on_ground` в platform), чей `x` лежит в
+// секции другого режима, переходит в этом тике; в воздухе — ждёт приземления. Вход в platform —
+// `Character` в `(x, z − ног)` на опоре, выход — `z` = экранный `y` ног, зажатый в полосу пола.
+// Точка выхода занята — сценой столкновений или телом platform при входе, стеной, краем полосы или
+// телом belt при выходе — переход отказан, `x` зажат на краю секции стороны тела, `vx` гасится.
+// Без `w.platform`, `w.level` или `w.floor` переходов нет; записи снятых тел чистятся всегда.
+// Отбрасывание, лежащее в `pos` тела platform неусвоенным (`hitstop`), сперва переносится в
+// `Character`: выход и отказ пишут `pos` из него.
+void step_sections(StageSections& sections, BodyPool& pool, const BrawlWorld& w);
+
+// То же правило для одного тела — его зовёт и поводок камеры: край, вдвинувший тело в секцию, чей
+// вход или выход занят, иначе дрожал бы с отказом через тик, не поднимая `crushed`.
+void cross_section(StageSections& sections, const BodyPool& pool, Body& b, const BrawlWorld& w);
+
+// До движения: тело, ещё не сделавшее шага (`age == 0`, его только что поставила игра), входит в
+// platform из точки, где его поставили, — иначе первый тик belt зажал бы `z` в полосу пола и `x` в
+// его стены. Вход и в воздухе: высота и скорость переходят в `Character` прыжком, а ждать
+// приземления в belt значило бы падать на полосу пола, а не на уступ под телом.
+void enter_spawned(StageSections& sections, BodyPool& pool, const BrawlWorld& w);
+
+} // namespace framework::brawl

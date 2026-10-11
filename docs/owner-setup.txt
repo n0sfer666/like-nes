@@ -1807,16 +1807,16 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Debug: SDK built and installed into the prefix
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
-      neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+      neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
-      neon-rumble: bounds 104..536 x 56..280, camera 296,172
+      neon-rumble: bounds 104..1560 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: clips 51 in the table
       neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
       neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
       neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
-      neon-rumble: depth band 104..536 x 232..264, 0 wall(s)
+      neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
       neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
@@ -1858,29 +1858,49 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1
-      neon-rumble: knockout tick 459: banderas#1, back as banderas#5
-      neon-rumble: knockout tick 1312: banderas#5, back as banderas#6
-      neon-rumble: knockout tick 1480: adler#4
-      neon-rumble: knockout tick 1770: adler#2
-      neon-rumble: knockout tick 1846: adler#3
-      neon-rumble: wave tick 1846: wave 1 cleared
-      neon-rumble: wave tick 1966: wave 2, adler#7 adler#8 adler#9
-      neon-rumble: brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9
-      sdk-game: OK   Release: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks
-      sdk-game: OK   Release: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
+      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: arena tick 256: arena 0 locked
+      neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
+      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
+      neon-rumble: knockout tick 1490: adler#3
+      neon-rumble: knockout tick 1546: adler#2
+      neon-rumble: wave tick 1546: arena 0 wave 0 cleared
+      neon-rumble: wave tick 1666: arena 0 wave 1, adler#5 adler#6 adler#7
+      neon-rumble: knockout tick 2086: banderas#4, back as banderas#8 at 552,264
+      neon-rumble: knockout tick 2606: adler#5
+      neon-rumble: knockout tick 3007: adler#7
+      neon-rumble: knockout tick 3076: adler#6
+      neon-rumble: wave tick 3076: arena 0 wave 1 cleared
+      neon-rumble: arena tick 3076: arena 0 released
+      neon-rumble: arena tick 3519: arena 1 locked
+      neon-rumble: wave tick 3519: arena 1 wave 0, adler#9 adler#10
+      neon-rumble: knockout tick 4000: banderas#8, back as banderas#11 at 1208,264
+      neon-rumble: knockout tick 4520: adler#9
+      neon-rumble: knockout tick 4778: adler#10
+      neon-rumble: wave tick 4778: arena 1 wave 0 cleared
+      neon-rumble: wave tick 4898: arena 1 wave 4, adler#12 adler#13 adler#14
+      neon-rumble: knockout tick 5036: banderas#11, back as banderas#15 at 1208,264
+      neon-rumble: knockout tick 6105: adler#13
+      neon-rumble: knockout tick 6115: adler#14
+      neon-rumble: knockout tick 6196: banderas#15, back as banderas#16 at 1208,264
+      neon-rumble: knockout tick 6574: adler#12
+      neon-rumble: wave tick 6574: arena 1 wave 4 cleared
+      neon-rumble: arena tick 6574: arena 1 released
+      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
+      sdk-game: OK   Release: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
+      sdk-game: OK   Release: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
-      neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+      neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
-      neon-rumble: bounds 104..536 x 56..280, camera 296,172
+      neon-rumble: bounds 104..1560 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: clips 51 in the table
       neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
       neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
       neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
-      neon-rumble: depth band 104..536 x 232..264, 0 wall(s)
+      neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
       neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
       neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
@@ -1922,17 +1942,37 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1
-      neon-rumble: knockout tick 459: banderas#1, back as banderas#5
-      neon-rumble: knockout tick 1312: banderas#5, back as banderas#6
-      neon-rumble: knockout tick 1480: adler#4
-      neon-rumble: knockout tick 1770: adler#2
-      neon-rumble: knockout tick 1846: adler#3
-      neon-rumble: wave tick 1846: wave 1 cleared
-      neon-rumble: wave tick 1966: wave 2, adler#7 adler#8 adler#9
-      neon-rumble: brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9
-      sdk-game: OK   Debug: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x6afe949291c3d9b2 matches bundle.hash
+      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: arena tick 256: arena 0 locked
+      neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
+      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
+      neon-rumble: knockout tick 1490: adler#3
+      neon-rumble: knockout tick 1546: adler#2
+      neon-rumble: wave tick 1546: arena 0 wave 0 cleared
+      neon-rumble: wave tick 1666: arena 0 wave 1, adler#5 adler#6 adler#7
+      neon-rumble: knockout tick 2086: banderas#4, back as banderas#8 at 552,264
+      neon-rumble: knockout tick 2606: adler#5
+      neon-rumble: knockout tick 3007: adler#7
+      neon-rumble: knockout tick 3076: adler#6
+      neon-rumble: wave tick 3076: arena 0 wave 1 cleared
+      neon-rumble: arena tick 3076: arena 0 released
+      neon-rumble: arena tick 3519: arena 1 locked
+      neon-rumble: wave tick 3519: arena 1 wave 0, adler#9 adler#10
+      neon-rumble: knockout tick 4000: banderas#8, back as banderas#11 at 1208,264
+      neon-rumble: knockout tick 4520: adler#9
+      neon-rumble: knockout tick 4778: adler#10
+      neon-rumble: wave tick 4778: arena 1 wave 0 cleared
+      neon-rumble: wave tick 4898: arena 1 wave 4, adler#12 adler#13 adler#14
+      neon-rumble: knockout tick 5036: banderas#11, back as banderas#15 at 1208,264
+      neon-rumble: knockout tick 6105: adler#13
+      neon-rumble: knockout tick 6115: adler#14
+      neon-rumble: knockout tick 6196: banderas#15, back as banderas#16 at 1208,264
+      neon-rumble: knockout tick 6574: adler#12
+      neon-rumble: wave tick 6574: arena 1 wave 4 cleared
+      neon-rumble: arena tick 6574: arena 1 released
+      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
+      sdk-game: OK   Debug: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -1962,7 +2002,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
 
-  Строки level и frame — уровень level1 (40x21) прочитан игрой из game.bundle
+  Строки level и frame — уровень level1 (104x21) прочитан игрой из game.bundle
   (таблица visual, 16 анимированных тайлов вывесок и 5 текстур сырым RGBA8:
   тайлсет, вывески, небо, два плана города), а кадр 960x540 при масштабе 2
   целиком лёг в квады: unknown, rejected и dropped обязаны быть нулями.
@@ -1977,7 +2017,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   таблица clips — 51 клип, 3 бойца Puffolotti по 17; у каждого бойца свой
   лист по guid его первого клипа и свой спавн: banderas на player
   (200,264) лицом вправо, rainbird (264,240) и adler (328,252) лицом влево.
-  Полоса глубины — объект walk класса depth_band, x 104..536, z 232..264,
+  Полоса глубины — объект walk класса depth_band, x 104..1560, z 232..264,
   стен нет. Строки pose — idle бойцов на улице на тике 0 в порядке отрисовки
   (дальний по z первым): манекен adler, затем banderas (P1). rainbird — боец P2,
   до входа P2 его на улице нет (спека #25, В4г); на кадре idle один hurt0 и один push (0 hit, 1 hurt,
@@ -2023,10 +2063,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   экране (дальше), лицом влево, в stdout «neon-rumble: seat tick N: P2
   joining», затем «… P2 present». Хотсит целиком — два пада, пад и
   клавиатура, одна клавиатура на двоих, выдернутый пад и выход — §29
-  docs/owner-verification.md. С флагом --wave вместо манекена три adler с
-  ИИ: держат кольцо, бьёт тот, у кого жетон; нокаут печатает «knockout
-  tick N: …», игрок встаёт на спавне, зачищенная волна сменяется новой
-  через 120 тиков — §30 docs/owner-verification.md.
+  docs/owner-verification.md. С флагом --wave манекена нет: улица в
+  три экрана с двумя аренами, камера драки идёт за banderas и запирается на
+  арене — «arena tick N: arena A locked», волны adler из точек уровня
+  стартуют на замке и через 120 тиков после зачистки прошлой, «wave tick
+  N: arena A wave W, adler#…»; adler с ИИ держат кольцо, бьёт тот, у кого
+  жетон; нокаут печатает «knockout tick N: … back as banderas#K at x,z» —
+  игрок встаёт внутри вида, а не на спавне за краем арены; после последней
+  волны «arena A released», и камера снова идёт за игроком — §30 и §31
+  docs/owner-verification.md.
   banderas (P1) ходит под WASD (стрелки — у P2): влево-вправо — вдоль улицы,
   вверх-вниз — в глубину; Space или K — прыжок, один на нажатие; J — jab,
   U — cross (спека #25, В3а), L — kick, J в прыжке — jump_kick, один удар
@@ -2042,7 +2087,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   hurt» (jump_kick — «fall», затем «down», «getup», «stand»; в падающего,
   лежащего и встающего удар не проходит, спека #25 В3б); удар сквозь rainbird (team 0, союзник) урона
   не наносит и строки не печатает. Из
-  полосы 104..536 x 232..264 он не выходит, камера следует за ним и стоит
+  полосы 104..1560 x 232..264 он не выходит, камера следует за ним и стоит
   у границ уровня. Тик драки — на каждый показанный кадр: на 120 Гц боец
   вдвое быстрее, чем на 60 Гц, это не находка.
   Кто ближе (ниже на экране), рисуется поверх. F3 включает и выключает

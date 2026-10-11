@@ -20,6 +20,16 @@ struct DepthFloor {
     bool add_wall(const FloorRect& r);
 };
 
+// Ход по `x` из `x` в `to` при глубине `z`: стены и края полосы останавливают его. Общий для `slide` и
+// поводка сим-камеры: поводок, писавший `x` в обход, вставлял тело внутрь стены, а `sweep` такое тело
+// уже не держит — оно проходило стену насквозь.
+fix32 move_x(const DepthFloor& f, fix32 x, fix32 z, fix32 to);
+// Ход по `z` — пара к `move_x`; публичный ради поводка автоскролла по `y`, который толкает тело belt
+// по глубине.
+fix32 move_z(const DepthFloor& f, fix32 x, fix32 z, fix32 to);
+// Точка вне полосы или внутри стены (края замкнуты, как у `sweep`): выход из platform туда отказан.
+bool blocked(const DepthFloor& f, fix32 x, fix32 z);
+
 void slide(const DepthFloor& f, DepthBody& b);
 
 } // namespace framework::brawl

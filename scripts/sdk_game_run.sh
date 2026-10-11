@@ -31,17 +31,17 @@ game_run() {
         sdk_bad "$cfg: library.bundle next to the exe was not loaded"; return 1; }
     grep -qxF "neon-rumble: pad backend $(sdk_pad_backend)" <<< "$out" || {
         sdk_bad "$cfg: the native pad backend of this OS is not linked from the prefix"; return 1; }
-    grep -q '^neon-rumble: level level1 40x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209$' \
+    grep -q '^neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209$' \
         <<< "$out" || { sdk_bad "$cfg: level1 from game.bundle: no summary line"; return 1; }
     grep -q '^neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)$' \
         <<< "$out" || { sdk_bad "$cfg: viewport policy on 960x540 is not scale 2 with the zone centred"; return 1; }
     grep -q '^neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped$' \
         <<< "$out" || { sdk_bad "$cfg: viewport policy on 300x200 does not crop the zone"; return 1; }
-    grep -q '^neon-rumble: bounds 104..536 x 56..280, camera 296,172$' <<< "$out" || {
+    grep -q '^neon-rumble: bounds 104..1560 x 56..280, camera 296,172$' <<< "$out" || {
         sdk_bad "$cfg: camera bounds of level1 are not the street object"; return 1; }
     grep -Eq '^neon-rumble: frame 960x540 scale 2: [1-9][0-9]* sprite\(s\), [1-9][0-9]* run\(s\), 0 unknown, 0 rejected, 0 dropped$' \
         <<< "$out" || { sdk_bad "$cfg: level1 frame does not fit the quads"; return 1; }
-    [ "$(grep -Ec '^neon-rumble: (clips 51 in the table|depth band 104\.\.536 x 232\.\.264, 0 wall\(s\))$' <<< "$out")" -eq 2 ] || {
+    [ "$(grep -Ec '^neon-rumble: (clips 51 in the table|depth band 104\.\.1560 x 232\.\.264, 0 wall\(s\))$' <<< "$out")" -eq 2 ] || {
         sdk_bad "$cfg: clips table is not 3 fighters x 17 clips or the depth band is not the walk object"; return 1; }
     [ "$(grep -Ec '^neon-rumble: fighter (banderas sheet 657x642, body 200,264 facing right|rainbird sheet 602x605, body 264,240 facing left|adler sheet 548x1108, body 328,252 facing left)$' <<< "$out")" -eq 3 ] || {
         sdk_bad "$cfg: roster from game.bundle: a fighter sheet or spawn line is missing"; return 1; }
@@ -54,22 +54,24 @@ game_run() {
     sdk_ok "$cfg: built against the prefix and ran 480 headless frames"
 }
 
-# Режим --wave (В5б спеки #25): три adler с ИИ против одного P1. Скрипт держит P1 на месте, пока
-# ИИ не доведёт его до hp 0, и step_seats ставит место новым телом (banderas#5) на том же тике;
-# потом бот P1 бьёт подошедшего, пока волна не зачищена, и через 120 тиков на тех же спавнах встаёт
-# вторая. Пиннутые удары по hp 0 — улика, что нокаут случился от удара, а не от снятия тела; удар на
-# 1845 — размен, его строка держится на флаге kept события, а не на списке struck атакующего.
+# Режим --wave (В5б, В6д спеки #25): арены и волны из объектов level1, камера драки и замок арены —
+# фреймворка. Бот P1 идёт вправо, пока нет врагов; арена 0 запирается, когда центр камеры доходит до
+# 712, первое тело стоит, пока ИИ не доведёт его до hp 0, а step_seats ставит место новым телом
+# внутри вида (552 = 712 − 192 + 32, а не на спавне 200). Волна 0 для одного игрока — две точки из
+# трёх (третья `players 2`), волна 1 — через 120 тиков, затем замок снят. Арена 1 (цель 1368,
+# респаун 1208): волна 1 только для двоих пропущена, после волны 0 стартует волна 4. Удар по hp 0
+# пиннут перед каждым из 15 нокаутов — улика, что нокаут случился от удара, а не от снятия тела.
 game_wave_run() {
     local dir=$1 cfg=$2 exe out
     exe="$dir/neon_rumble"
     [ -f "$exe.exe" ] && exe="$exe.exe"
-    out=$("$exe" --headless --wave --frames 1980 2>&1) || {
+    out=$("$exe" --headless --wave --frames 6600 2>&1) || {
         printf '%s\n' "$out"; sdk_bad "$cfg: neon_rumble --wave exited non-zero"; return 1; }
-    grep -E '^neon-rumble: (brawl|knockout|wave) tick ' <<< "$out"
-    grep -q '^neon-rumble: headless run ok, 1980 frames$' <<< "$out" || {
+    grep -E '^neon-rumble: (brawl|knockout|wave|arena) tick ' <<< "$out"
+    grep -q '^neon-rumble: headless run ok, 6600 frames$' <<< "$out" || {
         printf '%s\n' "$out"; sdk_bad "$cfg: --wave: no headless verdict line"; return 1; }
-    [ "$(grep -Ec '^neon-rumble: (brawl tick 0: hash c50d4a07f415f6d5, banderas#1 200,264 y 0 hp 100, adler#2 328,252 y 0 hp 100, adler#3 360,238 y 0 hp 100, adler#4 360,262 y 0 hp 100, draw adler#3 adler#2 adler#4 banderas#1|hit tick 458: adler#2/jab -> banderas#1, damage 6, hp 0|knockout tick 459: banderas#1, back as banderas#5|hit tick 1311: adler#2/jab -> banderas#5, damage 6, hp 0|knockout tick 1312: banderas#5, back as banderas#6|hit tick 1479: banderas#6/jab -> adler#4, damage 6, hp 0|knockout tick 1480: adler#4|hit tick 1769: banderas#6/cross -> adler#2, damage 8, hp 0|knockout tick 1770: adler#2|hit tick 1845: banderas#6/jab -> adler#3, damage 6, hp 0|knockout tick 1846: adler#3|wave tick 1846: wave 1 cleared|wave tick 1966: wave 2, adler#7 adler#8 adler#9|brawl tick 1980: hash 6e8f2ec97c57f755, banderas#6 170,258 y 0 hp 82, adler#7 300,256 y 0 hp 100, adler#8 330,244 y 0 hp 100, adler#9 330,264 y 0 hp 100, draw adler#8 adler#7 banderas#6 adler#9)$' <<< "$out")" -eq 14 ] && [ "$(grep -Ec '^neon-rumble: (knockout|wave) tick ' <<< "$out")" -eq 7 ] && [ "$(grep -Ec '^neon-rumble: (hit|react|seat|knockout|wave) tick ' <<< "$out")" -eq 169 ] || {
+    [ "$(grep -Ec '^neon-rumble: (stage camera 296,172, 2 arena\(s\), 13 wave spawn\(s\)|brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1|arena tick 256: arena 0 locked|wave tick 256: arena 0 wave 0, adler#2 adler#3|hit tick 749: adler#2/jab -> banderas#1, damage 6, hp 0|knockout tick 750: banderas#1, back as banderas#4 at 552,264|hit tick 1489: banderas#4/cross -> adler#3, damage 8, hp 0|knockout tick 1490: adler#3|hit tick 1545: banderas#4/cross -> adler#2, damage 8, hp 0|knockout tick 1546: adler#2|wave tick 1546: arena 0 wave 0 cleared|wave tick 1666: arena 0 wave 1, adler#5 adler#6 adler#7|hit tick 2085: adler#7/jab -> banderas#4, damage 6, hp 0|knockout tick 2086: banderas#4, back as banderas#8 at 552,264|hit tick 2605: banderas#8/cross -> adler#5, damage 8, hp 0|knockout tick 2606: adler#5|hit tick 3006: banderas#8/jab -> adler#7, damage 6, hp 0|knockout tick 3007: adler#7|hit tick 3075: banderas#8/jab -> adler#6, damage 6, hp 0|knockout tick 3076: adler#6|wave tick 3076: arena 0 wave 1 cleared|arena tick 3076: arena 0 released|arena tick 3519: arena 1 locked|wave tick 3519: arena 1 wave 0, adler#9 adler#10|hit tick 3999: adler#10/jab -> banderas#8, damage 6, hp 0|knockout tick 4000: banderas#8, back as banderas#11 at 1208,264|hit tick 4519: banderas#11/cross -> adler#9, damage 8, hp 0|knockout tick 4520: adler#9|hit tick 4777: banderas#11/cross -> adler#10, damage 8, hp 0|knockout tick 4778: adler#10|wave tick 4778: arena 1 wave 0 cleared|wave tick 4898: arena 1 wave 4, adler#12 adler#13 adler#14|hit tick 5035: adler#13/jab -> banderas#11, damage 6, hp 0|knockout tick 5036: banderas#11, back as banderas#15 at 1208,264|hit tick 6104: banderas#15/jab -> adler#13, damage 6, hp 0|knockout tick 6105: adler#13|hit tick 6114: banderas#15/cross -> adler#14, damage 8, hp 0|knockout tick 6115: adler#14|hit tick 6195: adler#12/jab -> banderas#15, damage 6, hp 0|knockout tick 6196: banderas#15, back as banderas#16 at 1208,264|hit tick 6573: banderas#16/jab -> adler#12, damage 6, hp 0|knockout tick 6574: adler#12|wave tick 6574: arena 1 wave 4 cleared|arena tick 6574: arena 1 released|brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16)$' <<< "$out")" -eq 45 ] && [ "$(grep -Ec '^neon-rumble: (knockout|wave|arena) tick ' <<< "$out")" -eq 27 ] && [ "$(grep -Ec '^neon-rumble: (hit|react|seat|knockout|wave|arena) tick ' <<< "$out")" -eq 498 ] || {
         printf '%s\n' "$out"
-        sdk_bad "$cfg: --wave: AI knockout of P1 and its respawn, wave 1 cleared, wave 2 after 120 ticks, the brawl hash or the tick count of the fight moved"; return 1; }
-    sdk_ok "$cfg: --wave ran 1980 headless frames: P1 knocked out and back, wave 1 cleared, wave 2 after 120 ticks"
+        sdk_bad "$cfg: --wave: arena lock, waves from the level, respawn inside the view, the skipped two-player wave, the brawl hash or the tick count of the fight moved"; return 1; }
+    sdk_ok "$cfg: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view"
 }

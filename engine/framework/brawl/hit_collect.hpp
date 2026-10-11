@@ -7,12 +7,17 @@
 
 namespace framework::brawl {
 
+struct StageSections;
+
 using HitFilter = bool (*)(const Body& attacker, const Body& target, const HitRules& rules);
 
 bool may_hit(const Body& attacker, const Body& target, const HitRules& rules);
 graphics::ClipView body_clip(const Body& b, std::span<const Archetype> kinds);
 void collect_from(const BodyPool& pool, uint32_t slot, std::span<const Archetype> kinds, const HitRules& rules,
-                  HitEvents& out, HitFilter filter = may_hit);
-void collect_hits(const BodyPool& pool, std::span<const Archetype> kinds, const HitRules& rules, HitEvents& out);
+                  HitEvents& out, HitFilter filter = may_hit, const StageSections* sections = nullptr);
+// Удары — только между телами одного режима: тело belt и тело platform живут в разных плоскостях, и
+// общая координата `x` их не сводит. `sections == nullptr` — все тела в belt.
+void collect_hits(const BodyPool& pool, std::span<const Archetype> kinds, const HitRules& rules, HitEvents& out,
+                  const StageSections* sections = nullptr);
 
 } // namespace framework::brawl
