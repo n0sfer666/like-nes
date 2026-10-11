@@ -1943,6 +1943,7 @@ jobs:
                    framework_json_test framework_json_string_test framework_json_number_test \
                    framework_tilemap_visual_test framework_tilemap_objects_test \
                    framework_tiled_test framework_tiled_refusal_test \
+                   framework_scene_test framework_scene_refusal_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -1957,6 +1958,8 @@ jobs:
             || { echo "framework_lobby_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-lobby-pause: PASS - 20 cases" fw_framework_lobby_pause_test.txt \
             || { echo "framework_lobby_pause_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-scene-refusal: PASS - 37 cases" fw_framework_scene_refusal_test.txt \
+            || { echo "framework_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
 
       # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
@@ -2948,7 +2951,9 @@ jobs:
           framework_brawl_clash_test:framework-brawl-clash: PASS
           framework_brawl_throw_test:framework-brawl-throw: PASS
           framework_ai_test:framework-ai: PASS
-          framework_ai_resim_test:framework-ai-resim: PASS"
+          framework_ai_resim_test:framework-ai-resim: PASS
+          framework_scene_test:framework-scene: PASS
+          framework_scene_refusal_test:framework-scene-refusal: PASS - 37 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
           cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0
