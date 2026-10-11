@@ -24,6 +24,7 @@ public:
     bool text_prop(std::string_view name, std::string_view& out) const;
     bool word_prop(std::string_view name, std::initializer_list<std::string_view> words, uint8_t& index) const;
     bool at_least(std::string_view name, int32_t value, int32_t floor) const;
+    bool within(std::string_view name, int32_t value, int32_t lo, int32_t hi) const;
     bool fail(const std::string& why) const;
     std::string who() const;
 

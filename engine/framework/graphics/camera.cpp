@@ -16,19 +16,6 @@ fix32 approach(fix32 v, fix32 goal, fix32 rate) {
     return d.raw > 0 ? v + rate : v - rate;
 }
 
-fix32 clamp_axis(fix32 v, fix32 lo, fix32 hi, fix32 half) {
-    const fix32 low = lo + half;
-    const fix32 high = hi - half;
-    // Уровень уже видимой области: удержать камеру внутри нельзя, и отрезок разрешённых центров
-    // выворачивается наизнанку. Тогда середина уровня — а `clamp_fix` по вывернутому отрезку молча
-    // отдал бы один из краёв и прижал бы вид к нему, оставив с другой стороны пустоту.
-    if (high < low) {
-        return fix32::from_raw(
-            fix32::sat((static_cast<int64_t>(lo.raw) + static_cast<int64_t>(hi.raw)) / 2));
-    }
-    return clamp_fix(v, low, high);
-}
-
 // Шум тряски. Своя функция, а не `hash_mix.hpp` из физики: та константа принадлежит ГОЛДЕНАМ, и
 // общая с ними означала бы, что подкрутка свёртки меняет вид игры.
 int32_t shake_noise(uint32_t seed, uint64_t tick, uint32_t axis) {
@@ -57,6 +44,18 @@ fix32 snap_pixel(fix32 v, int32_t ppu) {
 }
 
 } // namespace
+
+fix32 clamp_axis(fix32 v, fix32 lo, fix32 hi, fix32 half) {
+    const fix32 low = lo + half;
+    const fix32 high = hi - half;
+    // Уровень уже видимой области: удержать камеру внутри нельзя, и отрезок разрешённых центров
+    // выворачивается наизнанку. Тогда середина уровня — а `clamp_fix` по вывернутому отрезку молча
+    // отдал бы один из краёв и прижал бы вид к нему, оставив с другой стороны пустоту.
+    if (high < low) {
+        return mid_fix(lo, hi);
+    }
+    return clamp_fix(v, low, high);
+}
 
 void camera_follow(Camera& c, const CameraConfig& cfg, Vec2 target, int32_t facing) {
     Vec2 want = target;

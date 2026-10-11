@@ -1,5 +1,6 @@
 #include "scene_read.hpp"
 
+#include <cstdint>
 #include <string>
 #include <utility>
 
@@ -27,6 +28,9 @@ bool section(const SceneObject& o, LevelObjects& out) {
 bool arena(const SceneObject& o, LevelObjects& out) {
     Arena a{o.area(), 0};
     if (!o.int_prop("id", a.id)) return false;
+    // Сим-камера драки хранит запертую арену в `int16_t`, и −1 там — «арена не заперта»: id вне
+    // [0, INT16_MAX] либо совпал бы с этим знаком, либо не запирался бы вовсе.
+    if (!o.within("id", a.id, 0, INT16_MAX)) return false;
     out.arenas.push_back(a);
     return true;
 }

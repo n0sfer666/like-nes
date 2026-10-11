@@ -4,34 +4,29 @@ target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framewor
 
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
   archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp
-  seat_step.cpp seat_hash.cpp)
+  seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics
+target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics framework_scene
   framework_core)
 
 add_executable(framework_brawl_test framework_brawl_test.cpp)
-target_link_libraries(framework_brawl_test PRIVATE framework_brawl framework_character
-  framework_tilemap)
+target_link_libraries(framework_brawl_test PRIVATE framework_brawl framework_character)
 
 add_executable(framework_brawl_floor_test framework_brawl_floor_test.cpp)
-target_link_libraries(framework_brawl_floor_test PRIVATE framework_brawl framework_character
-  framework_tilemap)
+target_link_libraries(framework_brawl_floor_test PRIVATE framework_brawl framework_character)
 
 add_executable(framework_brawl_snapshot_test framework_brawl_snapshot_test.cpp)
-target_link_libraries(framework_brawl_snapshot_test PRIVATE framework_brawl framework_character
-  framework_tilemap)
+target_link_libraries(framework_brawl_snapshot_test PRIVATE framework_brawl framework_character)
 
 add_executable(framework_brawl_seat_test framework_brawl_seat_test.cpp)
-target_link_libraries(framework_brawl_seat_test PRIVATE framework_brawl framework_character
-  framework_tilemap)
+target_link_libraries(framework_brawl_seat_test PRIVATE framework_brawl framework_character)
 
 add_executable(framework_brawl_hotseat_test framework_brawl_hotseat_test.cpp)
 target_link_libraries(framework_brawl_hotseat_test PRIVATE framework_brawl framework_character
-  framework_tilemap framework_input framework_replay)
+  framework_input framework_replay)
 
 add_executable(framework_brawl_crossplay_test framework_brawl_crossplay_test.cpp)
-target_link_libraries(framework_brawl_crossplay_test PRIVATE framework_brawl framework_character
-  framework_tilemap)
+target_link_libraries(framework_brawl_crossplay_test PRIVATE framework_brawl framework_character)
 target_include_directories(framework_brawl_crossplay_test PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
 
@@ -64,3 +59,7 @@ add_executable(framework_brawl_clash_test framework_brawl_clash_test.cpp)
 target_link_libraries(framework_brawl_clash_test PRIVATE framework_brawl)
 add_executable(framework_brawl_throw_test framework_brawl_throw_test.cpp)
 target_link_libraries(framework_brawl_throw_test PRIVATE framework_brawl)
+add_executable(framework_brawl_camera_test framework_brawl_camera_test.cpp)
+target_link_libraries(framework_brawl_camera_test PRIVATE framework_brawl)
+add_executable(framework_brawl_stage_test framework_brawl_stage_test.cpp)
+target_link_libraries(framework_brawl_stage_test PRIVATE framework_brawl)

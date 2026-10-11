@@ -39,12 +39,20 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w) {
     settle_clip(b, a);
 }
 
-void step_brawl(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, HitEvents& events) {
+void step_bodies(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w) {
     for (uint32_t i = 0; i < pool.count; ++i)
         step_one(pool.bodies[i], i < commands.size() ? commands[i] : Command{}, w);
+}
+
+void resolve_hits(BodyPool& pool, const BrawlWorld& w, HitEvents& events) {
     events.clear();
     collect_hits(pool, w.kinds, w.rules, events);
     apply_hits(pool, w.kinds, events);
+}
+
+void step_brawl(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, HitEvents& events) {
+    step_bodies(pool, commands, w);
+    resolve_hits(pool, w, events);
 }
 
 } // namespace framework::brawl

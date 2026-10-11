@@ -79,6 +79,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/fighter_move_parse.hpp
   framework/brawl/body_guard.hpp framework/brawl/grip.hpp framework/brawl/hit_grab.hpp framework/brawl/hit_strike.hpp
   framework/brawl/seat.hpp framework/brawl/seat_step.hpp framework/brawl/seat_hash.hpp
+  framework/brawl/stage_camera.hpp framework/brawl/stage_camera_hash.hpp framework/brawl/stage_step.hpp
   framework/ai/world_rng.hpp framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
   framework/ai/ai_state.hpp framework/ai/ai_step.hpp framework/ai/ai_target.hpp
   framework/scene/scene_objects.hpp framework/scene/scene_read.hpp

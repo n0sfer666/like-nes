@@ -400,7 +400,7 @@ City — принятый риск, сверка на живом кадре ур
 | `section` | Rect | `mode = belt \| platform` |
 | `depth_band` | Rect | — |
 | `wall` | Rect | — |
-| `arena` | Rect | `id` (int) |
+| `arena` | Rect | `id` (int, 0..32767: `StageCamera::arena` — `int16_t`, −1 там «не заперта») |
 | `spawn` | Point | `arena` (int), `wave` (int), `kind` (string), `players` (int, по умолчанию 1) |
 | `checkpoint` | Point | `order` (int) |
 | `kill` | Rect | — |

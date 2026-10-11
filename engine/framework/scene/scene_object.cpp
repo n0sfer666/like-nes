@@ -115,6 +115,12 @@ bool SceneObject::at_least(std::string_view name, int32_t value, int32_t floor) 
                 std::to_string(floor) + " or more");
 }
 
+bool SceneObject::within(std::string_view name, int32_t value, int32_t lo, int32_t hi) const {
+    if (value >= lo && value <= hi) return true;
+    return fail("property '" + std::string(name) + "' is " + std::to_string(value) + "; allowed " +
+                std::to_string(lo) + " to " + std::to_string(hi));
+}
+
 Area SceneObject::area() const {
     return {&object_, {raw(object_.x_raw), raw(object_.y_raw), end(object_.x_raw, object_.w_raw),
                        end(object_.y_raw, object_.h_raw)}};

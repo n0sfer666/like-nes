@@ -108,6 +108,8 @@ const Bad CASES[] = {
     {"unknown scroll axis", [](auto& m) { put(obj(m, 17), text_prop("axis", "z")); }, "'axis' is 'z'; allowed x, y"},
     {"players zero", [](auto& m) { put(obj(m, 8), int_prop("players", 0)); }, "'players' is 0; allowed 1 or more"},
     {"negative wave", [](auto& m) { put(obj(m, 7), int_prop("wave", -1)); }, "'wave' is -1; allowed 0 or more"},
+    {"negative arena id", [](auto& m) { put(obj(m, 5), int_prop("id", -1)); }, "a1' (id 5) property 'id' is -1; allowed 0 to 32767"},
+    {"arena id past int16", [](auto& m) { put(obj(m, 6), int_prop("id", 32768)); }, "'id' is 32768; allowed 0 to 32767"},
     {"empty kind", [](auto& m) { put(obj(m, 9), text_prop("kind", "")); }, "boss' (id 9) property 'kind' is empty"},
     {"second bounds", [](auto& m) { m.objects.push_back(rect(30, "more", "bounds", 0, 0, 8, 8)); }, "more' (id 30) is a second bounds"},
     {"arena id repeated", [](auto& m) {
