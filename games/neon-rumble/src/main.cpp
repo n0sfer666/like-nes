@@ -1,9 +1,12 @@
 #include <charconv>
 #include <cstdio>
 #include <cstring>
+#include <string>
 
+#include "level_load.hpp"
 #include "platform_args.hpp"
 #include "platform_fs.hpp"
+#include "platform_io.hpp"
 #include "rumble.hpp"
 #include "rumble_brawl_report.hpp"
 #include "rumble_controls.hpp"
@@ -102,8 +105,19 @@ int main(int argc, char** argv) {
     }
     if (!rumble::report_library_bundle()) return 1;
     rumble::report_pad_backend();
+    const std::string path = platform::exe_dir() + "/game.bundle";
+    platform::MappedFile file;
+    asset::BundleView bundle;
+    if (!file.open(path) || !bundle.open(file.data(), file.size(), false)) {
+        std::fprintf(stderr, "neon-rumble: cannot open %s\n", path.c_str());
+        return 1;
+    }
     rumble::Level level;
-    if (!level.open(platform::exe_dir() + "/game.bundle", "level1")) return 1;
+    framework::scene::LoadError error;
+    if (!framework::scene::load_level(bundle, "level1", level, error)) {
+        std::fprintf(stderr, "neon-rumble: %s\n", error.text);
+        return 1;
+    }
     rumble::report_level(level);
     rumble::Fighters fighters;
     for (uint32_t i = 0; i < rumble::FIGHTERS; ++i)

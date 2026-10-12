@@ -60,7 +60,7 @@ void report_level(const Level& level) {
                 level.name, row.width, row.height, row.tile_size, level.map.layers.size(),
                 level.map.anims.size(), level.texture_count);
     for (uint32_t i = 0; i < level.texture_count; ++i)
-        std::printf(" %ux%u", level.sizes[i].w, level.sizes[i].h);
+        std::printf(" %ux%u", level.pixels[i].width, level.pixels[i].height);
     std::printf("\n");
     const ViewportFit fit = report_viewport(960, 540);
     report_viewport(300, 200);

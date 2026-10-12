@@ -86,6 +86,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/ai/world_rng.hpp framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
   framework/ai/ai_state.hpp framework/ai/ai_step.hpp framework/ai/ai_target.hpp
   framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_stack.hpp
+  framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.

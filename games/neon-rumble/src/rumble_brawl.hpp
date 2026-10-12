@@ -9,12 +9,11 @@
 #include "seat.hpp"
 #include "rumble_command.hpp"
 #include "rumble_kinds.hpp"
+#include "rumble_level.hpp"
 #include "rumble_roster.hpp"
 #include "rumble_wave.hpp"
 
 namespace rumble {
-
-struct Level;
 
 static_assert(FIGHTERS <= framework::brawl::POOL_CAPACITY);
 static_assert(framework::brawl::SEATS == DUMMY);

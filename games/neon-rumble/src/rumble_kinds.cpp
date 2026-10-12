@@ -16,7 +16,7 @@ bool open_kind(const Level& level, const Fighter& f, br::Archetype& out, int32_t
     const std::string table = std::string(f.name) + "_fighter";
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table(table.c_str(), data, size)) return false;
+    if (!read_table(level, table.c_str(), data, size)) return false;
     br::FighterTable t;
     if (!t.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: %s table: does not open\n", table.c_str());

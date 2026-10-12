@@ -9,12 +9,11 @@
 #include "font_read.hpp"
 #include "quad_batch.hpp"
 #include "rumble_layers.hpp"
+#include "rumble_level.hpp"
 #include "text_layout.hpp"
 #include "text_quads.hpp"
 
 namespace rumble {
-
-struct Level;
 
 // Титры из `game.bundle` (спека #24, В8б): шрифт `monogram` секции `fonts` с атласом сырым RGBA8 и
 // секция `credits`, испечённая из `credits.txt` гейта лицензий, — по блоку текста на пак. Смотрят в

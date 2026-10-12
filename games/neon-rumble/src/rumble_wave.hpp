@@ -10,6 +10,7 @@
 #include "depth_floor.hpp"
 #include "hit_events.hpp"
 #include "object_read.hpp"
+#include "rumble_level.hpp"
 #include "rumble_roster.hpp"
 #include "scene_objects.hpp"
 #include "seat.hpp"
@@ -19,8 +20,6 @@
 #include "wave_facts.hpp"
 
 namespace rumble {
-
-struct Level;
 
 constexpr uint16_t WAVE_LULL = 120;
 constexpr uint32_t TOKEN_TIMEOUT = 90;

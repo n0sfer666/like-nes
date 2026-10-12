@@ -82,7 +82,7 @@ of text:
 bool Credits::open(const Level& level) {
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table("fonts", data, size) || !fonts.open(data, size)) {
+    if (!read_table(level, "fonts", data, size) || !fonts.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: fonts table: does not open\n");
         return false;
     }
@@ -98,7 +98,7 @@ bool Credits::open(const Level& level) {
                      f != asset::LookupFault::Ok ? asset::lookup_fault_name(f) : "size differs from the font page");
         return false;
     }
-    if (!level.read_table("credits", data, size) || !table.open(data, size)) {
+    if (!read_table(level, "credits", data, size) || !table.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }

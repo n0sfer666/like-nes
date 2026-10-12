@@ -18,7 +18,7 @@ bool Fighter::open(const Level& level, const char* fighter) {
     name = fighter;
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table("clips", data, size)) return false;
+    if (!read_table(level, "clips", data, size)) return false;
     if (!clips.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: clips table: does not open\n");
         return false;
