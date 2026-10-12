@@ -3423,7 +3423,7 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0x59357a54fe472c77` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0xa3898f2c75d15e3b` in Release and Debug, and in each
    run the lines
 
        neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
@@ -4047,15 +4047,17 @@ line in depth — the ring; with the token he closes in, turns and jabs, and giv
 it times out (90 ticks), when he is hit or when the target is gone. The target is the nearest living
 player by `|dx| + |dz|`, the lower seat on a tie; it is chosen anew on every tick in the ring and kept
 while he closes in. One player gives one token, two players give two. A body with hp 0 is taken off
-at the start of the next tick; a player's seat gets a new body in the same tick, on his spawn moved
-along the street into the camera's view, 32 px inside its edge. A wave with nobody left is followed
+at the start of the next tick; a player's seat gets a new body in the same tick, on the last checkpoint
+the street has taken (§31 step 6) — every seat as far from it as its spawn is from P1's, kept inside
+the street's depth — or with none taken on his own spawn; then it is moved along the street into the
+camera's view, 32 px inside its edge. The new body takes no hits for 120 ticks. A wave with nobody left is followed
 by the next one of the same arena 120 ticks later.
 
-CI holds the simulation: the gate runs `--headless --wave --frames 6600`, where P1 walks right while
+CI holds the simulation: the gate runs `--headless --wave --frames 8640`, where P1 walks right while
 no enemy is on the street, stands still under the first enemy until the AI knocks him out, then lines
 up in depth with the nearest enemy and punches whoever comes within reach. It pins every knock-out
-with the place the player stands up on, the lethal hits, every lock, wave and release, and the
-hashes on ticks 0 and 6600 (§22 step 1 lists the default run; the `--wave` lines are under section S
+with the place the player stands up on and his immune ticks, the lethal hits and the `death` line of
+the same tick, every checkpoint, lock, wave and release, and the hashes on ticks 0 and 8640 (§22 step 1 lists the default run; the `--wave` lines are under section S
 of `docs/owner-setup.txt`). Mutants of the token capacity, the token timeout, the pause, the removal
 of a knocked-out enemy, the AI step, the wave hash and the place of a respawn all fail that run. What
 it cannot answer is whether it reads as a fight on a screen:
@@ -4074,7 +4076,7 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS`, and in each configuration the `--wave` lines of section S of
-   `docs/owner-setup.txt`, ending with `--wave ran 6600 headless frames`.
+   `docs/owner-setup.txt`, ending with `--wave ran 8640 headless frames`.
 2. Start the window from a terminal you can read:
 
        ./build-sdk-work/game-Release/neon_rumble --wave
@@ -4088,12 +4090,12 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 3. **The knock-out.** Keep standing. When Banderas's hp reaches 0 (`… hp 0` in the terminal) the
    next tick prints
 
-       neon-rumble: knockout tick <n>: banderas#1, back as banderas#4 at <x>,264
+       neon-rumble: knockout tick <n>: banderas#1, back as banderas#4 at 600,248 immune 119
 
-   Banderas vanishes and stands up near the left edge of the view with full hp — not on his spawn at
-   200, which the locked camera no longer shows. The Adlers turn to him there. `<x>` is the centre of
-   the view minus 160: the camera of arena 0 still moves between 712 and 776, so `<x>` is anything
-   from 552 to 616, and 552 (the CI run, where P1 stands still) only if the view did not move.
+   Banderas vanishes and stands up with full hp on the checkpoint the street took at 600 on the way
+   to the lock (`checkpoint tick <n>: order 0 at 600,248`) — inside the view, not on his spawn at
+   200, which the locked camera no longer shows. The Adlers turn to him there, and for about two
+   seconds their blows pass through him.
 4. **The wave.** Fight: walk to an Adler, jab, cross, kick, jump-kick. Each one that falls prints
    `knockout tick <n>: adler#<k>` and is gone from the street. After the second one the terminal
    prints `wave tick <n>: arena 0 wave 0 cleared`, and about two seconds later (120 ticks; one second
@@ -4117,7 +4119,7 @@ is 0.
 
 ## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 (wave 1 только для двоих пропущена); нокаут — banderas встаёт внутри вида; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
 
 B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
 and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
@@ -4180,13 +4182,20 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
    `arena 1 locked` with `arena 1 wave 0` (two Adlers). After they fall, about two seconds pass and
    `arena 1 wave 4` brings three: wave 1 of this arena wants two players and is skipped. After them
    `arena 1 released`; the camera stays at the end of the street, which is the end of `bounds`.
-6. **The respawn.** At any lock, let the Adlers knock Banderas out. The line ends with
-   `back as banderas#<k> at <x>,264`, and he stands up near the left edge of the view, not off screen
-   on his spawn: `<x>` is the centre of the view minus 160 — 552 to 616 in arena 0, whose view still
-   moves between 712 and 776, and exactly 1208 in arena 1, which is as wide as the view.
+6. **The respawn.** At any lock, let the Adlers knock Banderas out. The terminal prints
+   `death tick <n>: banderas#<j>`, and the next tick the line ends with
+   `back as banderas#<k> at 600,248 immune 119` in arena 0 or `at 1300,248 immune 119` in arena 1:
+   he stands up on the checkpoint the street took on the way (`checkpoint tick <n>: order 0 at
+   600,248` before the first lock, `order 1 at 1300,248` before the second), inside the view, not
+   off screen on his spawn. For about two seconds the Adlers' blows pass through him.
 7. **Two players.** Restart the window and press numpad 1 before the first arena: Rainbird joins. The
    camera follows the middle of the two and neither of them can leave the view. Wave 0 of arena 0
-   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4.
+   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4. Then restart once more, walk
+   Banderas past the first checkpoint (`checkpoint tick <n>: order 0 at 600,248`) and only then press
+   numpad 1: Rainbird stands up next to the checkpoint — 64 px to the right of it, at the far edge of
+   the street, as his spawn lies 64 px right of Banderas's — not on his own spawn at the start of
+   the street. The headless run has one player and
+   cannot see this.
 
 As in §21, on a 120 Hz screen everything runs twice as fast.
 
@@ -4195,10 +4204,11 @@ a seam, a hole or a layer edge anywhere on the three screens; a lock that does n
 player who walks out of a locked view; an enemy standing up outside the view or somewhere else than
 at its right side; a wave that does not come, comes at once, or comes with the wrong number; wave 1 of
 arena 1 coming with one player, or not coming with two; a release that does not let the camera go; a
-player who stands up outside the view.
+player who stands up outside the view or away from the checkpoint, or is hit in his first two
+seconds.
 
-Send back: the `arena`, `wave` and `knockout` lines of steps 3–7, and one screenshot of a locked view
-with a wave on it.
+Send back: the `checkpoint`, `arena`, `wave`, `death` and `knockout` lines of steps 3–7, and one
+screenshot of a locked view with a wave on it.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.

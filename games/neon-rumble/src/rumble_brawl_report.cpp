@@ -5,6 +5,7 @@
 #include <cstdio>
 
 #include "body_guard.hpp"
+#include "checkpoint_step.hpp"
 #include "rumble_fighter_quads.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_roster_quads.hpp"
@@ -156,11 +157,19 @@ void report_wave(const Brawl& brawl, uint32_t tick) {
         std::printf("neon-rumble: knockout tick %u: %s", tick, label(brawl, k.body, k.kind).text.data());
         const br::Body* back = k.kind < br::SEATS ? brawl.pool.find(brawl.seats.at[k.kind].body) : nullptr;
         if (back != nullptr)
-            std::printf(", back as %s at %d,%d", label(brawl, *back).text.data(), back->pos.x.to_int(),
-                        back->pos.z.to_int());
+            std::printf(", back as %s at %d,%d immune %u", label(brawl, *back).text.data(), back->pos.x.to_int(),
+                        back->pos.z.to_int(), back->immune);
         std::printf("\n");
     }
     const Wave& w = brawl.wave;
+    for (uint32_t i = 0; i < w.deaths.count; ++i) {
+        const br::Body* b = brawl.pool.find(w.deaths.at[i].body);
+        if (b != nullptr) std::printf("neon-rumble: death tick %u: %s\n", tick, label(brawl, *b).text.data());
+    }
+    const framework::scene::Checkpoint* cp = w.took ? br::find_checkpoint(w.level, w.progress.checkpoint) : nullptr;
+    if (cp != nullptr)
+        std::printf("neon-rumble: checkpoint tick %u: order %d at %d,%d\n", tick, cp->order, cp->mark.at.x.to_int(),
+                    cp->mark.at.y.to_int());
     const br::WaveFacts& f = w.facts;
     if (f.locked) std::printf("neon-rumble: arena tick %u: arena %d locked\n", tick, w.camera.arena);
     if (f.cleared) std::printf("neon-rumble: wave tick %u: arena %d wave %d cleared\n", tick, w.was_arena, w.was_wave);
@@ -174,7 +183,8 @@ void report_wave(const Brawl& brawl, uint32_t tick) {
         std::printf("\n");
     }
     if (f.dropped > 0) std::printf("neon-rumble: wave tick %u: %u spawn(s) dropped\n", tick, f.dropped);
-    if (brawl.knocked.count > 0 || f.locked || f.cleared || f.released || w.spawned_count + f.dropped > 0)
+    if (brawl.knocked.count + w.deaths.count > 0 || cp != nullptr || f.locked || f.cleared || f.released ||
+        w.spawned_count + f.dropped > 0)
         std::fflush(stdout);
 }
 

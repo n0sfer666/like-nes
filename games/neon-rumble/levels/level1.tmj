@@ -751,6 +751,44 @@
                  "width":0,
                  "x":1512,
                  "y":262
+                }, 
+                {
+                 "height":0,
+                 "id":21,
+                 "name":"cp arena 1",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"order",
+                         "type":"int",
+                         "value":0
+                        }],
+                 "rotation":0,
+                 "type":"checkpoint",
+                 "visible":true,
+                 "width":0,
+                 "x":600,
+                 "y":248
+                }, 
+                {
+                 "height":0,
+                 "id":22,
+                 "name":"cp arena 2",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"order",
+                         "type":"int",
+                         "value":1
+                        }],
+                 "rotation":0,
+                 "type":"checkpoint",
+                 "visible":true,
+                 "width":0,
+                 "x":1300,
+                 "y":248
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -759,7 +797,7 @@
          "y":0
         }],
  "nextlayerid":8,
- "nextobjectid":21,
+ "nextobjectid":23,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",
