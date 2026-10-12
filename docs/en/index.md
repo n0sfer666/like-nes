@@ -21,6 +21,7 @@ nothing here assumes you have read them.
   - [Determinism and fixed-point arithmetic](guide/determinism.md)
   - [The SDK and your own game](guide/sdk-and-your-game.md)
   - [Levels in Tiled](guide/tiled-levels.md)
+  - [Scenes and levels](guide/scenes-and-levels.md)
   - [Animations in Aseprite](guide/aseprite-animations.md)
   - [Asset licenses](guide/asset-licenses.md)
   - [Fonts and credits](guide/fonts-and-credits.md)

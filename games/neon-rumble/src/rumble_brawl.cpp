@@ -112,9 +112,8 @@ bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
     players = {};
     wave = Wave{};
     wave.on = waves;
-    tl::ObjectTable objects;
-    if (!kinds.open(level, fighters) || !level.open_objects(objects)) return false;
-    const tl::ObjectMap map = objects.find(level.name);
+    if (!kinds.open(level, fighters)) return false;
+    const tl::ObjectMap& map = level.object_map;
     if (!read_floor(level, map, floor) || !read_spawns(level, map, floor, kinds, spawns)) return false;
     if (waves && !wave.open(level, map, floor, spawns)) return false;
     std::array<br::BrawlInput, br::SEATS> first{};

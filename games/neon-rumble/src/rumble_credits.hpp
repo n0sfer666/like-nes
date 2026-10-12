@@ -9,16 +9,15 @@
 #include "font_read.hpp"
 #include "quad_batch.hpp"
 #include "rumble_layers.hpp"
+#include "rumble_level.hpp"
 #include "text_layout.hpp"
 #include "text_quads.hpp"
 
 namespace rumble {
 
-struct Level;
-
 // Титры из `game.bundle` (спека #24, В8б): шрифт `monogram` секции `fonts` с атласом сырым RGBA8 и
 // секция `credits`, испечённая из `credits.txt` гейта лицензий, — по блоку текста на пак. Смотрят в
-// маппинг файла уровня.
+// маппинг бандла: открываются до меню, которое рисуется тем же шрифтом.
 struct Credits {
     static constexpr const char* FONT = "monogram";
 
@@ -28,7 +27,7 @@ struct Credits {
     asset::RgbaView atlas;
     std::vector<std::string> blocks;
 
-    bool open(const Level& level);
+    bool open(const asset::BundleView& bundle);
 };
 
 struct CreditStats {

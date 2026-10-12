@@ -47,8 +47,10 @@ LayerStats Layers::build(const Level& level, const framework::graphics::Viewport
         st.unknown += framework::graphics::draw_layer(list, level.map, level.map.layers[i], f,
                                                       static_cast<int16_t>(i)).unknown;
     const uint32_t batches = list.build(batches_.data(), CAPACITY);
+    framework::graphics::TextureSize sizes[framework::scene::LEVEL_TEXTURES];
+    for (uint32_t i = 0; i < level.texture_count; ++i) sizes[i] = {level.pixels[i].width, level.pixels[i].height};
     const framework::graphics::QuadStats q = framework::graphics::layer_quads(
-        list, {batches_.data(), batches}, level.map, {level.sizes, level.texture_count}, quads_,
+        list, {batches_.data(), batches}, level.map, {sizes, level.texture_count}, quads_,
         runs_);
     st.sprites = list.count();
     st.quads = q.quads;

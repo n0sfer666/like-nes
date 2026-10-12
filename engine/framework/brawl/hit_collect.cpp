@@ -62,7 +62,8 @@ void sweep(const Sweep& w, const Body& a, const Body& side, const ClipBox& box, 
     const bool flat = in_platform(w, a.id);
     for (uint32_t j = 0; j < w.pool.count; ++j) {
         const Body& t = w.pool.bodies[j];
-        if (t.kind >= w.kinds.size() || !open_to(t, s) || !w.filter(side, t, w.rules) || a.struck.has(t.id, box.index))
+        if (t.kind >= w.kinds.size() || t.immune > 0 || !open_to(t, s) || !w.filter(side, t, w.rules) ||
+            a.struck.has(t.id, box.index))
             continue;
         if (in_platform(w, t.id) == flat && boxes_crossed(hit, s.depth, a.pos.z, t, against, w.kinds, flat))
             w.out.push(HitEvent{a.id, t.id, box.index, knock, kind, move});

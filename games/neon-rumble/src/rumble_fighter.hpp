@@ -6,11 +6,10 @@
 #include "bundle_lookup.hpp"
 #include "clip_read.hpp"
 #include "layer_quads.hpp"
+#include "rumble_level.hpp"
 #include "rumble_roster.hpp"
 
 namespace rumble {
-
-struct Level;
 
 struct Pose {
     framework::graphics::ClipView clip;

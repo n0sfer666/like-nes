@@ -73,16 +73,16 @@ the `credits` table, which is baked from `credits.txt` (see [Asset licenses](ass
 The title is in two languages on purpose: it checks the Latin, the Cyrillic and the middle dot of
 the font in one line.
 
-The game opens both tables from the bundle once, when the level loads. It finds the font by name,
+The game opens both tables from the bundle once, before the menu, which is drawn with the same font. It finds the font by name,
 checks that the atlas texture has the size the font row expects, and turns every pack into a block
 of text:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-open -->
 ```cpp
-bool Credits::open(const Level& level) {
+bool Credits::open(const asset::BundleView& bundle) {
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table("fonts", data, size) || !fonts.open(data, size)) {
+    if (!read_table(bundle, "fonts", data, size) || !fonts.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: fonts table: does not open\n");
         return false;
     }
@@ -91,14 +91,14 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: no font %s in the fonts table\n", Credits::FONT);
         return false;
     }
-    const asset::LookupFault f = asset::raw_rgba8(level.bundle, font.row->texture_guid, atlas);
+    const asset::LookupFault f = asset::raw_rgba8(bundle, font.row->texture_guid, atlas);
     if (f != asset::LookupFault::Ok || atlas.width != font.row->page_w || atlas.height != font.row->page_h) {
         std::fprintf(stderr, "neon-rumble: font atlas %016llx: %s\n",
                      static_cast<unsigned long long>(font.row->texture_guid),
                      f != asset::LookupFault::Ok ? asset::lookup_fault_name(f) : "size differs from the font page");
         return false;
     }
-    if (!level.read_table("credits", data, size) || !table.open(data, size)) {
+    if (!read_table(bundle, "credits", data, size) || !table.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }

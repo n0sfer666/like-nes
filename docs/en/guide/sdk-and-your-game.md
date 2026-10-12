@@ -49,7 +49,8 @@ add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/
   src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp
   src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp src/rumble_gpu_frame.cpp
   src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp src/rumble_floor.cpp src/rumble_brain.cpp
-  src/rumble_wave_script.cpp src/rumble_steer.cpp)
+  src/rumble_wave_script.cpp src/rumble_steer.cpp src/rumble_menu.cpp src/rumble_menu_quads.cpp
+  src/rumble_play.cpp src/rumble_flow.cpp src/rumble_screen.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -145,7 +146,10 @@ in the commit that changes the content or the baker.
 
 `--headless --frames 240` maps the bundle, opens every table and prints a summary of what it read.
 That run is what CI checks. Without `--headless` the game opens a 960×540 window that can be
-resized. Banderas is player 1: WASD walk him, Space or K jumps, J jabs, U throws a cross, L kicks
+resized, on a menu: **↑** and **↓** select `level`, `wave` or `credits`, **Enter** enters, **Esc**
+goes back to the menu from the level. `--level <name>` sets the level of the menu, `--wave` selects
+the wave item, and a headless run enters the selected item without the menu
+(see [Scenes and levels](scenes-and-levels.md#the-menu-of-neon-rumble)). Banderas is player 1: WASD walk him, Space or K jumps, J jabs, U throws a cross, L kicks
 and J in the air jump-kicks. Rainbird is player 2 and comes onto the street when a free pad presses
 any button or a key of his layout is pressed: an arrow, numpad 0–6 or numpad −. Backspace takes player 1 off
 the keyboard, numpad − player 2, Back on a pad its player. **F3** toggles the debug overlay of the fighters, and **F1** opens the

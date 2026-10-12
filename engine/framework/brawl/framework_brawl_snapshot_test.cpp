@@ -53,6 +53,8 @@ const Field FIELDS[] = {
      [](BodyPool& p) { each(p, [](Body& b) { b.elapsed = 0; }); }},
     {"hitstop", [](BodyPool& p) { last(p).hitstop += 1; },
      [](BodyPool& p) { each(p, [](Body& b) { b.hitstop = 0; }); }},
+    {"immune", [](BodyPool& p) { last(p).immune += 1; },
+     [](BodyPool& p) { each(p, [](Body& b) { b.immune = 0; }); }},
     {"react", [](BodyPool& p) { last(p).react = Reaction::Down; },
      [](BodyPool& p) { each(p, [](Body& b) { b.react = Reaction::None; }); }},
     {"react ticks", [](BodyPool& p) { last(p).react_ticks += 1; },
@@ -105,6 +107,7 @@ BodyPool two_bodies() {
     a.clip = 3;
     a.elapsed = 4;
     a.hitstop = 2;
+    a.immune = 6;
     a.react = Reaction::Hurt;
     a.react_ticks = 5;
     a.struck.add(EntId{7}, 2);

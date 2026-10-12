@@ -1,4 +1,4 @@
-<!-- en-sha256: 2d5de3e10dd626ca92ef94b6b43502daab65a984713c75efff4f07471e0dd7fb -->
+<!-- en-sha256: 239f0413e6eae11eee330834a8754d55d2e5fbdbd2b576da2a6fd5c18a925d1c -->
 
 # Шрифты и титры
 
@@ -73,16 +73,16 @@ Menézio). Neon Rumble поставляет его без изменений.
 пропекается из `credits.txt` (см. [Лицензии ассетов](asset-licenses.md)). Заголовок на двух языках
 намеренно: одна строка проверяет латиницу, кириллицу и точку посередине строки в шрифте.
 
-Игра открывает обе таблицы из бандла один раз, при загрузке уровня. Она находит шрифт по имени,
+Игра открывает обе таблицы из бандла один раз, до меню, которое рисуется тем же шрифтом. Она находит шрифт по имени,
 проверяет, что текстура атласа того размера, которого ждёт строка шрифта, и превращает каждый пак
 в блок текста:
 
 <!-- snippet: games/neon-rumble/src/rumble_credits.cpp#credits-open -->
 ```cpp
-bool Credits::open(const Level& level) {
+bool Credits::open(const asset::BundleView& bundle) {
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!level.read_table("fonts", data, size) || !fonts.open(data, size)) {
+    if (!read_table(bundle, "fonts", data, size) || !fonts.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: fonts table: does not open\n");
         return false;
     }
@@ -91,14 +91,14 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: no font %s in the fonts table\n", Credits::FONT);
         return false;
     }
-    const asset::LookupFault f = asset::raw_rgba8(level.bundle, font.row->texture_guid, atlas);
+    const asset::LookupFault f = asset::raw_rgba8(bundle, font.row->texture_guid, atlas);
     if (f != asset::LookupFault::Ok || atlas.width != font.row->page_w || atlas.height != font.row->page_h) {
         std::fprintf(stderr, "neon-rumble: font atlas %016llx: %s\n",
                      static_cast<unsigned long long>(font.row->texture_guid),
                      f != asset::LookupFault::Ok ? asset::lookup_fault_name(f) : "size differs from the font page");
         return false;
     }
-    if (!level.read_table("credits", data, size) || !table.open(data, size)) {
+    if (!read_table(bundle, "credits", data, size) || !table.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }

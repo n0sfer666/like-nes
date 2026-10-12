@@ -4,12 +4,11 @@
 
 #include "archetype.hpp"
 #include "rumble_fighter.hpp"
+#include "rumble_level.hpp"
 #include "rumble_roster.hpp"
 #include "seat.hpp"
 
 namespace rumble {
-
-struct Level;
 
 struct PlayerMoves {
     uint16_t jab = 0;

@@ -1791,14 +1791,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
   macOS и Linux, в корне репозитория:
 
       bash scripts/check_sdk_game.sh --keep
-      ./build-sdk-work/game-Release/neon_rumble --frames 120
+      ./build-sdk-work/game-Release/neon_rumble --frames 600
 
   Windows — первая команда из ЛЮБОГО шелла, остальные из окна, которое она
   откроет (cl.exe нужен и SDK, и игре; причина та же, что у perf_sweep выше):
 
       scripts\win-dev.bat shell
       "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
-      build-sdk-work\game-Release\neon_rumble.exe --frames 120
+      build-sdk-work\game-Release\neon_rumble.exe --frames 600
 
   Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
   двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):
@@ -1826,7 +1826,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+      neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
       neon-rumble: react tick 31: rainbird block
@@ -1855,40 +1855,47 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: react tick 417: adler thrown
       neon-rumble: react tick 436: adler down
       neon-rumble: react tick 466: adler getup
-      neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: brawl tick 0: hash 2333603b78c4eed6, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: checkpoint tick 200: order 0 at 600,248
       neon-rumble: arena tick 256: arena 0 locked
       neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
-      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
-      neon-rumble: knockout tick 1490: adler#3
-      neon-rumble: knockout tick 1546: adler#2
-      neon-rumble: wave tick 1546: arena 0 wave 0 cleared
-      neon-rumble: wave tick 1666: arena 0 wave 1, adler#5 adler#6 adler#7
-      neon-rumble: knockout tick 2086: banderas#4, back as banderas#8 at 552,264
-      neon-rumble: knockout tick 2606: adler#5
-      neon-rumble: knockout tick 3007: adler#7
-      neon-rumble: knockout tick 3076: adler#6
-      neon-rumble: wave tick 3076: arena 0 wave 1 cleared
-      neon-rumble: arena tick 3076: arena 0 released
-      neon-rumble: arena tick 3519: arena 1 locked
-      neon-rumble: wave tick 3519: arena 1 wave 0, adler#9 adler#10
-      neon-rumble: knockout tick 4000: banderas#8, back as banderas#11 at 1208,264
-      neon-rumble: knockout tick 4520: adler#9
-      neon-rumble: knockout tick 4778: adler#10
-      neon-rumble: wave tick 4778: arena 1 wave 0 cleared
-      neon-rumble: wave tick 4898: arena 1 wave 4, adler#12 adler#13 adler#14
-      neon-rumble: knockout tick 5036: banderas#11, back as banderas#15 at 1208,264
-      neon-rumble: knockout tick 6105: adler#13
-      neon-rumble: knockout tick 6115: adler#14
-      neon-rumble: knockout tick 6196: banderas#15, back as banderas#16 at 1208,264
-      neon-rumble: knockout tick 6574: adler#12
-      neon-rumble: wave tick 6574: arena 1 wave 4 cleared
-      neon-rumble: arena tick 6574: arena 1 released
-      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
-      sdk-game: OK   Release: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
-      sdk-game: OK   Release: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
+      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 600,248 immune 119
+      neon-rumble: knockout tick 1546: banderas#4, back as banderas#5 at 600,248 immune 119
+      neon-rumble: knockout tick 1888: adler#2
+      neon-rumble: knockout tick 2272: adler#3
+      neon-rumble: wave tick 2272: arena 0 wave 0 cleared
+      neon-rumble: wave tick 2392: arena 0 wave 1, adler#6 adler#7 adler#8
+      neon-rumble: knockout tick 2547: banderas#5, back as banderas#9 at 600,248 immune 119
+      neon-rumble: knockout tick 3095: banderas#9, back as banderas#10 at 600,248 immune 119
+      neon-rumble: knockout tick 3724: banderas#10, back as banderas#11 at 600,248 immune 119
+      neon-rumble: knockout tick 4412: banderas#11, back as banderas#12 at 600,248 immune 119
+      neon-rumble: knockout tick 4480: adler#8
+      neon-rumble: knockout tick 4751: adler#7
+      neon-rumble: knockout tick 4989: adler#6
+      neon-rumble: wave tick 4989: arena 0 wave 1 cleared
+      neon-rumble: arena tick 4989: arena 0 released
+      neon-rumble: checkpoint tick 5389: order 1 at 1300,248
+      neon-rumble: arena tick 5423: arena 1 locked
+      neon-rumble: wave tick 5423: arena 1 wave 0, adler#13 adler#14
+      neon-rumble: knockout tick 5924: banderas#12, back as banderas#15 at 1300,248 immune 119
+      neon-rumble: knockout tick 6371: adler#13
+      neon-rumble: knockout tick 6768: banderas#15, back as banderas#16 at 1300,248 immune 119
+      neon-rumble: knockout tick 6965: adler#14
+      neon-rumble: wave tick 6965: arena 1 wave 0 cleared
+      neon-rumble: wave tick 7085: arena 1 wave 4, adler#17 adler#18 adler#19
+      neon-rumble: knockout tick 7936: adler#18
+      neon-rumble: knockout tick 8062: banderas#16, back as banderas#20 at 1300,248 immune 119
+      neon-rumble: knockout tick 8482: adler#19
+      neon-rumble: knockout tick 8560: adler#17
+      neon-rumble: wave tick 8560: arena 1 wave 4 cleared
+      neon-rumble: arena tick 8560: arena 1 released
+      neon-rumble: brawl tick 8640: hash 5977630f3371d608, banderas#20 1376,262 y 0 hp 64, camera 1368,172 arena -1, draw banderas#20
+      sdk-game: OK   Release: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+      sdk-game: OK   Release: --level nope returned to the menu with the load_level refusal
+      sdk-game: OK   Release: game.bundle bundle_hash 0xa3898f2c75d15e3b matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
       neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
@@ -1910,7 +1917,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+      neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
       neon-rumble: react tick 31: rainbird block
@@ -1939,40 +1946,47 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: react tick 417: adler thrown
       neon-rumble: react tick 436: adler down
       neon-rumble: react tick 466: adler getup
-      neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: brawl tick 0: hash 2333603b78c4eed6, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: checkpoint tick 200: order 0 at 600,248
       neon-rumble: arena tick 256: arena 0 locked
       neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
-      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
-      neon-rumble: knockout tick 1490: adler#3
-      neon-rumble: knockout tick 1546: adler#2
-      neon-rumble: wave tick 1546: arena 0 wave 0 cleared
-      neon-rumble: wave tick 1666: arena 0 wave 1, adler#5 adler#6 adler#7
-      neon-rumble: knockout tick 2086: banderas#4, back as banderas#8 at 552,264
-      neon-rumble: knockout tick 2606: adler#5
-      neon-rumble: knockout tick 3007: adler#7
-      neon-rumble: knockout tick 3076: adler#6
-      neon-rumble: wave tick 3076: arena 0 wave 1 cleared
-      neon-rumble: arena tick 3076: arena 0 released
-      neon-rumble: arena tick 3519: arena 1 locked
-      neon-rumble: wave tick 3519: arena 1 wave 0, adler#9 adler#10
-      neon-rumble: knockout tick 4000: banderas#8, back as banderas#11 at 1208,264
-      neon-rumble: knockout tick 4520: adler#9
-      neon-rumble: knockout tick 4778: adler#10
-      neon-rumble: wave tick 4778: arena 1 wave 0 cleared
-      neon-rumble: wave tick 4898: arena 1 wave 4, adler#12 adler#13 adler#14
-      neon-rumble: knockout tick 5036: banderas#11, back as banderas#15 at 1208,264
-      neon-rumble: knockout tick 6105: adler#13
-      neon-rumble: knockout tick 6115: adler#14
-      neon-rumble: knockout tick 6196: banderas#15, back as banderas#16 at 1208,264
-      neon-rumble: knockout tick 6574: adler#12
-      neon-rumble: wave tick 6574: arena 1 wave 4 cleared
-      neon-rumble: arena tick 6574: arena 1 released
-      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
-      sdk-game: OK   Debug: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
-      sdk-game: OK   Debug: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
+      neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 600,248 immune 119
+      neon-rumble: knockout tick 1546: banderas#4, back as banderas#5 at 600,248 immune 119
+      neon-rumble: knockout tick 1888: adler#2
+      neon-rumble: knockout tick 2272: adler#3
+      neon-rumble: wave tick 2272: arena 0 wave 0 cleared
+      neon-rumble: wave tick 2392: arena 0 wave 1, adler#6 adler#7 adler#8
+      neon-rumble: knockout tick 2547: banderas#5, back as banderas#9 at 600,248 immune 119
+      neon-rumble: knockout tick 3095: banderas#9, back as banderas#10 at 600,248 immune 119
+      neon-rumble: knockout tick 3724: banderas#10, back as banderas#11 at 600,248 immune 119
+      neon-rumble: knockout tick 4412: banderas#11, back as banderas#12 at 600,248 immune 119
+      neon-rumble: knockout tick 4480: adler#8
+      neon-rumble: knockout tick 4751: adler#7
+      neon-rumble: knockout tick 4989: adler#6
+      neon-rumble: wave tick 4989: arena 0 wave 1 cleared
+      neon-rumble: arena tick 4989: arena 0 released
+      neon-rumble: checkpoint tick 5389: order 1 at 1300,248
+      neon-rumble: arena tick 5423: arena 1 locked
+      neon-rumble: wave tick 5423: arena 1 wave 0, adler#13 adler#14
+      neon-rumble: knockout tick 5924: banderas#12, back as banderas#15 at 1300,248 immune 119
+      neon-rumble: knockout tick 6371: adler#13
+      neon-rumble: knockout tick 6768: banderas#15, back as banderas#16 at 1300,248 immune 119
+      neon-rumble: knockout tick 6965: adler#14
+      neon-rumble: wave tick 6965: arena 1 wave 0 cleared
+      neon-rumble: wave tick 7085: arena 1 wave 4, adler#17 adler#18 adler#19
+      neon-rumble: knockout tick 7936: adler#18
+      neon-rumble: knockout tick 8062: banderas#16, back as banderas#20 at 1300,248 immune 119
+      neon-rumble: knockout tick 8482: adler#19
+      neon-rumble: knockout tick 8560: adler#17
+      neon-rumble: wave tick 8560: arena 1 wave 4 cleared
+      neon-rumble: arena tick 8560: arena 1 released
+      neon-rumble: brawl tick 8640: hash 5977630f3371d608, banderas#20 1376,262 y 0 hp 64, camera 1368,172 arena -1, draw banderas#20
+      sdk-game: OK   Debug: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+      sdk-game: OK   Debug: --level nope returned to the menu with the load_level refusal
+      sdk-game: OK   Debug: game.bundle bundle_hash 0xa3898f2c75d15e3b matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -2047,7 +2061,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   символ титров (кириллица заголовка, «·», «—», «í», «é») есть в шрифте;
   0 dropped — ни один глиф не ушёл за CAPACITY и за нижний край зоны.
 
-  Оконный запуск: окно «Neon Rumble» 960×540, в нём уровень level1 — фасады
+  Оконный запуск: окно «Neon Rumble» 960×540 открывается на меню (спека #25,
+  В7д, §32 docs/owner-verification.md): на чёрном три строки шрифтом титров —
+  «> level level1» жёлтым, «wave level1» и «credits» белым; ↑↓ ходят по ним,
+  Enter на credits листает титры. Enter на «level level1» — уровень грузится
+  заново, в stdout строки level, viewport, fighter и pose, как у гейта;
+  Esc — обратно в меню. С --wave выделен «wave level1», --level <имя> берёт
+  другой уровень; уровня нет — красная строка над пунктами и в stdout
+  «neon-rumble: menu: <причина>», игра не падает. Кадры меню входят в счёт
+  --frames. В окне после Enter — уровень level1: фасады
   над улицей, как в Tiled. За фасадами три плана (спека #24, В8а): небо sky
   стоит на месте, дальние здания far-city едут на четверть хода камеры,
   ближние near-city — на половину, фасады и улица — вместе с камерой. Планы
@@ -2068,8 +2090,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
   арене — «arena tick N: arena A locked», волны adler из точек уровня
   стартуют на замке и через 120 тиков после зачистки прошлой, «wave tick
   N: arena A wave W, adler#…»; adler с ИИ держат кольцо, бьёт тот, у кого
-  жетон; нокаут печатает «knockout tick N: … back as banderas#K at x,z» —
-  игрок встаёт внутри вида, а не на спавне за краем арены; после последней
+  жетон; уровень берёт чекпоинты — «checkpoint tick N: order O at x,z»;
+  удар по hp 0 печатает «death tick N: …», нокаут — «knockout tick N: …
+  back as banderas#K at x,z immune 119» — игрок встаёт на взятом чекпоинте
+  внутри вида и 120 тиков неуязвим, а не на спавне за краем арены; после последней
   волны «arena A released», и камера снова идёт за игроком — §30 и §31
   docs/owner-verification.md.
   banderas (P1) ходит под WASD (стрелки — у P2): влево-вправо — вдоль улицы,
@@ -2115,10 +2139,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   линией над фасадами не встаёт. Если сузить окно меньше 384x216 пикселей
   (Retina — 192x108 точек), в stderr при каждом таком сужении: «neon-rumble:
   window <W>x<H> is smaller than the 384x216 zone, the zone is cropped».
-  Через 120 кадров окно закрывается само; последние строки:
+  Через 600 кадров окно закрывается само. Первой в окне идёт строка [gpu],
+  после Enter — строки уровня (level, viewport, bounds, frame, clips,
+  fighter, depth band, pose, font, credit, credits screen), последней:
 
       [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
-      neon-rumble: window run ok, 120 frames
+      …
+      neon-rumble: window run ok, 600 frames
+
+  Без Enter все 600 кадров стоит меню, и строк уровня между ними нет.
 
   Код выхода 0. BC: no — не находка: сжатые текстуры игра не грузит.
   Чтобы походить бойцом, — без --frames: окно живёт до закрытия. Пересохранение level1.tmj и neon-signs.tsj в настоящем Tiled с

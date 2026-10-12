@@ -11,6 +11,8 @@ using framework::graphics::PixelRect;
 
 namespace {
 
+constexpr uint8_t SOLID[4] = {255, 255, 255, 255};
+
 double channel(uint32_t rgba, int shift, bool srgb) {
     const double v = static_cast<double>((rgba >> shift) & 0xffu) / 255.0;
     if (!srgb) return v;
@@ -59,7 +61,6 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
 // `solid_texture` и `atlas_texture`.
 bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
                 const Level& level, const Fighters& fighters, const Credits& credits) {
-    static constexpr uint8_t SOLID[4] = {255, 255, 255, 255};
     if (!quads.init(gpu.device, gpu.queue, format, Layers::CAPACITY)) return false;
     for (uint32_t i = 0; i < level.texture_count; ++i)
         if (!quads.add_texture(level.pixels[i].pixels, level.pixels[i].width,
@@ -68,6 +69,14 @@ bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureF
     for (const Fighter& f : fighters)
         if (!quads.add_texture(f.sheet.pixels, f.sheet.width, f.sheet.height)) return false;
     return quads.add_texture(SOLID, 1, 1)
+           && quads.add_texture(credits.atlas.pixels, credits.atlas.width, credits.atlas.height);
+}
+
+// Меню: уровня и бойцов нет — сплошная и атлас шрифта встают номерами `MENU_SOLID_TEXTURE` и
+// `MENU_FONT_TEXTURE`. `init` сбрасывает текстуры прошлой сцены.
+bool init_menu_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
+                     const Credits& credits) {
+    return quads.init(gpu.device, gpu.queue, format, Layers::CAPACITY) && quads.add_texture(SOLID, 1, 1)
            && quads.add_texture(credits.atlas.pixels, credits.atlas.width, credits.atlas.height);
 }
 

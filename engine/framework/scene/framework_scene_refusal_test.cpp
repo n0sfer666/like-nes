@@ -110,12 +110,17 @@ const Bad CASES[] = {
     {"negative wave", [](auto& m) { put(obj(m, 7), int_prop("wave", -1)); }, "'wave' is -1; allowed 0 or more"},
     {"negative arena id", [](auto& m) { put(obj(m, 5), int_prop("id", -1)); }, "a1' (id 5) property 'id' is -1; allowed 0 to 32767"},
     {"arena id past int16", [](auto& m) { put(obj(m, 6), int_prop("id", 32768)); }, "'id' is 32768; allowed 0 to 32767"},
+    {"negative checkpoint order", [](auto& m) { put(obj(m, 14), int_prop("order", -1)); }, "cp1' (id 14) property 'order' is -1; allowed 0 to 32767"},
+    {"checkpoint order past int16", [](auto& m) { put(obj(m, 14), int_prop("order", 32768)); }, "'order' is 32768; allowed 0 to 32767"},
     {"empty kind", [](auto& m) { put(obj(m, 9), text_prop("kind", "")); }, "boss' (id 9) property 'kind' is empty"},
     {"second bounds", [](auto& m) { m.objects.push_back(rect(30, "more", "bounds", 0, 0, 8, 8)); }, "more' (id 30) is a second bounds"},
     {"arena id repeated", [](auto& m) {
          put(obj(m, 6), int_prop("id", 1));
          put(obj(m, 9), int_prop("arena", 1));
      }, "a2' (id 6) repeats arena id 1 of object id 5"},
+    {"checkpoint order repeated", [](auto& m) {
+         m.objects.push_back(with(point(31, "cp2", "checkpoint", 600, 250), {int_prop("order", 1)}));
+     }, "cp2' (id 31) repeats checkpoint order 1 of object id 14"},
     {"wave point at a missing arena", [](auto& m) { put(obj(m, 9), int_prop("arena", 7)); }, "boss' (id 9) points at arena 7; the level has no arena"},
 };
 
@@ -147,6 +152,20 @@ void test_vertex_overflow() {
     expect(map, "path past the vertex array of a hand-made map", "lift' (id 16) has 17 vertices; allowed 16 at most");
 }
 
+void test_order_ends_read() {
+    for (const int32_t order : {0, 32767}) {
+        ObjectMapSrc src = level();
+        put(obj(src, 14), int_prop("order", order));
+        Baked b;
+        sc::LevelObjects l;
+        std::string error;
+        const bool ok = bake(src, b) && sc::read_level_objects(b.map, l, error);
+        check(ok && l.checkpoints.size() == 1 && l.checkpoints[0].order == order, "checkpoint order at an end reads");
+        if (!ok) std::printf("    order %d: %s\n", order, error.c_str());
+        ++cases;
+    }
+}
+
 } // namespace
 
 int main() {
@@ -157,6 +176,7 @@ int main() {
     if (!error.empty()) std::printf("    %s\n", error.c_str());
     for (const Bad& c : CASES) run(c);
     test_vertex_overflow();
+    test_order_ends_read();
     std::printf("framework-scene-refusal: %s - %d cases\n", fails == 0 ? "PASS" : "FAIL", cases);
     return fails == 0 ? 0 : 1;
 }

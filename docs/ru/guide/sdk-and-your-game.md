@@ -1,4 +1,4 @@
-<!-- en-sha256: d0a9e04cf6c91b1e436cff1a204312ef9e31811de9452f72578a007ae4149999 -->
+<!-- en-sha256: 23747c2246bbfde2d9e194f9fa08f7c3d155c078c34212fea139f364fb3e5016 -->
 
 # SDK и своя игра
 
@@ -52,7 +52,8 @@ add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/
   src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp
   src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp src/rumble_gpu_frame.cpp
   src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp src/rumble_floor.cpp src/rumble_brain.cpp
-  src/rumble_wave_script.cpp src/rumble_steer.cpp)
+  src/rumble_wave_script.cpp src/rumble_steer.cpp src/rumble_menu.cpp src/rumble_menu_quads.cpp
+  src/rumble_play.cpp src/rumble_flow.cpp src/rumble_screen.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
@@ -148,7 +149,10 @@ fighter | adler_fighter | fighters/adler.fighter
 
 `--headless --frames 240` отображает бандл, открывает каждую таблицу и печатает сводку прочитанного.
 Этот прогон и проверяет CI. Без `--headless` игра открывает окно 960×540, размер которого можно
-менять. Banderas — игрок 1: WASD водят его, Space или K — прыжок, J — jab, U — cross, L —
+менять, на меню: **↑** и **↓** выбирают `level`, `wave` или `credits`, **Enter** входит, **Esc**
+возвращает из уровня в меню. `--level <имя>` задаёт уровень меню, `--wave` выделяет пункт wave, а
+прогон headless входит в выбранный пункт без меню
+(см. [Сцены и уровни](scenes-and-levels.md)). Banderas — игрок 1: WASD водят его, Space или K — прыжок, J — jab, U — cross, L —
 kick, J в прыжке — jump_kick. Rainbird — игрок 2, он выходит на улицу по любой кнопке свободного
 пада или по клавише своей раскладки: стрелка, нампад 0–6 или минус нампада. Backspace снимает игрока 1 с клавиатуры,
 минус нампада — игрока 2, Back на паде — его игрока. **F3** переключает отладочный оверлей бойцов, **F1** открывает экран титров и
