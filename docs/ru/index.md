@@ -1,4 +1,4 @@
-<!-- en-sha256: 49b9a24af4b27ad9f7c301ad7b10c0441bc8d3c038a6d7295054da9733558e02 -->
+<!-- en-sha256: 21ffda8f7a493d3e92d8ef7655b322a4313cd89870c9d67e0eb3c7785137213f -->
 
 # Документация like-nes
 
@@ -23,6 +23,7 @@
   - [Детерминизм и арифметика с фиксированной точкой](guide/determinism.md)
   - [SDK и своя игра](guide/sdk-and-your-game.md)
   - [Уровни в Tiled](guide/tiled-levels.md)
+  - [Сцены и уровни](guide/scenes-and-levels.md)
   - [Анимации в Aseprite](guide/aseprite-animations.md)
   - [Лицензии ассетов](guide/asset-licenses.md)
   - [Шрифты и титры](guide/fonts-and-credits.md)

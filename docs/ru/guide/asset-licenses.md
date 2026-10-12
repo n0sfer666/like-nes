@@ -1,4 +1,4 @@
-<!-- en-sha256: d1c56b9497dd6cab4a700cdf68c3d78d9d875ddfa336043bedabf493341dab62 -->
+<!-- en-sha256: cea950c9324527beb171bdac442ed04e52b6ee49ce766313aeb88042d7d36141 -->
 
 # Лицензии ассетов
 

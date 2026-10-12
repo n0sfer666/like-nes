@@ -41,6 +41,7 @@ bool bind(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat 
 }
 
 // Переходы — после `run`: их подаёт код игры по прошедшему тику, а не система сцены.
+// docs:begin(flow-keys)
 LayerStats step_menu(Flow& flow, Hotseat& hotseat, input::GamepadSource& pads, const WindowKeys& keys, Screen& screen,
                      const Credits& credits, const ViewportFit& fit, uint32_t tick) {
     Menu& menu = flow.menu();
@@ -67,6 +68,7 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
     if (keys.hit(WindowKeys::ESCAPE)) flow.leave();
     return screen.level(play, hotseat, credits, fit, tick);
 }
+// docs:end(flow-keys)
 
 int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& flow, Hotseat& hotseat,
                const Credits& credits, int frames, int& drawn) {

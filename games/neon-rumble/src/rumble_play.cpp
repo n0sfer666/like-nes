@@ -5,6 +5,7 @@
 
 namespace rumble {
 
+// docs:begin(level-enter)
 std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* name, bool waves, std::string& error) {
     auto play = std::make_unique<Play>();
     framework::scene::LoadError load;
@@ -27,5 +28,6 @@ std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* n
     }
     return play;
 }
+// docs:end(level-enter)
 
 } // namespace rumble

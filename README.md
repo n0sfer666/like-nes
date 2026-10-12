@@ -29,14 +29,19 @@ writes the same frames headlessly, which is how this one was taken.*
 
 ## Status
 
-**In development. There is no release yet.** Of the 22 design specs on the roadmap, 17 are closed
-with an accepted architecture decision record; the rest are in progress. The public API changes
+**In development. There is no release yet.** Of the 28 design specs on the roadmap, 18 are closed,
+17 of them with an accepted architecture decision record; the other 10 are in progress, drafted or
+planned. The public API changes
 without notice, and it will keep changing until the first tagged release.
 
 What does exist and is exercised by gates on all three OSes: the ECS core and the fixed tick, the
 asset baker and bundle format, input with rebinding, 2D physics, the character controller and
 tilemaps, sprites, animation, camera and particles, materials and shaders, audio, plugins (native
-and WebAssembly), achievements, hot-reload, the editor shell, and deterministic networking.
+and WebAssembly), achievements, hot-reload, the editor shell, and deterministic networking. On top of them: an SDK a
+game builds against, with levels from Tiled, animations from Aseprite and bitmap fonts baked into
+its bundle; and a beat 'em up framework — fighting in a depth lane, hotseat for two, AI, stages
+with arenas and waves, a scene stack and levels with checkpoints — which the sample game Neon
+Rumble is built on.
 
 ## Quick start
 

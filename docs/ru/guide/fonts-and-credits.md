@@ -1,4 +1,4 @@
-<!-- en-sha256: 2d5de3e10dd626ca92ef94b6b43502daab65a984713c75efff4f07471e0dd7fb -->
+<!-- en-sha256: 239f0413e6eae11eee330834a8754d55d2e5fbdbd2b576da2a6fd5c18a925d1c -->
 
 # Шрифты и титры
 

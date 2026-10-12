@@ -11,6 +11,7 @@ namespace rumble {
 
 namespace sc = framework::scene;
 
+// docs:begin(flow-apply)
 bool Flow::open() {
     const sc::SceneResult r = stack_.push(menu_.stack_scene());
     if (r != sc::SceneResult::Ok) {
@@ -28,6 +29,7 @@ bool Flow::apply() {
     if (top == &menu_) play_.reset();
     return true;
 }
+// docs:end(flow-apply)
 
 // Очередь разбирает `apply` до `run`: иначе стек сменил бы сцену мимо `bound_`, и кадр нарисовал бы
 // новую сцену текстурами старой.
@@ -55,6 +57,7 @@ void Flow::enter() {
     play_ = std::move(next);
 }
 
+// docs:begin(flow-leave)
 void Flow::leave() {
     const sc::SceneResult r = stack_.replace(menu_.stack_scene());
     if (r != sc::SceneResult::Ok) std::fprintf(stderr, "neon-rumble: back to the menu: %s\n", sc::scene_reason(r));
@@ -65,5 +68,6 @@ void Flow::refuse(const std::string& error) {
     std::printf("neon-rumble: menu: %s\n", error.c_str());
     std::fflush(stdout);
 }
+// docs:end(flow-leave)
 
 } // namespace rumble
