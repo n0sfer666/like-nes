@@ -20,7 +20,7 @@ using namespace framework::brawl;
 using namespace framework::brawl::test;
 using framework::physics::mix_u64;
 
-constexpr uint64_t GOLDEN = 0x19f0cdb73b19c7c7;
+constexpr uint64_t GOLDEN = 0xad9021e2a89108aa;
 
 std::vector<Command> jab_by_first(const Sections& w, uint32_t count) {
     std::vector<Command> c(count);

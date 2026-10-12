@@ -25,6 +25,7 @@ struct Body {
     uint16_t move = NO_STRIKE;
     uint32_t elapsed = 0;
     uint16_t hitstop = 0;
+    uint16_t immune = 0;
     Reaction react = Reaction::None;
     uint16_t react_ticks = 0;
     StruckList struck;

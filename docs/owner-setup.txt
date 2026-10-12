@@ -1826,7 +1826,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+      neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
       neon-rumble: react tick 31: rainbird block
@@ -1855,10 +1855,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: react tick 417: adler thrown
       neon-rumble: react tick 436: adler down
       neon-rumble: react tick 466: adler getup
-      neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: brawl tick 0: hash 58f9f7fbae3b91cb, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
       neon-rumble: arena tick 256: arena 0 locked
       neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
       neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
@@ -1886,7 +1886,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: knockout tick 6574: adler#12
       neon-rumble: wave tick 6574: arena 1 wave 4 cleared
       neon-rumble: arena tick 6574: arena 1 released
-      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
+      neon-rumble: brawl tick 6600: hash 662f1f34289e1899, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
       sdk-game: OK   Release: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
       sdk-game: OK   Release: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
@@ -1910,7 +1910,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
       neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
       neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
-      neon-rumble: brawl tick 0: hash 7b9fe44a593a9b1e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+      neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
       neon-rumble: react tick 31: rainbird block
@@ -1939,10 +1939,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: react tick 417: adler thrown
       neon-rumble: react tick 436: adler down
       neon-rumble: react tick 466: adler getup
-      neon-rumble: brawl tick 480: hash 35645b13b45f46a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+      neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash 061f5d2421e313ab, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
+      neon-rumble: brawl tick 0: hash 58f9f7fbae3b91cb, banderas#1 200,264 y 0 hp 100, camera 296,172 arena -1, draw banderas#1
       neon-rumble: arena tick 256: arena 0 locked
       neon-rumble: wave tick 256: arena 0 wave 0, adler#2 adler#3
       neon-rumble: knockout tick 750: banderas#1, back as banderas#4 at 552,264
@@ -1970,7 +1970,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: knockout tick 6574: adler#12
       neon-rumble: wave tick 6574: arena 1 wave 4 cleared
       neon-rumble: arena tick 6574: arena 1 released
-      neon-rumble: brawl tick 6600: hash 30e052f15d349409, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
+      neon-rumble: brawl tick 6600: hash 662f1f34289e1899, banderas#16 1280,234 y 0 hp 70, camera 1280,172 arena -1, draw banderas#16
       sdk-game: OK   Debug: --wave ran 6600 headless frames: two arenas locked and released, waves from the level, P1 back inside the view
       sdk-game: OK   Debug: game.bundle bundle_hash 0x59357a54fe472c77 matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix

@@ -12,8 +12,8 @@ static_assert(std::is_trivially_copyable_v<BodyPool>, "the snapshot is a plain c
 static_assert([] {
     [[maybe_unused]] auto [seq] = EntId{};
     [[maybe_unused]] auto [x, z, y, vx, vz, vy] = DepthBody{};
-    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, move, elapsed, hitstop, react,
-                           react_ticks, struck, chain, queued, run, grip] = Body{};
+    [[maybe_unused]] auto [id, pos, facing, team, owner, hp, crushed, age, kind, clip, move, elapsed, hitstop, immune,
+                           react, react_ticks, struck, chain, queued, run, grip] = Body{};
     [[maybe_unused]] auto [run_dir, run_held, run_tap, run_tap_ticks] = RunState{};
     [[maybe_unused]] auto [grip_by, grip_team, grip_kind] = Grip{};
     [[maybe_unused]] auto [queued_strike, queued_ticks] = StrikeQueue{};
@@ -44,6 +44,7 @@ void mix_body(uint64_t& h, const Body& b) {
     physics::mix(h, b.move);
     physics::mix(h, b.elapsed);
     physics::mix(h, b.hitstop);
+    physics::mix(h, b.immune);
     physics::mix(h, static_cast<uint32_t>(b.react));
     physics::mix(h, b.react_ticks);
     physics::mix(h, b.struck.count);

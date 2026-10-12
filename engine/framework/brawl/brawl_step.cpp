@@ -32,6 +32,7 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* pla
     if (b.kind >= w.kinds.size() || w.floor == nullptr) return;
     const Archetype& a = w.kinds[b.kind];
     queue_strike(b, cmd.strike, a);
+    if (b.immune > 0) --b.immune;
     if (b.hitstop > 0) {
         --b.hitstop;
         ++b.age;
