@@ -1,58 +1,13 @@
 #include <cstdio>
 #include <string>
 
-#include "scene_stack.hpp"
+#include "framework_scene_stack_fixture.hpp"
 
 namespace {
 
 namespace sc = framework::scene;
 using sc::SceneResult;
-
-int fails = 0;
-
-void check(bool ok, const char* what) {
-    if (!ok) {
-        std::printf("  FAIL: %s\n", what);
-        ++fails;
-    }
-}
-
-std::string g_trace;
-
-struct Probe {
-    framework::Schedule schedule;
-    char tag = '?';
-    sc::SceneStack* stack = nullptr;
-    sc::Scene next{};
-};
-
-void mark(void* user, const framework::Tick&) { g_trace += static_cast<Probe*>(user)->tag; }
-
-void switch_away(void* user, const framework::Tick&) {
-    Probe* p = static_cast<Probe*>(user);
-    if (p->stack != nullptr) p->stack->replace(p->next);
-}
-
-void build(Probe& p, char tag, bool switches = false) {
-    p.tag = tag;
-    framework::SystemDesc first;
-    first.name = "switch";
-    first.stage = framework::Stage::PreSim;
-    first.fn = &switch_away;
-    first.user = &p;
-    framework::SystemDesc second;
-    second.name = "mark";
-    second.stage = framework::Stage::Sim;
-    second.fn = &mark;
-    second.user = &p;
-    if (switches) p.schedule.add(first);
-    p.schedule.add(second);
-    p.schedule.build();
-}
-
-sc::Scene scene(Probe& p, bool rollback = false) { return sc::Scene{&p.schedule, &p, rollback}; }
-
-void tick(sc::SceneStack& s, uint32_t index) { s.run(framework::Tick{index, fix32::from_int(1)}); }
+using namespace stack_fixture;
 
 void test_deferred(Probe& a, Probe& b) {
     sc::SceneStack s;
@@ -92,7 +47,7 @@ void test_mid_tick(Probe& sw, Probe& b) {
     sw.next = scene(b);
     s.push(scene(sw));
     tick(s, 0);
-    check(s.depth() == 1 && s.top()->user == &sw && s.pending() == 1 && g_trace == "s",
+    check(s.depth() == 1 && s.top()->user == &sw && s.pending() == 1 && g_trace == "s" && sw.got == SceneResult::Ok,
           "replace issued by a system mid-step does not cut the step short");
     sw.stack = nullptr;
     tick(s, 1);
@@ -158,8 +113,8 @@ void test_queue(Probe& a) {
 }
 
 void test_reasons() {
-    const SceneResult all[] = {SceneResult::Ok, SceneResult::BadScene, SceneResult::Overflow, SceneResult::Empty,
-                               SceneResult::QueueFull};
+    const SceneResult all[] = {SceneResult::Ok,    SceneResult::BadScene,  SceneResult::Overflow,
+                               SceneResult::Empty, SceneResult::QueueFull, SceneResult::Rollback};
     bool distinct = true;
     for (const SceneResult x : all)
         for (const SceneResult y : all)
@@ -183,6 +138,7 @@ int main() {
     test_replace_projected(a, b);
     test_bad_scene(a);
     test_queue(a);
+    test_rollback(a, b, sw);
     test_reasons();
     std::printf("framework-scene-stack: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

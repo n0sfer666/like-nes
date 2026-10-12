@@ -10,7 +10,7 @@ target_link_libraries(framework_scene_test PRIVATE framework_scene)
 add_executable(framework_scene_refusal_test framework_scene_refusal_test.cpp)
 target_link_libraries(framework_scene_refusal_test PRIVATE framework_scene)
 
-add_executable(framework_scene_stack_test framework_scene_stack_test.cpp)
+add_executable(framework_scene_stack_test framework_scene_stack_test.cpp framework_scene_stack_rollback.cpp)
 target_link_libraries(framework_scene_stack_test PRIVATE framework_scene)
 
 add_executable(framework_scene_level_test framework_scene_level_test.cpp)
