@@ -53,6 +53,9 @@ bool spawn(const SceneObject& o, LevelObjects& out) {
 bool checkpoint(const SceneObject& o, LevelObjects& out) {
     Checkpoint c{o.mark(), 0};
     if (!o.int_prop("order", c.order)) return false;
+    // Прогресс уровня хранит взятый `order` в `int16_t`, и −1 там — «ни одного не взято»: точка вне
+    // [0, INT16_MAX] никогда не взялась бы, и уровень молча терял бы её.
+    if (!o.within("order", c.order, 0, INT16_MAX)) return false;
     out.checkpoints.push_back(c);
     return true;
 }

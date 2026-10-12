@@ -58,6 +58,16 @@ void kind(Source& s, uint32_t id, const char* to) {
         if (p.name == "kind") p.text = to;
 }
 
+void order(Source& s, int32_t to) {
+    for (tl::ObjectPropSrc& p : object(s, 14).props)
+        if (p.name == "order") p.value = to;
+}
+
+void second_checkpoint(Source& s, int32_t to) {
+    s.objects[0].objects.push_back(scene_fixture::with(scene_fixture::point(40, "cp9", "checkpoint", 600, 250),
+                                                       {scene_fixture::int_prop("order", to)}));
+}
+
 const std::string LONG_NAME(300, 'x');
 
 const Bad CASES[] = {
@@ -97,6 +107,10 @@ const Bad CASES[] = {
      "clips table does not open"},
     {"LNOB refused by the scene reader", [](Source& s) { kind(s, 7, ""); }, {}, "lvl", sc::LoadFault::BadObjects,
      "level lvl: "},
+    {"checkpoint order past int16", [](Source& s) { order(s, 32768); }, {}, "lvl", sc::LoadFault::BadObjects,
+     "level lvl: checkpoint 'cp1' (id 14) property 'order' is 32768; allowed 0 to 32767"},
+    {"checkpoint order repeated", [](Source& s) { second_checkpoint(s, 1); }, {}, "lvl", sc::LoadFault::BadObjects,
+     "level lvl: checkpoint 'cp9' (id 40) repeats checkpoint order 1 of object id 14"},
     {"unknown kind", [](Source& s) { kind(s, 7, "ghost"); }, {}, "lvl", sc::LoadFault::UnknownKind,
      "level lvl: spawn grunt1 kind ghost: no table ghost_fighter"},
     {"kind of the last spawn has no LNFT", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("banderas_fighter")); },
