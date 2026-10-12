@@ -30,11 +30,11 @@ bool Scene::init(Brawl& fight) {
     return true;
 }
 
-void Scene::step(uint32_t index) {
+framework::Tick frame_tick(uint32_t index) {
     framework::Tick t;
     t.index = index;
     t.dt = fix32::from_int(1) / fix32::from_int(60);
-    schedule.run(t);
+    return t;
 }
 
 } // namespace rumble

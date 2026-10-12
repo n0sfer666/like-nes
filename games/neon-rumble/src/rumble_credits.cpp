@@ -34,10 +34,10 @@ void title_text(char (&out)[64], uint32_t page, uint32_t pages) {
 } // namespace
 
 // docs:begin(credits-open)
-bool Credits::open(const Level& level) {
+bool Credits::open(const asset::BundleView& bundle) {
     const uint8_t* data = nullptr;
     size_t size = 0;
-    if (!read_table(level, "fonts", data, size) || !fonts.open(data, size)) {
+    if (!read_table(bundle, "fonts", data, size) || !fonts.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: fonts table: does not open\n");
         return false;
     }
@@ -46,14 +46,14 @@ bool Credits::open(const Level& level) {
         std::fprintf(stderr, "neon-rumble: no font %s in the fonts table\n", Credits::FONT);
         return false;
     }
-    const asset::LookupFault f = asset::raw_rgba8(level.bundle, font.row->texture_guid, atlas);
+    const asset::LookupFault f = asset::raw_rgba8(bundle, font.row->texture_guid, atlas);
     if (f != asset::LookupFault::Ok || atlas.width != font.row->page_w || atlas.height != font.row->page_h) {
         std::fprintf(stderr, "neon-rumble: font atlas %016llx: %s\n",
                      static_cast<unsigned long long>(font.row->texture_guid),
                      f != asset::LookupFault::Ok ? asset::lookup_fault_name(f) : "size differs from the font page");
         return false;
     }
-    if (!read_table(level, "credits", data, size) || !table.open(data, size)) {
+    if (!read_table(bundle, "credits", data, size) || !table.open(data, size)) {
         std::fprintf(stderr, "neon-rumble: credits table: does not open\n");
         return false;
     }

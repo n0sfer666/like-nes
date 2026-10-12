@@ -18,5 +18,7 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
                 std::span<const render::QuadRun> runs);
 bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
                 const Level& level, const Fighters& fighters, const Credits& credits);
+bool init_menu_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
+                     const Credits& credits);
 
 } // namespace rumble

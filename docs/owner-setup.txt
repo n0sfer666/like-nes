@@ -1791,14 +1791,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
   macOS и Linux, в корне репозитория:
 
       bash scripts/check_sdk_game.sh --keep
-      ./build-sdk-work/game-Release/neon_rumble --frames 120
+      ./build-sdk-work/game-Release/neon_rumble --frames 600
 
   Windows — первая команда из ЛЮБОГО шелла, остальные из окна, которое она
   откроет (cl.exe нужен и SDK, и игре; причина та же, что у perf_sweep выше):
 
       scripts\win-dev.bat shell
       "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
-      build-sdk-work\game-Release\neon_rumble.exe --frames 120
+      build-sdk-work\game-Release\neon_rumble.exe --frames 600
 
   Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
   двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):
@@ -1894,6 +1894,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: arena tick 8560: arena 1 released
       neon-rumble: brawl tick 8640: hash 5977630f3371d608, banderas#20 1376,262 y 0 hp 64, camera 1368,172 arena -1, draw banderas#20
       sdk-game: OK   Release: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+      sdk-game: OK   Release: --level nope returned to the menu with the load_level refusal
       sdk-game: OK   Release: game.bundle bundle_hash 0xa3898f2c75d15e3b matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
@@ -1984,6 +1985,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: arena tick 8560: arena 1 released
       neon-rumble: brawl tick 8640: hash 5977630f3371d608, banderas#20 1376,262 y 0 hp 64, camera 1368,172 arena -1, draw banderas#20
       sdk-game: OK   Debug: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+      sdk-game: OK   Debug: --level nope returned to the menu with the load_level refusal
       sdk-game: OK   Debug: game.bundle bundle_hash 0xa3898f2c75d15e3b matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
@@ -2059,7 +2061,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   символ титров (кириллица заголовка, «·», «—», «í», «é») есть в шрифте;
   0 dropped — ни один глиф не ушёл за CAPACITY и за нижний край зоны.
 
-  Оконный запуск: окно «Neon Rumble» 960×540, в нём уровень level1 — фасады
+  Оконный запуск: окно «Neon Rumble» 960×540 открывается на меню (спека #25,
+  В7д, §32 docs/owner-verification.md): на чёрном три строки шрифтом титров —
+  «> level level1» жёлтым, «wave level1» и «credits» белым; ↑↓ ходят по ним,
+  Enter на credits листает титры. Enter на «level level1» — уровень грузится
+  заново, в stdout строки level, viewport, fighter и pose, как у гейта;
+  Esc — обратно в меню. С --wave выделен «wave level1», --level <имя> берёт
+  другой уровень; уровня нет — красная строка над пунктами и в stdout
+  «neon-rumble: menu: <причина>», игра не падает. Кадры меню входят в счёт
+  --frames. В окне после Enter — уровень level1: фасады
   над улицей, как в Tiled. За фасадами три плана (спека #24, В8а): небо sky
   стоит на месте, дальние здания far-city едут на четверть хода камеры,
   ближние near-city — на половину, фасады и улица — вместе с камерой. Планы
@@ -2129,10 +2139,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
   линией над фасадами не встаёт. Если сузить окно меньше 384x216 пикселей
   (Retina — 192x108 точек), в stderr при каждом таком сужении: «neon-rumble:
   window <W>x<H> is smaller than the 384x216 zone, the zone is cropped».
-  Через 120 кадров окно закрывается само; последние строки:
+  Через 600 кадров окно закрывается само. Первой в окне идёт строка [gpu],
+  после Enter — строки уровня (level, viewport, bounds, frame, clips,
+  fighter, depth band, pose, font, credit, credits screen), последней:
 
       [gpu] <адаптер> | <бэкенд> | BC: <yes|no>
-      neon-rumble: window run ok, 120 frames
+      …
+      neon-rumble: window run ok, 600 frames
+
+  Без Enter все 600 кадров стоит меню, и строк уровня между ними нет.
 
   Код выхода 0. BC: no — не находка: сжатые текстуры игра не грузит.
   Чтобы походить бойцом, — без --frames: окно живёт до закрытия. Пересохранение level1.tmj и neon-signs.tsj в настоящем Tiled с

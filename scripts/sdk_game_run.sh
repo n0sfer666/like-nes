@@ -77,3 +77,17 @@ game_wave_run() {
         sdk_bad "$cfg: --wave: arena lock, waves and checkpoints from the level, respawn at the checkpoint with immune, death facts, the skipped two-player wave, the brawl hash or the tick count of the fight moved"; return 1; }
     sdk_ok "$cfg: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune"
 }
+
+# Сбой загрузки — возврат в меню, а не краш (В7д спеки #25): headless обходит меню через `--level`, и
+# уровень, которого нет в бандле, печатает строку `menu:` с текстом `load_level` и выходит нулём, не
+# дойдя до драки. Позитивный контроль — прогоны выше: `level1` той же дорогой загружается.
+game_menu_run() {
+    local dir=$1 cfg=$2 exe out
+    exe="$dir/neon_rumble"
+    [ -f "$exe.exe" ] && exe="$exe.exe"
+    out=$("$exe" --headless --level nope --frames 1 2>&1) || {
+        printf '%s\n' "$out"; sdk_bad "$cfg: --level nope exited non-zero instead of returning to the menu"; return 1; }
+    grep -qx 'neon-rumble: menu: no level nope in the visual table' <<< "$out" && ! grep -q 'headless run ok' <<< "$out" || {
+        printf '%s\n' "$out"; sdk_bad "$cfg: --level nope: no menu line with the load_level refusal, or the fight ran"; return 1; }
+    sdk_ok "$cfg: --level nope returned to the menu with the load_level refusal"
+}

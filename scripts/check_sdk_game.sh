@@ -65,6 +65,7 @@ for cfg in Release Debug; do
     if game_build "$ROOT/games/neon-rumble" "$OUT/game-$cfg" "$cfg"; then
         game_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_wave_run "$OUT/game-$cfg" "$cfg" || FAIL=1
+        game_menu_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
     else
         tail -30 "$OUT/game-$cfg.log"

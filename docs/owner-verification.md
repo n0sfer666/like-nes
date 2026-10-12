@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 32 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 18 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 33 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 19 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -13,6 +13,11 @@ just the address — by reading them instead of holding a copy. That check is `s
 existed, the script called gate 9 of #17 open for four days after it closed, and never mentioned six
 of the open ones at all. A gate is re-run when a commit touches what it covers; the right-hand column
 names that surface.
+
+Since B7e of spec #25, Neon Rumble opens on a menu, not on the street: every open gate that starts
+`neon_rumble` has an Enter step right after the command, and §32 is the gate of the menu itself. The
+closed ones (§18, §20, §21) keep their steps as they were run; re-running one, press Enter on
+`level level1` right after the command — what the step says after it is then what you see.
 
 | Gate | Spec | Where | Closed | Re-run when a commit touches |
 |---|---|---|---|---|
@@ -48,6 +53,7 @@ names that surface.
 | Two players on two devices: a pad or a key joins, the banner asks, a pulled pad pauses and comes back, each leaves on his own key | [#25](../.context/specs/2026-10-05-brawl-framework.md) 9 | **all three**, with two pads and a keyboard with a numpad | — | `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_banner.*`, `engine/framework/input/lobby*`, `engine/input/source_*` |
 | AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back inside the view, a cleared wave is followed by the next one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
 | The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
+| Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3101,6 +3107,9 @@ key.
        bash scripts/check_sdk_game.sh --keep
        ./build-sdk-work/game-Release/neon_rumble --frames 1200
 
+   The window opens on the menu (§32): press Enter on `level level1` at once — the frames spent in
+   the menu count towards the 1200.
+
    The gate prints, for each configuration,
    `neon-rumble: fighter 71 clip(s), sheet 592x300, spawn 200,224 facing right`. In the window the
    queen stands on the left of the street with her feet on its top line, facing right, and
@@ -3489,6 +3498,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
+   The window opens on the menu (§32): press Enter on `level level1`.
+
    Walking, depth and the jump are those of §21 and are not re-judged here. Rainbird is not on the
    street until P2 joins: press 1 on the numpad before step 6.
 3. **Jab.** Walk Banderas to Adler on his line (Adler's feet level with his) and press J. Banderas
@@ -3576,6 +3587,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
+   The window opens on the menu (§32): press Enter on `level level1`.
+
 3. **The fall.** Walk Banderas to Adler on his line, jump (Space or K) and press J in the air. On the
    hit Adler is thrown up and back on his `fall` clip; the terminal prints `react tick <n>: adler
    fall`. Watch the pivot cross and the feet: on every frame of the flight the cross stays at the
@@ -3632,6 +3645,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
+   The window opens on the menu (§32): press Enter on `level level1`.
+
 3. **The chain.** Walk Banderas to Adler on his line and press J three times, one press after the
    other, not too fast. Banderas throws jab, jab, cross: three `hit` lines, `banderas/jab`,
    `banderas/jab`, `banderas/cross`, with damage 6, 6, 8. A fourth J starts a jab again.
@@ -3686,6 +3701,8 @@ backslashes).
 2. Start the window from a terminal you can read:
 
        ./build-sdk-work/game-Release/neon_rumble
+
+   The window opens on the menu (§32): press Enter on `level level1`.
 
 3. **The double tap.** Tap right twice quickly. Banderas runs: visibly faster than the walk. Let go —
    he stops; press right once — he walks. Tap right twice slowly (more than a fifth of a second apart)
@@ -3756,6 +3773,8 @@ backslashes).
 2. Start the window from a terminal you can read:
 
        ./build-sdk-work/game-Release/neon_rumble
+
+   The window opens on the menu (§32): press Enter on `level level1`.
 
 3. **The block.** Hold I. Banderas takes the block pose and the terminal prints
    `neon-rumble: react tick <n>: banderas block`. Hold a direction as well: he does not walk. Let go of
@@ -3829,6 +3848,8 @@ backslashes).
 
        ./build-sdk-work/game-Release/neon_rumble
 
+   The window opens on the menu (§32): press Enter on `level level1`.
+
 3. **The grab.** Walk Banderas up to Adler on his line and press H. Adler flies forward, away from
    Banderas, and the terminal prints `hit tick <n>: banderas/grab -> adler, damage 6`, `adler thrown`,
    then `adler down`, `adler getup` and `adler stand`. Banderas stands in the `throw` pose until it
@@ -3893,6 +3914,8 @@ backslashes).
 2. Start the window from a terminal you can read:
 
        ./build-sdk-work/game-Release/neon_rumble
+
+   The window opens on the menu (§32): press Enter on `level level1`.
 
 3. **One fight, no restart.** Walk Banderas to Adler's line and go through these in order, each as
    soon as the one before it ends:
@@ -3982,6 +4005,8 @@ Run from the repository root on each of the three OSes (Windows: from the
 2. Start the window from a terminal you can read, with no pad connected:
 
        ./build-sdk-work/game-Release/neon_rumble
+
+   The window opens on the menu (§32): press Enter on `level level1`.
 
    Banderas and Adler stand on the street, Rainbird does not. At the bottom of the picture, on a dark
    strip, a yellow line: `P2: press a button to join`. WASD walks Banderas at once.
@@ -4081,6 +4106,8 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 
        ./build-sdk-work/game-Release/neon_rumble --wave
 
+   The window opens on the menu (§32) with `wave level1` already picked: press Enter.
+
    Banderas stands on his spawn, the street is empty, Rainbird is not on it. Walk right (D) until the
    terminal prints `arena tick <n>: arena 0 locked` and two Adlers stand up at the right of the view
    (§31 step 3), then let go of the keyboard. Within a second or two the Adlers spread: one walks up
@@ -4164,6 +4191,8 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 
        ./build-sdk-work/game-Release/neon_rumble --wave
 
+   The window opens on the menu (§32) with `wave level1` already picked: press Enter.
+
    Walk left first: Banderas stops at the left end of the street, and the camera does not move past
    it. Then walk right. The camera follows him; the facades and the street go by over three screens.
 3. **The lock.** When the camera reaches the first arena the terminal prints
@@ -4213,9 +4242,62 @@ screenshot of a locked view with a wave on it.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 32. Gate 12 of #25 — the menu, and back to it
+
+<!-- gate: open | окно neon_rumble на любой ОС: открывается меню на чёрном — «> level level1» жёлтым, «wave level1», «credits» белым; ↑↓ ходят по кругу; Enter на credits и F1 листают титры поверх меню; Enter на level — улица и строки level/fighter в терминале; Esc — снова меню, повторный Enter — те же строки заново и бойцы на спавне; --wave выделяет wave level1; --level nope — красная строка «no level nope in the visual table» над пунктами и строка menu: в терминале, Enter на level её повторяет; --frames 300 закрывает окно с window run ok; прислать строки терминала и снимок меню с ошибкой -->
+
+B7e of spec #25 put Neon Rumble on the scene stack of the framework (`framework/scene/scene_stack`):
+the game opens on a menu scene, Enter replaces it with a level scene loaded by `load_level` right
+then, and Esc replaces the level with the menu again. The level is loaded anew on every entry, so a
+second entry starts from the spawn, not from where the first one stopped. A level that does not load
+does not crash the game: the menu stays, with the reason as a red line over its items, and the
+terminal gets `neon-rumble: menu: <reason>`. The headless half of this — `--level nope` refused and
+the run ending with code 0 — is judged by `check_sdk_game.sh` on every commit; what it cannot see is
+the window, and that is this gate.
+
+1. Run the gate once (`bash scripts/check_sdk_game.sh --keep`); among its lines, for each
+   configuration, `--level nope returned to the menu with the load_level refusal`.
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble
+
+   The window is black with three lines in its middle, in the font of the credits: `> level level1`
+   in yellow, then `wave level1` and `credits` in white. Up and down move the `>` and the yellow;
+   down on `credits` goes round to `level level1`, up on it to `credits`.
+3. **Credits.** On `credits`, Enter shows the first page of the credits over the menu, and every
+   further Enter (or F1) turns a page; after the last page the menu is back alone.
+4. **The level.** Up to `level level1`, Enter. The street of §21 comes up with Banderas on his spawn,
+   and the terminal prints the lines of a start: `neon-rumble: level level1 …`, `clips …`,
+   `fighter …`, `pose tick 0: …`. Walk Banderas a screen to the right.
+5. **Back.** Esc: the menu again, `> level level1` still picked. Enter: the street again, the same
+   lines in the terminal again, and Banderas on his spawn, not where step 4 left him. The seats are
+   not reloaded with the level: a P2 who joined in step 4 is on the street again from the first tick,
+   with no new `seat` lines and no join banner, and a pad pulled before Esc pauses the new entry too.
+6. **Wave.** Close the window and start it with `--wave`: `> wave level1` is the picked line. Enter
+   gives the street of §31 with its arenas; Esc and Enter again give it from the start.
+7. **A level that is not there.** Close the window and start it with `--level nope`. The menu says
+   `level nope` and `wave nope`. Enter on either: the window stays on the menu, a red line
+   `no level nope in the visual table` stands over the items, and the terminal prints
+   `neon-rumble: menu: no level nope in the visual table`. Enter again prints the line again; the
+   game does not crash and does not hang.
+8. **The frame limit.** Start it with `--frames 300` and do nothing: the window closes on its own
+   after a few seconds with `neon-rumble: window run ok, 300 frames` and exit code 0. The frames
+   on the menu count.
+
+What counts as a finding: a menu that does not answer the arrows or Enter; a key of the menu that
+also moves Banderas, or a key of the fight that moves the menu; a second entry that starts where the
+first one stopped, or prints different start lines; a refused level that crashes, hangs, leaves the
+window black without the red line, or does not print the `menu:` line; the credits not coming back to
+the menu after the last page.
+
+Send back: the terminal lines of steps 4, 5 and 7, and one screenshot of the menu with the red line.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 32 are closed, and the open 18 are listed by
+The gates above are what the ADRs waited on; 14 of the 33 are closed, and the open 19 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
