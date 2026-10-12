@@ -474,6 +474,11 @@ City — принятый риск, сверка на живом кадре ур
   переименовано до кода: в brawl `guard` уже значит блок).
 - Команды стека rollback-сцена подаёт кодом игры по подтверждённому тику, а не из своих систем:
   стек вне снапшота, и команда из ресима или отменённого предсказания иначе применилась бы.
+- Прогресс (В7г) — `LevelProgress{checkpoint}` в `engine/framework/brawl/`, не в `scene`: `scene` от
+  `brawl` не зависит. `step_checkpoints` берёт точку, когда живой игрок на опоре стоит на `x ≥ x`
+  точки, и только больший `order`; `progress_hash` — своя свёртка в хеше сессии. Смерть —
+  `note_living` до шага и `step_deaths` после: `Death{EntId}` у тела, бывшего живым до шага и
+  с `hp ≤ 0` после; факты вне снапшота и хеша. Забытое поле судит ресим хешем мира без прогресса.
 
 ### В8. Примитивы спецсекций
 
@@ -556,10 +561,10 @@ engine/input/                 prev_held, кадр, буфер и запись н
 engine/framework/input/       ActionMap и RebindStore на игрока, вход/выход         (В4)
 engine/framework/character/   MoveInput.move_z (В1), конвейер (В8)
 engine/framework/brawl/       DepthBody, BodyPool, BrawlInput, удары, состояния,
-                              StageCamera, трос, снаряды                           (В1–В3, В6, В8)
+                              StageCamera, трос, снаряды, прогресс, смерти         (В1–В3, В6–В8)
 engine/framework/brawl/fighter читатель LNFT                                       (В2)
 engine/framework/ai/          FSM, жетоны атаки                                      (В5)
-engine/framework/scene/       стек сцен, загрузка уровня, словарь LNOB, чекпоинты  (В6–В7)
+engine/framework/scene/       стек сцен, загрузка уровня, словарь LNOB             (В6–В7)
 tools/assetc/                 запись fighter                                         (В2)
 scripts/check_sim_float.py    гейт float в симуляции                                 (В1)
 games/neon-rumble/            прототип растёт каждой вертикалью
