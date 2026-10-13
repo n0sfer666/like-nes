@@ -119,6 +119,37 @@ void test_conveyor_cap() {
     }
 }
 
+sc::LevelObjects rope_level(int32_t x_raw, int32_t length, int32_t belt_w, int32_t platform_x, int32_t platform_w) {
+    ObjectMapSrc src = level();
+    for (ObjectSrc& o : src.objects) {
+        if (o.id == 18) {
+            o.x = fix32::from_raw(x_raw);
+            o.props = {fix_prop("length", length * ONE)};
+        }
+        if (o.id == 10) o.w = fix32::from_int(belt_w);
+        if (o.id == 11) {
+            o.x = fix32::from_int(platform_x);
+            o.w = fix32::from_int(platform_w);
+        }
+    }
+    Baked b;
+    sc::LevelObjects l;
+    std::string error;
+    if (!bake(src, b) || !sc::read_level_objects(b.map, l, error)) std::printf("    %s\n", error.c_str());
+    return l;
+}
+
+// Обе границы длины и оба края размаха: левый край секции входит в неё, правый — нет, как у секции.
+void test_rope_bounds() {
+    const sc::LevelObjects shortest = rope_level(1000 * ONE, 16, 768, 872, 200);
+    check(shortest.ropes.size() == 1 && shortest.ropes[0].length == px(16), "a rope of the shortest length reads");
+    const sc::LevelObjects longest = rope_level(1000 * ONE, 256, 600, 704, 600);
+    check(longest.ropes.size() == 1 && longest.ropes[0].length == px(256), "a rope of the longest length reads");
+    check(rope_level(936 * ONE, 64, 768, 872, 200).ropes.size() == 1, "a rope swinging onto the left edge reads");
+    check(rope_level(1008 * ONE - 1, 64, 768, 872, 200).ropes.size() == 1,
+          "a rope swinging one raw short of the right edge reads");
+}
+
 void test_empty() {
     Baked b;
     check(bake(ObjectMapSrc{"empty", {}}, b), "empty map bakes");
@@ -138,6 +169,7 @@ int main() {
     test_level(b);
     test_players_only();
     test_conveyor_cap();
+    test_rope_bounds();
     test_empty();
     std::printf("framework-scene: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

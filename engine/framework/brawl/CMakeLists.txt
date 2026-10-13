@@ -7,7 +7,8 @@ add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp d
   seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp stage_waves_hash.cpp
   stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
   autoscroll_step.cpp stage_leash.cpp level_clamp.cpp checkpoint_step.cpp progress_hash.cpp death_step.cpp
-  path_follow.cpp stage_movers.cpp stage_movers_snapshot.cpp stage_movers_hash.cpp conveyor_step.cpp)
+  path_follow.cpp stage_movers.cpp stage_movers_snapshot.cpp stage_movers_hash.cpp conveyor_step.cpp
+  rope_swing.cpp rope_ride.cpp stage_ropes.cpp stage_ropes_hash.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics framework_scene
   framework_core)
@@ -94,3 +95,13 @@ add_executable(framework_brawl_conveyor_test framework_brawl_conveyor_test.cpp)
 target_link_libraries(framework_brawl_conveyor_test PRIVATE framework_brawl)
 add_executable(framework_brawl_conveyor_platform_test framework_brawl_conveyor_platform_test.cpp)
 target_link_libraries(framework_brawl_conveyor_platform_test PRIVATE framework_brawl)
+
+add_executable(framework_brawl_rope_test framework_brawl_rope_test.cpp)
+target_link_libraries(framework_brawl_rope_test PRIVATE framework_brawl)
+
+add_executable(framework_brawl_rope_ride_test framework_brawl_rope_ride_test.cpp)
+target_link_libraries(framework_brawl_rope_ride_test PRIVATE framework_brawl)
+add_executable(framework_brawl_rope_grab_test framework_brawl_rope_grab_test.cpp)
+target_link_libraries(framework_brawl_rope_grab_test PRIVATE framework_brawl)
+add_executable(framework_brawl_rope_world_test framework_brawl_rope_world_test.cpp)
+target_link_libraries(framework_brawl_rope_world_test PRIVATE framework_brawl)

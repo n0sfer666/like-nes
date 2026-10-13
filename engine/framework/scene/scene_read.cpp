@@ -102,6 +102,12 @@ bool autoscroll(const SceneObject& o, LevelObjects& out) {
 bool rope(const SceneObject& o, LevelObjects& out) {
     Rope r{o.mark(), {}};
     if (!o.fix_prop("length", r.length)) return false;
+    if (r.length < fix32::from_int(ROPE_LENGTH_MIN) || fix32::from_int(ROPE_LENGTH_MAX) < r.length)
+        return o.fail("property 'length' is out of range; allowed " + std::to_string(ROPE_LENGTH_MIN) + " to " +
+                      std::to_string(ROPE_LENGTH_MAX) + " px");
+    const int64_t l = r.length.raw;
+    if (r.mark.at.x.raw - l < INT32_MIN || INT32_MAX < r.mark.at.x.raw + l + 1 || INT32_MAX < r.mark.at.y.raw + l)
+        return o.fail("swings past the fix32 range; x - length, x + length and y + length must fit");
     out.ropes.push_back(r);
     return true;
 }

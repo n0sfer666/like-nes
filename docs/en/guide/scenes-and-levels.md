@@ -127,7 +127,7 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `depth_band`, `wall`, `kill` | rectangle | none |
 | `conveyor` | rectangle | `speed` (px per tick, −8 to 8, not 0; the sign is the direction) |
 | `path` | polygon | `speed` (px per tick, above 0 and at most 32), `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
-| `rope` | point | `length` |
+| `rope` | point | `length` (px, 16 to 256); the swing from `x − length` to `x + length` lies in `platform` sections |
 | `bounds` | rectangle | none; at most one per level |
 
 A missing property, a property of the wrong type or out of its range, an object of the wrong
@@ -162,6 +162,18 @@ foot. Lay belts on flat floor in a `platform` section. `speed` stops at 8 px per
 as a margin: an all-or-nothing carry has no sweep and jumps a wall once the shift is wider than
 the wall and the body together. Where belts overlap, the first one in the level wins: their sum
 could pass that limit.
+
+A rope hangs from its point and swings up to 90° each way. A fighter in the air takes it with the
+grab button when their hands are within 16 px of the rope's end; one fighter per rope, so a second
+one gets nothing. Left and right pump the swing, which never passes 90°. Without input the swing
+dies down: the rope keeps no more energy than it was given. A jump lets go, and the fighter flies
+off with the rope's speed along its tangent; the same rope can be taken again 12 ticks later, and no
+rope is taken in the tick of the jump. A hit, a grab by an enemy or death drops the rider; the
+hitstop of the rider's own strike does not, it holds the rope still with them, and while the rider
+strikes, left and right do not pump. A lift in the way drops the rider too, and so does anything
+that moves the rider off the rope, such as the camera leash. A tile in the way stops the rope where
+it is. A one-way tile holds the rider as it holds a fighter: coming down from above, the rope stands
+on it; from below or from the side, the rider passes through.
 
 ## How long a Level lives
 

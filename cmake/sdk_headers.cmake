@@ -86,6 +86,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/checkpoint_step.hpp framework/brawl/death_facts.hpp framework/brawl/living.hpp
   framework/brawl/death_step.hpp framework/brawl/path_follow.hpp framework/brawl/stage_movers.hpp
   framework/brawl/stage_movers_snapshot.hpp framework/brawl/stage_movers_hash.hpp
+  framework/brawl/rope_swing.hpp framework/brawl/stage_ropes.hpp framework/brawl/stage_ropes_hash.hpp
   framework/ai/world_rng.hpp framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
   framework/ai/ai_state.hpp framework/ai/ai_step.hpp framework/ai/ai_target.hpp
   framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_stack.hpp

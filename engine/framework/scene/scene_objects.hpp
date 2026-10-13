@@ -82,6 +82,12 @@ struct Autoscroll {
     fix32 speed;
 };
 
+// Пределы длины троса, px. Снизу — корпус бойца: трос короче него держал бы седока ногами у опоры.
+// Сверху — скорость: с 90° трос разгоняет седока до `sqrt(2gL)`, и на 256 px при тяготении падения
+// образца это ~19 px за тик — свип корпуса за тик, а не прыжок сквозь тайл.
+inline constexpr int32_t ROPE_LENGTH_MIN = 16;
+inline constexpr int32_t ROPE_LENGTH_MAX = 256;
+
 struct Rope {
     Mark mark;
     fix32 length;

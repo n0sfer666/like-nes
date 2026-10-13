@@ -10,13 +10,18 @@
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
 #include "platform_body.hpp"
+#include "stage_ropes.hpp"
 #include "stage_sections.hpp"
 
 namespace framework::brawl {
 
 namespace {
 
-void move(Body& b, const BrawlInput& in, const Archetype& a, const BrawlWorld& w, SectionBody* platform) {
+void move(Body& b, const BrawlInput& in, const Archetype& a, const BrawlWorld& w, SectionBody* platform, bool roped) {
+    if (roped) {
+        ++b.age;
+        return;
+    }
     track_run(b, in, a);
     const bool strikes = striking(b, a);
     if (strikes && grounded(b.pos)) slide_strike(b, a);
@@ -33,7 +38,7 @@ void move(Body& b, const BrawlInput& in, const Archetype& a, const BrawlWorld& w
 
 } // namespace
 
-void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* platform) {
+void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* platform, bool roped) {
     b.crushed = false;
     if (b.kind >= w.kinds.size() || w.floor == nullptr) return;
     const Archetype& a = w.kinds[b.kind];
@@ -46,16 +51,17 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* pla
     }
     const bool guarded = track_guard(b, cmd.input, a);
     if (!take_strike(b, a) && !guarded) advance_clip(b, a);
-    move(b, cmd.input, a, w, platform);
+    move(b, cmd.input, a, w, platform, roped);
     tick_reaction(b, a);
     settle_clip(b, a);
 }
 
-void step_bodies(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, StageSections* sections) {
+void step_bodies(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, StageSections* sections,
+                 const StageRopes* ropes) {
     for (uint32_t i = 0; i < pool.count; ++i) {
         Body& b = pool.bodies[i];
         SectionBody* platform = sections != nullptr ? sections->find(b.id) : nullptr;
-        step_one(b, i < commands.size() ? commands[i] : Command{}, w, platform);
+        step_one(b, i < commands.size() ? commands[i] : Command{}, w, platform, platform != nullptr && rides(ropes, b.id));
     }
 }
 
