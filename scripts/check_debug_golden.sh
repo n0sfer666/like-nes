@@ -48,201 +48,99 @@ STATE_TARGETS="framework_physics_test framework_physics_point_test framework_phy
 
 # Расхождение между уровнями оптимизации в целочисленной арифметике — это UB, а не «погрешность»,
 # и локально оно проверяемо целиком: ни раннера, ни железа тут не нужно.
+GOLDENS=()
+golden() { GOLDENS+=("$1|$2|$3"); }
+# Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
+# -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
+golden framework_physics_test "physics-state-hash = 0xf238d0bc34325db6" "физики"
+# Траектория персонажа (гейт 1 спеки #16) — второй голден на этом пути, и сверяется он тем же
+# способом: свой литерал, а не «хеш не пуст».
+golden framework_character_test "character trajectory hash = 0x7801049c168bb301" "траектории"
+# Третий голден этого пути — байты испечённого профиля: разбор числа из текста идёт по int64,
+# то есть ровно там, где расхождение уровней оптимизации означало бы UB, а не погрешность.
+golden framework_character_profile_test "hash 0xa554e52327f8d33d" "таблицы профиля"
+golden framework_brawl_fighter_test "hash 0x34030b3c5a326d2d" "таблицы бойца"
+golden framework_ai_resim_test "ai fight hash = 0x7f8e4567b5f55de4" "боя с ИИ"
+golden framework_brawl_progress_resim_test "progress course hash = 0x9226b3f907514dc1" "прогресса уровня"
+golden framework_brawl_movers_test "movers lift hash = 0x42a1d3b0296fcfc1" "лифта по пути"
+golden framework_brawl_rope_test "rope ride hash = 0xeb3bfbcf270b2683" "троса"
+# Четвёртый — свёртка ответов запросов к тайловой сетке: доли и точки считаются той же
+# арифметикой fix32, и расхождение уровней оптимизации на них тоже было бы UB.
+golden framework_tilemap_test "tilemap answers hash = 0xb19419157787b1c3" "ответов тайлмапа"
+# Пятый — байты испечённой таблицы карт: собираются они тем же разбором числа по int64, что и
+# таблица профиля выше, и по тому же основанию обязаны совпасть между -O0 и -O3.
+golden framework_tilemap_bake_test "hash 0xcd034f07f57b5f8b" "таблицы карт"
+# Шестой — маршрут образца-платформера. Он единственный здесь сшивает приёмы в одну траекторию,
+# поэтому и сверяется отдельным литералом: «хеш не пуст» пропустило бы расхождение целиком.
+golden game_platformer_sim_test "platformer trajectory hash = 0xfead7a87477a9258" "образца-платформера"
+# Заявка последнего тика записанного реплея (гейт 6 спеки #22) — свёртка МАРКИ, а не траектории:
+# окно прощения, запомненная опора, счётчики работы физики и хеш событий в голден выше не входят
+# вовсе. Расхождение -O0 с -O3 в любом из этих полей было бы UB, и назвать себя ему больше негде:
+# верификатор сравнивает заявку с заявкой ВНУТРИ одного прогона и на обоих уровнях зелен одинаково.
+golden game_platformer_replay_test "platformer replay claim = 0x1ca0e823e931de86" "заявки реплея"
+# Седьмой — анимационное состояние (гейт 1 спеки #17). Шкала клипа берётся делением с остатком
+# по uint64, а перескок кадров при скорости выше единицы — разностью порядковых номеров шага:
+# расхождение уровней оптимизации здесь было бы UB, а не «другой кадр».
+golden framework_graphics_anim_test "anim-state hash = 0x8db6e6730e0c446f" "анимационного состояния"
+# Восьмой и девятый — траектория камеры (гейт 5 спеки #17). Каналов два, и оба здесь: потолок
+# скорости считает длину целочисленным корнем, привязка к пикселю делит с ОКРУГЛЕНИЕМ ВНИЗ по
+# int64, тряска умножает амплитуду на затухание тем же int64. Центр состояния не знает про две
+# последние вовсе — одним каналом расхождение -O0 с -O3 в них прошло бы молча.
+golden framework_graphics_path_test "camera-path hash = 0x15028037bdca9f22" "траектории камеры"
+# Десятый — байты нарезки атласа (шаг D спеки #17): привязка разбирается из десятичной записи
+# в Q16.16 умножением и делением по int64, то есть тем же местом, что таблицы профиля и карт.
+golden framework_graphics_atlas_test "hash 0xa9b9b74a0152af52" "нарезки атласа"
+golden framework_graphics_path_test "camera-view hash = 0xd6c2f15de2ab50f8" "вида камеры"
+# Одиннадцатый — поток квадов отладочного оверлея (шаг E спеки #17): половина стороны берётся
+# умножением на 1/2 в Q16.16, ширина глифа — дробью 9/25 от кегля, курсор текста копит шаг
+# сложением. Все три — арифметика по int64, то есть то же основание, что у десяти выше.
+golden framework_graphics_debug_test "debug-overlay hash = 0x922ccf9cf4b0aecc" "отладочного оверлея"
+# Двенадцатый — порядок отрисовки и батчи (вертикаль 2, шаг A): ключ сортировки собран сдвигами
+# по int64, полуразмеры 9-slice — умножением на 1/2 в Q16.16. То же основание, что у одиннадцати
+# выше.
+golden framework_graphics_batch_test "sprite-batch hash = 0xbda7b692a87b1155" "порядка отрисовки"
+# Двенадцатый — поток спрайтов тайловой карты (вертикаль 2, шаг B). Окно считается
+# целочисленным делением с округлением ВНИЗ по сырому Q16.16 со знаком, а центр и полуразмер
+# тайла — умножением на 1/2: расхождение -O0 с -O3 здесь было бы UB, а не «сдвинулась картинка».
+golden framework_graphics_tile_test "tile-draw hash = 0x599044fa7aabfddc" "отрисовки тайлов"
+# Тринадцатый — состояние эмиттеров частиц (гейт 4 спеки #17): направление через табличный
+# `sin_turns`/`cos_turns` по Q16.16, затухание умножением на дробь, доля темпа — сложением.
+golden framework_graphics_particle_test "particle-sim hash = 0xab81c90241aaa65a" "частиц"
+# Четырнадцатый — развёртка зума (вертикаль 2, шаг D): половина видимой области считается
+# делением в Q16.16, привязка к пикселю — делением с округлением ВНИЗ по int64 со знаком.
+golden framework_graphics_viewport_test "viewport hash = 0x5bcea5ecad651b07" "зума"
+
 debug_golden() {
     cmake -S . -B build-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF >/dev/null || return 1
     BUILD_DIR=build-debug LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TYPE=Debug \
         LIKE_NES_BUILD_TARGETS="$STATE_TARGETS" bash scripts/build_check.sh || return 1
-    local t bin out rc=0 golden="" claim="" traj="" baked="" fighter="" aifight="" course="" movers="" rope="" tiles="" maps="" plat="" anim="" cpath="" cview="" atlas="" overlay="" batch="" tdraw="" parts="" view=""
+    local t bin out row target lit label got rc=0
+    for row in "${GOLDENS[@]}"; do
+        target=${row%%|*}
+        case " $STATE_TARGETS " in
+        *" $target "*) ;;
+        *) echo "голден цели $target не сверяется: её нет в STATE_TARGETS"; rc=1 ;;
+        esac
+    done
     for t in $STATE_TARGETS; do
         bin=$(find build-debug -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
-        if [ -z "$bin" ]; then echo "$t не собран"; rc=1; continue; fi
-        out=$("$bin") || rc=1
-        printf '%s\n' "$out" | grep -q ": PASS" || { printf '%s\n' "$out"; rc=1; }
-        if [ "$t" = framework_physics_test ]; then
-            golden=$(printf '%s\n' "$out" | grep -o 'physics-state-hash = 0x[0-9a-f]*')
+        if [ -z "$bin" ]; then echo "$t не собран"; rc=1; fi
+        out=""
+        if [ -n "$bin" ]; then
+            out=$("$bin") || rc=1
+            printf '%s\n' "$out" | grep -q ": PASS" || { printf '%s\n' "$out"; rc=1; }
         fi
-        if [ "$t" = framework_character_test ]; then
-            traj=$(printf '%s\n' "$out" | grep -o 'character trajectory hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_character_profile_test ]; then
-            baked=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_brawl_fighter_test ]; then
-            fighter=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_ai_resim_test ]; then
-            aifight=$(printf '%s\n' "$out" | grep -o 'ai fight hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_brawl_progress_resim_test ]; then
-            course=$(printf '%s\n' "$out" | grep -o 'progress course hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_brawl_movers_test ]; then
-            movers=$(printf '%s\n' "$out" | grep -o 'movers lift hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_brawl_rope_test ]; then
-            rope=$(printf '%s\n' "$out" | grep -o 'rope ride hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_tilemap_test ]; then
-            tiles=$(printf '%s\n' "$out" | grep -o 'tilemap answers hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_tilemap_bake_test ]; then
-            maps=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
-        fi
-        if [ "$t" = game_platformer_sim_test ]; then
-            plat=$(printf '%s\n' "$out" | grep -o 'platformer trajectory hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = game_platformer_replay_test ]; then
-            claim=$(printf '%s\n' "$out" | grep -o 'platformer replay claim = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_anim_test ]; then
-            anim=$(printf '%s\n' "$out" | grep -o 'anim-state hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_path_test ]; then
-            cpath=$(printf '%s\n' "$out" | grep -o 'camera-path hash = 0x[0-9a-f]*')
-            cview=$(printf '%s\n' "$out" | grep -o 'camera-view hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_atlas_test ]; then
-            atlas=$(printf '%s\n' "$out" | grep -o 'hash 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_debug_test ]; then
-            overlay=$(printf '%s\n' "$out" | grep -o 'debug-overlay hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_batch_test ]; then
-            batch=$(printf '%s\n' "$out" | grep -o 'sprite-batch hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_tile_test ]; then
-            tdraw=$(printf '%s\n' "$out" | grep -o 'tile-draw hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_particle_test ]; then
-            parts=$(printf '%s\n' "$out" | grep -o 'particle-sim hash = 0x[0-9a-f]*')
-        fi
-        if [ "$t" = framework_graphics_viewport_test ]; then
-            view=$(printf '%s\n' "$out" | grep -o 'viewport hash = 0x[0-9a-f]*')
-        fi
+        for row in "${GOLDENS[@]}"; do
+            IFS='|' read -r target lit label <<<"$row"
+            [ "$target" = "$t" ] || continue
+            got=$(printf '%s\n' "$out" | grep -o "${lit%0x*}0x[0-9a-f]*")
+            if [ "$got" != "$lit" ]; then
+                echo "Debug разошёлся с Release по голдену $label: '$got'"
+                rc=1
+            fi
+        done
     done
-    # Тот же литерал, что у Release-шага в CI. Сверять Debug сам с собой значило бы проверять, что
-    # -O0 воспроизводим, а не что он согласен с -O3, — то есть не проверять ничего.
-    if [ "$golden" != "physics-state-hash = 0xf238d0bc34325db6" ]; then
-        echo "Debug разошёлся с Release по голдену физики: '$golden'"
-        rc=1
-    fi
-    # Траектория персонажа (гейт 1 спеки #16) — второй голден на этом пути, и сверяется он тем же
-    # способом: свой литерал, а не «хеш не пуст».
-    if [ "$traj" != "character trajectory hash = 0x7801049c168bb301" ]; then
-        echo "Debug разошёлся с Release по голдену траектории: '$traj'"
-        rc=1
-    fi
-    # Третий голден этого пути — байты испечённого профиля: разбор числа из текста идёт по int64,
-    # то есть ровно там, где расхождение уровней оптимизации означало бы UB, а не погрешность.
-    if [ "$baked" != "hash 0xa554e52327f8d33d" ]; then
-        echo "Debug разошёлся с Release по голдену таблицы профиля: '$baked'"
-        rc=1
-    fi
-    if [ "$fighter" != "hash 0x34030b3c5a326d2d" ]; then
-        echo "Debug разошёлся с Release по голдену таблицы бойца: '$fighter'"
-        rc=1
-    fi
-    if [ "$aifight" != "ai fight hash = 0x7f8e4567b5f55de4" ]; then
-        echo "Debug разошёлся с Release по голдену боя с ИИ: '$aifight'"
-        rc=1
-    fi
-    if [ "$course" != "progress course hash = 0x9226b3f907514dc1" ]; then
-        echo "Debug разошёлся с Release по голдену прогресса уровня: '$course'"
-        rc=1
-    fi
-    if [ "$movers" != "movers lift hash = 0x42a1d3b0296fcfc1" ]; then
-        echo "Debug разошёлся с Release по голдену лифта по пути: '$movers'"
-        rc=1
-    fi
-    if [ "$rope" != "rope ride hash = 0xeb3bfbcf270b2683" ]; then
-        echo "Debug разошёлся с Release по голдену троса: '$rope'"
-        rc=1
-    fi
-    # Четвёртый — свёртка ответов запросов к тайловой сетке: доли и точки считаются той же
-    # арифметикой fix32, и расхождение уровней оптимизации на них тоже было бы UB.
-    if [ "$tiles" != "tilemap answers hash = 0xb19419157787b1c3" ]; then
-        echo "Debug разошёлся с Release по голдену ответов тайлмапа: '$tiles'"
-        rc=1
-    fi
-    # Пятый — байты испечённой таблицы карт: собираются они тем же разбором числа по int64, что и
-    # таблица профиля выше, и по тому же основанию обязаны совпасть между -O0 и -O3.
-    if [ "$maps" != "hash 0xcd034f07f57b5f8b" ]; then
-        echo "Debug разошёлся с Release по голдену таблицы карт: '$maps'"
-        rc=1
-    fi
-    # Шестой — маршрут образца-платформера. Он единственный здесь сшивает приёмы в одну траекторию,
-    # поэтому и сверяется отдельным литералом: «хеш не пуст» пропустило бы расхождение целиком.
-    if [ "$plat" != "platformer trajectory hash = 0xfead7a87477a9258" ]; then
-        echo "Debug разошёлся с Release по голдену образца-платформера: '$plat'"
-        rc=1
-    fi
-    # Заявка последнего тика записанного реплея (гейт 6 спеки #22) — свёртка МАРКИ, а не траектории:
-    # окно прощения, запомненная опора, счётчики работы физики и хеш событий в голден выше не входят
-    # вовсе. Расхождение -O0 с -O3 в любом из этих полей было бы UB, и назвать себя ему больше негде:
-    # верификатор сравнивает заявку с заявкой ВНУТРИ одного прогона и на обоих уровнях зелен одинаково.
-    if [ "$claim" != "platformer replay claim = 0x1ca0e823e931de86" ]; then
-        echo "Debug разошёлся с Release по голдену заявки реплея: '$claim'"
-        rc=1
-    fi
-    # Седьмой — анимационное состояние (гейт 1 спеки #17). Шкала клипа берётся делением с остатком
-    # по uint64, а перескок кадров при скорости выше единицы — разностью порядковых номеров шага:
-    # расхождение уровней оптимизации здесь было бы UB, а не «другой кадр».
-    if [ "$anim" != "anim-state hash = 0x8db6e6730e0c446f" ]; then
-        echo "Debug разошёлся с Release по голдену анимационного состояния: '$anim'"
-        rc=1
-    fi
-    # Восьмой и девятый — траектория камеры (гейт 5 спеки #17). Каналов два, и оба здесь: потолок
-    # скорости считает длину целочисленным корнем, привязка к пикселю делит с ОКРУГЛЕНИЕМ ВНИЗ по
-    # int64, тряска умножает амплитуду на затухание тем же int64. Центр состояния не знает про две
-    # последние вовсе — одним каналом расхождение -O0 с -O3 в них прошло бы молча.
-    if [ "$cpath" != "camera-path hash = 0x15028037bdca9f22" ]; then
-        echo "Debug разошёлся с Release по голдену траектории камеры: '$cpath'"
-        rc=1
-    fi
-    # Десятый — байты нарезки атласа (шаг D спеки #17): привязка разбирается из десятичной записи
-    # в Q16.16 умножением и делением по int64, то есть тем же местом, что таблицы профиля и карт.
-    if [ "$atlas" != "hash 0xa9b9b74a0152af52" ]; then
-        echo "Debug разошёлся с Release по голдену нарезки атласа: '$atlas'"
-        rc=1
-    fi
-    if [ "$cview" != "camera-view hash = 0xd6c2f15de2ab50f8" ]; then
-        echo "Debug разошёлся с Release по голдену вида камеры: '$cview'"
-        rc=1
-    fi
-    # Одиннадцатый — поток квадов отладочного оверлея (шаг E спеки #17): половина стороны берётся
-    # умножением на 1/2 в Q16.16, ширина глифа — дробью 9/25 от кегля, курсор текста копит шаг
-    # сложением. Все три — арифметика по int64, то есть то же основание, что у десяти выше.
-    if [ "$overlay" != "debug-overlay hash = 0x922ccf9cf4b0aecc" ]; then
-        echo "Debug разошёлся с Release по голдену отладочного оверлея: '$overlay'"
-        rc=1
-    fi
-    # Двенадцатый — порядок отрисовки и батчи (вертикаль 2, шаг A): ключ сортировки собран сдвигами
-    # по int64, полуразмеры 9-slice — умножением на 1/2 в Q16.16. То же основание, что у одиннадцати
-    # выше.
-    if [ "$batch" != "sprite-batch hash = 0xbda7b692a87b1155" ]; then
-        echo "Debug разошёлся с Release по голдену порядка отрисовки: '$batch'"
-        rc=1
-    fi
-    # Двенадцатый — поток спрайтов тайловой карты (вертикаль 2, шаг B). Окно считается
-    # целочисленным делением с округлением ВНИЗ по сырому Q16.16 со знаком, а центр и полуразмер
-    # тайла — умножением на 1/2: расхождение -O0 с -O3 здесь было бы UB, а не «сдвинулась картинка».
-    if [ "$tdraw" != "tile-draw hash = 0x599044fa7aabfddc" ]; then
-        echo "Debug разошёлся с Release по голдену отрисовки тайлов: '$tdraw'"
-        rc=1
-    fi
-    # Тринадцатый — состояние эмиттеров частиц (гейт 4 спеки #17): направление через табличный
-    # `sin_turns`/`cos_turns` по Q16.16, затухание умножением на дробь, доля темпа — сложением.
-    if [ "$parts" != "particle-sim hash = 0xab81c90241aaa65a" ]; then
-        echo "Debug разошёлся с Release по голдену частиц: '$parts'"
-        rc=1
-    fi
-    # Четырнадцатый — развёртка зума (вертикаль 2, шаг D): половина видимой области считается
-    # делением в Q16.16, привязка к пикселю — делением с округлением ВНИЗ по int64 со знаком.
-    if [ "$view" != "viewport hash = 0x5bcea5ecad651b07" ]; then
-        echo "Debug разошёлся с Release по голдену зума: '$view'"
-        rc=1
-    fi
     return $rc
 }
 
