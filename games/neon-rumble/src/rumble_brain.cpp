@@ -43,7 +43,7 @@ void back_off(ai::Mind& m) {
 
 void ring(ai::Mind& m, br::Command& out) {
     out.input.present = true;
-    const br::Body* t = ai::nearest_body(m.pool, m.body, ROSTER[PLAYER].team);
+    const br::Body* t = ai::nearest_body(m.pool, m.world.kinds, m.body, ROSTER[PLAYER].team);
     m.brain.target = t != nullptr ? t->id : br::EntId{};
     if (t == nullptr) return;
     if (m.brain.timer == 0) {

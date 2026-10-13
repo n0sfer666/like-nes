@@ -63,7 +63,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
     took = br::step_checkpoints(progress, pool, seats, level);
     was_arena = camera.arena;
     was_wave = waves.wave;
-    br::step_waves(waves, camera, pool, seats, level, br::WaveRules{WAVE_LULL}, facts);
+    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts);
     spawned_count = 0;
     for (uint32_t i = 0; i < facts.count; ++i) {
         const br::EntId id = pool.spawn(foes[facts.starts[i]]);

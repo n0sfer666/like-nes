@@ -10,6 +10,7 @@
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
 #include "platform_body.hpp"
+#include "projectile.hpp"
 #include "stage_ropes.hpp"
 #include "stage_sections.hpp"
 
@@ -42,6 +43,15 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* pla
     b.crushed = false;
     if (b.kind >= w.kinds.size() || w.floor == nullptr) return;
     const Archetype& a = w.kinds[b.kind];
+    if (a.role == Role::Projectile) {
+        fly_projectile(b, w, platform != nullptr);
+        return;
+    }
+    if (a.role == Role::Prop) {
+        if (b.immune > 0) --b.immune;
+        ++b.age;
+        return;
+    }
     queue_strike(b, cmd.strike, a);
     if (b.immune > 0) --b.immune;
     if (b.hitstop > 0) {
@@ -65,10 +75,11 @@ void step_bodies(BodyPool& pool, std::span<const Command> commands, const BrawlW
     }
 }
 
-void resolve_hits(BodyPool& pool, const BrawlWorld& w, const StageSections* sections, HitEvents& events) {
+void resolve_hits(BodyPool& pool, const BrawlWorld& w, StageSections* sections, HitEvents& events) {
     events.clear();
     collect_hits(pool, w.kinds, w.rules, events, sections);
     apply_hits(pool, w.kinds, events);
+    retire_projectiles(pool, w.kinds, events);
 }
 
 void step_brawl(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, HitEvents& events) {

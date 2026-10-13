@@ -17,7 +17,7 @@ using framework::rollback::Tick;
 constexpr Tick TICKS = 600;
 constexpr Tick DELAY = 8;
 constexpr Tick CHECK_EVERY = 25;
-constexpr uint64_t GOLDEN = 0x7f8e4567b5f55de4ull;
+constexpr uint64_t GOLDEN = 0x5138fba1d8279fa4ull;
 
 struct Run {
     uint64_t hash = 0, world = 0;

@@ -21,7 +21,7 @@ PlayerCommand WaveScript::next(const Brawl& brawl, uint32_t t) {
     const br::Body* me = brawl.pool.find(brawl.seats.at[PLAYER].body);
     if (me == nullptr) return c;
     if (first == 0) first = me->id.seq;
-    const br::Body* foe = framework::ai::nearest_body(brawl.pool, *me, ROSTER[DUMMY].team);
+    const br::Body* foe = framework::ai::nearest_body(brawl.pool, brawl.kinds.types, *me, ROSTER[DUMMY].team);
     if (foe == nullptr) {
         c.input.move.move_x = fix32::from_int(1);
         return c;

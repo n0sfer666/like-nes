@@ -5,9 +5,11 @@
 #include <cstring>
 
 #include "body_hash.hpp"
+#include "body_kind.hpp"
 #include "brawl_step.hpp"
 #include "hash_mix.hpp"
 #include "object_read.hpp"
+#include "projectile.hpp"
 #include "rumble_level.hpp"
 #include "rumble_facing.hpp"
 #include "rumble_floor.hpp"
@@ -125,14 +127,16 @@ bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
 
 // Тело с hp 0 снимается до шага, а не сразу после: удар, выбивший его, ещё попадает в отчёт тика,
 // а step_seats ставит место новым телом на спавне в этом же тике (в волне — внутри вида). Манекен вне
-// волны не снимается.
+// волны не снимается. Снимаются только бойцы: у снаряда hp 0 с рождения, его снимает drop_spent.
 void Brawl::step() {
     knocked.count = 0;
     for (uint32_t i = 0; i < pool.count; ++i) {
         const br::Body& b = pool.bodies[i];
+        if (br::role_of(b, kinds.types) != br::Role::Fighter) continue;
         if (b.hp <= 0 && (b.team == 0 || wave.on)) knocked.at[knocked.count++] = Knockout{b.id, b.kind};
     }
     for (uint32_t i = 0; i < knocked.count; ++i) pool.despawn(knocked.at[i].body);
+    br::drop_spent(pool, kinds.types, wave.on ? &wave.sections : nullptr);
     std::array<br::BrawlInput, br::SEATS> inputs{};
     for (uint32_t p = 0; p < br::SEATS; ++p) inputs[p] = players[p].input;
     br::step_seats(seats, pool, inputs, entry_points(*this));

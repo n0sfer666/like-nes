@@ -20,6 +20,7 @@ struct Body {
     int32_t hp = 0;
     bool crushed = false;
     uint32_t age = 0;
+    uint16_t life = 0;
     uint8_t kind = 0;
     uint16_t clip = 0;
     uint16_t move = NO_STRIKE;

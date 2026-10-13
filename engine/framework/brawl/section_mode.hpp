@@ -10,6 +10,9 @@ namespace framework::brawl {
 const scene::Section* section_at(const scene::LevelObjects& level, fix32 x);
 scene::SectionMode mode_at(const scene::LevelObjects& level, fix32 x);
 
+// На единицу `raw` левее `v`: последняя точка перед секцией, начинающейся в `v`, — секции полуоткрыты.
+fix32 before(fix32 v);
+
 // Ближайший к `x` край, за которым режим остаётся `keep`, — туда зажимается тело с отказанным
 // переходом. Правый край секции не её (`x1` исключён), левый — на единицу `raw` левее `x0`.
 fix32 refusal_x(const scene::LevelObjects& level, fix32 x, scene::SectionMode keep);

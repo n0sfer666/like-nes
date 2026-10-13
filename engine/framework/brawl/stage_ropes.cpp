@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include "body_kind.hpp"
 #include "rope_ride.hpp"
 
 namespace framework::brawl {
@@ -45,6 +46,7 @@ void step_ropes(StageRopes* ropes, BodyPool& pool, std::span<const Command> comm
     }
     for (uint32_t i = 0; i < pool.count; ++i) {
         const EntId id = pool.bodies[i].id;
+        if (role_of(pool.bodies[i], w.kinds) != Role::Fighter) continue;
         if (std::find(gone.begin(), gone.begin() + left, id) != gone.begin() + left) continue;
         grab_rope(*ropes, *w.level, pool.bodies[i], i < commands.size() ? commands[i].input : BrawlInput{}, sections,
                   *w.platform);

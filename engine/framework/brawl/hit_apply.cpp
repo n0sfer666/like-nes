@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "body_guard.hpp"
+#include "body_kind.hpp"
 #include "body_react.hpp"
 #include "hit_grab.hpp"
 #include "hit_strike.hpp"
@@ -58,6 +59,7 @@ Taken taken_by(const BodyPool& pool, const Body& t, std::span<const Archetype> k
 
 void take(BodyPool& pool, Body& t, const Taken& hit, std::span<const Archetype> kinds) {
     t.hp = static_cast<int32_t>(std::max<int64_t>(int64_t{t.hp} - hit.damage, 0));
+    if (role_of(t, kinds) == Role::Prop) return;
     t.hitstop = std::max(t.hitstop, hit.hitstop);
     if (t.react == Reaction::Down) return;
     const Strike& s = strike_of(*hit.top, kinds);

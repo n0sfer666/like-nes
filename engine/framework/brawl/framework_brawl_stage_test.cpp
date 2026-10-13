@@ -22,7 +22,7 @@ using test::strike;
 using test::Stage;
 using test::walk;
 
-constexpr uint64_t GOLDEN = 0x4aab6ce410980f50;
+constexpr uint64_t GOLDEN = 0x58d1f6c28a034cbb;
 // Края попадания jab места 1: на NEAR_X его достаёт только позиция после поводка этого тика, на
 // FAR_X — только позиция до него. Порядок «удары до камеры» меняет исход на обоих.
 constexpr int32_t NEAR_X = 418;

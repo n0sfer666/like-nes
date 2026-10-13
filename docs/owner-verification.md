@@ -3435,7 +3435,7 @@ backslashes).
    Expected: `sdk-game: PASS`, `bundle_hash 0xa3898f2c75d15e3b` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+       neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
        neon-rumble: seat tick 2: P2 joining
        neon-rumble: seat tick 3: P2 present
        neon-rumble: react tick 31: rainbird block
@@ -3464,7 +3464,7 @@ backslashes).
        neon-rumble: react tick 417: adler thrown
        neon-rumble: react tick 436: adler down
        neon-rumble: react tick 466: adler getup
-       neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+       neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
 
    U on tick 200 makes no line: Adler lies until tick 209, and since B3f a lying fighter is hit only
    by a strike with `hits_down` (§27) — the cross has none. Falling, lying and rising are judged in
@@ -3889,7 +3889,7 @@ is 0.
 
 ## 28. Gate 8 of #25 — the whole of B3 in one fight
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 9c8bdd1cff71d880; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 afa1b0c122f176a0; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
 
 §22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
 goes through all of them in a row, because what breaks when states follow each other is invisible from
@@ -3907,7 +3907,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS` and, in each run, all 28 `hit`, `react` and `seat` lines of §22 step 1
-   and its hash of tick 480, `9c8bdd1cff71d880`. The script checks that each line is there and that
+   and its hash of tick 480, `afa1b0c122f176a0`. The script checks that each line is there and that
    there are 28 of them; their order is checked by eye. That is the scripted half of this gate: chain, block,
    jump kick, the hit on the ground, run kick, roll and grab in one run of 480 ticks.
 

@@ -10,7 +10,7 @@
 // тросов — копия `StageRopes`; забытое поле расходится с честным пересчётом.
 namespace {
 
-constexpr uint64_t GOLDEN = 0xeb3bfbcf270b2683;
+constexpr uint64_t GOLDEN = 0x03892e88165766d3;
 
 using namespace framework::brawl;
 using namespace framework::brawl::test;

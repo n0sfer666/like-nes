@@ -14,7 +14,7 @@
 // снапшот, в котором забытый мир или забытое следование расходятся с честным пересчётом.
 namespace {
 
-constexpr uint64_t GOLDEN = 0x42a1d3b0296fcfc1;
+constexpr uint64_t GOLDEN = 0x7ec76882f27ca481;
 
 using namespace framework::brawl;
 using namespace framework::brawl::test;

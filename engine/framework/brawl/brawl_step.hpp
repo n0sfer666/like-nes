@@ -41,7 +41,7 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* pla
 // `sections == nullptr` — уровень без платформенных секций, все тела в belt; `ropes == nullptr` — без тросов.
 void step_bodies(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, StageSections* sections,
                  const StageRopes* ropes = nullptr);
-void resolve_hits(BodyPool& pool, const BrawlWorld& w, const StageSections* sections, HitEvents& events);
+void resolve_hits(BodyPool& pool, const BrawlWorld& w, StageSections* sections, HitEvents& events);
 void step_brawl(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, HitEvents& events);
 
 } // namespace framework::brawl

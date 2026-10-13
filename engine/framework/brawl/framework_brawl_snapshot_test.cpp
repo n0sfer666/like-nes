@@ -47,6 +47,7 @@ const Field FIELDS[] = {
     {"crushed", [](BodyPool& p) { last(p).crushed = !last(p).crushed; },
      [](BodyPool& p) { each(p, [](Body& b) { b.crushed = false; }); }},
     {"age", [](BodyPool& p) { last(p).age += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.age = 0; }); }},
+    {"life", [](BodyPool& p) { last(p).life += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.life = 0; }); }},
     {"kind", [](BodyPool& p) { last(p).kind ^= 1u; }, [](BodyPool& p) { each(p, [](Body& b) { b.kind = 0; }); }},
     {"clip", [](BodyPool& p) { last(p).clip += 1; }, [](BodyPool& p) { each(p, [](Body& b) { b.clip = 0; }); }},
     {"elapsed", [](BodyPool& p) { last(p).elapsed += 1; },
@@ -108,6 +109,7 @@ BodyPool two_bodies() {
     a.elapsed = 4;
     a.hitstop = 2;
     a.immune = 6;
+    a.life = 9;
     a.react = Reaction::Hurt;
     a.react_ticks = 5;
     a.struck.add(EntId{7}, 2);

@@ -65,6 +65,12 @@ void refusals() {
     frozen.w.get(stopped).hitstop = 2;
     frozen.step({grab()});
     check(frozen.ropes.at[0].rider == EntId{}, "a fighter in hitstop takes the rope");
+    Swing crate;
+    const EntId thing = crate.fighter(500);
+    crate.hang_hands(thing, crate.end());
+    crate.w.s.arena.kinds[0].role = Role::Prop;
+    crate.step({grab()});
+    check(crate.ropes.at[0].rider == EntId{}, "a prop takes the rope");
     Swing two({}, {rope(PIVOT_X, PIVOT_Y, LENGTH), rope(PIVOT_X + 8, PIVOT_Y, LENGTH)});
     const EntId both = two.fighter(500);
     two.hang_hands(both, two.end());

@@ -175,6 +175,15 @@ that moves the rider off the rope, such as the camera leash. A tile in the way s
 it is. A one-way tile holds the rider as it holds a fighter: coming down from above, the rope stands
 on it; from below or from the side, the rider passes through.
 
+Belts, lifts and ropes carry fighters only. A prop, such as a crate the game puts on the street,
+stands where it was put. A projectile flies its own course and dies on a wall, at the edge of the
+depth band, under the floor, on a solid tile or at the edge of a section of the other mode, which it
+does not cross. A projectile released inside such a section dies at once at its edge on the owner's
+side. A one-way tile lets it pass. Where it stops it still strikes in that tick. A projectile that
+hits or runs out of life stays in the pool with `life` 0 until the game calls `drop_spent` at the
+start of its next tick, before it builds the commands: the hit report of the last tick can still
+find it.
+
 ## How long a Level lives
 
 A `Level` copies nothing out of the bundle. Its name, the `kind` of each fighter, the pixels of the

@@ -1,5 +1,6 @@
 #include "section_step.hpp"
 
+#include "body_kind.hpp"
 #include "depth_step.hpp"
 #include "platform_body.hpp"
 #include "section_exit.hpp"
@@ -34,12 +35,12 @@ void hold_platform(Body& b, SectionBody& s, const BrawlWorld& w) {
     mirror_body(s.c, hull_foot(p), p.dt, b.pos);
 }
 
-void enter(Body& b, StageSections& sections, const BrawlWorld& w, bool spawned) {
+void enter(Body& b, const BodyPool& pool, StageSections& sections, const BrawlWorld& w, bool spawned) {
     if (!spawned && !grounded(b.pos)) return;
     const PlatformWorld& p = *w.platform;
     const fix32 foot = hull_foot(p);
     const character::Character c = entering(b, foot, p.dt);
-    if (platform_taken(sections, b.id, c.position, p) || !sections.add(b.id, c)) {
+    if (platform_taken(pool, sections, b.id, c.position, w) || !sections.add(b.id, c)) {
         hold_belt(b, w);
         return;
     }
@@ -60,10 +61,11 @@ void leave(Body& b, const BodyPool& pool, StageSections& sections, SectionBody& 
 
 void cross(StageSections& sections, const BodyPool& pool, Body& b, const BrawlWorld& w, bool spawned) {
     if (w.platform == nullptr || w.level == nullptr || w.floor == nullptr) return;
+    if (role_of(b, w.kinds) == Role::Projectile) return;
     SectionBody* s = sections.find(b.id);
     if (s != nullptr) adopt_body(b.pos, hull_foot(*w.platform), w.platform->dt, s->c);
     const bool platform = mode_at(*w.level, b.pos.x) == SectionMode::Platform;
-    if (s == nullptr && platform) enter(b, sections, w, spawned);
+    if (s == nullptr && platform) enter(b, pool, sections, w, spawned);
     if (s != nullptr && !platform) leave(b, pool, sections, *s, w);
 }
 
