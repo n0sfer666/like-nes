@@ -5,6 +5,7 @@
 
 #include "body_kind.hpp"
 #include "camera.hpp"
+#include "next_arena.hpp"
 #include "scene_objects.hpp"
 #include "section_mode.hpp"
 #include "viewport_fit.hpp"
@@ -14,13 +15,6 @@ namespace framework::brawl {
 namespace {
 
 constexpr int32_t ANY_PLAYERS = INT32_MAX;
-
-const scene::Arena* next_arena(const scene::LevelObjects& level, int16_t cleared) {
-    const scene::Arena* next = nullptr;
-    for (const scene::Arena& a : level.arenas)
-        if (a.id > cleared && a.id <= INT16_MAX && (next == nullptr || a.id < next->id)) next = &a;
-    return next;
-}
 
 bool crossed(fix32 seen, fix32 at, fix32 lo, fix32 hi, fix32 half) {
     const fix32 target = graphics::clamp_axis(at, lo, hi, half);
