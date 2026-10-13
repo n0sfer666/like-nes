@@ -1,7 +1,6 @@
 #include <cstdio>
 
-#include "framework_brawl_check.hpp"
-#include "framework_brawl_section_fixture.hpp"
+#include "framework_brawl_section_spawn.hpp"
 #include "depth_step.hpp"
 #include "section_exit.hpp"
 #include "stage_sections_hash.hpp"
@@ -191,6 +190,7 @@ int main() {
     enters_after_landing();
     leaves_after_landing();
     entry_taken();
+    spawned_into_hull();
     exit_taken();
     exit_depth();
     standing_is_free();

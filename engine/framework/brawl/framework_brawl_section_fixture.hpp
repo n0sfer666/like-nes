@@ -16,6 +16,7 @@ constexpr int32_t PLATFORM_X0 = 400;
 constexpr int32_t PLATFORM_X1 = 800;
 constexpr int32_t TILE = 4;
 constexpr int32_t GRID_TOP = 160;
+constexpr int32_t HULL_HALF_W = 8;
 
 struct Solid {
     int32_t x0, y0, x1, y1;
@@ -40,7 +41,7 @@ struct Sections {
         for (const Solid& r : solids)
             grid.fill(cell(r.x0, 0), cell(r.y0, GRID_TOP), cell(r.x1, 0), cell(r.y1, GRID_TOP), tilemap::TILE_SOLID);
         platform.scene = character::CollisionScene{nullptr, &grid};
-        platform.hull.shape = physics::sanitize(physics::box(at(8), at(16)));
+        platform.hull.shape = physics::sanitize(physics::box(at(HULL_HALF_W), at(16)));
         platform.profile = character::default_profile();
         platform.dt = at(1) / at(60);
         platform.derived = character::derive(platform.profile, platform.dt);

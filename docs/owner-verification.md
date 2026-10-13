@@ -4360,8 +4360,12 @@ The headless script never jumps, never takes the lift or the rope; that is this 
    along the swing. The same rope cannot be taken again for a moment after letting go.
 8. **P2 joins in the section.** With Banderas in the section, press numpad 1: Rainbird appears
    inside the view, in the section, a little above its floor, and drops onto it; not on the street at
-   x 1560. Stand away from where he appears: an entry inside Banderas is refused by the section and
-   put at its left edge (a known limit, `.context/notes/25-b8.md`).
+   x 1560. If the spot he appears at is taken — by Banderas or by a tile — he appears at the nearest
+   free spot of the same section instead, one body width to the right, or to the left when the right
+   is taken too or past the section's end; never on the street at x 1560 nor past the section at
+   x 2200, unless the section has no free spot at all (not on `level1`). The spot is at the left of the view, and the camera keeps Banderas near its middle, so by
+   hand it is taken only while the camera stands against an edge; the headless gate of B9e is to drive
+   that case on `level1`. Leave with numpad − and join again to look twice.
 9. **The grab on the street.** Press H next to an Adler in an arena: it is the grab it was.
 
 As in §21, on a 120 Hz screen everything runs twice as fast.
