@@ -87,6 +87,9 @@ struct Autoscroll {
 // образца это ~19 px за тик — свип корпуса за тик, а не прыжок сквозь тайл.
 inline constexpr int32_t ROPE_LENGTH_MIN = 16;
 inline constexpr int32_t ROPE_LENGTH_MAX = 256;
+// Тросов на уровень: состояние тросов лежит в массиве, а не в векторе, чтобы снапшот отката копировал
+// его без аллокации. Восемь — с запасом под прототип; уровень с лишним тросом загрузчик отвергает.
+inline constexpr uint32_t ROPES_MAX = 8;
 
 struct Rope {
     Mark mark;

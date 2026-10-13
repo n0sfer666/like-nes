@@ -100,6 +100,9 @@ bool autoscroll(const SceneObject& o, LevelObjects& out) {
 }
 
 bool rope(const SceneObject& o, LevelObjects& out) {
+    if (out.ropes.size() == ROPES_MAX)
+        return o.fail("is rope " + std::to_string(ROPES_MAX + 1) + "; a level holds " + std::to_string(ROPES_MAX) +
+                      " at most");
     Rope r{o.mark(), {}};
     if (!o.fix_prop("length", r.length)) return false;
     if (r.length < fix32::from_int(ROPE_LENGTH_MIN) || fix32::from_int(ROPE_LENGTH_MAX) < r.length)

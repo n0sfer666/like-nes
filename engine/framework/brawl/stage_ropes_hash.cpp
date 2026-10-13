@@ -15,8 +15,8 @@ static_assert([] {
 
 uint64_t ropes_hash(const StageRopes& r) {
     uint64_t h = physics::FNV_OFFSET;
-    physics::mix(h, static_cast<uint32_t>(r.at.size()));
-    for (const RopeState& s : r.at) {
+    physics::mix(h, r.count);
+    for (const RopeState& s : r.live()) {
         physics::mix(h, static_cast<uint32_t>(s.arc.raw));
         physics::mix(h, static_cast<uint32_t>(s.speed.raw));
         physics::mix(h, s.rider.seq);

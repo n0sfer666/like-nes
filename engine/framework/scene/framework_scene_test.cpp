@@ -150,6 +150,29 @@ void test_rope_bounds() {
           "a rope swinging one raw short of the right edge reads");
 }
 
+bool read_ropes(uint32_t extra, sc::LevelObjects& l, std::string& error) {
+    ObjectMapSrc src = level();
+    for (uint32_t i = 0, n = static_cast<uint32_t>(src.objects.size()); i < n; ++i)
+        if (src.objects[i].id == 18)
+            for (uint32_t k = 0; k < extra; ++k) {
+                src.objects.push_back(src.objects[i]);
+                src.objects.back().id = 40 + k;
+            }
+    Baked b;
+    return bake(src, b) && sc::read_level_objects(b.map, l, error);
+}
+
+void test_rope_cap() {
+    sc::LevelObjects full;
+    std::string error;
+    check(read_ropes(sc::ROPES_MAX - 1, full, error) && full.ropes.size() == sc::ROPES_MAX,
+          "a level of ROPES_MAX ropes reads");
+    sc::LevelObjects over;
+    check(!read_ropes(sc::ROPES_MAX, over, error) &&
+              error.find("swing' (id 47) is rope 9; a level holds 8 at most") != std::string::npos,
+          "a rope past ROPES_MAX is refused");
+}
+
 void test_empty() {
     Baked b;
     check(bake(ObjectMapSrc{"empty", {}}, b), "empty map bakes");
@@ -170,6 +193,7 @@ int main() {
     test_players_only();
     test_conveyor_cap();
     test_rope_bounds();
+    test_rope_cap();
     test_empty();
     std::printf("framework-scene: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

@@ -116,7 +116,7 @@ void grab_rope(StageRopes& ropes, const scene::LevelObjects& level, Body& b, con
     const fix32 foot = hull_foot(p);
     adopt_body(b.pos, foot, p.dt, s->c);
     const Vec2 hands{s->c.position.x, s->c.position.y - hull_half(p).y};
-    for (size_t i = 0; i < ropes.at.size(); ++i) {
+    for (uint32_t i = 0; i < ropes.count; ++i) {
         RopeState& r = ropes.at[i];
         const scene::Rope& rope = level.ropes[i];
         if (!(r.rider == EntId{}) || r.cooldown > 0) continue;

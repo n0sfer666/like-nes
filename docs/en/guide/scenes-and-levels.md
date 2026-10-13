@@ -127,7 +127,7 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `depth_band`, `wall`, `kill` | rectangle | none |
 | `conveyor` | rectangle | `speed` (px per tick, −8 to 8, not 0; the sign is the direction) |
 | `path` | polygon | `speed` (px per tick, above 0 and at most 32), `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
-| `rope` | point | `length` (px, 16 to 256); the swing from `x − length` to `x + length` lies in `platform` sections |
+| `rope` | point | `length` (px, 16 to 256); the swing from `x − length` to `x + length` lies in `platform` sections; 8 ropes per level at most |
 | `bounds` | rectangle | none; at most one per level |
 
 A missing property, a property of the wrong type or out of its range, an object of the wrong

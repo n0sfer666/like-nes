@@ -4,6 +4,7 @@
 #include <array>
 #include <cstdio>
 #include <cstdlib>
+#include <type_traits>
 
 #include "body_kind.hpp"
 #include "rope_ride.hpp"
@@ -12,6 +13,8 @@ namespace framework::brawl {
 
 namespace {
 
+static_assert(std::is_trivially_copyable_v<StageRopes>, "a rollback snapshot of the ropes must not allocate");
+
 [[noreturn]] void refuse(const char* why) {
     std::fprintf(stderr, "[brawl] %s\n", why);
     std::abort();
@@ -19,11 +22,14 @@ namespace {
 
 } // namespace
 
-StageRopes::StageRopes(const scene::LevelObjects& level) : at(level.ropes.size()) {}
+StageRopes::StageRopes(const scene::LevelObjects& level) {
+    if (level.ropes.size() > at.size()) refuse("a level holds more ropes than ROPES_MAX");
+    count = static_cast<uint32_t>(level.ropes.size());
+}
 
 bool rides(const StageRopes* ropes, EntId id) {
     if (ropes == nullptr || id == EntId{}) return false;
-    for (const RopeState& r : ropes->at)
+    for (const RopeState& r : ropes->live())
         if (r.rider == id) return true;
     return false;
 }
@@ -35,7 +41,7 @@ void step_ropes(StageRopes* ropes, BodyPool& pool, std::span<const Command> comm
         if (count != 0) refuse("a level with ropes steps without ropes");
         return;
     }
-    if (ropes->at.size() != count) refuse("ropes were built for a level with another number of ropes");
+    if (ropes->count != count) refuse("ropes were built for a level with another number of ropes");
     if (count == 0) return;
     if (w.platform == nullptr) refuse("ropes step without a platform world");
     std::array<EntId, POOL_CAPACITY> gone{};

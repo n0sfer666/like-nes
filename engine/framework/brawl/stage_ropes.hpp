@@ -1,17 +1,24 @@
 #pragma once
+#include <array>
+#include <cstdint>
 #include <span>
-#include <vector>
 
 #include "brawl_step.hpp"
 #include "rope_swing.hpp"
+#include "scene_objects.hpp"
 #include "stage_sections.hpp"
 
 namespace framework::brawl {
 
-// Тросы уровня — по состоянию на `rope`, в порядке тросов уровня. Копируются: снапшот — копия.
+// Тросы уровня — по состоянию на `rope`, в порядке тросов уровня, первые `count` записей. Копируются:
+// снапшот — копия без аллокации, потолок `ROPES_MAX` держит загрузчик.
 struct StageRopes {
     explicit StageRopes(const scene::LevelObjects& level);
-    std::vector<RopeState> at;
+    std::array<RopeState, scene::ROPES_MAX> at{};
+    uint32_t count = 0;
+
+    std::span<RopeState> live() { return {at.data(), count}; }
+    std::span<const RopeState> live() const { return {at.data(), count}; }
 };
 
 bool rides(const StageRopes* ropes, EntId id);
