@@ -73,6 +73,9 @@ bool path(const SceneObject& o, LevelObjects& out) {
     if (!o.fix_prop("speed", p.speed) || !o.bool_prop("loop", p.loop) || !o.int_prop("w", p.w) ||
         !o.int_prop("h", p.h) || !o.at_least("w", p.w, 1) || !o.at_least("h", p.h, 1))
         return false;
+    if (!(fix32{} < p.speed) || fix32::from_int(PATH_SPEED_MAX) < p.speed)
+        return o.fail("property 'speed' is out of range; allowed above 0 up to " + std::to_string(PATH_SPEED_MAX) +
+                      " px per tick");
     if (o.vertices().size() > p.points.size())
         return o.fail("has " + std::to_string(o.vertices().size()) + " vertices; allowed " +
                       std::to_string(p.points.size()) + " at most");

@@ -57,7 +57,7 @@ inline ObjectMapSrc level() {
     ObjectSrc swing = with(point(18, "swing", "rope", 1000, 40), {fix_prop("length", 64 * ONE)});
     swing.x = fix32::from_raw(1000 * ONE + ONE / 2);
     ObjectSrc rail = with(point(20, "rail", "path", 1040, 100),
-                          {fix_prop("speed", ONE), bool_prop("loop", false), int_prop("w", 16), int_prop("h", 4)});
+                          {fix_prop("speed", 32 * ONE), bool_prop("loop", false), int_prop("w", 16), int_prop("h", 4)});
     rail.shape = ObjectShape::Polygon;
     for (int32_t i = 0; i < 16; ++i) rail.vertices.push_back({i * ONE, (i % 2) * ONE});
     return {"lvl",

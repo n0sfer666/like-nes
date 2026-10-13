@@ -55,6 +55,11 @@ struct Conveyor {
     fix32 speed;
 };
 
+// Потолок скорости пути, px за тик: при 60 Гц это 1920 px/с, ниже потолка `MAX_SPEED` физики (2048),
+// и тело пути приходит в свою точку за шаг. Ноль и меньше загрузчик тоже отказывает: стоящая
+// платформа пишется путём из одной точки, а нулевая скорость — скорее опечатка, чем замысел.
+inline constexpr int32_t PATH_SPEED_MAX = 32;
+
 struct Path {
     const tilemap::MapObject* object = nullptr;
     std::array<Vec2, tilemap::MAX_POLYGON_VERTICES> points{};

@@ -6,7 +6,8 @@ add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp d
   archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp
   seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp stage_waves_hash.cpp
   stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
-  autoscroll_step.cpp stage_leash.cpp level_clamp.cpp checkpoint_step.cpp progress_hash.cpp death_step.cpp)
+  autoscroll_step.cpp stage_leash.cpp level_clamp.cpp checkpoint_step.cpp progress_hash.cpp death_step.cpp
+  path_follow.cpp stage_movers.cpp stage_movers_snapshot.cpp stage_movers_hash.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics framework_scene
   framework_core)
@@ -85,3 +86,7 @@ add_executable(framework_brawl_progress_test framework_brawl_progress_test.cpp)
 target_link_libraries(framework_brawl_progress_test PRIVATE framework_brawl)
 add_executable(framework_brawl_progress_resim_test framework_brawl_progress_resim_test.cpp)
 target_link_libraries(framework_brawl_progress_resim_test PRIVATE framework_brawl framework_rollback)
+add_executable(framework_brawl_movers_test framework_brawl_movers_test.cpp)
+target_link_libraries(framework_brawl_movers_test PRIVATE framework_brawl)
+add_executable(framework_brawl_path_follow_test framework_brawl_path_follow_test.cpp)
+target_link_libraries(framework_brawl_path_follow_test PRIVATE framework_brawl)

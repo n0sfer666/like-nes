@@ -65,7 +65,8 @@ void test_marks(const ObjectMap& map, const sc::LevelObjects& l) {
           "checkpoint keeps order");
     check(l.ropes.size() == 1 && l.ropes[0].length == px(64) && l.ropes[0].mark.at.x.raw == 1000 * ONE + ONE / 2,
           "rope keeps length and a fractional anchor");
-    check(l.paths.size() == 2 && l.paths[0].count == 3 && l.paths[0].loop && l.paths[0].speed.raw == ONE / 2,
+    check(l.paths.size() == 2 && l.paths[0].count == 3 && l.paths[0].loop && l.paths[0].speed.raw == ONE / 2 &&
+              l.paths[1].speed.raw == 32 * ONE,
           "path keeps speed, loop and vertex count");
     if (l.paths.size() != 2) return;
     check(at_is(l.paths[0].points[0], 872, 100) && at_is(l.paths[0].points[1], 872, 52) &&

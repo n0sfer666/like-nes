@@ -126,7 +126,7 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `autoscroll` | rectangle | `axis`, `x` or `y`, and `speed` |
 | `depth_band`, `wall`, `kill` | rectangle | none |
 | `conveyor` | rectangle | `speed` |
-| `path` | polygon | `speed`, `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
+| `path` | polygon | `speed` (px per tick, above 0 and at most 32), `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
 | `rope` | point | `length` |
 | `bounds` | rectangle | none; at most one per level |
 
@@ -137,6 +137,17 @@ taken order in 16 bits, with −1 for "none taken", so an order above 32767 woul
 checkpoints with the same order are refused because the progress stores only the order, and the
 respawn finds the first checkpoint with it: a player who took the second would come back at the
 first.
+
+The `path` speed stops at 32 px per tick: at 60 Hz that is 1920 px/s, under the physics speed
+limit, so the platform reaches its point on the path every tick.
+
+A path that dips into solid tiles has a lower limit: 12 px per tick. That is how a lift stands at
+floor level: put its top a few pixels into the floor, because a top exactly on the floor line
+touches a fighter there and blocks them from entering the section. A platform carries its rider all
+or nothing on each axis, so when the lift sinks under the floor line the rider stays where it was
+and drops onto the floor within a few ticks, by no more than one tick of travel. Above 12 px per
+tick a lift rising out of the floor passes through a fighter standing on it and leaves without
+them. The loader does not check this limit, because it does not see the tiles.
 
 ## How long a Level lives
 

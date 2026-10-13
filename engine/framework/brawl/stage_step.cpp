@@ -76,7 +76,8 @@ void step_camera(StageCamera& camera, BodyPool& pool, const Seats& seats, StageS
 }
 
 void step_stage(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, StageCamera& camera,
-                const Seats& seats, StageSections& sections, HitEvents& events) {
+                const Seats& seats, StageSections& sections, HitEvents& events, StageMovers* movers) {
+    step_stage_movers(movers, w);
     enter_spawned(sections, pool, w);
     step_bodies(pool, commands, w, &sections);
     step_sections(sections, pool, w);
