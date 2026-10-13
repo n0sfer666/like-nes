@@ -1959,7 +1959,7 @@ jobs:
             || { echo "framework_lobby_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-lobby-pause: PASS - 20 cases" fw_framework_lobby_pause_test.txt \
             || { echo "framework_lobby_pause_test lost cases on ${{ matrix.os }}"; exit 1; }
-          grep -q "framework-scene-refusal: PASS - 44 cases" fw_framework_scene_refusal_test.txt \
+          grep -q "framework-scene-refusal: PASS - 53 cases" fw_framework_scene_refusal_test.txt \
             || { echo "framework_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_framework_scene_level_refusal_test.txt \
             || { echo "framework_scene_level_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
@@ -2982,7 +2982,7 @@ jobs:
           framework_ai_test:framework-ai: PASS
           framework_ai_resim_test:framework-ai-resim: PASS
           framework_scene_test:framework-scene: PASS
-          framework_scene_refusal_test:framework-scene-refusal: PASS - 44 cases
+          framework_scene_refusal_test:framework-scene-refusal: PASS - 53 cases
           framework_scene_stack_test:framework-scene-stack: PASS
           framework_scene_level_test:framework-scene-level: PASS
           framework_scene_level_refusal_test:framework-scene-level-refusal: PASS - 30 cases"

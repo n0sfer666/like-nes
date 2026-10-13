@@ -1,4 +1,4 @@
-<!-- en-sha256: e9b297eaa4589d8a0c29d5d69fbb07e749a856e742c1da3447109b293b5a7413 -->
+<!-- en-sha256: f85d22dd3adb9e64e2e2089b4efa700b951877dcc6fa898280657156525a7d36 -->
 
 # Сцены и уровни
 
@@ -129,7 +129,7 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 | `autoscroll` | прямоугольник | `axis`, `x` или `y`, и `speed` |
 | `depth_band`, `wall`, `kill` | прямоугольник | нет |
 | `conveyor` | прямоугольник | `speed` |
-| `path` | многоугольник | `speed`, `loop`; не больше 16 вершин |
+| `path` | многоугольник | `speed`, `loop`, `w` и `h` платформы (int, не меньше 1); не больше 16 вершин, каждая — внутри секции `platform` |
 | `rope` | точка | `length` |
 | `bounds` | прямоугольник | нет; не больше одного на уровень |
 

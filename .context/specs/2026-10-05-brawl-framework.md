@@ -411,7 +411,7 @@ City — принятый риск, сверка на живом кадре ур
 | `checkpoint` | Point | `order` (int, 0..32767, уникален в уровне: `LevelProgress::checkpoint` — `int16_t`, −1 там «не взят»; респаун ищет точку по `order`) |
 | `kill` | Rect | — |
 | `conveyor` | Rect | `speed` (fix) |
-| `path` | Polygon | `speed` (fix), `loop` (bool: замкнутый круг или туда-обратно) |
+| `path` | Polygon | `speed` (fix), `loop` (bool: замкнутый круг или туда-обратно), `w`, `h` (int ≥ 1, размер платформы); каждая вершина — в секции `platform` |
 | `autoscroll` | Rect | `axis = x \| y`, `speed` (fix) |
 | `rope` | Point | `length` (fix) |
 | `bounds` | Rect | как в #24 |

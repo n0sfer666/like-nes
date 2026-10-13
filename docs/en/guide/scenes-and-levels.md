@@ -126,7 +126,7 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `autoscroll` | rectangle | `axis`, `x` or `y`, and `speed` |
 | `depth_band`, `wall`, `kill` | rectangle | none |
 | `conveyor` | rectangle | `speed` |
-| `path` | polygon | `speed`, `loop`; at most 16 vertices |
+| `path` | polygon | `speed`, `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
 | `rope` | point | `length` |
 | `bounds` | rectangle | none; at most one per level |
 

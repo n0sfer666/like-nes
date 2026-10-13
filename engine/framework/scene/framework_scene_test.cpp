@@ -68,10 +68,10 @@ void test_marks(const ObjectMap& map, const sc::LevelObjects& l) {
     check(l.paths.size() == 2 && l.paths[0].count == 3 && l.paths[0].loop && l.paths[0].speed.raw == ONE / 2,
           "path keeps speed, loop and vertex count");
     if (l.paths.size() != 2) return;
-    check(at_is(l.paths[0].points[0], 950, 100) && at_is(l.paths[0].points[1], 950, 52) &&
-              at_is(l.paths[0].points[2], 966, 52),
+    check(at_is(l.paths[0].points[0], 872, 100) && at_is(l.paths[0].points[1], 872, 52) &&
+              at_is(l.paths[0].points[2], 888, 52),
           "path points are absolute");
-    check(l.paths[1].count == 16 && !l.paths[1].loop && at_is(l.paths[1].points[15], 1115, 101),
+    check(l.paths[1].count == 16 && !l.paths[1].loop && at_is(l.paths[1].points[15], 1055, 101),
           "path with sixteen vertices fills the array to its last point");
 }
 

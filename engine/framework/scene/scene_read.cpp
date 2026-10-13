@@ -70,7 +70,9 @@ bool conveyor(const SceneObject& o, LevelObjects& out) {
 bool path(const SceneObject& o, LevelObjects& out) {
     Path p;
     p.object = &o.object();
-    if (!o.fix_prop("speed", p.speed) || !o.bool_prop("loop", p.loop)) return false;
+    if (!o.fix_prop("speed", p.speed) || !o.bool_prop("loop", p.loop) || !o.int_prop("w", p.w) ||
+        !o.int_prop("h", p.h) || !o.at_least("w", p.w, 1) || !o.at_least("h", p.h, 1))
+        return false;
     if (o.vertices().size() > p.points.size())
         return o.fail("has " + std::to_string(o.vertices().size()) + " vertices; allowed " +
                       std::to_string(p.points.size()) + " at most");

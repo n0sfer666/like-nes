@@ -61,6 +61,8 @@ struct Path {
     uint8_t count = 0;
     fix32 speed;
     bool loop = false;
+    int32_t w = 0;
+    int32_t h = 0;
 };
 
 struct Autoscroll {

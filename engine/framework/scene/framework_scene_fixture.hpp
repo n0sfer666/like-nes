@@ -48,14 +48,16 @@ inline ObjectSrc wave_point(uint32_t id, const char* name, int x, int y, int32_t
 constexpr int32_t ONE = 65536;
 
 inline ObjectMapSrc level() {
-    ObjectSrc lift = with(point(16, "lift", "path", 950, 100), {fix_prop("speed", ONE / 2), bool_prop("loop", true)});
+    ObjectSrc lift = with(point(16, "lift", "path", 872, 100),
+                          {fix_prop("speed", ONE / 2), bool_prop("loop", true), int_prop("w", 32), int_prop("h", 8)});
     lift.shape = ObjectShape::Polygon;
     lift.vertices = {{0, 0}, {0, -48 * ONE}, {16 * ONE, -48 * ONE}};
     ObjectSrc grunt2 = wave_point(8, "grunt2", 420, 260, 1, 0, "adler");
     grunt2.props.push_back(int_prop("players", 2));
     ObjectSrc swing = with(point(18, "swing", "rope", 1000, 40), {fix_prop("length", 64 * ONE)});
     swing.x = fix32::from_raw(1000 * ONE + ONE / 2);
-    ObjectSrc rail = with(point(20, "rail", "path", 1100, 100), {fix_prop("speed", ONE), bool_prop("loop", false)});
+    ObjectSrc rail = with(point(20, "rail", "path", 1040, 100),
+                          {fix_prop("speed", ONE), bool_prop("loop", false), int_prop("w", 16), int_prop("h", 4)});
     rail.shape = ObjectShape::Polygon;
     for (int32_t i = 0; i < 16; ++i) rail.vertices.push_back({i * ONE, (i % 2) * ONE});
     return {"lvl",
