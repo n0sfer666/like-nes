@@ -20,7 +20,7 @@ struct PlayerMoves {
 };
 
 struct Kinds {
-    std::array<framework::brawl::Archetype, FIGHTERS> types{};
+    std::array<framework::brawl::Archetype, KINDS> types{};
     std::array<int32_t, FIGHTERS> hp{};
     std::array<PlayerMoves, framework::brawl::SEATS> moves{};
 

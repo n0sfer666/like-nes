@@ -128,7 +128,7 @@ refused, and each refusal says what to do instead.
 The bake gives meaning to one class only: **`bounds`**, the rectangle the camera stays within,
 which the cover check above walks. The framework's `load_level` reads eleven more classes (see
 [Scenes and levels](scenes-and-levels.md#the-object-classes)), and every other class is left to
-the game. `level1.tmj` has 22 objects in the `spawns` layer:
+the game. `level1.tmj` has 24 objects in the `spawns` layer:
 
 | Class | Name | Shape and properties | What Neon Rumble does with it |
 |---|---|---|---|
@@ -138,7 +138,8 @@ the game. `level1.tmj` has 22 objects in the `spawns` layer:
 | `bounds` | `street` | rectangle 104, 56, 1456×224 | limits the camera |
 | `depth_band` | `walk` | rectangle 104, 232, 1456×32 | the strip the fighters walk along, in x and in depth |
 | `arena` | `arena 1`, `arena 2` | rectangles 520, 56, 448×224 and 1176, 56, 384×224, `id` 0 and 1 | lock the camera until their last wave is cleared |
-| `spawn` | `a1 w0` … `a2 w4`, 13 objects | points with `arena`, `wave`, `kind = adler`, `facing = left`, and `players = 2` on three of them | the waves of Adlers in `--wave`; a spawn with `players = 2` comes only when two play |
+| `spawn` | `a1 w0` … `a2 w4`, 14 objects | points with `arena`, `wave`, `kind = adler`, `facing = left`, and `players = 2` on three of them; one `a2 w4` has `kind = rainbird` | the waves of `--wave`; a spawn with `players = 2` comes only when two play; Rainbird keeps his distance and throws knives |
+| `crate` | `crate` | point at 440, 248 | a crate on the street in `--wave`: 20 hp, broken by hits and taken off |
 | `checkpoint` | `cp arena 1`, `cp arena 2` | points at 600, 248 and 1300, 248, `order` 0 and 1 | once taken, where a player knocked out in `--wave` comes back |
 
 ## Checking a level after editing it

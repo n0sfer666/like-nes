@@ -10,6 +10,7 @@
 #include "hash_mix.hpp"
 #include "object_read.hpp"
 #include "projectile.hpp"
+#include "rumble_crates.hpp"
 #include "rumble_level.hpp"
 #include "rumble_facing.hpp"
 #include "rumble_floor.hpp"
@@ -121,19 +122,22 @@ bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
     std::array<br::BrawlInput, br::SEATS> first{};
     first[PLAYER].present = true;
     br::step_seats(seats, pool, first, entry_points(*this));
-    if (waves) return true;
+    if (waves) return place_crates(level, map, floor, pool);
     return !(pool.spawn(spawns[DUMMY]) == br::EntId{});
 }
 
 // Тело с hp 0 снимается до шага, а не сразу после: удар, выбивший его, ещё попадает в отчёт тика,
 // а step_seats ставит место новым телом на спавне в этом же тике (в волне — внутри вида). Манекен вне
-// волны не снимается. Снимаются только бойцы: у снаряда hp 0 с рождения, его снимает drop_spent.
+// волны не снимается. Ящик с hp 0 снимается так же; у снаряда hp 0 с рождения, его снимает drop_spent.
 void Brawl::step() {
     knocked.count = 0;
     for (uint32_t i = 0; i < pool.count; ++i) {
         const br::Body& b = pool.bodies[i];
-        if (br::role_of(b, kinds.types) != br::Role::Fighter) continue;
-        if (b.hp <= 0 && (b.team == 0 || wave.on)) knocked.at[knocked.count++] = Knockout{b.id, b.kind};
+        if (b.hp > 0) continue;
+        const br::Role role = br::role_of(b, kinds.types);
+        const bool broken = role == br::Role::Prop;
+        if (broken || (role == br::Role::Fighter && (b.team == 0 || wave.on)))
+            knocked.at[knocked.count++] = Knockout{b.id, b.kind, b.team, broken};
     }
     for (uint32_t i = 0; i < knocked.count; ++i) pool.despawn(knocked.at[i].body);
     br::drop_spent(pool, kinds.types, wave.on ? &wave.sections : nullptr);
@@ -160,12 +164,19 @@ void Brawl::step() {
 
 DrawOrder Brawl::draw_order() const {
     DrawOrder order;
-    for (uint32_t i = 0; i < order.at.size(); ++i) order.at[i] = i;
-    order.count = pool.count;
+    const auto shown = [&](uint32_t i) {
+        if (i >= pool.count) return false;
+        const br::Body& b = pool.bodies[i];
+        return b.life > 0 || br::role_of(b, kinds.types) != br::Role::Projectile;
+    };
+    for (uint32_t i = 0; i < order.at.size(); ++i) {
+        order.at[i] = i;
+        order.count += shown(i) ? 1 : 0;
+    }
     // Весь массив, а не префикс длины count: GCC 13 -O3 на sort по переменной длине выдаёт ложный
-    // array-bounds. Пустые слоты уходят в хвост и за count не видны.
+    // array-bounds. Пустые слоты и сработавшие снаряды уходят в хвост и за count не видны.
     std::sort(order.at.begin(), order.at.end(), [&](uint32_t a, uint32_t b) {
-        if (a >= pool.count || b >= pool.count) return a < pool.count && b >= pool.count;
+        if (!shown(a) || !shown(b)) return shown(a) && !shown(b);
         const br::Body& p = pool.bodies[a];
         const br::Body& q = pool.bodies[b];
         if (p.pos.z.raw != q.pos.z.raw) return p.pos.z.raw < q.pos.z.raw;

@@ -7,6 +7,7 @@
 #include "progress_hash.hpp"
 #include "rumble_brain.hpp"
 #include "rumble_floor.hpp"
+#include "rumble_knives.hpp"
 #include "stage_camera_hash.hpp"
 #include "stage_sections_hash.hpp"
 #include "stage_step.hpp"
@@ -56,6 +57,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
     br::note_living(pool, living);
     ai.tokens.capacity = TOKENS_BY_PLAYERS[players(seats)];
     ai::step_ai(ai, pool, world, tick, foe_brain(), commands);
+    throw_knives(ai.brains, pool, sections, world);
     ++tick;
     br::step_stage(pool, std::span<const br::Command>(commands.data(), pool.count), world, camera, seats, sections,
                    events);
@@ -71,7 +73,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
             ++facts.dropped;
             continue;
         }
-        if (!ai::add_brain(ai.brains, id, FOE_START)) {
+        if (!ai::add_brain(ai.brains, id, foe_start(foes[facts.starts[i]].kind))) {
             pool.despawn(id);
             ++facts.dropped;
             continue;

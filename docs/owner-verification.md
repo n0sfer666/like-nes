@@ -3432,7 +3432,7 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0xa3898f2c75d15e3b` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0xbbcab692da491415` in Release and Debug, and in each
    run the lines
 
        neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
@@ -4146,18 +4146,19 @@ is 0.
 
 ## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; ящик до арены 0 ломают два пинка — death и break crate#2, бокс пропадает; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 с rainbird, он держится внутри вида и бросает красные ножи (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
 
 B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
 and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
 level (B6a–B6d, `framework/brawl/stage_*`, `wave_step`). B6e put them into Neon Rumble behind
 `--wave`. `level1` is a street three screens long now, `bounds` 104..1560, with two `arena` objects
-and thirteen `spawn` points made in Tiled:
+and fourteen `spawn` points made in Tiled (B8d of spec #25 added the fourteenth, a Rainbird, and a
+crate at 440,248 before the first arena):
 
 | arena | area along the street | the camera stops at | waves |
 |---|---|---|---|
 | 0 | 520..968 | 712 | wave 0: two Adlers, a third with `players 2`; wave 1: three |
-| 1 | 1176..1560 | 1368 | wave 0: two; wave 1: two, only with `players 2`; wave 4: three |
+| 1 | 1176..1560 | 1368 | wave 0: two; wave 1: two, only with `players 2`; wave 4: three and a Rainbird |
 
 The camera locks when its centre reaches the left end of an arena plus half the view (712 and 1368);
 inside the arena it moves only as far as the arena reaches, and no player can walk out of the view.
@@ -4185,7 +4186,7 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
        neon-rumble: bounds 104..1560 x 56..280, camera 296,172
 
    and its `--wave` lines show both locks and releases. The gate also pins
-   `stage camera 296,172, 2 arena(s), 13 wave spawn(s)` of the `--wave` run without printing it.
+   `stage camera 296,172, 2 arena(s), 14 wave spawn(s)` of the `--wave` run without printing it.
 
 2. Start the window from a terminal you can read:
 
@@ -4195,10 +4196,14 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 
    Walk left first: Banderas stops at the left end of the street, and the camera does not move past
    it. Then walk right. The camera follows him; the facades and the street go by over three screens.
+   A brown box stands on the street before the first arena: the crate, 20 hp. It is low: jabs and
+   crosses pass over it, two kicks break it — the terminal prints `death tick <n>: crate#2`, the next tick
+   `break tick <n+1>: crate#2`, and the box is gone. Hit lines name it as any target:
+   `hit tick <n>: banderas#1/kick -> crate#2, damage 12, hp 8`.
 3. **The lock.** When the camera reaches the first arena the terminal prints
 
        neon-rumble: arena tick <n>: arena 0 locked
-       neon-rumble: wave tick <n>: arena 0 wave 0, adler#2 adler#3
+       neon-rumble: wave tick <n>: arena 0 wave 0, adler#3 adler#4
 
    The view stops moving, and two Adlers stand up at its right side, facing left. Walk right and left:
    the view moves a little further right inside the arena and no more; Banderas stops at the edges of
@@ -4209,7 +4214,11 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
    Banderas again.
 5. **The second arena.** Walk on to the right end of the street. The camera stops there and prints
    `arena 1 locked` with `arena 1 wave 0` (two Adlers). After they fall, about two seconds pass and
-   `arena 1 wave 4` brings three: wave 1 of this arena wants two players and is skipped. After them
+   `arena 1 wave 4` brings three Adlers and a Rainbird: wave 1 of this arena wants two players and is
+   skipped. The Rainbird keeps away from Banderas, inside the locked view, and on his line in depth
+   throws a red knife about every second and a half; a knife that lands prints
+   `hit tick <n>: knife#<k>/throw -> banderas#<j>, damage 8, hp …` and vanishes the same tick. A knife
+   flies straight and is never thrown from outside the view. After all four fall the terminal prints
    `arena 1 released`; the camera stays at the end of the street, which is the end of `bounds`.
 6. **The respawn.** At any lock, let the Adlers knock Banderas out. The terminal prints
    `death tick <n>: banderas#<j>`, and the next tick the line ends with
@@ -4219,7 +4228,11 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
    off screen on his spawn. For about two seconds the Adlers' blows pass through him.
 7. **Two players.** Restart the window and press numpad 1 before the first arena: Rainbird joins. The
    camera follows the middle of the two and neither of them can leave the view. Wave 0 of arena 0
-   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4. Then restart once more, walk
+   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4. Wave 4 now holds two
+   Rainbirds with the same look: P2 and the enemy thrower. Tell them apart by the terminal: the enemy
+   is the `rainbird#<k>` of the `arena 1 wave 4, …` line, his knockout line ends right after the name,
+   while P2 knocked out prints `knockout tick <n>: rainbird#<j>, back as rainbird#<m> at …`. The
+   thrower aims at the nearer player, P2 included. Then restart once more, walk
    Banderas past the first checkpoint (`checkpoint tick <n>: order 0 at 600,248`) and only then press
    numpad 1: Rainbird stands up next to the checkpoint — 64 px to the right of it, at the far edge of
    the street, as his spawn lies 64 px right of Banderas's — not on his own spawn at the start of
@@ -4234,9 +4247,12 @@ player who walks out of a locked view; an enemy standing up outside the view or 
 at its right side; a wave that does not come, comes at once, or comes with the wrong number; wave 1 of
 arena 1 coming with one player, or not coming with two; a release that does not let the camera go; a
 player who stands up outside the view or away from the checkpoint, or is hit in his first two
-seconds.
+seconds; a knife thrown from outside the view, one that stays on screen after it hits, or one that
+flies at no player; a crate that a kick does not hit or that stays after `break tick`; the enemy
+Rainbird's knockout with `back as`.
 
-Send back: the `checkpoint`, `arena`, `wave`, `death` and `knockout` lines of steps 3–7, and one
+Send back: the `break` and crate `hit` lines of step 2, one `knife#…/throw` hit line of step 5, the
+`checkpoint`, `arena`, `wave`, `death` and `knockout` lines of steps 3–7, and one
 screenshot of a locked view with a wave on it.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code

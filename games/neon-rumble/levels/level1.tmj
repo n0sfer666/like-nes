@@ -754,6 +754,53 @@
                 }, 
                 {
                  "height":0,
+                 "id":23,
+                 "name":"a2 w4",
+                 "opacity":1,
+                 "point":true,
+                 "properties":[
+                        {
+                         "name":"arena",
+                         "type":"int",
+                         "value":1
+                        }, 
+                        {
+                         "name":"facing",
+                         "type":"string",
+                         "value":"left"
+                        }, 
+                        {
+                         "name":"kind",
+                         "type":"string",
+                         "value":"rainbird"
+                        }, 
+                        {
+                         "name":"wave",
+                         "type":"int",
+                         "value":4
+                        }],
+                 "rotation":0,
+                 "type":"spawn",
+                 "visible":true,
+                 "width":0,
+                 "x":1544,
+                 "y":244
+                }, 
+                {
+                 "height":0,
+                 "id":24,
+                 "name":"crate",
+                 "opacity":1,
+                 "point":true,
+                 "rotation":0,
+                 "type":"crate",
+                 "visible":true,
+                 "width":0,
+                 "x":440,
+                 "y":248
+                }, 
+                {
+                 "height":0,
                  "id":21,
                  "name":"cp arena 1",
                  "opacity":1,
@@ -797,7 +844,7 @@
          "y":0
         }],
  "nextlayerid":8,
- "nextobjectid":23,
+ "nextobjectid":25,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.12.2",

@@ -72,7 +72,7 @@ struct Wave {
     // куда поводок дотащил бы его только через тик. Каждое тело входа неуязвимо ENTRY_IMMUNE тиков.
     void entry(std::span<framework::brawl::Body, framework::brawl::SEATS> at,
                const framework::brawl::DepthFloor& floor) const;
-    // ИИ → тик сцены → смерти и чекпоинты → волны → тела и мозги стартовавших точек; не влезшие идут в
+    // ИИ → ножи стрелков → тик сцены → смерти и чекпоинты → волны → тела и мозги стартовавших точек; не влезшие идут в
     // `facts.dropped`.
     void step(framework::brawl::BodyPool& pool, const framework::brawl::Seats& seats,
               framework::brawl::BrawlWorld world, std::span<framework::brawl::Command> commands,

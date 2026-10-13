@@ -2,6 +2,13 @@
 
 namespace rumble {
 
+namespace {
+
+constexpr uint32_t KNIFE_RGBA = 0xff3030ffu;
+constexpr uint32_t CRATE_RGBA = 0xa06030ffu;
+
+} // namespace
+
 framework::Vec2 screen_plane(const framework::brawl::Body& body) {
     return {body.pos.x, body.pos.z - body.pos.y};
 }
@@ -37,10 +44,15 @@ FighterStats draw_roster(FighterQuads& quads, const Fighters& fighters, const Br
     FighterStats sum;
     for (const uint32_t i : brawl.draw_order()) {
         const framework::brawl::Body& b = brawl.pool.bodies[i];
-        const Fighter& f = fighters[b.kind];
-        const FighterStats fs = quads.add(f, f.pose(b), screen_plane(b), depth_overlay(brawl, b), layers, st,
-                                          sheet_texture(level_textures, b.kind), solid_texture(level_textures),
-                                          overlay);
+        FighterStats fs;
+        if (b.kind < FIGHTERS) {
+            const Fighter& f = fighters[b.kind];
+            fs = quads.add(f, f.pose(b), screen_plane(b), depth_overlay(brawl, b), layers, st,
+                           sheet_texture(level_textures, b.kind), solid_texture(level_textures), overlay);
+        } else {
+            fs = quads.add_box(brawl.kinds.types[b.kind].box.rect, b.facing < 0, screen_plane(b),
+                               b.kind == KNIFE ? KNIFE_RGBA : CRATE_RGBA, layers, st, solid_texture(level_textures));
+        }
         sum.overlay += fs.overlay;
         sum.rejected += fs.rejected;
         sum.dropped += fs.dropped;
