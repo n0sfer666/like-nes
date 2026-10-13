@@ -63,6 +63,10 @@ bool checkpoint(const SceneObject& o, LevelObjects& out) {
 bool conveyor(const SceneObject& o, LevelObjects& out) {
     Conveyor c{o.area(), {}};
     if (!o.fix_prop("speed", c.speed)) return false;
+    const fix32 cap = fix32::from_int(CONVEYOR_SPEED_MAX);
+    if (c.speed == fix32{} || cap < c.speed || c.speed < -cap)
+        return o.fail("property 'speed' is out of range; allowed -" + std::to_string(CONVEYOR_SPEED_MAX) + " to " +
+                      std::to_string(CONVEYOR_SPEED_MAX) + " px per tick, not 0");
     out.conveyors.push_back(c);
     return true;
 }

@@ -48,4 +48,9 @@ Vec2 support_velocity(const CollisionScene& s, physics::BodyId support);
 bool carry_by_support(const CollisionScene& s, const CharacterHull& hull, physics::BodyId support,
                       fix32 dt, Vec2& position);
 
+// Тот же перенос на смещение `carry`, заданное не опорой: конвейер драки (спека #25, В8б) двигает
+// стоящего на ленте ровно этим правилом — целиком по оси или никак, — и второй копии проверки места,
+// которая разошлась бы с опорой на первом же уточнении, у него нет.
+bool carry_by(const CollisionScene& s, const CharacterHull& hull, Vec2 carry, Vec2& position);
+
 } // namespace framework::character

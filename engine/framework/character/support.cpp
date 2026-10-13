@@ -34,7 +34,10 @@ bool fits(const CollisionScene& s, const CharacterHull& hull, Vec2 at) {
 
 bool carry_by_support(const CollisionScene& s, const CharacterHull& hull, physics::BodyId support,
                       fix32 dt, Vec2& position) {
-    const Vec2 carry = support_velocity(s, support) * dt;
+    return carry_by(s, hull, support_velocity(s, support) * dt, position);
+}
+
+bool carry_by(const CollisionScene& s, const CharacterHull& hull, Vec2 carry, Vec2& position) {
     if (carry.x.raw == 0 && carry.y.raw == 0) return true;
     if (fits(s, hull, position + carry)) {
         position = position + carry;

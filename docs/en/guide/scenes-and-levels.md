@@ -125,7 +125,7 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `section` | rectangle | `mode`, `belt` or `platform` |
 | `autoscroll` | rectangle | `axis`, `x` or `y`, and `speed` |
 | `depth_band`, `wall`, `kill` | rectangle | none |
-| `conveyor` | rectangle | `speed` |
+| `conveyor` | rectangle | `speed` (px per tick, −8 to 8, not 0; the sign is the direction) |
 | `path` | polygon | `speed` (px per tick, above 0 and at most 32), `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
 | `rope` | point | `length` |
 | `bounds` | rectangle | none; at most one per level |
@@ -148,6 +148,20 @@ or nothing on each axis, so when the lift sinks under the floor line the rider s
 and drops onto the floor within a few ticks, by no more than one tick of travel. Above 12 px per
 tick a lift rising out of the floor passes through a fighter standing on it and leaves without
 them. The loader does not check this limit, because it does not see the tiles.
+
+A conveyor moves every body that stands with its feet inside the rectangle by `speed` px at the
+start of its tick: fighters and enemies, lying ones too. A body in the air, in hitstop or held by a
+grab does not ride. The rectangle includes its left and top edges and excludes its right and bottom
+ones, like a section. The shift is not a velocity: it never adds up in `vx` or in the controller,
+so a body that steps off the belt stops at once. In a `belt` section the shift runs through the
+floor walls and the band clamp, so a wall stops the body at its face. In a `platform` section it is
+the same carry a moving platform gives: the whole shift or none, so a fighter against a wall
+stands still instead of sinking into it. The carry is horizontal, so on a slope the belt carries a
+fighter down but not up: uphill the destination enters the slope and the fighter stays at its
+foot. Lay belts on flat floor in a `platform` section. `speed` stops at 8 px per tick, half a tile,
+as a margin: an all-or-nothing carry has no sweep and jumps a wall once the shift is wider than
+the wall and the body together. Where belts overlap, the first one in the level wins: their sum
+could pass that limit.
 
 ## How long a Level lives
 

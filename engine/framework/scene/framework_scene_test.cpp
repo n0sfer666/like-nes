@@ -105,6 +105,20 @@ void test_players_only() {
     if (!error.empty()) std::printf("    %s\n", error.c_str());
 }
 
+void test_conveyor_cap() {
+    for (const int32_t speed : {8 * ONE, -8 * ONE}) {
+        ObjectMapSrc src = level();
+        for (ObjectSrc& o : src.objects)
+            if (o.id == 15) o.props = {fix_prop("speed", speed)};
+        Baked b;
+        sc::LevelObjects l;
+        std::string error;
+        check(bake(src, b) && sc::read_level_objects(b.map, l, error) && l.conveyors.size() == 1 &&
+                  l.conveyors[0].speed.raw == speed,
+              "conveyor speed at the cap reads in both directions");
+    }
+}
+
 void test_empty() {
     Baked b;
     check(bake(ObjectMapSrc{"empty", {}}, b), "empty map bakes");
@@ -123,6 +137,7 @@ int main() {
     if (!b.error.empty()) std::printf("    %s\n", b.error.c_str());
     test_level(b);
     test_players_only();
+    test_conveyor_cap();
     test_empty();
     std::printf("framework-scene: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

@@ -18,6 +18,8 @@ void adopt_body(const DepthBody& d, fix32 foot, fix32 dt, character::Character& 
 
 // FSM тикает как в belt; в ударе и реакции контроллер получает нулевой ввод. Скорость, записанная в
 // `pos` поверх зеркала (отбрасывание, рывок), переносится в контроллер, отброс вверх — в воздух.
-void step_platform(Body& b, const BrawlInput& in, bool held, SectionBody& s, const PlatformWorld& p);
+// `belt` — скорость ленты под телом (`conveyor_under`): стоящего она переносит до шага контроллера
+// тем же атомарным по оси переносом, что опора (`carry_by`), упёршегося в стену оставляет стоять.
+void step_platform(Body& b, const BrawlInput& in, bool held, fix32 belt, SectionBody& s, const PlatformWorld& p);
 
 } // namespace framework::brawl

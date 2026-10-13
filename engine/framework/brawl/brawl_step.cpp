@@ -5,6 +5,7 @@
 #include "body_guard.hpp"
 #include "body_react.hpp"
 #include "body_run.hpp"
+#include "conveyor_step.hpp"
 #include "depth_step.hpp"
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
@@ -20,8 +21,13 @@ void move(Body& b, const BrawlInput& in, const Archetype& a, const BrawlWorld& w
     const bool strikes = striking(b, a);
     if (strikes && grounded(b.pos)) slide_strike(b, a);
     const bool held = strikes || b.react != Reaction::None;
-    if (platform != nullptr && w.platform != nullptr) step_platform(b, in, held, *platform, *w.platform);
-    else if (held) coast_body(b, a.profile, *w.floor);
+    const fix32 belt = conveyor_under(b, w.level);
+    if (platform != nullptr && w.platform != nullptr) {
+        step_platform(b, in, held, belt, *platform, *w.platform);
+        return;
+    }
+    ride_belt(b.pos, belt, *w.floor);
+    if (held) coast_body(b, a.profile, *w.floor);
     else step_body(b, in, run_profile(b, a), *w.floor);
 }
 
