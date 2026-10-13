@@ -4,6 +4,7 @@
 
 #include "rumble_roster.hpp"
 #include "rumble_roster_quads.hpp"
+#include "rumble_stage_quads.hpp"
 
 namespace rumble {
 
@@ -32,7 +33,9 @@ LayerStats Screen::level(const Play& play, const Hotseat& hotseat, const Credits
     if (follow_point(play.brawl, follow_)) following_ = true;
     LayerStats st = layers_.build(play.level, fit, tick, following_ ? &follow_ : nullptr);
     const uint32_t textures = play.level.texture_count;
-    const FighterStats fs = draw_roster(fighters_, play.fighters, play.brawl, layers_, st, textures, overlay);
+    const FighterStats ss = draw_stage(fighters_, play.brawl, layers_, st, solid_texture(textures));
+    FighterStats fs = draw_roster(fighters_, play.fighters, play.brawl, layers_, st, textures, overlay);
+    fs += ss;
     banner_.add(credits, banner_text(hotseat.lobby()), fit, layers_, st, atlas_texture(textures),
                 solid_texture(textures));
     if (fs.rejected + fs.dropped > 0 && !fighter_warned_) {

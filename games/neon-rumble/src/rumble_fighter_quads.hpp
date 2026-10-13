@@ -14,6 +14,13 @@ struct FighterStats {
     uint32_t overlay = 0;
     uint32_t rejected = 0;
     uint32_t dropped = 0;
+
+    FighterStats& operator+=(const FighterStats& o) {
+        overlay += o.overlay;
+        rejected += o.rejected;
+        dropped += o.dropped;
+        return *this;
+    }
 };
 
 // Боец поверх слоёв уровня: пивот — мировая точка `world` через ту же камеру, что у слоя объектов,

@@ -91,6 +91,7 @@ PlayerCommand command_of(const input::InputFrame& f) {
     in.buttons = with(in.buttons, f.action_pressed(JUMP), bb::JUMP);
     in.buttons = with(in.buttons, f.action_held(BLOCK), bb::BLOCK);
     in.buttons = with(in.buttons, f.action_pressed(DODGE), bb::DODGE);
+    in.buttons = with(in.buttons, f.action_held(GRAB), bb::GRAB);
     if (f.action_pressed(PUNCH)) c.attack = Attack::Punch;
     else if (f.action_pressed(CROSS)) c.attack = Attack::Cross;
     else if (f.action_pressed(KICK)) c.attack = Attack::Kick;

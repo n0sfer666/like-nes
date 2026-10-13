@@ -69,7 +69,7 @@ bool Wave::open(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor&
     foes.assign(level.waves.size(), br::Body{});
     for (uint32_t i = 0; i < level.waves.size(); ++i)
         if (!foe_of(lv, map, floor, spawns, level.waves[i], foes[i])) return false;
-    if (!waves_fit(lv, level)) return false;
+    if (!waves_fit(lv, level) || !platform.open(lv, level)) return false;
     ai = framework::ai::AiState{};
     ai.tokens.timeout = TOKEN_TIMEOUT;
     tick = 0;

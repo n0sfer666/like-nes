@@ -38,6 +38,15 @@ PlayerCommand kick_crate(const br::Body& me, const br::Body& crate, uint32_t t) 
     return c;
 }
 
+// В platform-секции скрипт стоит с левого края первой ленты: дальше его везёт она, а сошедший с неё
+// останавливается сразу.
+bool on_belts(const Brawl& brawl, const br::Body& me) {
+    if (brawl.wave.sections.find(me.id) == nullptr) return false;
+    for (const framework::scene::Conveyor& c : brawl.wave.level.conveyors)
+        if (!(me.pos.x < c.area.rect.x0)) return true;
+    return false;
+}
+
 } // namespace
 
 PlayerCommand WaveScript::next(const Brawl& brawl, uint32_t t) {
@@ -50,7 +59,7 @@ PlayerCommand WaveScript::next(const Brawl& brawl, uint32_t t) {
     if (foe == nullptr) {
         const br::Body* crate = crate_ahead(brawl, *me);
         if (crate != nullptr) return kick_crate(*me, *crate, t);
-        c.input.move.move_x = fix32::from_int(1);
+        if (!on_belts(brawl, *me)) c.input.move.move_x = fix32::from_int(1);
         return c;
     }
     if (me->id.seq == first) return c;

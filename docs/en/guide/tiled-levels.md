@@ -14,7 +14,7 @@ about.
 The bake reads Tiled **1.10 or newer**. `level1.tmj` is saved by Tiled 1.12. The map must be:
 
 - **orthogonal** with **square tiles** of 1 to 1024 px. Isometric and hexagonal maps are refused.
-  Neon Rumble uses a 104×21 map of 16 px tiles;
+  Neon Rumble uses a 144×21 map of 16 px tiles;
 - **finite**: `the map is infinite; turn Map Properties -> Infinite off`;
 - saved with **Tile Layer Format = CSV**. Base64 and zlib layers are refused with the same hint;
 - with **Parallax Origin 0,0**. The origin moves every parallax layer at once, and the engine
@@ -102,8 +102,9 @@ layer, and the x check stays. `far-city` and `near-city` in `level1.tmj` use it.
 ## Collision
 
 Exactly one tile layer has the boolean property **`collision = true`**. Its tiles do not draw unless
-the layer also has **`visible_too = true`**. In Neon Rumble, the street is both the floor and the
-picture. A tile used on the collision layer must have the string property `flags` in its tileset,
+the layer also has **`visible_too = true`**. In Neon Rumble, it is the layer `section`: the floor and a ledge of the platform section past the
+street, drawn as well. The street is a plain picture: on it the fighters walk the `depth_band`,
+not the tiles. A tile used on the collision layer must have the string property `flags` in its tileset,
 made of words separated by spaces:
 
 | Word | Meaning |
@@ -128,25 +129,29 @@ refused, and each refusal says what to do instead.
 The bake gives meaning to one class only: **`bounds`**, the rectangle the camera stays within,
 which the cover check above walks. The framework's `load_level` reads eleven more classes (see
 [Scenes and levels](scenes-and-levels.md#the-object-classes)), and every other class is left to
-the game. `level1.tmj` has 24 objects in the `spawns` layer:
+the game. `level1.tmj` has 28 objects in the `spawns` layer:
 
 | Class | Name | Shape and properties | What Neon Rumble does with it |
 |---|---|---|---|
 | `spawn` | `player` | point at 200, 264, `facing = right` | places Banderas, the fighter under the keyboard |
 | `spawn` | `rainbird` | point at 264, 240, `facing = left` | places Rainbird |
 | `spawn` | `adler` | point at 328, 252, `facing = left` | places Adler, the training dummy; `--wave` leaves him out |
-| `bounds` | `street` | rectangle 104, 56, 1456×224 | limits the camera |
-| `depth_band` | `walk` | rectangle 104, 232, 1456×32 | the strip the fighters walk along, in x and in depth |
+| `bounds` | `street` | rectangle 104, 56, 2096×224 | limits the camera |
+| `depth_band` | `walk` | rectangle 104, 232, 1456×32 | the strip the fighters walk along, in x and in depth; in `--wave` it reaches on to the end of the platform section once the last arena is released |
 | `arena` | `arena 1`, `arena 2` | rectangles 520, 56, 448×224 and 1176, 56, 384×224, `id` 0 and 1 | lock the camera until their last wave is cleared |
 | `spawn` | `a1 w0` … `a2 w4`, 14 objects | points with `arena`, `wave`, `kind = adler`, `facing = left`, and `players = 2` on three of them; one `a2 w4` has `kind = rainbird` | the waves of `--wave`; a spawn with `players = 2` comes only when two play; Rainbird keeps his distance and throws knives |
 | `crate` | `crate` | point at 440, 248 | a crate on the street in `--wave`: 20 hp, broken by hits and taken off |
 | `checkpoint` | `cp arena 1`, `cp arena 2` | points at 600, 248 and 1300, 248, `order` 0 and 1 | once taken, where a player knocked out in `--wave` comes back |
+| `section` | `platform` | rectangle 1568, 56, 632×224, `mode = platform` | past the street, fighters run and jump on the tiles of the collision layer |
+| `conveyor` | `belt` | rectangle 1600, 264, 160×16, `speed = 2` (float) | a belt that carries whoever stands on it 2 px per tick to the right |
+| `path` | `lift` | polygon from 1880, 276 to 112 px above it, `w = 48`, `h = 8`, `speed = 1`, `loop = false` | a lift that moves by itself |
+| `rope` | `rope` | point at 2032, 72, `length = 64` (float) | a rope to grab in the air with the grab key |
 
 ## Checking a level after editing it
 
 `bash scripts/check_sdk_game.sh --keep` bakes the game against the installed SDK and prints the
 summary of the level, for example
-`level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) …`. It also
+`level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) …`. It also
 compares the bundle hash with `games/neon-rumble/bundle.hash`. Saving the map in Tiled without
 changing anything must keep the same hash. A different hash means the bake depends on how the file
 is formatted, which is a bug in the bake and not in the map.

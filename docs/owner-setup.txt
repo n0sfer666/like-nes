@@ -1807,10 +1807,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   Debug: SDK built and installed into the prefix
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
-      neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+      neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
-      neon-rumble: bounds 104..1560 x 56..280, camera 296,172
+      neon-rumble: bounds 104..2200 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: clips 51 in the table
       neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
@@ -1858,7 +1858,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Release: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash aa57d1a1c0c7819d, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
+      neon-rumble: brawl tick 0: hash ee25bc928a3ae1a9, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
       neon-rumble: break tick 173: crate#2
       neon-rumble: checkpoint tick 281: order 0 at 600,248
       neon-rumble: arena tick 337: arena 0 locked
@@ -1893,19 +1893,19 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: knockout tick 7530: rainbird#18
       neon-rumble: wave tick 7530: arena 1 wave 4 cleared
       neon-rumble: arena tick 7530: arena 1 released
-      neon-rumble: brawl tick 8640: hash fd1c9ddcfdecf409, banderas#37 1560,238 y 0 hp 76, camera 1368,172 arena -1, draw banderas#37
+      neon-rumble: brawl tick 8640: hash b19d2fdfd5ab60f1, banderas#37 1760,271 y 0 hp 76, camera 1760,172 arena -1, draw banderas#37
       sdk-game: OK   Release: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
-      neon-rumble: brawl tick 5733: hash ea2a46462ee0debc, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
-      neon-rumble: brawl tick 5734: hash e07c1f2eba670525, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
+      neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
+      neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
       sdk-game: OK   Release: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
       sdk-game: OK   Release: --level nope returned to the menu with the load_level refusal
-      sdk-game: OK   Release: game.bundle bundle_hash 0xbbcab692da491415 matches bundle.hash
+      sdk-game: OK   Release: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
       neon-rumble: pad backend GameController.framework (macOS)
-      neon-rumble: level level1 104x21 tile 16, 6 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+      neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
       neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
       neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
-      neon-rumble: bounds 104..1560 x 56..280, camera 296,172
+      neon-rumble: bounds 104..2200 x 56..280, camera 296,172
       neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
       neon-rumble: clips 51 in the table
       neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
@@ -1953,7 +1953,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
       neon-rumble: headless run ok, 480 frames
       sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
-      neon-rumble: brawl tick 0: hash aa57d1a1c0c7819d, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
+      neon-rumble: brawl tick 0: hash ee25bc928a3ae1a9, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
       neon-rumble: break tick 173: crate#2
       neon-rumble: checkpoint tick 281: order 0 at 600,248
       neon-rumble: arena tick 337: arena 0 locked
@@ -1988,13 +1988,13 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: knockout tick 7530: rainbird#18
       neon-rumble: wave tick 7530: arena 1 wave 4 cleared
       neon-rumble: arena tick 7530: arena 1 released
-      neon-rumble: brawl tick 8640: hash fd1c9ddcfdecf409, banderas#37 1560,238 y 0 hp 76, camera 1368,172 arena -1, draw banderas#37
+      neon-rumble: brawl tick 8640: hash b19d2fdfd5ab60f1, banderas#37 1760,271 y 0 hp 76, camera 1760,172 arena -1, draw banderas#37
       sdk-game: OK   Debug: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
-      neon-rumble: brawl tick 5733: hash ea2a46462ee0debc, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
-      neon-rumble: brawl tick 5734: hash e07c1f2eba670525, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
+      neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
+      neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
       sdk-game: OK   Debug: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
       sdk-game: OK   Debug: --level nope returned to the menu with the load_level refusal
-      sdk-game: OK   Debug: game.bundle bundle_hash 0xbbcab692da491415 matches bundle.hash
+      sdk-game: OK   Debug: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
       sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
       sdk-game: OK   fixture: a wrong bundle.hash is refused
@@ -2024,7 +2024,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   (или в FAIL-строке гейта), и bundle.hash идёт в ТОМ ЖЕ коммите, что и
   правка, после зелёного гейта на всех трёх ОС.
 
-  Строки level и frame — уровень level1 (104x21) прочитан игрой из game.bundle
+  Строки level и frame — уровень level1 (144x21) прочитан игрой из game.bundle
   (таблица visual, 16 анимированных тайлов вывесок и 5 текстур сырым RGBA8:
   тайлсет, вывески, небо, два плана города), а кадр 960x540 при масштабе 2
   целиком лёг в квады: unknown, rejected и dropped обязаны быть нулями.
