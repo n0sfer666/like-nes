@@ -87,6 +87,7 @@ decisions, notes). Читать перед началом любой задач�
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | симуляция драки без float | `python3 scripts/check_sim_float.py` | коммит | [sim-float](.context/gates/sim-float.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |
+| бенч ресима на бюджете зонтика | `./build/brawl_resim_bench [--against <файл>]` | CI × 3 ОС | [resim-bench](.context/gates/resim-bench.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
 | заголовки чужих целей голым уникальным именем | `python3 scripts/check_include_seam.py` | коммит | [include-seam](.context/gates/include-seam.md) |
 | лицензии чужих ассетов игр | `python3 scripts/check_asset_licenses.py [--write]` | коммит | [asset-licenses](.context/gates/asset-licenses.md) |
