@@ -125,11 +125,15 @@ expect fail "заголовок переименован, якорь остал�
 
 # Кириллический якорь — своя половина того же утверждения: хостинг не транслитерирует заголовок, и
 # slug, написанный под латиницу, оставил бы ru-ветку без проверки вовсе.
-rename_heading_ru() {
-  sed -i.bak '1,$s|^# документация$|# документы|' "$1/docs/ru/index.md" \
-    && rm -f "$1/docs/ru/index.md.bak"
+retitle_ru() {
+  sed -i.bak "s|^# документация\$|# $1|; s|#документация)|#$2)|" \
+    "$3/docs/ru/index.md" "$3/docs/ru/getting-started/build.md" && find "$3" -name '*.bak' -delete
 }
-expect fail "переименован кириллический заголовок" case_on a-rename-ru assert_docs_anchors_live rename_heading_ru
+expect fail "переименован кириллический заголовок" case_on a-rename-ru assert_docs_anchors_live retitle_ru документы документация
+# Хостинг опускает регистр и у кириллицы: якорь `#Объекты` на «Объекты» у читателя мёртв. Парный
+# pass доказывает, что отказ — за регистр, а не за саму перестановку заголовка и ссылки.
+expect pass "заглавная кириллица, строчный якорь" case_on a-cap-ok assert_docs_anchors_live retitle_ru Объекты объекты
+expect fail "заглавная кириллица в якоре" case_on a-cap assert_docs_anchors_live retitle_ru Объекты Объекты
 
 # `#` в начале строки внутри блока кода — комментарий шелла, а не заголовок. Приняв его за
 # заголовок, утверждение объявляло бы живым якорь, которого у документа нет.
@@ -165,6 +169,7 @@ slug_shape() {
   [ "$(docs_slug 'Prerequisites')" = prerequisites ] || return 1
   [ "$(docs_slug 'Next steps')" = next-steps ] || return 1
   [ "$(docs_slug 'Windows: из какой оболочки')" = windows-из-какой-оболочки ] || return 1
+  [ "$(docs_slug 'Сцены — «АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ»')" = сцены--абвгдеёжзийклмнопрстуфхцчшщъыьэюя ] || return 1
 }
 expect pass "slug заголовка считается по правилу хостинга" slug_shape
 

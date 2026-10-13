@@ -14,6 +14,13 @@ struct FighterStats {
     uint32_t overlay = 0;
     uint32_t rejected = 0;
     uint32_t dropped = 0;
+
+    FighterStats& operator+=(const FighterStats& o) {
+        overlay += o.overlay;
+        rejected += o.rejected;
+        dropped += o.dropped;
+        return *this;
+    }
 };
 
 // Боец поверх слоёв уровня: пивот — мировая точка `world` через ту же камеру, что у слоя объектов,
@@ -25,6 +32,9 @@ public:
     FighterQuads();
     FighterStats add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, const DepthOverlay& depth,
                      Layers& layers, LayerStats& st, uint32_t sheet_texture, uint32_t solid_texture, bool overlay);
+    // Тело без клипа (нож, ящик) — сплошной бокс его вида цветом `rgba`, без оверлея: листа у него нет.
+    FighterStats add_box(const framework::graphics::Rect16& box, bool flip, framework::Vec2 world, uint32_t rgba,
+                         Layers& layers, LayerStats& st, uint32_t solid_texture);
 
 private:
     std::vector<framework::graphics::DebugQuad> debug_;

@@ -30,9 +30,12 @@ struct DrawOrder {
 struct Knockout {
     framework::brawl::EntId body;
     uint8_t kind = 0;
+    uint8_t team = 0;
+    bool broken = false;
 };
 
-// Снятые в начале тика тела с hp 0 — для отчёта, вне снапшота, как hp_before.
+// Снятые в начале тика тела с hp 0 — для отчёта, вне снапшота, как hp_before: бойцы и разбитые ящики
+// (`broken`).
 struct Knockouts {
     std::array<Knockout, framework::brawl::POOL_CAPACITY> at{};
     uint32_t count = 0;
@@ -52,9 +55,11 @@ struct Brawl {
     Knockouts knocked;
 
     // Место p играет бойцом p. P1 сидит с открытия: его тело встаёт в пул раньше манекена. С `waves`
-    // вместо манекена — арены и волны из объектов уровня, тела врагов с ИИ ставит `Wave`.
+    // вместо манекена — арены и волны из объектов уровня, тела врагов с ИИ ставит `Wave`, ящики уровня
+    // встают в пул за P1.
     bool open(const Level& level, const Fighters& fighters, bool waves);
     void step();
+    // Без снарядов с `life` 0: сработавший нож лежит в пуле до `drop_spent` следующего тика.
     DrawOrder draw_order() const;
     uint64_t hash() const;
 };

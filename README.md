@@ -40,8 +40,8 @@ tilemaps, sprites, animation, camera and particles, materials and shaders, audio
 and WebAssembly), achievements, hot-reload, the editor shell, and deterministic networking. On top of them: an SDK a
 game builds against, with levels from Tiled, animations from Aseprite and bitmap fonts baked into
 its bundle; and a beat 'em up framework — fighting in a depth lane, hotseat for two, AI, stages
-with arenas and waves, a scene stack and levels with checkpoints — which the sample game Neon
-Rumble is built on.
+with arenas and waves, platform sections with lifts, belts and ropes, projectiles and breakable
+props, a scene stack and levels with checkpoints — which the sample game Neon Rumble is built on.
 
 ## Quick start
 

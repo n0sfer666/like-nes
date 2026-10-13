@@ -63,6 +63,10 @@ bool checkpoint(const SceneObject& o, LevelObjects& out) {
 bool conveyor(const SceneObject& o, LevelObjects& out) {
     Conveyor c{o.area(), {}};
     if (!o.fix_prop("speed", c.speed)) return false;
+    const fix32 cap = fix32::from_int(CONVEYOR_SPEED_MAX);
+    if (c.speed == fix32{} || cap < c.speed || c.speed < -cap)
+        return o.fail("property 'speed' is out of range; allowed -" + std::to_string(CONVEYOR_SPEED_MAX) + " to " +
+                      std::to_string(CONVEYOR_SPEED_MAX) + " px per tick, not 0");
     out.conveyors.push_back(c);
     return true;
 }
@@ -70,7 +74,12 @@ bool conveyor(const SceneObject& o, LevelObjects& out) {
 bool path(const SceneObject& o, LevelObjects& out) {
     Path p;
     p.object = &o.object();
-    if (!o.fix_prop("speed", p.speed) || !o.bool_prop("loop", p.loop)) return false;
+    if (!o.fix_prop("speed", p.speed) || !o.bool_prop("loop", p.loop) || !o.int_prop("w", p.w) ||
+        !o.int_prop("h", p.h) || !o.at_least("w", p.w, 1) || !o.at_least("h", p.h, 1))
+        return false;
+    if (!(fix32{} < p.speed) || fix32::from_int(PATH_SPEED_MAX) < p.speed)
+        return o.fail("property 'speed' is out of range; allowed above 0 up to " + std::to_string(PATH_SPEED_MAX) +
+                      " px per tick");
     if (o.vertices().size() > p.points.size())
         return o.fail("has " + std::to_string(o.vertices().size()) + " vertices; allowed " +
                       std::to_string(p.points.size()) + " at most");
@@ -91,8 +100,17 @@ bool autoscroll(const SceneObject& o, LevelObjects& out) {
 }
 
 bool rope(const SceneObject& o, LevelObjects& out) {
+    if (out.ropes.size() == ROPES_MAX)
+        return o.fail("is rope " + std::to_string(ROPES_MAX + 1) + "; a level holds " + std::to_string(ROPES_MAX) +
+                      " at most");
     Rope r{o.mark(), {}};
     if (!o.fix_prop("length", r.length)) return false;
+    if (r.length < fix32::from_int(ROPE_LENGTH_MIN) || fix32::from_int(ROPE_LENGTH_MAX) < r.length)
+        return o.fail("property 'length' is out of range; allowed " + std::to_string(ROPE_LENGTH_MIN) + " to " +
+                      std::to_string(ROPE_LENGTH_MAX) + " px");
+    const int64_t l = r.length.raw;
+    if (r.mark.at.x.raw - l < INT32_MIN || INT32_MAX < r.mark.at.x.raw + l + 1 || INT32_MAX < r.mark.at.y.raw + l)
+        return o.fail("swings past the fix32 range; x - length, x + length and y + length must fit");
     out.ropes.push_back(r);
     return true;
 }

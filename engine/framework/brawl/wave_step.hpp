@@ -1,4 +1,7 @@
 #pragma once
+#include <span>
+
+#include "archetype.hpp"
 #include "body_pool.hpp"
 #include "seat.hpp"
 #include "stage_camera.hpp"
@@ -22,12 +25,13 @@ namespace framework::brawl {
 // по `x` до половины вида без ширины арены, и арена, на которой камера уже стоит, запирается сразу.
 // Platform-секции требуют `PlatformWorld`: без него центр по `y` не следует и арена не запрётся.
 // В тот же тик стартует первая волна.
-// Зачистка — в пуле не осталось тела команды, отличной от 0 (команда игроков). Следующая волна —
-// наименьшее большее значение `wave`, в котором есть точка с `players` не больше присутствующих мест
-// на её старте: вошедший посреди волны меняет состав только следующей. Есть ли она, на зачистке
-// судится без `players` — решает старт после паузы, и вошедший в паузе учтён; не нашлось на старте —
-// замок снят после паузы. Мест нет вовсе — старт ждёт игрока, а не сжигает волны арены.
-void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, const Seats& seats,
-                const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out);
+// Зачистка — в пуле не осталось бойца (`Role::Fighter`) команды, отличной от 0 (команда игроков):
+// снаряды и пропсы волну не держат. Следующая волна — наименьшее большее значение `wave`, в котором
+// есть точка с `players` не больше присутствующих мест на её старте: вошедший посреди волны меняет
+// состав только следующей. Есть ли она, на зачистке судится без `players` — решает старт после
+// паузы, и вошедший в паузе учтён; не нашлось на старте — замок снят после паузы. Мест нет вовсе —
+// старт ждёт игрока, а не сжигает волны арены.
+void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, std::span<const Archetype> kinds,
+                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out);
 
 } // namespace framework::brawl

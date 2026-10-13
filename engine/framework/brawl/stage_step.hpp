@@ -5,6 +5,8 @@
 #include "brawl_step.hpp"
 #include "seat.hpp"
 #include "stage_camera.hpp"
+#include "stage_movers.hpp"
+#include "stage_ropes.hpp"
 #include "stage_sections.hpp"
 
 namespace framework::brawl {
@@ -24,8 +26,12 @@ namespace framework::brawl {
 void step_camera(StageCamera& camera, BodyPool& pool, const Seats& seats, StageSections& sections,
                  const BrawlWorld& w);
 
-// Вход новых тел → тела → переходы секций → камера → удары (спека #25, системы 4–7).
+// Физмир → тросы → вход новых тел → тела → переходы секций → камера → удары (спека #25, системы 4–7).
+// `movers` — физмир уровня `w.level` с шагом `w.platform->dt`; обязателен, когда у уровня есть `path`
+// (иначе abort, см. `step_stage_movers`). Уровень с `path` без platform-секции загрузка уже отказала.
+// `ropes` — тросы уровня, обязательны, когда у него есть `rope` (abort, см. `step_ropes`).
 void step_stage(BodyPool& pool, std::span<const Command> commands, const BrawlWorld& w, StageCamera& camera,
-                const Seats& seats, StageSections& sections, HitEvents& events);
+                const Seats& seats, StageSections& sections, HitEvents& events, StageMovers* movers = nullptr,
+                StageRopes* ropes = nullptr);
 
 } // namespace framework::brawl

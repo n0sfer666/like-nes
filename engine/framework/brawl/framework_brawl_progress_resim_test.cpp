@@ -16,7 +16,7 @@ using test::Course;
 constexpr Tick TICKS = 360;
 constexpr Tick DELAY = 8;
 constexpr Tick CHECK_EVERY = 25;
-constexpr uint64_t GOLDEN = 0x9226b3f907514dc1ull;
+constexpr uint64_t GOLDEN = 0xf1c00aba70879d31ull;
 
 struct Run {
     uint64_t hash = 0, world = 0;

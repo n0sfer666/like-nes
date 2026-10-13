@@ -131,7 +131,7 @@ fixture_rebake() {
         tail -20 "$dir.log"; sdk_bad "fixture: rebake copy did not build"; return 1; }
     rebake_round "$dir" again "" "a rebuild with nothing changed ran assetc again" || return 1
     sleep 2
-    sed 's/"value":"ladder"/"value":"solid"/' "$tsj" > "$tsj.new" && mv "$tsj.new" "$tsj" || {
+    sed 's/"value":"solid oneway"/"value":"solid"/' "$tsj" > "$tsj.new" && mv "$tsj.new" "$tsj" || {
         sdk_bad "fixture: cannot edit the tileset in the rebake copy"; return 1; }
     rebake_round "$dir" tsj "Baking game.bundle" "an edited .tsj did not re-bake (depfile not honoured)" || return 1
     if bundle_hash_check "$dir" Release "$ROOT/games/neon-rumble/bundle.hash" > /dev/null 2>&1; then

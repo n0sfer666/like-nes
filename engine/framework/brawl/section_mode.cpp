@@ -4,13 +4,13 @@ namespace framework::brawl {
 
 namespace {
 
-fix32 before(fix32 v) { return fix32::from_raw(v.raw - 1); }
-
 fix32 gap(fix32 a, fix32 b) { return abs_fix(a - b); }
 
 fix32 nearer(fix32 x, fix32 a, fix32 b) { return gap(x, b) < gap(x, a) ? b : a; }
 
 } // namespace
+
+fix32 before(fix32 v) { return fix32::from_raw(v.raw - 1); }
 
 const scene::Section* section_at(const scene::LevelObjects& level, fix32 x) {
     for (const scene::Section& s : level.sections)

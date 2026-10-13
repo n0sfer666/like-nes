@@ -132,7 +132,7 @@ void standing_is_free() {
     const EntId id = w.body(500);
     w.step({Command{}});
     const SectionBody* s = w.s.sections.find(id);
-    check(s != nullptr && !platform_taken(w.s.sections, id, s->c.position, w.platform),
+    check(s != nullptr && !platform_taken(w.s.pool, w.s.sections, id, s->c.position, w.world()),
           "the SKIN gap of a standing hull reads as an occupied point");
 }
 

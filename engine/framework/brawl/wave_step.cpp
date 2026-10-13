@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <utility>
 
+#include "body_kind.hpp"
 #include "camera.hpp"
 #include "scene_objects.hpp"
 #include "section_mode.hpp"
@@ -45,9 +46,9 @@ int32_t present(const Seats& seats) {
     return n;
 }
 
-bool foes_left(const BodyPool& pool) {
+bool foes_left(const BodyPool& pool, std::span<const Archetype> kinds) {
     for (uint32_t i = 0; i < pool.count; ++i)
-        if (pool.bodies[i].team != 0) return true;
+        if (pool.bodies[i].team != 0 && role_of(pool.bodies[i], kinds) == Role::Fighter) return true;
     return false;
 }
 
@@ -92,8 +93,8 @@ void start(StageWaves& waves, StageCamera& camera, const scene::LevelObjects& le
 
 } // namespace
 
-void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, const Seats& seats,
-                const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out) {
+void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, std::span<const Archetype> kinds,
+                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out) {
     out = WaveFacts{};
     const fix32 seen = std::exchange(waves.seen, camera.center.x);
     const int32_t players = present(seats);
@@ -109,7 +110,7 @@ void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, co
         if (--waves.lull == 0) start(waves, camera, level, players, out);
         return;
     }
-    if (foes_left(pool)) return;
+    if (foes_left(pool, kinds)) return;
     out.cleared = true;
     if (next_wave(level, camera.arena, waves.wave, ANY_PLAYERS) == NO_WAVE) {
         release(waves, camera, out);

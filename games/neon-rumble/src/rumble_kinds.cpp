@@ -4,6 +4,7 @@
 #include <string>
 
 #include "fighter_read.hpp"
+#include "rumble_clipless.hpp"
 #include "rumble_level.hpp"
 
 namespace rumble {
@@ -53,6 +54,7 @@ bool player_moves(const Fighter& f, const br::Archetype& a, PlayerMoves& m) {
 bool Kinds::open(const Level& level, const Fighters& fighters) {
     for (uint32_t i = 0; i < FIGHTERS; ++i)
         if (!open_kind(level, fighters[i], types[i], hp[i])) return false;
+    open_clipless(types);
     for (uint32_t p = 0; p < moves.size(); ++p)
         if (!player_moves(fighters[p], types[p], moves[p])) return false;
     return true;

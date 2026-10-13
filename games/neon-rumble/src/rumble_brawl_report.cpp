@@ -34,13 +34,11 @@ const char* reaction_name(br::Reaction r) {
 }
 
 // В режиме волны тел одного вида несколько, и метка несёт seq; вне волны строки прежние.
-struct Label {
-    std::array<char, 32> text{};
-};
+struct Label { std::array<char, 32> text{}; };
 
 Label label(const Brawl& brawl, br::EntId id, uint8_t kind) {
     Label l;
-    const char* name = kind < FIGHTERS ? ROSTER[kind].fighter : "?";
+    const char* name = kind_name(kind);
     if (brawl.wave.on) std::snprintf(l.text.data(), l.text.size(), "%s#%u", name, id.seq);
     else std::snprintf(l.text.data(), l.text.size(), "%s", name);
     return l;
@@ -85,6 +83,7 @@ void report_fighters(const Level& level, const Fighters& fighters, const Brawl& 
     LayerStats st = layers.build(level, gfx::viewport_fit({960, 540}), 0, &follow);
     for (const uint32_t i : brawl.draw_order()) {
         const br::Body& b = brawl.pool.bodies[i];
+        if (b.kind >= FIGHTERS) continue;
         const Pose p = fighters[b.kind].pose(b);
         const FighterStats fs = quads.add(fighters[b.kind], p, screen_plane(b), depth_overlay(brawl, b), layers, st,
                                           sheet_texture(level.texture_count, b.kind),
@@ -99,13 +98,15 @@ void report_fighters(const Level& level, const Fighters& fighters, const Brawl& 
 }
 
 // Тела по виду, а внутри вида по слоту: P2, вошедший позже манекена, стоит в строке на своём месте.
+// Тела те же, что в порядке отрисовки: сработавший нож в строку не входит.
 void report_brawl(const Brawl& brawl, uint32_t tick) {
     std::printf("neon-rumble: brawl tick %u: hash %016llx,", tick,
                 static_cast<unsigned long long>(brawl.hash()));
-    for (uint32_t k = 0; k < FIGHTERS; ++k)
+    const DrawOrder order = brawl.draw_order();
+    for (uint32_t k = 0; k < KINDS; ++k)
         for (uint32_t i = 0; i < brawl.pool.count; ++i) {
             const br::Body& b = brawl.pool.bodies[i];
-            if (b.kind != k) continue;
+            if (b.kind != k || std::find(order.begin(), order.end(), i) == order.end()) continue;
             std::printf(" %s %d,%d y %d hp %d,", label(brawl, b).text.data(), b.pos.x.to_int(), b.pos.z.to_int(),
                         b.pos.y.to_int(), b.hp);
         }
@@ -113,7 +114,7 @@ void report_brawl(const Brawl& brawl, uint32_t tick) {
         std::printf(" camera %d,%d arena %d,", brawl.wave.camera.center.x.to_int(), brawl.wave.camera.center.y.to_int(),
                     brawl.wave.camera.arena);
     std::printf(" draw");
-    for (const uint32_t i : brawl.draw_order()) std::printf(" %s", label(brawl, brawl.pool.bodies[i]).text.data());
+    for (const uint32_t i : order) std::printf(" %s", label(brawl, brawl.pool.bodies[i]).text.data());
     std::printf("\n");
 }
 
@@ -154,8 +155,10 @@ void report_wave(const Brawl& brawl, uint32_t tick) {
     if (!brawl.wave.on) return;
     for (uint32_t i = 0; i < brawl.knocked.count; ++i) {
         const Knockout& k = brawl.knocked.at[i];
-        std::printf("neon-rumble: knockout tick %u: %s", tick, label(brawl, k.body, k.kind).text.data());
-        const br::Body* back = k.kind < br::SEATS ? brawl.pool.find(brawl.seats.at[k.kind].body) : nullptr;
+        std::printf("neon-rumble: %s tick %u: %s", k.broken ? "break" : "knockout", tick,
+                    label(brawl, k.body, k.kind).text.data());
+        const br::Body* back =
+            k.team == 0 && k.kind < br::SEATS ? brawl.pool.find(brawl.seats.at[k.kind].body) : nullptr;
         if (back != nullptr)
             std::printf(", back as %s at %d,%d immune %u", label(brawl, *back).text.data(), back->pos.x.to_int(),
                         back->pos.z.to_int(), back->immune);

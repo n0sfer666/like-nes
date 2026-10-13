@@ -1,6 +1,7 @@
 #include "platform_body.hpp"
 
 #include "controller.hpp"
+#include "support.hpp"
 
 namespace framework::brawl {
 
@@ -53,9 +54,10 @@ void adopt_body(const DepthBody& d, fix32 foot, fix32 dt, character::Character& 
     c.coyote_left = 0;
 }
 
-void step_platform(Body& b, const BrawlInput& in, bool held, SectionBody& s, const PlatformWorld& p) {
+void step_platform(Body& b, const BrawlInput& in, bool held, fix32 belt, SectionBody& s, const PlatformWorld& p) {
     const fix32 foot = hull_foot(p);
     adopt_body(b.pos, foot, p.dt, s.c);
+    if (s.c.on_ground) character::carry_by(p.scene, p.hull, {belt, fix32{}}, s.c.position);
     const character::MoveInput m = held ? character::MoveInput{} : drive(b, in);
     character::step(p.scene, p.hull, p.profile, p.derived, m, p.dt, s.c);
     mirror_body(s.c, foot, p.dt, b.pos);

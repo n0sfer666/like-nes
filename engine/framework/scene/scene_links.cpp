@@ -17,6 +17,43 @@ const Checkpoint* checkpoint_by_order(const LevelObjects& level, int32_t order) 
     return nullptr;
 }
 
+// Тот же суд, что `brawl::mode_at`: решает первая секция, накрывшая `x`, вне секций — belt. Платформа
+// по пути — тело контроллера #16, а в belt его не читает никто: путь там ехал бы невидимым для драки.
+const Section* section_at(const LevelObjects& level, fix32 x) {
+    for (const Section& s : level.sections)
+        if (!(x < s.area.rect.x0) && x < s.area.rect.x1) return &s;
+    return nullptr;
+}
+
+bool in_platform(const LevelObjects& level, fix32 x) {
+    const Section* s = section_at(level, x);
+    return s != nullptr && s->mode == SectionMode::Platform;
+}
+
+fix32 next_edge(const LevelObjects& level, fix32 x, fix32 past) {
+    fix32 next = past;
+    for (const Section& s : level.sections) {
+        if (x < s.area.rect.x0 && s.area.rect.x0 < next) next = s.area.rect.x0;
+        if (x < s.area.rect.x1 && s.area.rect.x1 < next) next = s.area.rect.x1;
+    }
+    return next;
+}
+
+// Трос качается до горизонтали, и седок проходит весь отрезок `[x − L, x + L]`: точки опоры мало,
+// секция belt посреди размаха унесла бы седока из контроллера на ходу. Обход по всем краям секций,
+// а не по концам и не по краю текущей — секции перекрываются, и узкая belt поверх platform берёт
+// свой отрезок, как `section_at` в драке. Возвращает первый `x` вне platform.
+bool swings_in_platform(const LevelObjects& level, const Rope& r, fix32& out) {
+    const fix32 past = fix32::from_raw(r.mark.at.x.raw + r.length.raw + 1);
+    for (fix32 x = r.mark.at.x - r.length; x < past; x = next_edge(level, x, past)) {
+        if (!in_platform(level, x)) {
+            out = x;
+            return false;
+        }
+    }
+    return true;
+}
+
 } // namespace
 
 bool check_links(const tilemap::ObjectMap& map, const LevelObjects& level, std::string& error) {
@@ -39,6 +76,18 @@ bool check_links(const tilemap::ObjectMap& map, const LevelObjects& level, std::
         if (arena_by_id(level, s.arena) == nullptr)
             return SceneObject(map, *s.mark.object, error)
                 .fail("points at arena " + std::to_string(s.arena) + "; the level has no arena with that id");
+    for (const Path& p : level.paths)
+        for (uint8_t i = 0; i < p.count; ++i)
+            if (!in_platform(level, p.points[i].x))
+                return SceneObject(map, *p.object, error)
+                    .fail("has vertex " + std::to_string(i) + " outside a platform section; a path moves only there");
+    for (const Rope& r : level.ropes) {
+        fix32 x;
+        if (!swings_in_platform(level, r, x))
+            return SceneObject(map, *r.mark.object, error)
+                .fail("swings out of a platform section at x " + std::to_string(x.to_int()) +
+                      "; a rope swings only there, length to both sides");
+    }
     return true;
 }
 

@@ -23,17 +23,19 @@ uint32_t fighter_of(std::string_view kind) {
     return FIGHTERS;
 }
 
-// Тело точки волны — тело спавна её бойца, перенесённое в точку, со своим `facing`.
+// Тело точки волны — тело спавна её бойца, перенесённое в точку, со своим `facing` и в команде врагов:
+// rainbird волны — враг, хотя на спавне он боец P2.
 bool foe_of(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor& floor,
             const std::array<br::Body, FIGHTERS>& spawns, const sc::WaveSpawn& s, br::Body& out) {
     const char* name = tl::object_text(map, s.mark.object->name_offset);
     const uint32_t k = fighter_of(s.kind);
-    if (k == FIGHTERS || ROSTER[k].team == 0) {
+    if (k == FIGHTERS || k == PLAYER) {
         std::fprintf(stderr, "neon-rumble: level %s: wave spawn %s at %d,%d: kind %.*s is not a foe fighter\n", lv.name,
                      name, s.mark.at.x.to_int(), s.mark.at.y.to_int(), static_cast<int>(s.kind.size()), s.kind.data());
         return false;
     }
     out = spawns[k];
+    out.team = FOE_TEAM;
     out.pos.x = s.mark.at.x;
     out.pos.z = s.mark.at.y;
     out.facing = facing_of(map, *s.mark.object);
@@ -67,7 +69,7 @@ bool Wave::open(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor&
     foes.assign(level.waves.size(), br::Body{});
     for (uint32_t i = 0; i < level.waves.size(); ++i)
         if (!foe_of(lv, map, floor, spawns, level.waves[i], foes[i])) return false;
-    if (!waves_fit(lv, level)) return false;
+    if (!waves_fit(lv, level) || !platform.open(lv, level)) return false;
     ai = framework::ai::AiState{};
     ai.tokens.timeout = TOKEN_TIMEOUT;
     tick = 0;

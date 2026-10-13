@@ -65,13 +65,14 @@ void test_marks(const ObjectMap& map, const sc::LevelObjects& l) {
           "checkpoint keeps order");
     check(l.ropes.size() == 1 && l.ropes[0].length == px(64) && l.ropes[0].mark.at.x.raw == 1000 * ONE + ONE / 2,
           "rope keeps length and a fractional anchor");
-    check(l.paths.size() == 2 && l.paths[0].count == 3 && l.paths[0].loop && l.paths[0].speed.raw == ONE / 2,
+    check(l.paths.size() == 2 && l.paths[0].count == 3 && l.paths[0].loop && l.paths[0].speed.raw == ONE / 2 &&
+              l.paths[1].speed.raw == 32 * ONE,
           "path keeps speed, loop and vertex count");
     if (l.paths.size() != 2) return;
-    check(at_is(l.paths[0].points[0], 950, 100) && at_is(l.paths[0].points[1], 950, 52) &&
-              at_is(l.paths[0].points[2], 966, 52),
+    check(at_is(l.paths[0].points[0], 872, 100) && at_is(l.paths[0].points[1], 872, 52) &&
+              at_is(l.paths[0].points[2], 888, 52),
           "path points are absolute");
-    check(l.paths[1].count == 16 && !l.paths[1].loop && at_is(l.paths[1].points[15], 1115, 101),
+    check(l.paths[1].count == 16 && !l.paths[1].loop && at_is(l.paths[1].points[15], 1055, 101),
           "path with sixteen vertices fills the array to its last point");
 }
 
@@ -104,6 +105,74 @@ void test_players_only() {
     if (!error.empty()) std::printf("    %s\n", error.c_str());
 }
 
+void test_conveyor_cap() {
+    for (const int32_t speed : {8 * ONE, -8 * ONE}) {
+        ObjectMapSrc src = level();
+        for (ObjectSrc& o : src.objects)
+            if (o.id == 15) o.props = {fix_prop("speed", speed)};
+        Baked b;
+        sc::LevelObjects l;
+        std::string error;
+        check(bake(src, b) && sc::read_level_objects(b.map, l, error) && l.conveyors.size() == 1 &&
+                  l.conveyors[0].speed.raw == speed,
+              "conveyor speed at the cap reads in both directions");
+    }
+}
+
+sc::LevelObjects rope_level(int32_t x_raw, int32_t length, int32_t belt_w, int32_t platform_x, int32_t platform_w) {
+    ObjectMapSrc src = level();
+    for (ObjectSrc& o : src.objects) {
+        if (o.id == 18) {
+            o.x = fix32::from_raw(x_raw);
+            o.props = {fix_prop("length", length * ONE)};
+        }
+        if (o.id == 10) o.w = fix32::from_int(belt_w);
+        if (o.id == 11) {
+            o.x = fix32::from_int(platform_x);
+            o.w = fix32::from_int(platform_w);
+        }
+    }
+    Baked b;
+    sc::LevelObjects l;
+    std::string error;
+    if (!bake(src, b) || !sc::read_level_objects(b.map, l, error)) std::printf("    %s\n", error.c_str());
+    return l;
+}
+
+// Обе границы длины и оба края размаха: левый край секции входит в неё, правый — нет, как у секции.
+void test_rope_bounds() {
+    const sc::LevelObjects shortest = rope_level(1000 * ONE, 16, 768, 872, 200);
+    check(shortest.ropes.size() == 1 && shortest.ropes[0].length == px(16), "a rope of the shortest length reads");
+    const sc::LevelObjects longest = rope_level(1000 * ONE, 256, 600, 704, 600);
+    check(longest.ropes.size() == 1 && longest.ropes[0].length == px(256), "a rope of the longest length reads");
+    check(rope_level(936 * ONE, 64, 768, 872, 200).ropes.size() == 1, "a rope swinging onto the left edge reads");
+    check(rope_level(1008 * ONE - 1, 64, 768, 872, 200).ropes.size() == 1,
+          "a rope swinging one raw short of the right edge reads");
+}
+
+bool read_ropes(uint32_t extra, sc::LevelObjects& l, std::string& error) {
+    ObjectMapSrc src = level();
+    for (uint32_t i = 0, n = static_cast<uint32_t>(src.objects.size()); i < n; ++i)
+        if (src.objects[i].id == 18)
+            for (uint32_t k = 0; k < extra; ++k) {
+                src.objects.push_back(src.objects[i]);
+                src.objects.back().id = 40 + k;
+            }
+    Baked b;
+    return bake(src, b) && sc::read_level_objects(b.map, l, error);
+}
+
+void test_rope_cap() {
+    sc::LevelObjects full;
+    std::string error;
+    check(read_ropes(sc::ROPES_MAX - 1, full, error) && full.ropes.size() == sc::ROPES_MAX,
+          "a level of ROPES_MAX ropes reads");
+    sc::LevelObjects over;
+    check(!read_ropes(sc::ROPES_MAX, over, error) &&
+              error.find("swing' (id 47) is rope 9; a level holds 8 at most") != std::string::npos,
+          "a rope past ROPES_MAX is refused");
+}
+
 void test_empty() {
     Baked b;
     check(bake(ObjectMapSrc{"empty", {}}, b), "empty map bakes");
@@ -122,6 +191,9 @@ int main() {
     if (!b.error.empty()) std::printf("    %s\n", b.error.c_str());
     test_level(b);
     test_players_only();
+    test_conveyor_cap();
+    test_rope_bounds();
+    test_rope_cap();
     test_empty();
     std::printf("framework-scene: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;

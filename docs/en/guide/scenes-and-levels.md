@@ -125,9 +125,9 @@ gives meaning to these classes and skips every other one, which is left for the 
 | `section` | rectangle | `mode`, `belt` or `platform` |
 | `autoscroll` | rectangle | `axis`, `x` or `y`, and `speed` |
 | `depth_band`, `wall`, `kill` | rectangle | none |
-| `conveyor` | rectangle | `speed` |
-| `path` | polygon | `speed`, `loop`; at most 16 vertices |
-| `rope` | point | `length` |
+| `conveyor` | rectangle | `speed` (px per tick, −8 to 8, not 0; the sign is the direction) |
+| `path` | polygon | `speed` (px per tick, above 0 and at most 32), `loop`, and `w` and `h` of the platform (int, at least 1); at most 16 vertices, each inside a `platform` section |
+| `rope` | point | `length` (px, 16 to 256); the swing from `x − length` to `x + length` lies in `platform` sections; 8 ropes per level at most |
 | `bounds` | rectangle | none; at most one per level |
 
 A missing property, a property of the wrong type or out of its range, an object of the wrong
@@ -137,6 +137,52 @@ taken order in 16 bits, with −1 for "none taken", so an order above 32767 woul
 checkpoints with the same order are refused because the progress stores only the order, and the
 respawn finds the first checkpoint with it: a player who took the second would come back at the
 first.
+
+The `path` speed stops at 32 px per tick: at 60 Hz that is 1920 px/s, under the physics speed
+limit, so the platform reaches its point on the path every tick.
+
+A path that dips into solid tiles has a lower limit: 12 px per tick. That is how a lift stands at
+floor level: put its top a few pixels into the floor, because a top exactly on the floor line
+touches a fighter there and blocks them from entering the section. A platform carries its rider all
+or nothing on each axis, so when the lift sinks under the floor line the rider stays where it was
+and drops onto the floor within a few ticks, by no more than one tick of travel. Above 12 px per
+tick a lift rising out of the floor passes through a fighter standing on it and leaves without
+them. The loader does not check this limit, because it does not see the tiles.
+
+A conveyor moves every body that stands with its feet inside the rectangle by `speed` px at the
+start of its tick: fighters and enemies, lying ones too. A body in the air, in hitstop or held by a
+grab does not ride. The rectangle includes its left and top edges and excludes its right and bottom
+ones, like a section. The shift is not a velocity: it never adds up in `vx` or in the controller,
+so a body that steps off the belt stops at once. In a `belt` section the shift runs through the
+floor walls and the band clamp, so a wall stops the body at its face. In a `platform` section it is
+the same carry a moving platform gives: the whole shift or none, so a fighter against a wall
+stands still instead of sinking into it. The carry is horizontal, so on a slope the belt carries a
+fighter down but not up: uphill the destination enters the slope and the fighter stays at its
+foot. Lay belts on flat floor in a `platform` section. `speed` stops at 8 px per tick, half a tile,
+as a margin: an all-or-nothing carry has no sweep and jumps a wall once the shift is wider than
+the wall and the body together. Where belts overlap, the first one in the level wins: their sum
+could pass that limit.
+
+A rope hangs from its point and swings up to 90° each way. A fighter in the air takes it with the
+grab button when their hands are within 16 px of the rope's end; one fighter per rope, so a second
+one gets nothing. Left and right pump the swing, which never passes 90°. Without input the swing
+dies down: the rope keeps no more energy than it was given. A jump lets go, and the fighter flies
+off with the rope's speed along its tangent; the same rope can be taken again 12 ticks later, and no
+rope is taken in the tick of the jump. A hit, a grab by an enemy or death drops the rider; the
+hitstop of the rider's own strike does not, it holds the rope still with them, and while the rider
+strikes, left and right do not pump. A lift in the way drops the rider too, and so does anything
+that moves the rider off the rope, such as the camera leash. A tile in the way stops the rope where
+it is. A one-way tile holds the rider as it holds a fighter: coming down from above, the rope stands
+on it; from below or from the side, the rider passes through.
+
+Belts, lifts and ropes carry fighters only. A prop, such as a crate the game puts on the street,
+stands where it was put. A projectile flies its own course and dies on a wall, at the edge of the
+depth band, under the floor, on a solid tile or at the edge of a section of the other mode, which it
+does not cross. A projectile released inside such a section dies at once at its edge on the owner's
+side. A one-way tile lets it pass. Where it stops it still strikes in that tick. A projectile that
+hits or runs out of life stays in the pool with `life` 0 until the game calls `drop_spent` at the
+start of its next tick, before it builds the commands: the hit report of the last tick can still
+find it.
 
 ## How long a Level lives
 

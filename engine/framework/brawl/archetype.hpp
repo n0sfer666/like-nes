@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 
+#include "body_role.hpp"
 #include "clip_read.hpp"
 #include "fighter.hpp"
 #include "fighter_read.hpp"
@@ -34,6 +35,8 @@ struct Archetype {
     uint8_t chain_count = 0;
     uint16_t buffer_ticks = 1;
     uint8_t run_tap = 1;
+    Role role = Role::Fighter;
+    graphics::ClipBox box{};
 };
 
 bool make_archetype(const FighterTable& fighter, const graphics::ClipTable& clips, Archetype& out,

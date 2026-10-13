@@ -14,6 +14,7 @@
 #include "living.hpp"
 #include "object_read.hpp"
 #include "rumble_level.hpp"
+#include "rumble_platform.hpp"
 #include "rumble_roster.hpp"
 #include "scene_objects.hpp"
 #include "seat.hpp"
@@ -38,9 +39,9 @@ static_assert(framework::brawl::SEATS + framework::ai::BRAINS_MAX <= framework::
 
 // Режим --wave: арены и волны — объекты уровня, камера драки, замок арены и старты волн —
 // фреймворка (`step_stage`, `step_waves`, `step_checkpoints`), тела и мозги врагов ставит игра. В хеш
-// драки входят `ai`, `tick`, `camera`, `sections`, `waves` и `progress`; `on`, `level` и `foes` задаёт
-// open, `living` снимается заново в начале каждого шага, а `facts`, `deaths`, `took`, `was_arena`,
-// `was_wave` и `spawned` — только для отчёта тика, как hp_before.
+// драки входят `ai`, `tick`, `camera`, `sections`, `waves`, `progress`, лифты и тросы `platform`; `on`,
+// `level`, `foes` и мир `platform` задаёт open, `living` снимается заново в начале каждого шага, а
+// `facts`, `deaths`, `took`, `was_arena`, `was_wave` и `spawned` — только для отчёта тика, как hp_before.
 struct Wave {
     bool on = false;
     framework::ai::AiState ai;
@@ -50,6 +51,7 @@ struct Wave {
     std::vector<framework::brawl::Body> foes;
     framework::brawl::StageCamera camera;
     framework::brawl::StageSections sections;
+    Platform platform;
     framework::brawl::StageWaves waves;
     framework::brawl::WaveFacts facts;
     framework::brawl::LevelProgress progress;
@@ -67,13 +69,14 @@ struct Wave {
               const std::array<framework::brawl::Body, FIGHTERS>& spawns);
     // После взятого чекпоинта места встают у него — с тем же сдвигом, что у их спавнов от спавна P1,
     // глубина — в полосу пола (P2 из level1 ушёл бы за её дальний край); точка внутри стены оставляет
-    // место на спавне. Затем `x` — в зону камеры с отступом
-    // ENTRY_MARGIN и в полосу пола: вставший заново появляется в виде, а не за краем запертой арены,
-    // куда поводок дотащил бы его только через тик. Каждое тело входа неуязвимо ENTRY_IMMUNE тиков.
+    // место на спавне. Затем `x` — в зону камеры с отступом ENTRY_MARGIN и в полосу пола
+    // `Platform::reach`: вставший заново появляется в виде, а не за краем запертой арены, куда поводок
+    // дотащил бы его только через тик, и не на улице, когда вид уже в platform-секции. Каждое тело
+    // входа неуязвимо ENTRY_IMMUNE тиков.
     void entry(std::span<framework::brawl::Body, framework::brawl::SEATS> at,
-               const framework::brawl::DepthFloor& floor) const;
-    // ИИ → тик сцены → смерти и чекпоинты → волны → тела и мозги стартовавших точек; не влезшие идут в
-    // `facts.dropped`.
+               const framework::brawl::DepthFloor& level_floor) const;
+    // ИИ → ножи стрелков → тик сцены с лифтами и тросами → смерти и чекпоинты → волны → тела и мозги
+    // стартовавших точек; не влезшие идут в `facts.dropped`.
     void step(framework::brawl::BodyPool& pool, const framework::brawl::Seats& seats,
               framework::brawl::BrawlWorld world, std::span<framework::brawl::Command> commands,
               framework::brawl::HitEvents& events);

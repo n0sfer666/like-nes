@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 33 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 19 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 34 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 20 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -54,6 +54,7 @@ closed ones (§18, §20, §21) keep their steps as they were run; re-running one
 | AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back inside the view, a cleared wave is followed by the next one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
 | The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
 | Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
+| Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3432,10 +3433,10 @@ backslashes).
 
        bash scripts/check_sdk_game.sh --keep
 
-   Expected: `sdk-game: PASS`, `bundle_hash 0xa3898f2c75d15e3b` in Release and Debug, and in each
+   Expected: `sdk-game: PASS`, `bundle_hash 0x44c14828a530271b` in Release and Debug, and in each
    run the lines
 
-       neon-rumble: brawl tick 0: hash dfbf2d5386b280ce, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+       neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
        neon-rumble: seat tick 2: P2 joining
        neon-rumble: seat tick 3: P2 present
        neon-rumble: react tick 31: rainbird block
@@ -3464,7 +3465,7 @@ backslashes).
        neon-rumble: react tick 417: adler thrown
        neon-rumble: react tick 436: adler down
        neon-rumble: react tick 466: adler getup
-       neon-rumble: brawl tick 480: hash 9c8bdd1cff71d880, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+       neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
 
    U on tick 200 makes no line: Adler lies until tick 209, and since B3f a lying fighter is hit only
    by a strike with `hits_down` (§27) — the cross has none. Falling, lying and rising are judged in
@@ -3889,7 +3890,7 @@ is 0.
 
 ## 28. Gate 8 of #25 — the whole of B3 in one fight
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 9c8bdd1cff71d880; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 afa1b0c122f176a0; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
 
 §22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
 goes through all of them in a row, because what breaks when states follow each other is invisible from
@@ -3907,7 +3908,7 @@ backslashes).
        bash scripts/check_sdk_game.sh --keep
 
    Expected: `sdk-game: PASS` and, in each run, all 28 `hit`, `react` and `seat` lines of §22 step 1
-   and its hash of tick 480, `9c8bdd1cff71d880`. The script checks that each line is there and that
+   and its hash of tick 480, `afa1b0c122f176a0`. The script checks that each line is there and that
    there are 28 of them; their order is checked by eye. That is the scripted half of this gate: chain, block,
    jump kick, the hit on the ground, run kick, roll and grab in one run of 480 ticks.
 
@@ -4146,18 +4147,20 @@ is 0.
 
 ## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; ящик до арены 0 ломают два пинка — death и break crate#2, бокс пропадает; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 с rainbird, он держится внутри вида и бросает красные ножи (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
 
 B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
 and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
 level (B6a–B6d, `framework/brawl/stage_*`, `wave_step`). B6e put them into Neon Rumble behind
-`--wave`. `level1` is a street three screens long now, `bounds` 104..1560, with two `arena` objects
-and thirteen `spawn` points made in Tiled:
+`--wave`. `level1` is a street three screens long now, its depth band 104..1560, with two `arena`
+objects and fourteen `spawn` points made in Tiled (B8d of spec #25 added the fourteenth, a Rainbird,
+a crate at 440,248 before the first arena, and the platform section of §33 past the street, which
+moved the right end of `bounds` to 2200):
 
 | arena | area along the street | the camera stops at | waves |
 |---|---|---|---|
 | 0 | 520..968 | 712 | wave 0: two Adlers, a third with `players 2`; wave 1: three |
-| 1 | 1176..1560 | 1368 | wave 0: two; wave 1: two, only with `players 2`; wave 4: three |
+| 1 | 1176..1560 | 1368 | wave 0: two; wave 1: two, only with `players 2`; wave 4: three and a Rainbird |
 
 The camera locks when its centre reaches the left end of an arena plus half the view (712 and 1368);
 inside the arena it moves only as far as the arena reaches, and no player can walk out of the view.
@@ -4182,10 +4185,14 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 1. Build and check as in §30 step 1. The default run of section S of `docs/owner-setup.txt` prints
    the longer street,
 
-       neon-rumble: bounds 104..1560 x 56..280, camera 296,172
+       neon-rumble: bounds 104..2200 x 56..280, camera 296,172
 
-   and its `--wave` lines show both locks and releases. The gate also pins
-   `stage camera 296,172, 2 arena(s), 13 wave spawn(s)` of the `--wave` run without printing it.
+   In the window without `--wave` the camera clamps to these bounds, not to the depth band: the view no
+   longer stops at centre 1368: it follows Banderas to the right end of the street and shows the floor
+   and the ledge of the platform section of §33. Nobody enters it there, and its belt, lift and rope are not drawn.
+
+   The `--wave` lines show both locks and releases. The gate also pins
+   `stage camera 296,172, 2 arena(s), 14 wave spawn(s)` of the `--wave` run without printing it.
 
 2. Start the window from a terminal you can read:
 
@@ -4195,10 +4202,14 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 
    Walk left first: Banderas stops at the left end of the street, and the camera does not move past
    it. Then walk right. The camera follows him; the facades and the street go by over three screens.
+   A brown box stands on the street before the first arena: the crate, 20 hp. It is low: jabs and
+   crosses pass over it, two kicks break it — the terminal prints `death tick <n>: crate#2`, the next tick
+   `break tick <n+1>: crate#2`, and the box is gone. Hit lines name it as any target:
+   `hit tick <n>: banderas#1/kick -> crate#2, damage 12, hp 8`.
 3. **The lock.** When the camera reaches the first arena the terminal prints
 
        neon-rumble: arena tick <n>: arena 0 locked
-       neon-rumble: wave tick <n>: arena 0 wave 0, adler#2 adler#3
+       neon-rumble: wave tick <n>: arena 0 wave 0, adler#3 adler#4
 
    The view stops moving, and two Adlers stand up at its right side, facing left. Walk right and left:
    the view moves a little further right inside the arena and no more; Banderas stops at the edges of
@@ -4209,8 +4220,12 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
    Banderas again.
 5. **The second arena.** Walk on to the right end of the street. The camera stops there and prints
    `arena 1 locked` with `arena 1 wave 0` (two Adlers). After they fall, about two seconds pass and
-   `arena 1 wave 4` brings three: wave 1 of this arena wants two players and is skipped. After them
-   `arena 1 released`; the camera stays at the end of the street, which is the end of `bounds`.
+   `arena 1 wave 4` brings three Adlers and a Rainbird: wave 1 of this arena wants two players and is
+   skipped. The Rainbird keeps away from Banderas, inside the locked view, and on his line in depth
+   throws a red knife about every second and a half; a knife that lands prints
+   `hit tick <n>: knife#<k>/throw -> banderas#<j>, damage 8, hp …` and vanishes the same tick. A knife
+   flies straight and is never thrown from outside the view. After all four fall the terminal prints
+   `arena 1 released`. The street ends there, but the way on to the right is open now: §33.
 6. **The respawn.** At any lock, let the Adlers knock Banderas out. The terminal prints
    `death tick <n>: banderas#<j>`, and the next tick the line ends with
    `back as banderas#<k> at 600,248 immune 119` in arena 0 or `at 1300,248 immune 119` in arena 1:
@@ -4219,7 +4234,11 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
    off screen on his spawn. For about two seconds the Adlers' blows pass through him.
 7. **Two players.** Restart the window and press numpad 1 before the first arena: Rainbird joins. The
    camera follows the middle of the two and neither of them can leave the view. Wave 0 of arena 0
-   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4. Then restart once more, walk
+   brings three Adlers, and arena 1 goes wave 0, wave 1 (two), wave 4. Wave 4 now holds two
+   Rainbirds with the same look: P2 and the enemy thrower. Tell them apart by the terminal: the enemy
+   is the `rainbird#<k>` of the `arena 1 wave 4, …` line, his knockout line ends right after the name,
+   while P2 knocked out prints `knockout tick <n>: rainbird#<j>, back as rainbird#<m> at …`. The
+   thrower aims at the nearer player, P2 included. Then restart once more, walk
    Banderas past the first checkpoint (`checkpoint tick <n>: order 0 at 600,248`) and only then press
    numpad 1: Rainbird stands up next to the checkpoint — 64 px to the right of it, at the far edge of
    the street, as his spawn lies 64 px right of Banderas's — not on his own spawn at the start of
@@ -4228,15 +4247,19 @@ Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat s
 
 As in §21, on a 120 Hz screen everything runs twice as fast.
 
-What counts as a finding: the camera running past an end of the street, jerking, or losing a player;
+What counts as a finding: the camera running past the left end of the street, jerking, or losing a
+player; Banderas walking on past x 1560 before `arena 1 released`;
 a seam, a hole or a layer edge anywhere on the three screens; a lock that does not stop the view or a
 player who walks out of a locked view; an enemy standing up outside the view or somewhere else than
 at its right side; a wave that does not come, comes at once, or comes with the wrong number; wave 1 of
 arena 1 coming with one player, or not coming with two; a release that does not let the camera go; a
 player who stands up outside the view or away from the checkpoint, or is hit in his first two
-seconds.
+seconds; a knife thrown from outside the view, one that stays on screen after it hits, or one that
+flies at no player; a crate that a kick does not hit or that stays after `break tick`; the enemy
+Rainbird's knockout with `back as`.
 
-Send back: the `checkpoint`, `arena`, `wave`, `death` and `knockout` lines of steps 3–7, and one
+Send back: the `break` and crate `hit` lines of step 2, one `knife#…/throw` hit line of step 5, the
+`checkpoint`, `arena`, `wave`, `death` and `knockout` lines of steps 3–7, and one
 screenshot of a locked view with a wave on it.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
@@ -4295,9 +4318,70 @@ Send back: the terminal lines of steps 4, 5 and 7, and one screenshot of the men
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 33. Gate 13 of #25 — the platform section past the street
+
+<!-- gate: open | окно neon_rumble --wave на любой ОС: зачистить обе арены; после «arena 1 released» banderas проходит x 1560 и встаёт на пол секции (не раньше — до релиза улица кончается на 1560); голубая лента везёт стоящего вправо, сходит — стоит; жёлтый лифт ездит сам вверх-вниз, на нём banderas едет до уступа; с пола уступ выше прыжка, а прыжок с лифта в верхней половине хода, вправо только пока не над уступом, проходит его снизу и ставит на него; трос (цепочка точек с крупной точкой на конце, справа от уступа): прыжок к концу + H — висит и качается стрелками, Space отпускает с разлёта; P2 (numpad 1), пока banderas в секции, появляется в виде над полом секции и падает на него; H на улице по-прежнему захват; прислать строки терминала и снимок banderas на тросе -->
+
+B8d of spec #25 put a platform section into `level1` of `--wave`: past the street, x 1568..2200, the
+fighters stop walking the depth band and run and jump on the tiles of the collision layer `section`
+with the character controller of spec #16. In it: a belt (`conveyor`, cyan box at 1600..1760 on the
+floor), a lift (`path`, yellow 48×8 box at x 1880, level with the floor at its bottom, rising 112 px to the ledge and back on its own), a one-way ledge
+(x 1904..1968, 112 px above the floor), and a rope hung at 2032,72, 64 px long (a line of small dots
+ending in a larger one). The way into the section opens only when arena 1 is released: before that the street
+ends at 1560, as it did, so the enemies of arena 1 stand where they stood. The grab key H (pad RB,
+numpad 5 for P2) now also takes the rope; on the street it is the grab it was.
+
+CI holds the walk in: the `--wave` run of §30 ends with Banderas carried by the belt to its end,
+
+       neon-rumble: brawl tick 8640: hash b19d2fdfd5ab60f1, banderas#37 1760,271 y 0 hp 76, camera 1760,172 arena -1, draw banderas#37
+
+The headless script never jumps, never takes the lift or the rope; that is this gate.
+
+1. Run the gate once (`bash scripts/check_sdk_game.sh --keep`); the line above is among the `--wave`
+   lines of each configuration.
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble --wave
+
+   Enter on `wave level1`, and clear both arenas as in §31 (a knockout costs only time: Banderas
+   stands up on the checkpoint).
+3. **The way in.** Before `arena 1 released` Banderas cannot pass x 1560, the right edge of the
+   locked view. After it, walk right: he leaves the street and stands on the floor of the section, a
+   little lower on the screen; up and down no longer move him in depth. The camera follows him.
+4. **The belt.** Stand on the cyan box and let go of the keys: the belt carries him to the right, and
+   off its end he stops at once. Walking against it is slower than walking with it.
+5. **The lift.** The yellow box goes up and down by itself. At its bottom it is level with the floor:
+   walk onto it, and he rides it up; at the top he can step right onto the ledge.
+6. **The ledge.** From the floor the ledge is higher than a jump. Ride the lift again, jump in the upper
+   half of its way up, hold right only until he is over the ledge and let go: he passes through it from
+   below and lands on top. Held right all the way, he flies over the 64 px of the ledge.
+7. **The rope.** From the ledge, jump right toward the large dot at the end of the rope and hold H while his
+   hands are near it: he hangs on the rope. Left and right swing it; Space lets go, and he flies off
+   along the swing. The same rope cannot be taken again for a moment after letting go.
+8. **P2 joins in the section.** With Banderas in the section, press numpad 1: Rainbird appears
+   inside the view, in the section, a little above its floor, and drops onto it; not on the street at
+   x 1560. Stand away from where he appears: an entry inside Banderas is refused by the section and
+   put at its left edge (a known limit, `.context/notes/25-b8.md`).
+9. **The grab on the street.** Press H next to an Adler in an arena: it is the grab it was.
+
+As in §21, on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: a way into the section before `arena 1 released`, or none after it; a
+fighter sinking into or floating above the floor of the section; a belt that does not carry him or
+carries him on after he steps off; a lift that does not move, or that he falls through; a ledge that
+does not let him through from below or does not hold him from above; a rope he cannot take with H in
+the air, that the arrows do not swing, or that does not let go on Space; P2 joining outside the
+view; H on the street taking a rope or doing something else than the grab.
+
+Send back: the `arena 1 released` line, the terminal lines of steps 3–8, and one screenshot of
+Banderas on the rope.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 33 are closed, and the open 19 are listed by
+The gates above are what the ADRs waited on; 14 of the 34 are closed, and the open 20 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

@@ -36,7 +36,7 @@ struct Waves {
         s.seat(0, x);
     }
 
-    void step() { step_waves(waves, s.camera, s.pool, s.seats, s.level, rules, facts); }
+    void step() { step_waves(waves, s.camera, s.pool, s.arena.kinds, s.seats, s.level, rules, facts); }
 
     void foe() { s.pool.spawn(dummy(700, 240, -1, 1, s.arena.kinds[0])); }
 

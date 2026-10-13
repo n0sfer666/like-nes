@@ -7,7 +7,10 @@
 #include "progress_hash.hpp"
 #include "rumble_brain.hpp"
 #include "rumble_floor.hpp"
+#include "rumble_knives.hpp"
 #include "stage_camera_hash.hpp"
+#include "stage_movers_hash.hpp"
+#include "stage_ropes_hash.hpp"
 #include "stage_sections_hash.hpp"
 #include "stage_step.hpp"
 #include "stage_waves_hash.hpp"
@@ -29,7 +32,8 @@ uint32_t players(const br::Seats& seats) {
 
 } // namespace
 
-void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& floor) const {
+void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& level_floor) const {
+    const br::DepthFloor floor = platform.reach(level_floor, level, waves.cleared);
     const framework::scene::Checkpoint* cp = br::find_checkpoint(level, progress.checkpoint);
     const framework::Vec2 lead{at[PLAYER].pos.x, at[PLAYER].pos.z};
     for (br::Body& b : at) {
@@ -53,17 +57,21 @@ void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& floor)
 void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world, std::span<br::Command> commands,
                 br::HitEvents& events) {
     world.level = &level;
+    world.platform = platform.world ? &*platform.world : nullptr;
+    const br::DepthFloor reached = platform.reach(*world.floor, level, waves.cleared);
+    world.floor = &reached;
     br::note_living(pool, living);
     ai.tokens.capacity = TOKENS_BY_PLAYERS[players(seats)];
     ai::step_ai(ai, pool, world, tick, foe_brain(), commands);
+    throw_knives(ai.brains, pool, sections, world);
     ++tick;
     br::step_stage(pool, std::span<const br::Command>(commands.data(), pool.count), world, camera, seats, sections,
-                   events);
+                   events, platform.movers.get(), platform.ropes ? &*platform.ropes : nullptr);
     br::step_deaths(pool, living, deaths);
     took = br::step_checkpoints(progress, pool, seats, level);
     was_arena = camera.arena;
     was_wave = waves.wave;
-    br::step_waves(waves, camera, pool, seats, level, br::WaveRules{WAVE_LULL}, facts);
+    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts);
     spawned_count = 0;
     for (uint32_t i = 0; i < facts.count; ++i) {
         const br::EntId id = pool.spawn(foes[facts.starts[i]]);
@@ -71,7 +79,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
             ++facts.dropped;
             continue;
         }
-        if (!ai::add_brain(ai.brains, id, FOE_START)) {
+        if (!ai::add_brain(ai.brains, id, foe_start(foes[facts.starts[i]].kind))) {
             pool.despawn(id);
             ++facts.dropped;
             continue;
@@ -87,6 +95,8 @@ uint64_t Wave::hash() const {
     framework::physics::mix_u64(h, br::sections_hash(sections));
     framework::physics::mix_u64(h, br::waves_hash(waves));
     framework::physics::mix_u64(h, br::progress_hash(progress));
+    if (platform.movers) framework::physics::mix_u64(h, br::movers_hash(*platform.movers));
+    if (platform.ropes) framework::physics::mix_u64(h, br::ropes_hash(*platform.ropes));
     return h;
 }
 
