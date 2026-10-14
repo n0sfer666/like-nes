@@ -73,9 +73,14 @@ iphoneos CODE_SIGNING_ALLOWED=NO`) без предупреждений, в ба�
 равен файлу CI 38485741863, plist `com.likenes.resimbench` / `SceneDelegate`; APK
 `build_apk.sh --bench` без предупреждений компилятора, `libbench.so` экспортирует
 `ANativeActivity_onCreate`, libc++ статический, `assets/crossplay.txt` в APK; игровой APK
-собирается как прежде; опция без файла — `FATAL_ERROR` своей строкой. **НЕ прогнано:** запуск в
-симуляторе — рантайм iOS 27 на машине удалён, загрузка 8 ГБ отложена владельцем. Долг — прогон
-`bash scripts/mobile_bench.sh ios-sim` и мутант файла (`--against` с изменённым хешем → FAIL).
+собирается как прежде; опция без файла — `FATAL_ERROR` своей строкой.
+
+Прогнано агентом 2026-10-14 в симуляторе iPhone 16 / iOS 18.6 (22G86), HEAD `b887502`, файл CI
+38557291268: `bash scripts/mobile_bench.sh ios-sim` → 14 сценариев `match`, p50 42.1 мкс, p99
+46.8 мкс, `[mobile-bench] PASS`. Мутант: `--against` с `run-slide …66` → `…67` — `DIFFER`,
+`brawl-resim-bench: FAIL`, `[mobile-bench] FAIL`. Рантайм 18.6 взят из бандла MobileAsset на диске
+(`xcodebuild -importPlatform <…/AssetData/*.dmg>`; `simctl runtime add` на нём падает — бандл
+только для чтения); iOS 27 сети не поддался.
 
 Риск устаревания: `xcompile_verify.sh` и CI собирают оболочки только с игрой; мобильный вход
 бенча не собирает никто, кроме `mobile_bench.sh`. Тронута сигнатура `run_resim_bench`,
