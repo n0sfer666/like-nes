@@ -1,0 +1,10 @@
+option(LIKE_NES_MOBILE_BENCH "Build brawl_resim_bench as the shell app instead of the game (spec #25, B9d)" OFF)
+set(LIKE_NES_BENCH_AGAINST "" CACHE FILEPATH "Crossplay file of a CI run the bench on the phone judges its scenario hashes against")
+
+if(LIKE_NES_MOBILE_BENCH)
+  if(NOT EXISTS "${LIKE_NES_BENCH_AGAINST}" OR IS_DIRECTORY "${LIKE_NES_BENCH_AGAINST}")
+    message(FATAL_ERROR "LIKE_NES_MOBILE_BENCH needs LIKE_NES_BENCH_AGAINST, the crossplay file of a CI run (bash scripts/mobile_bench.sh fetches it): '${LIKE_NES_BENCH_AGAINST}'")
+  endif()
+  set(RESIM_BENCH_AGAINST ${CMAKE_BINARY_DIR}/resim_bench/crossplay.txt)
+  configure_file(${LIKE_NES_BENCH_AGAINST} ${RESIM_BENCH_AGAINST} COPYONLY)
+endif()

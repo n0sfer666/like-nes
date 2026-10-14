@@ -1777,6 +1777,84 @@ owner_check.sh гоняет это отдельным этапом сразу п
   разом, звук.
 
 
+  6) Бенч ресима на самом слабом телефоне (спека #25, В9г; гейт §34
+  docs/owner-verification.md). НЕ прогнан агентом ни на одном телефоне.
+  Это не игра: приложение like-nes-bench (com.likenes.resimbench) с чёрным
+  экраном, весь вывод — в консоль. Бенч сверяет 14 хешей сценариев с файлом
+  crossplay-macOS прогона CI для ТОГО ЖЕ коммита, поэтому сначала push и
+  зелёный CI на HEAD (bash scripts/ci_watch.sh), а нужен gh с gh auth login.
+  Без зелёного прогона скрипт отвечает:
+
+    [mobile-bench] FAIL: no successful CI run for <sha> yet: push it, then bash scripts/ci_watch.sh
+
+  iPhone (подпись — ваша команда разработчика; <ID> — Team ID из
+  developer.apple.com → Membership, без --team выбрать команду в Xcode на
+  вкладке Signing & Capabilities цели like_nes_resim_bench):
+
+    bash scripts/mobile_bench.sh ios-device --team <ID>
+
+  Строки скрипта, затем откроется Xcode:
+
+    [mobile-bench] ok: crossplay-macOS of CI run <run id> for <sha>
+    [mobile-bench] ok: Xcode project build-ios-bench-device/like_nes.xcodeproj
+    [mobile-bench] in Xcode: scheme like_nes_resim_bench, your iPhone as the destination, Cmd+R
+    [mobile-bench] the screen stays black; the bench prints into the Xcode console and ends with brawl-resim-bench: PASS
+
+  В Xcode: схема like_nes_resim_bench, назначение — iPhone, Cmd+R. Первый
+  запуск на телефоне спросит доверие разработчику: Настройки → Основные → VPN
+  и управление устройством → ваша команда → Доверять, затем Cmd+R ещё раз.
+
+  Android (USB-отладка включена, запрос на телефоне принят, в adb devices
+  ровно один телефон):
+
+    bash scripts/mobile_bench.sh android
+
+  Строки скрипта; вывод бенча скрипт сам берёт из logcat и печатает с
+  отступом, перед ним может стоять строка «--------- beginning of main»:
+
+    [mobile-bench] ok: crossplay-macOS of CI run <run id> for <sha>
+    [mobile-bench] ok: built build-android-bench/apk/like_nes_resim_bench.apk
+
+  Вывод бенча — одинаковый на обоих телефонах, кроме первой строки и цифр
+  времени (в Xcode без отступа):
+
+    [bench] iOS <версия>, <модель вида iPhone14,7>
+      или
+    [bench] Android <версия> (API <n>), <производитель> <модель>, soc <soc>
+    brawl resim bench: 2 players, 8 enemies with AI, 4 props + 12 shots; resim 8 ticks x 600 frames
+      snapshot: 5904 bytes
+      frame p50 = <x> us, <y> % of a 16.6 ms frame
+      frame p99 = <x> us, <y> % of a 16.6 ms frame
+      resim: rollbacks=600 replayed=4800 too_deep=0
+      fewest in a tick: players=2 enemies=8 props=4 shots=12
+      hits=2210 peak=9 of 64 in a tick, hits_dropped=0, crates broken=6, shots fired=2025
+    resim bench fight hash = 0x0f60b3fbe989d27e
+    crossplay scenarios:
+      walk-band-edges 0x…   (14 строк, те же, что в файле CI)
+      against <путь>/crossplay.txt: match
+    brawl-resim-bench: PASS
+
+  Android заканчивает строкой «[mobile-bench] PASS». Бенч идёт секунды (на
+  маке 600 кадров — меньше 0.1 с, телефон медленнее в разы), скрипт ждёт
+  вердикт до 3 минут. Всё, кроме двух строк frame и первой, обязано
+  совпасть с этим листом дословно: другой fight hash или «against …: DIFFER»
+  — телефон посчитал другую драку, это дефект, а не шум. Строки «FAIL: …» —
+  дефект. На Android «asset unpack failed: crossplay.txt» — файл не доехал
+  из APK.
+
+  Прогнать ДВАЖДЫ (повторный Cmd+R или повтор команды) и записать худшее
+  p99. Бенч гоняет кадры подряд без пауз, игра на 60 Гц простаивает между
+  ними — телефон может держать для бенча частоту выше игровой; два прогона
+  это сужают, но не снимают. Порога нет: решение, хватает ли доли кадра на
+  откат 8 тиков и 8 врагов, — ваше, замер может их только понизить.
+  Прислать: модель телефона, строку [bench], две строки frame худшего
+  прогона, строку against и вердикт.
+
+  Агенту без телефона доступна та же сборка в симуляторе (цифры времени
+  там — мака, а не телефона, гейт она не закрывает):
+
+    bash scripts/mobile_bench.sh ios-sim
+
 --- S. SDK и своя игра: neon-rumble против префикса (спека #24, В1, В4, В5) ---
 
   Игра в games/neon-rumble собирается НЕ деревом, а против поставленного

@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 34 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 20 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 35 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 21 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -55,6 +55,7 @@ closed ones (§18, §20, §21) keep their steps as they were run; re-running one
 | The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
 | Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
 | Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
+| The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/ios/bench_app.mm`, `platform/android/bench_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -4383,9 +4384,44 @@ Banderas on the rope.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 34. Gate 14 of #25 — the resim bench on the weakest phone
+
+<!-- gate: open | самый слабый телефон (iOS или Android): bash scripts/mobile_bench.sh ios-device или android после зелёного CI на HEAD (шаг 6 §R owner-setup.txt); два прогона, ждать «against …: match» и «brawl-resim-bench: PASS»; прислать строку [bench], строки frame p50/p99 худшего прогона и вердикт -->
+
+B9d of spec #25 builds `brawl_resim_bench` as the second entry of the iOS and Android shells: the same
+function the desktop bench and CI run, in an app with a black screen and no game
+(`com.likenes.resimbench`). It plays the fight at the umbrella budget — 2 players, 8 enemies with AI,
+4 crates and 12 shots — and rolls back 8 ticks on every one of 600 frames. Two answers come out of it,
+and only the phone can give them:
+
+- **the hashes**: the 14 crossplay scenarios computed on the phone must equal `crossplay-macOS.txt`
+  of the CI run of the same commit, which `scripts/mobile_bench.sh` downloads and packs into the app.
+  CI already holds the three desktop OSes equal; this is the ARM phone, its compiler and its libc;
+- **the time**: `frame p50` and `frame p99`, each also as a share of a 16.6 ms frame. On the M-series
+  Mac it is p50 ≈ 43 us, p99 ≈ 49 us (0.25-0.28 %).
+
+There is no threshold to pass on the time. The rollback depth of 8 ticks and the 8 enemies are the
+umbrella's decisions, and the measurement can only lower them: if p99 on the slowest phone you own is
+a share of a frame you would not spend on rollback, say so, and the spec is changed — B9g records it.
+
+The bench runs its 600 frames back to back, with no pause between them, while the game at 60 Hz idles
+between frames; a phone may hold a higher clock for the bench than it would for the game. Running it
+twice and keeping the worse p99 narrows that, it does not remove it.
+
+Steps: [`owner-setup.txt`](owner-setup.txt), section R, step 6 — the command for iOS and for Android
+and the output, line by line. Push first and let CI go green on that commit (`bash scripts/ci_watch.sh`):
+without a green run for HEAD the script has no file to judge against and says so.
+
+What counts as a finding: `against …: DIFFER` (the phone computed a different fight — the hash lines
+under it are CI's, the ones above are the phone's), any `FAIL:` line, no `brawl-resim-bench:` line in
+three minutes, `asset unpack failed: crossplay.txt` on Android.
+
+Send back: the phone, the `[bench]` line, the two `frame` lines of the worse of two runs, the
+`against` line and the verdict.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 34 are closed, and the open 20 are listed by
+The gates above are what the ADRs waited on; 14 of the 35 are closed, and the open 21 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

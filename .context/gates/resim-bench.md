@@ -2,10 +2,13 @@
 
 ```
 ./build/brawl_resim_bench [--against <файл crossplay>]   # CI × 3 ОС, после шага crossplay
+bash scripts/mobile_bench.sh ios-sim|ios-device|android  # телефон, ручной гейт §34 владельца
 ```
 
-Спека #25, В9в (2026-10-14). Цель — `engine/framework/ai/brawl_resim_bench.cpp`, драка —
+Спека #25, В9в (2026-10-14). Тело — `framework::ai::bench::run_resim_bench(against)` в
+`engine/framework/ai/resim_bench.cpp` (библиотека `resim_bench`), драка —
 `framework::ai::bench::Fight` в `framework_ai_bench_fight.hpp` (Sim для `rollback::Session`).
+Десктопный вход — `brawl_resim_bench.cpp`: только разбор `--against`.
 
 Драка: 2 игрока (`scripted`), 8 врагов с мозгом `APPROACH`, 4 ящика (hp 30) и 12 снарядов
 (жизнь 24 тика) — ровно `POOL_CAPACITY` 26. Бойцы не умирают (`TOUGH`): мозг снимается только
@@ -40,3 +43,44 @@ PASS — детерминизм и полнота бюджета, **не вре�
 
 macOS M-серии, Release: снапшот 5904 B, кадр p50 ≈ 43 us (0.25 % кадра), p99 ≈ 49 us; за 600
 кадров попаданий 2210, пик 9 из 64 за тик.
+
+## Мобильный вход (В9г, 2026-10-14)
+
+Тот же `run_resim_bench` — второй вход iOS- и Android-оболочки: опция CMake
+`LIKE_NES_MOBILE_BENCH=ON` (`platform/mobile/resim_bench.cmake`) собирает вместо игры приложение
+`com.likenes.resimbench` без UI (чёрный экран), каталоги `build-ios-bench`, `build-ios-bench-device`,
+`build-android-bench`. Файл, против которого бенч судит хеши, — `LIKE_NES_BENCH_AGAINST`: CMake
+копирует его в `<build>/resim_bench/crossplay.txt`, а оттуда — в `assets/crossplay.txt` бандла
+(iOS) или APK (Android распаковывает его `unpack_apk_asset` во `internalDataPath/bench`). Опция без
+файла — `FATAL_ERROR` при конфигурировании: бенч на телефоне без сверки хешей ответил бы только
+на половину гейта.
+
+- iOS: `platform/ios/bench_app.mm` — строка `[bench] iOS <версия>, <машина>`, бенч на очереди
+  `QOS_CLASS_USER_INTERACTIVE` вне главного потока, stdout построчный → консоль Xcode
+  (`simctl launch --stdout` в симуляторе). Цель `like_nes_resim_bench`, свойства бандла общие с
+  игрой (`ios_bundle`). wgpu-native и cargo не собираются: 186 шагов Ninja.
+- Android: `platform/android/bench_main.cpp` (`libbench.so`, манифест `bench/AndroidManifest.xml`)
+  — строка `[bench] Android <версия> (API n), <производитель> <модель>, soc <soc>`, бенч в своём
+  потоке, stdout → logcat тегом `like-nes`. APK — `build_apk.sh --bench <файл>`.
+- `scripts/mobile_bench.sh` без `--against` берёт `crossplay-macOS` последнего зелёного прогона
+  `ci.yml` для HEAD (`gh run download`) в `build-mobile-bench/<sha>/`; прогона нет — FAIL с советом
+  `ci_watch.sh`. Файл macOS, а не любой: кроссплей-джоб уже утверждает равенство трёх ОС, и одного
+  достаточно. `ios-sim` и `android` ждут вердикт до 180 с и судят `brawl-resim-bench: PASS`;
+  `ios-device` открывает проект Xcode (подпись — команда владельца, `--team` или вкладка Signing).
+
+Проверено агентом 2026-10-14: сборка под симулятор (Ninja) и под iPhone (`xcodebuild … -sdk
+iphoneos CODE_SIGNING_ALLOWED=NO`) без предупреждений, в бандле `assets/crossplay.txt` побайтово
+равен файлу CI 38485741863, plist `com.likenes.resimbench` / `SceneDelegate`; APK
+`build_apk.sh --bench` без предупреждений компилятора, `libbench.so` экспортирует
+`ANativeActivity_onCreate`, libc++ статический, `assets/crossplay.txt` в APK; игровой APK
+собирается как прежде; опция без файла — `FATAL_ERROR` своей строкой. **НЕ прогнано:** запуск в
+симуляторе — рантайм iOS 27 на машине удалён, загрузка 8 ГБ отложена владельцем. Долг — прогон
+`bash scripts/mobile_bench.sh ios-sim` и мутант файла (`--against` с изменённым хешем → FAIL).
+
+Риск устаревания: `xcompile_verify.sh` и CI собирают оболочки только с игрой; мобильный вход
+бенча не собирает никто, кроме `mobile_bench.sh`. Тронута сигнатура `run_resim_bench`,
+`apk_assets` или `platform/ios/CMakeLists.txt` — прогнать `mobile_bench.sh ios-sim`.
+
+Темп: бенч гоняет 600 кадров подряд без пауз, а игра на 60 Гц простаивает между кадрами, поэтому
+DVFS телефона может дать бенчу частоту выше игровой. Если p99 близок к решению — вариант с паузой
+до 16.6 мс между кадрами (не сделан, решение владельца).

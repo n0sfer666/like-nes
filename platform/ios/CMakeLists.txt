@@ -11,6 +11,30 @@ if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
 endif()
 
 set(MOBILE ${CMAKE_SOURCE_DIR}/platform/mobile)
+set_source_files_properties(${LICENSE_FILES} PROPERTIES
+  MACOSX_PACKAGE_LOCATION Resources/licenses HEADER_FILE_ONLY ON)
+
+function(ios_bundle target id name)
+  set_target_properties(${target} PROPERTIES
+    MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
+    MACOSX_BUNDLE_EXECUTABLE_NAME ${target}
+    MACOSX_BUNDLE_GUI_IDENTIFIER ${id}
+    MACOSX_BUNDLE_BUNDLE_NAME ${name}
+    XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${id})
+endfunction()
+
+include(${MOBILE}/resim_bench.cmake)
+if(LIKE_NES_MOBILE_BENCH)
+  add_executable(like_nes_resim_bench MACOSX_BUNDLE
+    ${LICENSE_FILES} ${RESIM_BENCH_AGAINST} ${CMAKE_CURRENT_SOURCE_DIR}/bench_app.mm)
+  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/bench_app.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+  set_source_files_properties(${RESIM_BENCH_AGAINST} PROPERTIES MACOSX_PACKAGE_LOCATION assets HEADER_FILE_ONLY ON)
+  target_link_libraries(like_nes_resim_bench PRIVATE resim_bench "-framework UIKit" "-framework Foundation")
+  ios_bundle(like_nes_resim_bench com.likenes.resimbench like-nes-bench)
+  set_target_properties(like_nes_resim_bench PROPERTIES XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic)
+  return()
+endif()
+
 # Бандлы игры кладутся в `assets/` внутри `.app`: `resolve_asset` ищет `<exe_dir>/assets/<имя>`, а
 # у iOS-приложения exe_dir и есть корень бандла — оболочке не нужно подсовывать путь окружением.
 set(GAME_BUNDLES game.bundle library.bundle audio.bundle)
@@ -29,17 +53,10 @@ target_link_libraries(like_nes_ios PRIVATE
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")
 
-set_source_files_properties(${LICENSE_FILES} PROPERTIES
-  MACOSX_PACKAGE_LOCATION Resources/licenses HEADER_FILE_ONLY ON)
 set_source_files_properties(${GAME_BUNDLES} PROPERTIES
   MACOSX_PACKAGE_LOCATION assets HEADER_FILE_ONLY ON)
 
-set_target_properties(like_nes_ios PROPERTIES
-  MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist.in
-  MACOSX_BUNDLE_EXECUTABLE_NAME like_nes_ios
-  MACOSX_BUNDLE_GUI_IDENTIFIER com.likenes.sidescroller
-  MACOSX_BUNDLE_BUNDLE_NAME like-nes
-  XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER com.likenes.sidescroller)
+ios_bundle(like_nes_ios com.likenes.sidescroller like-nes)
 
 # UI-тест живёт только в проекте Xcode: раннер XCUITest собирает и ставит xcodebuild, у Ninja его нет.
 if(CMAKE_GENERATOR STREQUAL "Xcode")

@@ -11,5 +11,6 @@ namespace game {
 // true — доехал game.bundle: без него игры нет, а без материалов или звука она деградирует, как
 // на десктопе. Каждый недоехавший бандл назван в logcat.
 bool unpack_apk_assets(AAssetManager* am, const std::string& dir);
+bool unpack_apk_asset(AAssetManager* am, const char* name, const std::string& dir);
 
 } // namespace game
