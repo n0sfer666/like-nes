@@ -7,6 +7,7 @@
 #include "body_guard.hpp"
 #include "checkpoint_step.hpp"
 #include "rumble_fighter_quads.hpp"
+#include "rumble_label.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_roster_quads.hpp"
 
@@ -32,19 +33,6 @@ const char* reaction_name(br::Reaction r) {
     }
     return "stand";
 }
-
-// В режиме волны тел одного вида несколько, и метка несёт seq; вне волны строки прежние.
-struct Label { std::array<char, 32> text{}; };
-
-Label label(const Brawl& brawl, br::EntId id, uint8_t kind) {
-    Label l;
-    const char* name = kind_name(kind);
-    if (brawl.wave.on) std::snprintf(l.text.data(), l.text.size(), "%s#%u", name, id.seq);
-    else std::snprintf(l.text.data(), l.text.size(), "%s", name);
-    return l;
-}
-
-Label label(const Brawl& brawl, const br::Body& b) { return label(brawl, b.id, b.kind); }
 
 uint32_t slot_of(const br::BodyPool& pool, br::EntId id) {
     for (uint32_t i = 0; i < pool.count; ++i)

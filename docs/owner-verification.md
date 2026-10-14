@@ -3440,6 +3440,7 @@ backslashes).
        neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
        neon-rumble: seat tick 2: P2 joining
        neon-rumble: seat tick 3: P2 present
+       neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
        neon-rumble: react tick 31: rainbird block
        neon-rumble: react tick 41: rainbird stand
        neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94

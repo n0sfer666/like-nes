@@ -29,6 +29,8 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_lib.sh"
 # shellcheck source=scripts/sdk_game_run.sh
 . "$ROOT/scripts/sdk_game_run.sh"
+# shellcheck source=scripts/sdk_game_coop.sh
+. "$ROOT/scripts/sdk_game_coop.sh"
 # shellcheck source=scripts/sdk_game_bounds.sh
 . "$ROOT/scripts/sdk_game_bounds.sh"
 
@@ -66,6 +68,7 @@ for cfg in Release Debug; do
         game_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_wave_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_knife_run "$OUT/game-$cfg" "$cfg" || FAIL=1
+        game_coop_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_menu_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
     else

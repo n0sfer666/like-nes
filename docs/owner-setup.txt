@@ -1907,6 +1907,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
+      neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
       neon-rumble: react tick 31: rainbird block
       neon-rumble: react tick 41: rainbird stand
       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
@@ -1976,6 +1977,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
       neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
       sdk-game: OK   Release: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
+      sdk-game: OK   Release: --coop ran 6720 headless frames: two players through both arenas and the platform section, P2 joined back at 1817 in view inside the section
       sdk-game: OK   Release: --level nope returned to the menu with the load_level refusal
       sdk-game: OK   Release: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
       neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
@@ -2002,6 +2004,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
       neon-rumble: seat tick 2: P2 joining
       neon-rumble: seat tick 3: P2 present
+      neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
       neon-rumble: react tick 31: rainbird block
       neon-rumble: react tick 41: rainbird stand
       neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
@@ -2071,6 +2074,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
       neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
       neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
       sdk-game: OK   Debug: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
+      sdk-game: OK   Debug: --coop ran 6720 headless frames: two players through both arenas and the platform section, P2 joined back at 1817 in view inside the section
       sdk-game: OK   Debug: --level nope returned to the menu with the load_level refusal
       sdk-game: OK   Debug: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
       sdk-game: OK   fixture: internal header is not in the prefix
