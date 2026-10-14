@@ -80,7 +80,8 @@ iphoneos CODE_SIGNING_ALLOWED=NO`) без предупреждений, в ба�
 46.8 мкс, `[mobile-bench] PASS`. Мутант: `--against` с `run-slide …66` → `…67` — `DIFFER`,
 `brawl-resim-bench: FAIL`, `[mobile-bench] FAIL`. Рантайм 18.6 взят из бандла MobileAsset на диске
 (`xcodebuild -importPlatform <…/AssetData/*.dmg>`; `simctl runtime add` на нём падает — бандл
-только для чтения); iOS 27 сети не поддался.
+только для чтения). Позже докачан iOS 27.0 (24A434): тот же прогон против CI 38570513796 (`0edac74`) —
+`match`, p50 43.0 мкс, p99 80.5 мкс, PASS.
 
 Риск устаревания: `xcompile_verify.sh` и CI собирают оболочки только с игрой; мобильный вход
 бенча не собирает никто, кроме `mobile_bench.sh`. Тронута сигнатура `run_resim_bench`,
