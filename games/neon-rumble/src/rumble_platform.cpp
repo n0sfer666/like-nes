@@ -47,6 +47,7 @@ bool Platform::open(const Level& lv, const sc::LevelObjects& level) {
     return true;
 }
 
+// docs:begin(platform-reach)
 br::DepthFloor Platform::reach(const br::DepthFloor& floor, const sc::LevelObjects& level, int16_t cleared) const {
     br::DepthFloor out = floor;
     if (!world) return out;
@@ -55,5 +56,6 @@ br::DepthFloor Platform::reach(const br::DepthFloor& floor, const sc::LevelObjec
         if (s.mode == sc::SectionMode::Platform) out.band.x1 = framework::max_fix(out.band.x1, s.area.rect.x1);
     return out;
 }
+// docs:end(platform-reach)
 
 } // namespace rumble

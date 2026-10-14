@@ -13,6 +13,7 @@ namespace {
 
 namespace br = framework::brawl;
 
+// docs:begin(kind-open)
 bool open_kind(const Level& level, const Fighter& f, br::Archetype& out, int32_t& hp) {
     const std::string table = std::string(f.name) + "_fighter";
     const uint8_t* data = nullptr;
@@ -35,6 +36,7 @@ bool open_kind(const Level& level, const Fighter& f, br::Archetype& out, int32_t
     hp = static_cast<int32_t>(t.hp());
     return true;
 }
+// docs:end(kind-open)
 
 bool key_move(const Fighter& f, const br::Archetype& a, const char* tag, uint16_t& out) {
     if (br::find_named(a, tag, out)) return true;

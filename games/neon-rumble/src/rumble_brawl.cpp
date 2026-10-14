@@ -141,12 +141,15 @@ void Brawl::step() {
     }
     for (uint32_t i = 0; i < knocked.count; ++i) pool.despawn(knocked.at[i].body);
     br::drop_spent(pool, kinds.types, wave.on ? &wave.sections : nullptr);
+    // docs:begin(seat-step)
     std::array<br::BrawlInput, br::SEATS> inputs{};
     for (uint32_t p = 0; p < br::SEATS; ++p) inputs[p] = players[p].input;
     br::step_seats(seats, pool, inputs, entry_points(*this));
     remember(*this, 0);
     std::array<br::Command, br::POOL_CAPACITY> commands{};
     br::seat_commands(seats, pool, inputs, commands);
+    // docs:end(seat-step)
+    // docs:begin(brawl-step)
     for (uint32_t i = 0; i < pool.count; ++i) {
         const br::Body& b = pool.bodies[i];
         if (b.team == 0 && b.kind < br::SEATS)
@@ -160,6 +163,7 @@ void Brawl::step() {
     const uint32_t before = pool.count;
     wave.step(pool, seats, world, commands, events);
     remember(*this, before);
+    // docs:end(brawl-step)
 }
 
 DrawOrder Brawl::draw_order() const {

@@ -32,6 +32,7 @@ uint32_t players(const br::Seats& seats) {
 
 } // namespace
 
+// docs:begin(wave-entry)
 void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& level_floor) const {
     const br::DepthFloor floor = platform.reach(level_floor, level, waves.cleared);
     const framework::scene::Checkpoint* cp = br::find_checkpoint(level, progress.checkpoint);
@@ -53,7 +54,9 @@ void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& level_
         if (on_floor(floor, x, b.pos.z)) b.pos.x = x;
     }
 }
+// docs:end(wave-entry)
 
+// docs:begin(wave-step)
 void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world, std::span<br::Command> commands,
                 br::HitEvents& events) {
     world.level = &level;
@@ -87,6 +90,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
         spawned[spawned_count++] = id;
     }
 }
+// docs:end(wave-step)
 
 uint64_t Wave::hash() const {
     uint64_t h = ai::ai_hash(ai);

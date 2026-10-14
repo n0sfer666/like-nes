@@ -38,6 +38,7 @@ bool Hotseat::open() {
     return true;
 }
 
+// docs:begin(hotseat-tick)
 bool Hotseat::tick(uint32_t t, Players& out) {
     engine_.drain();
     lobby_.update(engine_.device());
@@ -53,6 +54,7 @@ bool Hotseat::tick(uint32_t t, Players& out) {
     report(t);
     return !lobby_.paused();
 }
+// docs:end(hotseat-tick)
 
 void Hotseat::report(uint32_t t) {
     for (uint32_t p = 0; p < was_.size(); ++p) {
