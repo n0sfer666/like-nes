@@ -1611,7 +1611,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Поставить (один раз, только macOS):
     - Xcode 27 + рантайм iOS 27.0 (Xcode → Settings → Components);
     - rustup target add aarch64-apple-ios-sim aarch64-apple-ios aarch64-linux-android
-      (wgpu-native под мобиле собирается из Rust, первая сборка — минуты);
+      x86_64-linux-android
+      (wgpu-native под мобиле собирается из Rust, первая сборка — минуты;
+      x86_64 — для эмулятора и CI: bash platform/android/build_apk.sh --abi x86_64);
     - Android SDK в ~/Library/Android/sdk: ndk;28.2.13676358,
       platforms;android-35, build-tools;35.0.0, platform-tools
       (sdkmanager --licenses — один раз).
@@ -1762,8 +1764,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   back» или «stopped again within 5 s» — дефект. iPhone нужен с iOS 17.0
   или новее (минимум приложения); запуск ниже iOS 27 не прогонялся никем.
 
-  5) Android-устройство (НЕ прогнано агентом: устройства нет). APK подписан
-  отладочным ключом ~/.android/debug.keystore:
+  5) Android-устройство (НЕ прогнано агентом: устройства нет). Нужен Android 10
+  (API 29) или новее: minSdkVersion манифеста, ниже adb install ответит
+  INSTALL_FAILED_OLDER_SDK. APK подписан отладочным ключом ~/.android/debug.keystore:
 
     ~/Library/Android/sdk/platform-tools/adb install -r build-android/apk/like_nes.apk
     ~/Library/Android/sdk/platform-tools/adb logcat -c

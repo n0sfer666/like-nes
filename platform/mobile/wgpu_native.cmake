@@ -31,7 +31,14 @@ if(NOT DEFINED WGPU_RUST_TARGET)
       set(WGPU_RUST_TARGET "aarch64-apple-ios")
     endif()
   elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    set(WGPU_RUST_TARGET "aarch64-linux-android")
+    # Тройка Rust совпадает с каталогом sysroot NDK и префиксом его clang: одна тройка на ABI.
+    if(ANDROID_ABI STREQUAL "arm64-v8a")
+      set(WGPU_RUST_TARGET "aarch64-linux-android")
+    elseif(ANDROID_ABI STREQUAL "x86_64")
+      set(WGPU_RUST_TARGET "x86_64-linux-android")
+    else()
+      message(FATAL_ERROR "wgpu_native.cmake: unsupported ANDROID_ABI '${ANDROID_ABI}'")
+    endif()
   else()
     message(FATAL_ERROR "wgpu_native.cmake: set WGPU_RUST_TARGET for ${CMAKE_SYSTEM_NAME}")
   endif()
@@ -46,16 +53,25 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
   set(WGPU_CARGO_ENV ${CMAKE_COMMAND} -E env
     "IPHONEOS_DEPLOYMENT_TARGET=${CMAKE_OSX_DEPLOYMENT_TARGET}")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
-  if(NOT DEFINED ANDROID_PLATFORM_LEVEL)
-    set(ANDROID_PLATFORM_LEVEL 24)
+  # Тулчейн NDK без -DANDROID_PLATFORM молча берёт свой минимум (21): .so и wgpu-native собрались
+  # бы под bionic ниже, чем обещает манифест. Источник уровня — манифест игры.
+  file(STRINGS "${CMAKE_SOURCE_DIR}/platform/android/AndroidManifest.xml" _min_sdk
+       REGEX "android:minSdkVersion=\"[0-9]+\"" LIMIT_COUNT 1)
+  string(REGEX REPLACE ".*android:minSdkVersion=\"([0-9]+)\".*" "\\1" _min_sdk "${_min_sdk}")
+  if(NOT ANDROID_PLATFORM_LEVEL STREQUAL _min_sdk)
+    message(FATAL_ERROR "wgpu_native.cmake: ANDROID_PLATFORM_LEVEL '${ANDROID_PLATFORM_LEVEL}' differs from minSdkVersion '${_min_sdk}' of platform/android/AndroidManifest.xml; configure with -DANDROID_PLATFORM=android-${_min_sdk}")
   endif()
   set(_tcbin "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/bin")
-  set(_lk "${_tcbin}/aarch64-linux-android${ANDROID_PLATFORM_LEVEL}-clang")
+  set(_lk "${_tcbin}/${WGPU_RUST_TARGET}${ANDROID_PLATFORM_LEVEL}-clang")
+  string(REPLACE "-" "_" _triple_us "${WGPU_RUST_TARGET}")
+  string(TOUPPER "${_triple_us}" _triple_up)
   set(WGPU_CARGO_ENV ${CMAKE_COMMAND} -E env
-    "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=${_lk}"
-    "CC_aarch64_linux_android=${_lk}"
-    "AR_aarch64_linux_android=${_tcbin}/llvm-ar")
+    "CARGO_TARGET_${_triple_up}_LINKER=${_lk}"
+    "CC_${_triple_us}=${_lk}"
+    "AR_${_triple_us}=${_tcbin}/llvm-ar")
 endif()
+# Гейт wgpu-pin читает её из кэша: у мобильной сборки нет блоба релиза, есть тег и тройка.
+set(WGPU_SOURCE_TARGET "${WGPU_RUST_TARGET}" CACHE INTERNAL "Rust target of the wgpu-native source build")
 
 add_custom_command(
   OUTPUT "${WGPU_LIB}"
@@ -70,6 +86,9 @@ unset(_wgpu_patched)
 unset(_wgpu_apply)
 unset(_tcbin)
 unset(_lk)
+unset(_triple_us)
+unset(_triple_up)
+unset(_min_sdk)
 
 set(WGPU_SHIM "${wgpu_native_src_SOURCE_DIR}/webgpu_shim")
 file(MAKE_DIRECTORY "${WGPU_SHIM}/webgpu")

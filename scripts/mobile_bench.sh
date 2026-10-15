@@ -104,7 +104,9 @@ ios-device)
   open "$B/like_nes.xcodeproj"
   ;;
 android)
-  ADB="${ANDROID_HOME:-$HOME/Library/Android/sdk}/platform-tools/adb"
+  # shellcheck source=platform/android/android_sdk.sh
+  . "$ROOT/platform/android/android_sdk.sh"
+  ADB="$SDK/platform-tools/adb"
   [ -x "$ADB" ] || fail "no adb at $ADB (Android SDK Platform-Tools)"
   LOG="$ROOT/build-android-bench/bench.log"
   mkdir -p "$ROOT/build-android-bench"

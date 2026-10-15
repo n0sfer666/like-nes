@@ -73,7 +73,15 @@
 - **SDK iOS 27 требует жизненный цикл UIScene**: `app.mm` — `SceneDelegate`, манифест сцены в
   `Info.plist.in`; `UIScreen.mainScreen` → `traitCollection.displayScale`.
 - **bionic API 24**: нет `posix_spawn*` (API 28), `addclosefrom_np` (API 34), `shm_open` вовсе —
-  `platform_process_android.cpp` и `platform_shmem_android.cpp` — явные отказы шва.
+  `platform_process_android.cpp` и `platform_shmem_android.cpp` — явные отказы шва. С #26 В1а
+  `minSdkVersion` = 29: источник — `<uses-sdk>` манифеста игры, `build_apk.sh` передаёт его
+  `-DANDROID_PLATFORM`, манифест бенча обязан совпасть, `wgpu_native.cmake` сверяет
+  `ANDROID_PLATFORM_LEVEL` с манифестом (тулчейн без флага молча взял бы 21). Отказы шва — как были.
+- **SDK и NDK** — `platform/android/android_sdk.sh` (его же подключает `mobile_bench.sh`): пин NDK
+  сверяется с `Pkg.Revision` выбранного каталога, `ANDROID_NDK_HOME` раннера GitHub не подменит его.
+- **ABI** (#26 В1а): `build_apk.sh --abi arm64-v8a|x86_64` (умолчание arm64-v8a), каталог
+  `build-android[-bench][-x86_64]`; Rust-цель wgpu-native — из `ANDROID_ABI`, уровень API — из
+  `ANDROID_PLATFORM_LEVEL` без умолчания. Хост — по `uname -s` (darwin-x86_64 / linux-x86_64).
 - **stdout NativeActivity уходит в /dev/null** — `platform/android/stdout_logcat.cpp` заворачивает
   его в logcat (тег `like-nes`), иначе стартовые строки на устройстве не видны.
 - **Статический wgpu_native дважды в строке линковки** → `ld: ignoring duplicate libraries` на
