@@ -5,7 +5,8 @@
 # обе.
 #
 #   bash scripts/ios_sim_run.sh                    # играть
-#   bash scripts/ios_sim_run.sh --background-save  # уход в фон пишет achievements.save
+#   bash scripts/ios_sim_run.sh --background-save  # уход в фон пишет achievements.save, возврат
+#                                                  # подключает поверхность к тому же миру
 #
 # Скриптом, а не командами в runbook'е: повторный `simctl create` заводил двойника, и команды по
 # имени устройства выбирали из двух; `simctl boot` уже загруженного падал; сам `boot` окна не
@@ -87,4 +88,21 @@ for _ in $(seq 60); do
 done
 [ -f "$SAVE" ] || fail "no achievements.save 60 s after going to background: the background save is broken"
 ok "background save wrote $(stat -f %z "$SAVE") bytes to $SAVE"
+# Возврат из фона: запуск уже живого приложения выводит его вперёд, а не стартует заново. Счётчик
+# attach живёт в процессе, поэтому `#2` — улика того же процесса. Мир при `#2` обязан совпасть с
+# миром при снятии поверхности: мир, пересозданный в attach, сохранил бы тик, но не хеш.
+xcrun simctl launch "$UDID" "$APP" >/dev/null || fail "cannot bring $APP back to foreground"
+for _ in $(seq 30); do
+  grep -q "surface attached #2 " "$ERR" && break
+  sleep 1
+done
+T1=$(sed -n 's/.*surface attached #1 tick=\([0-9]*\).*/\1/p' "$ERR" | head -1)
+A2=$(sed -n 's/.*surface attached #2 \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$ERR" | head -1)
+D1=$(sed -n 's/.*surface detached \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$ERR" | head -1)
+[ -n "$T1" ] && [ -n "$A2" ] || fail "no second surface attach 30 s after returning to foreground — $ERR"
+[ -n "$D1" ] || fail "no surface detach line before the second attach — $ERR"
+[ "$A2" = "$D1" ] || fail "second attach at $A2, detach at $D1: the world restarted instead of surviving"
+T2=${A2#tick=}; T2=${T2%% *}
+[ "$T2" -gt "$T1" ] || fail "second attach at tick $T2, first at $T1: no frames ran before going to background"
+ok "foreground re-attached the surface at $A2, as detached (first attach at tick $T1)"
 echo "[ios-run] PASS"

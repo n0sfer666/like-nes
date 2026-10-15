@@ -1,5 +1,7 @@
 #import <UIKit/UIKit.h>
 
+#include <cstdio>
+
 @interface GameViewController : UIViewController
 @end
 
@@ -29,6 +31,8 @@
 @end
 
 int main(int argc, char* argv[]) {
+    // Построчно, а не блоком: строки бенча и игры читает гейт из --console-pty, пока процесс жив.
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
     @autoreleasepool {
         return UIApplicationMain(argc, argv, nil, NSStringFromClass([AppDelegate class]));
     }

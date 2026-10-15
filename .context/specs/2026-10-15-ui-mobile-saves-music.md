@@ -128,7 +128,7 @@
   `wgpu_native.cmake` (Rust-цель, линкер, `CC`/`AR` из triple). Сборка с `-DANDROID_PLATFORM=android-29`,
   `uses-sdk minSdkVersion=29` в манифесте. Бенч-APK `--bench` и гейт `wgpu-pin` — на той же
   параметризации.
-- Шутер переезжает на интерфейс как есть: `ugly::MobileGame : mobile::Game`, его логика касаний
+- Шутер переезжает на интерфейс как есть: `game::MobileGame : mobile::Game`, его логика касаний
   остаётся до В2.
 - Гейт `sdk-game` получает мобильную половину: Neon Rumble собирается против поставленного SDK для
   iOS-симулятора (macOS-хост) и `android-x86_64` (Linux-хост CI) — сборка без запуска. Префикс

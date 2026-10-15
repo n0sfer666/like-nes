@@ -149,8 +149,39 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 - **Улики.** Гейт в начале прогона удаляет `ios-sim-gate.*` старше четырёх последних.
 
 - **Второй вход — бенч ресима (спека #25, В9г).** `-DLIKE_NES_MOBILE_BENCH=ON
-  -DLIKE_NES_BENCH_AGAINST=<файл>` собирает вместо игры `com.likenes.resimbench` (iOS —
-  `bench_app.mm`, Android — `bench_main.cpp` + `bench/AndroidManifest.xml`); обе
+  -DLIKE_NES_BENCH_AGAINST=<файл>` собирает вместо игры `com.likenes.resimbench` (та же оболочка,
+  другая `mobile::Game` — `platform/mobile/bench_game.cpp`; Android — ещё
+  `bench/AndroidManifest.xml`); обе
   `CMakeLists.txt` делают `return()` до цели игры. Каталоги `build-ios-bench`,
   `build-ios-bench-device`, `build-android-bench` — свои, кэш игры не трогают. Устройство и риски —
   [`gates/resim-bench.md`](../gates/resim-bench.md).
+
+## Оболочка и игра (спека #26, В1б)
+
+- Оболочка — статическая библиотека `like_nes_mobile` в каждой ОС: iOS — `app.mm`, `view.mm`,
+  `host.mm`; Android — `native_main.cpp`, `android_host.cpp`, `apk_assets.cpp`,
+  `stdout_logcat.cpp`; обе несут `engine/render/gpu.cpp` (из `GAME_CORE_SRC` цели игры он
+  вычеркнут `list(REMOVE_ITEM)`). Игру она получает через `mobile::make_game()`
+  (`platform/mobile/mobile_app.hpp`), услуги отдаёт через `mobile_host.hpp` (`asset_path`,
+  `has_arg`, `device_info`).
+- Жизнь игры и поверхности разведены: `init`/`shutdown` — раз на процесс, `attach_surface`/
+  `detach_surface` — на каждом уходе в фон (iOS: `UISceneDidEnterBackground` снимает поверхность,
+  Android: `APP_CMD_TERM_WINDOW`). Шутер строит bloom/материалы/батч на attach и рвёт на detach;
+  мир, звук и достижения живут дольше. Улика — stderr `[game] surface detached tick=T world=H` и
+  `[game] surface attached #N tick=T world=H` (`world` — `sim_hash`): после возврата из фона пара
+  совпадает.
+- `wants_frames()` решает, будит ли оболочка петлю: false — Android ждёт событий без таймаута,
+  iOS ставит `CADisplayLink` на паузу, до следующего attach/resize. Бенч кадров не просит вовсе;
+  шутер — пока у него есть цели поверхности и устройство не потеряно.
+- Потеря устройства уходом в фон не лечится: GPU оболочка не пересоздаёт, шутер перестаёт просить
+  кадры, картинку возвращает только перезапуск. Решение В1б, а не забытое: пересоздание GPU с
+  сохранением мира — отдельная работа, а теряется устройство на телефоне редко.
+- `suspend`/`resume` — о жизни на переднем плане, не о поверхности: Android шлёт `APP_CMD_RESUME`
+  раньше нового окна, iOS зовёт `resume` после attach. Игра на этот порядок не опирается.
+- Шутер — `example_ugly_game/shooter_mobile.{hpp,cpp}` (`game::MobileGame`) и
+  `shooter_touch.{hpp,cpp}` (стик + кнопка-огонь, `fire_btn`), стик — `mobile_stick.hpp` там же.
+  Бенч ресима — `platform/mobile/bench_game.cpp`: счёт в своём потоке с первого `init`, GPU и
+  окно поднимаются и для него (на Android — нужен разблокированный экран).
+- Android распаковывает ВСЕ файлы корня `assets/` APK в `internalDataPath/assets`; какие из них
+  обязательны, знает только игра (без `game.bundle` откажет её `init`).
+- `frame(dt)` шутер не читает: тик 1/60 на кадр, на 120 Гц игра вдвое быстрее — долг до В2.

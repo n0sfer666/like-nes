@@ -156,6 +156,13 @@ void Bloom::shutdown() {
     if (hdr_) wgpuTextureRelease(hdr_);
     if (bloom_a_) wgpuTextureRelease(bloom_a_);
     if (bloom_b_) wgpuTextureRelease(bloom_b_);
+    hdr_ = bloom_a_ = bloom_b_ = nullptr;
+    hdr_view_ = bloom_a_v_ = bloom_b_v_ = nullptr;
+    samp_ = nullptr;
+    ubo_h_ = ubo_v_ = nullptr;
+    bright_bgl_ = blur_bgl_ = tone_bgl_ = nullptr;
+    bright_bg_ = blur_bg_h_ = blur_bg_v_ = tone_bg_ = nullptr;
+    bright_pipe_ = blur_pipe_ = tone_pipe_ = nullptr;
 }
 
 } // namespace game

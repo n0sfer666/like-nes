@@ -64,7 +64,7 @@
     [NSThread sleepForTimeInterval:2.0];
     [self attachScreen:@"launch"];
 
-    // Геометрия — независимый оракул `fire_btn` из mobile_game.cpp, а не его копия по смыслу:
+    // Геометрия — независимый оракул `fire_btn` из example_ugly_game/shooter_touch.cpp, а не его копия по смыслу:
     // уедет кнопка — палец мимо круга, и гейт скажет «огонь не взят», а не пройдёт.
     const CGRect f = window.frame;
     const CGFloat w = f.size.width, h = f.size.height, s = MIN(w, h);

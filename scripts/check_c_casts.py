@@ -46,6 +46,9 @@ NOT_CAST_AFTER = re.compile(r"(?:[\w\])]\s*|>|operator\s*\S{1,3}\s*)$")
 # Объявление начинается `-`/`+` с нулевой колонки и тянется до `{` или `;`: только внутри него
 # `name:(T)x` — параметр. Вне его то же `name:(T)x` — аргумент сообщения или ветвь тернарного.
 OBJC_METHOD = re.compile(r"[-+]\s*\(")
+# Заголовок `.h` общий у C++ и ObjC: объявления методов в нём судятся как в `.mm`, только если он
+# объявляет класс ObjC.
+OBJC_HEADER = re.compile(r"^@(?:interface|protocol)\b", re.M)
 OBJC_DECL = re.compile(r"^\s*[-+]\s*$|^[^\[]*\w:\s*$")
 # `new` сюда не входит: `new (buf) T` — размещение, а не каст.
 EXPR_WORDS = {"return", "case", "co_return", "co_yield", "co_await", "throw", "else", "do", "and",
@@ -114,7 +117,9 @@ def audit(files):
     """files: {путь: текст}. Находки словами."""
     bad = []
     for path in sorted(files):
-        for line, t in casts(files[path], path.endswith(".mm")):
+        text = files[path]
+        objc = path.endswith(".mm") or (path.endswith(".h") and bool(OBJC_HEADER.search(text)))
+        for line, t in casts(text, objc):
             bad.append(f"{path}:{line}: C-style каст `({t})` — static_cast, а на границе C-API "
                        f"reinterpret_cast с обоснованием в комментарии.")
     return bad

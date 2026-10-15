@@ -55,6 +55,8 @@ CASES = [
     ("продолжение ObjC-сообщения", "(int)", "- (void)f:(int)a {\n  [o foo:x\n      with:(int)y];\n}\n",
      "- (void)f:(int)a {\n  [o foo:x\n      with:static_cast<int>(y)];\n}\n"),
     ("ветвь тернарного в .mm", "(int)", "x = c ? a: (int)b;\n", "x = c ? a: static_cast<int>(b);\n"),
+    # Тот же `.h` без `@interface` — C++: строка с `- (` в нём продолжение выражения, а не метод.
+    ("вычитание каста в заголовке C++", "(int)", "y = b\n- (int)x;\n", "y = b\n- static_cast<int>(x);\n"),
 ]
 MM = {"каст внутри .mm", "каст ObjC-сообщения", "аргумент ObjC-сообщения", "продолжение ObjC-сообщения",
       "ветвь тернарного в .mm"}
@@ -78,6 +80,7 @@ QUIET = [
     ("мостовой каст ARC", "id x = (__bridge id)ptr;\n"),
     ("объявление метода Objective-C", "- (BOOL)application:(UIApplication*)app opts:(NSDictionary*)o {\n"),
     ("продолжение объявления Objective-C", "- (void)touchesBegan:(NSSet*)t\n    withEvent:(UIEvent*)e {\n"),
+    ("объявление метода в заголовке ObjC", "@interface P : NSObject\n+ (instancetype)with:(id)target;\n@end\n"),
     ("простое имя в конце строки", "ok = (ready)\n  && other;\nx = c ? (a)\n  : b;\n"),
     ("константа в верхнем регистре", "n = (MAX) - 1;\n"),
     ("вызов шаблона", "y = f<T>(x);\nz = get<Enemy>(e) + 1;\n"),
@@ -94,7 +97,12 @@ GUARDS = [
 ]
 
 
+HEADER = {"вычитание каста в заголовке C++", "объявление метода в заголовке ObjC"}
+
+
 def _path(title, mm):
+    if title in HEADER:
+        return "platform/ios/proxy.h"
     return "platform/ios/view.mm" if title in mm else "engine/core/a.cpp"
 
 

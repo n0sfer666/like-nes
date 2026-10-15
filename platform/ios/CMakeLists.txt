@@ -23,13 +23,30 @@ function(ios_bundle target id name)
     XCODE_ATTRIBUTE_PRODUCT_BUNDLE_IDENTIFIER ${id})
 endfunction()
 
+# Подменяется только живой самопроверкой гейта симулятора: мутант view.mm обязан уронить гейт.
+set(LIKE_NES_IOS_VIEW ${CMAKE_CURRENT_SOURCE_DIR}/view.mm CACHE FILEPATH "UIKit view source of the iOS shell")
+
+# Оболочка — библиотекой, одной на игру и бенч: вход UIKit, слой Metal и жизненный цикл поверхности
+# не знают, какую mobile::Game им отдаст make_game() цели. gpu.cpp едет здесь, а не в игре: контекст
+# поднимает оболочка, до того как игра появится.
+set(SHELL_SRC app.mm host.mm metal_view.mm weak_proxy.mm)
+list(TRANSFORM SHELL_SRC PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+list(APPEND SHELL_SRC ${LIKE_NES_IOS_VIEW})
+add_library(like_nes_mobile STATIC ${SHELL_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
+set_source_files_properties(${SHELL_SRC} PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+target_include_directories(like_nes_mobile PUBLIC ${MOBILE} ${CMAKE_SOURCE_DIR}/engine/render)
+# Свой каталог — явно: мутант view.mm живой самопроверки лежит вне него, а заголовки ищет здесь.
+target_include_directories(like_nes_mobile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(like_nes_mobile PUBLIC webgpu
+  "-framework UIKit" "-framework Metal" "-framework QuartzCore"
+  "-framework Foundation" "-framework CoreGraphics")
+
 include(${MOBILE}/resim_bench.cmake)
 if(LIKE_NES_MOBILE_BENCH)
   add_executable(like_nes_resim_bench MACOSX_BUNDLE
-    ${LICENSE_FILES} ${RESIM_BENCH_AGAINST} ${CMAKE_CURRENT_SOURCE_DIR}/bench_app.mm)
-  set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/bench_app.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    ${LICENSE_FILES} ${RESIM_BENCH_AGAINST} ${MOBILE}/bench_game.cpp)
   set_source_files_properties(${RESIM_BENCH_AGAINST} PROPERTIES MACOSX_PACKAGE_LOCATION assets HEADER_FILE_ONLY ON)
-  target_link_libraries(like_nes_resim_bench PRIVATE resim_bench "-framework UIKit" "-framework Foundation")
+  target_link_libraries(like_nes_resim_bench PRIVATE like_nes_mobile resim_bench)
   ios_bundle(like_nes_resim_bench com.likenes.resimbench like-nes-bench)
   set_target_properties(like_nes_resim_bench PROPERTIES XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic)
   return()
@@ -39,19 +56,15 @@ endif()
 # у iOS-приложения exe_dir и есть корень бандла — оболочке не нужно подсовывать путь окружением.
 set(GAME_BUNDLES game.bundle library.bundle audio.bundle)
 list(TRANSFORM GAME_BUNDLES PREPEND ${CMAKE_SOURCE_DIR}/example_ugly_game/assets/)
-# Подменяется только живой самопроверкой гейта симулятора: мутант view.mm обязан уронить гейт.
-set(LIKE_NES_IOS_VIEW ${CMAKE_CURRENT_SOURCE_DIR}/view.mm CACHE FILEPATH "UIKit view source of the iOS shell")
 
+# GpuContext — уже в оболочке: вторая копия gpu.cpp в игре дала бы дубль символов на линковке.
+list(REMOVE_ITEM GAME_CORE_SRC ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
 add_executable(like_nes_ios MACOSX_BUNDLE
   ${LICENSE_FILES} ${GAME_BUNDLES}
-  ${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${LIKE_NES_IOS_VIEW} ${MOBILE}/mobile_game.cpp)
+  ${GAME_CORE_DIR}/shooter_mobile.cpp ${GAME_CORE_DIR}/shooter_touch.cpp
+  ${GAME_CORE_DIR}/sim_hash.cpp)
 game_core_target(like_nes_ios material_gpu)
-set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/app.mm ${LIKE_NES_IOS_VIEW}
-  PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-target_include_directories(like_nes_ios PRIVATE ${MOBILE})
-target_link_libraries(like_nes_ios PRIVATE
-  "-framework UIKit" "-framework Metal" "-framework QuartzCore"
-  "-framework Foundation" "-framework CoreGraphics")
+target_link_libraries(like_nes_ios PRIVATE like_nes_mobile)
 
 set_source_files_properties(${GAME_BUNDLES} PROPERTIES
   MACOSX_PACKAGE_LOCATION assets HEADER_FILE_ONLY ON)
