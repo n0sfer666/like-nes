@@ -38,12 +38,13 @@ PlayerCommand kick_crate(const br::Body& me, const br::Body& crate, uint32_t t) 
     return c;
 }
 
-// В platform-секции скрипт стоит с левого края первой ленты: дальше его везёт она, а сошедший с неё
-// останавливается сразу.
-bool on_belts(const Brawl& brawl, const br::Body& me) {
+// В platform-секции скрипт стоит с левого края первой ленты: дальше его везёт она. Сошедший с неё
+// без `goal` останавливается сразу, с `goal` — дойдя до него.
+bool on_belts(const Brawl& brawl, const br::Body& me, int32_t goal) {
     if (brawl.wave.sections.find(me.id) == nullptr) return false;
     for (const framework::scene::Conveyor& c : brawl.wave.level.conveyors)
-        if (!(me.pos.x < c.area.rect.x0)) return true;
+        if (!(me.pos.x < c.area.rect.x0))
+            return goal == 0 || me.pos.x < c.area.rect.x1 || !(me.pos.x < fix32::from_int(goal));
     return false;
 }
 
@@ -52,14 +53,14 @@ bool on_belts(const Brawl& brawl, const br::Body& me) {
 PlayerCommand WaveScript::next(const Brawl& brawl, uint32_t t) {
     PlayerCommand c;
     c.input.present = true;
-    const br::Body* me = brawl.pool.find(brawl.seats.at[PLAYER].body);
+    const br::Body* me = brawl.pool.find(brawl.seats.at[seat].body);
     if (me == nullptr) return c;
     if (first == 0) first = me->id.seq;
     const br::Body* foe = framework::ai::nearest_body(brawl.pool, brawl.kinds.types, *me, ROSTER[DUMMY].team);
     if (foe == nullptr) {
         const br::Body* crate = crate_ahead(brawl, *me);
         if (crate != nullptr) return kick_crate(*me, *crate, t);
-        if (!on_belts(brawl, *me)) c.input.move.move_x = fix32::from_int(1);
+        if (!on_belts(brawl, *me, goal)) c.input.move.move_x = fix32::from_int(1);
         return c;
     }
     if (me->id.seq == first) return c;

@@ -81,6 +81,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/seat.hpp framework/brawl/seat_step.hpp framework/brawl/seat_hash.hpp
   framework/brawl/stage_camera.hpp framework/brawl/stage_camera_hash.hpp framework/brawl/stage_step.hpp
   framework/brawl/stage_waves.hpp framework/brawl/stage_waves_hash.hpp framework/brawl/wave_facts.hpp framework/brawl/wave_step.hpp
+  framework/brawl/next_arena.hpp
   framework/brawl/stage_sections.hpp framework/brawl/stage_sections_hash.hpp framework/brawl/platform_world.hpp
   framework/brawl/level_clamp.hpp framework/brawl/level_progress.hpp framework/brawl/progress_hash.hpp
   framework/brawl/checkpoint_step.hpp framework/brawl/death_facts.hpp framework/brawl/living.hpp

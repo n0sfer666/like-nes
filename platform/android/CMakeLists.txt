@@ -10,6 +10,15 @@ target_include_directories(native_app_glue PUBLIC ${GLUE})
 like_nes_vendored_target(native_app_glue)
 like_nes_vendored_headers(native_app_glue)
 
+include(${CMAKE_SOURCE_DIR}/platform/mobile/resim_bench.cmake)
+if(LIKE_NES_MOBILE_BENCH)
+  add_library(bench SHARED ${CMAKE_CURRENT_SOURCE_DIR}/bench_main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/apk_assets.cpp ${CMAKE_CURRENT_SOURCE_DIR}/stdout_logcat.cpp)
+  target_link_libraries(bench PRIVATE resim_bench platform_core native_app_glue android log)
+  target_link_options(bench PRIVATE -u ANativeActivity_onCreate)
+  return()
+endif()
+
 add_library(game SHARED
   ${CMAKE_CURRENT_SOURCE_DIR}/native_main.cpp ${CMAKE_CURRENT_SOURCE_DIR}/apk_assets.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/stdout_logcat.cpp

@@ -1,4 +1,4 @@
-<!-- en-sha256: 21ffda8f7a493d3e92d8ef7655b322a4313cd89870c9d67e0eb3c7785137213f -->
+<!-- en-sha256: a908c5ac07e901bafd39a4aa172c8876d507a29bbdb0ea4f24d95385a442d74e -->
 
 # Документация like-nes
 
@@ -24,6 +24,9 @@
   - [SDK и своя игра](guide/sdk-and-your-game.md)
   - [Уровни в Tiled](guide/tiled-levels.md)
   - [Сцены и уровни](guide/scenes-and-levels.md)
+  - [Тело и удары](guide/bodies-and-hits.md)
+  - [Хотсит](guide/hotseat.md)
+  - [Камера и секции](guide/camera-and-sections.md)
   - [Анимации в Aseprite](guide/aseprite-animations.md)
   - [Лицензии ассетов](guide/asset-licenses.md)
   - [Шрифты и титры](guide/fonts-and-credits.md)

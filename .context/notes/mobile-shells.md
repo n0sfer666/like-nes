@@ -140,3 +140,9 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
   владельца (§R шаг 4).
 - **Улики.** Гейт в начале прогона удаляет `ios-sim-gate.*` старше четырёх последних.
 
+- **Второй вход — бенч ресима (спека #25, В9г).** `-DLIKE_NES_MOBILE_BENCH=ON
+  -DLIKE_NES_BENCH_AGAINST=<файл>` собирает вместо игры `com.likenes.resimbench` (iOS —
+  `bench_app.mm`, Android — `bench_main.cpp` + `bench/AndroidManifest.xml`); обе
+  `CMakeLists.txt` делают `return()` до цели игры. Каталоги `build-ios-bench`,
+  `build-ios-bench-device`, `build-android-bench` — свои, кэш игры не трогают. Устройство и риски —
+  [`gates/resim-bench.md`](../gates/resim-bench.md).

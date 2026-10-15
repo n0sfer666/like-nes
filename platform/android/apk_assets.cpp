@@ -24,14 +24,16 @@ bool unpack_one(AAssetManager* am, const char* name, const std::string& dir) {
 
 } // namespace
 
+bool unpack_apk_asset(AAssetManager* am, const char* name, const std::string& dir) {
+    if (am && platform::ensure_dir(dir) && unpack_one(am, name, dir)) return true;
+    __android_log_print(ANDROID_LOG_ERROR, "like-nes", "asset unpack failed: %s", name);
+    return false;
+}
+
 bool unpack_apk_assets(AAssetManager* am, const std::string& dir) {
-    if (!am || !platform::ensure_dir(dir)) return false;
     bool game = true;
-    for (const char* name : {"game.bundle", "library.bundle", "audio.bundle"}) {
-        if (unpack_one(am, name, dir)) continue;
-        __android_log_print(ANDROID_LOG_ERROR, "like-nes", "asset unpack failed: %s", name);
-        if (std::strcmp(name, "game.bundle") == 0) game = false;
-    }
+    for (const char* name : {"game.bundle", "library.bundle", "audio.bundle"})
+        if (!unpack_apk_asset(am, name, dir) && std::strcmp(name, "game.bundle") == 0) game = false;
     return game;
 }
 

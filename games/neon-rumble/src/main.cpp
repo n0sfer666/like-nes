@@ -8,8 +8,10 @@
 #include "platform_io.hpp"
 #include "rumble_brawl_report.hpp"
 #include "rumble_controls.hpp"
+#include "rumble_coop_script.hpp"
 #include "rumble_flow.hpp"
 #include "rumble_hotseat.hpp"
+#include "rumble_join_report.hpp"
 #include "rumble_report.hpp"
 #include "rumble_wave_script.hpp"
 #include "rumble_window.hpp"
@@ -48,30 +50,33 @@ rumble::PlayerCommand scripted(uint32_t t) {
 // Тик — по часам драки (первый шаг — тик 1). P2 входит нажатием нампада на тике 2 (тик 1 только
 // засевает лобби), сидит с тика 3 и держит блок 31..40 — улика, что его ввод доходит до драки.
 void p2_keys(input::InputEngine& engine, uint32_t t) {
-    const auto key = [&](bool down, uint16_t code) {
-        engine.post(input::RawEvent{down ? input::RawKind::KeyDown : input::RawKind::KeyUp,
-                                    input::DeviceKind::Keyboard, 0, code, 0, t});
-    };
-    if (t == 2 || t == 3) key(t == 2, rumble::KEY_KP1);
-    if (t == 31 || t == 41) key(t == 31, rumble::KEY_KP3);
+    if (t == 2 || t == 3) rumble::post_key(engine, rumble::KEY_KP1, t == 2, t);
+    if (t == 31 || t == 41) rumble::post_key(engine, rumble::KEY_KP3, t == 31, t);
 }
 
-// Прогон --wave играет один P1: ёмкость жетонов 1, и ИИ доводит его до hp 0 одним жетоном.
-int run_headless(rumble::Flow& flow, rumble::Play& play, rumble::Hotseat& hotseat, int frames, bool waves) {
+// Прогон --wave играет один P1: ёмкость жетонов 1, и ИИ доводит его до hp 0 одним жетоном. С --coop
+// оба места играют скрипт волны, и жетонов два.
+int run_headless(rumble::Flow& flow, rumble::Play& play, rumble::Hotseat& hotseat, int frames, bool waves,
+                 bool coop) {
     rumble::WaveScript wave;
+    rumble::CoopScript pair;
     rumble::Brawl& brawl = play.brawl;
     const uint32_t& ticks = play.scene.ticks;
     rumble::report_brawl(brawl, 0);
     for (int i = 0; i < frames; ++i) {
         const auto t = static_cast<uint32_t>(i);
         if (!waves) p2_keys(hotseat.engine(), ticks + 1);
+        if (coop) pair.keys(hotseat.engine(), ticks + 1);
         if (!hotseat.tick(ticks + 1, brawl.players)) {
             std::fprintf(stderr, "neon-rumble: tick %u paused without a pad\n", ticks + 1);
             return 1;
         }
-        brawl.players[rumble::PLAYER] = waves ? wave.next(brawl, t) : scripted(t);
+        if (coop) pair.next(brawl, t);
+        else brawl.players[rumble::PLAYER] = waves ? wave.next(brawl, t) : scripted(t);
+        const framework::brawl::Seats was = brawl.seats;
         flow.run(t);
         rumble::report_step(brawl, ticks);
+        rumble::report_joins(brawl, was, ticks);
     }
     rumble::report_brawl(brawl, ticks);
     if (ticks != static_cast<uint32_t>(frames)) {
@@ -88,6 +93,7 @@ int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
     bool headless = false;
     bool waves = false;
+    bool coop = false;
     const char* level_name = "level1";
     int frames = 0;
     for (int i = 1; i < argc; ++i) {
@@ -95,15 +101,21 @@ int main(int argc, char** argv) {
             headless = true;
         } else if (!std::strcmp(argv[i], "--wave")) {
             waves = true;
+        } else if (!std::strcmp(argv[i], "--coop")) {
+            coop = true;
         } else if (!std::strcmp(argv[i], "--level") && i + 1 < argc) {
             level_name = argv[++i];
         } else if (!std::strcmp(argv[i], "--frames") && i + 1 < argc
                    && parse_frames(argv[i + 1], frames)) {
             ++i;
         } else {
-            std::fprintf(stderr, "usage: neon_rumble [--headless] [--wave] [--level NAME] [--frames N]\n");
+            std::fprintf(stderr, "usage: neon_rumble [--headless] [--wave [--coop]] [--level NAME] [--frames N]\n");
             return 2;
         }
+    }
+    if (coop && (!waves || !headless)) {
+        std::fprintf(stderr, "neon-rumble: --coop is a headless --wave run\n");
+        return 2;
     }
     if (headless && frames <= 0) {
         std::fprintf(stderr, "neon-rumble: --headless needs --frames N with N > 0\n");
@@ -131,5 +143,5 @@ int main(int argc, char** argv) {
     rumble::Play* play = flow.play();
     if (play == nullptr) return 0;
     if (!hotseat.open()) return 1;
-    return run_headless(flow, *play, hotseat, frames, waves);
+    return run_headless(flow, *play, hotseat, frames, waves, coop);
 }

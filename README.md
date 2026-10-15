@@ -29,8 +29,8 @@ writes the same frames headlessly, which is how this one was taken.*
 
 ## Status
 
-**In development. There is no release yet.** Of the 28 design specs on the roadmap, 18 are closed,
-17 of them with an accepted architecture decision record; the other 10 are in progress, drafted or
+**In development. There is no release yet.** Of the 28 design specs on the roadmap, 19 are closed,
+17 of them with an accepted architecture decision record; the other 9 are in progress, drafted or
 planned. The public API changes
 without notice, and it will keep changing until the first tagged release.
 
@@ -41,7 +41,10 @@ and WebAssembly), achievements, hot-reload, the editor shell, and deterministic 
 game builds against, with levels from Tiled, animations from Aseprite and bitmap fonts baked into
 its bundle; and a beat 'em up framework — fighting in a depth lane, hotseat for two, AI, stages
 with arenas and waves, platform sections with lifts, belts and ropes, projectiles and breakable
-props, a scene stack and levels with checkpoints — which the sample game Neon Rumble is built on.
+props, a scene stack and levels with checkpoints — which the sample game Neon Rumble is built on,
+with two players in hotseat through its first level. A resim bench rolls that fight back 8 ticks on
+every frame at the game's budget and prints the same scenario hashes CI compares across the three
+OSes, on the desktop and as a second entry of the iOS and Android shells.
 
 ## Quick start
 

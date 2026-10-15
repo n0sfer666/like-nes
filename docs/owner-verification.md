@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 34 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 20 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 36 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 22 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -55,6 +55,8 @@ closed ones (§18, §20, §21) keep their steps as they were run; re-running one
 | The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
 | Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
 | Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
+| The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/ios/bench_app.mm`, `platform/android/bench_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
+| Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/seat_*`, `engine/framework/brawl/section_*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_*` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -3439,6 +3441,7 @@ backslashes).
        neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
        neon-rumble: seat tick 2: P2 joining
        neon-rumble: seat tick 3: P2 present
+       neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
        neon-rumble: react tick 31: rainbird block
        neon-rumble: react tick 41: rainbird stand
        neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
@@ -4320,7 +4323,7 @@ is 0.
 
 ## 33. Gate 13 of #25 — the platform section past the street
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: зачистить обе арены; после «arena 1 released» banderas проходит x 1560 и встаёт на пол секции (не раньше — до релиза улица кончается на 1560); голубая лента везёт стоящего вправо, сходит — стоит; жёлтый лифт ездит сам вверх-вниз, на нём banderas едет до уступа; с пола уступ выше прыжка, а прыжок с лифта в верхней половине хода, вправо только пока не над уступом, проходит его снизу и ставит на него; трос (цепочка точек с крупной точкой на конце, справа от уступа): прыжок к концу + H — висит и качается стрелками, Space отпускает с разлёта; P2 (numpad 1), пока banderas в секции, появляется в виде над полом секции и падает на него; H на улице по-прежнему захват; прислать строки терминала и снимок banderas на тросе -->
+<!-- gate: open | окно neon_rumble --wave на любой ОС: зачистить обе арены; после «arena 1 released» banderas проходит x 1560 и встаёт на пол секции (не раньше — до релиза улица кончается на 1560); голубая лента везёт стоящего вправо, сходит — стоит; жёлтый лифт ездит сам вверх-вниз, на нём banderas едет до уступа; с пола уступ выше прыжка, а прыжок с лифта в верхней половине хода, вправо только пока не над уступом, проходит его снизу и ставит на него; трос (цепочка точек с крупной точкой на конце, справа от уступа): прыжок к концу + H — висит и качается стрелками, Space отпускает с разлёта; P2 (numpad 1), пока banderas в секции дальше 160 px от её левого края (x 1728+), появляется в виде над полом секции и падает на него, ближе — на улице левее секции, тоже в виде; H на улице по-прежнему захват; прислать строки терминала и снимок banderas на тросе -->
 
 B8d of spec #25 put a platform section into `level1` of `--wave`: past the street, x 1568..2200, the
 fighters stop walking the depth band and run and jump on the tiles of the collision layer `section`
@@ -4358,10 +4361,17 @@ The headless script never jumps, never takes the lift or the rope; that is this 
 7. **The rope.** From the ledge, jump right toward the large dot at the end of the rope and hold H while his
    hands are near it: he hangs on the rope. Left and right swing it; Space lets go, and he flies off
    along the swing. The same rope cannot be taken again for a moment after letting go.
-8. **P2 joins in the section.** With Banderas in the section, press numpad 1: Rainbird appears
-   inside the view, in the section, a little above its floor, and drops onto it; not on the street at
-   x 1560. Stand away from where he appears: an entry inside Banderas is refused by the section and
-   put at its left edge (a known limit, `.context/notes/25-b8.md`).
+8. **P2 joins in the section.** With Banderas in the section and at least 160 px past its left end
+   (x 1728 or more), press numpad 1: Rainbird appears inside the view, in the section, a little above
+   its floor, and drops onto it; not on the street at x 1560. The spot is 160 px left of Banderas, so
+   with Banderas nearer the left end it falls on the street left of the section — still inside the
+   view, and Rainbird walks in from there: that is expected, not a finding. If the spot he appears at is taken — by Banderas or by a tile — he appears at the nearest
+   free spot of the same section instead, one body width to the right, or to the left when the right
+   is taken too or past the section's end; never on the street at x 1560 nor past the section at
+   x 2200, unless the section has no free spot at all (not on `level1`). On `level1` Banderas's body
+   never takes the spot: once P2 has left, the middle of the view is Banderas himself and the spot
+   lies at least 160 px to his left (the headless `--coop` run of B9d, §35). A taken spot is pinned by
+   `framework_brawl_section_test`. Leave with numpad − and join again to look twice.
 9. **The grab on the street.** Press H next to an Adler in an arena: it is the grab it was.
 
 As in §21, on a 120 Hz screen everything runs twice as fast.
@@ -4379,9 +4389,136 @@ Banderas on the rope.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 34. Gate 14 of #25 — the resim bench on the weakest phone
+
+<!-- gate: open | самый слабый телефон (iOS или Android): bash scripts/mobile_bench.sh ios-device или android после зелёного CI на HEAD (шаг 6 §R owner-setup.txt); два прогона, ждать «against …: match» и «brawl-resim-bench: PASS»; прислать строку [bench], строки frame p50/p99 худшего прогона и вердикт -->
+
+B9d of spec #25 builds `brawl_resim_bench` as the second entry of the iOS and Android shells: the same
+function the desktop bench and CI run, in an app with a black screen and no game
+(`com.likenes.resimbench`). It plays the fight at the umbrella budget — 2 players, 8 enemies with AI,
+4 crates and 12 shots — and rolls back 8 ticks on every one of 600 frames. Two answers come out of it,
+and only the phone can give them:
+
+- **the hashes**: the 14 crossplay scenarios computed on the phone must equal `crossplay-macOS.txt`
+  of the CI run of the same commit, which `scripts/mobile_bench.sh` downloads and packs into the app.
+  CI already holds the three desktop OSes equal; this is the ARM phone, its compiler and its libc;
+- **the time**: `frame p50` and `frame p99`, each also as a share of a 16.6 ms frame. On the M-series
+  Mac it is p50 ≈ 43 us, p99 ≈ 49 us (0.25-0.28 %).
+
+There is no threshold to pass on the time. The rollback depth of 8 ticks and the 8 enemies are the
+umbrella's decisions, and the measurement can only lower them: if p99 on the slowest phone you own is
+a share of a frame you would not spend on rollback, say so, and the spec is changed — B9g records it.
+
+The bench runs its 600 frames back to back, with no pause between them, while the game at 60 Hz idles
+between frames; a phone may hold a higher clock for the bench than it would for the game. Running it
+twice and keeping the worse p99 narrows that, it does not remove it.
+
+Steps: [`owner-setup.txt`](owner-setup.txt), section R, step 6 — the command for iOS and for Android
+and the output, line by line. Push first and let CI go green on that commit (`bash scripts/ci_watch.sh`):
+without a green run for HEAD the script has no file to judge against and says so.
+
+What counts as a finding: `against …: DIFFER` (the phone computed a different fight — the hash lines
+under it are CI's, the ones above are the phone's), any `FAIL:` line, no `brawl-resim-bench:` line in
+three minutes, `asset unpack failed: crossplay.txt` on Android.
+
+Send back: the phone, the `[bench]` line, the two `frame` lines of the worse of two runs, the
+`against` line and the verdict.
+
+## 35. Gate 15 of #25 — two in hotseat through level 1
+
+<!-- gate: open | окно neon_rumble --wave на любой ОС, двое людей (пад + клавиатура или одна клавиатура на двоих): P2 входит до арены 0; арена 0 — wave 0 из трёх adler, wave 1 из трёх; арена 1 — wave 0, wave 1 только для двоих, wave 4; нокаут каждого — встаёт на взятом чекпоинте внутри вида (banderas 600,248 и 1300,248, rainbird на 64 правее) и 2 с без ударов; после «arena 1 released» оба входят в секцию, лента везёт обоих, камера держит обоих в виде; P2 выходит (минус нампада или Back) и входит снова в секции — при banderas на x 1728+ встаёт в виде над её полом, ближе к левому краю — на улице левее секции, тоже в виде, и не за 2200; прислать строки seat, checkpoint, arena, wave и knockout и снимок двоих в секции -->
+
+B9d of spec #25 is the prototype the round promised: two players in hotseat go through level 1 —
+both arenas with their waves, the checkpoints and the platform section with the belt. CI plays it
+with two scripts in the seats (`--headless --wave --coop`, §S of
+[`owner-setup.txt`](owner-setup.txt)): P2 joins through the lobby on tick 3, the two take the
+three-Adler wave 0 of arena 0 and the two-player wave 1 of arena 1, both are knocked out and stand up
+on the checkpoints again and again, both walk into the section and the belt carries P2 to its end;
+then P2 leaves and joins again inside it,
+
+       neon-rumble: join tick 6661: P2 as rainbird#43 at 1817,232 y 0 immune 119, view 1705..2089, platform
+
+and the gate pins all 79 of those lines. §29 judges the seats on real devices, §31 the two-player
+waves, §33 the section with one player. What only two people at one screen answer:
+
+- **Two hands on one level.** The scripts never miss, never split up, never wait for each other.
+  Whether the camera on the middle of two, the walls of a locked arena and the leash still feel
+  right when two people pull in different directions.
+- **Two at once in the section.** Both on the belt, one on the lift while the other stands on the
+  floor, one on the rope: the camera keeps both in the view, and nobody sinks into a tile.
+- **The way back in.** The window prints no `join` line; whether P2 appears inside the view, in the
+  section, is seen on the screen.
+
+Level 1 has no finish yet: the run ends at the right end of the section, x 2200. A level that ends
+is the game's, #28.
+
+Run from the repository root on any OS (Windows: from the `scripts\win-dev.bat shell` window, with
+`.exe` and backslashes). Two people, the controls of §29: P1 on the keyboard, P2 on a pad or on the
+arrows and the numpad (NumLock on).
+
+1. Build and check:
+
+       bash scripts/check_sdk_game.sh --keep
+
+   Expected: `sdk-game: PASS`, and in each configuration the line
+
+       sdk-game: OK   Release: --coop ran 6720 headless frames: two players through both arenas and the platform section, P2 joined back at 1817 in view inside the section
+
+   (`Debug:` in the second).
+2. Start the window from a terminal you can read:
+
+       ./build-sdk-work/game-Release/neon_rumble --wave
+
+   Enter on `wave level1`. P2 presses a button of the pad or numpad 1:
+   `seat tick <n>: P2 joining`, then `P2 present`, and Rainbird stands up right of Banderas.
+3. **The street.** Walk right together; break the crate on the way (`break tick <n>: crate#2`). The
+   camera follows the middle of the two, and neither can walk out of the view: the one in front
+   stops at its edge until the other comes. Past x 600 the street takes the first checkpoint:
+   `checkpoint tick <n>: order 0 at 600,248`.
+4. **Arena 0.** `arena 0 locked`, and `wave 0` brings three Adlers — one of them comes only with
+   two players (one player gets two). After `wave 0 cleared`, about two seconds, and `wave 1`, three more; then
+   `arena 0 released`.
+5. **The knock-outs.** Let each of you be knocked out once in an arena. Banderas prints
+   `knockout tick <n>: banderas#<j>, back as banderas#<k> at 600,248 immune 119` (1300,248 in arena
+   1). In arena 0 the x may come out a few px further right, up to 616: the locked view can stand up
+   to 64 px right of its centre 712, following the middle of the two, and the spot is held inside it.
+   Rainbird stands up 64 px to the right of the same checkpoint, `back as rainbird#<m> at 664,…`
+   (1364,… in arena 1). Each stands up inside the view, and for about two
+   seconds the Adlers' blows pass through him. The other player fights on meanwhile.
+6. **Arena 1.** `checkpoint tick <n>: order 1 at 1300,248`, then `arena 1 locked`: `wave 0` (two),
+   `wave 1` (two — it comes only with two players), `wave 4` (three Adlers and the enemy Rainbird,
+   told apart from P2 as in §31 step 7). Then `arena 1 released`.
+7. **The section.** Both walk right past x 1560 onto the floor of the section. Both stand on the
+   cyan belt and let go: it carries both. Then one rides the lift up to the ledge while the other
+   stays on the floor, and one takes the rope (H, numpad 5 or RB in the air near its end). The camera
+   holds both in the view the whole time.
+8. **P2 leaves and joins in the section.** P2 presses numpad − (or Back on the pad):
+   `seat tick <n>: P2 free`, Rainbird leaves. A button or numpad 1 again: `joining`, `present`, and
+   Rainbird appears inside the view, 160 px left of Banderas, and never past x 2200. With Banderas at
+   x 1728 or more the spot is in the section: Rainbird appears a little above its floor and drops onto
+   it. With Banderas nearer the section's left end (x 1568) the spot falls on the street left of the
+   section, still inside the view, and Rainbird walks in from there — expected, not a finding. Do it
+   twice, once each way.
+9. Esc goes back to the menu.
+
+As in §21, on a 120 Hz screen everything runs twice as fast.
+
+What counts as a finding: a wave with the wrong number of enemies for two, wave 1 of arena 1 not
+coming; a player who walks out of the view or is lost by the camera; a knock-out that puts a player
+outside the view, away from the checkpoint or on his spawn, or one that is hit in his first two
+seconds; a player who cannot enter the section after `arena 1 released`, or one who sinks into or
+floats above its floor; a belt that carries one of the two and not the other; P2 joining back
+outside the view, past the section, or on the street while Banderas stands at x 1728 or more; a key of one player that moves the other.
+
+Send back: the `seat`, `checkpoint`, `arena`, `wave` and `knockout` lines of steps 2–8, which device
+P2 played on, and one screenshot of the two in the section.
+
+When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
+is 0.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 34 are closed, and the open 20 are listed by
+The gates above are what the ADRs waited on; 14 of the 36 are closed, and the open 22 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

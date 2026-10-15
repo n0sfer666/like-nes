@@ -85,3 +85,6 @@ progress-resim, rope и боя ИИ. Атрибуция мутантом: без
 Позитивный контроль 2026-10-06: три файла с одного бинаря → PASS, 6 сценариев; один хеш Windows
 изменён на единицу → `band-x-ends: Linux=…b2, Windows=…b3, macOS=…b2`, FAIL; файл macOS удалён →
 `macOS: нет файла`, FAIL.
+
+С В9в (2026-10-14) файл `crossplay-<ОС>.txt` своей ОС сверяет ещё и `brawl_resim_bench
+--against` — побайтово, тем же форматом строки ([resim-bench](resim-bench.md)).

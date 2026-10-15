@@ -35,12 +35,34 @@ void hold_platform(Body& b, SectionBody& s, const BrawlWorld& w) {
     mirror_body(s.c, hull_foot(p), p.dt, b.pos);
 }
 
+bool free_at(const BodyPool& pool, const StageSections& sections, EntId self, const scene::LevelRect& r, fix32 x,
+             character::Character& c, const BrawlWorld& w) {
+    if (x < r.x0 || !(x < r.x1) || platform_taken(pool, sections, self, Vec2{x, c.position.y}, w)) return false;
+    c.position.x = x;
+    return true;
+}
+
+bool settle(const BodyPool& pool, const StageSections& sections, EntId self, character::Character& c,
+            const BrawlWorld& w) {
+    const scene::Section* here = section_at(*w.level, c.position.x);
+    const fix32 half = hull_half(*w.platform).x;
+    const fix32 step = half + half;
+    if (here == nullptr || !(fix32{} < step)) return false;
+    const scene::LevelRect& r = here->area.rect;
+    const fix32 from = c.position.x;
+    for (fix32 d = step; d < r.x1 - r.x0; d = d + step)
+        if (free_at(pool, sections, self, r, from + d, c, w) || free_at(pool, sections, self, r, from - d, c, w))
+            return true;
+    return false;
+}
+
 void enter(Body& b, const BodyPool& pool, StageSections& sections, const BrawlWorld& w, bool spawned) {
     if (!spawned && !grounded(b.pos)) return;
     const PlatformWorld& p = *w.platform;
     const fix32 foot = hull_foot(p);
-    const character::Character c = entering(b, foot, p.dt);
-    if (platform_taken(pool, sections, b.id, c.position, w) || !sections.add(b.id, c)) {
+    character::Character c = entering(b, foot, p.dt);
+    const bool taken = platform_taken(pool, sections, b.id, c.position, w);
+    if ((taken && !(spawned && settle(pool, sections, b.id, c, w))) || !sections.add(b.id, c)) {
         hold_belt(b, w);
         return;
     }

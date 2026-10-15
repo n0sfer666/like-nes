@@ -51,7 +51,8 @@ add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/
   src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp src/rumble_floor.cpp src/rumble_brain.cpp
   src/rumble_wave_script.cpp src/rumble_steer.cpp src/rumble_menu.cpp src/rumble_menu_quads.cpp
   src/rumble_play.cpp src/rumble_flow.cpp src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp
-  src/rumble_knives.cpp src/rumble_platform.cpp src/rumble_stage_quads.cpp)
+  src/rumble_knives.cpp src/rumble_platform.cpp src/rumble_stage_quads.cpp
+  src/rumble_label.cpp src/rumble_coop_script.cpp src/rumble_join_report.cpp)
 target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
 like_nes_add_game(neon_rumble)
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
