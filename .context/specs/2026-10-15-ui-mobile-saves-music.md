@@ -128,6 +128,11 @@
   `wgpu_native.cmake` (Rust-цель, линкер, `CC`/`AR` из triple). Сборка с `-DANDROID_PLATFORM=android-29`,
   `uses-sdk minSdkVersion=29` в манифесте. Бенч-APK `--bench` и гейт `wgpu-pin` — на той же
   параметризации.
+- **Отклонения реализации (В1в, 2026-10-16).** APK собирает `platform/android/package_apk.sh` —
+  цель `<цель>_apk` функции `like_nes_mobile_app`, одна у дерева и у префикса; `build_apk.sh`
+  остался обёрткой дерева (конфигурирование + копия в `<build>/apk/`). `HOST_TAG` и путь
+  `libc++_shared.so` даёт тулчейн NDK (`ANDROID_HOST_TAG`), а не `uname`. `<цель>_apk` — в ALL.
+  Разбор — `.context/notes/mobile-shells.md`, раздел «Оболочка в SDK».
 - Шутер переезжает на интерфейс как есть: `game::MobileGame : mobile::Game`, его логика касаний
   остаётся до В2.
 - Гейт `sdk-game` получает мобильную половину: Neon Rumble собирается против поставленного SDK для

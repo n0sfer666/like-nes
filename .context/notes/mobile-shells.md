@@ -24,10 +24,12 @@
 - rustup: `aarch64-apple-ios-sim`, `aarch64-linux-android` (wgpu-native собирается из Rust,
   `platform/mobile/wgpu_native.cmake`, тег v0.19.4.1).
 - Android: `brew --cask android-commandlinetools`, SDK в `~/Library/Android/sdk`:
-  `ndk;28.2.13676358`, `platforms;android-35`, `build-tools;35.0.0` — версии из `build_apk.sh`.
+  `ndk;28.2.13676358`, `platforms;android-35`, `build-tools;35.0.0` — пин NDK в `android_ndk.sh`,
+  платформа и build-tools в `package_apk.sh`.
   Лицензии SDK приняты `sdkmanager --licenses`. Проверено `ls`: всё на месте; рядом лежат
-  `android-36.1` и build-tools `36.1.0`/`37.0.0` от Android Studio — `build_apk.sh` их не берёт.
-  Префикс NDK на macOS — `darwin-x86_64` (так в самом NDK, HOST_TAG скрипта совпадает).
+  `android-36.1` и build-tools `36.1.0`/`37.0.0` от Android Studio — `package_apk.sh` их не берёт.
+  Префикс NDK на macOS — `darwin-x86_64` (так в самом NDK); с В1в его даёт тулчейн NDK
+  (`ANDROID_HOST_TAG`), а не `uname` скрипта.
 
 ## Раунд 1 — план
 
@@ -150,8 +152,8 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 
 - **Второй вход — бенч ресима (спека #25, В9г).** `-DLIKE_NES_MOBILE_BENCH=ON
   -DLIKE_NES_BENCH_AGAINST=<файл>` собирает вместо игры `com.likenes.resimbench` (та же оболочка,
-  другая `mobile::Game` — `platform/mobile/bench_game.cpp`; Android — ещё
-  `bench/AndroidManifest.xml`); обе
+  другая `mobile::Game` — `platform/mobile/bench_game.cpp`; манифест Android — тот же шаблон
+  `AndroidManifest.xml.in`, с В1в спеки #26); обе
   `CMakeLists.txt` делают `return()` до цели игры. Каталоги `build-ios-bench`,
   `build-ios-bench-device`, `build-android-bench` — свои, кэш игры не трогают. Устройство и риски —
   [`gates/resim-bench.md`](../gates/resim-bench.md).
@@ -185,3 +187,36 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 - Android распаковывает ВСЕ файлы корня `assets/` APK в `internalDataPath/assets`; какие из них
   обязательны, знает только игра (без `game.bundle` откажет её `init`).
 - `frame(dt)` шутер не читает: тик 1/60 на кадр, на 120 Гц игра вдвое быстрее — долг до В2.
+
+## Оболочка в SDK (спека #26, В1в)
+
+- Одна функция упаковки у дерева и у игры против SDK — `like_nes_mobile_app(<цель> SOURCES … [BUNDLES …]
+  NAME … ID …)` (`cmake/like_nes_mobile_app.cmake`): iOS — `.app` с ассетами в `assets/` и
+  лицензиями в `Resources/licenses`; Android — `.so` с `-u ANativeActivity_onCreate -u android_main`
+  и цель `<цель>_apk` (зовёт `platform/android/package_apk.sh`). Манифест — шаблон
+  `AndroidManifest.xml.in` (id, имя, библиотека, minSdk). Испечённые `like_nes_bake` бандлы
+  дописываются свойством `LIKE_NES_ASSETS`, поэтому упаковка — отдельной целью после линковки.
+- `libc++_shared.so` едет в APK всегда, хотя `ANDROID_STL` по умолчанию статическая и в NEEDED
+  `libgame.so` её нет: поставку обещают NOTICE и `xcompile_verify.sh`.
+- Мобильное дерево — `platform/mobile/tree.cmake` (корень делает `return()` после него):
+  движок EXCLUDE_FROM_ALL, оболочка, установка префикса. Префикс несёт слово платформы
+  (`cmake/sdk_platform.cmake`: `desktop | ios-sim | ios-device | android-<abi>`), Config сверяет
+  его со сборкой игры и отказывает на чужой. Платформенные половины установки и Config —
+  `install_sdk_{desktop,mobile}.cmake`, `sdk_config_{desktop,mobile}.cmake`; ассет-компилятор на
+  мобильной сборке — хостовый, `-DLIKE_NES_HOST_PREFIX=<десктопный префикс>`.
+- `build_apk.sh` только конфигурирует дерево и собирает `<цель>_apk`, копию кладёт в
+  `<build>/apk/<имя>.apk` — путь, который читают `xcompile_verify.sh` и runbook. Выбор SDK —
+  `android_sdk.sh` (его же зовут `package_apk.sh` и `mobile_bench.sh`), пин NDK — `android_ndk.sh`
+  (только сборке дерева: игра против префикса приходит со своим тулчейном).
+- `<цель>_apk` в ALL, как `.app` на iOS: голый `cmake --build` даёт то, что ставится на телефон.
+- Config мобильного префикса сверяет до первой цели: платформу, уровень API (Android), ревизию NDK
+  (`_ln_ndk_rev` из `source.properties` NDK сборки префикса — статика собрана его libc++),
+  `CMAKE_OSX_DEPLOYMENT_TARGET` с `_ln_ios_min` (iOS: пустой дал бы пустой MinimumOSVersion), и
+  хостовый префикс — десктопный, той же сборки `_ln_build` (`<версия>+<git-хеш>`), с `bin/assetc`.
+- `like_nes_mobile_app` отказывает на ID не вида `com.example.game` и на `& < > "` в NAME (уходят в
+  XML без экранирования); ассеты абсолютизируются от каталога вызова, два файла с одним именем в
+  `assets/` — отказ.
+- **Долг на В1д.** Smoke-приложение против мобильного префикса проверено руками (`.app` на
+  симуляторе, APK с `libsmoke.so`, `libc++_shared`, лицензиями и бандлами); фикстура и мобильная
+  половина `check_sdk_game.sh`, процедура мобильного префикса в `docs/{en,ru}/guide/sdk-and-your-game.md`
+  — В1д.

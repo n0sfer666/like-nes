@@ -124,8 +124,9 @@ not follow that shape:
   pinned) and unpacks it to `deps/wasmtime-<version>-<triple>-c-api/`
   (gitignored), with its license at `LICENSE` inside that directory.
 - **Android NDK components** — `android_native_app_glue.c` and
-  `libc++_shared.so` come from the NDK install referenced by
-  `platform/android/build_apk.sh`. The notices are
+  `libc++_shared.so` come from the NDK install pinned by
+  `platform/android/android_ndk.sh` (an SDK prefix checks that a game builds with
+  the same revision). The notices are
   `sources/android/native_app_glue/NOTICE` (identical to the header comment of
   `android_native_app_glue.c` at the pinned NDK, but the `NOTICE` file is what
   Apache-2.0 section 4(d) attaches to — check that one when the NDK moves) and

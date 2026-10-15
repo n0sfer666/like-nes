@@ -178,15 +178,8 @@ add_subdirectory(engine/plugin)
 add_subdirectory(engine/achievements)
 add_subdirectory(engine/hotreload)
 
-# Мобильная сборка строит только замыкание оболочки: тесты и демо движка под iOS/Android не
-# запускаются, а собранные «на всякий случай» они требовали бы от шва того, чего на телефоне нет.
 if(LIKE_NES_MOBILE)
-  get_property(dirs DIRECTORY PROPERTY SUBDIRECTORIES)
-  foreach(dir IN LISTS dirs)
-    set_property(DIRECTORY ${dir} PROPERTY EXCLUDE_FROM_ALL TRUE)
-  endforeach()
-  string(TOLOWER ${CMAKE_SYSTEM_NAME} shell)
-  add_subdirectory(platform/${shell})
+  include(${CMAKE_CURRENT_SOURCE_DIR}/platform/mobile/tree.cmake)
   return()
 endif()
 add_subdirectory(tools/assetc)
