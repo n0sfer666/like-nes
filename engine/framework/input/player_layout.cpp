@@ -8,7 +8,8 @@ namespace framework::input {
 
 std::string shared_input_text(const ::input::SharedInput& shared) {
     std::string name = source_name(shared.src);
-    if (name.empty()) name = "an unnamed input";
+    if (shared.screen) name = "the touch screen";
+    else if (name.empty()) name = "an unnamed input";
     std::string text = "player " + std::to_string(shared.player + 1) + " and player " +
                        std::to_string(shared.other + 1) + " share " + name;
     if (shared.pad_slot >= 0) text += " on pad " + std::to_string(shared.pad_slot + 1);

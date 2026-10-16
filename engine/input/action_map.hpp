@@ -19,6 +19,7 @@ inline Source capture_source(const RawEvent& e) {
     case RawKind::KeyDown:         return {SourceKind::Key, e.code, 1};
     case RawKind::MouseButtonDown: return {SourceKind::MouseButton, e.code, 1};
     case RawKind::PadButtonDown:   return {SourceKind::PadButton, e.code, 1};
+    case RawKind::TouchButtonDown: return {SourceKind::TouchButton, e.code, 1};
     default:                       return {};
     }
 }

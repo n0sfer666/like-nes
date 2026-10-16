@@ -21,7 +21,8 @@ public:
     void leave(int player);
 
     // Фронт кнопки свободного пада: сначала возвращает потерявшего пад, иначе сажает на младшее
-    // свободное место. Фронт клавиши из раскладки свободного игрока сажает именно его.
+    // свободное место. Фронт клавиши из раскладки свободного игрока сажает именно его. Фронт
+    // тач-кнопки из раскладки сажает её игрока на тач: сначала потерявшего пад, потом свободного.
     void update(const ::input::DeviceState& d);
 
     int seats() const { return seats_; }
@@ -34,10 +35,12 @@ private:
     bool in_range(int player) const { return player >= 0 && player < seats_; }
     int first(SeatState s) const;
     bool pad_taken(int slot) const;
+    int touch_owner() const;
     void promote();
     void mark_lost(const ::input::DeviceState& d);
     void claim_pad(int slot);
     void claim_keys(const ::input::DeviceState& d);
+    void claim_touch(const ::input::DeviceState& d);
 
     ::input::ActionMap& map_;
     int seats_;

@@ -21,4 +21,8 @@ enum Pad : int { PadA = 0, PadB = 1, PadX = 2, PadY = 3, LB = 4, RB = 5,
 // (`move_y` берёт `padaxis:-ly`), так что менять его — значит переснимать бейк и его эталоны.
 enum PadAx : int { LX = 0, LY = 1, RX = 2, RY = 3, LT = 4, RT = 5 };
 
+// Экранный тач: пять кнопок и ось плавающего стика в том же знаке, что у пада.
+enum Touch : int { TouchA = 0, TouchB = 1, TouchC = 2, TouchD = 3, TouchE = 4 };
+enum TouchAx : int { StickX = 0, StickY = 1 };
+
 } // namespace input::code

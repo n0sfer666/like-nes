@@ -18,6 +18,7 @@ bool source_pressed(const Source& s, const DeviceState& d, const PlayerAssign& p
     case SourceKind::Key:         return pa.use_kbd_mouse && d.key_down(s.code);
     case SourceKind::MouseButton: return pa.use_kbd_mouse && d.mouse_down(s.code);
     case SourceKind::PadButton:   return pa.pad_slot >= 0 && d.pad_down(pa.pad_slot, s.code);
+    case SourceKind::TouchButton: return pa.use_touch && d.touch_down(s.code);
     default: return false;
     }
 }
@@ -32,6 +33,8 @@ fix32 source_axis(const Source& s, const DeviceState& d, const PlayerAssign& pa)
         return (s.code == 0 ? d.frame_dx : s.code == 1 ? d.frame_dy : d.frame_wheel) * fix32::from_int(s.sign);
     case SourceKind::Key: // клавиша-как-ось: полное отклонение
         return (pa.use_kbd_mouse && d.key_down(s.code)) ? fix32::from_int(s.sign) : fix32{};
+    case SourceKind::TouchAxis:
+        return pa.use_touch ? d.touch_axis(s.code) * fix32::from_int(s.sign) : fix32{};
     default: return fix32{};
     }
 }
@@ -60,14 +63,17 @@ bool ActionMap::context_active(int ctx) const {
     return false;
 }
 
+// Экран один: два игрока на таче делят его целиком, даже если их раскладки не называют общей кнопки.
 bool ActionMap::shared_with_others(int player, const ActionLayout& l, const PlayerAssign& pa,
                                    SharedInput* shared) const {
     for (int other = 0; other < MAX_PLAYERS; ++other) {
         Source src;
-        if (other == player || !find_shared_input(l, pa, layouts_[other], players_[other], src)) continue;
+        if (other == player) continue;
+        const bool screen = pa.use_touch && players_[other].use_touch;
+        if (!screen && !find_shared_input(l, pa, layouts_[other], players_[other], src)) continue;
         if (shared != nullptr) {
             const bool pad = src.kind == SourceKind::PadButton || src.kind == SourceKind::PadAxis;
-            *shared = {player, other, src, pad ? pa.pad_slot : -1};
+            *shared = {player, other, src, pad ? pa.pad_slot : -1, screen};
         }
         return true;
     }

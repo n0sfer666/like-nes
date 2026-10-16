@@ -44,6 +44,9 @@ target_link_libraries(framework_lobby_test PRIVATE framework_input platform_core
 add_executable(framework_lobby_pause_test framework_lobby_pause_test.cpp framework_lobby_rig.cpp)
 target_link_libraries(framework_lobby_pause_test PRIVATE framework_input platform_core)
 
+add_executable(framework_lobby_touch_test framework_lobby_touch_test.cpp framework_lobby_rig.cpp)
+target_link_libraries(framework_lobby_touch_test PRIVATE framework_input platform_core)
+
 add_executable(framework_rt_test framework_rt_test.cpp)
 target_link_libraries(framework_rt_test PRIVATE framework_input platform_core
   framework_alloc_probe_control)

@@ -10,6 +10,8 @@ bool reaches(const Source& s, const PlayerAssign& pa) {
     case SourceKind::MouseAxis: return pa.use_kbd_mouse;
     case SourceKind::PadButton:
     case SourceKind::PadAxis:   return pa.pad_slot >= 0;
+    case SourceKind::TouchButton:
+    case SourceKind::TouchAxis: return pa.use_touch;
     default: return false;
     }
 }

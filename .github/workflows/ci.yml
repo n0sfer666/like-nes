@@ -1170,6 +1170,10 @@ jobs:
           [ -n "$LY" ] || { echo "input_layouts_test not built"; exit 1; }
           "$LY" | tee ily.txt
           grep -q "input-layouts: PASS - 11 cases" ily.txt
+          TC=$(find build -maxdepth 2 -type f \( -name 'input_touch_test' -o -name 'input_touch_test.exe' \) | head -1)
+          [ -n "$TC" ] || { echo "input_touch_test not built"; exit 1; }
+          "$TC" | tee itc.txt
+          grep -q "input-touch: PASS - 7 cases" itc.txt
 
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
@@ -1195,6 +1199,8 @@ jobs:
           c++ $SAN $CORE engine/input/input_players_test.cpp -o input_pl_san && ./input_pl_san
           # shellcheck disable=SC2086
           c++ $SAN $CORE engine/input/input_layouts_test.cpp -o input_ly_san && ./input_ly_san
+          # shellcheck disable=SC2086
+          c++ $SAN $CORE engine/input/input_touch_test.cpp -o input_tc_san && ./input_tc_san
           # shellcheck disable=SC2086
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -Iengine/core -Iengine/asset -pthread \
             $CORE engine/input/input_race_test.cpp -o input_race_tsan && ./input_race_tsan
@@ -1938,6 +1944,7 @@ jobs:
                    framework_preset_axes_test \
                    framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_layout_test framework_lobby_test framework_lobby_pause_test \
+                   framework_lobby_touch_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_credits_test \
                    framework_json_test framework_json_string_test framework_json_number_test \
@@ -1959,6 +1966,8 @@ jobs:
             || { echo "framework_lobby_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-lobby-pause: PASS - 20 cases" fw_framework_lobby_pause_test.txt \
             || { echo "framework_lobby_pause_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-lobby-touch: PASS - 43 cases" fw_framework_lobby_touch_test.txt \
+            || { echo "framework_lobby_touch_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-refusal: PASS - 68 cases" fw_framework_scene_refusal_test.txt \
             || { echo "framework_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_framework_scene_level_refusal_test.txt \
@@ -2030,6 +2039,11 @@ jobs:
             $CORE $COMMON -ldl -lpthread -o lobby_pause_san
           ./lobby_pause_san | tee lobby_pause_san.txt
           grep -q "framework-lobby-pause: PASS - 20 cases" lobby_pause_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/input/framework_lobby_touch_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o lobby_touch_san
+          ./lobby_touch_san | tee lobby_touch_san.txt
+          grep -q "framework-lobby-touch: PASS - 43 cases" lobby_touch_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —

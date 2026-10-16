@@ -1,5 +1,7 @@
 #include "lobby.hpp"
 
+#include <initializer_list>
+
 #include "layout_keys.hpp"
 
 namespace framework::input {
@@ -35,6 +37,7 @@ void Lobby::update(const ::input::DeviceState& d) {
         if (edge && d.pad_connected[slot] && !pad_taken(slot)) claim_pad(slot);
     }
     claim_keys(d);
+    claim_touch(d);
     prev_ = d;
 }
 
@@ -55,6 +58,12 @@ int Lobby::first(SeatState s) const {
     return -1;
 }
 
+int Lobby::touch_owner() const {
+    for (int p = 0; p < seats_; ++p)
+        if (state_[p] != SeatState::Free && map_.assignment(p).use_touch) return p;
+    return -1;
+}
+
 bool Lobby::pad_taken(int slot) const {
     for (int p = 0; p < seats_; ++p)
         if (state_[p] != SeatState::Free && map_.assignment(p).pad_slot == slot) return true;
@@ -70,28 +79,48 @@ void Lobby::promote() {
 // прежним, а слот, оставшийся за ним в карте, отказал бы следующему владельцу как общий вход.
 void Lobby::mark_lost(const ::input::DeviceState& d) {
     for (int p = 0; p < seats_; ++p) {
-        const ::input::PlayerAssign a = map_.assignment(p);
+        ::input::PlayerAssign a = map_.assignment(p);
         if (state_[p] != SeatState::Present || a.pad_slot < 0) continue;
         if (a.pad_slot < ::input::MAX_DEVICES && d.pad_connected[a.pad_slot]) continue;
-        if (map_.assign_player(p, ::input::PlayerAssign{-1, a.use_kbd_mouse})) state_[p] = SeatState::Lost;
+        a.pad_slot = -1;
+        if (map_.assign_player(p, a)) state_[p] = SeatState::Lost;
     }
 }
 
 void Lobby::claim_pad(int slot) {
     const int lost = first(SeatState::Lost);
     if (lost >= 0) {
-        const ::input::PlayerAssign a{slot, map_.assignment(lost).use_kbd_mouse};
+        ::input::PlayerAssign a = map_.assignment(lost);
+        a.pad_slot = slot;
         if (map_.assign_player(lost, a)) state_[lost] = SeatState::Resuming;
         return;
     }
     const int free = first(SeatState::Free);
-    if (free >= 0 && map_.assign_player(free, ::input::PlayerAssign{slot, false})) state_[free] = SeatState::Joining;
+    if (free >= 0 && map_.assign_player(free, ::input::PlayerAssign{.pad_slot = slot}))
+        state_[free] = SeatState::Joining;
 }
 
 void Lobby::claim_keys(const ::input::DeviceState& d) {
     for (int p = 0; p < seats_; ++p) {
         if (state_[p] != SeatState::Free || !layout_key_pressed(map_.layout(p), d, prev_)) continue;
-        if (map_.assign_player(p, ::input::PlayerAssign{-1, true})) state_[p] = SeatState::Joining;
+        if (map_.assign_player(p, ::input::PlayerAssign{.use_kbd_mouse = true})) state_[p] = SeatState::Joining;
+    }
+}
+
+// Экран один: тач садит потерявшего пад раньше свободного места, как пад, и только если тач ничей
+// или уже его.
+void Lobby::claim_touch(const ::input::DeviceState& d) {
+    const int owner = touch_owner();
+    for (const SeatState from : {SeatState::Lost, SeatState::Free}) {
+        for (int p = 0; p < seats_; ++p) {
+            if (state_[p] != from || (owner >= 0 && owner != p)) continue;
+            if (!layout_touch_pressed(map_.layout(p), d, prev_)) continue;
+            ::input::PlayerAssign a = map_.assignment(p);
+            a.use_touch = true;
+            if (!map_.assign_player(p, a)) continue;
+            state_[p] = from == SeatState::Lost ? SeatState::Resuming : SeatState::Joining;
+            return;
+        }
     }
 }
 

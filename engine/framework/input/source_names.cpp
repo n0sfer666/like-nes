@@ -50,6 +50,13 @@ const Named MOUSE_AXES[] = {
     {"x", ::input::code::MAxX}, {"y", ::input::code::MAxY}, {"wheel", ::input::code::MAxWheel},
 };
 
+const Named TOUCH_BUTTONS[] = {
+    {"a", ::input::code::TouchA}, {"b", ::input::code::TouchB}, {"c", ::input::code::TouchC},
+    {"d", ::input::code::TouchD}, {"e", ::input::code::TouchE},
+};
+
+const Named TOUCH_AXES[] = {{"stick_x", ::input::code::StickX}, {"stick_y", ::input::code::StickY}};
+
 template <std::size_t N>
 bool lookup(const Named (&table)[N], const std::string& name, uint16_t& out) {
     for (const Named& n : table)
@@ -143,6 +150,12 @@ bool parse_source(const std::string& text, Source& out) {
         out = {SourceKind::PadAxis, code, sign};
         return true;
     }
+    if (prefix == "touch") {
+        if (lookup(TOUCH_BUTTONS, name, code)) out = {SourceKind::TouchButton, code, sign};
+        else if (lookup(TOUCH_AXES, name, code)) out = {SourceKind::TouchAxis, code, sign};
+        else return false;
+        return true;
+    }
     return false;
 }
 
@@ -170,6 +183,14 @@ std::string source_name(const Source& src) {
         if (n == nullptr) return std::string();
         const bool is_trigger = src.code == ::input::code::LT || src.code == ::input::code::RT;
         return (is_trigger ? "trigger:" : "padaxis:") + sign + n;
+    }
+    case SourceKind::TouchButton: {
+        const char* n = reverse(TOUCH_BUTTONS, src.code);
+        return n != nullptr ? "touch:" + std::string(n) : std::string();
+    }
+    case SourceKind::TouchAxis: {
+        const char* n = reverse(TOUCH_AXES, src.code);
+        return n != nullptr ? "touch:" + sign + n : std::string();
     }
     default:
         return std::string();

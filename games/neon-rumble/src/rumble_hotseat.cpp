@@ -30,7 +30,7 @@ bool Hotseat::open() {
         std::fprintf(stderr, "neon-rumble: controls: %s\n", why.c_str());
         return false;
     }
-    if (!lobby_.join(0, input::PlayerAssign{-1, true})) {
+    if (!lobby_.join(0, input::PlayerAssign{.use_kbd_mouse = true})) {
         std::fprintf(stderr, "neon-rumble: player 1 does not get the keyboard\n");
         return false;
     }

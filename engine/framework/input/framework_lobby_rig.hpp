@@ -28,6 +28,7 @@ enum Action : int { JUMP = 0, PUNCH = 1 };
 
 inline ::input::Source key(uint16_t code) { return {::input::SourceKind::Key, code, 1}; }
 inline ::input::Source pad(uint16_t code) { return {::input::SourceKind::PadButton, code, 1}; }
+inline ::input::Source touch_button(uint16_t code) { return {::input::SourceKind::TouchButton, code, 1}; }
 
 // Раскладка уходит в карту, а не возвращается значением: GCC 13 -O3 на возврате видит в третьем
 // push_back запись за буфером (stringop-overflow), которой нет.
@@ -48,8 +49,8 @@ struct Rig {
         if (seed) step();
     }
 
-    void post(::input::RawKind k, ::input::DeviceKind d, uint8_t slot, uint16_t code) {
-        engine.post(::input::RawEvent{k, d, slot, code, 0, seq++});
+    void post(::input::RawKind k, ::input::DeviceKind d, uint8_t slot, uint16_t code, int32_t value = 0) {
+        engine.post(::input::RawEvent{k, d, slot, code, value, seq++});
     }
     void plug(uint8_t slot) { post(::input::RawKind::DeviceConnected, ::input::DeviceKind::Gamepad, slot, 0); }
     void unplug(uint8_t slot) { post(::input::RawKind::DeviceDisconnected, ::input::DeviceKind::Gamepad, slot, 0); }
@@ -59,6 +60,13 @@ struct Rig {
     }
     void keypress(uint16_t code, bool down) {
         post(down ? ::input::RawKind::KeyDown : ::input::RawKind::KeyUp, ::input::DeviceKind::Keyboard, 0, code);
+    }
+    void stick(uint16_t axis, fix32 v) {
+        post(::input::RawKind::TouchAxis, ::input::DeviceKind::Touch, 0, axis, v.raw);
+    }
+    void touch(uint16_t b, bool down) {
+        post(down ? ::input::RawKind::TouchButtonDown : ::input::RawKind::TouchButtonUp, ::input::DeviceKind::Touch,
+             0, b);
     }
 
     void step() {

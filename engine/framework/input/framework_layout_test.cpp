@@ -77,6 +77,21 @@ bool kp_names_round_trip() {
            !parse_source("key:kp10", ignored);
 }
 
+bool touch_names_round_trip() {
+    const char* names[] = {"touch:a", "touch:b", "touch:c", "touch:d", "touch:e", "touch:stick_x", "touch:-stick_y"};
+    for (const char* name : names) {
+        ::input::Source src;
+        if (!parse_source(name, src) || source_name(src) != name) return false;
+    }
+    ::input::Source a, y;
+    ::input::Source ignored;
+    return parse_source("touch:a", a) && a.kind == ::input::SourceKind::TouchButton &&
+           a.code == ::input::code::TouchA && parse_source("touch:-stick_y", y) &&
+           y.kind == ::input::SourceKind::TouchAxis && y.code == ::input::code::StickY && y.sign == -1 &&
+           !parse_source("touch:f", ignored) && !parse_source("touch:stick", ignored) &&
+           source_name({::input::SourceKind::TouchButton, 5, 1}).empty();
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
@@ -95,6 +110,7 @@ int main(int argc, char** argv) {
     check(p1 >= 0 && p2 >= 0 && punch == t.find_action(static_cast<uint32_t>(p1), "punch"),
           "both presets bake with the same action order");
     check(kp_names_round_trip(), "numpad keys are named kp0..kp9 both ways");
+    check(touch_names_round_trip(), "touch buttons a..e and the stick axes are named both ways");
 
     ::input::ActionMap map;
     ::input::PlayerAssign kbd;
@@ -143,11 +159,15 @@ int main(int argc, char** argv) {
     const std::string base = dir + "/framework_layout_test.txt";
     const std::string f1 = profile_file(base, 0), f2 = profile_file(base, 1);
     s1.set("kick", 0, {::input::SourceKind::Key, KEY_F, 1});
+    s1.set("jump", 1, {::input::SourceKind::TouchButton, ::input::code::TouchC, 1});
     check(s1.save(f1, "p1") && s2.save(f2, "p2"), "each player's profile is written to its own file");
     RebindStore b1, b2;
     std::string n1, n2;
     ::input::Source k, p;
     check(b1.load(f1, n1) && b2.load(f2, n2) && n1 == "p1" && n2 == "p2", "both profiles load with their presets");
+    ::input::Source tb;
+    check(b1.get("jump", 1, tb) && tb.kind == ::input::SourceKind::TouchButton && tb.code == ::input::code::TouchC,
+          "a touch rebind survives the profile file by name");
     check(b1.get("kick", 0, k) && k.code == KEY_F && !b1.get("punch", 0, p) && b2.get("punch", 0, p) &&
               p.code == KP_9 && !b2.get("kick", 0, k),
           "neither profile carries the other's rebinds");

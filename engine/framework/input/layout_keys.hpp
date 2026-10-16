@@ -9,4 +9,9 @@ namespace framework::input {
 bool layout_key_pressed(const ::input::ActionLayout& layout, const ::input::DeviceState& now,
                         const ::input::DeviceState& prev);
 
+// Фронт тач-кнопки из раскладки игрока. Стик не считается: касание левой половины экрана —
+// движение, а не просьба сесть за игру.
+bool layout_touch_pressed(const ::input::ActionLayout& layout, const ::input::DeviceState& now,
+                          const ::input::DeviceState& prev);
+
 } // namespace framework::input

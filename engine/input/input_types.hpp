@@ -11,10 +11,11 @@ constexpr int MAX_AXES = 8;
 constexpr int MAX_DEVICES = 8;  // физических устройств (пул)
 constexpr int MAX_PLAYERS = 4;
 
-enum class DeviceKind : uint8_t { None = 0, Keyboard, Mouse, Gamepad };
+enum class DeviceKind : uint8_t { None = 0, Keyboard, Mouse, Gamepad, Touch };
 
-// Логический источник для биндинга (device-agnostic на уровне карты).
-enum class SourceKind : uint8_t { None = 0, Key, MouseButton, MouseAxis, PadButton, PadAxis };
+// Логический источник для биндинга (device-agnostic на уровне карты). Пресеты хранят вид числом,
+// поэтому новые виды — только в конец.
+enum class SourceKind : uint8_t { None = 0, Key, MouseButton, MouseAxis, PadButton, PadAxis, TouchButton, TouchAxis };
 
 // Сырое событие ОС. seq — монотонный порядок продюсера (в пределах тика), НЕ wall-clock:
 // в какой тик попадёт событие, решает дренаж sim @sync_point, не эта метка.
@@ -24,6 +25,7 @@ enum class RawKind : uint8_t {
     PadButtonDown, PadButtonUp, PadAxis,
     DeviceConnected, DeviceDisconnected, FocusLost,
     TickMark, // граница тика в потоке событий (async-дренаж): sim коалесцирует до маркера
+    TouchButtonDown, TouchButtonUp, TouchAxis, // экран один: slot не читается
 };
 
 struct RawEvent {
