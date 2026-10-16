@@ -3746,7 +3746,7 @@ is 0.
 
 ## 26. Gate 6 of #25 — the block and the roll
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 101 banderas block, react tick 111 banderas stand, react tick 353 banderas dodge; окно neon_rumble: I держит позу блока на месте, отпускание выходит; O — перекат вперёд около 0,4 с сквозь adler, J/K/I/O во время переката ничего не делают; I и O в прыжке и в ударе не срабатывают; прислать строки react, слово о длине переката и частоту экрана -->
+<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 101 banderas block, react tick 111 banderas stand, react tick 353 banderas dodge; окно neon_rumble: I держит позу блока на месте, отпускание выходит; O — перекат вперёд около 0,4 с сквозь adler, J/K/I/O во время переката ничего не делают; I и O в прыжке и в ударе не срабатывают; I + D, по концу переката I + A — перекат по facing, затем снова блок; пад-место P2 (rainbird): LB + быстрый рывок стика — rainbird dodge, затем rainbird block, медленный наклон — блок; прислать строки react, слово о длине переката и частоту экрана -->
 
 B3e of spec #25 gave the fighters a block and a roll. I held on the ground is the block: the fighter
 takes the `block` pose, stands where he is while it is held and leaves it on the release, with no
@@ -3782,8 +3782,8 @@ backslashes).
    The window opens on the menu (§32): press Enter on `level level1`.
 
 3. **The block.** Hold I. Banderas takes the block pose and the terminal prints
-   `neon-rumble: react tick <n>: banderas block`. Hold a direction as well: he does not walk. Let go of
-   I — `banderas stand`, and the held direction walks him at once. Hold I in a jump or in the middle of
+   `neon-rumble: react tick <n>: banderas block`. Let go of I — `banderas stand`, and a held direction
+   walks him at once. Hold I in a jump or in the middle of
    a jab: nothing happens until he lands or the jab ends, and then the block starts if I is still held.
    Press J while blocking and let go of I within 8 ticks (0.13 s at 60 Hz): the jab comes out after
    the release. A J held in the block longer than that expires in the buffer — not a finding.
@@ -3792,9 +3792,17 @@ backslashes).
    `banderas stand`. Press J, K, I or O during the roll: it goes on to its end unchanged. Roll at
    Adler on his line: Banderas passes through him. O in a jump or in a strike does nothing; O while
    holding I rolls out of the block.
+5. **The flick (B2c of spec #26).** Hold I and tap D: Banderas rolls the way he faces, not the way
+   of the key — `banderas dodge`, then `banderas block` again while I is held. Wait for the roll to
+   end (a roll does not start inside a roll, step 4) and tap A: one more roll, the same way. A
+   keyboard axis reaches full in one tick, so every move key in the block is a flick. A second player
+   joins with a pad button and plays Rainbird (§29): hold LB and flick the left stick from rest —
+   `rainbird dodge`, then `rainbird block`; tilt it over a second — no roll, the block stays. A move
+   key or a flick first and I or LB after it: no roll.
 
 What counts as a finding: a block in the air or in a strike; a block that walks or does not end on the
-release; a roll that goes backwards, stops early, turns or starts again on a second O; a roll in the
+release; a roll that goes backwards, stops early, turns or starts again on a second O; a move key in the block
+that does not roll; a flick of the stick in the block that does not roll; a slow tilt that rolls; a roll in the
 air; a pose that is not the block or the roll; a roll that feels too long or too short to use — send a
 word on its length either way.
 
@@ -3802,14 +3810,14 @@ Four known edges are not findings. Nobody strikes Banderas in Neon Rumble until 
 blocked strike (no damage, the shared stop, the half push) and the roll through a strike are not
 visible in the window — they are pinned by `framework_brawl_guard_test`, `framework_brawl_dodge_test`
 and the `block-turn` and `dodge-through` scenarios of the crossplay gate. Fighters do not push each
-other (the `push` box of B3f is what a grab takes, not a wall), so the roll passing through Adler says nothing about invulnerability. Only Banderas
-is under the keyboard, so the rolls of Rainbird (20 ticks) and Adler (28) wait for the AI of B5. The
+other (the `push` box of B3f is what a grab takes, not a wall), so the roll passing through Adler says nothing about invulnerability. Nobody steers
+Adler, so his roll (28 ticks) waits for the AI of B5; the roll of Rainbird (20) is step 5 on a pad. The
 `dodge` clip is 7 frames of 60 ms, 4 ticks each, 28 in all, and the roll of Banderas is 24: its last
 frame is never shown and he snaps to the stand pose (Rainbird's 20 would lose two). The lengths are the
 owner's choice of 2026-10-09, kept at the close of B3 the same day with the cut known; say so if
 it reads wrong in the window.
 
-Send back: the terminal lines of steps 3–4, one word on the length of the roll and the refresh rate of
+Send back: the terminal lines of steps 3–5, one word on the length of the roll and the refresh rate of
 the screen it was judged on.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code

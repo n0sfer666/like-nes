@@ -44,7 +44,7 @@ bool Hotseat::tick(uint32_t t, Players& out) {
     for (uint32_t p = 0; p < out.size(); ++p) {
         const int player = static_cast<int>(p);
         const input::InputFrame& f = engine_.resolve(t, player);
-        out[p] = lobby_.present(player) ? command_of(f) : PlayerCommand{};
+        out[p] = lobby_.present(player) ? command_of(engine_.buffer(player)) : PlayerCommand{};
         if (lobby_.present(player) && f.action_pressed(LEAVE)) {
             lobby_.leave(player);
             out[p] = PlayerCommand{};
@@ -68,6 +68,12 @@ bool Hotseat::tick(uint32_t t, Players& out) {
 
 Игрок 2 выходит минусом нампада, а не Backspace: двое за одной клавиатурой делили бы клавишу, и
 карта отказала бы во второй раскладке.
+
+У уклона есть второй вход без своей кнопки: удержать блок и рвануть ось движения влево или вправо —
+из покоя до трёх четвертей хода за 3 тика. `dodge_flick` читает это по последним кадрам буфера ввода,
+поэтому запись воспроизводит уклон тик в тик; перекат идёт туда, куда смотрит боец, в какую бы
+сторону ни был рывок, а медленный наклон оставляет блок. Ось клавиатуры встаёт в полную за один
+тик, так что блок и клавиша движения — тоже уклон.
 
 Игра печатает каждую смену места, например `neon-rumble: seat tick 412: P2 joining`, затем `P2
 present`; отключённый пад печатает `P2 lost the pad, paused`.

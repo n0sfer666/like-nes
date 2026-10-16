@@ -45,7 +45,7 @@ bool Hotseat::tick(uint32_t t, Players& out) {
     for (uint32_t p = 0; p < out.size(); ++p) {
         const int player = static_cast<int>(p);
         const input::InputFrame& f = engine_.resolve(t, player);
-        out[p] = lobby_.present(player) ? command_of(f) : PlayerCommand{};
+        out[p] = lobby_.present(player) ? command_of(engine_.buffer(player)) : PlayerCommand{};
         if (lobby_.present(player) && f.action_pressed(LEAVE)) {
             lobby_.leave(player);
             out[p] = PlayerCommand{};

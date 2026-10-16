@@ -1,5 +1,7 @@
 #pragma once
+#include <cstddef>
 #include <cstdint>
+#include <span>
 #include "input_types.hpp"
 
 // Кольцо последних N InputFrame: leniency-запросы («была ли Action нажата за последние n
@@ -20,6 +22,14 @@ public:
         for (uint64_t i = 0; i < count; ++i)
             if (buf_[(head_ - 1 - i) & (N - 1)].action_pressed(action)) return true;
         return false;
+    }
+
+    std::span<const InputFrame> latest(std::span<InputFrame> out) const {
+        constexpr size_t CAP = N;
+        size_t n = head_ < CAP ? static_cast<size_t>(head_) : CAP;
+        if (out.size() < n) n = out.size();
+        for (size_t i = 0; i < n; ++i) out[n - 1 - i] = buf_[(head_ - 1 - i) & (N - 1)];
+        return out.first(n);
     }
 
     const InputFrame& last() const { return buf_[(head_ - 1) & (N - 1)]; }

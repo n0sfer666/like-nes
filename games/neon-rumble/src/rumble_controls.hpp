@@ -3,6 +3,7 @@
 #include <string>
 
 #include "action_map.hpp"
+#include "input_engine.hpp"
 #include "rumble_command.hpp"
 
 namespace rumble {
@@ -21,6 +22,6 @@ enum Key : uint16_t {
 // ActionLayout запись за буфером (stringop-overflow), которой нет. Отказ карты — текстом в `why`.
 [[nodiscard]] bool set_layouts(input::ActionMap& map, std::string& why);
 
-PlayerCommand command_of(const input::InputFrame& f);
+PlayerCommand command_of(const input::InputBuffer<input::BUFFER_TICKS>& recent);
 
 } // namespace rumble

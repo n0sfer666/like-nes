@@ -43,7 +43,7 @@ bool Hotseat::tick(uint32_t t, Players& out) {
     for (uint32_t p = 0; p < out.size(); ++p) {
         const int player = static_cast<int>(p);
         const input::InputFrame& f = engine_.resolve(t, player);
-        out[p] = lobby_.present(player) ? command_of(f) : PlayerCommand{};
+        out[p] = lobby_.present(player) ? command_of(engine_.buffer(player)) : PlayerCommand{};
         if (lobby_.present(player) && f.action_pressed(LEAVE)) {
             lobby_.leave(player);
             out[p] = PlayerCommand{};
@@ -67,6 +67,12 @@ bool Hotseat::tick(uint32_t t, Players& out) {
 
 Player 2 leaves with numpad minus, not Backspace: two players at one keyboard would share the key,
 and the map would refuse the second layout.
+
+Dodge has a second way in that needs no dodge button: hold block and flick the move axis left or
+right, from rest to three quarters of its travel within 3 ticks. `dodge_flick` reads it off the last
+frames of the input buffer, so a recording replays it tick for tick; the roll goes where the fighter
+faces, whichever way the flick went, and a slow tilt keeps the block. A keyboard axis jumps to full
+in one tick, so block plus a move key is a dodge too.
 
 The game prints every change of a seat, for example `neon-rumble: seat tick 412: P2 joining`, then
 `P2 present`; a lost pad prints `P2 lost the pad, paused`.

@@ -1,4 +1,6 @@
 #include <cstdio>
+#include <initializer_list>
+#include <span>
 #include "action_map.hpp"
 #include "codes.hpp"
 #include "input_engine.hpp"
@@ -82,12 +84,34 @@ static bool test_buffer_leniency() {
     return within && expired;
 }
 
+static bool latest_is(const InputBuffer<4>& b, size_t window, std::initializer_list<uint32_t> ticks) {
+    InputFrame out[6];
+    const auto got = b.latest(std::span<InputFrame>(out, window));
+    if (got.size() != ticks.size()) return false;
+    size_t i = 0;
+    for (uint32_t t : ticks)
+        if (got[i++].tick != t) return false;
+    return true;
+}
+
+static bool test_buffer_latest() {
+    InputBuffer<4> b;
+    const bool empty = latest_is(b, 4, {});
+    for (uint32_t t = 1; t <= 2; ++t) b.push(InputFrame{.tick = t});
+    const bool young = latest_is(b, 4, {1, 2});
+    for (uint32_t t = 3; t <= 7; ++t) b.push(InputFrame{.tick = t});
+    const bool wrapped = latest_is(b, 6, {4, 5, 6, 7});
+    const bool trimmed = latest_is(b, 2, {6, 7});
+    return empty && young && wrapped && trimmed;
+}
+
 int main() {
     struct { const char* n; bool ok; } t[] = {
         {"context+consume", test_context_consume()},
         {"rebind (listen-next)", test_rebind()},
         {"per-player device assign", test_per_player()},
         {"input-buffer leniency", test_buffer_leniency()},
+        {"input-buffer latest", test_buffer_latest()},
     };
     printf("input-actionmap gate:\n");
     bool all = true;

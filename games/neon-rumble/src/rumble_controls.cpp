@@ -1,6 +1,9 @@
 #include "rumble_controls.hpp"
 
+#include <array>
+
 #include "codes.hpp"
+#include "dodge_flick.hpp"
 #include "player_layout.hpp"
 #include "seat.hpp"
 
@@ -12,6 +15,8 @@ namespace code = input::code;
 namespace bb = framework::brawl::button;
 
 const fix32 STICK_DEADZONE = fix32::from_int(3) / fix32::from_int(10);
+constexpr uint32_t FLICK_TICKS = 3;
+const framework::brawl::FlickRule FLICK{BLOCK, MOVE_X, fix32::from_int(3) / fix32::from_int(4), FLICK_TICKS};
 
 input::Source key(uint16_t c) { return {input::SourceKind::Key, c, 1}; }
 input::Source pad(uint16_t c) { return {input::SourceKind::PadButton, c, 1}; }
@@ -82,7 +87,10 @@ bool set_layouts(input::ActionMap& map, std::string& why) {
     return false;
 }
 
-PlayerCommand command_of(const input::InputFrame& f) {
+PlayerCommand command_of(const input::InputBuffer<input::BUFFER_TICKS>& recent) {
+    std::array<input::InputFrame, FLICK_TICKS + 1> window;
+    const input::InputFrame& f = recent.last();
+    const bool flick = framework::brawl::dodge_flick(recent.latest(window), FLICK);
     PlayerCommand c;
     framework::brawl::BrawlInput& in = c.input;
     in.present = true;
@@ -90,7 +98,7 @@ PlayerCommand command_of(const input::InputFrame& f) {
     in.move.move_z = unit(f.axes[MOVE_Z]);
     in.buttons = with(in.buttons, f.action_pressed(JUMP), bb::JUMP);
     in.buttons = with(in.buttons, f.action_held(BLOCK), bb::BLOCK);
-    in.buttons = with(in.buttons, f.action_pressed(DODGE), bb::DODGE);
+    in.buttons = with(in.buttons, f.action_pressed(DODGE) || flick, bb::DODGE);
     in.buttons = with(in.buttons, f.action_held(GRAB), bb::GRAB);
     if (f.action_pressed(PUNCH)) c.attack = Attack::Punch;
     else if (f.action_pressed(CROSS)) c.attack = Attack::Cross;
