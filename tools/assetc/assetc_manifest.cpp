@@ -111,6 +111,13 @@ bool credits(const std::vector<std::string>& f, uint32_t line, Error& err) {
     return true;
 }
 
+bool touch(const std::vector<std::string>& f, uint32_t line, Error& err) {
+    if (f.size() != 4 || f[2] != "layout")
+        return fail(err, line, "touch record expected as touch|<name>|layout|<path>.txt");
+    if (!f[3].ends_with(".txt")) return fail(err, line, "touch path '" + f[3] + "' must end in .txt");
+    return true;
+}
+
 bool fighter(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f.size() != 3) return fail(err, line, "fighter record expected as fighter|<name>|<path>.fighter");
     if (!f[2].ends_with(".fighter")) return fail(err, line, "fighter path '" + f[2] + "' must end in .fighter");
@@ -124,8 +131,9 @@ bool kind_ok(const std::vector<std::string>& f, uint32_t line, Error& err) {
     if (f[0] == "font") return font(f, line, err);
     if (f[0] == "credits") return credits(f, line, err);
     if (f[0] == "fighter") return fighter(f, line, err);
-    return fail(err, line,
-                "unsupported record kind '" + f[0] + "' (this assetc bakes: texture, level, clips, font, credits, fighter)");
+    if (f[0] == "touch") return touch(f, line, err);
+    return fail(err, line, "unsupported record kind '" + f[0] +
+                               "' (this assetc bakes: texture, level, clips, font, credits, fighter, touch)");
 }
 
 bool reserved(const std::string& name) {

@@ -902,7 +902,8 @@ jobs:
         run: |
           for t in material_bake_test material_source_test material_table_test \
                    material_library_test light_table_test assetc_manifest_test assetc_bake_test \
-                   assetc_level_test assetc_clips_test assetc_fighter_test assetc_font_test; do
+                   assetc_level_test assetc_clips_test assetc_fighter_test assetc_font_test \
+                   assetc_touch_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -1407,10 +1408,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=16, а не 17, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=17, а не 18, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=16 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=17 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -1945,6 +1946,7 @@ jobs:
                    framework_section_align_test framework_pad_test framework_rebind_test \
                    framework_layout_test framework_lobby_test framework_lobby_pause_test \
                    framework_lobby_touch_test \
+                   framework_touch_layout_test framework_touch_source_test \
                    framework_golden_test framework_trig_test framework_text_test \
                    framework_credits_test \
                    framework_json_test framework_json_string_test framework_json_number_test \
@@ -1968,6 +1970,10 @@ jobs:
             || { echo "framework_lobby_pause_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-lobby-touch: PASS - 43 cases" fw_framework_lobby_touch_test.txt \
             || { echo "framework_lobby_touch_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-touch-layout: PASS - 43 cases" fw_framework_touch_layout_test.txt \
+            || { echo "framework_touch_layout_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-touch-source: PASS - 35 cases" fw_framework_touch_source_test.txt \
+            || { echo "framework_touch_source_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-refusal: PASS - 68 cases" fw_framework_scene_refusal_test.txt \
             || { echo "framework_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_framework_scene_level_refusal_test.txt \
@@ -1988,8 +1994,8 @@ jobs:
           INC="-Iengine/framework/input -Iengine/framework/core -Iengine/framework/graphics"
           INC="$INC -Iengine/framework/character -Iengine/framework/tilemap"
           INC="$INC -Iengine/framework/physics -Iengine/core -Iengine/input -Iengine/asset"
-          INC="$INC -Iengine/platform"
-          COMMON=$(find engine/framework/input engine/framework/core engine/platform \
+          INC="$INC -Iengine/platform -Iengine/framework/touch"
+          COMMON=$(find engine/framework/input engine/framework/core engine/framework/touch engine/platform \
             -maxdepth 1 -name '*.cpp' \
             | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
           IMPORT=$(sed -n '/add_library(framework_graphics_import/,/)/p' engine/framework/graphics/import.cmake \
@@ -2044,6 +2050,16 @@ jobs:
             $CORE $COMMON -ldl -lpthread -o lobby_touch_san
           ./lobby_touch_san | tee lobby_touch_san.txt
           grep -q "framework-lobby-touch: PASS - 43 cases" lobby_touch_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/touch/framework_touch_layout_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o touch_layout_san
+          ./touch_layout_san | tee touch_layout_san.txt
+          grep -q "framework-touch-layout: PASS - 43 cases" touch_layout_san.txt
+          # shellcheck disable=SC2086
+          c++ $SAN $INC engine/framework/touch/framework_touch_source_test.cpp \
+            $CORE $COMMON -ldl -lpthread -o touch_source_san
+          ./touch_source_san | tee touch_source_san.txt
+          grep -q "framework-touch-source: PASS - 35 cases" touch_source_san.txt
 
       # --- Графика (спека #17), вертикаль 1, шаг A: шкала клипа, доставка меток кадров и голден
       # анимационного состояния. Тесты чистые — ни GPU, ни окна, ни атласа в них нет вовсе, —
@@ -2909,7 +2925,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=17 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=18 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -2928,7 +2944,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=17 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=18 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -2970,6 +2986,7 @@ jobs:
           assetc_clips_test:assetc-clips: PASS
           assetc_fighter_test:assetc-fighter: PASS
           assetc_font_test:assetc-font: PASS
+          assetc_touch_test:assetc-touch: PASS - 9 cases
           framework_text_test:framework-text: PASS
           framework_credits_test:framework-credits: PASS
           framework_graphics_font_test:framework-graphics-font: PASS

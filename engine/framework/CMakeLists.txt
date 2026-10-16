@@ -2,6 +2,7 @@
 # Модуль на подкаталог: раунды #15–#18 добавляют свои, не трогая соседей.
 add_subdirectory(core)
 add_subdirectory(input)
+add_subdirectory(touch)
 add_subdirectory(physics)
 add_subdirectory(character)
 add_subdirectory(tilemap)

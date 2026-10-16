@@ -31,6 +31,7 @@ set(FUZZ_LIBS
   asset_core
   ach_core
   framework_brawl_fighter framework_character framework_graphics framework_input framework_tilemap
+  framework_touch
   material_bake material_core
   plugin_core
   platform_core

@@ -11,6 +11,7 @@
 #include "fighter_bake.hpp"
 #include "font_bake.hpp"
 #include "tiled_import.hpp"
+#include "touch_layout.hpp"
 
 namespace asset::bakers {
 
@@ -38,6 +39,8 @@ bool credits(const char* name, std::span<const framework::core::CreditSrc> credi
              std::string& error);
 bool fighter(const char* name, const std::string& text, std::span<const framework::graphics::ClipSrc> clips,
              std::vector<AssetInput>& out, framework::brawl::FighterBakeError& error);
+bool touch(const char* name, const framework::touch::Layout& layout, std::vector<AssetInput>& out,
+           std::string& error);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);

@@ -9,9 +9,12 @@ python3 scripts/check_sim_float.py --selftest  # 24 контроля на фик
 тремя ОС, и одно `float` в шаге даёт расхождение, которое назовёт джоб `crossplay`, но не причину.
 Гейт называет причину строкой.
 
-- **Где.** `engine/framework/{brawl,ai,scene}` — файлы глазами `git ls-files --cached --others
+- **Где.** `engine/framework/{brawl,ai,scene,touch}` — файлы глазами `git ls-files --cached --others
   --exclude-standard`, расширения C/C++. `ai` — с В5, `scene` — с В6а
   (2026-10-11): `float leak;` в конце `scene_objects.hpp` → FAIL, строка 94; откат — PASS, 120 файлов.
+  `touch` — со спеки #26 В2б (2026-10-16): ось экранного стика уходит в InputFrame и в sim-хеш, а
+  оболочки отдают float. `float leak;` в конце `touch_source.hpp` → FAIL, строка 68; откат — PASS,
+  247 файлов.
 - **Что.** Три правила. Типы и конверсии словом целиком: `float`, `double`, `float_t`, `double_t`,
   `_FloatN`, `floatN_t`, а также `from_float` и `to_double` из `fixed.hpp` — они для границ
   (авторинг, рендер), не для шага; `long double` — одна находка. Плавающие литералы: `0.5`, `1.f`,
