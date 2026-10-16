@@ -37,7 +37,7 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
   `XCUIDevice.eventSynthesizer`; пропажа класса, селектора или свойства в новом Xcode — **красный** с именем,
   а не откат на публичный жест: тот зон не различает, и гейт стал бы зелёным без предмета.
 - **Геометрия огня — оракул, а не копия.** Тест считает центр круга по формуле `fire_btn`
-  (`mobile_game.cpp`) от кадра окна: уедет кнопка — палец мимо, и гейт скажет «never held at
+  (`example_ugly_game/shooter_touch.cpp`) от кадра окна: уедет кнопка — палец мимо, и гейт скажет «never held at
   once», а не пройдёт.
 - **`LIKE_NES_IOS_VIEW` передаётся КАЖДЫМ прогоном.** Кеш-переменная подменяет `view.mm` мутантом
   живой самопроверки, и кеш CMake её переживает: гейт, не передавший путь, судил бы вчерашний
@@ -109,6 +109,22 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 |---|---|---|
 | активация на главном потоке | `noAudioSessionActivate = MA_FALSE` (`engine/audio/device.cpp`) | `the UI test left runtime warnings` со строкой `AVAudioSession_iOS.mm:978` |
 | plist против бинаря | копия `.app`, `MinimumOSVersion` → 14.0 | `ios_min_os_agree`: `Info.plist '14.0'` при `minos '17.0'` |
+
+**Уход в фон и возврат — `bash scripts/ios_sim_run.sh --background-save`** (не гейт preflight,
+прогон руками/агентом). С В1б спеки #26 уход в фон снимает поверхность (`detach_surface`), а
+возврат подключает новую к тому же миру: скрипт после `achievements.save` снова зовёт
+`simctl launch` живого приложения и ждёт в stderr `[game] surface attached #N+1 tick=T world=H`,
+где #N — последний attach до фона (судит `resume_judged` из `scripts/mobile_resume_lib.sh`: пара
+по номеру, а не первая в логе).
+Счётчик живёт в процессе, поэтому `#2` — тот же процесс; `tick=T world=H` обязаны совпасть со
+строкой `surface detached` ухода в фон (`world` — `sim_hash` мира), и `T > T1` первого attach. Тик
+один улику не даёт: мир, пересозданный в attach, сохранил бы счётчик кадров. Прогон 2026-10-16:
+`#1 tick=0`, detach и `#2` — `tick=513 world=9558933015bb973a`, PASS.
+
+| мутант (руками, 2026-10-16) | порча | обязанная причина |
+|---|---|---|
+| detach убивает игру | `shutdown();` первой строкой `MobileGame::detach_surface` (`shooter_mobile.cpp`) | `no surface attach #2 30 s after returning to foreground` |
+| attach пересоздаёт мир | `if (attaches_ > 0) spawn(world_, gs_);` после `build_targets` в `MobileGame::attach_surface` | `attach #2 at tick=89 world=02d9…, detach at tick=89 world=255e…: the world restarted instead of surviving` |
 
 Симулятор устройство НЕ заменяет: GPU хостовый, жест синтезирован. Прогон на iPhone остаётся у
 владельца (`docs/owner-setup.txt` §R, шаг 4).

@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 36 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 22 stay here as the procedure, because each needs a machine a CI runner is not: a
+**14 of the 37 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 23 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -55,8 +55,9 @@ closed ones (§18, §20, §21) keep their steps as they were run; re-running one
 | The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
 | Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
 | Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
-| The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/ios/bench_app.mm`, `platform/android/bench_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
+| The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/mobile/bench_game.cpp`, `platform/ios/view.mm`, `platform/android/native_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
 | Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/seat_*`, `engine/framework/brawl/section_*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_*` |
+| Neon Rumble on a real Android phone, built against the mobile SDK prefix: it starts, Home and back re-attach the surface to the same fight, and it is the desktop's fight | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 1 | **an Android phone**, Android 10 or newer | — | `platform/android/*`, `platform/mobile/*`, `games/neon-rumble/src/rumble_mobile.*`, `games/neon-rumble/src/rumble_demo.*`, `cmake/like_nes_mobile_app.cmake`, `scripts/android_rumble.sh` |
 
 The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
@@ -4516,9 +4517,40 @@ P2 played on, and one screenshot of the two in the section.
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
 is 0.
 
+## 36. Gate 1 of #26 — Neon Rumble on an Android phone
+
+<!-- gate: open | телефон Android 10+ по USB: bash scripts/check_sdk_game.sh --keep, затем bash scripts/android_rumble.sh (шаг 5а §R owner-setup.txt); ждать «as the phone» и «[android-rumble] PASS»; руками с logcat -s like-nes: Home и возврат из недавних, поворот, экран кнопкой питания на 5 с — каждая пара detached / attached с равными tick и world, драка идёт дальше; прислать модель и версию Android, строки скрипта и пары detached / attached из logcat -->
+
+B1 of spec #26 moved the mobile shells into the SDK: Neon Rumble is a `mobile::Game` built against
+an installed mobile prefix, not against the tree, and on Android every trip to the background takes
+the surface away while the game lives on (`APP_CMD_TERM_WINDOW` detaches, only `APP_CMD_DESTROY`
+shuts down). The iOS half of that runs in the simulator (`scripts/ios_sim_rumble.sh`, step 2a of
+section R). On Android CI only builds the APK, for x86_64, with nothing to run it on; that the game
+starts on a phone, that Home and back give it its surface again, and that the ARM phone plays the
+fight the desktop plays are what this gate asks.
+
+`scripts/android_rumble.sh` does the scripted half: it builds the `android-arm64-v8a` prefix, the
+game against it, installs the APK, presses Home after 5 s and brings the game back with the
+launcher intent. It then judges two things — the attach after Home (`[game] surface attached #2 tick=T world=H`
+when nothing re-attached before it) equals the `surface detached` line between the two (the same process and the same world, not a new one), and the
+desktop `--headless` of the same build hashes the fight at tick T the same as the phone. The hand
+steps after it are what a script cannot press: the recent-apps list, a rotation, the power button.
+
+Steps: [`owner-setup.txt`](owner-setup.txt), section R, step 5a — the commands and the output, line
+by line, then the three hand steps.
+
+What counts as a finding: any `FAIL:` line of the script; `surface attached #1` after Home (the
+process was killed, or a second activity went over the task); a detached / attached pair with a
+different `tick` or `world`; `surface attach failed` or `gpu init failed` in logcat; the fight
+freezing or starting over on screen. The bars around the frame are not a finding — the landscape
+layout is B2.
+
+Send back: the phone and its Android version, the script's lines, and the detached / attached pairs
+of the hand steps from `logcat -s like-nes`.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 36 are closed, and the open 22 are listed by
+The gates above are what the ADRs waited on; 14 of the 37 are closed, and the open 23 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

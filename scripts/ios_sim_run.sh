@@ -5,7 +5,8 @@
 # обе.
 #
 #   bash scripts/ios_sim_run.sh                    # играть
-#   bash scripts/ios_sim_run.sh --background-save  # уход в фон пишет achievements.save
+#   bash scripts/ios_sim_run.sh --background-save  # уход в фон пишет achievements.save, возврат
+#                                                  # подключает поверхность к тому же миру
 #
 # Скриптом, а не командами в runbook'е: повторный `simctl create` заводил двойника, и команды по
 # имени устройства выбирали из двух; `simctl boot` уже загруженного падал; сам `boot` окна не
@@ -67,16 +68,8 @@ DATA=$(xcrun simctl get_app_container "$UDID" "$APP" data) || fail "no data cont
 SAVE="$DATA/Library/Application Support/like-nes/achievements.save"
 xcrun simctl terminate "$UDID" "$APP" >/dev/null 2>&1 || true
 rm -f "$SAVE"
-# Подписка на уход в фон появляется вместе со строкой «iOS shell up» (`view.mm`): уйти в фон раньше —
-# значит судить игру, которая ещё не слушает. Холодный первый старт бывает дольше любой паузы.
 ERR="$B/background-save.stderr"
-: >"$ERR"
-xcrun simctl launch --stderr="$ERR" "$UDID" "$APP" >/dev/null || fail "cannot launch $APP"
-for _ in $(seq 60); do
-  grep -q "iOS shell up" "$ERR" && break
-  sleep 1
-done
-grep -q "iOS shell up" "$ERR" || fail "the game did not come up in 60 s — $ERR"
+ios_launch_up "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
 # Автосейв пишет только изменившийся прогресс, а на титуле он не меняется (замер: 20 с без ухода в
 # фон — файла нет), так что файл может написать только уход в фон. UIKit шлёт его с задержкой:
 # замерено от 10 до 21 с после запуска Preferences.
@@ -87,4 +80,6 @@ for _ in $(seq 60); do
 done
 [ -f "$SAVE" ] || fail "no achievements.save 60 s after going to background: the background save is broken"
 ok "background save wrote $(stat -f %z "$SAVE") bytes to $SAVE"
+ios_resumed "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
+ok "$IOS_SAID"
 echo "[ios-run] PASS"

@@ -21,6 +21,9 @@
 # библиотеки. Прежний префикс `--keep` уезжает во временный каталог, а SDK ставится в пустой:
 # `cmake --install` только добавляет файлы, и заголовок, убранный из SDK, оставался бы в префиксе и
 # перекрывал свой новый адрес (так было в В6б: `framework/graphics/layer_quads.hpp`).
+#
+# Мобильная половина (спека #26, В1д, scripts/sdk_game_mobile.sh) идёт после десктопной: её бандлы
+# печёт assetc десктопного префикса, а бандл пакета сверяется с бандлом десктопной игры.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -33,6 +36,8 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_coop.sh"
 # shellcheck source=scripts/sdk_game_bounds.sh
 . "$ROOT/scripts/sdk_game_bounds.sh"
+# shellcheck source=scripts/sdk_game_mobile.sh
+. "$ROOT/scripts/sdk_game_mobile.sh"
 
 GEN=Ninja
 WORK=$(mktemp -d)
@@ -93,10 +98,11 @@ if grep -qs 'set(CMAKE_CXX_COMPILER_ID "MSVC")' "$OUT"/game-Release/CMakeFiles/*
 else
     printf 'sdk-game: SKIP CRT fixture (not an MSVC toolchain)\n'
 fi
+mobile_half || FAIL=1
 
 if [ "$FAIL" -ne 0 ]; then
     echo "sdk-game: FAIL"
     exit 1
 fi
-echo "sdk-game: PASS (Release + Debug against the prefix, fixtures refused)"
-[ "$OUT" = "$WORK" ] || echo "sdk-game: prefix and game builds kept in build-sdk-work/"
+echo "sdk-game: PASS (Release + Debug against the prefix, mobile packages against theirs, fixtures refused)"
+[ "$OUT" = "$WORK" ] || echo "sdk-game: prefixes and game builds kept in build-sdk-work/"

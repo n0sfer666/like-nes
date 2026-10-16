@@ -80,6 +80,7 @@ void SpriteBatch::init(WGPUDevice device, WGPUQueue queue, WGPUTextureFormat tar
     // остаётся для прогона без библиотеки — тогда четвёртой привязки просто нет.
     if (fx_) {
         bgl_ = fx_->layout();
+        owns_bgl_ = false;
     } else {
         WGPUBindGroupLayoutEntry e[3] = {};
         e[0].binding = 0; e[0].visibility = WGPUShaderStage_Vertex;
@@ -163,6 +164,9 @@ void SpriteBatch::shutdown() {
     if (sampler_) wgpuSamplerRelease(sampler_);
     if (view_) wgpuTextureViewRelease(view_);
     if (tex_) wgpuTextureRelease(tex_);
+    pipe_ = nullptr; bg_ = nullptr; bgl_ = nullptr; owns_bgl_ = false;
+    vp_ubo_ = inst_vbo_ = quad_ibo_ = quad_vbo_ = nullptr;
+    sampler_ = nullptr; view_ = nullptr; tex_ = nullptr;
 }
 
 WGPURenderPassEncoder begin_clear(WGPUCommandEncoder enc, WGPUTextureView view, WGPUColor clear) {

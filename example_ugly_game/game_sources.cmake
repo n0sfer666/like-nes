@@ -15,6 +15,9 @@ list(TRANSFORM GAME_CORE_SRC PREPEND ${CMAKE_CURRENT_LIST_DIR}/)
 list(APPEND GAME_CORE_SRC
   ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
 set(GAME_CORE_DIR ${CMAKE_CURRENT_LIST_DIR})
+# Бандлы игры в `assets/` мобильного приложения — тот же набор у обеих оболочек.
+set(GAME_BUNDLES game.bundle library.bundle audio.bundle)
+list(TRANSFORM GAME_BUNDLES PREPEND ${CMAKE_CURRENT_LIST_DIR}/assets/)
 
 # Цель материалов — параметром: десктоп берёт `material_hot` (горячая замена `.wgsl`), мобиле
 # хватает `material_gpu`. Назвать обе нельзя: hot тянет gpu PUBLIC-связью, и второе имя дало бы

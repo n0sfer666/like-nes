@@ -1,6 +1,6 @@
 # like_nes_bake(<цель> MANIFEST <файл> OUT <бандл>) — бейк ассетов игры поставленным assetc
 # (спека #24, В4). Бандл печётся в `like_nes_bake/` каталога сборки, а рядом с exe его кладёт
-# цель `<цель>_bundle` вместе с library.bundle движка.
+# цель `<цель>_bundle` вместе с library.bundle движка; в мобильном приложении оба едут в `assets/`.
 
 # assetc пишет в depfile абсолютные пути, и их все генераторы читают одинаково; NEW — ради одного
 # поведения у любой игры, а не того, что задал её cmake_minimum_required (у < 3.20 — OLD и
@@ -21,6 +21,10 @@ function(like_nes_bake target)
   get_filename_component(manifest "${_lnb_MANIFEST}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
   if(NOT EXISTS "${manifest}")
     message(FATAL_ERROR "like_nes_bake: manifest not found: ${manifest}")
+  endif()
+  if(NOT LIKE_NES_ASSETC)
+    message(FATAL_ERROR "like_nes_bake: a mobile SDK bakes with the desktop SDK's assetc; "
+                        "pass -DLIKE_NES_HOST_PREFIX=<desktop like-nes prefix>")
   endif()
   foreach(_lnb_need IN ITEMS "${LIKE_NES_LIBRARY_BUNDLE}" "${LIKE_NES_ASSETC}")
     if(NOT EXISTS "${_lnb_need}")
@@ -43,6 +47,11 @@ function(like_nes_bake target)
     DEPFILE "${bundle}.d"
     COMMENT "Baking ${_lnb_OUT} from ${_lnb_MANIFEST}"
     VERBATIM)
+  # В мобильном приложении бандлы едут в `assets/` `.app` или APK, а не рядом с exe.
+  if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+    like_nes_mobile_assets(${target} "${bundle}" "${LIKE_NES_LIBRARY_BUNDLE}")
+    return()
+  endif()
   # Копия — отдельной всегда исполняемой целью, а не POST_BUILD: тот идёт только при перелинковке
   # exe, и перепечённый после правки PNG бандл не доехал бы до каталога exe.
   add_custom_target(${target}_bundle

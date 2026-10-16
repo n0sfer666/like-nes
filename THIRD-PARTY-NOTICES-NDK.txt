@@ -1,7 +1,8 @@
 THIRD-PARTY NOTICES — Android NDK toolchain runtime (LLVM)
 =========================================================
 
-The Android APK produced by platform/android/build_apk.sh ships libc++_shared.so —
+Every Android APK packaged by like_nes_mobile_app (cmake/like_nes_mobile_app.cmake,
+in this tree and in an installed SDK) ships libc++_shared.so —
 the LLVM C++ runtime — as a whole library, not merely embedded in compiled
 output, so the LLVM Exception does not relieve the Apache-2.0 section 4(d) duty
 to pass along the NOTICE. Everything below this header is that NOTICE,

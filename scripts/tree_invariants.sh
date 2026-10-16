@@ -53,7 +53,7 @@ $hits"
 inv_argv() {
     # Исключён только iOS-хост: свой CRT, MSVC там нет, и ANSI-перекодировка argv до него
     # не доходит.
-    local exclude='^platform/ios/(app|bench_app)\.mm$'
+    local exclude='^platform/ios/app\.mm$'
     # `int main (int` / `int main( int` / `auto main(int` / `wmain` — форма объявления дрейфует,
     # а гейт на промахе регулярки молча начал бы пропускать.
     local files; files=$(grep -rlE '^[[:space:]]*(int|auto)[[:space:]]+w?main[[:space:]]*\([[:space:]]*int' \

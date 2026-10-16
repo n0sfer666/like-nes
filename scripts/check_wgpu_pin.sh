@@ -49,7 +49,12 @@ lib=$(sed -n 's/^WGPU_RUNTIME_LIB:INTERNAL=//p' "$BUILD/CMakeCache.txt" 2>/dev/n
 if [ -n "$lib" ]; then
   expect "настоящий блоб сборки сверен с релизом" "$lib" "$ROOT/cmake/wgpu_native.sha256" 0 "verified"
 else
-  echo "skip настоящий блоб: $BUILD не сконфигурирован"
+  src=$(sed -n 's/^WGPU_SOURCE_TARGET:INTERNAL=//p' "$BUILD/CMakeCache.txt" 2>/dev/null)
+  if [ -n "$src" ]; then
+    echo "skip настоящий блоб: $BUILD собирает wgpu-native из исходников тега под $src, блоба релиза нет"
+  else
+    echo "skip настоящий блоб: $BUILD не сконфигурирован"
+  fi
 fi
 
 [ "$fail" -eq 0 ] && echo "wgpu-pin: PASS" || echo "wgpu-pin: FAIL"

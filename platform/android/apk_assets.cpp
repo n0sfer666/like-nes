@@ -3,7 +3,6 @@
 #include <android/log.h>
 
 #include <cstdio>
-#include <cstring>
 
 #include "platform_fs.hpp"
 
@@ -24,17 +23,24 @@ bool unpack_one(AAssetManager* am, const char* name, const std::string& dir) {
 
 } // namespace
 
-bool unpack_apk_asset(AAssetManager* am, const char* name, const std::string& dir) {
-    if (am && platform::ensure_dir(dir) && unpack_one(am, name, dir)) return true;
-    __android_log_print(ANDROID_LOG_ERROR, "like-nes", "asset unpack failed: %s", name);
-    return false;
-}
-
 bool unpack_apk_assets(AAssetManager* am, const std::string& dir) {
-    bool game = true;
-    for (const char* name : {"game.bundle", "library.bundle", "audio.bundle"})
-        if (!unpack_apk_asset(am, name, dir) && std::strcmp(name, "game.bundle") == 0) game = false;
-    return game;
+    if (!am || !platform::ensure_dir(dir)) {
+        __android_log_print(ANDROID_LOG_ERROR, "like-nes", "asset dir unavailable: %s", dir.c_str());
+        return false;
+    }
+    AAssetDir* root = AAssetManager_openDir(am, "");
+    if (!root) {
+        __android_log_print(ANDROID_LOG_ERROR, "like-nes", "apk asset root unavailable");
+        return false;
+    }
+    bool ok = true;
+    while (const char* name = AAssetDir_getNextFileName(root)) {
+        if (unpack_one(am, name, dir)) continue;
+        __android_log_print(ANDROID_LOG_ERROR, "like-nes", "asset unpack failed: %s", name);
+        ok = false;
+    }
+    AAssetDir_close(root);
+    return ok;
 }
 
 } // namespace game

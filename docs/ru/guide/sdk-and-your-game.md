@@ -1,4 +1,4 @@
-<!-- en-sha256: 23747c2246bbfde2d9e194f9fa08f7c3d155c078c34212fea139f364fb3e5016 -->
+<!-- en-sha256: 545ea55220359cf036ac6f3a204334df2b16682319d3b586153a098e521ac149 -->
 
 # SDK и своя игра
 
@@ -35,6 +35,31 @@ cmake --install build-sdk-debug --config Debug --component sdk --prefix ../like-
 результата и оставляет всё в `build-sdk-work/`. Это кратчайший путь к префиксу, которому можно
 доверять.
 
+### Мобильный префикс
+
+Сборке для телефона нужен свой префикс на платформу: `ios-sim`, `ios-device` или `android-<abi>`.
+Он собирается только в Release, и `assetc` в нём нет: пекарь работает на машине сборки. Игра
+передаёт десктопный префикс как `LIKE_NES_HOST_PREFIX`, и бандлы печёт его `assetc`. Пути ниже
+должны быть абсолютными: кросс-тулчейн не раскрывает относительный `like-nes_DIR`. Для
+iOS-симулятора:
+
+```sh
+cmake -S . -B build-sdk-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64
+cmake --build build-sdk-ios-sim --target like_nes_sdk
+cmake --install build-sdk-ios-sim --component sdk --prefix <ios prefix>
+cmake -S games/neon-rumble -B build-game-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -Dlike-nes_DIR=<ios prefix>/lib/cmake/like-nes -DLIKE_NES_HOST_PREFIX=<desktop prefix>
+cmake --build build-game-ios-sim
+```
+
+Для Android SDK и игра конфигурируются файлом тулчейна NDK 28.2.13676358 —
+`-DCMAKE_TOOLCHAIN_FILE=<NDK>/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64
+-DANDROID_PLATFORM=android-29` вместо флагов iOS. Тогда сборка игры ещё и упаковывает
+`neon_rumble.apk`. Префикс помнит, под что он собран: игру с другим минимальным iOS, другим уровнем
+API или другой ревизией NDK `find_package` отклоняет и называет нужное значение.
+`check_sdk_game.sh` собирает оба префикса после десктопной половины (iOS — на macOS, Android — на
+macOS и Linux с пиннутым NDK). Он проверяет, что каждый пакет несёт бинарь своей платформы, оба
+бандла и лицензии и что его `game.bundle` побайтно равен десктопному.
+
 ## CMakeLists.txt игры
 
 Это весь файл сборки Neon Rumble:
@@ -46,18 +71,26 @@ project(neon_rumble CXX)
 
 find_package(like-nes 0.1 REQUIRED CONFIG)
 
-add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
-  src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
-  src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
-  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp
-  src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp src/rumble_gpu_frame.cpp
-  src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp src/rumble_floor.cpp src/rumble_brain.cpp
-  src/rumble_wave_script.cpp src/rumble_steer.cpp src/rumble_menu.cpp src/rumble_menu_quads.cpp
-  src/rumble_play.cpp src/rumble_flow.cpp src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp
-  src/rumble_knives.cpp src/rumble_platform.cpp src/rumble_stage_quads.cpp
-  src/rumble_label.cpp src/rumble_coop_script.cpp src/rumble_join_report.cpp)
-target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
-like_nes_add_game(neon_rumble)
+set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
+  src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
+  src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
+  src/rumble_depth_overlay.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
+  src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
+  src/rumble_floor.cpp src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
+  src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
+  src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
+  src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
+  src/rumble_join_report.cpp src/rumble_demo.cpp)
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+  like_nes_mobile_app(neon_rumble SOURCES src/rumble_mobile.cpp ${RUMBLE_SOURCES}
+    NAME "Neon Rumble" ID com.likenes.neonrumble)
+  target_link_libraries(neon_rumble PRIVATE like-nes::engine)
+else()
+  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+    ${RUMBLE_SOURCES})
+  target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
+  like_nes_add_game(neon_rumble)
+endif()
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 ```
 <!-- /snippet -->
@@ -68,6 +101,11 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
   настольное окно и нативный ввод: GLFW-пумп клавиатуры и мыши и бэкенд пада ОС
   (`input/source.hpp`, `make_gamepad_source`): GameController на macOS, XInput на Windows, evdev на
   Linux.
+- На iOS и Android `like_nes_mobile_app(<цель> SOURCES <файл>... [BUNDLES <файл>...] NAME <имя> ID <bundle id>)`
+  собирает игру на мобильной оболочке SDK вместо исполняемого файла: `.app` на iOS, `.so` и цель
+  `<цель>_apk` на Android. Игра определяет `mobile::make_game()` (`mobile/mobile_app.hpp`); у Neon
+  Rumble это `src/rumble_mobile.cpp`. `like-nes::window` есть только на десктопе, поэтому `main.cpp`,
+  `rumble_window.cpp`, `rumble_keys.cpp` и `rumble_pad_report.cpp` остаются в десктопной ветке.
 - `like_nes_add_game(<цель>)` заставляет игру использовать тот же C-рантайм, что и движок. На MSVC
   движок линкует CRT статически, и Debug-игра без этого вызова не слинкуется с `LNK2038`. Вызов
   также копирует рантайм wgpu рядом с исполняемым файлом.
