@@ -7,6 +7,7 @@
 #include "quad_batch.hpp"
 #include "rumble_credits.hpp"
 #include "rumble_fighter.hpp"
+#include "rumble_flow.hpp"
 #include "rumble_level.hpp"
 #include "viewport_fit.hpp"
 
@@ -20,5 +21,8 @@ bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureF
                 const Level& level, const Fighters& fighters, const Credits& credits);
 bool init_menu_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
                      const Credits& credits);
+// Перезаливка текстур под сцену на вершине: у меню и у уровня свои номера текстур.
+bool bind_scene(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format, const Flow& flow,
+                const Credits& credits, WGPUColor& clear);
 
 } // namespace rumble

@@ -1708,6 +1708,32 @@ owner_check.sh гоняет это отдельным этапом сразу п
   сохранение при уходе в фон сломано (так падает мутант без game_.suspend() в
   pause, view.mm).
 
+  2а) Neon Rumble против мобильного SDK (спека #26, В1г; прогнано агентом
+  на iPhone 16, iOS 27.0). Нужен десктопный префикс из build-sdk-work/:
+  его assetc печёт бандлы игры, а десктопная игра даёт хеш для сверки.
+
+    bash scripts/check_sdk_game.sh --keep
+    bash scripts/ios_sim_rumble.sh
+
+  Скрипт собирает build-sdk-ios-sim (первая сборка — минуты), ставит из
+  него iOS-префикс в пустой временный каталог, собирает игру против него в
+  build-sdk-work/game-ios-sim, запускает её, уводит в фон (Настройки) и
+  возвращает. Ожидаемо (<T> — тик ухода в фон, сотни: уходу предшествуют 5 с драки):
+
+    [ios-rumble] ok: iOS SDK installed, minimum iOS 17.0
+    [ios-rumble] ok: built build-sdk-work/game-ios-sim/neon_rumble.app
+    [ios-rumble] ok: simulator like-nes-play-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0, app installed
+    [ios-rumble] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (first attach at tick 0)
+    [ios-rumble] ok: desktop headless at tick <T> hashes <хеш>, as the simulator
+    [ios-rumble] PASS
+
+  Последняя ok-строка — телефон играет ту же драку, что десктоп: тот же
+  демо-ввод, тот же порядок шага, тот же хеш на том же тике. «FAIL: …
+  the fight differs» — разошлись (так падает мутант demo_p1(t + 1) в
+  rumble_mobile.cpp). «FAIL: no desktop SDK in build-sdk-work» — не было
+  первой команды. На экране в Device Hub — уровень 1 Neon Rumble в портрете
+  с полосами сверху и снизу (ландшафт — В2), двое дерутся сами.
+
   3) Два пальца разом — гейт симулятора (прогнан агентом; стоит в
   preflight, в CI его нет). UI-тест ставит стик слева и огонь в круге
   справа внизу, вердикт читает строки [touch] из системного лога:

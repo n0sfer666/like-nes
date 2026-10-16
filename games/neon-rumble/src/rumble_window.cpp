@@ -31,15 +31,6 @@ input::GamepadSource* open_pads(GLFWwindow* window, Hotseat& hotseat) {
     return pads;
 }
 
-// Перезаливка текстур под сцену на вершине: у меню и у уровня свои номера текстур.
-bool bind(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format, const Flow& flow,
-          const Credits& credits, WGPUColor& clear) {
-    const Play* play = flow.play();
-    clear = play != nullptr ? background(play->level, format) : WGPUColor{0.0, 0.0, 0.0, 1.0};
-    if (play == nullptr) return init_menu_quads(quads, gpu, format, credits);
-    return init_quads(quads, gpu, format, play->level, play->fighters, credits);
-}
-
 // Переходы — после `run`: их подаёт код игры по прошедшему тику, а не система сцены.
 // docs:begin(flow-keys)
 LayerStats step_menu(Flow& flow, Hotseat& hotseat, input::GamepadSource& pads, const WindowKeys& keys, Screen& screen,
@@ -79,7 +70,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
     spec.format = configure_surface(surface, gpu.adapter, gpu.device, spec.width, spec.height);
     render::QuadRenderer quads;
     WGPUColor clear{};
-    if (!bind(quads, gpu, spec.format, flow, credits, clear)) {
+    if (!bind_scene(quads, gpu, spec.format, flow, credits, clear)) {
         std::fprintf(stderr, "neon-rumble: quad renderer or menu texture upload failed\n");
         return 1;
     }
@@ -110,7 +101,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
         }
         if (flow.apply()) {
             screen->reset();
-            if (!bind(quads, gpu, spec.format, flow, credits, clear)) {
+            if (!bind_scene(quads, gpu, spec.format, flow, credits, clear)) {
                 std::fprintf(stderr, "neon-rumble: quad renderer or scene texture upload failed\n");
                 return 1;
             }

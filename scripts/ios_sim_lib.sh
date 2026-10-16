@@ -24,3 +24,51 @@ ios_device() {
     || return 1
   echo "$udid"
 }
+
+# Запуск с stderr в файл и ожидание строки «iOS shell up» (`view.mm`): с ней появляется подписка на
+# уход в фон, и уйти в фон раньше — значит судить игру, которая ещё не слушает. Холодный первый
+# старт бывает дольше любой паузы. Отказ — код 1 и причина в IOS_SAID.
+ios_launch_up() {
+  local udid=$1 app=$2 err=$3
+  : >"$err"
+  xcrun simctl launch --stderr="$err" "$udid" "$app" >/dev/null || { IOS_SAID="cannot launch $app"; return 1; }
+  for _ in $(seq 60); do
+    grep -q "iOS shell up" "$err" && return 0
+    sleep 1
+  done
+  IOS_SAID="the game did not come up in 60 s — $err"
+  return 1
+}
+
+# Возврат из фона: запуск уже живого приложения выводит его вперёд, а не стартует заново. Счётчик
+# attach живёт в процессе, поэтому `#2` — улика того же процесса. Мир при `#2` обязан совпасть с
+# миром при снятии поверхности: мир, пересозданный в attach, сохранил бы тик, но не хеш. Строки
+# печатает игра: `[game] surface attached #N tick=T world=H` и `[game] surface detached tick=T world=H`.
+# Успех — IOS_SAID с уликой и IOS_DETACHED=`tick=T world=H`, отказ — код 1 и причина в IOS_SAID.
+ios_resumed() {
+  local udid=$1 app=$2 err=$3 t1 a2 t2
+  xcrun simctl launch "$udid" "$app" >/dev/null || { IOS_SAID="cannot bring $app back to foreground"; return 1; }
+  for _ in $(seq 30); do
+    grep -q "surface attached #2 " "$err" && break
+    sleep 1
+  done
+  t1=$(sed -n 's/.*surface attached #1 tick=\([0-9]*\).*/\1/p' "$err" | head -1)
+  a2=$(sed -n 's/.*surface attached #2 \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$err" | head -1)
+  IOS_DETACHED=$(sed -n 's/.*surface detached \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$err" | head -1)
+  if [ -z "$t1" ] || [ -z "$a2" ]; then
+    IOS_SAID="no second surface attach 30 s after returning to foreground — $err"
+    return 1
+  fi
+  [ -n "$IOS_DETACHED" ] || { IOS_SAID="no surface detach line before the second attach — $err"; return 1; }
+  if [ "$a2" != "$IOS_DETACHED" ]; then
+    IOS_SAID="second attach at $a2, detach at $IOS_DETACHED: the world restarted instead of surviving"
+    return 1
+  fi
+  t2=${a2#tick=}
+  t2=${t2%% *}
+  if [ "$t2" -le "$t1" ]; then
+    IOS_SAID="second attach at tick $t2, first at $t1: no frames ran before going to background"
+    return 1
+  fi
+  IOS_SAID="foreground re-attached the surface at $a2, as detached (first attach at tick $t1)"
+}

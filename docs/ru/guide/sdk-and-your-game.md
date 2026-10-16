@@ -1,4 +1,4 @@
-<!-- en-sha256: 23747c2246bbfde2d9e194f9fa08f7c3d155c078c34212fea139f364fb3e5016 -->
+<!-- en-sha256: 5f021972413f3f9c1bec2298dadffe91c3ba8e333c3e0bc8cbe695d2f75b0e74 -->
 
 # SDK и своя игра
 
@@ -46,18 +46,26 @@ project(neon_rumble CXX)
 
 find_package(like-nes 0.1 REQUIRED CONFIG)
 
-add_executable(neon_rumble src/main.cpp src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
-  src/rumble_window.cpp src/rumble_fighter.cpp src/rumble_fighter_quads.cpp
-  src/rumble_credits.cpp src/rumble_brawl.cpp src/rumble_roster_quads.cpp src/rumble_keys.cpp
-  src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp src/rumble_depth_overlay.cpp
-  src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp src/rumble_gpu_frame.cpp
-  src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp src/rumble_floor.cpp src/rumble_brain.cpp
-  src/rumble_wave_script.cpp src/rumble_steer.cpp src/rumble_menu.cpp src/rumble_menu_quads.cpp
-  src/rumble_play.cpp src/rumble_flow.cpp src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp
-  src/rumble_knives.cpp src/rumble_platform.cpp src/rumble_stage_quads.cpp
-  src/rumble_label.cpp src/rumble_coop_script.cpp src/rumble_join_report.cpp)
-target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
-like_nes_add_game(neon_rumble)
+set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
+  src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
+  src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
+  src/rumble_depth_overlay.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
+  src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
+  src/rumble_floor.cpp src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
+  src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
+  src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
+  src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
+  src/rumble_join_report.cpp src/rumble_demo.cpp)
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+  like_nes_mobile_app(neon_rumble SOURCES src/rumble_mobile.cpp ${RUMBLE_SOURCES}
+    NAME "Neon Rumble" ID com.likenes.neonrumble)
+  target_link_libraries(neon_rumble PRIVATE like-nes::engine)
+else()
+  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+    ${RUMBLE_SOURCES})
+  target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
+  like_nes_add_game(neon_rumble)
+endif()
 like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
 ```
 <!-- /snippet -->
@@ -68,6 +76,11 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
   настольное окно и нативный ввод: GLFW-пумп клавиатуры и мыши и бэкенд пада ОС
   (`input/source.hpp`, `make_gamepad_source`): GameController на macOS, XInput на Windows, evdev на
   Linux.
+- На iOS и Android `like_nes_mobile_app(<цель> SOURCES <файл>... [BUNDLES <файл>...] NAME <имя> ID <bundle id>)`
+  собирает игру на мобильной оболочке SDK вместо исполняемого файла: `.app` на iOS, `.so` и цель
+  `<цель>_apk` на Android. Игра определяет `mobile::make_game()` (`mobile/mobile_app.hpp`); у Neon
+  Rumble это `src/rumble_mobile.cpp`. `like-nes::window` есть только на десктопе, поэтому `main.cpp`,
+  `rumble_window.cpp`, `rumble_keys.cpp` и `rumble_pad_report.cpp` остаются в десктопной ветке.
 - `like_nes_add_game(<цель>)` заставляет игру использовать тот же C-рантайм, что и движок. На MSVC
   движок линкует CRT статически, и Debug-игра без этого вызова не слинкуется с `LNK2038`. Вызов
   также копирует рантайм wgpu рядом с исполняемым файлом.

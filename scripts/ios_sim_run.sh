@@ -68,16 +68,8 @@ DATA=$(xcrun simctl get_app_container "$UDID" "$APP" data) || fail "no data cont
 SAVE="$DATA/Library/Application Support/like-nes/achievements.save"
 xcrun simctl terminate "$UDID" "$APP" >/dev/null 2>&1 || true
 rm -f "$SAVE"
-# Подписка на уход в фон появляется вместе со строкой «iOS shell up» (`view.mm`): уйти в фон раньше —
-# значит судить игру, которая ещё не слушает. Холодный первый старт бывает дольше любой паузы.
 ERR="$B/background-save.stderr"
-: >"$ERR"
-xcrun simctl launch --stderr="$ERR" "$UDID" "$APP" >/dev/null || fail "cannot launch $APP"
-for _ in $(seq 60); do
-  grep -q "iOS shell up" "$ERR" && break
-  sleep 1
-done
-grep -q "iOS shell up" "$ERR" || fail "the game did not come up in 60 s — $ERR"
+ios_launch_up "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
 # Автосейв пишет только изменившийся прогресс, а на титуле он не меняется (замер: 20 с без ухода в
 # фон — файла нет), так что файл может написать только уход в фон. UIKit шлёт его с задержкой:
 # замерено от 10 до 21 с после запуска Preferences.
@@ -88,21 +80,6 @@ for _ in $(seq 60); do
 done
 [ -f "$SAVE" ] || fail "no achievements.save 60 s after going to background: the background save is broken"
 ok "background save wrote $(stat -f %z "$SAVE") bytes to $SAVE"
-# Возврат из фона: запуск уже живого приложения выводит его вперёд, а не стартует заново. Счётчик
-# attach живёт в процессе, поэтому `#2` — улика того же процесса. Мир при `#2` обязан совпасть с
-# миром при снятии поверхности: мир, пересозданный в attach, сохранил бы тик, но не хеш.
-xcrun simctl launch "$UDID" "$APP" >/dev/null || fail "cannot bring $APP back to foreground"
-for _ in $(seq 30); do
-  grep -q "surface attached #2 " "$ERR" && break
-  sleep 1
-done
-T1=$(sed -n 's/.*surface attached #1 tick=\([0-9]*\).*/\1/p' "$ERR" | head -1)
-A2=$(sed -n 's/.*surface attached #2 \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$ERR" | head -1)
-D1=$(sed -n 's/.*surface detached \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$ERR" | head -1)
-[ -n "$T1" ] && [ -n "$A2" ] || fail "no second surface attach 30 s after returning to foreground — $ERR"
-[ -n "$D1" ] || fail "no surface detach line before the second attach — $ERR"
-[ "$A2" = "$D1" ] || fail "second attach at $A2, detach at $D1: the world restarted instead of surviving"
-T2=${A2#tick=}; T2=${T2%% *}
-[ "$T2" -gt "$T1" ] || fail "second attach at tick $T2, first at $T1: no frames ran before going to background"
-ok "foreground re-attached the surface at $A2, as detached (first attach at tick $T1)"
+ios_resumed "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
+ok "$IOS_SAID"
 echo "[ios-run] PASS"

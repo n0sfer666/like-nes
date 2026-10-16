@@ -220,3 +220,22 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
   симуляторе, APK с `libsmoke.so`, `libc++_shared`, лицензиями и бандлами); фикстура и мобильная
   половина `check_sdk_game.sh`, процедура мобильного префикса в `docs/{en,ru}/guide/sdk-and-your-game.md`
   — В1д.
+
+## Neon Rumble на мобильной оболочке (спека #26, В1г)
+
+- `rumble::MobileRumble : mobile::Game` (`games/neon-rumble/src/rumble_mobile.cpp`): `init` — бандлы
+  через `mobile::asset_path`, титры, меню, стек сцен, сразу `enter` в уровень 1, хотсит; квады и
+  текстуры сцены — от attach до detach (`bind_scene` из `rumble_gpu_frame`, общий с окном
+  десктопа). `resize` с живыми целями только переконфигурирует поверхность.
+- Демо-ввод — `rumble_demo.{hpp,cpp}` (`demo_p1`, `demo_p2`), общий с `--headless`; порядок шага
+  тот же, что у `run_headless`, поэтому хеш драки на тике N совпадает с десктопным
+  `--headless --frames N` — так `scripts/ios_sim_rumble.sh` и судит телефон.
+- Шаг по `dt`: тик 1/60 с, аккумулятор, не больше 4 тиков за кадр (долгий кадр возврата из фона
+  отбрасывается). У шутера долг тот же — он шагает кадром.
+- Десктопные части игры — только в ветке не-мобильной сборки CMake: `main.cpp`,
+  `rumble_window.cpp`, `rumble_keys.cpp`, `rumble_pad_report.cpp` (`like-nes::window` в мобильном
+  префиксе нет). Признак — `CMAKE_SYSTEM_NAME` iOS/Android.
+- `scripts/ios_sim_rumble.sh` требует `build-sdk-work/` от `check_sdk_game.sh --keep`: десктопный
+  префикс даёт `assetc` (сборки сверяет Config), десктопная игра — хеш для сверки. iOS-префикс
+  ставится в пустой временный каталог; общий разбор строк attach/detach — `ios_resumed` в
+  `scripts/ios_sim_lib.sh` (его же зовёт `ios_sim_run.sh`).

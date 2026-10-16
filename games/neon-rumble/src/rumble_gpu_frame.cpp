@@ -80,4 +80,12 @@ bool init_menu_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTex
            && quads.add_texture(credits.atlas.pixels, credits.atlas.width, credits.atlas.height);
 }
 
+bool bind_scene(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format, const Flow& flow,
+                const Credits& credits, WGPUColor& clear) {
+    const Play* play = flow.play();
+    clear = play != nullptr ? background(play->level, format) : WGPUColor{0.0, 0.0, 0.0, 1.0};
+    if (play == nullptr) return init_menu_quads(quads, gpu, format, credits);
+    return init_quads(quads, gpu, format, play->level, play->fighters, credits);
+}
+
 } // namespace rumble

@@ -8,7 +8,6 @@
 #include "platform_fs.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_roster.hpp"
-#include "source.hpp"
 
 namespace rumble {
 
@@ -31,10 +30,9 @@ ViewportFit report_viewport(uint32_t w, uint32_t h) {
 
 } // namespace
 
-// library.bundle кладёт рядом с exe like_nes_bake: поиск от exe, а не от cwd, находит его при
-// запуске из любого каталога — так же, как его найдёт игрок.
-bool report_library_bundle() {
-    const std::string path = platform::exe_dir() + "/library.bundle";
+// Путь даёт запуск: на десктопе library.bundle кладёт рядом с exe like_nes_bake, и поиск от exe, а
+// не от cwd, находит его из любого каталога; на телефоне он лежит в ассетах приложения.
+bool report_library_bundle(const std::string& path) {
     std::vector<uint8_t> bytes;
     if (!platform::read_bytes(path, bytes) || bytes.empty()) {
         std::fprintf(stderr, "neon-rumble: cannot read %s\n", path.c_str());
@@ -43,12 +41,6 @@ bool report_library_bundle() {
     std::printf("neon-rumble: library.bundle %zu bytes fnv1a %016llx\n", bytes.size(),
                 static_cast<unsigned long long>(asset::fnv1a(bytes.data(), bytes.size())));
     return true;
-}
-
-// Строка доказывает, что нативный ввод этой ОС слинкован из префикса: без вызова линкер выбросил бы
-// архив, и гейт sdk-game судил бы игру без него.
-void report_pad_backend() {
-    std::printf("neon-rumble: pad backend %s\n", ::input::make_gamepad_source()->backend_name());
 }
 
 // Сводка уровня и кадра — то, что headless доказывает о бандле без окна: таблица `visual` читается,
