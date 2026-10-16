@@ -16,7 +16,7 @@ set(LIKE_NES_IOS_VIEW ${CMAKE_CURRENT_SOURCE_DIR}/view.mm CACHE FILEPATH "UIKit 
 # Оболочка — библиотекой, одной на игру и бенч: вход UIKit, слой Metal и жизненный цикл поверхности
 # не знают, какую mobile::Game им отдаст make_game() цели. gpu.cpp едет здесь, а не в игре: контекст
 # поднимает оболочка, до того как игра появится.
-set(SHELL_SRC app.mm host.mm metal_view.mm weak_proxy.mm)
+set(SHELL_SRC app.mm host.mm metal_view.mm touch_probe.mm weak_proxy.mm)
 list(TRANSFORM SHELL_SRC PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 list(APPEND SHELL_SRC ${LIKE_NES_IOS_VIEW})
 add_library(like_nes_mobile STATIC ${SHELL_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
@@ -46,6 +46,7 @@ like_nes_mobile_app(like_nes_ios
           ${GAME_CORE_DIR}/sim_hash.cpp
   BUNDLES ${GAME_BUNDLES} NAME like-nes ID com.likenes.sidescroller)
 game_core_target(like_nes_ios material_gpu)
+target_link_libraries(like_nes_ios PRIVATE framework_touch)
 
 # UI-тест живёт только в проекте Xcode: раннер XCUITest собирает и ставит xcodebuild, у Ninja его нет.
 if(CMAKE_GENERATOR STREQUAL "Xcode")

@@ -792,7 +792,7 @@ jobs:
           # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
           # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
           # с числом: список секций растёт осознанно, вместе с этой строкой.
-          grep -q "verify: PASS - 5 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
+          grep -q "verify: PASS - 6 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
 
       # `library.bundle` (спека #18) сверяется СТРОЖЕ соседа: все его секции пекутся чистыми
       # парсерами — таблица материалов, текст модуля и таблица светов, — ни tint, ни basisu им не нужно, поэтому он
@@ -2077,6 +2077,7 @@ jobs:
                    framework_graphics_path_test framework_graphics_atlas_test \
                    framework_graphics_atlas_refusal_test \
                    framework_graphics_atlas_bundle_test game_atlas_regions_test \
+                   game_touch_bundle_test \
                    framework_graphics_debug_test framework_graphics_debug_refusal_test \
                    framework_graphics_batch_test framework_graphics_batch_refusal_test \
                    framework_graphics_batch_alloc_test framework_graphics_tile_test \

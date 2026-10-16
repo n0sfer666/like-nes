@@ -126,6 +126,7 @@ int main(int argc, char** argv) {
         if (!bakers::movement(gsrc + "/movement.txt", gassets)) return 1;
         if (!bakers::tilemap(gsrc + "/tilemap.txt", gassets)) return 1;
         if (!bakers::atlas_regions(gsrc + "/atlas.txt", gassets)) return 1;
+        if (!bakers::touch_layout(gsrc + "/touch.txt", gassets)) return 1;
         return emit("game", gout, std::move(gassets));
     }
 

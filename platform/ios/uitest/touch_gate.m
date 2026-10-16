@@ -64,12 +64,21 @@
     [NSThread sleepForTimeInterval:2.0];
     [self attachScreen:@"launch"];
 
-    // Геометрия — независимый оракул `fire_btn` из example_ugly_game/shooter_touch.cpp, а не его копия по смыслу:
-    // уедет кнопка — палец мимо круга, и гейт скажет «огонь не взят», а не пройдёт.
+    // Геометрия — независимый оракул: кнопка a радиусом 50 pt стоит в 68 pt от правого нижнего угла
+    // safe area (`example_ugly_game/assets/touch.txt`), отступы называет UIKit через пробу вида. Палец
+    // идёт на 40 pt выше центра: нижний отступ iPhone 16 (34 pt) меньше радиуса, и в центр попала бы
+    // и кнопка, забывшая safe area. Уедет кнопка — палец мимо круга, и гейт скажет «огонь не взят».
+    XCUIElement* game = app.otherElements[@"game"];
+    XCTAssertTrue([game waitForExistenceWithTimeout:10], @"the probe view exposes no safe area");
+    NSArray<NSString*>* safe = [game.value componentsSeparatedByString:@" "];
+    XCTAssertEqual(safe.count, 4u, @"safe area is not four numbers: %@", game.value);
+    // Отступ не больше радиуса минус смещение пальца — и кнопка, забывшая safe area, тоже под пальцем:
+    // гейт на таком экране стал бы зелёным без предмета, поэтому он красный.
+    XCTAssertGreaterThan(safe[3].doubleValue, 50.0 - 40.0, @"bottom safe area too small to judge the button");
     const CGRect f = window.frame;
-    const CGFloat w = f.size.width, h = f.size.height, s = MIN(w, h);
-    const CGFloat r = 0.13 * s, m = 0.045 * s;
-    const CGPoint fire = CGPointMake(f.origin.x + w - m - r, f.origin.y + h - m - r);
+    const CGFloat w = f.size.width, h = f.size.height;
+    const CGPoint fire = CGPointMake(f.origin.x + w - safe[2].doubleValue - 68,
+                                     f.origin.y + h - safe[3].doubleValue - 68 - 40);
     const CGPoint stick = CGPointMake(f.origin.x + 0.25 * w, f.origin.y + 0.5 * h);
 
     id<LNPointerPath> stickPath = [[pathClass alloc] initForTouchAtPoint:stick offset:0.0];

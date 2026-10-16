@@ -13,7 +13,7 @@ set(PLATFORMER_LIVE_SRC
   platformer_window.cpp platformer_live_input.cpp
   platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
   batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp
-  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp input_setup.cpp
+  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp bundle_asset.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
   ${GAME_INPUT_SRC})
 

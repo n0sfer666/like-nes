@@ -4556,7 +4556,7 @@ Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only f
 A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
-mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
+mid-frame, and `assetc` reproducing `bundle_hash = 0x70722c5366978d6d` (basisu 2.10) byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt). Section R of the same file is the mobile pair: both shells
 built from the root by `scripts/xcompile_verify.sh`, the sample game started in the iOS simulator

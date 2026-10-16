@@ -1,40 +1,43 @@
 #pragma once
 #include <cstdint>
+#include <string>
 
 #include "art.hpp"
 #include "batch.hpp"
-#include "fixed.hpp"
 #include "input_engine.hpp"
 #include "mobile_app.hpp"
+#include "touch_source.hpp"
 
 namespace game {
 
-// Тач шутера: левая зона = виртуальный стик (движение), правый-нижний круг = огонь (PadA). Касания
-// уходят в движок ввода событиями пада, и симуляция не отличает экран от настоящего геймпада.
-// Координаты и размер вида — в точках: в пикселях кнопка была бы разной на экранах разной плотности.
+// Тач шутера: плавающий стик и кнопка a из ассета `touch` бандла, касания уходят в движок ввода
+// устройством Touch, а пресет вяжет их с `fire` и `move_*` так же, как пад. Оболочка отдаёт
+// float-точки, здесь они становятся fix32: ось стика из них попадает в sim-хеш.
 class ShooterTouch {
 public:
+    bool load(const std::string& bundle_path);
     void bind(input::InputEngine* engine);
-    void set_view(float w_pt, float h_pt) { w_ = w_pt; h_ = h_pt; }
-    void pointer(intptr_t id, mobile::Touch phase, float x, float y);
-    void cancel();
+    void set_view(float w_pt, float h_pt, const mobile::SafeArea& safe);
+    void pointer(intptr_t id, mobile::Touch phase, float x_pt, float y_pt);
+    void cancel() { source_.cancel(); }
+    // Демо-пад, пока экран свободен; палец на экране отпускает пад до своего Up.
     void demo(uint32_t tick);
-    bool idle() const { return stick_id_ == -1 && fire_id_ == -1; }
-    // Чьё касание держит стик и огонь (-1 — ничьё): гейт симулятора судит маршрутизацию по ним.
-    intptr_t stick() const { return stick_id_; }
-    intptr_t fire() const { return fire_id_; }
-    void push_button(SpriteBatch& batch, const Region& star, float world_w, float world_h) const;
+    // Чьё касание держит стик и кнопку a (-1 — ничьё): гейт симулятора судит маршрутизацию по ним.
+    std::string state() const;
+    void push(SpriteBatch& batch, const Region& star, float world_w, float world_h) const;
 
 private:
-    void post_axis(fix32 x, fix32 y);
-    void post_fire(bool down);
+    void post_pad(input::RawKind kind, uint16_t code, int32_t value);
+    void yield_pad();
 
+    // Отдельный диапазон seq от тача, как у источников пада на десктопе.
+    static constexpr uint64_t PAD_SEQ_BASE = 1'000'000;
+
+    framework::touch::TouchSource source_;
     input::InputEngine* engine_ = nullptr;
-    uint64_t seq_ = 0;
-    float w_ = 0, h_ = 0;
-    intptr_t stick_id_ = -1, fire_id_ = -1;
-    float stick_ox_ = 0, stick_oy_ = 0;
-    bool fire_down_ = false;
+    uint64_t pad_seq_ = PAD_SEQ_BASE;
+    bool pad_connected_ = false, pad_moving_ = false, pad_a_ = false;
+    float w_ = 0;
 };
 
 } // namespace game

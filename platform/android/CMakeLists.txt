@@ -37,3 +37,4 @@ like_nes_mobile_app(game
           ${GAME_CORE_DIR}/sim_hash.cpp
   BUNDLES ${GAME_BUNDLES} NAME like-nes ID com.likenes.sidescroller)
 game_core_target(game material_gpu)
+target_link_libraries(game PRIVATE framework_touch)

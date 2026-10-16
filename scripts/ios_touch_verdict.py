@@ -5,7 +5,8 @@
     python3 scripts/ios_touch_verdict.py --selftest          # правила на сломанных фикстурах
 
 XCUITest проигрывает жест целиком и середину не видит, поэтому судится ИСТОРИЯ: строка на каждое
-касание с состоянием стика и огня после него (`view.mm`, флаг `--touch-probe`). Точная
+касание с состоянием стика и кнопки a (огня) после него (`touch_probe.mm` по вызову из `view.mm`, флаг
+`--touch-probe`). Точная
 последовательность не утверждается: синтезатор XCUIAutomation вставляет лишний короткий тап того
 же пальца, и гейт, прибитый к порядку событий, падал бы на артефакте инструмента, а не движка.
 
@@ -25,7 +26,7 @@ from pathlib import Path
 import py_utf8
 
 LINE = re.compile(r"\[touch\] (down|move|up) id=(-?\d+) id32=(-?\d+) x=\S+ y=\S+ "
-                  r"stick=(-?\d+) fire=(-?\d+) run=(\S+)")
+                  r"stick=(-?\d+) a=(-?\d+) run=(\S+)")
 
 NO_LINES = "no [touch] lines"
 ONE_TOUCH = "only one touch reached the view"
@@ -80,15 +81,15 @@ def verdict(text, run):
     if any(e[0] == "up" and e[1] == fire and e[3] != stick for e in ev):
         bad.append(f"{FIRE_DROPS_STICK}: after touch {fire} lifted, the stick was no longer {stick}")
     if ev[-1][3] != -1 or ev[-1][4] != -1:
-        bad.append(f"{STILL_HELD}: last state stick={ev[-1][3]} fire={ev[-1][4]}")
+        bad.append(f"{STILL_HELD}: last state stick={ev[-1][3]} a={ev[-1][4]}")
     ids32 = {e[2] for e in ev if e[1] in (stick, fire)}
-    summary = (f"stick={stick} fire={fire} held together; {len(ev)} events; "
+    summary = (f"stick={stick} a={fire} held together; {len(ev)} events; "
                f"int-truncated ids {'distinct' if len(ids32) == 2 else 'COLLIDE'}")
     return bad, summary
 
 
 def line(phase, tid, stick, fire, run="R"):
-    return f"[touch] {phase} id={tid} id32={tid % 1000} x=1 y=2 stick={stick} fire={fire} run={run}"
+    return f"[touch] {phase} id={tid} id32={tid % 1000} x=1 y=2 stick={stick} a={fire} run={run}"
 
 
 GOOD = [line("down", 11, 11, -1), line("move", 11, 11, -1), line("down", 22, 11, 22),

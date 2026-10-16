@@ -41,6 +41,7 @@ bool fighter(const char* name, const std::string& text, std::span<const framewor
              std::vector<AssetInput>& out, framework::brawl::FighterBakeError& error);
 bool touch(const char* name, const framework::touch::Layout& layout, std::vector<AssetInput>& out,
            std::string& error);
+bool touch_layout(const std::string& src, std::vector<AssetInput>& out);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);

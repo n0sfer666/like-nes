@@ -107,7 +107,7 @@ verify_bundle() {
     }
     printf '%s\n' "$out"
     case $out in
-        *"verify: PASS - 5 tool-free section(s)"*) ;;
+        *"verify: PASS - 6 tool-free section(s)"*) ;;
         *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
     esac
     # Второе утверждение о том же бандле, первым не заменяемое: `--verify-game` сверяет БАЙТЫ секции
@@ -118,12 +118,13 @@ verify_bundle() {
     # Образец-платформер стоит среди них со своим утверждением: сверки выше судят ОДНУ секцию
     # каждая, а он ПРОХОДИТ по уровню тем же контроллером, что и живая игра, — то есть ловит бандл,
     # где обе секции по отдельности верны, а вместе уровень непроходим.
-    # Последним — анти-дрейф нарезки: у игры-образца регионы объявлены ДВАЖДЫ (`atlas.txt` в бандле
+    # Затем — анти-дрейф нарезки: у игры-образца регионы объявлены ДВАЖДЫ (`atlas.txt` в бандле
     # и `game::set_regions()` в коде), и ни одна из сверок выше про их расхождение не знает — они
-    # обе судят бандл, а второй источник живёт в C++.
+    # обе судят бандл, а второй источник живёт в C++. И секция `touch` — путём мобильного шутера
+    # (`read_bundle_asset` + `read_layout`) против разбора `touch.txt`: без неё шутер не стартует.
     local bin rc t all=0
     for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test \
-        framework_graphics_atlas_bundle_test game_atlas_regions_test; do
+        framework_graphics_atlas_bundle_test game_atlas_regions_test game_touch_bundle_test; do
         bin=$(find build-ci build-full -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) 2>/dev/null | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi
         out=$("$bin" example_ugly_game/assets/game.bundle 2>&1); rc=$?
