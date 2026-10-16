@@ -70,7 +70,12 @@ fixture_missing_library() {
 fixture_msvc_crt() {
     local src
     src=$(fixture_copy crt)
-    grep -v '^like_nes_add_game' "$src/CMakeLists.txt" > "$src/CMakeLists.new"
+    grep -Ev '^[[:space:]]*like_nes_add_game\(' "$src/CMakeLists.txt" > "$src/CMakeLists.new"
+    # Вызов, не найденный по шаблону, оставил бы фикстуре исправную игру: она слинковалась бы, и
+    # отказ назвал бы MSVC, а не правку. Так было после переезда вызова в ветку else() (В1г).
+    if cmp -s "$src/CMakeLists.txt" "$src/CMakeLists.new"; then
+        sdk_bad "fixture: no like_nes_add_game call to remove in $src/CMakeLists.txt"; return 1
+    fi
     mv "$src/CMakeLists.new" "$src/CMakeLists.txt"
     if game_build "$src" "$WORK/fx-crt-build" Debug; then
         sdk_bad "fixture: Debug game without like_nes_add_game linked on MSVC"; return 1

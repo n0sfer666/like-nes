@@ -1,4 +1,4 @@
-<!-- en-sha256: 5f021972413f3f9c1bec2298dadffe91c3ba8e333c3e0bc8cbe695d2f75b0e74 -->
+<!-- en-sha256: 545ea55220359cf036ac6f3a204334df2b16682319d3b586153a098e521ac149 -->
 
 # SDK и своя игра
 
@@ -34,6 +34,31 @@ cmake --install build-sdk-debug --config Debug --component sdk --prefix ../like-
 `bash scripts/check_sdk_game.sh --keep` выполняет те же шесть шагов, собирает Neon Rumble против
 результата и оставляет всё в `build-sdk-work/`. Это кратчайший путь к префиксу, которому можно
 доверять.
+
+### Мобильный префикс
+
+Сборке для телефона нужен свой префикс на платформу: `ios-sim`, `ios-device` или `android-<abi>`.
+Он собирается только в Release, и `assetc` в нём нет: пекарь работает на машине сборки. Игра
+передаёт десктопный префикс как `LIKE_NES_HOST_PREFIX`, и бандлы печёт его `assetc`. Пути ниже
+должны быть абсолютными: кросс-тулчейн не раскрывает относительный `like-nes_DIR`. Для
+iOS-симулятора:
+
+```sh
+cmake -S . -B build-sdk-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64
+cmake --build build-sdk-ios-sim --target like_nes_sdk
+cmake --install build-sdk-ios-sim --component sdk --prefix <ios prefix>
+cmake -S games/neon-rumble -B build-game-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -Dlike-nes_DIR=<ios prefix>/lib/cmake/like-nes -DLIKE_NES_HOST_PREFIX=<desktop prefix>
+cmake --build build-game-ios-sim
+```
+
+Для Android SDK и игра конфигурируются файлом тулчейна NDK 28.2.13676358 —
+`-DCMAKE_TOOLCHAIN_FILE=<NDK>/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64
+-DANDROID_PLATFORM=android-29` вместо флагов iOS. Тогда сборка игры ещё и упаковывает
+`neon_rumble.apk`. Префикс помнит, под что он собран: игру с другим минимальным iOS, другим уровнем
+API или другой ревизией NDK `find_package` отклоняет и называет нужное значение.
+`check_sdk_game.sh` собирает оба префикса после десктопной половины (iOS — на macOS, Android — на
+macOS и Linux с пиннутым NDK). Он проверяет, что каждый пакет несёт бинарь своей платформы, оба
+бандла и лицензии и что его `game.bundle` побайтно равен десктопному.
 
 ## CMakeLists.txt игры
 

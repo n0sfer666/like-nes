@@ -1,4 +1,4 @@
-# Игра против поставленного SDK (спека #24, В1, В4, В5а, В5б, В6б; спека #25 В5б — `--wave`, В9д — `--coop`)
+# Игра против поставленного SDK (спека #24, В1, В4, В5а, В5б, В6б; спека #25 В5б — `--wave`, В9д — `--coop`; спека #26 В1д — мобильная половина)
 
 ```
 bash scripts/check_sdk_game.sh          # префикс и сборки игры во временном каталоге
@@ -280,6 +280,33 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 Отказ без своей причины в логе — FAIL фикстуры: упало что-то другое, и она ничего не доказала.
 Фикстура CRT вне MSVC печатает SKIP — у clang/gcc нет второго CRT по построению. MSVC судится по
 `CMAKE_CXX_COMPILER_ID` сборки игры, а не по окружению: под vcvars с clang-cl LNK2038 не бывает.
+Вызов `like_nes_add_game` вырезается с любым отступом, а копия, в которой вырезать нечего, — FAIL
+фикстуры: после переезда вызова в ветку `else()` (В1г) шаблон `^like_nes_add_game` не вырезал
+ничего, и Debug-игра на Windows CI слинковалась как исправная (2026-10-16, найдено CI fd6ebfe).
+
+## Мобильная половина (спека #26, В1д, [`scripts/sdk_game_mobile.sh`](../../scripts/sdk_game_mobile.sh))
+
+Идёт после десктопной: бандлы мобильной игры печёт `assetc` десктопного префикса
+(`-DLIKE_NES_HOST_PREFIX`), а `game.bundle` пакета побайтно (`cmp`) равен бандлу `game-Release` —
+один манифест и один `assetc`. Префикс — свой на платформу, Release, ставится в пустой каталог
+(`<OUT>/prefix-ios-sim`, `<OUT>/prefix-android-x86_64`; под `--keep` — в `build-sdk-work/`); игра
+собирается через `-Dlike-nes_DIR` (тулчейн NDK переносит `CMAKE_PREFIX_PATH` в sysroot).
+
+| платформа | где | сборка SDK | пакет обязан нести |
+|---|---|---|---|
+| `ios-sim` | macOS — всегда | `build-sdk-ios-sim` (`-DCMAKE_SYSTEM_NAME=iOS`, `iphonesimulator`, arm64); минимум игры — `_ln_ios_min` из Config | бинарь `platform IOSSIMULATOR` (`vtool`), `MinimumOSVersion` = минимум префикса, `assets/game.bundle`, `assets/library.bundle`, `licenses/<каждое имя _ln_licenses>` |
+| `android-x86_64` | macOS и Linux при пиннутом NDK, иначе строка `SKIP android-x86_64 (<причина android_ndk.sh>)`; `SDK_GAME_ANDROID=required` (джоб CI Linux) — нет NDK = FAIL, `skip` (джоб CI macOS) — строка `SKIP android-x86_64 (SDK_GAME_ANDROID=skip)` | `build-sdk-android-x86_64` (тулчейн NDK пина, `ANDROID_PLATFORM` — `minSdkVersion` шаблона манифеста) | `libneon_rumble.so` — ELF x86-64; в APK `lib/x86_64/libneon_rumble.so`, `lib/x86_64/libc++_shared.so`, оба бандла, `assets/licenses/<каждое имя>` |
+
+Windows печатает `SKIP mobile half`. NDK выбирает тот же `platform/android/android_ndk.sh`, что у
+`build_apk.sh`, в подоболочке: его отказ — `exit 1`. В CI Linux ставит пин NDK, build-tools 35,
+platforms 35 и `x86_64-linux-android`, macOS — `aarch64-apple-ios-sim`; `ANDROID_NDK_HOME` образа
+переставляется на пин (иначе отказ по ревизии). Обязательность задаёт env шага, а не ОС: без него
+Linux без NDK (машина владельца без Android SDK) падал бы, а macOS-раннер включал бы или
+выключал Android по NDK своего образа.
+
+Фикстура (на каждой собранной платформе): копия игры с `#include "shooter_mobile.hpp"` в
+`rumble_mobile.cpp` обязана упасть сборкой с именем заголовка и `not found` / `No such file` —
+заголовок оболочки дерева не утёк в префикс путями include.
 
 ## Отказы конфигурирования дерева (`cmake/install_sdk.cmake`, `cmake/sdk_links.cmake`)
 
@@ -305,7 +332,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 ## Где идёт
 
 - preflight — этап группы `preflight_build_rules.sh`;
-- CI — джоб `sdk-game` в `ci.yml` на трёх ОС.
+- CI — джоб `sdk-game` в `ci.yml` на трёх ОС (мобильная половина — iOS-sim на macOS, Android x86_64 на Linux).
 
 Окно игры на живом железе (Wayland, драйвер) CI не открыть: `--keep` оставляет префикс для
 оконного прогона владельцем — `docs/owner-setup.txt`, раздел S.

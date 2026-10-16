@@ -1693,14 +1693,14 @@ owner_check.sh гоняет это отдельным этапом сразу п
   что в шаге 2, затем (72 байта при пустом прогрессе):
 
     [ios-run] ok: background save wrote 72 bytes to …/Library/Application Support/like-nes/achievements.save
-    [ios-run] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (first attach at tick 0)
+    [ios-run] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (attach #1 at tick 0)
     [ios-run] PASS
 
   Затем скрипт возвращает игру из фона и ждёт «surface attached #2». Её
   tick и world обязаны совпасть со строкой «surface detached» ухода в фон:
   поверхность подключилась к тому же миру, а не к новому, и в фоне игра не
-  шагала. «[ios-run] FAIL: no second surface attach» — возврат из фона
-  потерял игру (так падает мутант с shutdown() в MobileGame::detach_surface),
+  шагала. «[ios-run] FAIL: no surface attach #2 30 s after returning» —
+  возврат из фона потерял игру (так падает мутант с shutdown() в MobileGame::detach_surface),
   «FAIL: … the world restarted instead of surviving» — мир начался заново
   (мутант со spawn() в MobileGame::attach_surface).
 
@@ -1711,6 +1711,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   2а) Neon Rumble против мобильного SDK (спека #26, В1г; прогнано агентом
   на iPhone 16, iOS 27.0). Нужен десктопный префикс из build-sdk-work/:
   его assetc печёт бандлы игры, а десктопная игра даёт хеш для сверки.
+  --keep — прямо перед скриптом и заново после каждой правки движка: игра
+  берёт движок из этого префикса, а незакоммиченную правку сверка версий
+  префиксов не видит.
 
     bash scripts/check_sdk_game.sh --keep
     bash scripts/ios_sim_rumble.sh
@@ -1720,11 +1723,13 @@ owner_check.sh гоняет это отдельным этапом сразу п
   build-sdk-work/game-ios-sim, запускает её, уводит в фон (Настройки) и
   возвращает. Ожидаемо (<T> — тик ухода в фон, сотни: уходу предшествуют 5 с драки):
 
+    [ios-rumble] building <корень>/build-sdk-ios-sim (the first build compiles wgpu-native from Rust: minutes)
     [ios-rumble] ok: iOS SDK installed, minimum iOS 17.0
     [ios-rumble] ok: built build-sdk-work/game-ios-sim/neon_rumble.app
     [ios-rumble] ok: simulator like-nes-play-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0, app installed
-    [ios-rumble] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (first attach at tick 0)
+    [ios-rumble] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (attach #1 at tick 0)
     [ios-rumble] ok: desktop headless at tick <T> hashes <хеш>, as the simulator
+    [ios-rumble] screen: Device Hub, like-nes-play-iOS-27-0 in the sidebar — the fight keeps running
     [ios-rumble] PASS
 
   Последняя ok-строка — телефон играет ту же драку, что десктоп: тот же
@@ -1834,6 +1839,46 @@ owner_check.sh гоняет это отдельным этапом сразу п
   «surface attached #1» после Home — процесс убит и начат заново: прислать
   logcat целиком. «surface attach failed» или «gpu init failed» — дефект
   оболочки.
+
+  5а) Neon Rumble на телефоне Android (спека #26, В1д; гейт §36
+  docs/owner-verification.md). НЕ прогнано агентом: телефона нет; сборка и
+  отказ без телефона прогнаны. Тот же телефон, что в шаге 5, USB-отладка
+  включена, один телефон в adb devices. --keep — прямо перед скриптом, как
+  в шаге 2а:
+
+    bash scripts/check_sdk_game.sh --keep
+    bash scripts/android_rumble.sh
+
+  Скрипт собирает build-sdk-android-arm64-v8a (первая сборка — минуты),
+  ставит из него префикс в пустой временный каталог, собирает игру против
+  него в build-sdk-work/game-android-arm64-v8a, ставит APK, запускает, через
+  5 с жмёт Home и возвращает игру интентом лаунчера. Ожидаемо (<T> — тик ухода
+  в фон, сотни):
+
+    [android-rumble] building <корень>/build-sdk-android-arm64-v8a (the first build compiles wgpu-native from Rust: minutes)
+    [android-rumble] ok: Android SDK installed for arm64-v8a, API 29
+    [android-rumble] ok: built build-sdk-work/game-android-arm64-v8a/neon_rumble.apk
+    [android-rumble] ok: installed on <модель>, Android <версия>
+    [android-rumble] ok: foreground re-attached the surface at tick=<T> world=<хеш>, as detached (attach #1 at tick 0)
+    [android-rumble] ok: desktop headless at tick <T> hashes <хеш>, as the phone
+    [android-rumble] screen: the phone shows level 1, the two fight on their own; the hand steps of §36 go on from here
+    [android-rumble] PASS
+
+  Строки телефона — в build-sdk-work/game-android-arm64-v8a/phone.logcat.
+  «FAIL: need exactly one phone in adb devices» — телефона нет или их два,
+  «FAIL: no surface attach #2 30 s after returning» — возврат потерял игру
+  (attach #1 второй раз — процесс убит или поверх задачи встал второй
+  экземпляр),
+  «FAIL: … the world restarted» — драка началась заново, «FAIL: … the fight
+  differs» — телефон играет другую драку, чем десктоп. Дальше руками, с
+  открытым logcat -s like-nes (команда шага 5):
+    1. Home, 5 с, вернуться из списка недавних → пара detached /
+       attached #3 с равными tick и world; бойцы там же, где были.
+    2. Повернуть телефон → драка рисуется дальше; если в logcat пара
+       detached / attached — tick и world в ней равны. Полосы по краям
+       кадра — норма до В2.
+    3. Погасить экран кнопкой питания на 5 с и разбудить → снова пара
+       detached / attached с равными tick и world, номер attach вырос.
 
 
   6) Бенч ресима на самом слабом телефоне (спека #25, В9г; гейт §34
@@ -2148,8 +2193,22 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
       sdk-game: OK   fixture: a level without a bounds object clamps the camera by the map
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
-      sdk-game: PASS (Release + Debug against the prefix, fixtures refused)
-      sdk-game: prefix and game builds kept in build-sdk-work/
+      sdk-game: OK   ios-sim: SDK built and installed into its own prefix
+      sdk-game: OK   ios-sim: neon_rumble.app (IOSSIMULATOR, iOS 17.0) carries both bundles and the licenses
+      sdk-game: OK   fixture: ios-sim prefix does not expose the tree's shooter_mobile.hpp
+      sdk-game: OK   android-x86_64: SDK built and installed into its own prefix
+      sdk-game: OK   android-x86_64: neon_rumble.apk (API 29) carries the .so, libc++_shared, both bundles and the licenses
+      sdk-game: OK   fixture: android-x86_64 prefix does not expose the tree's shooter_mobile.hpp
+      sdk-game: PASS (Release + Debug against the prefix, mobile packages against theirs, fixtures refused)
+      sdk-game: prefixes and game builds kept in build-sdk-work/
+
+  Мобильная половина (спека #26, В1д): префиксы iOS-симулятора и Android
+  x86_64 ставятся из build-sdk-ios-sim и build-sdk-android-x86_64 (первый
+  прогон собирает wgpu-native из Rust — минуты), Neon Rumble собирается против
+  каждого, и game.bundle пакета побайтно равен десктопному. Строк ios-sim нет
+  на Linux; на macOS и Linux без NDK 28.2.13676358 вместо трёх строк
+  android-x86_64 — «SKIP android-x86_64 (android_ndk: NDK at … is 'missing',
+  need …)»; на Windows вместо всех шести — «SKIP mobile half (no mobile toolchain on …)».
 
   На Windows вместо SKIP — «OK   fixture: Debug game without
   like_nes_add_game fails with LNK2038», а библиотека в фикстуре —

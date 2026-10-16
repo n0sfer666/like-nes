@@ -216,10 +216,12 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 - `like_nes_mobile_app` отказывает на ID не вида `com.example.game` и на `& < > "` в NAME (уходят в
   XML без экранирования); ассеты абсолютизируются от каталога вызова, два файла с одним именем в
   `assets/` — отказ.
-- **Долг на В1д.** Smoke-приложение против мобильного префикса проверено руками (`.app` на
-  симуляторе, APK с `libsmoke.so`, `libc++_shared`, лицензиями и бандлами); фикстура и мобильная
-  половина `check_sdk_game.sh`, процедура мобильного префикса в `docs/{en,ru}/guide/sdk-and-your-game.md`
-  — В1д.
+- **Долг В1д закрыт (2026-10-16).** Мобильная половина `check_sdk_game.sh` —
+  `scripts/sdk_game_mobile.sh` (iOS-симулятор на macOS, Android x86_64 при пиннутом NDK; в CI
+  `SDK_GAME_ANDROID` делает его обязательным на Linux и выключает на macOS), процедура мобильного префикса — `docs/{en,ru}/guide/sdk-and-your-game.md`.
+  Относительный `-Dlike-nes_DIR` под кросс-тулчейном не раскрывается (проверено: `like-nes_DIR`
+  остаётся NOTFOUND) — путь в доке и скриптах абсолютный. Телефон Android — `scripts/android_rumble.sh`,
+  гейт §36.
 
 ## Neon Rumble на мобильной оболочке (спека #26, В1г)
 

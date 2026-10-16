@@ -32,6 +32,31 @@ against the prefix. That is on purpose.
 `bash scripts/check_sdk_game.sh --keep` runs the same six steps, builds Neon Rumble against the
 result and keeps everything in `build-sdk-work/`. It is the shortest way to a prefix you can trust.
 
+### A mobile prefix
+
+A phone build needs its own prefix per platform: `ios-sim`, `ios-device` or `android-<abi>`. It is
+built in Release only and has no `assetc`, because the baker runs on the build machine: the game
+passes the desktop prefix as `LIKE_NES_HOST_PREFIX`, and its `assetc` bakes the bundles. The
+paths below must be absolute, because a cross toolchain does not resolve a relative
+`like-nes_DIR`. For the iOS simulator:
+
+```sh
+cmake -S . -B build-sdk-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64
+cmake --build build-sdk-ios-sim --target like_nes_sdk
+cmake --install build-sdk-ios-sim --component sdk --prefix <ios prefix>
+cmake -S games/neon-rumble -B build-game-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -Dlike-nes_DIR=<ios prefix>/lib/cmake/like-nes -DLIKE_NES_HOST_PREFIX=<desktop prefix>
+cmake --build build-game-ios-sim
+```
+
+For Android the SDK and the game are configured with the toolchain file of NDK 28.2.13676358,
+`-DCMAKE_TOOLCHAIN_FILE=<NDK>/build/cmake/android.toolchain.cmake -DANDROID_ABI=x86_64
+-DANDROID_PLATFORM=android-29`, in place of the iOS flags. The game build then also packages
+`neon_rumble.apk`. The prefix remembers what it was built for: a game with another minimum iOS,
+another API level or another NDK revision is refused by `find_package` with the value to use.
+`check_sdk_game.sh` builds both prefixes after the desktop half (iOS on macOS, Android on macOS and
+Linux with the pinned NDK). It checks that each package carries the binary of its platform, both
+bundles and the licenses, and that its `game.bundle` is byte for byte the desktop one.
+
 ## The game's CMakeLists.txt
 
 This is the whole build file of Neon Rumble:

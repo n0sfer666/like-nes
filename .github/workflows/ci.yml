@@ -3064,7 +3064,8 @@ jobs:
     # Свой джоб, а не шаг build-and-determinism: тому уже 90 минут лимита, а этот конфигурирует
     # два своих каталога (Release и Debug) и собирает игру против поставленного префикса. Лимит —
     # с запасом на Windows, где конфигурирование с FetchContent дольше всего; замер — первым прогоном.
-    timeout-minutes: 45
+    # С мобильной половиной (спека #26, В1д) Linux и macOS собирают ещё и wgpu-native из Rust.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -3077,7 +3078,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y xorg-dev
+          sudo apt-get install -y xorg-dev libclang-dev
 
       - name: Setup Ninja
         uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
@@ -3086,12 +3087,37 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1
 
+      # Мобильная половина sdk-game (спека #26, В1д): Android x86_64 — на Linux, его единственной
+      # машине в CI. NDK пиннут в platform/android/android_ndk.sh, а образ выставляет
+      # ANDROID_NDK_HOME на свой: без перестановки гейт отказал бы по ревизии. libclang выше — для
+      # bindgen крейта wgpu-native. `yes || true`: под pipefail SIGPIPE у yes ронял бы шаг.
+      - name: Android NDK, build-tools 35 and the Rust target (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          pin=$(sed -n 's/^NDK_PIN=//p' platform/android/android_ndk.sh)
+          [ -n "$pin" ] || { echo "no NDK_PIN in platform/android/android_ndk.sh" >&2; exit 1; }
+          mgr="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$mgr" ] || { echo "no sdkmanager at $mgr" >&2; exit 1; }
+          (yes || true) | "$mgr" --install "ndk;$pin" "build-tools;35.0.0" "platforms;android-35" \
+            > "$RUNNER_TEMP/sdkmanager.log" 2>&1 || { tail -40 "$RUNNER_TEMP/sdkmanager.log"; exit 1; }
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$pin" >> "$GITHUB_ENV"
+          rustup target add x86_64-linux-android
+
+      - name: Rust target of the iOS simulator (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: rustup target add aarch64-apple-ios-sim
+
       # Спека #24, В1, В4, В5а: игра собирается против поставленного префикса в Release и Debug,
       # bundle_hash испечённого game.bundle (текстура и уровень level1 из Tiled) равен
       # games/neon-rumble/bundle.hash на каждой ОС. Фикстуры (внутренний заголовок, префикс без
       # библиотеки, чужой bundle.hash, манифест без кодека, перебейк по depfile после правки .tsj
       # и подмены PNG, на MSVC — Debug без like_nes_add_game) обязаны упасть каждая по своей
-      # причине.
-      - name: SDK package builds a game against the installed prefix, bundle hash (spec #24, V1, V4, V5)
+      # причине. Android обязателен на Linux и выключен на macOS: там его судит Linux, а NDK по
+      # умолчанию в образе раннера не должен молча включать или выключать сборку.
+      - name: SDK package builds a game against the installed prefix, bundle hash, mobile packages (spec #24, #26)
         shell: bash
+        env:
+          SDK_GAME_ANDROID: ${{ runner.os == 'Linux' && 'required' || 'skip' }}
         run: bash scripts/check_sdk_game.sh

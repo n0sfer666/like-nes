@@ -4,6 +4,9 @@
 # имя не проверяет и на каждом повторе заводит двойника, после чего команды по имени выбирают
 # одного из двух наугад.
 
+# shellcheck source=scripts/mobile_resume_lib.sh
+. "$ROOT/scripts/mobile_resume_lib.sh"
+
 # Причина, по которой симулятора на этой машине нет; пусто — есть.
 ios_sim_missing() {
   [ "$(uname -s)" = Darwin ] || { echo "the iOS simulator exists only on macOS"; return 0; }
@@ -40,35 +43,20 @@ ios_launch_up() {
   return 1
 }
 
-# Возврат из фона: запуск уже живого приложения выводит его вперёд, а не стартует заново. Счётчик
-# attach живёт в процессе, поэтому `#2` — улика того же процесса. Мир при `#2` обязан совпасть с
-# миром при снятии поверхности: мир, пересозданный в attach, сохранил бы тик, но не хеш. Строки
-# печатает игра: `[game] surface attached #N tick=T world=H` и `[game] surface detached tick=T world=H`.
-# Успех — IOS_SAID с уликой и IOS_DETACHED=`tick=T world=H`, отказ — код 1 и причина в IOS_SAID.
+# Возврат из фона: запуск уже живого приложения выводит его вперёд, а не стартует заново. Зовётся после
+# detach и до запуска: последний attach в логе — тот, с которого ушли в фон. Суд улик —
+# `resume_judged` (`mobile_resume_lib.sh`). Успех — IOS_SAID с уликой и IOS_DETACHED=`tick=T world=H`,
+# отказ — код 1 и причина в IOS_SAID.
 ios_resumed() {
-  local udid=$1 app=$2 err=$3 t1 a2 t2
+  local udid=$1 app=$2 err=$3 rc=0 n
+  n=$(last_attach "$err")
   xcrun simctl launch "$udid" "$app" >/dev/null || { IOS_SAID="cannot bring $app back to foreground"; return 1; }
   for _ in $(seq 30); do
-    grep -q "surface attached #2 " "$err" && break
+    grep -q "surface attached #$((n + 1)) " "$err" && break
     sleep 1
   done
-  t1=$(sed -n 's/.*surface attached #1 tick=\([0-9]*\).*/\1/p' "$err" | head -1)
-  a2=$(sed -n 's/.*surface attached #2 \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$err" | head -1)
-  IOS_DETACHED=$(sed -n 's/.*surface detached \(tick=[0-9]* world=[0-9a-f]*\).*/\1/p' "$err" | head -1)
-  if [ -z "$t1" ] || [ -z "$a2" ]; then
-    IOS_SAID="no second surface attach 30 s after returning to foreground — $err"
-    return 1
-  fi
-  [ -n "$IOS_DETACHED" ] || { IOS_SAID="no surface detach line before the second attach — $err"; return 1; }
-  if [ "$a2" != "$IOS_DETACHED" ]; then
-    IOS_SAID="second attach at $a2, detach at $IOS_DETACHED: the world restarted instead of surviving"
-    return 1
-  fi
-  t2=${a2#tick=}
-  t2=${t2%% *}
-  if [ "$t2" -le "$t1" ]; then
-    IOS_SAID="second attach at tick $t2, first at $t1: no frames ran before going to background"
-    return 1
-  fi
-  IOS_SAID="foreground re-attached the surface at $a2, as detached (first attach at tick $t1)"
+  resume_judged "$err" "$n" || rc=1
+  IOS_SAID=$RESUME_SAID
+  IOS_DETACHED=$RESUME_DETACHED
+  return "$rc"
 }

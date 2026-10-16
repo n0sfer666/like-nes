@@ -58,10 +58,13 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
   set(_lk "${_tcbin}/${WGPU_RUST_TARGET}${ANDROID_PLATFORM_LEVEL}-clang")
   string(REPLACE "-" "_" _triple_us "${WGPU_RUST_TARGET}")
   string(TOUPPER "${_triple_us}" _triple_up)
+  # bindgen крейтов wgpu-native разбирает заголовки libclang хоста: без sysroot NDK он взял бы
+  # заголовки хоста (на Linux — glibc), а не bionic цели.
   set(WGPU_CARGO_ENV ${CMAKE_COMMAND} -E env
     "CARGO_TARGET_${_triple_up}_LINKER=${_lk}"
     "CC_${_triple_us}=${_lk}"
-    "AR_${_triple_us}=${_tcbin}/llvm-ar")
+    "AR_${_triple_us}=${_tcbin}/llvm-ar"
+    "BINDGEN_EXTRA_CLANG_ARGS_${_triple_us}=--sysroot=${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/${ANDROID_HOST_TAG}/sysroot")
 endif()
 # Гейт wgpu-pin читает её из кэша: у мобильной сборки нет блоба релиза, есть тег и тройка.
 set(WGPU_SOURCE_TARGET "${WGPU_RUST_TARGET}" CACHE INTERNAL "Rust target of the wgpu-native source build")

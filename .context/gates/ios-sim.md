@@ -113,7 +113,9 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 **Уход в фон и возврат — `bash scripts/ios_sim_run.sh --background-save`** (не гейт preflight,
 прогон руками/агентом). С В1б спеки #26 уход в фон снимает поверхность (`detach_surface`), а
 возврат подключает новую к тому же миру: скрипт после `achievements.save` снова зовёт
-`simctl launch` живого приложения и ждёт в stderr `[game] surface attached #2 tick=T world=H`.
+`simctl launch` живого приложения и ждёт в stderr `[game] surface attached #N+1 tick=T world=H`,
+где #N — последний attach до фона (судит `resume_judged` из `scripts/mobile_resume_lib.sh`: пара
+по номеру, а не первая в логе).
 Счётчик живёт в процессе, поэтому `#2` — тот же процесс; `tick=T world=H` обязаны совпасть со
 строкой `surface detached` ухода в фон (`world` — `sim_hash` мира), и `T > T1` первого attach. Тик
 один улику не даёт: мир, пересозданный в attach, сохранил бы счётчик кадров. Прогон 2026-10-16:
@@ -121,8 +123,8 @@ bash scripts/ios_sim_gate_live_selftest.sh       # живые мутанты vie
 
 | мутант (руками, 2026-10-16) | порча | обязанная причина |
 |---|---|---|
-| detach убивает игру | `shutdown();` первой строкой `MobileGame::detach_surface` (`shooter_mobile.cpp`) | `no second surface attach 30 s after returning to foreground` |
-| attach пересоздаёт мир | `if (attaches_ > 0) spawn(world_, gs_);` после `build_targets` в `MobileGame::attach_surface` | `second attach at tick=89 world=02d9…, detach at tick=89 world=255e…: the world restarted instead of surviving` |
+| detach убивает игру | `shutdown();` первой строкой `MobileGame::detach_surface` (`shooter_mobile.cpp`) | `no surface attach #2 30 s after returning to foreground` |
+| attach пересоздаёт мир | `if (attaches_ > 0) spawn(world_, gs_);` после `build_targets` в `MobileGame::attach_surface` | `attach #2 at tick=89 world=02d9…, detach at tick=89 world=255e…: the world restarted instead of surviving` |
 
 Симулятор устройство НЕ заменяет: GPU хостовый, жест синтезирован. Прогон на iPhone остаётся у
 владельца (`docs/owner-setup.txt` §R, шаг 4).

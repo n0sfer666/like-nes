@@ -25,6 +25,10 @@ ok() { echo "[ios-rumble] ok: $*"; }
 
 # shellcheck source=scripts/ios_sim_lib.sh
 . "$ROOT/scripts/ios_sim_lib.sh"
+# shellcheck source=scripts/mobile_prefix_lib.sh
+. "$ROOT/scripts/mobile_prefix_lib.sh"
+# shellcheck source=scripts/mobile_fight_lib.sh
+. "$ROOT/scripts/mobile_fight_lib.sh"
 WHY=$(ios_sim_missing)
 [ -z "$WHY" ] || fail "$WHY"
 RUNTIME=$(ios_runtime) || fail "simctl cannot list runtimes (CoreSimulatorService down?)"
@@ -47,10 +51,13 @@ run cmake --build "$SDK"
 # установку в старый.
 PFX="$WORK/prefix"
 run cmake --install "$SDK" --component sdk --prefix "$PFX"
-MIN=$(sed -n 's/^set(_ln_ios_min "\(.*\)")$/\1/p' "$PFX/lib/cmake/like-nes/like-nesConfig.cmake")
+MIN=$(prefix_field "$PFX" _ln_ios_min) || true
+[ -n "$MIN" ] || fail "no _ln_ios_min in the iOS prefix Config"
 ok "iOS SDK installed, minimum iOS $MIN"
 
-# Десктопная игра пересобирается из того же дерева: хеш судится против игры, а не против вчерашней.
+# Десктопная игра пересобирается против префикса последнего `--keep`: хеш судится против этой игры,
+# а не вчерашней сборки. Движок у неё — из того префикса, а Config мобильного сверяет только
+# `_ln_build` (git-хеш) и незакоммиченную правку движка не видит: правил движок — `--keep` заново.
 run cmake --build "$DESK"
 run cmake --fresh -S "$ROOT/games/neon-rumble" -B "$GAME" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 \
@@ -71,22 +78,19 @@ ERR="$GAME/background.stderr"
 ios_launch_up "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
 # Несколько секунд драки до фона: тик detach должен уйти от нуля, иначе сверка с headless пуста.
 sleep 5
+# Ждётся detach после последнего attach, а не любая: своя пара на старте (пересоздание поверхности)
+# пропустила бы ожидание, и возврат пошёл бы до ухода в фон.
+N=$(last_attach "$ERR")
 xcrun simctl launch "$UDID" com.apple.Preferences >/dev/null || fail "cannot launch Preferences"
 for _ in $(seq 60); do
-  grep -q "surface detached" "$ERR" && break
+  [ -n "$(detach_after "$ERR" "$N")" ] && break
   sleep 1
 done
-grep -q "surface detached" "$ERR" || fail "no surface detach 60 s after going to background — $ERR"
+[ -n "$(detach_after "$ERR" "$N")" ] || fail "no surface detach after attach #$N 60 s after going to background — $ERR"
 ios_resumed "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
 ok "$IOS_SAID"
 
-TICK=${IOS_DETACHED#tick=}
-TICK=${TICK%% *}
-WORLD=${IOS_DETACHED##*world=}
-[ "$TICK" -gt 0 ] || fail "detached at tick 0: the fight never ran"
-HASH=$("$DESK/neon_rumble" --headless --frames "$TICK" | sed -n "s/^neon-rumble: brawl tick $TICK: hash \([0-9a-f]*\),.*/\1/p")
-[ -n "$HASH" ] || fail "desktop headless printed no brawl hash at tick $TICK"
-[ "$HASH" = "$WORLD" ] || fail "simulator world $WORLD at tick $TICK, desktop headless $HASH: the fight differs"
-ok "desktop headless at tick $TICK hashes $HASH, as the simulator"
+desktop_same_fight "$DESK" "$IOS_DETACHED" simulator || fail "$FIGHT_SAID"
+ok "$FIGHT_SAID"
 echo "[ios-rumble] screen: Device Hub, $DEVICE in the sidebar — the fight keeps running"
 echo "[ios-rumble] PASS"
