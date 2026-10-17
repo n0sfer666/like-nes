@@ -140,6 +140,35 @@ Windows — короткий путь, из любого шелла:
 Windows — руками, из x64 Native Tools Command Prompt:
   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 
+Короткий путь — make в корне (macOS и Linux; Windows — make из
+winget install ezwinports.make, цели сборки и игр уходят в win-dev.bat).
+Сборка и запуск — РАЗНЫЕ цели: запуск сборку не делает, а проверяет бинарь.
+
+  make                    список целей
+  make build              build/ целиком;  make rumble-build — SDK + Neon Rumble
+  make sidescroller       ./build/game_sidescroller
+  make rumble             ./build-sdk-work/game-Release/neon_rumble
+  make rumble "ARGS=--coop"           аргументы игре — одной строкой в кавычках
+  make check              types + lint из .context/checks.json
+  make ios-shooter | ios-rumble | android-rumble    только macOS, см. раздел R
+
+  Бинаря нет — отказ без запуска:
+    make: build-sdk-work/game-Release/neon_rumble is missing - build it: make rumble-build
+  Вход цели новее бинаря (по графу ninja: исходник или заголовок, который
+  цель действительно собирает; чужой main.cpp не в счёт) — запуск идёт, но
+  первой строкой:
+    make: warning: <файл> changed after <бинарь> was built - rebuild: make <цель>
+  Префикс build-sdk-work собран не на HEAD (любой коммит после rumble-build):
+    make: SDK prefix in build-sdk-work is 0.1.0-dev+<sha>, HEAD is <sha> - rebuild: make rumble-build
+  rumble с этим только предупреждает, ios-rumble и android-rumble отказывают
+  сразу: их скрипты упали бы на том же после минут мобильной сборки.
+  Windows: make sidescroller "GPU=low" = scripts\win-dev.bat game low (оно
+  ДОСОБИРАЕТ game_sidescroller, ARGS не передаются); make rumble "ARGS=..." =
+  scripts\win-dev.bat rumble ... (до трёх аргументов); make rumble-build =
+  scripts\win-dev.bat sdk. Проверок свежести и префикса на Windows нет — только
+  наличие exe: neon_rumble.exe missing - run: scripts\win-dev.bat sdk.
+  check/types/lint/preflight/ci-watch и мобильные на Windows отказывают с кодом 1.
+
 Windows, ОДИН РАЗ НА МАШИНУ, до первого прогона — из PowerShell админом:
 
   Add-MpPreference -ExclusionPath 'C:\путь\к\like-nes'
@@ -1653,6 +1682,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     bash scripts/ios_sim_run.sh
 
+  Через make: make ios-shooter.
+
   Скрипт собирает build-ios (первая сборка — минуты: wgpu-native из Rust),
   находит или заводит устройство like-nes-play-iOS-27-0 (имя несёт рантайм;
   повторный запуск двойника НЕ создаёт), загружает его, открывает окно,
@@ -1723,6 +1754,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     bash scripts/check_sdk_game.sh --keep
     bash scripts/ios_sim_rumble.sh
+
+  Через make: make rumble-build, затем make ios-rumble.
 
   Скрипт собирает build-sdk-ios-sim (первая сборка — минуты), ставит из
   него iOS-префикс в пустой временный каталог, собирает игру против него в
@@ -1859,6 +1892,12 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     bash scripts/check_sdk_game.sh --keep
     bash scripts/android_rumble.sh
+
+  Через make (прогнано агентом на эмуляторе Pixel_4, Android 16, arm64-v8a):
+  make rumble-build, затем make android-rumble — на эмуляторе
+  без телефона: нет устройства в adb devices — make поднимает первый AVD
+  (emulator -list-avds; другой — make android-rumble "AVD=<имя>") и ждёт
+  загрузки. Эмулятор на Apple Silicon — arm64-v8a, ABI по умолчанию.
 
   Скрипт собирает build-sdk-android-arm64-v8a (первая сборка — минуты),
   ставит из него префикс в пустой временный каталог, собирает игру против
@@ -1997,6 +2036,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
       scripts\win-dev.bat shell
       "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
       build-sdk-work\game-Release\neon_rumble.exe --frames 600
+
+  То же без второго окна: scripts\win-dev.bat sdk, затем
+  scripts\win-dev.bat rumble --frames 600 (или make rumble-build, затем
+  make rumble "ARGS=--frames 600").
 
   Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
   двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):

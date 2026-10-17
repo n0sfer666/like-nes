@@ -15,6 +15,8 @@ rem   scripts\win-dev.bat gate8   scripts/gate8_e2e.sh тем же шеллом 
 rem   scripts\win-dev.bat probe   framework_input_probe с живым падом (гейт 8 спеки #14)
 rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
 rem   scripts\win-dev.bat demo    отрисовать 60 кадров в PNG мимо окна (чёрный экран: кто виноват)
+rem   scripts\win-dev.bat sdk     SDK и Neon Rumble против него: scripts/check_sdk_game.sh --keep
+rem   scripts\win-dev.bat rumble  запустить Neon Rumble из build-sdk-work (до трёх аргументов - игре)
 rem   scripts\win-dev.bat shell   отдать cmd с готовым x64-окружением
 rem   scripts\win-dev.bat clean   удалить каталог build (кеш помнит компилятор)
 setlocal EnableExtensions
@@ -34,16 +36,9 @@ set "VSLANG=1033"
 
 if /i "%ACTION%"=="setup" goto do_setup
 if /i "%ACTION%"=="clean" goto do_clean
-if /i "%ACTION%"=="build" goto need_vs
-if /i "%ACTION%"=="warn"  goto need_vs
-if /i "%ACTION%"=="check" goto need_vs
-if /i "%ACTION%"=="gate8" goto need_vs
-if /i "%ACTION%"=="probe" goto need_vs
-if /i "%ACTION%"=="game"  goto need_vs
-if /i "%ACTION%"=="demo"  goto need_vs
-if /i "%ACTION%"=="shell" goto need_vs
+for %%a in (build warn check gate8 probe game demo shell sdk rumble) do if /i "%ACTION%"=="%%a" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|warn^|check^|gate8^|probe^|game^|demo^|shell^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|gate8^|probe^|game^|demo^|shell^|sdk^|rumble^|clean]
 exit /b 2
 
 :do_setup
@@ -110,12 +105,7 @@ if /i "%ACTION%"=="shell" (
     cmd /k
     exit /b 0
 )
-if /i "%ACTION%"=="probe" goto do_probe
-if /i "%ACTION%"=="game" goto do_game
-if /i "%ACTION%"=="demo" goto do_demo
-if /i "%ACTION%"=="check" goto do_check
-if /i "%ACTION%"=="gate8" goto do_gate8
-if /i "%ACTION%"=="warn" goto do_warn
+for %%a in (probe game demo check gate8 warn sdk rumble) do if /i "%ACTION%"=="%%a" goto do_%%a
 
 :do_build
 rem Каталог сборки помнит компилятор: после неудачного захода из 32-битного шелла повторное
@@ -223,6 +213,15 @@ exit /b 0
 :do_check
 set "GATE=scripts/owner_check.sh"
 goto run_gate
+
+:do_sdk
+set "GATE=scripts/check_sdk_game.sh --keep"
+goto run_gate
+
+:do_rumble
+if not exist build-sdk-work\game-Release\neon_rumble.exe (echo neon_rumble.exe missing - run: scripts\win-dev.bat sdk & exit /b 1)
+build-sdk-work\game-Release\neon_rumble.exe %2 %3 %4
+exit /b %errorlevel%
 
 rem Сквозной гейт клонирует дерево и собирает клон с нуля, то есть ему нужны РАЗОМ vcvars (cl.exe в
 rem PATH) и POSIX-шелл - ровно та же пара, что и owner_check.sh, поэтому запуск общий. Из самого
