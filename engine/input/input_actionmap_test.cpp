@@ -94,12 +94,18 @@ static bool latest_is(const InputBuffer<4>& b, size_t window, std::initializer_l
     return true;
 }
 
+static InputFrame frame_at(uint32_t t) {
+    InputFrame f;
+    f.tick = t;
+    return f;
+}
+
 static bool test_buffer_latest() {
     InputBuffer<4> b;
     const bool empty = latest_is(b, 4, {});
-    for (uint32_t t = 1; t <= 2; ++t) b.push(InputFrame{.tick = t});
+    for (uint32_t t = 1; t <= 2; ++t) b.push(frame_at(t));
     const bool young = latest_is(b, 4, {1, 2});
-    for (uint32_t t = 3; t <= 7; ++t) b.push(InputFrame{.tick = t});
+    for (uint32_t t = 3; t <= 7; ++t) b.push(frame_at(t));
     const bool wrapped = latest_is(b, 6, {4, 5, 6, 7});
     const bool trimmed = latest_is(b, 2, {6, 7});
     return empty && young && wrapped && trimmed;
