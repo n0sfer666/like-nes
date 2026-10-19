@@ -42,7 +42,6 @@ case $(uname -s) in
 esac
 RUN=$(date -u '+%y%m%d-%H%M%S')-$OS_TAG
 OUT=build-owner-run/$RUN
-OWNER_RUN_FRAMES=3600
 OWNER_RUN_SLACK=1200
 mkdir -p "$OUT"
 EXE=$ROOT/build-sdk-work/game-Release/neon_rumble
@@ -75,7 +74,7 @@ for keys in "${SCENARIOS[@]}"; do
     mkdir -p "$dir"
     cp "$keys" "$dir/$name.keys"
     read -r -a args <<< "$(owner_run_directive "$keys" args)"
-    cap=$((${frames:-$OWNER_RUN_FRAMES} + OWNER_RUN_SLACK))
+    cap=$((${frames:-$(owner_run_span "$keys")} + OWNER_RUN_SLACK))
     (cd "$dir" && "$EXE" ${args[@]+"${args[@]}"} --frames "$cap" --script "$name.keys" --shots . \
         > window.out 2> window.err)
     rc=$?

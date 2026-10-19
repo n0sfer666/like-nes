@@ -1,0 +1,51 @@
+# §32: меню клавишами. S бойца меню не двигает (иначе Enter ниже попал бы не туда); ↓ по кругу, ↑ назад
+# на credits; Enter и F1 листают две страницы титров, третье нажатие возвращает меню. Вход в level,
+# P2 садится стрелкой на тике 40, Esc — меню (выбор держит g32-keep); второй вход печатает те же строки старта,
+# banderas на спавне 200,264 (первый ушёл вправо), rainbird с тика 0 и без новых строк seat.
+! gate 32
+! expect level level1 144x21
+! expect fighter banderas sheet 657x642, body 200,264 facing right
+! expect pose tick 0: banderas/idle
+! expect seat tick 40: P2 joining
+! expect seat tick 41: P2 present
+! expect level level1 144x21
+! expect fighter banderas sheet 657x642, body 200,264 facing right
+! expect pose tick 0: banderas/idle
+! expect brawl tick 30: hash [0-9a-f]+, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252
+! absent stage camera
+! absent seat tick ([0-9]|[1-3][0-9]):
+! absent menu:
+! look menu §32: на чёрном «> level level1» жёлтым, «wave level1» и «credits» белым
+! look credits-picked §32: «> credits» жёлтым после ↓↓↓↑
+! look credits-1 §32: страница 1/2 титров поверх меню
+! look credits-2 §32: страница 2/2
+! look credits-done §32: снова одно меню, «> credits»
+! look walked §32: banderas прошёл вправо, rainbird рядом
+! look back §32: меню после Esc, «> level level1»
+! look again §32: улица второго входа, banderas на спавне
+menu 2 shot menu
+menu 4 tap S
+menu 8 tap DOWN
+menu 10 tap DOWN
+menu 12 tap DOWN
+menu 14 tap UP
+menu 16 shot credits-picked
+menu 18 tap ENTER
+menu 20 shot credits-1
+menu 22 tap F1
+menu 24 shot credits-2
+menu 26 tap ENTER
+menu 28 shot credits-done
+menu 30 tap DOWN
+menu 32 tap ENTER
+level
+1 down D
+40 tap RIGHT
+60 up D
+70 shot walked
+75 tap ESCAPE
+menu 200 shot back
+menu 202 tap ENTER
+level
+20 shot again
+30 quit

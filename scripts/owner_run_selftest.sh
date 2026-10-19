@@ -50,6 +50,12 @@ check "expect out of order fails at the first missing line" fail "FAIL  expect r
     owner_run_expect "$T/crlf.keys" "$T/reversed.out"
 check "absent not met passes" pass "ok    absent hit tick 9[0-9]" owner_run_absent "$T/crlf.keys" "$T/ordered.out"
 check "absent met fails with the line" fail "hit tick 95 banderas" owner_run_absent "$T/crlf.keys" "$T/absent.out"
+printf '%s\r\n' '! expect hit tick 9000' 'menu 2 tap ENTER' 'level' '# 8000 down D' '75 tap ESCAPE' 'menu 200 tap ENTER' \
+    'level' '1 down D' '30 quit' > "$T/span.keys"
+span_is() { [ "$(owner_run_span "$1")" = "$2" ]; }
+check "window cap spans the last menu frame and the last tick of every level track" pass "" \
+    span_is "$T/span.keys" 305
+check "window cap is the exact span, not a longer number" fail "" span_is "$T/span.keys" 3050
 check "no directives judge nothing" pass "" owner_run_judge /dev/null "$T/ordered.out" ""
 
 { echo 'neon-rumble: join seat 1'; echo 'neon-rumble: brawl tick 0 hash 0'; hit 45; react 46; } > "$T/headless.out"

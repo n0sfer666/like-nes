@@ -6,6 +6,15 @@ owner_run_directive() {
     sed -n "s/^! $2 //p" "$1" | tr -d '\r'
 }
 
+owner_run_span() {
+    tr -d '\r' < "$1" | awk '
+        $1 == "menu" && $2 + 0 > menu { menu = $2 + 0 }
+        $1 == "level" { n++ }
+        $1 ~ /^[0-9]+$/ && $1 + 0 > last[n] { last[n] = $1 + 0 }
+        END { s = menu; for (i in last) s += last[i]; print s + 0 }
+    '
+}
+
 owner_run_expect() {
     local keys=$1 out=$2 exp
     exp=$(owner_run_directive "$keys" expect)

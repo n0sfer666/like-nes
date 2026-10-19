@@ -225,11 +225,20 @@ PASS  g25-run (gates 25)
 PASS  g26-block-roll (gates 26)
 PASS  g27-grab (gates 27)
 PASS  g28-one-fight (gates 28)
+PASS  g30-wave (gates 30)
+PASS  g31-stage (gates 31)
+PASS  g32-keep (gates 32)
+PASS  g32-menu (gates 32)
+PASS  g32-nope (gates 32)
+PASS  g32-wave (gates 32)
+PASS  g33-section (gates 33)
+PASS  g35-hotseat (gates 35)
+PASS  g35-street (gates 35)
 owner-run: frame sheet build-owner-run/<run>/index.html
 owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
 owner-run: open gates - what the run judges, then what is left by hand:
   #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
-  scenarios drive §22, §23, §24, §25, §26, §27, §28 - read every frame of the sheet, the rest of the gate is above
+  scenarios drive §22, §23, §24, §25, §26, §27, §28, §30, §31, §32, §33, §35 - read every frame of the sheet, the rest of the gate is above
 owner-run: PASS
 ```
 
@@ -4126,7 +4135,7 @@ is 0.
 
 ## 30. Gate 10 of #25 — a wave of AI enemies
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: дойти до арены 0, два adler встают кольцом вокруг banderas, сближается и бьёт по одному, остальные держатся сбоку от его линии; стоя на месте, дождаться нокаута — строка knockout … back as banderas#K at x,z и banderas внутри вида с hp 100; выбить волну — arena 0 wave 0 cleared и через ~2 с тройка wave 1; с P2 (нампад 1) бьют по двое; прислать строки knockout/wave и снимок кольца -->
+<!-- gate: open | make owner — g30-wave: замок арены 0, wave 0 adler#3/#4, стоящего бьют до нокаута (jab adler#3 на 320, kick на 719), нокаут — back as banderas#5 at 600,248 immune 119 и 119 тиков без ударов, J зачищает волну, wave 1 тройкой через 120 тиков, выбитых adler в конце нет; кадры ring, knockout, wave-1; руками: бьют по очереди, а не вдвоём сразу (строки hit ведут оба adler — очерёдность по ним не судится), кольцо (один сближается, остальные сбоку от его линии) в живом окне и с P2 (нампад 1) — бьют по двое; прислать строки knockout/wave и снимок кольца -->
 
 B5 of spec #25 brought `framework::ai`: a world RNG in the snapshot, attack tokens and brains stepped
 in `seq` order. B5b put it into Neon Rumble behind `--wave`, and B6e moved the waves into the level:
@@ -4210,7 +4219,7 @@ is 0.
 
 ## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; ящик до арены 0 ломают два пинка — death и break crate#2, бокс пропадает; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 с rainbird, он держится внутри вида и бросает красные ножи (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+<!-- gate: open | make owner — g31-stage: J и U над ящиком без строки, два L — death и break crate#2; арена 0 — lock, wave 0, через 120 тиков wave 1, released; арена 1 — wave 0, одному сразу wave 4 с rainbird (wave 1 нет — пара в g35-hotseat), ножи бьют banderas, нокаут — встаёт на чекпоинте 1300,248 и 119 тиков без ударов, камера стоит на 1368; g35-hotseat — вдвоём три adler в wave 0 арены 0 и wave 1 арены 1; кадры left-end, crate-jab, lock-0, wave-4, respawn-1; руками: камера без рывков по трём экранам и без дыр в слоях, края запертого вида — стены, а не залипание, бокс ящика пропадает, rainbird держится в виде и ножи красные; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
 
 B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
 and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
@@ -4330,7 +4339,7 @@ is 0.
 
 ## 32. Gate 12 of #25 — the menu, and back to it
 
-<!-- gate: open | окно neon_rumble на любой ОС: открывается меню на чёрном — «> level level1» жёлтым, «wave level1», «credits» белым; ↑↓ ходят по кругу; Enter на credits и F1 листают титры поверх меню; Enter на level — улица и строки level/fighter в терминале; Esc — снова меню, повторный Enter — те же строки заново и бойцы на спавне; --wave выделяет wave level1; --level nope — красная строка «no level nope in the visual table» над пунктами и строка menu: в терминале, Enter на level её повторяет; --frames 300 закрывает окно с window run ok; прислать строки терминала и снимок меню с ошибкой -->
+<!-- gate: open | make owner — g32-menu: S бойца меню не двигает, ↓ по кругу, ↑ назад на credits, Enter и F1 листают две страницы титров, третье нажатие — меню; Enter на level — строки level/fighter/pose, второй вход — те же строки, banderas на спавне 200,264, P2 на месте без новых seat; g32-wave: --wave предвыбирает wave level1 — stage camera и checkpoint, повторный вход — снова; g32-keep: выбор wave держится после Esc — stage camera на обоих входах, строки brawl уровня без номеров нет; g32-nope: --level nope — строка menu: на каждый Enter по level и по wave, уровня nope нет; кадры меню, титров и ошибки; руками: цвета пунктов и красная строка над ними, --frames 300 закрывает окно с window run ok (раннер задаёт --frames сам), живые клавиатура и пад в меню; прислать строки терминала и снимок меню с ошибкой -->
 
 B7e of spec #25 put Neon Rumble on the scene stack of the framework (`framework/scene/scene_stack`):
 the game opens on a menu scene, Enter replaces it with a level scene loaded by `load_level` right
@@ -4383,7 +4392,7 @@ is 0.
 
 ## 33. Gate 13 of #25 — the platform section past the street
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: зачистить обе арены; после «arena 1 released» banderas проходит x 1560 и встаёт на пол секции (не раньше — до релиза улица кончается на 1560); голубая лента везёт стоящего вправо, сходит — стоит; жёлтый лифт ездит сам вверх-вниз, на нём banderas едет до уступа; с пола уступ выше прыжка, а прыжок с лифта в верхней половине хода, вправо только пока не над уступом, проходит его снизу и ставит на него; трос (цепочка точек с крупной точкой на конце, справа от уступа): прыжок к концу + H — висит и качается стрелками, Space отпускает с разлёта; P2 (numpad 1), пока banderas в секции дальше 160 px от её левого края (x 1728+), появляется в виде над полом секции и падает на него, ближе — на улице левее секции, тоже в виде; H на улице по-прежнему захват; прислать строки терминала и снимок banderas на тросе -->
+<!-- gate: open | make owner — g33-section: обе арены одному игроку до «arena 1 released», затем banderas на полу секции, на лифте вверх, с лифта на уступ, прыжок к концу троса и H в воздухе — висит на 2059,200 после раскачки A/D в такт маху; P2 numpad 1 при banderas на тросе встаёт на полу секции 1840,271, не на улице; ленту везут headless-строка §33 и g35-hotseat; кадры released, belt, lift, ledge, rope, joined; руками: до релиза улица кончается на 1560, против ленты медленнее, сошёл с ленты — стоит, с пола уступ выше прыжка, прыжок с лифта в верхней половине хода проходит уступ снизу и ставит на него (с зажатой D — перелёт), без H — падение на пол, раскачка против стояния без стрелок и противофазы (разведка: 2054,271; 2051; 2034 — gates/owner-run.md), Space отпускает трос с разлёта и сразу снова его не взять, P2 при banderas левее 1728 — на улице левее секции, H на улице — захват; прислать строки терминала и снимок banderas на тросе -->
 
 B8d of spec #25 put a platform section into `level1` of `--wave`: past the street, x 1568..2200, the
 fighters stop walking the depth band and run and jump on the tiles of the collision layer `section`
@@ -4486,7 +4495,7 @@ Send back: the phone, the `[bench]` line, the two `frame` lines of the worse of 
 
 ## 35. Gate 15 of #25 — two in hotseat through level 1
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС, двое людей (пад + клавиатура или одна клавиатура на двоих): P2 входит до арены 0; арена 0 — wave 0 из трёх adler, wave 1 из трёх; арена 1 — wave 0, wave 1 только для двоих, wave 4; нокаут каждого — встаёт на взятом чекпоинте внутри вида (banderas 600,248 и 1300,248, rainbird на 64 правее) и 2 с без ударов; после «arena 1 released» оба входят в секцию, лента везёт обоих, камера держит обоих в виде; P2 выходит (минус нампада или Back) и входит снова в секции — при banderas на x 1728+ встаёт в виде над её полом, ближе к левому краю — на улице левее секции, тоже в виде, и не за 2200; прислать строки seat, checkpoint, arena, wave и knockout и снимок двоих в секции -->
+<!-- gate: open | make owner — g35-hotseat: P2 numpad 1 на тике 3, вдвоём wave 0 арены 0 — три adler, wave 1 — три, арена 1 — wave 0, wave 1 только для двоих (пара к g31-stage), wave 4, released; оба стоят на ленте — она довозит обоих до 1761; P2 выходит numpad − и садится: при banderas 1655 — на улице левее секции (g35-street, позиция на quit), при 1761 — в секции, и лента везёт его к 1739,271; кадры seated, wave-0, wave-1, belt, back-street, back-section; руками: двое живых людей (пад + клавиатура), камера на середине двоих и стены замка, когда тянут в разные стороны, нокаут каждого — на чекпоинте (rainbird на 64 правее) в виде и 2 с без ударов, один на лифте или тросе — оба в виде, клавиша одного не двигает другого; прислать строки seat, checkpoint, arena, wave и knockout и снимок двоих в секции -->
 
 B9d of spec #25 is the prototype the round promised: two players in hotseat go through level 1 —
 both arenas with their waves, the checkpoints and the platform section with the belt. CI plays it
