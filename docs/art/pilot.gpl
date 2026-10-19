@@ -1,0 +1,56 @@
+GIMP Palette
+Name: pilot
+Columns: 8
+#
+ 20  12  16	ink-0
+ 42  28  36	ink-1
+ 26  28  44	shadow-0
+ 44  51  80	shadow-1
+ 63  74 110	shadow-2
+ 91 107 140	shadow-3
+ 74  93 143	sky-0
+125 134 179	sky-1
+199 166 184	sky-2
+242 201 160	sky-3
+255 231 184	sky-4
+127 143 174	mist-0
+169 180 200	mist-1
+214 219 227	mist-2
+ 58  36  24	earth-0
+ 92  58  34	earth-1
+138  90  46	earth-2
+185 133  63	earth-3
+224 180  92	earth-4
+246 210 122	gold-0
+255 241 193	gold-1
+255 255 255	gold-2
+ 31  46  42	pine-0
+ 47  74  58	pine-1
+ 76 107  69	pine-2
+122 147  86	pine-3
+ 61  90  42	bamboo-0
+107 140  58	bamboo-1
+169 191  90	bamboo-2
+216 224 138	bamboo-3
+ 59  36  32	skin-0
+110  66  50	skin-1
+168 104  74	skin-2
+211 154 114	skin-3
+240 201 160	skin-4
+ 42  42  51	hair-0
+ 85  85 102	hair-1
+143 147 163	hair-2
+208 212 220	hair-3
+ 90  42  20	saffron-0
+143  68  25	saffron-1
+200 107  31	saffron-2
+240 160  58	saffron-3
+255 210 122	saffron-4
+ 30  35  64	swap-cloth-0
+ 51  64 110	swap-cloth-1
+ 79 103 163	swap-cloth-2
+127 159 214	swap-cloth-3
+ 58  20  32	swap-sash-0
+107  34  50	swap-sash-1
+168  58  68	swap-sash-2
+224 112  90	swap-sash-3
