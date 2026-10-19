@@ -115,7 +115,7 @@ elif [ $PUSH = 1 ]; then
     fi
 fi
 
-echo "owner-run: open gates - what is left by hand:"
+echo "owner-run: open gates - what the run judges, then what is left by hand:"
 owner_run_manual docs/owner-verification.md "${SCENARIOS[@]}"
 [ $fail = 0 ] && echo "owner-run: PASS" || echo "owner-run: FAIL"
 exit $fail

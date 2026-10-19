@@ -185,9 +185,16 @@ X11 и Wayland — отдельными прогонами: <os> в имени �
   owner-run: <yymmdd-hhmmss>-<os> at <sha>, report in build-owner-run/<прогон>
   owner-run: build - bash scripts/check_sdk_game.sh --keep, log in build-owner-run/<прогон>/build.log
   PASS  b3-fight (gates 22 23 24 25 26 27 28)
+  PASS  g22-strikes (gates 22)
+  PASS  g23-fall (gates 23)
+  PASS  g24-chain (gates 24)
+  PASS  g25-run (gates 25)
+  PASS  g26-block-roll (gates 26)
+  PASS  g27-grab (gates 27)
+  PASS  g28-one-fight (gates 28)
   owner-run: frame sheet build-owner-run/<прогон>/index.html
   owner-run: pushed <sha> to refs/owner-runs/main, folder <прогон>
-  owner-run: open gates - what is left by hand:
+  owner-run: open gates - what the run judges, then what is left by hand:
     #<спека> гейт <N> ОТКРЫТ — <что делать> (§<N> руководства)
     ...
     scenarios drive §22, §23, §24, §25, §26, §27, §28 - read every frame of the sheet, the rest of the gate is above

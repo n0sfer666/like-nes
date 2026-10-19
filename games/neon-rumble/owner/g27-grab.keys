@@ -1,0 +1,59 @@
+# §27: H у стоящего adler — grab, thrown вперёд, down, getup, stand; D зажат в throw — banderas стоит.
+# jump_kick валит adler, второй jump_kick по лежащему — hit без react и без сдвига. H в прыжке (39 px),
+# H по лежащему и встающему (45 px) не берут (H 360 жмётся в хвосте первого reach и выходит из буфера); H с того же места по вставшему — grab: дистанция в досягаемости.
+! gate 27
+! expect hit tick 58: banderas/grab -> adler, damage 6, hp 94
+! expect react tick 58: adler thrown
+! expect react tick 77: adler down
+! expect react tick 107: adler getup
+! expect react tick 137: adler stand
+! expect hit tick 152: banderas/jump_kick -> adler, damage 10, hp 84
+! expect react tick 172: adler down
+! expect hit tick 197: banderas/jump_kick -> adler, damage 10, hp 74
+! expect react tick 207: adler getup
+! expect react tick 327: adler down
+! expect react tick 357: adler getup
+! expect hit tick 403: banderas/grab -> adler, damage 6, hp 58
+! expect react tick 403: adler thrown
+! expect brawl tick 460: hash [0-9a-f]+, banderas 348,252 y 0 hp 100, adler 393,252
+! absent react tick 197: adler
+! absent hit tick [1-3][0-9][0-9]: banderas/grab
+! look throw §27: banderas в позе throw на месте, adler летит вправо от него
+! look ground-hit §27: jump_kick по лежащему adler, стоп-кадр, adler лежит
+! look jump-h §27: H в прыжке рядом с adler — поза прыжка, захвата нет
+! look lying-h §27: reach над лежащим adler — он лежит, строки grab нет
+! look getup-h §27: reach во встающего adler — он встаёт, строки grab нет
+menu 1 tap ENTER
+level
+1 tap F3
+1 down W
+13 up W
+1 down D
+45 up D
+50 tap H
+60 down D
+90 up D
+140 tap SPACE
+142 tap J
+163 down D
+178 up D
+180 tap SPACE
+182 tap J
+240 down D
+257 up D
+260 tap SPACE
+262 tap H
+295 tap SPACE
+297 tap J
+330 tap D
+332 down D
+340 up D
+340 tap H
+360 tap H
+395 tap H
+70 shot throw
+197 shot ground-hit
+266 shot jump-h
+348 shot lying-h
+378 shot getup-h
+460 quit

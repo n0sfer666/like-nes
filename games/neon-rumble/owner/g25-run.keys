@@ -1,0 +1,53 @@
+# §25: второй тап D через 12 тиков — бег, L на бегу — run_kick валит adler; через 13 тиков — шаг и kick;
+# бег, отпустить и сразу D — шаг и kick; J на бегу с зажатой D — jab, L в его хвосте — kick, D отпущена
+# после; бег вправо и разворот A — шаг влево по 2 px: бегом (тапы A 461 и 466) было бы 422, а не 427.
+! gate 25
+! expect hit tick 61: banderas/run_kick -> adler, damage 12, hp 88
+! expect react tick 61: adler fall
+! expect react tick 138: adler stand
+! expect hit tick 222: banderas/kick -> adler, damage 12, hp 76
+! expect react tick 222: adler hurt
+! expect hit tick 301: banderas/kick -> adler, damage 12, hp 64
+! expect hit tick 375: banderas/jab -> adler, damage 6, hp 58
+! expect hit tick 404: banderas/kick -> adler, damage 12, hp 46
+! expect brawl tick 480: hash [0-9a-f]+, banderas 427,252 y 0
+! absent hit tick [1-9][0-9][0-9]: banderas/run_kick
+! absent react tick [1-9][0-9][0-9]: adler fall
+! look run-kick §25: banderas в позе kick вплотную к adler, adler в полёте fall
+! look walk-kick §25: kick из шага после медленного двойного тапа, adler в позе hurt, не падает
+! look reversal §25: banderas лицом влево, идёт шагом
+menu 1 tap ENTER
+level
+1 down W
+13 up W
+20 tap D
+32 down D
+45 up D
+45 tap L
+150 down A
+175 up A
+180 tap D
+193 down D
+206 up D
+206 tap L
+240 down A
+255 up A
+260 tap D
+266 down D
+280 up D
+282 down D
+285 up D
+285 tap L
+335 tap D
+341 down D
+367 tap J
+383 tap L
+395 up D
+440 tap D
+446 down D
+460 up D
+460 down A
+61 shot run-kick
+222 shot walk-kick
+475 shot reversal
+480 quit

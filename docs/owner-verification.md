@@ -218,9 +218,16 @@ Expected output, line by line:
 owner-run: <yymmdd-hhmmss>-<os> at <sha>, report in build-owner-run/<run>
 owner-run: build - bash scripts/check_sdk_game.sh --keep, log in build-owner-run/<run>/build.log
 PASS  b3-fight (gates 22 23 24 25 26 27 28)
+PASS  g22-strikes (gates 22)
+PASS  g23-fall (gates 23)
+PASS  g24-chain (gates 24)
+PASS  g25-run (gates 25)
+PASS  g26-block-roll (gates 26)
+PASS  g27-grab (gates 27)
+PASS  g28-one-fight (gates 28)
 owner-run: frame sheet build-owner-run/<run>/index.html
 owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
-owner-run: open gates - what is left by hand:
+owner-run: open gates - what the run judges, then what is left by hand:
   #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
   scenarios drive §22, §23, §24, §25, §26, §27, §28 - read every frame of the sheet, the rest of the gate is above
 owner-run: PASS
@@ -3453,7 +3460,7 @@ is 0.
 
 ## 22. Gate 2 of #25 — strikes, teams and the F3 depth bands
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки brawl/hit из шага 1; окно neon_rumble: J jab, U cross, L kick, J в прыжке jump_kick попадают в adler (стоп-кадр, отброс, строка hit с hp), удар сквозь rainbird без урона и без строки, F3 — красная рамка hit0 на активных кадрах и полосы z на полу; сверить кадр kick 54 и кадры cross 46–47; прислать скриншот F3 с jab в adler -->
+<!-- gate: open | make owner — b3-fight и g22-strikes: J jab, U cross, L kick и J в прыжке jump_kick попадают в adler строками hit с hp, J, U, L сквозь rainbird без строки, rainbird на тике 400 на месте с hp 100, лист — рамка F3 на кулаке, кадры cross 45–47 и kick 54–55; руками: стоп-кадр, отброс и полосы z на полу F3 в живом окне, прочитать кадры листа -->
 
 B2d of spec #25 moved Neon Rumble from walking to `step_brawl`: the fighter tables in
 `games/neon-rumble/fighters/*.fighter` are baked into `game.bundle`, Banderas strikes, Adler is a
@@ -3608,7 +3615,7 @@ is 0.
 
 ## 23. Gate 3 of #25 — Adler falls, lies and gets up
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 154 fall, 174 down, 209 getup, 239 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
+<!-- gate: open | make owner — g23-fall: jump_kick валит adler дважды (fall, down, getup, stand по тикам), L во встающего без строки hit, после stand тот же удар попадает (J и U по лежащему строк не дают и без правила: их рамки проходят над ним); руками: крест пивота и ноги на тени на каждом кадре fall/down/getup с F3 в окне и на листе -->
 
 B3b of spec #25 gave the fighters reactions: a light or heavy hit puts the target on its `hurt` clip
 for the hitstun of the strike, a `launch` hit — `jump_kick` — throws it into `fall` until it lands,
@@ -3665,7 +3672,7 @@ is 0.
 
 ## 24. Gate 4 of #25 — the chain and the buffer
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 53 jab, 66 jab, 75 cross; окно neon_rumble: J J J в adler — jab, jab, cross с одной строкой hit на каждый; J мимо — снова jab; J во время удара ждёт его конца; U после jab цепочку не продолжает; прислать строки hit и слово о темпе цепочки -->
+<!-- gate: open | make owner — g24-chain: J J J — jab, jab, cross, четвёртый J — jab; J после J и U — снова jab; три J мимо без строк; J в хвосте удара ждёт его конца; руками: кадр miss-3 — поза jab, а не cross (по строкам их не различить), слово о темпе цепочки -->
 
 B3c of spec #25 gave the fighters a chain and an input buffer. Each `.fighter` names its chain in
 the `chain` row, the last move being the finisher: Banderas `jab jab cross`, Rainbird `jab jab cross
@@ -3721,7 +3728,7 @@ is 0.
 
 ## 25. Gate 5 of #25 — the run and the kick from it
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 329 banderas/run_kick, react tick 329 adler fall; окно neon_rumble: двойной тап вправо — бег, отпускание/разворот/удар гасят бег, медленный двойной тап — шаг; L на бегу — run_kick катится в adler и валит его; прыжок с бега летит с той же скоростью; прислать строки hit/react и слово о темпе двойного тапа -->
+<!-- gate: open | make owner — g25-run: второй тап D через 12 тиков — run_kick и fall, через 13 — шаг и kick; отпускание D на бегу гасит бег (kick, не run_kick), J на бегу с зажатой D — тоже; разворот — шаг по позиции тика 480; руками: прыжок с бега дальше прыжка с шага, бег и разворот влево зеркально, слово о темпе двойного тапа -->
 
 B3d of spec #25 gave the fighters a run. A second press of a direction in the same direction within
 `run_tap` ticks of the first (12 for Neon Rumble, 0.2 s) starts a run on the ground at `run_x` (3
@@ -3790,7 +3797,7 @@ is 0.
 
 ## 26. Gate 6 of #25 — the block and the roll
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 101 banderas block, react tick 111 banderas stand, react tick 353 banderas dodge; окно neon_rumble: I держит позу блока на месте, отпускание выходит; O — перекат вперёд около 0,4 с сквозь adler, J/K/I/O во время переката ничего не делают; I и O в прыжке и в ударе не срабатывают; I + D, по концу переката I + A — перекат по facing, затем снова блок; пад-место P2 (rainbird): LB + быстрый рывок стика — rainbird dodge, затем rainbird block, медленный наклон — блок; прислать строки react, слово о длине переката и частоту экрана -->
+<!-- gate: open | make owner — g26-block-roll: I — block и stand, в прыжке и в jab — только на приземлении и по концу jab; O — dodge 24 тика сквозь adler, J/K/I/O в перекате, O в прыжке и в jab ничего не дают; I + D и I + A — перекат по facing и снова block; J в блоке выходит при отпускании через 5 тиков, через 15 — нет; руками: пад-место P2 — LB + рывок стика rainbird dodge и block, медленный наклон только block; слово о длине переката и частота экрана -->
 
 B3e of spec #25 gave the fighters a block and a roll. I held on the ground is the block: the fighter
 takes the `block` pose, stands where he is while it is held and leaves it on the release, with no
@@ -3869,7 +3876,7 @@ is 0.
 
 ## 27. Gate 7 of #25 — the grab, the throw and the hit on the ground
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 198 banderas/jump_kick -> adler, hit tick 417 banderas/grab -> adler, react tick 417 adler thrown, react tick 436 adler down; окно neon_rumble: H у стоящего adler — захват и бросок вперёд, adler летит от места banderas, ложится и встаёт, banderas доигрывает throw; H в прыжке, по лежащему и встающему ничего не берёт; J в прыжке по лежащему adler отнимает hp без реакции, jab и cross по лежащему — нет; прислать строки hit и react и слово о дальности броска -->
+<!-- gate: open | make owner — g27-grab: H у стоящего adler — grab, thrown вперёд, down, getup, banderas стоит в throw с зажатой D; jump_kick по лежащему — hit без react и без сдвига; H в прыжке, по лежащему и встающему не берёт, с того же места по вставшему берёт; руками: слово о дальности броска -->
 
 B3f of spec #25 gave the fighters a grab, a throw and a hit on the ground. H on the ground is the grab:
 the fighter plays `reach`, and its active frames take a target that stands, walks, is hurt or blocks on
@@ -3946,7 +3953,7 @@ is 0.
 
 ## 28. Gate 8 of #25 — the whole of B3 in one fight
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 afa1b0c122f176a0; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+<!-- gate: open | make owner — b3-fight (строки и хеш тика 480 против headless; хеш против эталона afa1b0c122f176a0 — шаг сборки make owner, под --no-build его нет) и g28-one-fight: шаг 3 подряд, после броска J J J с корня, run_kick, block, dodge, grab; руками: тот же бой своими руками и слово «играется» или «не играется» с причиной -->
 
 §22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
 goes through all of them in a row, because what breaks when states follow each other is invisible from

@@ -1,0 +1,53 @@
+# §24: J и U вне цепочки (J, затем U в последние 8 тиков jab, затем J в последние 8 тиков cross — jab),
+# цепочка J J J и четвёртый J корнем, три J мимо без строк, второй J сразу за первым не теряется.
+! gate 24
+! expect hit tick 63: banderas/jab -> adler, damage 6, hp 94
+! expect hit tick 80: banderas/cross -> adler, damage 8, hp 86
+! expect hit tick 114: banderas/jab -> adler, damage 6, hp 80
+! expect hit tick 149: banderas/jab -> adler, damage 6, hp 74
+! expect hit tick 162: banderas/jab -> adler, damage 6, hp 68
+! expect hit tick 171: banderas/cross -> adler, damage 8, hp 60
+! expect hit tick 224: banderas/jab -> adler, damage 6, hp 54
+! expect hit tick 333: banderas/jab -> adler, damage 6, hp 48
+! expect hit tick 346: banderas/jab -> adler, damage 6, hp 42
+! absent hit tick (8[1-9]|9[0-9]|1[01][0-9]): banderas/cross
+! absent hit tick (17[2-9]|1[89][0-9]|2[01][0-9]):
+! absent hit tick (2[5-9][0-9]|3[0-2][0-9]):
+! look offchain-jab §24: J после J, U — снова jab (корень), а не продолжение цепочки
+! look chain-cross §24: третий J цепочки — cross, adler отброшен
+! look root-jab §24: четвёртый J после cross — jab
+! look miss-3 §24: banderas лицом к adler вне досягаемости, третий J мимо — поза jab, не cross
+! look buffer-2 §24: второй J, нажатый сразу за первым, вышел вторым jab
+menu 1 tap ENTER
+level
+1 down D
+1 down W
+13 up W
+54 up D
+55 tap J
+70 tap U
+102 tap J
+128 down D
+140 up D
+141 tap J
+153 tap J
+165 tap J
+197 down D
+214 up D
+216 tap J
+235 down A
+250 up A
+251 tap D
+252 tap J
+268 tap J
+284 tap J
+300 down D
+320 up D
+325 tap J
+327 tap J
+114 shot offchain-jab
+171 shot chain-cross
+224 shot root-jab
+292 shot miss-3
+346 shot buffer-2
+380 quit
