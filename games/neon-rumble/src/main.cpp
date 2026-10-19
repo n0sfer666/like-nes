@@ -68,6 +68,8 @@ int main(int argc, char** argv) {
     bool coop = false;
     const char* level_name = "level1";
     int frames = 0;
+    const char* script_path = nullptr;
+    const char* shots = nullptr;
     for (int i = 1; i < argc; ++i) {
         if (!std::strcmp(argv[i], "--headless")) {
             headless = true;
@@ -77,16 +79,35 @@ int main(int argc, char** argv) {
             coop = true;
         } else if (!std::strcmp(argv[i], "--level") && i + 1 < argc) {
             level_name = argv[++i];
+        } else if (!std::strcmp(argv[i], "--script") && i + 1 < argc) {
+            script_path = argv[++i];
+        } else if (!std::strcmp(argv[i], "--shots") && i + 1 < argc) {
+            shots = argv[++i];
         } else if (!std::strcmp(argv[i], "--frames") && i + 1 < argc
                    && parse_frames(argv[i + 1], frames)) {
             ++i;
         } else {
-            std::fprintf(stderr, "usage: neon_rumble [--headless] [--wave [--coop]] [--level NAME] [--frames N]\n");
+            std::fprintf(stderr, "usage: neon_rumble [--headless] [--wave [--coop]] [--level NAME] [--frames N] "
+                                 "[--script FILE [--shots DIR]]\n");
             return 2;
         }
     }
     if (coop && (!waves || !headless)) {
         std::fprintf(stderr, "neon-rumble: --coop is a headless --wave run\n");
+        return 2;
+    }
+    if (shots != nullptr && script_path == nullptr) {
+        std::fprintf(stderr, "neon-rumble: --shots names where a --script run writes its frames\n");
+        return 2;
+    }
+    if (script_path != nullptr && headless) {
+        std::fprintf(stderr, "neon-rumble: --script drives the window, not a headless run\n");
+        return 2;
+    }
+    rumble::WindowScript script;
+    std::string why;
+    if (script_path != nullptr && !script.open(script_path, why)) {
+        std::fprintf(stderr, "neon-rumble: %s\n", why.c_str());
         return 2;
     }
     if (headless && frames <= 0) {
@@ -108,7 +129,8 @@ int main(int argc, char** argv) {
     rumble::Flow flow(bundle, credits, menu);
     if (!menu.init(level_name, waves) || !flow.open()) return 1;
     rumble::Hotseat hotseat;
-    if (!headless) return hotseat.open() ? rumble::run_window(flow, hotseat, credits, frames) : 1;
+    const rumble::WindowRun run{frames, script_path != nullptr ? &script : nullptr, shots != nullptr ? shots : "."};
+    if (!headless) return hotseat.open() ? rumble::run_window(flow, hotseat, credits, run) : 1;
     // Headless обходит меню: пункт `--level` входит сразу, отказ — строка `menu:` и код 0.
     flow.enter();
     flow.apply();

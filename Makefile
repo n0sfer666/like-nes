@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help build rumble-build sidescroller rumble check types lint owner-check preflight \
+.PHONY: help build rumble-build sidescroller rumble check types lint owner-check owner preflight \
 	ci-watch ios-shooter ios-rumble android-emu android-rumble
 
 ARGS :=
@@ -17,6 +17,7 @@ help:
 	$(info Checks:)
 	$(info make check          types and lint from .context/checks.json - the pre-commit pair)
 	$(info make owner-check    scripts/owner_check.sh - report in build/owner-report-OS.txt)
+	$(info make owner          Neon Rumble gates by script in a window - frame sheet, report pushed   ARGS=--no-push)
 	$(info make preflight      everything CI runs, before push)
 	$(info make ci-watch       CI runs of HEAD after push)
 	$(info Mobile - macOS only:)
@@ -41,6 +42,8 @@ rumble:
 	@$(WIN) rumble $(ARGS)
 owner-check:
 	@$(WIN) check
+owner:
+	@$(WIN) owner $(ARGS)
 check types lint preflight ci-watch:
 	@echo make $@: not wired on Windows - run scripts\win-dev.bat shell, then Git Bash: bash scripts/... & exit /b 1
 ios-shooter ios-rumble android-emu android-rumble:
@@ -89,6 +92,8 @@ types lint:
 		&& echo "== $@: $$cmd" && bash -c "$$cmd"
 owner-check:
 	bash scripts/owner_check.sh
+owner:
+	bash scripts/owner_run.sh $(ARGS)
 preflight:
 	bash scripts/preflight.sh
 ci-watch:

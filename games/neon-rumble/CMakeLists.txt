@@ -19,6 +19,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
   target_link_libraries(neon_rumble PRIVATE like-nes::engine)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+    src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)

@@ -1,4 +1,4 @@
-<!-- en-sha256: 545ea55220359cf036ac6f3a204334df2b16682319d3b586153a098e521ac149 -->
+<!-- en-sha256: a4c77549d6ea32faa73219b83ef1ea7c47249fcbf0de04477885fa8ef8a20d13 -->
 
 # SDK и своя игра
 
@@ -87,6 +87,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
   target_link_libraries(neon_rumble PRIVATE like-nes::engine)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+    src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)

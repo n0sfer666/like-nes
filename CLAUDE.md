@@ -84,6 +84,7 @@ decisions, notes). Читать перед началом любой задач�
 | код в документации | `bash scripts/check_docs_snippets.sh` · `bash scripts/check_docs_examples.sh <каталог>` | коммит · preflight | [docs-examples](.context/gates/docs-examples.md) |
 | установка на чистой машине | `bash scripts/check_docs_start.sh [--live]` | коммит · `--live` руками | [docs-start](.context/gates/docs-start.md) |
 | список ручных гейтов | `bash scripts/check_owner_gates.sh` | коммит | [owner-gates](.context/gates/owner-gates.md) |
+| оконная половина гейтов Neon Rumble | `make owner` · `bash scripts/owner_run_selftest.sh` | руками · CI × 3 ОС | [owner-run](.context/gates/owner-run.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | симуляция драки без float | `python3 scripts/check_sim_float.py` | коммит | [sim-float](.context/gates/sim-float.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |

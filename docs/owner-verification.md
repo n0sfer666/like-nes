@@ -196,6 +196,50 @@ Use a separate build directory, as above. A tree configured with `LIKE_NES_WERRO
 the gate green by not enforcing anything, so `build_check.sh` puts the flag back to `ON` and
 rebuilds when it finds it off — pointing it at `build-warn` costs you that rebuild for nothing.
 
+### The window half of Neon Rumble by script — `make owner`
+
+```sh
+make owner                      # Windows: scripts\win-dev.bat owner
+make owner ARGS=--no-push       # keep the report on this machine; Windows takes one flag:
+                                # scripts\win-dev.bat owner --no-push
+```
+
+It builds the SDK and the game (`check_sdk_game.sh --keep`; `--no-build` skips it), then opens the
+game window once per scenario in `games/neon-rumble/owner/*.keys`. The scenario presses the keys at
+fixed scene ticks; the keyboard and the pads are cut off for the run and the window closes itself.
+Each scenario is judged by machine — the hit/react/seat lines and the brawl hash against a
+`--headless` run of the same length, plus the scenario's own `! expect` and `! absent` lines — and
+leaves PNG frames at the ticks it names. On Linux run it once from an X11 session and once from a
+Wayland one: the run name carries the session type.
+
+Expected output, line by line:
+
+```
+owner-run: <yymmdd-hhmmss>-<os> at <sha>, report in build-owner-run/<run>
+owner-run: build - bash scripts/check_sdk_game.sh --keep, log in build-owner-run/<run>/build.log
+PASS  b3-fight (gates 22 23 24 25 26 27 28)
+owner-run: frame sheet build-owner-run/<run>/index.html
+owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
+owner-run: open gates - what is left by hand:
+  #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
+  scenarios drive §22, §23, §24, §25, §26, §27, §28 - read every frame of the sheet, the rest of the gate is above
+owner-run: PASS
+```
+
+The report is committed to the ref `refs/owner-runs/main` of the repository, not to a branch: a
+push to any branch starts CI on three OSes, and a report is not code. Nothing has to be sent by
+hand; to look at it from another machine, `git fetch origin refs/owner-runs/main` and
+`git show FETCH_HEAD --stat`.
+
+**`PASS` does not close a gate.** The machine half says the window plays the fight the headless run
+plays, tick for tick; the frame sheet is the other half. Open `index.html` in a browser and read
+every frame against the line under it — that line names the section and what the frame must show.
+The list under `open gates` is every open gate with what is left of it by hand — pads, two people,
+a second machine — and `scenarios drive` names the ones a scenario has walked part of.
+A `FAIL` prints the mismatch under the scenario: the line that differs, the expected line that
+never came, the line that must not be there, the frame the window did not write, or the window that
+did not reach the scenario's `quit` within its frame cap.
+
 ## 1. Gate 6 of #13 — X11 and Wayland (Linux)
 
 <!-- gate: closed 2026-08-05 -->
