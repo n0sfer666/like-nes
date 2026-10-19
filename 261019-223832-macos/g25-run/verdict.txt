@@ -1,0 +1,12 @@
+ok    frames: 3
+ok    expect hit tick 61: banderas/run_kick -> adler, damage 12, hp 88
+ok    expect react tick 61: adler fall
+ok    expect react tick 138: adler stand
+ok    expect hit tick 222: banderas/kick -> adler, damage 12, hp 76
+ok    expect react tick 222: adler hurt
+ok    expect hit tick 301: banderas/kick -> adler, damage 12, hp 64
+ok    expect hit tick 375: banderas/jab -> adler, damage 6, hp 58
+ok    expect hit tick 404: banderas/kick -> adler, damage 12, hp 46
+ok    expect brawl tick 480: hash [0-9a-f]+, banderas 427,252 y 0
+ok    absent hit tick [1-9][0-9][0-9]: banderas/run_kick
+ok    absent react tick [1-9][0-9][0-9]: adler fall

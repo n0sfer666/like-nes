@@ -1,0 +1,17 @@
+ok    frames: 6
+ok    expect seat tick 3: P2 joining
+ok    expect seat tick 4: P2 present
+ok    expect checkpoint tick 177: order 0 at 600,248
+ok    expect wave tick 249: arena 0 wave 0, adler#4 adler#5 adler#6$
+ok    expect wave tick 952: arena 0 wave 1, adler#7 adler#8 adler#9$
+ok    expect arena tick 1461: arena 0 released
+ok    expect checkpoint tick 1756: order 1 at 1300,248
+ok    expect wave tick 1799: arena 1 wave 0, adler#10 adler#11$
+ok    expect wave tick 2245: arena 1 wave 1, adler#12 adler#13$
+ok    expect wave tick 2554: arena 1 wave 4, adler#14 adler#15 adler#16 rainbird#17$
+ok    expect arena tick 2769: arena 1 released
+ok    expect seat tick 2840: P2 free
+ok    expect seat tick 2861: P2 present
+ok    expect seat tick 2950: P2 free
+ok    expect seat tick 2981: P2 present
+ok    expect brawl tick 3060: hash [0-9a-f]+, banderas#1 1761,271 y 0 hp 88, rainbird#21 1739,271 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 1750,172 arena -1

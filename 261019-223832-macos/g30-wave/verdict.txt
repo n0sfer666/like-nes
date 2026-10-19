@@ -1,0 +1,14 @@
+ok    frames: 3
+ok    expect checkpoint tick 200: order 0 at 600,248
+ok    expect arena tick 256: arena 0 locked
+ok    expect wave tick 256: arena 0 wave 0, adler#3 adler#4$
+ok    expect hit tick 320: adler#3/jab -> banderas#1, damage 6, hp 94
+ok    expect hit tick 719: adler#3/kick -> banderas#1, damage 12, hp 0
+ok    expect knockout tick 720: banderas#1, back as banderas#5 at 600,248 immune 119
+ok    expect hit tick 1133: adler#4/jab -> banderas#5, damage 6, hp 94
+ok    expect knockout tick 1192: adler#4
+ok    expect knockout tick 1328: adler#3
+ok    expect wave tick 1328: arena 0 wave 0 cleared
+ok    expect wave tick 1448: arena 0 wave 1, adler#6 adler#7 adler#8$
+ok    absent hit tick (7[2-9][0-9]|8[0-2][0-9]|83[0-8]): adler#[0-9]+/[a-z_]+ -> banderas
+ok    absent brawl tick .*adler#[34] [0-9]

@@ -1,0 +1,17 @@
+ok    frames: 5
+ok    expect hit tick 58: banderas/grab -> adler, damage 6, hp 94
+ok    expect react tick 58: adler thrown
+ok    expect react tick 77: adler down
+ok    expect react tick 107: adler getup
+ok    expect react tick 137: adler stand
+ok    expect hit tick 152: banderas/jump_kick -> adler, damage 10, hp 84
+ok    expect react tick 172: adler down
+ok    expect hit tick 197: banderas/jump_kick -> adler, damage 10, hp 74
+ok    expect react tick 207: adler getup
+ok    expect react tick 327: adler down
+ok    expect react tick 357: adler getup
+ok    expect hit tick 403: banderas/grab -> adler, damage 6, hp 58
+ok    expect react tick 403: adler thrown
+ok    expect brawl tick 460: hash [0-9a-f]+, banderas 348,252 y 0 hp 100, adler 393,252
+ok    absent react tick 197: adler
+ok    absent hit tick [1-3][0-9][0-9]: banderas/grab

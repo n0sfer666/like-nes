@@ -1,0 +1,12 @@
+ok    frames: 9
+ok    expect seat tick 3: P2 present
+ok    expect hit tick 178: banderas/jab -> adler, damage 6, hp 94
+ok    expect hit tick 219: banderas/cross -> adler, damage 8, hp 86
+ok    expect hit tick 261: banderas/kick -> adler, damage 12, hp 74
+ok    expect hit tick 339: banderas/jump_kick -> adler, damage 10, hp 64
+ok    expect react tick 339: adler fall
+ok    expect brawl tick 400: .*rainbird 264,240 y 0 hp 100
+ok    absent -> rainbird
+ok    absent react tick [0-9]+: rainbird (hurt|fall|down|thrown)
+ok    absent banderas/jab -> adler, damage 6, hp 88
+ok    absent hit tick 3[2-9][0-9]: banderas/(cross|kick)

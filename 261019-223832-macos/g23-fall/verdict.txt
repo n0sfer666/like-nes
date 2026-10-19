@@ -1,0 +1,13 @@
+ok    frames: 7
+ok    expect react tick 58: adler fall
+ok    expect react tick 78: adler down
+ok    expect react tick 108: adler getup
+ok    expect react tick 138: adler stand
+ok    expect hit tick 148: banderas/jab -> adler, damage 6, hp 84
+ok    expect react tick 148: adler hurt
+ok    expect react tick 177: adler fall
+ok    expect react tick 197: adler down
+ok    expect react tick 227: adler getup
+ok    expect react tick 257: adler stand
+ok    expect hit tick 264: banderas/cross -> adler, damage 8, hp 66
+ok    absent hit tick (9[2-5]|11[6-9]|12[0-9]|20[7-9]|21[0-8]|23[1-9]|24[0-2]): banderas

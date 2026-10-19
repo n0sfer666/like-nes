@@ -1,0 +1,31 @@
+ok    frames: 6
+ok    expect hit tick 63: banderas/jab -> adler, damage 6, hp 94
+ok    expect hit tick 76: banderas/jab -> adler, damage 6, hp 88
+ok    expect hit tick 85: banderas/cross -> adler, damage 8, hp 80
+ok    expect hit tick 122: banderas/jump_kick -> adler, damage 10, hp 70
+ok    expect react tick 142: adler down
+ok    expect hit tick 164: banderas/jump_kick -> adler, damage 10, hp 60
+ok    expect react tick 177: adler getup
+ok    expect react tick 191: banderas dodge
+ok    expect react tick 215: banderas stand
+ok    expect react tick 218: banderas block
+ok    expect react tick 223: banderas stand
+ok    expect hit tick 231: banderas/jab -> adler, damage 6, hp 54
+ok    expect hit tick 256: banderas/grab -> adler, damage 6, hp 48
+ok    expect react tick 256: adler thrown
+ok    expect react tick 335: adler stand
+ok    expect hit tick 354: banderas/jab -> adler, damage 6, hp 42
+ok    expect hit tick 367: banderas/jab -> adler, damage 6, hp 36
+ok    expect hit tick 376: banderas/cross -> adler, damage 8, hp 28
+ok    expect hit tick 446: banderas/run_kick -> adler, damage 12, hp 16
+ok    expect react tick 446: adler fall
+ok    expect react tick 475: banderas block
+ok    expect react tick 485: banderas stand
+ok    expect react tick 490: banderas dodge
+ok    expect react tick 514: banderas stand
+ok    expect hit tick 536: banderas/grab -> adler, damage 6, hp 10
+ok    expect react tick 536: adler thrown
+ok    absent react tick 164: adler
+ok    absent banderas/kick ->
+ok    absent hit tick 3[4-6][0-9]: banderas/cross
+ok    absent react tick (19[2-9]|20[0-9]|21[0-4]|49[1-9]|50[0-9]|51[0-3]): banderas

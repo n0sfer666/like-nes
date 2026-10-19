@@ -1,0 +1,49 @@
+neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+neon-rumble: pad backend GameController.framework (macOS)
+[gpu] Apple M3 Pro | Metal | BC: yes
+neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+neon-rumble: bounds 104..2200 x 56..280, camera 296,172
+neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
+neon-rumble: clips 51 in the table
+neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
+neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
+neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
+neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
+neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+neon-rumble: hit tick 58: banderas/grab -> adler, damage 6, hp 94
+neon-rumble: react tick 58: adler thrown
+shot throw frame 71 tick 70
+neon-rumble: react tick 77: adler down
+neon-rumble: react tick 107: adler getup
+neon-rumble: react tick 137: adler stand
+neon-rumble: hit tick 152: banderas/jump_kick -> adler, damage 10, hp 84
+neon-rumble: react tick 152: adler fall
+neon-rumble: react tick 172: adler down
+neon-rumble: hit tick 197: banderas/jump_kick -> adler, damage 10, hp 74
+shot ground-hit frame 198 tick 197
+neon-rumble: react tick 207: adler getup
+neon-rumble: react tick 237: adler stand
+shot jump-h frame 267 tick 266
+neon-rumble: hit tick 307: banderas/jump_kick -> adler, damage 10, hp 64
+neon-rumble: react tick 307: adler fall
+neon-rumble: react tick 327: adler down
+shot lying-h frame 349 tick 348
+neon-rumble: react tick 357: adler getup
+shot getup-h frame 379 tick 378
+neon-rumble: react tick 387: adler stand
+neon-rumble: hit tick 403: banderas/grab -> adler, damage 6, hp 58
+neon-rumble: react tick 403: adler thrown
+neon-rumble: react tick 422: adler down
+neon-rumble: react tick 452: adler getup
+neon-rumble: brawl tick 460: hash 4fff1c36baadf539, banderas 348,252 y 0 hp 100, adler 393,252 y 0 hp 58, draw banderas adler
+neon-rumble: window run ok, 462 frames

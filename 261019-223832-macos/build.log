@@ -1,0 +1,211 @@
+sdk-game: OK   Release: SDK built and installed into the prefix
+sdk-game: OK   Debug: SDK built and installed into the prefix
+neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+neon-rumble: pad backend GameController.framework (macOS)
+neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+neon-rumble: bounds 104..2200 x 56..280, camera 296,172
+neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
+neon-rumble: clips 51 in the table
+neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
+neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
+neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
+neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
+neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+neon-rumble: seat tick 2: P2 joining
+neon-rumble: seat tick 3: P2 present
+neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
+neon-rumble: react tick 31: rainbird block
+neon-rumble: react tick 41: rainbird stand
+neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
+neon-rumble: react tick 53: adler hurt
+neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
+neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
+neon-rumble: react tick 92: adler stand
+neon-rumble: react tick 101: banderas block
+neon-rumble: react tick 111: banderas stand
+neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
+neon-rumble: react tick 154: adler fall
+neon-rumble: react tick 174: adler down
+neon-rumble: hit tick 198: banderas/jump_kick -> adler, damage 10, hp 60
+neon-rumble: react tick 209: adler getup
+neon-rumble: react tick 239: adler stand
+neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 48
+neon-rumble: react tick 329: adler fall
+neon-rumble: react tick 346: adler down
+neon-rumble: react tick 353: banderas dodge
+neon-rumble: react tick 376: adler getup
+neon-rumble: react tick 377: banderas stand
+neon-rumble: react tick 406: adler stand
+neon-rumble: hit tick 417: banderas/grab -> adler, damage 6, hp 42
+neon-rumble: react tick 417: adler thrown
+neon-rumble: react tick 436: adler down
+neon-rumble: react tick 466: adler getup
+neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+neon-rumble: headless run ok, 480 frames
+sdk-game: OK   Release: built against the prefix and ran 480 headless frames
+neon-rumble: brawl tick 0: hash ee25bc928a3ae1a9, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
+neon-rumble: break tick 173: crate#2
+neon-rumble: checkpoint tick 281: order 0 at 600,248
+neon-rumble: arena tick 337: arena 0 locked
+neon-rumble: wave tick 337: arena 0 wave 0, adler#3 adler#4
+neon-rumble: knockout tick 815: banderas#1, back as banderas#5 at 600,248 immune 119
+neon-rumble: knockout tick 1471: banderas#5, back as banderas#6 at 600,248 immune 119
+neon-rumble: knockout tick 1814: adler#4
+neon-rumble: knockout tick 2178: banderas#6, back as banderas#7 at 600,248 immune 119
+neon-rumble: knockout tick 2260: adler#3
+neon-rumble: wave tick 2260: arena 0 wave 0 cleared
+neon-rumble: wave tick 2380: arena 0 wave 1, adler#8 adler#9 adler#10
+neon-rumble: knockout tick 3542: adler#8
+neon-rumble: knockout tick 3633: banderas#7, back as banderas#11 at 600,248 immune 119
+neon-rumble: knockout tick 3682: adler#10
+neon-rumble: knockout tick 3736: adler#9
+neon-rumble: wave tick 3736: arena 0 wave 1 cleared
+neon-rumble: arena tick 3736: arena 0 released
+neon-rumble: checkpoint tick 4105: order 1 at 1300,248
+neon-rumble: arena tick 4139: arena 1 locked
+neon-rumble: wave tick 4139: arena 1 wave 0, adler#12 adler#13
+neon-rumble: knockout tick 5079: banderas#11, back as banderas#14 at 1300,248 immune 119
+neon-rumble: knockout tick 5152: adler#12
+neon-rumble: knockout tick 5548: adler#13
+neon-rumble: wave tick 5548: arena 1 wave 0 cleared
+neon-rumble: wave tick 5668: arena 1 wave 4, adler#15 adler#16 adler#17 rainbird#18
+neon-rumble: knockout tick 5826: banderas#14, back as banderas#21 at 1300,248 immune 119
+neon-rumble: knockout tick 6534: adler#15
+neon-rumble: knockout tick 6620: banderas#21, back as banderas#30 at 1300,248 immune 119
+neon-rumble: knockout tick 7089: banderas#30, back as banderas#37 at 1300,248 immune 119
+neon-rumble: knockout tick 7178: adler#16
+neon-rumble: knockout tick 7325: adler#17
+neon-rumble: knockout tick 7530: rainbird#18
+neon-rumble: wave tick 7530: arena 1 wave 4 cleared
+neon-rumble: arena tick 7530: arena 1 released
+neon-rumble: brawl tick 8640: hash b19d2fdfd5ab60f1, banderas#37 1760,271 y 0 hp 76, camera 1760,172 arena -1, draw banderas#37
+sdk-game: OK   Release: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
+neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
+sdk-game: OK   Release: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
+sdk-game: OK   Release: --coop ran 6720 headless frames: two players through both arenas and the platform section, P2 joined back at 1817 in view inside the section
+sdk-game: OK   Release: --level nope returned to the menu with the load_level refusal
+sdk-game: OK   Release: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
+neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+neon-rumble: pad backend GameController.framework (macOS)
+neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+neon-rumble: bounds 104..2200 x 56..280, camera 296,172
+neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
+neon-rumble: clips 51 in the table
+neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
+neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
+neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
+neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
+neon-rumble: pose tick 0: adler/idle frame 0 flip 1, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+neon-rumble: brawl tick 0: hash ec2978dfca11282e, banderas 200,264 y 0 hp 100, adler 328,252 y 0 hp 100, draw adler banderas
+neon-rumble: seat tick 2: P2 joining
+neon-rumble: seat tick 3: P2 present
+neon-rumble: join tick 3: P2 as rainbird at 264,240 y 0 immune 0
+neon-rumble: react tick 31: rainbird block
+neon-rumble: react tick 41: rainbird stand
+neon-rumble: hit tick 53: banderas/jab -> adler, damage 6, hp 94
+neon-rumble: react tick 53: adler hurt
+neon-rumble: hit tick 66: banderas/jab -> adler, damage 6, hp 88
+neon-rumble: hit tick 75: banderas/cross -> adler, damage 8, hp 80
+neon-rumble: react tick 92: adler stand
+neon-rumble: react tick 101: banderas block
+neon-rumble: react tick 111: banderas stand
+neon-rumble: hit tick 154: banderas/jump_kick -> adler, damage 10, hp 70
+neon-rumble: react tick 154: adler fall
+neon-rumble: react tick 174: adler down
+neon-rumble: hit tick 198: banderas/jump_kick -> adler, damage 10, hp 60
+neon-rumble: react tick 209: adler getup
+neon-rumble: react tick 239: adler stand
+neon-rumble: hit tick 329: banderas/run_kick -> adler, damage 12, hp 48
+neon-rumble: react tick 329: adler fall
+neon-rumble: react tick 346: adler down
+neon-rumble: react tick 353: banderas dodge
+neon-rumble: react tick 376: adler getup
+neon-rumble: react tick 377: banderas stand
+neon-rumble: react tick 406: adler stand
+neon-rumble: hit tick 417: banderas/grab -> adler, damage 6, hp 42
+neon-rumble: react tick 417: adler thrown
+neon-rumble: react tick 436: adler down
+neon-rumble: react tick 466: adler getup
+neon-rumble: brawl tick 480: hash afa1b0c122f176a0, banderas 458,252 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 413,252 y 0 hp 42, draw rainbird banderas adler
+neon-rumble: headless run ok, 480 frames
+sdk-game: OK   Debug: built against the prefix and ran 480 headless frames
+neon-rumble: brawl tick 0: hash ee25bc928a3ae1a9, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1, draw crate#2 banderas#1
+neon-rumble: break tick 173: crate#2
+neon-rumble: checkpoint tick 281: order 0 at 600,248
+neon-rumble: arena tick 337: arena 0 locked
+neon-rumble: wave tick 337: arena 0 wave 0, adler#3 adler#4
+neon-rumble: knockout tick 815: banderas#1, back as banderas#5 at 600,248 immune 119
+neon-rumble: knockout tick 1471: banderas#5, back as banderas#6 at 600,248 immune 119
+neon-rumble: knockout tick 1814: adler#4
+neon-rumble: knockout tick 2178: banderas#6, back as banderas#7 at 600,248 immune 119
+neon-rumble: knockout tick 2260: adler#3
+neon-rumble: wave tick 2260: arena 0 wave 0 cleared
+neon-rumble: wave tick 2380: arena 0 wave 1, adler#8 adler#9 adler#10
+neon-rumble: knockout tick 3542: adler#8
+neon-rumble: knockout tick 3633: banderas#7, back as banderas#11 at 600,248 immune 119
+neon-rumble: knockout tick 3682: adler#10
+neon-rumble: knockout tick 3736: adler#9
+neon-rumble: wave tick 3736: arena 0 wave 1 cleared
+neon-rumble: arena tick 3736: arena 0 released
+neon-rumble: checkpoint tick 4105: order 1 at 1300,248
+neon-rumble: arena tick 4139: arena 1 locked
+neon-rumble: wave tick 4139: arena 1 wave 0, adler#12 adler#13
+neon-rumble: knockout tick 5079: banderas#11, back as banderas#14 at 1300,248 immune 119
+neon-rumble: knockout tick 5152: adler#12
+neon-rumble: knockout tick 5548: adler#13
+neon-rumble: wave tick 5548: arena 1 wave 0 cleared
+neon-rumble: wave tick 5668: arena 1 wave 4, adler#15 adler#16 adler#17 rainbird#18
+neon-rumble: knockout tick 5826: banderas#14, back as banderas#21 at 1300,248 immune 119
+neon-rumble: knockout tick 6534: adler#15
+neon-rumble: knockout tick 6620: banderas#21, back as banderas#30 at 1300,248 immune 119
+neon-rumble: knockout tick 7089: banderas#30, back as banderas#37 at 1300,248 immune 119
+neon-rumble: knockout tick 7178: adler#16
+neon-rumble: knockout tick 7325: adler#17
+neon-rumble: knockout tick 7530: rainbird#18
+neon-rumble: wave tick 7530: arena 1 wave 4 cleared
+neon-rumble: arena tick 7530: arena 1 released
+neon-rumble: brawl tick 8640: hash b19d2fdfd5ab60f1, banderas#37 1760,271 y 0 hp 76, camera 1760,172 arena -1, draw banderas#37
+sdk-game: OK   Debug: --wave ran 8640 headless frames: two arenas locked and released, waves and checkpoints from the level, P1 back at the taken checkpoint immune
+neon-rumble: brawl tick 5733: hash f0c1cd9a00b6c249, banderas#14 1558,260 y 0 hp 46, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,260 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1530,262 y 0 hp 100, knife#19 1534,258 y 0 hp 0, camera 1368,172 arena 1, draw adler#16 rainbird#18 knife#19 banderas#14 adler#15 adler#17
+neon-rumble: brawl tick 5734: hash fd51001481e94fda, banderas#14 1558,260 y 0 hp 38, rainbird#18 1492,258 y 0 hp 80, adler#15 1495,261 y 0 hp 80, adler#16 1479,250 y 0 hp 80, adler#17 1532,262 y 0 hp 100, camera 1368,172 arena 1, draw adler#16 rainbird#18 banderas#14 adler#15 adler#17
+sdk-game: OK   Debug: --wave ticks 5733 and 5734: knife#19 flies in the draw order and the body line, hits P1 and is gone from both
+sdk-game: OK   Debug: --coop ran 6720 headless frames: two players through both arenas and the platform section, P2 joined back at 1817 in view inside the section
+sdk-game: OK   Debug: --level nope returned to the menu with the load_level refusal
+sdk-game: OK   Debug: game.bundle bundle_hash 0x44c14828a530271b matches bundle.hash
+sdk-game: OK   fixture: internal header is not in the prefix
+sdk-game: OK   fixture: prefix without libframework_physics.a is refused by find_package with its name
+sdk-game: OK   fixture: a wrong bundle.hash is refused
+sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
+sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
+sdk-game: OK   fixture: a level without a bounds object clamps the camera by the map
+sdk-game: SKIP CRT fixture (not an MSVC toolchain)
+sdk-game: OK   ios-sim: SDK built and installed into its own prefix
+sdk-game: OK   ios-sim: neon_rumble.app (IOSSIMULATOR, iOS 17.0) carries both bundles and the licenses
+sdk-game: OK   fixture: ios-sim prefix does not expose the tree's shooter_mobile.hpp
+sdk-game: OK   android-x86_64: SDK built and installed into its own prefix
+sdk-game: OK   android-x86_64: neon_rumble.apk (API 29) carries the .so, libc++_shared, both bundles and the licenses
+sdk-game: OK   fixture: android-x86_64 prefix does not expose the tree's shooter_mobile.hpp
+sdk-game: PASS (Release + Debug against the prefix, mobile packages against theirs, fixtures refused)
+sdk-game: prefixes and game builds kept in build-sdk-work/

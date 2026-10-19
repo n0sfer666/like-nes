@@ -1,0 +1,5 @@
+ok    frames: 2
+ok    expect menu: no level nope in the visual table
+ok    expect menu: no level nope in the visual table
+ok    expect menu: no level nope in the visual table
+ok    absent level nope [0-9]+x

@@ -1,0 +1,19 @@
+# §32: --level nope. Enter на level дважды и на wave — по строке menu:, окно на меню и не падает;
+# Enter на credits открывает титры (кадр nope-credits), счёт строк menu: — руками.
+! args --level nope
+! gate 32
+! expect menu: no level nope in the visual table
+! expect menu: no level nope in the visual table
+! expect menu: no level nope in the visual table
+! absent level nope [0-9]+x
+! look nope §32: красная «no level nope in the visual table» над «> level nope», «wave nope», «credits»
+! look nope-credits §32: титры поверх меню с ошибкой
+menu 2 tap ENTER
+menu 6 shot nope
+menu 10 tap ENTER
+menu 14 tap DOWN
+menu 16 tap ENTER
+menu 20 tap DOWN
+menu 22 tap ENTER
+menu 26 shot nope-credits
+menu 30 quit

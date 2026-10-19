@@ -1,0 +1,20 @@
+ok    frames: 5
+ok    expect react tick 20: banderas block
+ok    expect react tick 35: banderas stand
+ok    expect react tick 73: banderas block
+ok    expect react tick 117: banderas block
+ok    expect react tick 172: banderas dodge
+ok    expect react tick 196: banderas stand
+ok    expect react tick 300: banderas block
+ok    expect react tick 305: banderas dodge
+ok    expect react tick 329: banderas block
+ok    expect react tick 335: banderas dodge
+ok    expect react tick 359: banderas block
+ok    expect hit tick 483: banderas/jab -> adler, damage 6, hp 94
+ok    expect react tick 520: banderas stand
+ok    expect brawl tick 540: hash [0-9a-f]+, banderas 370,252 y 0
+ok    absent react tick (4[2-9]|[56][0-9]|7[0-2]|10[2-9]|11[0-6]): banderas block
+ok    absent react tick (17[3-9]|18[0-9]|19[0-5]): banderas
+ok    absent hit tick (17[2-9]|1[89][0-9]): banderas
+ok    absent react tick 2[0-9][0-9]: banderas dodge
+ok    absent hit tick 5[0-9][0-9]: banderas

@@ -1,0 +1,5 @@
+ok    frames: 2
+ok    expect stage camera 296,172, 2 arena\(s\)
+ok    expect stage camera 296,172, 2 arena\(s\)
+ok    expect brawl tick 30: hash [0-9a-f]+, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1
+ok    absent brawl tick [0-9]+: hash [0-9a-f]+, banderas [0-9]

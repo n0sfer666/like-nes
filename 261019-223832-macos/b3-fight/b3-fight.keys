@@ -1,0 +1,70 @@
+# Бой B3 спеки #25 в окне: клавишами те же команды, что demo_p1/demo_p2 подают headless-прогону.
+# Строки hit/react/seat и хеш тика 480 обязаны совпасть с --headless --frames 480 бит в бит.
+! gate 22 23 24 25 26 27 28
+! same-as-headless 480
+! look jab-f3 §22: красная рамка hit0 на кулаке banderas, полосы z на полу, adler в стоп-кадре
+! look chain-jab §24: второй jab цепочки, adler отброшен
+! look chain-cross §24: cross третьим ударом цепочки
+! look block §26: banderas в позе блока на месте
+! look jump-kick §23: jump_kick в воздухе попадает в adler
+! look fall §23: adler летит; крест пивота и ноги на тени
+! look down §23: adler лежит; крест пивота на тени
+! look ground-kick §27: jump_kick по лежащему adler, позы реакции нет
+! look getup §23: adler встаёт; крест пивота и ноги на тени
+! look run-kick §25: run_kick с бега катится в adler
+! look roll §26: перекат banderas сквозь лежащего adler
+! look grab §27: захват стоящего adler
+! look throw §27: adler летит от места banderas, banderas доигрывает throw
+! look thrown-down §27: adler лёг после броска
+menu 1 tap ENTER
+level
+1 tap F3
+1 down D
+1 down W
+13 up W
+45 up D
+2 tap KP1
+31 down KP3
+41 up KP3
+45 tap J
+57 tap J
+69 tap J
+101 down I
+111 up I
+111 down D
+141 up D
+141 tap SPACE
+142 tap L
+143 tap U
+144 tap J
+171 down D
+181 tap SPACE
+182 tap J
+201 up D
+201 tap U
+230 tap J
+245 down A
+301 up A
+305 tap D
+307 down D
+313 tap L
+353 tap O
+379 up D
+379 down A
+392 up A
+409 tap H
+53 shot jab-f3
+66 shot chain-jab
+75 shot chain-cross
+105 shot block
+154 shot jump-kick
+160 shot fall
+185 shot down
+198 shot ground-kick
+220 shot getup
+329 shot run-kick
+360 shot roll
+417 shot grab
+425 shot throw
+440 shot thrown-down
+480 quit

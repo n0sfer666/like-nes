@@ -1,0 +1,23 @@
+ok    frames: 5
+ok    expect hit tick 304: banderas#1/kick -> crate#2, damage 12, hp 8
+ok    expect death tick 344: crate#2
+ok    expect break tick 345: crate#2
+ok    expect checkpoint tick 457: order 0 at 600,248
+ok    expect arena tick 513: arena 0 locked
+ok    expect wave tick 513: arena 0 wave 0, adler#3 adler#4$
+ok    expect wave tick 1256: arena 0 wave 0 cleared
+ok    expect wave tick 1376: arena 0 wave 1, adler#5 adler#6 adler#7$
+ok    expect wave tick 2367: arena 0 wave 1 cleared
+ok    expect arena tick 2367: arena 0 released
+ok    expect checkpoint tick 2680: order 1 at 1300,248
+ok    expect arena tick 2714: arena 1 locked
+ok    expect wave tick 2714: arena 1 wave 0, adler#8 adler#9$
+ok    expect wave tick 3332: arena 1 wave 0 cleared
+ok    expect wave tick 3452: arena 1 wave 4, adler#10 adler#11 adler#12 rainbird#13$
+ok    expect hit tick 3492: knife#14/throw -> banderas#1, damage 8, hp 74
+ok    expect knockout tick 4367: banderas#1, back as banderas#25 at 1300,248 immune 119
+ok    expect brawl tick 4500: .*camera 1368,172 arena 1
+ok    absent banderas#1/(jab|cross) -> crate
+ok    absent arena 1 wave 1
+ok    absent arena 1 released
+ok    absent hit tick (436[7-9]|43[7-9][0-9]|44[0-7][0-9]|448[0-5]): .*-> banderas

@@ -1,0 +1,13 @@
+ok    frames: 8
+ok    expect level level1 144x21
+ok    expect fighter banderas sheet 657x642, body 200,264 facing right
+ok    expect pose tick 0: banderas/idle
+ok    expect seat tick 40: P2 joining
+ok    expect seat tick 41: P2 present
+ok    expect level level1 144x21
+ok    expect fighter banderas sheet 657x642, body 200,264 facing right
+ok    expect pose tick 0: banderas/idle
+ok    expect brawl tick 30: hash [0-9a-f]+, banderas 200,264 y 0 hp 100, rainbird 264,240 y 0 hp 100, adler 328,252
+ok    absent stage camera
+ok    absent seat tick ([0-9]|[1-3][0-9]):
+ok    absent menu:

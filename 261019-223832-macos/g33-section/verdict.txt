@@ -1,0 +1,12 @@
+ok    frames: 6
+ok    expect checkpoint tick 2680: order 1 at 1300,248
+ok    expect wave tick 3452: arena 1 wave 4, adler#10 adler#11 adler#12 rainbird#13$
+ok    expect knockout tick 4279: banderas#1, back as banderas#24 at 1302,248 immune 119
+ok    expect knockout tick 5475: rainbird#13
+ok    expect wave tick 5475: arena 1 wave 4 cleared
+ok    expect arena tick 5475: arena 1 released
+ok    expect seat tick 6100: P2 joining
+ok    expect seat tick 6101: P2 present
+ok    expect brawl tick 6240: hash [0-9a-f]+, banderas#24 2059,200 y 6 hp 12, rainbird#37 1840,271 y 0 hp 100, camera 1949,172 arena -1
+ok    absent arena 1 wave 1
+ok    absent seat tick ([0-9]{1,3}|[1-5][0-9]{3}|60[0-9]{2}):
