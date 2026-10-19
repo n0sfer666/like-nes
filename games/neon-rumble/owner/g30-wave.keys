@@ -16,7 +16,7 @@
 ! expect wave tick 1448: arena 0 wave 1, adler#6 adler#7 adler#8$
 ! absent hit tick (7[2-9][0-9]|8[0-2][0-9]|83[0-8]): adler#[0-9]+/[a-z_]+ -> banderas
 ! absent brawl tick .*adler#[34] [0-9]
-! look ring §30: два adler вокруг banderas — один сближается, второй сбоку от его линии
+! look ring §30: бьёт один adler, второй ждёт за ним вне удара — жетон атаки один; кольцо вокруг banderas — на глаз в живом окне
 ! look knockout §30: banderas#5 встал на чекпоинте 600 внутри вида, hp 100
 ! look wave-1 §30: тройка wave 1 встаёт справа вида
 menu 1 tap ENTER
