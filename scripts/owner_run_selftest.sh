@@ -65,7 +65,7 @@ check "judge fails when only the headless half fails" fail "FAIL  differs" \
     owner_run_judge "$T/crlf.keys" "$T/drift.out" "$T/headless.out"
 { hit 45; react 46; } | sed 's/$/\r/' > "$T/window-crlf.out"
 strip_then_same() {
-    grep -q "$(printf '\r')" "$1" || { echo "the fixture has no CR"; return 1; }
+    [ "$(tr -cd '\r' < "$1" | wc -c)" -gt 0 ] || { echo "the fixture has no CR"; return 1; }
     owner_run_strip_cr "$1" && owner_run_same "$1" "$2"
 }
 check "CRLF window output matches headless after strip" pass "same as headless: 2 line(s)" \
