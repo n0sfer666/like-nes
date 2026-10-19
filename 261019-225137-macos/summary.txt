@@ -1,0 +1,1 @@
+PASS  g30-wave (gates 30)

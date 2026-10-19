@@ -1,0 +1,215 @@
+neon-rumble: library.bundle 6544 bytes fnv1a 9a653c75e8b2bc29
+neon-rumble: pad backend GameController.framework (macOS)
+[gpu] Apple M3 Pro | Metal | BC: yes
+neon-rumble: level level1 144x21 tile 16, 7 visual layer(s), 16 animated tile(s), 5 texture(s) 384x256 128x128 128x312 144x124 493x209
+neon-rumble: viewport 960x540 scale 2, visible 480x270, zone 96,54 768x432, shown 0,0 960x540, 4 strip(s)
+neon-rumble: viewport 300x200 scale 1, visible 300x200, zone 0,0 300x200, shown 0,0 300x200, 0 strip(s), cropped
+neon-rumble: bounds 104..2200 x 56..280, camera 296,172
+neon-rumble: frame 960x540 scale 2: 288 sprite(s), 6 run(s), 0 unknown, 0 rejected, 0 dropped
+neon-rumble: clips 51 in the table
+neon-rumble: fighter banderas sheet 657x642, body 200,264 facing right
+neon-rumble: fighter rainbird sheet 602x605, body 264,240 facing left
+neon-rumble: fighter adler sheet 548x1108, body 328,252 facing left
+neon-rumble: depth band 104..1560 x 232..264, 0 wall(s)
+neon-rumble: stage camera 296,172, 2 arena(s), 14 wave spawn(s)
+neon-rumble: pose tick 0: banderas/idle frame 0 flip 0, 0 hit, 1 hurt, 1 push, 19 overlay quad(s), 0 rejected, 0 dropped
+neon-rumble: font monogram line 12, 390 glyph(s), atlas 224x156
+neon-rumble: credit chewbatrij | Chewbatrij | CC0-1.0 | https://opengameart.org/sites/default/files/punchingqueen_gfx.zip
+neon-rumble: credit monogram | Vinícius Menézio (@vmenezio) | CC0-1.0 | https://datagoblin.itch.io/monogram
+neon-rumble: credit puffolotti-bad-company | Puffolotti | CC0-1.0 | https://opengameart.org/content/bad-company-assorted-military-thugs-universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit puffolotti-up2 | Puffolotti | CC0-1.0 | https://opengameart.org/content/universal-prototype-2-for-scrolling-beat-em-up-or-mugen
+neon-rumble: credit warped-city | ansimuz | CC0-1.0 | https://opengameart.org/content/warped-city
+neon-rumble: credits screen 960x540 scale 2: 5 pack(s), 2 page(s), 16 line(s), 558 glyph(s), 0 unknown, 560 quad(s), 0 dropped
+neon-rumble: checkpoint tick 200: order 0 at 600,248
+neon-rumble: arena tick 256: arena 0 locked
+neon-rumble: wave tick 256: arena 0 wave 0, adler#3 adler#4
+shot ring frame 301 tick 300
+neon-rumble: hit tick 320: adler#3/jab -> banderas#1, damage 6, hp 94
+neon-rumble: react tick 320: banderas#1 hurt
+neon-rumble: hit tick 333: adler#3/jab -> banderas#1, damage 6, hp 88
+neon-rumble: react tick 347: banderas#1 stand
+neon-rumble: hit tick 386: adler#4/jab -> banderas#1, damage 6, hp 82
+neon-rumble: react tick 386: banderas#1 hurt
+neon-rumble: hit tick 399: adler#4/jab -> banderas#1, damage 6, hp 76
+neon-rumble: react tick 413: banderas#1 stand
+neon-rumble: hit tick 428: adler#4/jab -> banderas#1, damage 6, hp 70
+neon-rumble: react tick 428: banderas#1 hurt
+neon-rumble: hit tick 441: adler#4/jab -> banderas#1, damage 6, hp 64
+neon-rumble: react tick 455: banderas#1 stand
+neon-rumble: hit tick 475: adler#3/jab -> banderas#1, damage 6, hp 58
+neon-rumble: react tick 475: banderas#1 hurt
+neon-rumble: hit tick 488: adler#3/jab -> banderas#1, damage 6, hp 52
+neon-rumble: react tick 502: banderas#1 stand
+neon-rumble: hit tick 509: adler#3/kick -> banderas#1, damage 12, hp 40
+neon-rumble: react tick 509: banderas#1 hurt
+neon-rumble: react tick 533: banderas#1 stand
+neon-rumble: hit tick 585: adler#4/jab -> banderas#1, damage 6, hp 34
+neon-rumble: react tick 585: banderas#1 hurt
+neon-rumble: hit tick 598: adler#4/jab -> banderas#1, damage 6, hp 28
+neon-rumble: react tick 612: banderas#1 stand
+neon-rumble: hit tick 627: adler#4/jab -> banderas#1, damage 6, hp 22
+neon-rumble: react tick 627: banderas#1 hurt
+neon-rumble: hit tick 640: adler#4/jab -> banderas#1, damage 6, hp 16
+neon-rumble: react tick 654: banderas#1 stand
+neon-rumble: hit tick 685: adler#3/jab -> banderas#1, damage 6, hp 10
+neon-rumble: react tick 685: banderas#1 hurt
+neon-rumble: hit tick 698: adler#3/jab -> banderas#1, damage 6, hp 4
+neon-rumble: react tick 712: banderas#1 stand
+neon-rumble: death tick 719: banderas#1
+neon-rumble: hit tick 719: adler#3/kick -> banderas#1, damage 12, hp 0
+neon-rumble: react tick 719: banderas#1 hurt
+neon-rumble: knockout tick 720: banderas#1, back as banderas#5 at 600,248 immune 119
+neon-rumble: hit tick 730: banderas#5/jab -> adler#3, damage 6, hp 94
+neon-rumble: hit tick 730: banderas#5/jab -> adler#4, damage 6, hp 94
+neon-rumble: react tick 730: adler#3 hurt
+neon-rumble: react tick 730: adler#4 hurt
+shot knockout frame 731 tick 730
+neon-rumble: hit tick 743: banderas#5/jab -> adler#3, damage 6, hp 88
+neon-rumble: hit tick 743: banderas#5/jab -> adler#4, damage 6, hp 88
+neon-rumble: hit tick 752: banderas#5/cross -> adler#3, damage 8, hp 80
+neon-rumble: react tick 757: adler#4 stand
+neon-rumble: hit tick 758: banderas#5/cross -> adler#4, damage 8, hp 80
+neon-rumble: react tick 758: adler#4 hurt
+neon-rumble: react tick 769: adler#3 stand
+neon-rumble: react tick 775: adler#4 stand
+neon-rumble: hit tick 791: banderas#5/jab -> adler#4, damage 6, hp 74
+neon-rumble: react tick 791: adler#4 hurt
+neon-rumble: hit tick 805: banderas#5/jab -> adler#3, damage 6, hp 74
+neon-rumble: react tick 805: adler#3 hurt
+neon-rumble: react tick 805: adler#4 stand
+neon-rumble: hit tick 806: banderas#5/jab -> adler#4, damage 6, hp 68
+neon-rumble: react tick 806: adler#4 hurt
+neon-rumble: hit tick 815: banderas#5/cross -> adler#4, damage 8, hp 60
+neon-rumble: react tick 819: adler#3 stand
+neon-rumble: react tick 832: adler#4 stand
+neon-rumble: hit tick 867: banderas#5/jab -> adler#3, damage 6, hp 68
+neon-rumble: react tick 867: adler#3 hurt
+neon-rumble: hit tick 880: banderas#5/jab -> adler#3, damage 6, hp 62
+neon-rumble: react tick 894: adler#3 stand
+neon-rumble: hit tick 939: banderas#5/jab -> adler#4, damage 6, hp 54
+neon-rumble: react tick 939: adler#4 hurt
+neon-rumble: hit tick 952: banderas#5/jab -> adler#4, damage 6, hp 48
+neon-rumble: hit tick 961: banderas#5/cross -> adler#4, damage 8, hp 40
+neon-rumble: hit tick 972: banderas#5/cross -> adler#3, damage 8, hp 54
+neon-rumble: react tick 972: adler#3 hurt
+neon-rumble: react tick 978: adler#4 stand
+neon-rumble: react tick 989: adler#3 stand
+neon-rumble: hit tick 1018: banderas#5/jab -> adler#4, damage 6, hp 34
+neon-rumble: react tick 1018: adler#4 hurt
+neon-rumble: hit tick 1031: banderas#5/jab -> adler#4, damage 6, hp 28
+neon-rumble: hit tick 1040: banderas#5/cross -> adler#4, damage 8, hp 20
+neon-rumble: react tick 1057: adler#4 stand
+neon-rumble: hit tick 1078: banderas#5/jab -> adler#3, damage 6, hp 48
+neon-rumble: react tick 1078: adler#3 hurt
+neon-rumble: hit tick 1091: banderas#5/jab -> adler#3, damage 6, hp 42
+neon-rumble: hit tick 1100: banderas#5/cross -> adler#3, damage 8, hp 34
+neon-rumble: react tick 1117: adler#3 stand
+neon-rumble: hit tick 1133: adler#4/jab -> banderas#5, damage 6, hp 94
+neon-rumble: react tick 1133: banderas#5 hurt
+neon-rumble: hit tick 1146: adler#4/jab -> banderas#5, damage 6, hp 88
+neon-rumble: react tick 1160: banderas#5 stand
+neon-rumble: hit tick 1169: banderas#5/jab -> adler#4, damage 6, hp 14
+neon-rumble: react tick 1169: adler#4 hurt
+neon-rumble: hit tick 1182: banderas#5/jab -> adler#4, damage 6, hp 8
+neon-rumble: death tick 1191: adler#4
+neon-rumble: hit tick 1191: banderas#5/cross -> adler#4, damage 8, hp 0
+neon-rumble: knockout tick 1192: adler#4
+neon-rumble: hit tick 1225: banderas#5/jab -> adler#3, damage 6, hp 28
+neon-rumble: react tick 1225: adler#3 hurt
+neon-rumble: hit tick 1238: banderas#5/jab -> adler#3, damage 6, hp 22
+neon-rumble: hit tick 1247: banderas#5/cross -> adler#3, damage 8, hp 14
+neon-rumble: react tick 1264: adler#3 stand
+neon-rumble: hit tick 1282: banderas#5/jab -> adler#3, damage 6, hp 8
+neon-rumble: react tick 1282: adler#3 hurt
+neon-rumble: react tick 1296: adler#3 stand
+neon-rumble: hit tick 1312: banderas#5/jab -> adler#3, damage 6, hp 2
+neon-rumble: react tick 1312: adler#3 hurt
+neon-rumble: react tick 1326: adler#3 stand
+neon-rumble: death tick 1327: adler#3
+neon-rumble: hit tick 1327: banderas#5/jab -> adler#3, damage 6, hp 0
+neon-rumble: react tick 1327: adler#3 hurt
+neon-rumble: knockout tick 1328: adler#3
+neon-rumble: wave tick 1328: arena 0 wave 0 cleared
+neon-rumble: wave tick 1448: arena 0 wave 1, adler#6 adler#7 adler#8
+shot wave-1 frame 1461 tick 1460
+neon-rumble: hit tick 1566: banderas#5/jab -> adler#8, damage 6, hp 94
+neon-rumble: react tick 1566: adler#8 hurt
+neon-rumble: react tick 1580: adler#8 stand
+neon-rumble: hit tick 1581: banderas#5/jab -> adler#8, damage 6, hp 88
+neon-rumble: react tick 1581: adler#8 hurt
+neon-rumble: hit tick 1590: banderas#5/cross -> adler#6, damage 8, hp 92
+neon-rumble: hit tick 1590: banderas#5/cross -> adler#8, damage 8, hp 80
+neon-rumble: react tick 1590: adler#6 hurt
+neon-rumble: react tick 1607: adler#6 stand
+neon-rumble: react tick 1607: adler#8 stand
+neon-rumble: hit tick 1643: banderas#5/jab -> adler#8, damage 6, hp 74
+neon-rumble: react tick 1643: adler#8 hurt
+neon-rumble: hit tick 1656: banderas#5/jab -> adler#8, damage 6, hp 68
+neon-rumble: hit tick 1660: banderas#5/jab -> adler#6, damage 6, hp 86
+neon-rumble: react tick 1660: adler#6 hurt
+neon-rumble: react tick 1670: adler#8 stand
+neon-rumble: hit tick 1671: banderas#5/cross -> adler#8, damage 8, hp 60
+neon-rumble: react tick 1671: adler#8 hurt
+neon-rumble: react tick 1674: adler#6 stand
+neon-rumble: react tick 1688: adler#8 stand
+neon-rumble: hit tick 1703: banderas#5/jab -> adler#7, damage 6, hp 94
+neon-rumble: react tick 1703: adler#7 hurt
+neon-rumble: hit tick 1716: banderas#5/jab -> adler#7, damage 6, hp 88
+neon-rumble: hit tick 1720: banderas#5/jab -> adler#6, damage 6, hp 80
+neon-rumble: react tick 1720: adler#6 hurt
+neon-rumble: hit tick 1729: banderas#5/cross -> adler#7, damage 8, hp 80
+neon-rumble: react tick 1734: adler#6 stand
+neon-rumble: react tick 1746: adler#7 stand
+neon-rumble: hit tick 1763: banderas#5/jab -> adler#8, damage 6, hp 54
+neon-rumble: react tick 1763: adler#8 hurt
+neon-rumble: hit tick 1776: banderas#5/jab -> adler#8, damage 6, hp 48
+neon-rumble: hit tick 1785: banderas#5/cross -> adler#8, damage 8, hp 40
+neon-rumble: hit tick 1801: banderas#5/cross -> adler#7, damage 8, hp 72
+neon-rumble: react tick 1801: adler#7 hurt
+neon-rumble: react tick 1802: adler#8 stand
+neon-rumble: react tick 1818: adler#7 stand
+neon-rumble: hit tick 1841: banderas#5/jab -> adler#6, damage 6, hp 74
+neon-rumble: react tick 1841: adler#6 hurt
+neon-rumble: react tick 1855: adler#6 stand
+neon-rumble: hit tick 1875: banderas#5/jab -> adler#8, damage 6, hp 34
+neon-rumble: react tick 1875: adler#8 hurt
+neon-rumble: hit tick 1888: banderas#5/jab -> adler#8, damage 6, hp 28
+neon-rumble: react tick 1902: adler#8 stand
+neon-rumble: hit tick 1905: banderas#5/cross -> adler#7, damage 8, hp 64
+neon-rumble: react tick 1905: adler#7 hurt
+neon-rumble: react tick 1922: adler#7 stand
+neon-rumble: hit tick 1966: banderas#5/jab -> adler#8, damage 6, hp 22
+neon-rumble: react tick 1966: adler#8 hurt
+neon-rumble: hit tick 1979: banderas#5/jab -> adler#8, damage 6, hp 16
+neon-rumble: hit tick 1988: banderas#5/cross -> adler#8, damage 8, hp 8
+neon-rumble: react tick 2005: adler#8 stand
+neon-rumble: hit tick 2026: banderas#5/jab -> adler#7, damage 6, hp 58
+neon-rumble: react tick 2026: adler#7 hurt
+neon-rumble: hit tick 2039: banderas#5/jab -> adler#7, damage 6, hp 52
+neon-rumble: hit tick 2048: banderas#5/cross -> adler#7, damage 8, hp 44
+neon-rumble: hit tick 2055: banderas#5/cross -> adler#6, damage 8, hp 66
+neon-rumble: react tick 2055: adler#6 hurt
+neon-rumble: react tick 2065: adler#7 stand
+neon-rumble: react tick 2072: adler#6 stand
+neon-rumble: hit tick 2090: banderas#5/jab -> adler#8, damage 6, hp 2
+neon-rumble: react tick 2090: adler#8 hurt
+neon-rumble: death tick 2103: adler#8
+neon-rumble: hit tick 2103: banderas#5/jab -> adler#8, damage 6, hp 0
+neon-rumble: knockout tick 2104: adler#8
+neon-rumble: hit tick 2118: banderas#5/cross -> adler#6, damage 8, hp 58
+neon-rumble: react tick 2118: adler#6 hurt
+neon-rumble: react tick 2135: adler#6 stand
+neon-rumble: hit tick 2146: banderas#5/jab -> adler#7, damage 6, hp 38
+neon-rumble: react tick 2146: adler#7 hurt
+neon-rumble: hit tick 2159: banderas#5/jab -> adler#7, damage 6, hp 32
+neon-rumble: hit tick 2168: banderas#5/cross -> adler#7, damage 8, hp 24
+neon-rumble: react tick 2185: adler#7 stand
+neon-rumble: hit tick 2206: banderas#5/jab -> adler#6, damage 6, hp 52
+neon-rumble: react tick 2206: adler#6 hurt
+neon-rumble: react tick 2220: adler#6 stand
+neon-rumble: hit tick 2272: adler#7/jab -> banderas#5, damage 6, hp 82
+neon-rumble: react tick 2272: banderas#5 hurt
+neon-rumble: hit tick 2285: adler#7/jab -> banderas#5, damage 6, hp 76
+neon-rumble: react tick 2299: banderas#5 stand
+neon-rumble: brawl tick 2300: hash d1d6fe6be00e696e, banderas#5 562,248 y 0 hp 76, adler#6 627,238 y 0 hp 52, adler#7 598,250 y 0 hp 24, crate#2 440,248 y 0 hp 20, camera 712,172 arena 0, draw adler#6 crate#2 banderas#5 adler#7
+neon-rumble: window run ok, 2302 frames
