@@ -1,0 +1,52 @@
+# §23: jump_kick валит adler дважды. J по лежащему, L во встающего, затем U по лежащему и встающему —
+# строк hit нет (окна активных кадров в absent); тот же удар после stand попадает. Кулак и стопа проходят
+# над рамкой лежащего, так что там absent лишь подтверждает тишину; пересекаются рамки у kick во встающего.
+! gate 23
+! expect react tick 58: adler fall
+! expect react tick 78: adler down
+! expect react tick 108: adler getup
+! expect react tick 138: adler stand
+! expect hit tick 148: banderas/jab -> adler, damage 6, hp 84
+! expect react tick 148: adler hurt
+! expect react tick 177: adler fall
+! expect react tick 197: adler down
+! expect react tick 227: adler getup
+! expect react tick 257: adler stand
+! expect hit tick 264: banderas/cross -> adler, damage 8, hp 66
+! absent hit tick (9[2-5]|11[6-9]|12[0-9]|20[7-9]|21[0-8]|23[1-9]|24[0-2]): banderas
+! look fall §23: adler в полёте fall; крест пивота на ногах, ноги над тенью
+! look down-jab §23: jab в лежащего — кулак над его рамкой, стоп-кадра нет; тело на мостовой, крест у ног
+! look getup-kick §23: kick во встающего — красная рамка стопы на его рамке, строки hit нет; ноги на тени
+! look stand-jab §23: adler встал — тот же jab попадает, поза hurt
+! look down-cross §23: cross в лежащего, второй нокдаун
+! look getup-cross §23: cross во встающего
+! look stand-cross §23: adler встал — cross попадает
+menu 1 tap ENTER
+level
+1 tap F3
+1 down D
+1 down W
+13 up W
+41 up D
+46 down D
+46 tap SPACE
+48 tap J
+75 up D
+84 tap J
+100 tap L
+140 tap J
+165 down D
+165 tap SPACE
+167 tap J
+194 up D
+203 tap U
+227 tap U
+260 tap U
+65 shot fall
+92 shot down-jab
+120 shot getup-kick
+148 shot stand-jab
+210 shot down-cross
+235 shot getup-cross
+264 shot stand-cross
+300 quit

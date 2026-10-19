@@ -14,6 +14,9 @@
 namespace rumble {
 
 WGPUColor background(const Level& level, WGPUTextureFormat format);
+void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear,
+                  const framework::graphics::PixelRect& shown, const render::QuadRenderer& quads,
+                  std::span<const render::QuadRun> runs);
 void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
                 const framework::graphics::PixelRect& shown, const render::QuadRenderer& quads,
                 std::span<const render::QuadRun> runs);

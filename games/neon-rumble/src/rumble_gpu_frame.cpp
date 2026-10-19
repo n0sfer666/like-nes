@@ -27,9 +27,8 @@ WGPUColor background(const Level& level, WGPUTextureFormat format) {
     return {channel(rgba, 24, srgb), channel(rgba, 16, srgb), channel(rgba, 8, srgb), 1.0};
 }
 
-void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
-                const PixelRect& shown, const render::QuadRenderer& quads,
-                std::span<const render::QuadRun> runs) {
+void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear, const PixelRect& shown,
+                  const render::QuadRenderer& quads, std::span<const render::QuadRun> runs) {
     WGPURenderPassColorAttachment color = {};
     color.view = view;
     color.loadOp = WGPULoadOp_Clear;
@@ -50,9 +49,15 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
     wgpuRenderPassEncoderRelease(pass);
     WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
     wgpuQueueSubmit(gpu.queue, 1, &cmd);
-    wgpuSurfacePresent(surface);
     wgpuCommandBufferRelease(cmd);
     wgpuCommandEncoderRelease(enc);
+}
+
+void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
+                const PixelRect& shown, const render::QuadRenderer& quads,
+                std::span<const render::QuadRun> runs) {
+    submit_quads(gpu, view, clear, shown, quads, runs);
+    wgpuSurfacePresent(surface);
 }
 
 // Текстуры уровня уходят в GPU один раз, в порядке `Level::guids`: этот порядок и есть номер

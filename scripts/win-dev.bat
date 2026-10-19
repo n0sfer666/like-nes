@@ -10,7 +10,7 @@ rem
 rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Python
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
 rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
-rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash
+rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash; owner - scripts/owner_run.sh (2-й - --no-push)
 rem   scripts\win-dev.bat gate8   scripts/gate8_e2e.sh тем же шеллом (сквозной гейт 8 спеки #13)
 rem   scripts\win-dev.bat probe   framework_input_probe с живым падом (гейт 8 спеки #14)
 rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
@@ -36,9 +36,9 @@ set "VSLANG=1033"
 
 if /i "%ACTION%"=="setup" goto do_setup
 if /i "%ACTION%"=="clean" goto do_clean
-for %%a in (build warn check gate8 probe game demo shell sdk rumble) do if /i "%ACTION%"=="%%a" goto need_vs
+for %%a in (build warn check owner gate8 probe game demo shell sdk rumble) do if /i "%ACTION%"=="%%a" goto need_vs
 echo win-dev.bat: unknown action "%ACTION%"
-echo usage: win-dev.bat [setup^|build^|warn^|check^|gate8^|probe^|game^|demo^|shell^|sdk^|rumble^|clean]
+echo usage: win-dev.bat [setup^|build^|warn^|check^|owner^|gate8^|probe^|game^|demo^|shell^|sdk^|rumble^|clean]
 exit /b 2
 
 :do_setup
@@ -105,7 +105,7 @@ if /i "%ACTION%"=="shell" (
     cmd /k
     exit /b 0
 )
-for %%a in (probe game demo check gate8 warn sdk rumble) do if /i "%ACTION%"=="%%a" goto do_%%a
+for %%a in (probe game demo check owner gate8 warn sdk rumble) do if /i "%ACTION%"=="%%a" goto do_%%a
 
 :do_build
 rem Каталог сборки помнит компилятор: после неудачного захода из 32-битного шелла повторное
@@ -214,6 +214,8 @@ exit /b 0
 set "GATE=scripts/owner_check.sh"
 goto run_gate
 
+:do_owner
+set "GATE=scripts/owner_run.sh %~2" & goto run_gate
 :do_sdk
 set "GATE=scripts/check_sdk_game.sh --keep"
 goto run_gate

@@ -229,6 +229,12 @@ jobs:
         shell: bash
         run: bash scripts/check_owner_gates_selftest.sh
 
+      # Суждения make owner (порядок expect, absent, сверка с headless, строка листа) — на трёх ОС:
+      # предмет — переносимость awk/sed/diff, на которой уже срывался восьмеричный escape в ERE.
+      - name: Owner run selftest (judgments of make owner on broken fixtures)
+        shell: bash
+        run: bash scripts/owner_run_selftest.sh
+
       - name: Owner gates — the manual list is derived from the doc, not hand-written
         if: runner.os == 'Linux'
         shell: bash

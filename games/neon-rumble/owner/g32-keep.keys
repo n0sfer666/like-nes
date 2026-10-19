@@ -1,0 +1,19 @@
+# §32: Esc возвращает меню с тем же выбором. Без --wave выбран level; ↓ — wave, вход, Esc, Enter —
+# второй вход снова wave: stage camera дважды и banderas#1 со строкой ящика. Сброс к выбору по
+# умолчанию вошёл бы в level — строка brawl без номеров, а stage camera одна.
+! gate 32
+! expect stage camera 296,172, 2 arena\(s\)
+! expect stage camera 296,172, 2 arena\(s\)
+! expect brawl tick 30: hash [0-9a-f]+, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1
+! absent brawl tick [0-9]+: hash [0-9a-f]+, banderas [0-9]
+! look keep-pick §32: «> wave level1» жёлтым после ↓
+! look keep-back §32: меню после Esc, снова «> wave level1»
+menu 2 tap DOWN
+menu 4 shot keep-pick
+menu 6 tap ENTER
+level
+30 tap ESCAPE
+menu 100 shot keep-back
+menu 102 tap ENTER
+level
+30 quit

@@ -1,0 +1,59 @@
+# §22: удары клавишами, команды и F3. Сначала J, U, L сквозь rainbird (P2 на нампаде 1) на его линии —
+# красная рамка лежит на нём, строк нет; затем те же удары и jump_kick в adler, J зажат 20 тиков;
+# U и L в прыжке (326, 327) не дают cross и kick.
+! gate 22
+! expect seat tick 3: P2 present
+! expect hit tick 178: banderas/jab -> adler, damage 6, hp 94
+! expect hit tick 219: banderas/cross -> adler, damage 8, hp 86
+! expect hit tick 261: banderas/kick -> adler, damage 12, hp 74
+! expect hit tick 339: banderas/jump_kick -> adler, damage 10, hp 64
+! expect react tick 339: adler fall
+! absent -> rainbird
+! expect brawl tick 400: .*rainbird 264,240 y 0 hp 100
+! absent react tick [0-9]+: rainbird (hurt|fall|down|thrown)
+! absent banderas/jab -> adler, damage 6, hp 88
+! absent hit tick 3[2-9][0-9]: banderas/(cross|kick)
+! look rb-jab §22: красная рамка jab внутри зелёной rainbird, стоп-кадра и отброса нет
+! look jab-f3 §22: jab в adler — рамка hit0 на кулаке, полосы z под обоими на полу
+! look cross-45 §22: последний активный кадр cross (лист 45) — красная рамка на кулаке
+! look cross-46 §22: кадр 46 cross — рамки нет, рука ещё вперёд и вверх; окно до 45 или дальше?
+! look cross-47 §22: кадр 47 cross — рамки нет
+! look kick-f3 §22: kick в adler — рамка на стопе
+! look kick-54 §22: последний активный кадр kick (лист 54) — стопа ещё выброшена или уже идёт назад?
+! look kick-55 §22: кадр 55 kick — рамки нет
+! look jump-kick §22: jump_kick в воздухе, рамка на опущенной стопе, adler отброшен вверх
+menu 1 tap ENTER
+level
+1 tap F3
+2 tap KP1
+1 down W
+25 up W
+25 down D
+41 up D
+45 tap J
+65 tap U
+85 tap L
+125 down S
+137 up S
+137 down D
+165 up D
+170 down J
+190 up J
+215 tap U
+245 tap L
+290 down D
+325 up D
+325 tap SPACE
+326 tap U
+327 tap L
+329 tap J
+53 shot rb-jab
+178 shot jab-f3
+234 shot cross-45
+238 shot cross-46
+242 shot cross-47
+261 shot kick-f3
+276 shot kick-54
+280 shot kick-55
+339 shot jump-kick
+400 quit

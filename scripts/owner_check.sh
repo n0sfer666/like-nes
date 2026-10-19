@@ -173,7 +173,7 @@ BUILD_DIR="$BUILD_DIR" bash scripts/owner_net_budget.sh 2>&1 | tee -a "$REPORT"
 # Список выводится ИЗ документа (сверяет check_owner_gates.sh), а не пишется здесь: рукописная копия
 # уже разъехалась — звала гейт 9 спеки #17 открытым четыре дня после закрытия и молчала о шести.
 head_ "Ручная половина"
-say "Осталось глазами и руками — $OWNER_DOC:"
+say "Открытые гейты — что судит make owner, затем что осталось глазами и руками — $OWNER_DOC:"
 owner_gates_open_lines "$ROOT/$OWNER_DOC" | tee -a "$REPORT"
 owner_gates_closed_lines "$ROOT/$OWNER_DOC" | tee -a "$REPORT"
 
