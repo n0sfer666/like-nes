@@ -1,0 +1,2 @@
+ok    frames: 14
+ok    same as headless: 29 line(s)
