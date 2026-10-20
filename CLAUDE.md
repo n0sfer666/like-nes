@@ -94,6 +94,7 @@ SDK не даёт игре жанровых функций: «цикл драк�
 | установка на чистой машине | `bash scripts/check_docs_start.sh [--live]` | коммит · `--live` руками | [docs-start](.context/gates/docs-start.md) |
 | список ручных гейтов | `bash scripts/check_owner_gates.sh` | коммит | [owner-gates](.context/gates/owner-gates.md) |
 | оконная половина гейтов Neon Rumble | `make owner` · `bash scripts/owner_run_selftest.sh` · `bash scripts/owner_stages_selftest.sh` | руками · CI × 3 ОС | [owner-run](.context/gates/owner-run.md) |
+| скрипт чистой машины §15/§16 | `bash scripts/clean_check_selftest.sh` · `powershell -File scripts/clean_check_selftest.ps1` · `make owner-import ARGS=<отчёт>` | preflight · CI × 3 ОС · ps1 — CI Windows · руками | [clean-check](.context/gates/clean-check.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | симуляция драки без float | `python3 scripts/check_sim_float.py` | коммит | [sim-float](.context/gates/sim-float.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |

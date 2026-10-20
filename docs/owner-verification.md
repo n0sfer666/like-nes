@@ -2462,7 +2462,7 @@ different run. What none of them can do is look at a screen, which is why run B 
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
 
-<!-- gate: open | пакет движка запускается там, где не собирался: .dmg, .AppImage и .msi двойным щелчком на машине без этого дерева -->
+<!-- gate: open | bash clean_check.sh рядом с пакетами на чистой машине: SHA256SUMS, распаковка дважды без разницы, version.txt без unknown, assetc --synthetic, editor_shell --gate6 из архива, 7 лицензий, .dmg — attach и --gate6 из .app, .AppImage — --gate6 (без FUSE — extract-and-run); отчёт clean-check-<os>-<время>.txt → make owner-import ARGS=<отчёт>; руками: .dmg, .AppImage и .msi двойным щелчком на машине без этого дерева — окно редактора, Gatekeeper, SmartScreen, ярлык Start, апгрейд и даунгрейд .msi -->
 
 > **All three packages are runnable from one machine today.** Verticals 1–3 of spec #20 build the
 > **macOS** package on the host, the **Linux** package in a container on that same host, and the
@@ -2629,7 +2629,8 @@ chmod +x like-nes-engine-v0.1.0-linux-aarch64.AppImage
    cannot open shared object file` error is the Linux twin of point 8 above: the runtime has to sit
    **next to** the executable in `usr/bin`, because our rpath is `$ORIGIN` — the same mechanism
    `@executable_path` gives us on macOS.
-7. On a system with no FUSE (`dlopen(): error loading libfuse.so.2`), `./…AppImage
+7. On a system with no FUSE (`Cannot mount AppImage, please check your FUSE setup` from the static
+   runtime appimagetool embeds, `dlopen(): error loading libfuse.so.2` from older ones), `./…AppImage
    --appimage-extract-and-run` is the documented fallback — that is the AppImage runtime speaking
    about the box, not our package failing. The same variable, `APPIMAGE_EXTRACT_AND_RUN=1`, is what
    the container uses, since FUSE there would need `--privileged`.
@@ -2773,9 +2774,92 @@ part of the installed feature). The installer that arrives from CI is inspected 
 `scripts/check_release_ci.sh`. Where the MSI compiler or `msitools` is missing, both skip **out
 loud** with code 0: `brew install msitools` on the owner's machine.
 
+### The clean box by script — `clean_check.sh` and `clean_check.ps1`
+
+Points 1, 2, 4 and 5 of "What to judge", the `.dmg` and `.AppImage` launches and the machine half of
+§16 are typed the same way on every box, so a script types them. It travels **beside the
+packages**, not inside them — the package stays what people install. Copy it into the folder that
+already holds the archive, its installer and `SHA256SUMS` from `release/v0.1.0/`:
+
+```
+macOS, Linux:  scripts/clean_check.sh   scripts/clean_check_lib.sh
+Windows:       scripts/clean_check.ps1  scripts/clean_check_lib.ps1
+```
+
+Then, in that folder on the clean box:
+
+```
+bash clean_check.sh
+powershell -ExecutionPolicy Bypass -File clean_check.ps1
+```
+
+The first line is macOS and Linux, the second is Windows, and both need nothing the box does not
+ship: `bash`, `tar`, `awk`, `od`, `hdiutil` — or Windows PowerShell 5.1 and `tar.exe`. Each finds
+the one `like-nes-engine-<version>-<triple>.tar.gz` next to it (two of them is a refusal; name one
+as the argument), checks the sums of the archive and the installer, unpacks twice and compares,
+reads `version.txt` against the archive name, bakes with `assetc --synthetic`, runs
+`editor_shell --gate6` from the unpacked tree and counts the licences. Then the installer: on
+macOS the `.dmg` is attached read-only and `--gate6` runs from `like-nes.app` inside it; on Linux the
+`.AppImage` runs `--gate6` itself, and on a box with no FUSE it says so in a `note` and retries with
+`APPIMAGE_EXTRACT_AND_RUN=1`; on Windows see §16 below. On macOS a package that came through a
+browser or AirDrop carries `com.apple.quarantine`, and the script says so in a `note` before the
+checks: that is the real first-download experience, so keep it for the steps by hand, but a `FAIL`
+under such a note may be Gatekeeper's word rather than the package's until a copy without the
+attribute (`scp`, a USB stick) says otherwise. Expected on macOS:
+
+```
+clean-check like-nes-engine-v0.1.0-macos-arm64 on macos at <yymmdd-hhmmss>
+system: <version> (Darwin <release> arm64)
+ok    §15 sha256 like-nes-engine-v0.1.0-macos-arm64.tar.gz <64 hex>
+ok    §15 sha256 like-nes-engine-v0.1.0-macos-arm64.dmg <64 hex>
+ok    §15 unpacked twice, diff -r finds no difference
+      like-nes engine v0.1.0
+      commit <hash>
+      target macos-arm64
+ok    §15 version.txt names v0.1.0, commit <hash> and target macos-arm64
+ok    §15 licenses/ holds 7 files, none empty
+      [assetc] synthetic <tmp>/clean-check.<random>/probe.bundle (<bytes> bytes, <n> assets)
+      [assetc] bundle_hash = 0x<16 hex>
+ok    §15 assetc --synthetic exited 0, the bundle is <bytes> bytes
+ok    §15 editor_shell from the archive: --gate6 exited 0, clean-check-macos-<time>-tar.png is <bytes> bytes
+ok    §15 the volume holds like-nes.app and the Applications shortcut
+ok    §15 .app from the .dmg: --gate6 exited 0, clean-check-macos-<time>-dmg.png is <bytes> bytes
+by hand - what the script cannot see:
+  1. double-click like-nes-engine-v0.1.0-macos-arm64.dmg in Finder -> a window with like-nes.app next to an Applications shortcut
+  2. drag like-nes.app onto Applications, eject, double-click it in /Applications -> Gatekeeper: cannot verify the developer
+  3. Control-click like-nes.app > Open > Open -> the editor window opens, no Library not loaded
+  send: this report and the PNG files next to it, or on the dev machine: make owner-import ARGS=<report>
+clean-check: PASS
+clean-check: report <folder>/clean-check-macos-<time>.txt
+```
+
+Linux prints the same up to the installer, then
+`ok    §15 .AppImage: --gate6 exited 0, …-appimage.png is <bytes> bytes`. A `FAIL` line names what
+broke and prints the last lines of the program's output above it — a `Library not loaded` there is
+point 2's finding. The report is written next to the packages as
+`clean-check-<os>-<yymmdd-hhmmss>.txt`, with the home folder replaced by `~` line by line as it
+is written — a run cut short leaves no home folder in it either — and the `--gate6` frames beside
+it. A folder the script cannot write to is a refusal with code 2 before any check. Every `ok` line is one of the points above; the `by hand` list it ends with is
+what stays yours: the double click, Gatekeeper or SmartScreen, the Start menu shortcut, upgrade and
+downgrade.
+
+To send it, bring the report and its PNG files back to the dev machine and run
+`make owner-import ARGS=<path to clean-check-….txt>`: it publishes them to `refs/owner-runs/main`
+next to the `make owner` runs, in a folder named after the report. A report that still names a
+home folder (`/Users/…`, `/home/…`, `C:\Users\…`) is refused, and nothing is pushed; the folders of
+the CI runners that built the package (`/Users/runner`, `/home/runner`, `C:\Users\runneradmin`),
+which a crash may print, pass.
+
+The judgments themselves are checked on broken packages by `bash scripts/clean_check_selftest.sh`
+on all three OSes and by `scripts/clean_check_selftest.ps1` under Windows PowerShell 5.1 in CI —
+sums, a second unpack that differs, `version.txt` with `unknown`, six licences, a `--gate6` that
+writes its PNG and then crashes, a volume without the `Applications` shortcut or without the app, a
+runtime with no FUSE in both wordings, a folder it cannot write to, an installer that asks for
+elevation.
+
 ## 16. Gate 4 of #20 — no Visual C++ Redistributable, and a silent install
 
-<!-- gate: open | Windows без VC++ Redistributable: тихая установка .msi и editor_shell --gate6 на чистой машине -->
+<!-- gate: open | powershell -ExecutionPolicy Bypass -File clean_check.ps1 рядом с пакетами: where vcruntime140.dll (найден — note, ящик гейт не отвечает), 4 файла в like-nes\bin, editor_shell --gate6 через смешанный CRT, msiexec /i /qn — код 0 (1603 с Error 1925 — отказ), 4 файла в %LOCALAPPDATA%\like-nes\bin, --gate6 установленного, msiexec /x /qn — каталог исчез; отчёт → make owner-import; руками: Windows, где Redistributable не ставился, диалог VCRUNTIME140.dll — скриншот -->
 
 > **This is the half of gate 4 that a gate can prepare but not close.** Vertical 5 made the Windows
 > package self-contained: our binaries are built with the **static** CRT
@@ -2906,6 +2990,54 @@ line `тихая установка: прав не требует (Source=10)`) 
 written by the compiler and there are two compilers: `wixl` here, WiX v3 on the runner. Their
 *input* is the same file; their *behaviour* on this bit is not proven by anything, and the way that
 divergence would surface is a UAC prompt under `/qn` on your box, not a red gate.
+
+### The box half by script — `clean_check.ps1`
+
+On Windows the script of §15 also walks everything above that needs no eyes. After the checks of
+§15 it asks `where vcruntime140.dll` — found is a `note`, not a pass: the box cannot answer this
+gate, and the last line then says `PASS, but §16 stays open`. It counts the four files of
+`like-nes\bin`, runs `--gate6` across the mixed-CRT boundary, and then installs: `msiexec /i … /qn
+/l*v`, the four files in `%LOCALAPPDATA%\like-nes\bin`, `--gate6` from the installed copy,
+`msiexec /x … /qn`, and the folder gone. A `%LOCALAPPDATA%\like-nes` that is already there stops
+the installer half before it starts — uninstall the old one first, or the run would judge it.
+Expected on a clean box:
+
+```
+clean-check like-nes-engine-v0.1.0-windows-x86_64 on windows at <yymmdd-hhmmss>
+system: <Windows edition> (<version> AMD64)
+ok    §15 sha256 like-nes-engine-v0.1.0-windows-x86_64.tar.gz <64 hex>
+ok    §15 sha256 like-nes-engine-v0.1.0-windows-x86_64.msi <64 hex>
+ok    §16 where vcruntime140.dll finds nothing - no Redistributable on this box
+ok    §15 unpacked twice, the two trees agree file by file (<N> entries)
+      like-nes engine v0.1.0
+      commit <hash>
+      target windows-x86_64
+ok    §15 version.txt names v0.1.0, commit <hash> and target windows-x86_64
+ok    §15 licenses/ holds 7 files, none empty
+ok    §16 like-nes\bin of the archive holds the four files: assetc.exe editor_shell.exe vcruntime140.dll wgpu_native.dll
+      [assetc] synthetic <tmp>\clean-check.<random>\probe.bundle (<bytes> bytes, <n> assets)
+      [assetc] bundle_hash = 0x<16 hex>
+ok    §15 assetc --synthetic exited 0, the bundle is <bytes> bytes
+ok    §16 editor_shell.exe from the archive: --gate6 exited 0, clean-check-windows-<time>-tar.png is <bytes> bytes
+ok    §16 msiexec /i /qn exited 0 - nobody was there to answer a UAC prompt
+ok    §16 the installed bin holds the four files: assetc.exe editor_shell.exe vcruntime140.dll wgpu_native.dll
+ok    §16 editor_shell.exe installed by the .msi: --gate6 exited 0, clean-check-windows-<time>-msi.png is <bytes> bytes
+ok    §16 msiexec /x /qn exited 0, ~\AppData\Local\like-nes is gone
+by hand - what the script cannot see:
+  1. double-click like-nes-engine-v0.1.0-windows-x86_64.msi -> SmartScreen: unknown publisher, More info > Run anyway; then no UAC prompt
+  2. Start menu > like-nes engine -> the editor window opens, no VCRUNTIME140.dll dialog
+  3. the same .msi again, then a newer one on top -> one entry in Installed apps
+  4. an older .msi on top of a newer install -> refuses: A newer version of like-nes engine is already installed
+  5. uninstall from Installed apps -> %LOCALAPPDATA%\like-nes is gone
+  send: this report and the PNG files next to it, or on the dev machine: make owner-import ARGS=<report>
+clean-check: PASS
+clean-check: report <folder>\clean-check-windows-<time>.txt
+```
+
+A missing DLL shows up twice: as the system dialog, which waits for you — screenshot it, close it —
+and as `exited -1073741515 (0xC0000135 - a DLL is missing, screenshot the dialog)` in the report. A
+heap crash on the CRT boundary is a negative code in hex (`0xC0000374`). `1603` with
+`Error 1925` from the install log is named as the failure of step 7 of the silent install.
 
 ## 17. Gate 5 of #19 — the install page read by someone who did not write it
 
