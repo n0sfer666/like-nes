@@ -71,7 +71,7 @@ no blur. Use only these colours: <hex рамп слоя>.
 ## Тайлы дороги и моста
 
 Тайл 16×16. ChatGPT плохо держит повторяющийся узор, поэтому он даёт **образец материала**, а
-тайлы режутся и сшиваются в Aseprite.
+тайлы режутся и сшиваются в Pixelorama.
 
 ```text
 Pixel art texture swatch, top-down-ish side view of <MATERIAL>, flat even lighting from the left,

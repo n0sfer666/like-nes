@@ -4648,7 +4648,7 @@ of the hand steps from `logcat -s like-nes`.
 
 ## 37. Gate 1 of #29 — the pilot art through its prompt package
 
-<!-- gate: open | Aseprite 1.3 и ChatGPT Images: пройти шаги 1–9 «Порядок пилота» из docs/art/README.md — лист стиля, model sheet монаха (96 px) и рядового (104 px), ключи и in-betweens пилотных клипов по docs/art/clips.md, три палитры рядового заменой 8 тонов swap-*, один экран фона деревни, выгрузка листов и планов по docs/art/export.md; на каждом шаге чек-лист приёмки его файла; прислать monk.png/json, bandit.png/json, три варианта рядового рядом, планы деревни, журнал генераций и пункты чек-листов, которые не прошли -->
+<!-- gate: open | Pixelorama 1.2.3 и ChatGPT Images: пройти шаги 0–11 docs/art/workflow.md — лист стиля, model sheet монаха (96 px) и рядового (104 px), ключи и in-betweens пилотных клипов в порядке раскладки docs/art/clips.md, три палитры рядового заменой 8 тонов swap-*, один экран фона деревни, лист рядами по 10 и .sheet с боксами, бейк assetc + clip_dump (60 строк у монаха, 32 у рядового); на каждом шаге чек-лист приёмки его файла; прислать monk.png/.sheet, bandit.png/.sheet, вывод clip_dump, три варианта рядового рядом, планы деревни, журнал генераций и пункты чек-листов, которые не прошли -->
 
 B1 of spec #29 is not code: it is the package in [`docs/art/`](art/README.md) that takes the pilot's
 art from a style sheet to a sprite sheet the bake reads. Each step there is a prompt, a reference to
@@ -4656,17 +4656,22 @@ attach, an acceptance checklist and what to do when the generator drifts. Whethe
 usable figure, and whether a checklist catches what it should, only a run with the real tools shows;
 no runner has ChatGPT Images or a person who judges a pose.
 
-Steps: the nine of "Порядок пилота" in [`docs/art/README.md`](art/README.md), in that order. Steps
-2–3 and 8 may go in any order after step 1. Each step ends on the acceptance checklist of its file.
+Steps: 0–11 of [`docs/art/workflow.md`](art/workflow.md), in that order; the background (step 10)
+may go at any time after step 1. Each step ends on the acceptance checklist of its file. The editor
+is Pixelorama 1.2.3; clips, boxes and events are the text file `.sheet`, not Aseprite JSON.
 
 What counts as a finding: a checklist item that every attempt fails, or that passes a frame you
 would not ship (the checklist is wrong, not the frame); a step the package does not describe and you
 had to invent; the monk or the bandit off their height by more than 2 px after the grid; a `swap-*`
-tone outside its part after the ramp step; a sheet the guide's export settings do not produce
-(cell, 8 columns, Array, Tags, Slices); a background layer whose seam shows in Tiled Mode. The
+tone outside its part after the ramp step; a sheet the export settings do not produce
+(192×192 cells, rows of 10, 1920×1152 for the monk and 1920×768 for the bandit); a `.sheet` the
+bake refuses although it follows the package, or a `clip_dump` line count other than 60 and 32; a
+step of the box formula in `animation.md` that gives a box off the pixels it was measured on; a
+background layer whose seam shows in Tile Mode. The
 look itself is your call, not a finding of the package.
 
-Send back: `monk.png`/`.json` and `bandit.png`/`.json`, the three bandit variants side by side, the
+Send back: `monk.png`/`.sheet` and `bandit.png`/`.sheet` with their `clip_dump` output, the three
+bandit variants side by side, the
 village layers, the generation log of [`docs/art/export.md`](art/export.md), and the checklist items
 that failed with what you did instead.
 
