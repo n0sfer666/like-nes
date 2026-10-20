@@ -17,7 +17,7 @@ help:
 	$(info Checks:)
 	$(info make check          types and lint from .context/checks.json - the pre-commit pair)
 	$(info make owner-check    scripts/owner_check.sh - report in build/owner-report-OS.txt)
-	$(info make owner          Neon Rumble gates by script in a window - frame sheet, report pushed   ARGS=--no-push)
+	$(info make owner          Neon Rumble gates by script in a window - frame sheet, report pushed   ARGS="--no-push --no-gpu")
 	$(info make preflight      everything CI runs, before push)
 	$(info make ci-watch       CI runs of HEAD after push)
 	$(info Mobile - macOS only:)

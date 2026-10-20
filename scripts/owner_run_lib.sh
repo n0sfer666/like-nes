@@ -1,4 +1,6 @@
 # shellcheck shell=bash
+# shellcheck source=scripts/owner_stage_lib.sh
+. "$(dirname "${BASH_SOURCE[0]}")/owner_stage_lib.sh"
 
 OWNER_RUN_LINES='^neon-rumble: ((seat|hit|react) tick |brawl tick [1-9])'
 
@@ -100,7 +102,10 @@ owner_run_sheet() {
     for dir in "$out"/*/; do
         name=$(basename "$dir")
         keys=$dir/$name.keys
-        [ -f "$keys" ] || continue
+        if [ ! -f "$keys" ]; then
+            [ ! -f "$dir/summary" ] || owner_stage_sheet "$dir"
+            continue
+        fi
         printf '<h2 id="%s">%s</h2>\n<pre>' "$name" "$name"
         owner_run_html_escape < "$dir/verdict.txt"
         printf '</pre>\n'
@@ -146,11 +151,12 @@ owner_run_publish() (
 owner_run_manual() {
     local doc=$1 covered
     shift
-    covered=$(for k in "$@"; do owner_run_directive "$k" gate; done | tr ' ' '\n' | sort -u | tr '\n' ' ')
+    covered=$({ for k in "$@"; do owner_run_directive "$k" gate; done; printf '%s\n' "${OWNER_RUN_COVERED:-}"; } \
+        | tr ' ' '\n' | grep . | sort -u | tr '\n' ' ')
     owner_gates_open_lines "$doc" | awk -v c=" $covered" -v s="(§" '
         { n = substr($0, index($0, s) + length(s)); sub(/ .*$/, "", n) }
         index(c, " " n " ") { sheet = sheet (sheet == "" ? "" : ", ") "§" n }
         { print }
-        END { if (sheet != "") print "  scenarios drive " sheet " - read every frame of the sheet, the rest of the gate is above" }
+        END { if (sheet != "") print "  the run drives " sheet " - read its verdicts and frames on the sheet, the rest of the gate is above" }
     '
 }

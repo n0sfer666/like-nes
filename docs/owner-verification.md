@@ -204,8 +204,9 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 
 ```sh
 make owner                      # Windows: scripts\win-dev.bat owner
-make owner ARGS=--no-push       # keep the report on this machine; Windows takes one flag:
-                                # scripts\win-dev.bat owner --no-push
+make owner ARGS=--no-push       # keep the report on this machine; Windows takes up to two flags:
+                                # scripts\win-dev.bat owner --no-push --no-gpu
+make owner ARGS=--no-gpu        # skip the gpu stage
 ```
 
 It builds the SDK and the game (`check_sdk_game.sh --keep`; `--no-build` skips it), then opens the
@@ -238,12 +239,37 @@ PASS  g32-wave (gates 32)
 PASS  g33-section (gates 33)
 PASS  g35-hotseat (gates 35)
 PASS  g35-street (gates 35)
+owner-run: stage gpu
+PASS  gpu (gates 8 12)
+      note  §8 adapter <adapter> | <backend> - not AMD, §8 stays open for an AMD machine
+owner-run: stage phone
+SKIP  phone - no phone in adb devices
+owner-run: stage aseprite
+SKIP  aseprite - ASEPRITE_QUEEN is unset - name the Queen.ase marked by steps 1-3 of §19
 owner-run: frame sheet build-owner-run/<run>/index.html
 owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
 owner-run: open gates - what the run judges, then what is left by hand:
   #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
+  the run drives §8, §12 - read its verdicts and frames on the sheet, the rest of the gate is above
 owner-run: PASS
 ```
+
+After the scenarios come three stages, each `PASS`, `FAIL` or `SKIP` with its reason, its output in
+the report and its frames on the sheet; a run of named scenarios (`make owner ARGS=g30-wave.keys`)
+repeats only those and runs no stage. **gpu** (§8, §12) builds `game_sidescroller` and
+`light_golden` in `build/`: the shooter frame against `scene_960x540.png` with its selftest and the
+`[gpu]` line — only an AMD adapter answers §8, any other is a `note` — and the lit frame with its
+table counts, against the Metal reference on macOS; `lights.png` and the unlit frame go on the sheet
+for the eight questions of §12. **phone** (§34, §36) takes the one Android phone in `adb devices`
+(an emulator does not count, and the phone must run `arm64-v8a` first — not under translation):
+`android_rumble.sh`, then `mobile_bench.sh android` twice, which wants a green CI on HEAD — without
+one §34 is a `note` and the stage judges §36 alone; a connected iPhone gets a `note` with its model
+and the command to run by hand. **aseprite** (§19)
+runs when `ASEPRITE_QUEEN` names the `Queen.ase` marked by steps 1-3 (`ASEPRITE` names the binary
+when it is not on `PATH`): the export by the command of the guide, and with `ASEPRITE_GUI=<folder>`
+also the export from the menu — `make owner ASEPRITE_QUEEN=<path> ASEPRITE_GUI=<folder>`, on Windows
+`set ASEPRITE_QUEEN=<path>` before `scripts\win-dev.bat owner`. No phone or no variable is a `SKIP`,
+not a `FAIL`.
 
 The report is committed to the ref `refs/owner-runs/main` of the repository, not to a branch: a
 push to any branch starts CI on three OSes, and a report is not code. Nothing has to be sent by
@@ -254,9 +280,9 @@ hand; to look at it from another machine, `git fetch origin refs/owner-runs/main
 plays, tick for tick; the frame sheet is the other half. Open `index.html` in a browser and read
 every frame against the line under it — that line names the section and what the frame must show.
 The list under `open gates` is every open gate with what is left of it by hand — pads, two people,
-a second machine — and a `scenarios drive §…` line names the open ones a scenario has walked part
-of. Every gate the scenarios cover (§22–§28, §30–§33, §35) closed on 2026-10-20, so that line is
-absent now and the run is their regression check: a `FAIL` names the gate whose closing it
+a second machine — and a `the run drives §…` line names the open ones a scenario or a stage has
+walked part of. Every gate the scenarios cover (§22–§28, §30–§33, §35) closed on 2026-10-20, and the
+run is their regression check: a `FAIL` names the gate whose closing it
 contradicts, and a commit touching its right-hand column is a reason to run `make owner` again.
 A `FAIL` prints the mismatch under the scenario: the line that differs, the expected line that
 never came, the line that must not be there, the frame the window did not write, or the window that
@@ -1471,7 +1497,7 @@ With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
-<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остался AMD -->
+<!-- gate: open | make owner — стадия gpu: game_sidescroller --golden scene_960x540.png --golden-selftest (control, repeat, frame PASS) и строка [gpu]; адаптер AMD или Radeon — ответ гейта, другой — note и гейт открыт; промах кладёт кадр g8-actual.png на лист; руками: make owner на машине с AMD, прислать отчёт; эталон не перепекать -->
 
 > **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
 > frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
@@ -1858,7 +1884,7 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 
 ## 12. Gate 7 of #18 — the lit frame on a real GPU
 
-<!-- gate: open | освещённый кадр на живом GPU: куда падает свет и где ложится тень -->
+<!-- gate: open | make owner — стадия gpu: light_golden — 5 источников, normals 5/2/0, occluders 4/3/0, light-gpu: PASS, на macOS ещё сверка с lights_640x360.png; кадры lights.png и materials-unlit.png на листе; руками: восемь вопросов §12 по кадру lights.png — куда падает свет и где ложится тень (вопрос 7, fill внутри диска, — открытый пункт), прислать ответы и адаптер -->
 
 > **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
 > pass switched off returns the material frame byte for byte, switched on it changes that frame, a
@@ -3103,7 +3129,7 @@ then replace the hand-written ones in the tree.
 
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; тот же экспорт командой из docs/en/guide/aseprite-animations.md во второй каталог — те же четыре ok и PASS; прислать queen.json -->
+<!-- gate: open | make owner — стадия aseprite при ASEPRITE_QUEEN=<размеченный Queen.ase> (ASEPRITE=<бинарь>, если aseprite не в PATH): экспорт командой из docs/en/guide/aseprite-animations.md, лист 592x300, bash scripts/aseprite_owner_check.sh — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; при ASEPRITE_GUI=<каталог> то же для экспорта из меню; queen.json в отчёте; руками: разметить Queen.ase в Aseprite 1.3 — slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт из меню By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices в каталог ASEPRITE_GUI -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
@@ -4488,7 +4514,7 @@ is 0.
 
 ## 34. Gate 14 of #25 — the resim bench on the weakest phone
 
-<!-- gate: open | самый слабый телефон (iOS или Android): bash scripts/mobile_bench.sh ios-device или android после зелёного CI на HEAD (шаг 6 §R owner-setup.txt); два прогона, ждать «against …: match» и «brawl-resim-bench: PASS»; прислать строку [bench], строки frame p50/p99 худшего прогона и вердикт -->
+<!-- gate: open | make owner — стадия phone: Android-телефон в adb (эмулятор не в счёт, первый ABI arm64-v8a), bash scripts/mobile_bench.sh android дважды после зелёного CI на HEAD — «against …: match» и «brawl-resim-bench: PASS», строка [bench] и frame p50/p99 худшего прогона в отчёте; руками: самый слабый телефон — iPhone через bash scripts/mobile_bench.sh ios-device и Cmd+R в Xcode (шаг 6 §R owner-setup.txt), два прогона; прислать строку [bench], p50/p99 худшего прогона и вердикт -->
 
 B9d of spec #25 builds `brawl_resim_bench` as the second entry of the iOS and Android shells: the same
 function the desktop bench and CI run, in an app with a black screen and no game
@@ -4617,7 +4643,7 @@ is 0.
 
 ## 36. Gate 1 of #26 — Neon Rumble on an Android phone
 
-<!-- gate: open | телефон Android 10+ по USB: bash scripts/check_sdk_game.sh --keep, затем bash scripts/android_rumble.sh (шаг 5а §R owner-setup.txt); ждать «as the phone» и «[android-rumble] PASS»; руками с logcat -s like-nes: Home и возврат из недавних, поворот, экран кнопкой питания на 5 с — каждая пара detached / attached с равными tick и world, драка идёт дальше; прислать модель и версию Android, строки скрипта и пары detached / attached из logcat -->
+<!-- gate: open | make owner — стадия phone: Android 10+ по USB в adb (эмулятор не в счёт, первый ABI arm64-v8a), после сборки check_sdk_game.sh --keep — bash scripts/android_rumble.sh, «as the phone» и «[android-rumble] PASS», модель, версия Android и phone.logcat в отчёте; руками: с adb logcat -s like-nes — Home и возврат из недавних, поворот, экран кнопкой питания на 5 с — каждая пара detached / attached с равными tick и world, драка идёт дальше; прислать пары detached / attached из logcat -->
 
 B1 of spec #26 moved the mobile shells into the SDK: Neon Rumble is a `mobile::Game` built against
 an installed mobile prefix, not against the tree, and on Android every trip to the background takes
