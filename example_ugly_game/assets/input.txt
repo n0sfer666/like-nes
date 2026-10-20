@@ -2,7 +2,7 @@
 # fire = действие 0 — ровно то, что раньше было прошито в controls.cpp.
 preset | default
 
-action | fire   | key:space | mouse:left | pad:south
+action | fire   | key:space | mouse:left | pad:south | touch:a
 
 # Прыжок платформера — отдельным действием, а не переиспользованным `fire`: раскладка есть данные,
 # и владелец, переназначающий кнопку прыжка, обязан найти в ней слово `jump`, а не догадываться,
@@ -13,9 +13,11 @@ action | jump   | key:space | key:up | pad:south
 axis   | move_x | key:d | key:a
 axis   | move_x | key:right | key:left
 axis   | move_x | padaxis:lx | -
+axis   | move_x | touch:stick_x | -
 axis   | move_y | key:w | key:s
 axis   | move_y | key:up | key:down
 axis   | move_y | padaxis:-ly | -
+axis   | move_y | touch:-stick_y | -
 
 # Мёртвая зона нужна только стику: у клавиш значение и так ±1, а зона на паре осей — круговая,
 # поэтому move_x и move_y объявлены парой.

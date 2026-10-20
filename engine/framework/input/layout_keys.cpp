@@ -8,6 +8,10 @@ bool key_edge(const ::input::Source& s, const ::input::DeviceState& now, const :
     return s.kind == ::input::SourceKind::Key && now.key_down(s.code) && !prev.key_down(s.code);
 }
 
+bool touch_edge(const ::input::Source& s, const ::input::DeviceState& now, const ::input::DeviceState& prev) {
+    return s.kind == ::input::SourceKind::TouchButton && now.touch_down(s.code) && !prev.touch_down(s.code);
+}
+
 } // namespace
 
 bool layout_key_pressed(const ::input::ActionLayout& layout, const ::input::DeviceState& now,
@@ -16,6 +20,13 @@ bool layout_key_pressed(const ::input::ActionLayout& layout, const ::input::Devi
         if (key_edge(b.src, now, prev)) return true;
     for (const ::input::AxisBinding& a : layout.axes())
         if (key_edge(a.pos, now, prev) || key_edge(a.neg, now, prev)) return true;
+    return false;
+}
+
+bool layout_touch_pressed(const ::input::ActionLayout& layout, const ::input::DeviceState& now,
+                          const ::input::DeviceState& prev) {
+    for (const ::input::ActionBinding& b : layout.buttons())
+        if (touch_edge(b.src, now, prev)) return true;
     return false;
 }
 

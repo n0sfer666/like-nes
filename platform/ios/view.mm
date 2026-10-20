@@ -9,6 +9,7 @@
 #include "mobile_app.hpp"
 
 #import "metal_view.h"
+#import "touch_probe.h"
 #import "weak_proxy.h"
 
 // Оболочка не знает, какую игру держит: всё игровое — за mobile::Game из make_game().
@@ -76,6 +77,7 @@
     }
     probe_ = [NSProcessInfo.processInfo.arguments containsObject:@"--touch-probe"];
     run_ = NSProcessInfo.processInfo.environment[@"LIKE_NES_TOUCH_RUN"] ?: @"-";
+    if (probe_) probe_expose_safe_area(self.view);
     started_ = true;
     NSLog(@"[game] iOS shell up: %ux%u", fb_w_, fb_h_);
 
@@ -166,17 +168,8 @@
         // Граница ObjC: id касания — адрес UITouch, UIKit держит один объект на всё касание.
         const intptr_t id = reinterpret_cast<intptr_t>(t);
         game_->pointer(id, phase, static_cast<float>(p.x), static_cast<float>(p.y));
-        if (probe_) [self probe:id phase:phase at:p];
+        if (probe_) probe_log(id, phase, p, game_->touch_state(), run_);
     }
-}
-
-// Строка на касание с состоянием ПОСЛЕ него: XCUITest проигрывает жест целиком, и гейт
-// (`scripts/ios_sim_gate.sh`) судит историю из системного лога. id32 — усечение до int, каким id был
-// до B8: улика, что оно не склеивает касания. run — нонс прогона: чужие строки вердикт отбрасывает.
-- (void)probe:(intptr_t)id phase:(mobile::Touch)phase at:(CGPoint)p {
-    static const char* const kPhase[] = {"down", "move", "up"};
-    NSLog(@"[touch] %s id=%ld id32=%d x=%.0f y=%.0f %s run=%@", kPhase[static_cast<int>(phase)],
-          static_cast<long>(id), static_cast<int32_t>(id), p.x, p.y, game_->touch_state().c_str(), run_);
 }
 
 - (void)touchesBegan:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {

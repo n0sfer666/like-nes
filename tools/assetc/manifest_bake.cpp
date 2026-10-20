@@ -99,40 +99,53 @@ bool font(Bake& b, const Record& r, const std::string& file, std::vector<framewo
     return true;
 }
 
-bool credits(Bake& b, const Record& r, const std::string& file) {
-    std::vector<uint8_t> bytes;
-    if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
-        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 1 MiB)");
+bool credits(Bake& b, const Record& r, const std::string& file, const std::string& text) {
     std::vector<framework::core::CreditSrc> src;
     std::string why;
-    if (!framework::core::parse_credits(std::string(bytes.begin(), bytes.end()), file, src, why) ||
-        !bakers::credits(r.name.c_str(), src, b.assets, why))
+    if (!framework::core::parse_credits(text, file, src, why) || !bakers::credits(r.name.c_str(), src, b.assets, why))
         return fail(b, r.line, why);
     return true;
 }
+
+bool touch(Bake& b, const Record& r, const std::string& file, const std::string& text) {
+    framework::touch::Layout layout;
+    std::string why;
+    if (!framework::touch::parse_layout(text, file, layout, why) ||
+        !bakers::touch(r.name.c_str(), layout, b.assets, why))
+        return fail(b, r.line, why);
+    return true;
+}
+
+struct TextRecord {
+    Record record;
+    std::string file, text;
+};
 
 struct Gathered {
     std::vector<framework::tiled::Level> levels;
     std::vector<framework::graphics::ClipSrc> clips;
     std::vector<framework::graphics::FontSrc> fonts;
-    std::vector<std::pair<Record, std::string>> fighters;
+    std::vector<TextRecord> fighters;
     uint32_t last_level = 0, last_clips = 0, last_font = 0;
 };
 
-bool fighter(Bake& b, const Record& r, const std::string& file, std::span<const framework::graphics::ClipSrc> clips) {
-    std::vector<uint8_t> bytes;
-    if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
-        return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 1 MiB)");
+bool fighter(Bake& b, const TextRecord& f, std::span<const framework::graphics::ClipSrc> clips) {
+    const Record& r = f.record;
     framework::brawl::FighterBakeError err;
-    if (bakers::fighter(r.name.c_str(), std::string(bytes.begin(), bytes.end()), clips, b.assets, err)) return true;
+    if (bakers::fighter(r.name.c_str(), f.text, clips, b.assets, err)) return true;
     const std::string at = err.line > 0 ? ":" + std::to_string(err.line) : "";
-    return fail(b, r.line, file + at + ": " + err.message);
+    return fail(b, r.line, f.file + at + ": " + err.message);
 }
 
 bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src, Gathered& g) {
-    if (r.kind == "credits") return credits(b, r, file);
-    if (r.kind == "fighter") {
-        g.fighters.emplace_back(r, file);
+    if (r.kind == "credits" || r.kind == "touch" || r.kind == "fighter") {
+        std::vector<uint8_t> bytes;
+        if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
+            return fail(b, r.line, "cannot read " + file + " (missing, unreadable or over 1 MiB)");
+        const std::string text(bytes.begin(), bytes.end());
+        if (r.kind == "credits") return credits(b, r, file, text);
+        if (r.kind == "touch") return touch(b, r, file, text);
+        g.fighters.push_back({r, file, text});
         return true;
     }
     if (r.kind == "level") {
@@ -179,8 +192,8 @@ bool bake(Bake& b) {
     if (!g.levels.empty() && !bakers::levels(g.levels, b.assets, why)) return fail(b, g.last_level, why);
     if (!g.clips.empty() && !bakers::clips(g.clips, b.assets, why)) return fail(b, g.last_clips, why);
     if (!g.fonts.empty() && !bakers::fonts(g.fonts, b.assets, why)) return fail(b, g.last_font, why);
-    for (const auto& [r, file] : g.fighters)
-        if (!fighter(b, r, file, g.clips)) return false;
+    for (const TextRecord& f : g.fighters)
+        if (!fighter(b, f, g.clips)) return false;
     return true;
 }
 

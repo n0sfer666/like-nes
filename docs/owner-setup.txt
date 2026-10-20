@@ -140,6 +140,85 @@ Windows — короткий путь, из любого шелла:
 Windows — руками, из x64 Native Tools Command Prompt:
   "C:\Program Files\Git\bin\bash.exe" scripts/owner_check.sh
 
+Короткий путь — make в корне (macOS и Linux; Windows — make из
+winget install ezwinports.make, цели сборки и игр уходят в win-dev.bat).
+Сборка и запуск — РАЗНЫЕ цели: запуск сборку не делает, а проверяет бинарь.
+
+  make                    список целей
+  make build              build/ целиком;  make rumble-build — SDK + Neon Rumble
+  make sidescroller       ./build/game_sidescroller
+  make rumble             ./build-sdk-work/game-Release/neon_rumble
+  make rumble "ARGS=--coop"           аргументы игре — одной строкой в кавычках
+  make check              types + lint из .context/checks.json
+  make owner              гейты Neon Rumble сценарием в окне — ниже
+  make ios-shooter | ios-rumble | android-rumble    только macOS, см. раздел R
+
+  Бинаря нет — отказ без запуска:
+    make: build-sdk-work/game-Release/neon_rumble is missing - build it: make rumble-build
+  Вход цели новее бинаря (по графу ninja: исходник или заголовок, который
+  цель действительно собирает; чужой main.cpp не в счёт) — запуск идёт, но
+  первой строкой:
+    make: warning: <файл> changed after <бинарь> was built - rebuild: make <цель>
+  Префикс build-sdk-work собран не на HEAD (любой коммит после rumble-build):
+    make: SDK prefix in build-sdk-work is 0.1.0-dev+<sha>, HEAD is <sha> - rebuild: make rumble-build
+  rumble с этим только предупреждает, ios-rumble и android-rumble отказывают
+  сразу: их скрипты упали бы на том же после минут мобильной сборки.
+  Windows: make sidescroller "GPU=low" = scripts\win-dev.bat game low (оно
+  ДОСОБИРАЕТ game_sidescroller, ARGS не передаются); make rumble "ARGS=..." =
+  scripts\win-dev.bat rumble ... (до трёх аргументов); make rumble-build =
+  scripts\win-dev.bat sdk. Проверок свежести и префикса на Windows нет — только
+  наличие exe: neon_rumble.exe missing - run: scripts\win-dev.bat sdk.
+  check/types/lint/preflight/ci-watch и мобильные на Windows отказывают с кодом 1.
+
+Оконная половина гейтов Neon Rumble — ОДНОЙ командой (Windows:
+scripts\win-dev.bat owner; без отправки отчёта — make owner "ARGS=--no-push",
+на Windows scripts\win-dev.bat owner --no-push — там флаг ровно один). Linux — из десктоп-сессии,
+X11 и Wayland — отдельными прогонами: <os> в имени прогона их различает.
+
+  make owner
+
+Собирает SDK и игру (check_sdk_game.sh --keep, минуты), затем открывает окно
+игры на каждый сценарий games/neon-rumble/owner/*.keys. Клавиши жмёт
+сценарий, клавиатура и пад на прогон отключены, окно закрывается само.
+Ожидаемый вывод построчно:
+
+  owner-run: <yymmdd-hhmmss>-<os> at <sha>, report in build-owner-run/<прогон>
+  owner-run: build - bash scripts/check_sdk_game.sh --keep, log in build-owner-run/<прогон>/build.log
+  PASS  b3-fight (gates 22 23 24 25 26 27 28)
+  PASS  g22-strikes (gates 22)
+  PASS  g23-fall (gates 23)
+  PASS  g24-chain (gates 24)
+  PASS  g25-run (gates 25)
+  PASS  g26-block-roll (gates 26)
+  PASS  g27-grab (gates 27)
+  PASS  g28-one-fight (gates 28)
+  PASS  g30-wave (gates 30)
+  PASS  g31-stage (gates 31)
+  PASS  g32-keep (gates 32)
+  PASS  g32-menu (gates 32)
+  PASS  g32-nope (gates 32)
+  PASS  g32-wave (gates 32)
+  PASS  g33-section (gates 33)
+  PASS  g35-hotseat (gates 35)
+  PASS  g35-street (gates 35)
+  owner-run: frame sheet build-owner-run/<прогон>/index.html
+  owner-run: pushed <sha> to refs/owner-runs/main, folder <прогон>
+  owner-run: open gates - what the run judges, then what is left by hand:
+    #<спека> гейт <N> ОТКРЫТ — <что делать> (§<N> руководства)
+    ...
+  owner-run: PASS
+
+FAIL у сценария печатает под собой расхождение: строка hit/react не та, хеш
+не тот, ожидаемой строки нет. Отчёт уходит в ref refs/owner-runs/main
+репозитория — его читает агент, присылать ничего не надо. Лист кадров
+index.html открыть в браузере и пролистать: под каждым кадром — что на нём
+должно быть. Под "open gates" — все открытые гейты с тем, что в них
+осталось руками (пады, двое людей, вторая машина); строка "scenarios drive"
+называет открытые, часть которых прошёл сценарий. Все гейты сценариев
+(§22–§28, §30–§33, §35) закрыты 2026-10-20 — строки нет, а прогон стал их
+регрессией: FAIL называет гейт, закрытию которого он противоречит.
+Шаги — в owner-verification.md.
+
 Windows, ОДИН РАЗ НА МАШИНУ, до первого прогона — из PowerShell админом:
 
   Add-MpPreference -ExclusionPath 'C:\путь\к\like-nes'
@@ -354,23 +433,28 @@ Windows: не открывать проект как папку в самой Vi
   ./build/assetc --game example_ugly_game/assets ./rebake.bundle
 
   Должен напечатать:
-    [assetc] bundle_hash = 0x1a557ae839e76ea0
+    [assetc] bundle_hash = 0x70722c5366978d6d
 
-  Это тот же хеш, что на macOS. Отличается — значит бейк не детерминирован
-  между ОС, и это находка (пришли строку целиком).
+  Это тот же хеш, что на macOS, при basisu 2.10: версия кодировщика пишется
+  внутрь текстуры, и basisu 2.50 даёт другие байты и другой хеш (`basisu
+  -version` покажет свою). При той же версии хеш отличается — значит бейк не
+  детерминирован между ОС, и это находка (пришли строку целиком).
+  Хеш выведен агентом, а не воспроизведён этой командой: у агента basisu
+  2.50, и бандл перепечён с текстурой прежнего бандла (её байты от 2.10).
+  Первое воспроизведение командой выше — ваше.
 
   Шаг остался ручным ТОЛЬКО из-за текстуры: ей нужен basisu, которого нет ни
   на раннерах, ни на чистой машине. tint в команде тоже назван, но зовётся он
   лишь на шейдерах (engine/asset/codec.cpp), а их в наборе игры-образца нет:
   бейк проходит и без него. Секции, которые пекутся чистыми парсерами
-  (input.txt, achievements.txt, movement.txt, tilemap.txt, atlas.txt), с 2026-08-08
-  сверяются машинно и на трёх ОС:
+  (input.txt, achievements.txt, movement.txt, tilemap.txt, atlas.txt,
+  touch.txt), с 2026-08-08 сверяются машинно и на трёх ОС:
 
     ./build/assetc --verify-game example_ugly_game/assets \
         example_ugly_game/assets/game.bundle
 
   Должен напечатать:
-    [assetc] verify: PASS - 5 tool-free section(s) checked against ...
+    [assetc] verify: PASS - 6 tool-free section(s) checked against ...
 
   Отдельно гонять не надо — это шаг CI и этап preflight. Здесь он назван,
   чтобы `bundle_hash` выше читался как проверка ИМЕННО текстурного бейка.
@@ -1648,6 +1732,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     bash scripts/ios_sim_run.sh
 
+  Через make: make ios-shooter.
+
   Скрипт собирает build-ios (первая сборка — минуты: wgpu-native из Rust),
   находит или заводит устройство like-nes-play-iOS-27-0 (имя несёт рантайм;
   повторный запуск двойника НЕ создаёт), загружает его, открывает окно,
@@ -1677,7 +1763,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
   погасить симуляторы.
 
   На экране — титул «LIKE NES / SIDESCROLLER», звёзды, корабль, светящаяся
-  кнопка огня справа внизу. «procedural atlas» здесь норма: GPU симулятора не
+  кнопка огня справа внизу, в 68 точках от угла безопасной зоны. Стика в
+  покое не видно: база и ручка появляются под пальцем на левой половине. «procedural atlas» здесь норма: GPU симулятора не
   умеет BC7. Симулятор НЕ заменяет устройство — GPU у него хостовый, а
   жест синтезирован, а не поставлен пальцами.
 
@@ -1718,6 +1805,8 @@ owner_check.sh гоняет это отдельным этапом сразу п
     bash scripts/check_sdk_game.sh --keep
     bash scripts/ios_sim_rumble.sh
 
+  Через make: make rumble-build, затем make ios-rumble.
+
   Скрипт собирает build-sdk-ios-sim (первая сборка — минуты), ставит из
   него iOS-префикс в пустой временный каталог, собирает игру против него в
   build-sdk-work/game-ios-sim, запускает её, уводит в фон (Настройки) и
@@ -1751,7 +1840,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
     [ios-sim] ok: simulator like-nes-gate-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0
     [ios-sim] ok: UI test passed (view: platform/ios/view.mm)
     [ios-sim] ok: no runtime warnings, minimum iOS 17.0 in binary and Info.plist
-    [ios-touch] ok: stick=<id> fire=<id> held together; 42 events; int-truncated ids distinct
+    [ios-touch] ok: stick=<id> a=<id> held together; 42 events; int-truncated ids distinct
     [ios-sim] ok: 2 screenshots rendered, evidence in <каталог>
     [ios-sim] PASS
 
@@ -1793,7 +1882,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
   поставить на iPhone. Смотреть: те же пять строк [game] в консоли Xcode
   (Devices and Simulators → Open Console, фильтр like_nes_ios), в игре —
   стик левым пальцем и огонь правым ОДНОВРЕМЕННО (в симуляторе это держит
-  шаг 3, на железе — только вы), звук слышен. Бесшумный режим
+  шаг 3, на железе — только вы), звук слышен. Стик берётся только на левой
+  половине экрана: база встаёт под палец и тянется за ним дальше радиуса;
+  касание справа мимо кнопки не делает ничего — так задумано. Кнопка не
+  должна лежать под полосой жестов внизу: её угол — угол безопасной зоны. Бесшумный режим
   (переключатель сбоку) глушит игру — так задумано: сессия SoloAmbient, как
   у обычного приложения. Звука нет при ВЫКЛЮЧЕННОМ бесшумном — дефект:
   сессию больше не активирует и не деактивирует явный setActive (он
@@ -1821,7 +1913,9 @@ owner_check.sh гоняет это отдельным этапом сразу п
   строки [gpu] и [game], что в симуляторе (BC на телефоне, скорее всего, тоже
   «no» — это норма). Строка «asset unpack failed: <бандл>» — дефект: бандл не
   доехал из APK в песочницу. В игре — то же, что на iPhone: стик + огонь
-  разом, звук.
+  разом, звук. Отличие до В2г спеки #26: оболочка Android безопасную зону
+  ещё не отдаёт, и кнопка стоит в 68 точках от угла экрана — под полосой
+  жестов она может не нажиматься, это известный долг, а не находка.
 
   Уход в фон и возврат (НЕ прогнано агентом: ни телефона, ни образа
   эмулятора). С открытым logcat -s like-nes:
@@ -1848,6 +1942,12 @@ owner_check.sh гоняет это отдельным этапом сразу п
 
     bash scripts/check_sdk_game.sh --keep
     bash scripts/android_rumble.sh
+
+  Через make (прогнано агентом на эмуляторе Pixel_4, Android 16, arm64-v8a):
+  make rumble-build, затем make android-rumble — на эмуляторе
+  без телефона: нет устройства в adb devices — make поднимает первый AVD
+  (emulator -list-avds; другой — make android-rumble "AVD=<имя>") и ждёт
+  загрузки. Эмулятор на Apple Silicon — arm64-v8a, ABI по умолчанию.
 
   Скрипт собирает build-sdk-android-arm64-v8a (первая сборка — минуты),
   ставит из него префикс в пустой временный каталог, собирает игру против
@@ -1986,6 +2086,10 @@ owner_check.sh гоняет это отдельным этапом сразу п
       scripts\win-dev.bat shell
       "%ProgramFiles%\Git\bin\bash.exe" scripts/check_sdk_game.sh --keep
       build-sdk-work\game-Release\neon_rumble.exe --frames 600
+
+  То же без второго окна: scripts\win-dev.bat sdk, затем
+  scripts\win-dev.bat rumble --frames 600 (или make rumble-build, затем
+  make rumble "ARGS=--frames 600").
 
   Первый прогон конфигурирует оба каталога с FetchContent (на macOS около
   двух минут), повторный — секунды. Ожидаемый вывод гейта (macOS):

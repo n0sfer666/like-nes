@@ -1,14 +1,10 @@
 #include "input_setup.hpp"
 
-#include <chrono>
 #include <cstdio>
-#include <cstring>
 #include <string>
-#include <thread>
 
-#include "asset_manager.hpp"
 #include "assets_path.hpp"
-#include "hash.hpp"
+#include "bundle_asset.hpp"
 #include "player_layout.hpp"
 #include "profile_file.hpp"
 
@@ -18,31 +14,11 @@ namespace {
 const char* PRESET_NAME = "default";
 const char* PROFILE_FILE = "controls.txt";
 
-bool read_preset_asset(const std::string& bundle_path, std::vector<uint8_t>& out) {
-    asset::AssetManager am;
-    if (!am.open(bundle_path, 256u * 1024, /*trusted=*/false)) return false;
-    const uint64_t g = asset::fnv1a("input", std::strlen("input"));
-    am.request(g);
-    for (int f = 0; f < 500; ++f) {
-        am.sync_point();
-        if (am.is_ready(g)) break;
-        std::this_thread::sleep_for(std::chrono::microseconds(200));
-    }
-    if (!am.is_ready(g)) {
-        am.close();
-        return false;
-    }
-    const asset::Loaded a = am.get(g);
-    out.assign(static_cast<const uint8_t*>(a.data), static_cast<const uint8_t*>(a.data) + a.size);
-    am.close();
-    return true;
-}
-
 } // namespace
 
 bool load_controls(Controls& out, const std::string& bundle_path) {
     const std::string bundle = bundle_path.empty() ? resolve_bundle_path() : bundle_path;
-    if (bundle.empty() || !read_preset_asset(bundle, out.blob)) {
+    if (bundle.empty() || !read_bundle_asset(bundle, "input", out.blob)) {
         std::fprintf(stderr, "[game] controls: no input preset in bundle -> no controls\n");
         return false;
     }
@@ -67,7 +43,7 @@ bool load_controls(Controls& out, const std::string& bundle_path) {
         return false;
     }
 
-    if (!out.map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true})) {
+    if (!out.map.assign_player(0, {.pad_slot = 0, .use_kbd_mouse = true, .use_touch = true})) {
         std::fprintf(stderr, "[game] controls: devices were not assigned\n");
         return false;
     }

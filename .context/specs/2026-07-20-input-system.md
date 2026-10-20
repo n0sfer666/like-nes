@@ -104,7 +104,9 @@ OS-устройства (kbd/mouse/трекпад/gamepad, hot-plug)
   `push_context/pop_context`, `consume`; rebind: `listen_next(Action)`.
 - **InputSource (HAL):** `poll(sink)` / `set_rumble(dev, lo, hi, ms)` / `caps()` — native-бэкенды +
   null/synthetic. Hot-plug через колбэк-события в sink.
-- **InputBuffer:** `pressed_within(Action, n_ticks)`; ring последних N `InputFrame`.
+- **InputBuffer:** `pressed_within(Action, n_ticks)`; `latest(span)` — последние
+  min(count, N, span) кадров от старого к новому (окно жестов, `dodge_flick`); ring последних N
+  `InputFrame`.
 - **Player assignment:** `assign(device, slot)` / `on_unplug(device)`.
 
 ## UI/UX

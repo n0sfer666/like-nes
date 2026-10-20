@@ -1,0 +1,155 @@
+# §30: --wave, banderas идёт к арене 0 и стоит под двумя adler до нокаута — встаёт на чекпоинте 600
+# с полным hp и 119 тиками неуязвимости, ударов по нему в эти тики нет; затем J каждые 12 тиков
+# выбивает волну, wave 1 приходит через 120 тиков, выбитых adler на улице нет.
+! args --wave
+! gate 30
+! expect checkpoint tick 200: order 0 at 600,248
+! expect arena tick 256: arena 0 locked
+! expect wave tick 256: arena 0 wave 0, adler#3 adler#4$
+! expect hit tick 320: adler#3/jab -> banderas#1, damage 6, hp 94
+! expect hit tick 719: adler#3/kick -> banderas#1, damage 12, hp 0
+! expect knockout tick 720: banderas#1, back as banderas#5 at 600,248 immune 119
+! expect hit tick 1133: adler#4/jab -> banderas#5, damage 6, hp 94
+! expect knockout tick 1192: adler#4
+! expect knockout tick 1328: adler#3
+! expect wave tick 1328: arena 0 wave 0 cleared
+! expect wave tick 1448: arena 0 wave 1, adler#6 adler#7 adler#8$
+! absent hit tick (7[2-9][0-9]|8[0-2][0-9]|83[0-8]): adler#[0-9]+/[a-z_]+ -> banderas
+! absent brawl tick .*adler#[34] [0-9]
+! look ring §30: бьёт один adler, второй ждёт за ним вне удара — жетон атаки один; кольцо вокруг banderas — на глаз в живом окне
+! look knockout §30: banderas#5 встал на чекпоинте 600 внутри вида, hp 100
+! look wave-1 §30: тройка wave 1 встаёт справа вида
+menu 1 tap ENTER
+level
+1 down D
+1 down W
+17 up W
+270 up D
+722 tap J
+734 tap J
+746 tap J
+758 tap J
+770 tap J
+782 tap J
+794 tap J
+806 tap J
+818 tap J
+830 tap J
+842 tap J
+854 tap J
+866 tap J
+878 tap J
+890 tap J
+902 tap J
+914 tap J
+926 tap J
+938 tap J
+950 tap J
+962 tap J
+974 tap J
+986 tap J
+998 tap J
+1010 tap J
+1022 tap J
+1034 tap J
+1046 tap J
+1058 tap J
+1070 tap J
+1082 tap J
+1094 tap J
+1106 tap J
+1118 tap J
+1130 tap J
+1142 tap J
+1154 tap J
+1166 tap J
+1178 tap J
+1190 tap J
+1202 tap J
+1214 tap J
+1226 tap J
+1238 tap J
+1250 tap J
+1262 tap J
+1274 tap J
+1286 tap J
+1298 tap J
+1310 tap J
+1322 tap J
+1334 tap J
+1346 tap J
+1358 tap J
+1370 tap J
+1382 tap J
+1394 tap J
+1406 tap J
+1418 tap J
+1430 tap J
+1442 tap J
+1454 tap J
+1466 tap J
+1478 tap J
+1490 tap J
+1502 tap J
+1514 tap J
+1526 tap J
+1538 tap J
+1550 tap J
+1562 tap J
+1574 tap J
+1586 tap J
+1598 tap J
+1610 tap J
+1622 tap J
+1634 tap J
+1646 tap J
+1658 tap J
+1670 tap J
+1682 tap J
+1694 tap J
+1706 tap J
+1718 tap J
+1730 tap J
+1742 tap J
+1754 tap J
+1766 tap J
+1778 tap J
+1790 tap J
+1802 tap J
+1814 tap J
+1826 tap J
+1838 tap J
+1850 tap J
+1862 tap J
+1874 tap J
+1886 tap J
+1898 tap J
+1910 tap J
+1922 tap J
+1934 tap J
+1946 tap J
+1958 tap J
+1970 tap J
+1982 tap J
+1994 tap J
+2006 tap J
+2018 tap J
+2030 tap J
+2042 tap J
+2054 tap J
+2066 tap J
+2078 tap J
+2090 tap J
+2102 tap J
+2114 tap J
+2126 tap J
+2138 tap J
+2150 tap J
+2162 tap J
+2174 tap J
+2186 tap J
+2198 tap J
+300 shot ring
+730 shot knockout
+1460 shot wave-1
+2300 quit

@@ -1,0 +1,20 @@
+# §32: --wave выделяет «wave level1». Первый вход берёт чекпоинт order 0, Esc и Enter — улица §31
+# с начала: banderas#1 на спавне, ящик цел, камера 296.
+! args --wave
+! gate 32
+! expect stage camera 296,172, 2 arena\(s\)
+! expect checkpoint tick 200: order 0 at 600,248
+! expect stage camera 296,172, 2 arena\(s\)
+! expect brawl tick 30: hash [0-9a-f]+, banderas#1 200,264 y 0 hp 100, crate#2 440,248 y 0 hp 20, camera 296,172 arena -1
+! look wave-pick §32: «> wave level1» жёлтым
+menu 2 shot wave-pick
+menu 4 tap ENTER
+level
+1 down D
+1 down W
+17 up W
+220 up D
+230 tap ESCAPE
+menu 400 tap ENTER
+level
+30 quit

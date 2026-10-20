@@ -1,0 +1,70 @@
+# §26: I на земле — block и stand; I в прыжке и в jab — block только на приземлении и по концу jab;
+# O — dodge 24 тика сквозь adler, J (adler в досягаемости), K, I, O в перекате ничего не делают;
+# O в прыжке и в jab — нет dodge; I и тап D, по концу переката тап A — оба переката вправо по facing,
+# иначе banderas кончил бы на 226, а не 370; J в блоке с отпусканием через 5 тиков — jab, через 15 — нет.
+! gate 26
+! expect react tick 20: banderas block
+! expect react tick 35: banderas stand
+! expect react tick 73: banderas block
+! expect react tick 117: banderas block
+! expect react tick 172: banderas dodge
+! expect react tick 196: banderas stand
+! expect react tick 300: banderas block
+! expect react tick 305: banderas dodge
+! expect react tick 329: banderas block
+! expect react tick 335: banderas dodge
+! expect react tick 359: banderas block
+! expect hit tick 483: banderas/jab -> adler, damage 6, hp 94
+! expect react tick 520: banderas stand
+! expect brawl tick 540: hash [0-9a-f]+, banderas 370,252 y 0
+! absent react tick (4[2-9]|[56][0-9]|7[0-2]|10[2-9]|11[0-6]): banderas block
+! absent react tick (17[3-9]|18[0-9]|19[0-5]): banderas
+! absent hit tick (17[2-9]|1[89][0-9]): banderas
+! absent react tick 2[0-9][0-9]: banderas dodge
+! absent hit tick 5[0-9][0-9]: banderas
+! look block §26: banderas в позе блока на месте
+! look air-no-block §26: I зажат в прыжке — поза прыжка, не блок
+! look roll-through §26: banderas в перекате поверх adler, без стоп-кадра
+! look flick-roll §26: перекат из блока вправо по facing
+! look block-jab §26: jab после отпускания I, adler в позе hurt
+menu 1 tap ENTER
+level
+1 down W
+13 up W
+20 down I
+35 up I
+50 tap SPACE
+52 down I
+90 up I
+100 tap J
+102 down I
+125 up I
+130 down D
+170 up D
+172 tap O
+176 tap J
+178 tap K
+180 tap I
+182 tap O
+210 tap SPACE
+214 tap O
+260 tap J
+262 tap O
+300 down I
+305 tap D
+335 tap A
+380 up I
+390 down A
+453 up A
+460 down I
+470 tap J
+475 up I
+500 down I
+505 tap J
+520 up I
+25 shot block
+62 shot air-no-block
+180 shot roll-through
+315 shot flick-roll
+483 shot block-jab
+540 quit

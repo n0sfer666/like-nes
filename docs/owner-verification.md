@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**14 of the 37 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 23 stay here as the procedure, because each needs a machine a CI runner is not: a
+**26 of the 38 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 12 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -14,9 +14,9 @@ existed, the script called gate 9 of #17 open for four days after it closed, and
 of the open ones at all. A gate is re-run when a commit touches what it covers; the right-hand column
 names that surface.
 
-Since B7e of spec #25, Neon Rumble opens on a menu, not on the street: every open gate that starts
+Since B7e of spec #25, Neon Rumble opens on a menu, not on the street: every later gate that starts
 `neon_rumble` has an Enter step right after the command, and §32 is the gate of the menu itself. The
-closed ones (§18, §20, §21) keep their steps as they were run; re-running one, press Enter on
+ones closed before it (§18, §20, §21) keep their steps as they were run; re-running one, press Enter on
 `level level1` right after the command — what the step says after it is then what you see.
 
 | Gate | Spec | Where | Closed | Re-run when a commit touches |
@@ -43,23 +43,27 @@ closed ones (§18, §20, §21) keep their steps as they were run; re-running one
 | Boxes and an event drawn in a real Aseprite 1.3 reach the clip table | [#24](../.context/specs/2026-10-01-content-pipeline.md) 3 | **any one** with Aseprite 1.3+ | — | `engine/framework/graphics/aseprite_*`, `engine/framework/graphics/clip_*`, `tools/assetc/bakers_clips.cpp` |
 | The street of Neon Rumble on a real screen: parallax, signs, 21:9 and 4:3, the credits, a fresh Tiled save | [#24](../.context/specs/2026-10-01-content-pipeline.md) 7 | **any one** with Tiled 1.10+ | 2026-10-07 | `games/neon-rumble/levels/*`, `games/neon-rumble/src/rumble_credits.*`, `engine/framework/graphics/viewport_fit.*`, `engine/framework/graphics/text_*` |
 | Three Puffolotti fighters walk level 1 in depth, the nearer one on top, and their style sits in the street | [#25](../.context/specs/2026-10-05-brawl-framework.md) 1 | **any one** with a screen and a keyboard | 2026-10-06 | `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_roster_quads.*`, `engine/framework/brawl/*` |
-| Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
-| Adler, jump-kicked, falls, lies and gets up with his feet on his shadow; nothing hits him while he is down or rising | [#25](../.context/specs/2026-10-05-brawl-framework.md) 3 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
-| Banderas's J chains jab, jab and cross on a hit and starts over on a miss; a key pressed during a strike waits for it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 4 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_chain.*`, `engine/framework/brawl/strike_queue.*`, `engine/framework/brawl/archetype_chain.*`, `engine/framework/brawl/fighter_chain.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
-| Banderas runs on a double tap, L on the run is a kick that rolls on into Adler; the run ends on release, reversal, strike or hurt | [#25](../.context/specs/2026-10-05-brawl-framework.md) 5 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_brawl.cpp`, `engine/framework/brawl/body_run.*`, `engine/framework/brawl/run_state.hpp`, `engine/framework/brawl/fighter_move_parse.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
-| Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
-| Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
-| Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | — | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
+| Banderas jabs, kicks and jump-kicks the dummy Adler, strikes pass through the ally Rainbird, F3 shows the hit frames and the depth bands | [#25](../.context/specs/2026-10-05-brawl-framework.md) 2 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_kinds.*`, `games/neon-rumble/src/rumble_brawl*`, `games/neon-rumble/src/rumble_depth_overlay.*`, `engine/framework/brawl/hit_*` |
+| Adler, jump-kicked, falls, lies and gets up with his feet on his shadow; nothing hits him while he is down or rising | [#25](../.context/specs/2026-10-05-brawl-framework.md) 3 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
+| Banderas's J chains jab, jab and cross on a hit and starts over on a miss; a key pressed during a strike waits for it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 4 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/assets/puffolotti/*.json`, `engine/framework/brawl/body_chain.*`, `engine/framework/brawl/strike_queue.*`, `engine/framework/brawl/archetype_chain.*`, `engine/framework/brawl/fighter_chain.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
+| Banderas runs on a double tap, L on the run is a kick that rolls on into Adler; the run ends on release, reversal, strike or hurt | [#25](../.context/specs/2026-10-05-brawl-framework.md) 5 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_brawl.cpp`, `engine/framework/brawl/body_run.*`, `engine/framework/brawl/run_state.hpp`, `engine/framework/brawl/fighter_move_parse.*`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
+| Banderas holds a block on I and leaves it on the release; O rolls him forward through Adler, and nothing stops the roll | [#25](../.context/specs/2026-10-05-brawl-framework.md) 6 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/body_guard.*`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/brawl_step.cpp`, `engine/framework/brawl/body_clip.*` |
+| Banderas grabs Adler on H and throws him; Adler flies, lies and rises, and the jump kick hits him lying | [#25](../.context/specs/2026-10-05-brawl-framework.md) 7 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/hit_grab.*`, `engine/framework/brawl/hit_collect.cpp`, `engine/framework/brawl/hit_apply.cpp`, `engine/framework/brawl/body_react.*`, `engine/framework/brawl/body_clip.*` |
+| Banderas goes through all of B3 in one fight with Adler — chain, jump kick, the hit on the ground, roll, block, grab, then every key again — and no pose sticks and no key dies | [#25](../.context/specs/2026-10-05-brawl-framework.md) 8 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/fighters/*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/brawl/*` |
 | Two players on two devices: a pad or a key joins, the banner asks, a pulled pad pauses and comes back, each leaves on his own key | [#25](../.context/specs/2026-10-05-brawl-framework.md) 9 | **all three**, with two pads and a keyboard with a numpad | — | `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_controls.*`, `games/neon-rumble/src/rumble_banner.*`, `engine/framework/input/lobby*`, `engine/input/source_*` |
-| AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back inside the view, a cleared wave is followed by the next one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
-| The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
-| Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | — | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
-| Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
+| AI Adlers hold a ring around Banderas and only the one with the token closes in; a knock-out puts Banderas back inside the view, a cleared wave is followed by the next one | [#25](../.context/specs/2026-10-05-brawl-framework.md) 10 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/src/rumble_brain.*`, `games/neon-rumble/src/rumble_brawl*`, `engine/framework/ai/*` |
+| The stage camera follows Banderas along a street of three screens and stops at its ends; an arena locks it, waves stand up on the spawn points of the level, a two-player wave is skipped for one player, the release lets the camera go | [#25](../.context/specs/2026-10-05-brawl-framework.md) 11 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_step.*`, `engine/framework/brawl/level_clamp.*` |
+| Neon Rumble opens on a menu: arrows and Enter pick the level, the wave or the credits, Esc leaves the level for the menu, a level that does not load is a red line over the items | [#25](../.context/specs/2026-10-05-brawl-framework.md) 12 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/src/rumble_flow.*`, `games/neon-rumble/src/rumble_menu*`, `games/neon-rumble/src/rumble_window.*`, `games/neon-rumble/src/rumble_keys.*`, `engine/framework/scene/scene_stack.*` |
+| Past the street, after the last arena, Banderas runs on the tiles of a platform section: a belt carries him, a lift takes him up to a ledge he jumps through from below, H in the air takes a rope he swings on | [#25](../.context/specs/2026-10-05-brawl-framework.md) 13 | **any one** with a screen and a keyboard | 2026-10-20 | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_stage_quads.*`, `games/neon-rumble/src/rumble_controls.*`, `engine/framework/brawl/rope_*`, `engine/framework/brawl/stage_movers.*` |
 | The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/mobile/bench_game.cpp`, `platform/ios/view.mm`, `platform/android/native_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
-| Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | — | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/seat_*`, `engine/framework/brawl/section_*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_*` |
+| Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | 2026-10-20 | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/seat_*`, `engine/framework/brawl/section_*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_*` |
 | Neon Rumble on a real Android phone, built against the mobile SDK prefix: it starts, Home and back re-attach the surface to the same fight, and it is the desktop's fight | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 1 | **an Android phone**, Android 10 or newer | — | `platform/android/*`, `platform/mobile/*`, `games/neon-rumble/src/rumble_mobile.*`, `games/neon-rumble/src/rumble_demo.*`, `cmake/like_nes_mobile_app.cmake`, `scripts/android_rumble.sh` |
+| The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Aseprite 1.3 | — | `docs/art/*` |
 
-The last to close was the street of Neon Rumble (§20), on 2026-10-07 on macOS: the window was run
+The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
+owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
+scenarios against the headless run and their own expect and absent lines, with a frame sheet.
+Before them, the street of Neon Rumble (§20) closed on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
 diff. Before it, the first gate of #25 (§21) closed on 2026-10-06 on macOS: the first run put the
 fighters in the air in front of the facades, and the second, on the fixed build, put their feet on
@@ -195,6 +199,68 @@ cmake --build build-warn 2>&1 | grep -n 'warning:'
 Use a separate build directory, as above. A tree configured with `LIKE_NES_WERROR=OFF` would keep
 the gate green by not enforcing anything, so `build_check.sh` puts the flag back to `ON` and
 rebuilds when it finds it off — pointing it at `build-warn` costs you that rebuild for nothing.
+
+### The window half of Neon Rumble by script — `make owner`
+
+```sh
+make owner                      # Windows: scripts\win-dev.bat owner
+make owner ARGS=--no-push       # keep the report on this machine; Windows takes one flag:
+                                # scripts\win-dev.bat owner --no-push
+```
+
+It builds the SDK and the game (`check_sdk_game.sh --keep`; `--no-build` skips it), then opens the
+game window once per scenario in `games/neon-rumble/owner/*.keys`. The scenario presses the keys at
+fixed scene ticks; the keyboard and the pads are cut off for the run and the window closes itself.
+Each scenario is judged by machine — the hit/react/seat lines and the brawl hash against a
+`--headless` run of the same length, plus the scenario's own `! expect` and `! absent` lines — and
+leaves PNG frames at the ticks it names. On Linux run it once from an X11 session and once from a
+Wayland one: the run name carries the session type.
+
+Expected output, line by line:
+
+```
+owner-run: <yymmdd-hhmmss>-<os> at <sha>, report in build-owner-run/<run>
+owner-run: build - bash scripts/check_sdk_game.sh --keep, log in build-owner-run/<run>/build.log
+PASS  b3-fight (gates 22 23 24 25 26 27 28)
+PASS  g22-strikes (gates 22)
+PASS  g23-fall (gates 23)
+PASS  g24-chain (gates 24)
+PASS  g25-run (gates 25)
+PASS  g26-block-roll (gates 26)
+PASS  g27-grab (gates 27)
+PASS  g28-one-fight (gates 28)
+PASS  g30-wave (gates 30)
+PASS  g31-stage (gates 31)
+PASS  g32-keep (gates 32)
+PASS  g32-menu (gates 32)
+PASS  g32-nope (gates 32)
+PASS  g32-wave (gates 32)
+PASS  g33-section (gates 33)
+PASS  g35-hotseat (gates 35)
+PASS  g35-street (gates 35)
+owner-run: frame sheet build-owner-run/<run>/index.html
+owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
+owner-run: open gates - what the run judges, then what is left by hand:
+  #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
+owner-run: PASS
+```
+
+The report is committed to the ref `refs/owner-runs/main` of the repository, not to a branch: a
+push to any branch starts CI on three OSes, and a report is not code. Nothing has to be sent by
+hand; to look at it from another machine, `git fetch origin refs/owner-runs/main` and
+`git show FETCH_HEAD --stat`.
+
+**`PASS` does not close a gate.** The machine half says the window plays the fight the headless run
+plays, tick for tick; the frame sheet is the other half. Open `index.html` in a browser and read
+every frame against the line under it — that line names the section and what the frame must show.
+The list under `open gates` is every open gate with what is left of it by hand — pads, two people,
+a second machine — and a `scenarios drive §…` line names the open ones a scenario has walked part
+of. Every gate the scenarios cover (§22–§28, §30–§33, §35) closed on 2026-10-20, so that line is
+absent now and the run is their regression check: a `FAIL` names the gate whose closing it
+contradicts, and a commit touching its right-hand column is a reason to run `make owner` again.
+A `FAIL` prints the mismatch under the scenario: the line that differs, the expected line that
+never came, the line that must not be there, the frame the window did not write, or the window that
+did not reach the scenario's `quit` within its frame cap.
 
 ## 1. Gate 6 of #13 — X11 and Wayland (Linux)
 
@@ -3409,7 +3475,9 @@ is 0.
 
 ## 22. Gate 2 of #25 — strikes, teams and the F3 depth bands
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки brawl/hit из шага 1; окно neon_rumble: J jab, U cross, L kick, J в прыжке jump_kick попадают в adler (стоп-кадр, отброс, строка hit с hp), удар сквозь rainbird без урона и без строки, F3 — красная рамка hit0 на активных кадрах и полосы z на полу; сверить кадр kick 54 и кадры cross 46–47; прислать скриншот F3 с jab в adler -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `b3-fight` equals the `--headless` run line for line through tick 480 (29 lines, hash `afa1b0c122f176a0`), `g22-strikes` 12 of 12: jab, cross, kick and jump_kick hit Adler at hp 94, 86, 74, 64, J, U and L through Rainbird print no line and Rainbird stands at 264,240 with hp 100 on tick 400. On the sheet the hit box sits on the fist on `jab-f3` and the jab on `rb-jab` sits inside Rainbird's hurt box; that no stop frame or knock follows is the `absent` line of Rainbird. `jump-kick` does not carry its label: the red box is a strip on the floor under Adler, not on the lowered foot — left for the owner. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B2d of spec #25 moved Neon Rumble from walking to `step_brawl`: the fighter tables in
 `games/neon-rumble/fighters/*.fighter` are baked into `game.bundle`, Banderas strikes, Adler is a
@@ -3564,7 +3632,9 @@ is 0.
 
 ## 23. Gate 3 of #25 — Adler falls, lies and gets up
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 154 fall, 174 down, 209 getup, 239 stand; окно neon_rumble с F3: jump_kick (Space, J в воздухе) в adler — полёт, лёжа, подъём; крест пивота и ноги на тени на каждом кадре fall/down/getup; удары J/U/L в лежачего и встающего — без строки hit; прислать скриншоты F3 лёжа и на подъёме -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g23-fall` 13 of 13: the jump kick fells Adler twice — fall 58, down 78, getup 108, stand 138 — L into the rising Adler prints no hit, while after stand the jab lands on tick 148 and, after the second fall, the cross on 264. On the sheet `fall` has Adler in flight above his shadow. `getup-kick` shows the red box only as a thin line at floor height on Adler's box, not on the foot — left for the owner. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B3b of spec #25 gave the fighters reactions: a light or heavy hit puts the target on its `hurt` clip
 for the hitstun of the strike, a `launch` hit — `jump_kick` — throws it into `fall` until it lands,
@@ -3621,7 +3691,9 @@ is 0.
 
 ## 24. Gate 4 of #25 — the chain and the buffer
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 53 jab, 66 jab, 75 cross; окно neon_rumble: J J J в adler — jab, jab, cross с одной строкой hit на каждый; J мимо — снова jab; J во время удара ждёт его конца; U после jab цепочку не продолжает; прислать строки hit и слово о темпе цепочки -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g24-chain` 13 of 13: J and U are jab and cross (ticks 63, 80) and the next J starts over on jab (114); J J J is jab, jab, cross (149, 162, 171) and a fourth J is jab again (224); three Js into the air print nothing, and a J in the tail of a strike waits for its end. The owner's eye pass found that a link's knock carries Adler out of reach of the next one (`jab knock_x 1`, `cross 1.5`); spec #29 retunes it for the pilot, rumble keeps it. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B3c of spec #25 gave the fighters a chain and an input buffer. Each `.fighter` names its chain in
 the `chain` row, the last move being the finisher: Banderas `jab jab cross`, Rainbird `jab jab cross
@@ -3677,7 +3749,9 @@ is 0.
 
 ## 25. Gate 5 of #25 — the run and the kick from it
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 329 banderas/run_kick, react tick 329 adler fall; окно neon_rumble: двойной тап вправо — бег, отпускание/разворот/удар гасят бег, медленный двойной тап — шаг; L на бегу — run_kick катится в adler и валит его; прыжок с бега летит с той же скоростью; прислать строки hit/react и слово о темпе двойного тапа -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g25-run` 12 of 12: the second tap of D after 12 ticks is run_kick and a fall, after 13 a step and a kick; releasing D or a J with D held ends the run; the turn is judged by the position on tick 480 — 427,252. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B3d of spec #25 gave the fighters a run. A second press of a direction in the same direction within
 `run_tap` ticks of the first (12 for Neon Rumble, 0.2 s) starts a run on the ground at `run_x` (3
@@ -3746,7 +3820,9 @@ is 0.
 
 ## 26. Gate 6 of #25 — the block and the roll
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки react tick 101 banderas block, react tick 111 banderas stand, react tick 353 banderas dodge; окно neon_rumble: I держит позу блока на месте, отпускание выходит; O — перекат вперёд около 0,4 с сквозь adler, J/K/I/O во время переката ничего не делают; I и O в прыжке и в ударе не срабатывают; прислать строки react, слово о длине переката и частоту экрана -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g26-block-roll` 20 of 20: I is block and stand, in the air and inside a jab only on landing and at the end of the jab; O is a 24-tick dodge through Adler and J/K/I/O inside it do nothing; I + D and I + A roll by facing; a J in the block comes out on a release after 5 ticks and not after 15; the I + A roll still goes by facing and ends at 370,252 on tick 540. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B3e of spec #25 gave the fighters a block and a roll. I held on the ground is the block: the fighter
 takes the `block` pose, stands where he is while it is held and leaves it on the release, with no
@@ -3782,8 +3858,8 @@ backslashes).
    The window opens on the menu (§32): press Enter on `level level1`.
 
 3. **The block.** Hold I. Banderas takes the block pose and the terminal prints
-   `neon-rumble: react tick <n>: banderas block`. Hold a direction as well: he does not walk. Let go of
-   I — `banderas stand`, and the held direction walks him at once. Hold I in a jump or in the middle of
+   `neon-rumble: react tick <n>: banderas block`. Let go of I — `banderas stand`, and a held direction
+   walks him at once. Hold I in a jump or in the middle of
    a jab: nothing happens until he lands or the jab ends, and then the block starts if I is still held.
    Press J while blocking and let go of I within 8 ticks (0.13 s at 60 Hz): the jab comes out after
    the release. A J held in the block longer than that expires in the buffer — not a finding.
@@ -3792,9 +3868,17 @@ backslashes).
    `banderas stand`. Press J, K, I or O during the roll: it goes on to its end unchanged. Roll at
    Adler on his line: Banderas passes through him. O in a jump or in a strike does nothing; O while
    holding I rolls out of the block.
+5. **The flick (B2c of spec #26).** Hold I and tap D: Banderas rolls the way he faces, not the way
+   of the key — `banderas dodge`, then `banderas block` again while I is held. Wait for the roll to
+   end (a roll does not start inside a roll, step 4) and tap A: one more roll, the same way. A
+   keyboard axis reaches full in one tick, so every move key in the block is a flick. A second player
+   joins with a pad button and plays Rainbird (§29): hold LB and flick the left stick from rest —
+   `rainbird dodge`, then `rainbird block`; tilt it over a second — no roll, the block stays. A move
+   key or a flick first and I or LB after it: no roll.
 
 What counts as a finding: a block in the air or in a strike; a block that walks or does not end on the
-release; a roll that goes backwards, stops early, turns or starts again on a second O; a roll in the
+release; a roll that goes backwards, stops early, turns or starts again on a second O; a move key in the block
+that does not roll; a flick of the stick in the block that does not roll; a slow tilt that rolls; a roll in the
 air; a pose that is not the block or the roll; a roll that feels too long or too short to use — send a
 word on its length either way.
 
@@ -3802,14 +3886,14 @@ Four known edges are not findings. Nobody strikes Banderas in Neon Rumble until 
 blocked strike (no damage, the shared stop, the half push) and the roll through a strike are not
 visible in the window — they are pinned by `framework_brawl_guard_test`, `framework_brawl_dodge_test`
 and the `block-turn` and `dodge-through` scenarios of the crossplay gate. Fighters do not push each
-other (the `push` box of B3f is what a grab takes, not a wall), so the roll passing through Adler says nothing about invulnerability. Only Banderas
-is under the keyboard, so the rolls of Rainbird (20 ticks) and Adler (28) wait for the AI of B5. The
+other (the `push` box of B3f is what a grab takes, not a wall), so the roll passing through Adler says nothing about invulnerability. Nobody steers
+Adler, so his roll (28 ticks) waits for the AI of B5; the roll of Rainbird (20) is step 5 on a pad. The
 `dodge` clip is 7 frames of 60 ms, 4 ticks each, 28 in all, and the roll of Banderas is 24: its last
 frame is never shown and he snaps to the stand pose (Rainbird's 20 would lose two). The lengths are the
 owner's choice of 2026-10-09, kept at the close of B3 the same day with the cut known; say so if
 it reads wrong in the window.
 
-Send back: the terminal lines of steps 3–4, one word on the length of the roll and the refresh rate of
+Send back: the terminal lines of steps 3–5, one word on the length of the roll and the refresh rate of
 the screen it was judged on.
 
 When the window closes, the last line is `neon-rumble: window run ok, <n> frames`, and the exit code
@@ -3817,7 +3901,9 @@ is 0.
 
 ## 27. Gate 7 of #25 — the grab, the throw and the hit on the ground
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS и строки hit tick 198 banderas/jump_kick -> adler, hit tick 417 banderas/grab -> adler, react tick 417 adler thrown, react tick 436 adler down; окно neon_rumble: H у стоящего adler — захват и бросок вперёд, adler летит от места banderas, ложится и встаёт, banderas доигрывает throw; H в прыжке, по лежащему и встающему ничего не берёт; J в прыжке по лежащему adler отнимает hp без реакции, jab и cross по лежащему — нет; прислать строки hit и react и слово о дальности броска -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g27-grab` 17 of 17: H at a standing Adler is grab, thrown forward, down, getup, with Banderas in throw while D is held; the jump kick on the lying Adler hits without a react and without a shift; H in the air, at a lying and at a rising Adler takes nothing, from the same place at a risen one it takes. Tick 460: Banderas 348,252, Adler 393,252. The owner's eye pass found that a grab takes every fighter in its box (`sweep()` in `hit_collect.cpp`); spec #29 decides it for the pilot, rumble keeps it. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B3f of spec #25 gave the fighters a grab, a throw and a hit on the ground. H on the ground is the grab:
 the fighter plays `reach`, and its active frames take a target that stands, walks, is hurt or blocks on
@@ -3894,7 +3980,9 @@ is 0.
 
 ## 28. Gate 8 of #25 — the whole of B3 in one fight
 
-<!-- gate: open | bash scripts/check_sdk_game.sh --keep — PASS, 28 строк hit/react/seat §22 шага 1 (порядок — глазами) и хеш тика 480 afa1b0c122f176a0; окно neon_rumble: один бой без перезапуска — J J J цепочкой, J в прыжке валит adler, второй J в прыжке по лежащему, O сквозь встающего, разворот и I с J после отпускания, H и бросок, после броска заново J J J, бег и L, I, O, H; ни одна поза не залипает и ни одна клавиша не перестаёт работать; прислать строки hit и react всего прохода и слово «играется» или «не играется» с причиной -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `b3-fight` equals the headless run through tick 480 and its hash equals the reference `afa1b0c122f176a0` in the build step; `g28-one-fight` 31 of 31: step 3 in a row, J J J from the root before the throw (jab 63, jab 76, cross 85) and after it (jab 354, jab 367, cross 376), run_kick, block, dodge, grab. `chain-cross` has Banderas close on Adler in a pose that reads as a hold rather than a cross; the cross itself is the hit line on tick 376 — left for the owner. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 §22–§27 check the states of B3 one by one, each from a fresh window. This gate is the one fight that
 goes through all of them in a row, because what breaks when states follow each other is invisible from
@@ -4067,7 +4155,9 @@ is 0.
 
 ## 30. Gate 10 of #25 — a wave of AI enemies
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: дойти до арены 0, два adler встают кольцом вокруг banderas, сближается и бьёт по одному, остальные держатся сбоку от его линии; стоя на месте, дождаться нокаута — строка knockout … back as banderas#K at x,z и banderas внутри вида с hp 100; выбить волну — arena 0 wave 0 cleared и через ~2 с тройка wave 1; с P2 (нампад 1) бьют по двое; прислать строки knockout/wave и снимок кольца -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g30-wave` 14 of 14: arena 0 locks on tick 256 with Adler#3 and #4, they beat the standing Banderas to a knock-out (jab 320, kick 719), he comes back as banderas#5 at 600,248 with immune 119 and takes no strike for 119 ticks, J clears the wave and wave 1 stands up as three. The `ring` label was rewritten to what its frame holds and `g30-wave` re-run alone as `261019-225137-macos` (report `fe3afec`, 14 of 14, the same window output and frames): one Adler strikes while the second waits behind him out of reach — the hits of #3 and #4 come in turns and never overlap; the ring round Banderas does not read on a still and rests on the owner's pass of the live window. On `knockout` Banderas stands behind the left Adler with only his gloves and boots in view; his hp 100 is the `knockout` line, not the frame. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B5 of spec #25 brought `framework::ai`: a world RNG in the snapshot, attack tokens and brains stepped
 in `seq` order. B5b put it into Neon Rumble behind `--wave`, and B6e moved the waves into the level:
@@ -4151,7 +4241,9 @@ is 0.
 
 ## 31. Gate 11 of #25 — the stage camera, the arena lock and waves from Tiled
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: камера едет за banderas по улице в три экрана и встаёт на её концах; на центре 712 «arena 0 locked» — вид стоит, края вида не пускают banderas, два adler из точек справа; зачистка — «arena 0 wave 0 cleared», через ~2 с wave 1, после неё «arena 0 released» и камера снова едет; ящик до арены 0 ломают два пинка — death и break crate#2, бокс пропадает; арена 1 на центре 1368 — wave 0, затем одному игроку wave 4 с rainbird, он держится внутри вида и бросает красные ножи (wave 1 только для двоих пропущена); нокаут — banderas встаёт на взятом чекпоинте (600,248 в арене 0, 1300,248 в арене 1) и 2 с не получает ударов; с P2 до замка — третий adler wave 0 и wave 1 арены 1; прислать строки arena/wave/knockout и снимок запертого вида с волной -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g31-stage` 23 of 23: J and U over the crate print nothing, two Ls are death and break of crate#2; arena 0 locks with wave 0, wave 1 follows 120 ticks after the clear, then the release; arena 1 runs wave 0 and, for one player, wave 4 with Rainbird; the knives hit Banderas, the knock-out puts him on checkpoint 1300,248 for 119 ticks without strikes, the camera stands at 1368 on tick 4500. On the sheet `lock-0` holds the locked view with two Adlers on its right. On `wave-4` Rainbird stands mostly hidden behind the third Adler. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B6 of spec #25 brought the stage of the brawl framework: a camera that follows the living players
 and stops at the level's `bounds`, arenas that lock it, and waves read from spawn points of the
@@ -4271,7 +4363,9 @@ is 0.
 
 ## 32. Gate 12 of #25 — the menu, and back to it
 
-<!-- gate: open | окно neon_rumble на любой ОС: открывается меню на чёрном — «> level level1» жёлтым, «wave level1», «credits» белым; ↑↓ ходят по кругу; Enter на credits и F1 листают титры поверх меню; Enter на level — улица и строки level/fighter в терминале; Esc — снова меню, повторный Enter — те же строки заново и бойцы на спавне; --wave выделяет wave level1; --level nope — красная строка «no level nope in the visual table» над пунктами и строка menu: в терминале, Enter на level её повторяет; --frames 300 закрывает окно с window run ok; прислать строки терминала и снимок меню с ошибкой -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g32-menu` 13 of 13, `g32-wave`, `g32-keep` and `g32-nope` 5 of 5 each: S does not move the menu, the arrows go round, Enter and F1 page the credits, Enter on level prints level, fighter and pose the same on the second entry, `--wave` preselects the wave and the choice survives Esc, `--level nope` prints `menu: no level nope in the visual table` on each of the three Enters on level and wave; that Enter on credits prints none is not counted. On the sheet `nope-credits` has the credits over the menu with the red line. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B7e of spec #25 put Neon Rumble on the scene stack of the framework (`framework/scene/scene_stack`):
 the game opens on a menu scene, Enter replaces it with a level scene loaded by `load_level` right
@@ -4324,7 +4418,9 @@ is 0.
 
 ## 33. Gate 13 of #25 — the platform section past the street
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС: зачистить обе арены; после «arena 1 released» banderas проходит x 1560 и встаёт на пол секции (не раньше — до релиза улица кончается на 1560); голубая лента везёт стоящего вправо, сходит — стоит; жёлтый лифт ездит сам вверх-вниз, на нём banderas едет до уступа; с пола уступ выше прыжка, а прыжок с лифта в верхней половине хода, вправо только пока не над уступом, проходит его снизу и ставит на него; трос (цепочка точек с крупной точкой на конце, справа от уступа): прыжок к концу + H — висит и качается стрелками, Space отпускает с разлёта; P2 (numpad 1), пока banderas в секции дальше 160 px от её левого края (x 1728+), появляется в виде над полом секции и падает на него, ближе — на улице левее секции, тоже в виде; H на улице по-прежнему захват; прислать строки терминала и снимок banderas на тросе -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g33-section` 12 of 12: both arenas for one player through `arena 1 released` on tick 5475, then the section floor, the lift, the ledge and H in the air on the end of the rope — Banderas hangs at 2059,200 on tick 6240 after A/D in phase with the swing; P2 on numpad 1 sits at 1840,271 on the section floor. On the sheet `rope` has Banderas on the rope. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B8d of spec #25 put a platform section into `level1` of `--wave`: past the street, x 1568..2200, the
 fighters stop walking the depth band and run and jump on the tiles of the collision layer `section`
@@ -4427,7 +4523,9 @@ Send back: the phone, the `[bench]` line, the two `frame` lines of the worse of 
 
 ## 35. Gate 15 of #25 — two in hotseat through level 1
 
-<!-- gate: open | окно neon_rumble --wave на любой ОС, двое людей (пад + клавиатура или одна клавиатура на двоих): P2 входит до арены 0; арена 0 — wave 0 из трёх adler, wave 1 из трёх; арена 1 — wave 0, wave 1 только для двоих, wave 4; нокаут каждого — встаёт на взятом чекпоинте внутри вида (banderas 600,248 и 1300,248, rainbird на 64 правее) и 2 с без ударов; после «arena 1 released» оба входят в секцию, лента везёт обоих, камера держит обоих в виде; P2 выходит (минус нампада или Back) и входит снова в секции — при banderas на x 1728+ встаёт в виде над её полом, ближе к левому краю — на улице левее секции, тоже в виде, и не за 2200; прислать строки seat, checkpoint, arena, wave и knockout и снимок двоих в секции -->
+<!-- gate: closed 2026-10-20 -->
+
+> **Closed 2026-10-20** by `make owner` on macOS 27.0.1 (Apple M3 Pro), run `261019-223832-macos` on a build of `148abf6`, report `2990f23` in `refs/owner-runs/main`: `sdk-game: PASS` with `bundle_hash 0x44c14828a530271b`, all 17 scenarios `PASS`. `g35-hotseat` 17 of 17 and `g35-street` 6 of 6: P2 joins on tick 3 and is present on 4, arena 0 runs wave 0 and wave 1 as three Adlers each, arena 1 wave 0, the two-player wave 1 and wave 4, then the release; the belt carries Banderas to 1761,271; P2 leaves on numpad minus and sits again — with Banderas at 1695 Rainbird stands on the street at 1495,232, with Banderas at 1761 inside the section, and the belt takes Rainbird to 1739,271 on tick 3060. On the sheet `back-section` has Rainbird on the belt in view. The by-hand half is the owner's pass of the window by eye of 2026-10-19 and the owner's decision to close these gates on a `make owner` run (ADR 0021). Every frame of the sheet was read against its `! look` line on 2026-10-20 — 85 by a reading agent, the 3 of `g30-wave` and the doubtful ones by the closing session; a frame that does not carry its label is named here.
 
 B9d of spec #25 is the prototype the round promised: two players in hotseat go through level 1 —
 both arenas with their waves, the checkpoints and the platform section with the belt. CI plays it
@@ -4548,15 +4646,39 @@ layout is B2.
 Send back: the phone and its Android version, the script's lines, and the detached / attached pairs
 of the hand steps from `logcat -s like-nes`.
 
+## 37. Gate 1 of #29 — the pilot art through its prompt package
+
+<!-- gate: open | Aseprite 1.3 и ChatGPT Images: пройти шаги 1–9 «Порядок пилота» из docs/art/README.md — лист стиля, model sheet монаха (96 px) и рядового (104 px), ключи и in-betweens пилотных клипов по docs/art/clips.md, три палитры рядового заменой 8 тонов swap-*, один экран фона деревни, выгрузка листов и планов по docs/art/export.md; на каждом шаге чек-лист приёмки его файла; прислать monk.png/json, bandit.png/json, три варианта рядового рядом, планы деревни, журнал генераций и пункты чек-листов, которые не прошли -->
+
+B1 of spec #29 is not code: it is the package in [`docs/art/`](art/README.md) that takes the pilot's
+art from a style sheet to a sprite sheet the bake reads. Each step there is a prompt, a reference to
+attach, an acceptance checklist and what to do when the generator drifts. Whether a prompt gives a
+usable figure, and whether a checklist catches what it should, only a run with the real tools shows;
+no runner has ChatGPT Images or a person who judges a pose.
+
+Steps: the nine of "Порядок пилота" in [`docs/art/README.md`](art/README.md), in that order. Steps
+2–3 and 8 may go in any order after step 1. Each step ends on the acceptance checklist of its file.
+
+What counts as a finding: a checklist item that every attempt fails, or that passes a frame you
+would not ship (the checklist is wrong, not the frame); a step the package does not describe and you
+had to invent; the monk or the bandit off their height by more than 2 px after the grid; a `swap-*`
+tone outside its part after the ramp step; a sheet the guide's export settings do not produce
+(cell, 8 columns, Array, Tags, Slices); a background layer whose seam shows in Tiled Mode. The
+look itself is your call, not a finding of the package.
+
+Send back: `monk.png`/`.json` and `bandit.png`/`.json`, the three bandit variants side by side, the
+village layers, the generation log of [`docs/art/export.md`](art/export.md), and the checklist items
+that failed with what you did instead.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 14 of the 37 are closed, and the open 23 are listed by
+The gates above are what the ADRs waited on; 26 of the 38 are closed, and the open 12 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can
 also exercise things no gate covers — playing the sample game long enough to hear the audio, the
 achievement toast surviving a restart, the offscreen `--demo` render path, an output device yanked
-mid-frame, and `assetc` reproducing `bundle_hash = 0x1a557ae839e76ea0` byte for byte on another OS.
+mid-frame, and `assetc` reproducing `bundle_hash = 0x70722c5366978d6d` (basisu 2.10) byte for byte on another OS.
 Those scenarios, with the exact commands per platform, are sections A–F of
 [`owner-setup.txt`](owner-setup.txt). Section R of the same file is the mobile pair: both shells
 built from the root by `scripts/xcompile_verify.sh`, the sample game started in the iOS simulator

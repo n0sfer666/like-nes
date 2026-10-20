@@ -31,6 +31,15 @@ decisions, notes). Читать перед началом любой задач�
 
 Промежуточные коммиты внутри раунда в `main` не попадают отдельно — только через PR раунда.
 
+## SDK — только абстракции (решение владельца 2026-10-19, ADR 0021)
+
+SDK не даёт игре жанровых функций: «цикл драки», «прыжок», «бросок», «волна врагов», «цепочка
+ударов», «ИИ с жетонами атаки» пишет игра. SDK даёт то, на чём они строятся: физика, расписание
+систем, корутины и циклы, клипы и шкала времени, реплей и откат, камера с политиками, тайлмап,
+параллакс, ввод (раскладки, профили падов, тач). Новое в `engine/` проходит вопрос «понадобится ли
+это игре другого жанра как есть?» — нет → в `games/<игра>/`. Граница и разбор старого —
+[`engine/framework/README.md`](engine/framework/README.md), правило 7.
+
 ## Ручная проверка владельцем (правило 18 глобального CLAUDE.md)
 
 Владелец гоняет живое железо сам: **macOS**, **Linux** (Nobara, evdev, X11 и Wayland) и
@@ -84,6 +93,7 @@ decisions, notes). Читать перед началом любой задач�
 | код в документации | `bash scripts/check_docs_snippets.sh` · `bash scripts/check_docs_examples.sh <каталог>` | коммит · preflight | [docs-examples](.context/gates/docs-examples.md) |
 | установка на чистой машине | `bash scripts/check_docs_start.sh [--live]` | коммит · `--live` руками | [docs-start](.context/gates/docs-start.md) |
 | список ручных гейтов | `bash scripts/check_owner_gates.sh` | коммит | [owner-gates](.context/gates/owner-gates.md) |
+| оконная половина гейтов Neon Rumble | `make owner` · `bash scripts/owner_run_selftest.sh` | руками · CI × 3 ОС | [owner-run](.context/gates/owner-run.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | симуляция драки без float | `python3 scripts/check_sim_float.py` | коммит | [sim-float](.context/gates/sim-float.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |

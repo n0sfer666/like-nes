@@ -22,6 +22,9 @@ target_link_libraries(input_players_test PRIVATE input_core)
 add_executable(input_layouts_test input_layouts_test.cpp)
 target_link_libraries(input_layouts_test PRIVATE input_core)
 
+add_executable(input_touch_test input_touch_test.cpp)
+target_link_libraries(input_touch_test PRIVATE input_core)
+
 # Нативный ввод: GLFW-пумп (kbd/mouse) + native gamepad (GameController/XInput/evdev) + rumble.
 # Библиотека — на любом десктопе, а не под INPUT_NATIVE: её ставит SDK (like-nes::window), и игра
 # против префикса без неё не получила бы ни клавиатуры, ни пада. Под опцией — только live-демо.

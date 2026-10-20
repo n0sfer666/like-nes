@@ -6,7 +6,7 @@ from pathlib import Path
 
 import py_utf8
 
-SIM_DIRS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene")
+SIM_DIRS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch")
 REQUIRED_DIR = "engine/framework/brawl"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10

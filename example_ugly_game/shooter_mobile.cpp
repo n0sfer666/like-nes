@@ -21,6 +21,7 @@ bool MobileGame::init(GpuContext& gpu) {
     atlas_ = load_game_atlas(gpu.supports_bc);
     spawn(world_, gs_);
     trails_ = make_trail_query(world_);
+    if (!touch_.load(resolve_bundle_path())) return false;
     engine_ = std::make_unique<input::InputEngine>(controls_.map);
     touch_.bind(engine_.get());
     demo_ = mobile::has_arg("--demo");
@@ -60,7 +61,7 @@ void MobileGame::build_targets(uint32_t fb_w, uint32_t fb_h, const mobile::SafeA
     batch_.set_viewport(world_w, world_h);
     vw_ = static_cast<float>(world_w); vh_ = static_cast<float>(world_h);
     const float scale = safe.scale > 0 ? safe.scale : 1.0f;
-    touch_.set_view(static_cast<float>(fb_w) / scale, static_cast<float>(fb_h) / scale);
+    touch_.set_view(static_cast<float>(fb_w) / scale, static_cast<float>(fb_h) / scale, safe);
 }
 
 void MobileGame::release_targets() {
@@ -105,7 +106,7 @@ void MobileGame::resize(uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea& sa
 // dt не читается: симуляция шагает фиксированным тиком 1/60 на кадр, как до спеки #26.
 void MobileGame::frame(double) {
     if (!inited_) return;
-    if (demo_ && touch_.idle()) touch_.demo(tick_);
+    if (demo_) touch_.demo(tick_);
     const fix32 dt = fix32::from_float(1.0 / 60);
     const uint32_t t = tick_++;
     const input::InputFrame& f = engine_->begin_tick(t);
@@ -133,7 +134,7 @@ void MobileGame::draw() {
     push_hud(batch_, world_, atlas_, gs_);
     push_screen(batch_, atlas_, gs_);
     push_toast(batch_, atlas_, ach_->toast().name.c_str(), ach_->toast().left);
-    touch_.push_button(batch_, atlas_.star, vw_, vh_);
+    touch_.push(batch_, atlas_.star, vw_, vh_);
     WGPUCommandEncoder enc = wgpuDeviceCreateCommandEncoder(gpu_->device, nullptr);
     WGPURenderPassEncoder pass = begin_clear(enc, use_bloom_ ? bloom_.hdr_view() : view,
                                              WGPUColor{0.02, 0.02, 0.07, 1.0});
@@ -150,12 +151,7 @@ void MobileGame::draw() {
     wgpuTextureRelease(sf.texture);
 }
 
-std::string MobileGame::touch_state() const {
-    char buf[64];
-    std::snprintf(buf, sizeof buf, "stick=%ld fire=%ld", static_cast<long>(touch_.stick()),
-                  static_cast<long>(touch_.fire()));
-    return buf;
-}
+std::string MobileGame::touch_state() const { return touch_.state(); }
 
 // Уход в фон: система убивает фоновый процесс без dealloc и onDestroy, и статы достижений,
 // копящиеся до автосейва, пропали бы. Сохраняет, ничего не освобождая.

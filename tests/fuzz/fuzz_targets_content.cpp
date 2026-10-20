@@ -12,6 +12,7 @@
 #include "framework_brawl_fighter_fixture.hpp"
 #include "fuzz_target.hpp"
 #include "text_layout.hpp"
+#include "touch_layout.hpp"
 
 namespace fuzz {
 namespace {
@@ -19,6 +20,7 @@ namespace {
 namespace gr = framework::graphics;
 namespace co = framework::core;
 namespace br = framework::brawl;
+namespace tc = framework::touch;
 
 std::vector<uint8_t> seed_fonts() {
     gr::FontSrc f;
@@ -101,10 +103,32 @@ bool read_fighter(const uint8_t* data, size_t size) {
     return true;
 }
 
+std::vector<uint8_t> seed_touch() {
+    tc::Layout l;
+    std::string err;
+    tc::parse_layout("stick | 48\nbutton | a | bottom-right | 72 | 64 | 40\nbutton | c | top-left | 24.5 | 16 | 20\n",
+                     "touch.txt", l, err);
+    std::vector<uint8_t> bytes;
+    tc::bake_layout(l, bytes, err);
+    return bytes;
+}
+
+bool read_touch(const uint8_t* data, size_t size) {
+    tc::Layout l;
+    if (!tc::read_layout(data, size, l)) return false;
+    consume_all(l.stick_radius.raw, l.button_count);
+    for (uint32_t i = 0; i < l.button_count; ++i) {
+        const tc::ButtonSpec& b = l.buttons[i];
+        consume_all(b.button, static_cast<uint32_t>(b.anchor), b.dx.raw, b.dy.raw, b.radius.raw);
+    }
+    return true;
+}
+
 const Target TARGETS[] = {
     {"fonts", seed_fonts, read_fonts},
     {"credits", seed_credits, read_credits},
     {"fighter", seed_fighter, read_fighter},
+    {"touch", seed_touch, read_touch},
 };
 
 } // namespace

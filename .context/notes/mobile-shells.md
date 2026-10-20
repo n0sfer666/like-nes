@@ -181,7 +181,8 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 - `suspend`/`resume` — о жизни на переднем плане, не о поверхности: Android шлёт `APP_CMD_RESUME`
   раньше нового окна, iOS зовёт `resume` после attach. Игра на этот порядок не опирается.
 - Шутер — `example_ugly_game/shooter_mobile.{hpp,cpp}` (`game::MobileGame`) и
-  `shooter_touch.{hpp,cpp}` (стик + кнопка-огонь, `fire_btn`), стик — `mobile_stick.hpp` там же.
+  `shooter_touch.{hpp,cpp}` (обёртка над `framework::touch::TouchSource`: раскладка — ассет `touch`
+  бандла, касания уходят в движок ввода устройством Touch, демо — падом).
   Бенч ресима — `platform/mobile/bench_game.cpp`: счёт в своём потоке с первого `init`, GPU и
   окно поднимаются и для него (на Android — нужен разблокированный экран).
 - Android распаковывает ВСЕ файлы корня `assets/` APK в `internalDataPath/assets`; какие из них

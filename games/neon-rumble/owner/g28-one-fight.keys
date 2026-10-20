@@ -1,0 +1,84 @@
+# §28 шаг 3: один бой подряд — J J J, jump_kick валит, второй jump_kick по лежащему, O сквозь встающего,
+# разворот и I с J после отпускания, H и бросок; после броска заново J J J с корня, бег и L — run_kick,
+# I, O, H по вставшему — grab. Ни одно состояние не залипает и не глушит следующее.
+! gate 28
+! expect hit tick 63: banderas/jab -> adler, damage 6, hp 94
+! expect hit tick 76: banderas/jab -> adler, damage 6, hp 88
+! expect hit tick 85: banderas/cross -> adler, damage 8, hp 80
+! expect hit tick 122: banderas/jump_kick -> adler, damage 10, hp 70
+! expect react tick 142: adler down
+! expect hit tick 164: banderas/jump_kick -> adler, damage 10, hp 60
+! expect react tick 177: adler getup
+! expect react tick 191: banderas dodge
+! expect react tick 215: banderas stand
+! expect react tick 218: banderas block
+! expect react tick 223: banderas stand
+! expect hit tick 231: banderas/jab -> adler, damage 6, hp 54
+! expect hit tick 256: banderas/grab -> adler, damage 6, hp 48
+! expect react tick 256: adler thrown
+! expect react tick 335: adler stand
+! expect hit tick 354: banderas/jab -> adler, damage 6, hp 42
+! expect hit tick 367: banderas/jab -> adler, damage 6, hp 36
+! expect hit tick 376: banderas/cross -> adler, damage 8, hp 28
+! expect hit tick 446: banderas/run_kick -> adler, damage 12, hp 16
+! expect react tick 446: adler fall
+! expect react tick 475: banderas block
+! expect react tick 485: banderas stand
+! expect react tick 490: banderas dodge
+! expect react tick 514: banderas stand
+! expect hit tick 536: banderas/grab -> adler, damage 6, hp 10
+! expect react tick 536: adler thrown
+! absent react tick 164: adler
+! absent banderas/kick ->
+! absent hit tick 3[4-6][0-9]: banderas/cross
+! absent react tick (19[2-9]|20[0-9]|21[0-4]|49[1-9]|50[0-9]|51[0-3]): banderas
+! look ground-hit §28: второй jump_kick по лежащему adler, позы реакции нет
+! look roll-through §28: перекат banderas сквозь встающего adler
+! look grab §28: захват после блока и jab, banderas лицом влево
+! look chain-cross §28: cross третьим ударом цепочки после броска
+! look run-kick §28: run_kick с бега влево катится в adler
+! look regrab §28: второй захват после блока и переката
+menu 1 tap ENTER
+level
+1 down D
+1 down W
+13 up W
+54 up D
+55 tap J
+67 tap J
+79 tap J
+110 tap SPACE
+112 tap J
+147 tap SPACE
+149 tap J
+177 down D
+190 up D
+191 tap O
+216 tap A
+218 down I
+222 tap J
+223 up I
+248 tap H
+335 down A
+345 up A
+346 tap J
+358 tap J
+370 tap J
+400 down D
+420 up D
+421 tap A
+425 down A
+430 up A
+430 tap L
+475 down I
+485 up I
+490 tap O
+520 tap D
+528 tap H
+164 shot ground-hit
+200 shot roll-through
+256 shot grab
+376 shot chain-cross
+446 shot run-kick
+536 shot regrab
+600 quit

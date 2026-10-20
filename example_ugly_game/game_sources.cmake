@@ -10,7 +10,7 @@ set(GAME_CORE_SRC
   batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp scene_fx.cpp
   instance_stage.cpp art.cpp atlas_regions.cpp sprite_out.cpp sim.cpp combat.cpp
   boss.cpp fx.cpp bloom.cpp audio.cpp input_setup.cpp gpu_env.cpp
-  assets_path.cpp bundle_atlas.cpp ach_source_bundle.cpp)
+  assets_path.cpp bundle_asset.cpp bundle_atlas.cpp ach_source_bundle.cpp)
 list(TRANSFORM GAME_CORE_SRC PREPEND ${CMAKE_CURRENT_LIST_DIR}/)
 list(APPEND GAME_CORE_SRC
   ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)

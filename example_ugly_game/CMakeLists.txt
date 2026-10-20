@@ -76,6 +76,12 @@ add_executable(game_atlas_regions_test game_atlas_regions_test.cpp art.cpp atlas
 target_include_directories(game_atlas_regions_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(game_atlas_regions_test PRIVATE framework_graphics asset_core platform_core)
 
+# Секция `touch` бандла тем путём, каким её читает мобильный шутер (спека #26 В2б-2), против разбора
+# `touch.txt`: без раскладки шутер на телефоне не стартует, а в CI его никто не запускает.
+add_executable(game_touch_bundle_test game_touch_bundle_test.cpp bundle_asset.cpp)
+target_include_directories(game_touch_bundle_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(game_touch_bundle_test PRIVATE framework_touch asset_core platform_core)
+
 # Гейт 5 спеки #18 на стороне игры-образца: нарезка кадра на прогоны одного материала. Цель
 # headless и стоит здесь, ДО выхода по IDE_POC, по тому же основанию, что и соседи: ни окна, ни
 # WebGPU нарезке не нужно, а цель, спрятанная за чужой опцией, молча выпадала бы из набора,

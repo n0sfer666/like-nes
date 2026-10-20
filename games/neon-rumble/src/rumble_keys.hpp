@@ -14,6 +14,7 @@ public:
     enum Key : uint8_t { CREDITS, OVERLAY, UP, DOWN, ENTER, ESCAPE, COUNT };
 
     void poll(GLFWwindow* window);
+    void press_code(uint16_t glfw_key);
     bool hit(Key k) const { return pressed_[k]; }
     void consume() { pressed_.fill(false); }
 
