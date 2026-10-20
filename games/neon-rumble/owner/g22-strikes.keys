@@ -21,7 +21,7 @@
 ! look kick-f3 §22: kick в adler — рамка на стопе
 ! look kick-54 §22: последний активный кадр kick (лист 54) — стопа ещё выброшена или уже идёт назад?
 ! look kick-55 §22: кадр 55 kick — рамки нет
-! look jump-kick §22: jump_kick в воздухе, рамка на опущенной стопе, adler отброшен вверх
+! look jump-kick §22: jump_kick в воздухе, красная рамка на опущенной стопе поверх adler, её полоса z на полу, adler отброшен вверх
 menu 1 tap ENTER
 level
 1 tap F3

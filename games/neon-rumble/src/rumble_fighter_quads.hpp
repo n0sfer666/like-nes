@@ -30,8 +30,10 @@ public:
     static constexpr uint32_t OVERLAY = 128;
 
     FighterQuads();
-    FighterStats add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, const DepthOverlay& depth,
-                     Layers& layers, LayerStats& st, uint32_t sheet_texture, uint32_t solid_texture, bool overlay);
+    FighterStats add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, Layers& layers, LayerStats& st,
+                     uint32_t sheet_texture);
+    FighterStats add_overlay(const Pose& pose, framework::Vec2 world, const DepthOverlay& depth, Layers& layers,
+                             LayerStats& st, uint32_t solid_texture);
     // Тело без клипа (нож, ящик) — сплошной бокс его вида цветом `rgba`, без оверлея: листа у него нет.
     FighterStats add_box(const framework::graphics::Rect16& box, bool flip, framework::Vec2 world, uint32_t rgba,
                          Layers& layers, LayerStats& st, uint32_t solid_texture);

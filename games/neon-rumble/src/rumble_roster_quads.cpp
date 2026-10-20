@@ -42,20 +42,25 @@ DepthOverlay depth_overlay(const Brawl& brawl, const framework::brawl::Body& b) 
 FighterStats draw_roster(FighterQuads& quads, const Fighters& fighters, const Brawl& brawl, Layers& layers,
                          LayerStats& st, uint32_t level_textures, bool overlay) {
     FighterStats sum;
-    for (const uint32_t i : brawl.draw_order()) {
+    const DrawOrder order = brawl.draw_order();
+    for (const uint32_t i : order) {
         const framework::brawl::Body& b = brawl.pool.bodies[i];
         FighterStats fs;
         if (b.kind < FIGHTERS) {
             const Fighter& f = fighters[b.kind];
-            fs = quads.add(f, f.pose(b), screen_plane(b), depth_overlay(brawl, b), layers, st,
-                           sheet_texture(level_textures, b.kind), solid_texture(level_textures), overlay);
+            fs = quads.add(f, f.pose(b), screen_plane(b), layers, st, sheet_texture(level_textures, b.kind));
         } else {
             fs = quads.add_box(brawl.kinds.types[b.kind].box.rect, b.facing < 0, screen_plane(b),
                                b.kind == KNIFE ? KNIFE_RGBA : CRATE_RGBA, layers, st, solid_texture(level_textures));
         }
-        sum.overlay += fs.overlay;
-        sum.rejected += fs.rejected;
-        sum.dropped += fs.dropped;
+        sum += fs;
+    }
+    if (!overlay) return sum;
+    for (const uint32_t i : order) {
+        const framework::brawl::Body& b = brawl.pool.bodies[i];
+        if (b.kind < FIGHTERS)
+            sum += quads.add_overlay(fighters[b.kind].pose(b), screen_plane(b), depth_overlay(brawl, b), layers, st,
+                                     solid_texture(level_textures));
     }
     return sum;
 }

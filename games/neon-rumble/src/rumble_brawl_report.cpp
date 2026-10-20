@@ -73,9 +73,10 @@ void report_fighters(const Level& level, const Fighters& fighters, const Brawl& 
         const br::Body& b = brawl.pool.bodies[i];
         if (b.kind >= FIGHTERS) continue;
         const Pose p = fighters[b.kind].pose(b);
-        const FighterStats fs = quads.add(fighters[b.kind], p, screen_plane(b), depth_overlay(brawl, b), layers, st,
-                                          sheet_texture(level.texture_count, b.kind),
-                                          solid_texture(level.texture_count), true);
+        FighterStats fs = quads.add(fighters[b.kind], p, screen_plane(b), layers, st,
+                                    sheet_texture(level.texture_count, b.kind));
+        fs += quads.add_overlay(p, screen_plane(b), depth_overlay(brawl, b), layers, st,
+                                solid_texture(level.texture_count));
         std::printf("neon-rumble: pose tick 0: %s frame %u flip %d, %zu hit, %zu hurt, %zu push, "
                     "%u overlay quad(s), %u rejected, %u dropped\n",
                     p.name, p.frame, p.flip ? 1 : 0, gfx::frame_boxes(p.clip, p.frame, gfx::BoxKind::Hit).size(),

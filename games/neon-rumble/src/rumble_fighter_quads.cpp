@@ -30,9 +30,8 @@ fix32 whole(int32_t v) { return fix32::from_int(v); }
 
 FighterQuads::FighterQuads() : debug_(OVERLAY), quads_(OVERLAY) {}
 
-FighterStats FighterQuads::add(const Fighter& fighter, const Pose& pose, framework::Vec2 world,
-                               const DepthOverlay& depth, Layers& layers, LayerStats& st, uint32_t sheet_texture,
-                               uint32_t solid_texture, bool overlay) {
+FighterStats FighterQuads::add(const Fighter& fighter, const Pose& pose, framework::Vec2 world, Layers& layers,
+                               LayerStats& st, uint32_t sheet_texture) {
     FighterStats out;
     const CelPlace at = place(world, pose.flip, layers, st);
     const ClipCel* cel = frame_cel(pose.clip, pose.frame);
@@ -40,14 +39,20 @@ FighterStats FighterQuads::add(const Fighter& fighter, const Pose& pose, framewo
         layers.append(st, {quads_.data(), 1}, sheet_texture);
     else
         ++out.rejected;
-    if (!overlay) return out;
+    return out;
+}
+
+FighterStats FighterQuads::add_overlay(const Pose& pose, framework::Vec2 world, const DepthOverlay& depth,
+                                       Layers& layers, LayerStats& st, uint32_t solid_texture) {
+    FighterStats out;
+    const CelPlace at = place(world, pose.flip, layers, st);
     DebugDraw dd(debug_.data(), OVERLAY, solid_glyphs());
     draw_cel_debug(dd, pose.clip, pose.frame, at);
     draw_depth(dd, pose, at, depth);
     const DebugQuadStats d = debug_quads({debug_.data(), dd.count()}, quads_);
     layers.append(st, {quads_.data(), d.quads}, solid_texture);
     out.overlay = d.quads;
-    out.rejected += d.rejected;
+    out.rejected = d.rejected;
     out.dropped = dd.dropped() + d.dropped;
     return out;
 }
