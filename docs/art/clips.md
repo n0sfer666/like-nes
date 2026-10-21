@@ -11,7 +11,8 @@
 - **Рисунки** — какой рисунок стоит в каждой клетке клипа, по порядку. Рисунки нумеруются с 0
   внутри клипа: `0 1 2 3 3 4 4` — пять рисунков в семи клетках, третий и четвёртый держатся вдвое
   дольше.
-- **Ключи** — сколько поз из рисунков даёт ChatGPT, остальные — in-betweens.
+- **Ключи** — сколько поз из рисунков даёт ChatGPT, остальные — in-betweens. Тексты поз —
+  [prompts.md](prompts.md) §4–5.
 - **`hit0`** и **События** — номера клеток (с 0 внутри клипа), на которых стоит бокс удара или
   событие.
 
@@ -32,23 +33,6 @@
 | `down` | 0 | 12 | цикл | 1 | — | — |
 | `getup` | 0 1 2 3 | 6 | раз | 2 | — | — |
 
-Позы-ключи монаха для промпта (`<POSE n>` в [animation.md](animation.md)):
-
-| Клип | Ключи |
-|---|---|
-| `idle` | `relaxed hunched stance, hands loosely in front of the belly` · `same stance, chest slightly raised, beard lifted by breath` |
-| `walk` | `contact: front heel down, rear toes down, arms swinging opposite` · `passing: one leg straight under the body, the other knee raised, body at its highest` |
-| `jump` | `crouch before the jump, knees deeply bent, arms back` · `rising, legs extended down, arms up, sleeves trailing` · `tucked in the air, knees to chest, sleeves fluttering` |
-| `strike1` | `wind-up: weight back, front palm pulled to the shoulder` · `front arm fully extended at shoulder height with an open palm, rear hand at the chin` |
-| `strike2` | `wind-up: torso turned away, rear palm cocked at the hip` · `rear arm fully extended with an open palm, torso turned toward the viewer` |
-| `strike3` | `chamber: front knee raised to the chest, arms out for balance` · `low side kick fully extended at knee height, torso leaning back` · `recovery: kicking foot set down, palms in guard` |
-| `grab` | `reaching forward with both hands at chest height, gripping a collar` |
-| `throw` | `gripping with both hands, hips loaded, knees bent` · `twisting the torso, pulling over the hip` · `follow-through, arms extended forward and down, weight on the front foot` |
-| `hurt` | `head snapped back, torso bent back, arms flung out, eyes shut` |
-| `fall` | `knocked off the feet, body horizontal in the air, limbs trailing` · `back hitting the ground, beard and sleeves still in the air` |
-| `down` | `lying on the back on the ground line, beads spread on the chest` |
-| `getup` | `rolling to one knee, one palm on the ground` · `rising from the knee, hands coming up to guard` |
-
 ## Пилот: рядовой 1 — 32 клетки, 29 рисунков, 15 ключей
 
 | Клип | Рисунки | Тики | Повтор | Ключи | `hit0` | События |
@@ -62,12 +46,6 @@
 | `getup` | 0 1 2 3 | 6 | раз | 2 | — | — |
 | `held` | 0 | 12 | цикл | 1 | — | — |
 | `thrown` | 0 1 2 | 5 | раз | 2 | — | — |
-
-Ключи рядового: `strike1` — `wind-up: rear fist cocked by the ear, body leaning forward` ·
-`straight punch fully extended at face height, rear foot pushing off`; `held` — `grabbed by the
-collar, feet barely touching the ground, hands clawing at the grip`; `thrown` — `flung through the
-air upside down, limbs flailing` · `crashing shoulder-first into the ground`. Остальные клипы —
-те же фазы, что у монаха, с осанкой из [characters.md](characters.md).
 
 ## Раскладка листа
 

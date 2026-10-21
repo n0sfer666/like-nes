@@ -58,7 +58,7 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | The resim bench on the weakest phone: an 8-tick rollback every frame at the umbrella budget, and the scenario hashes of CI on the phone | [#25](../.context/specs/2026-10-05-brawl-framework.md) 14 | **the slowest phone you own**, iOS or Android | — | `engine/framework/ai/*`, `engine/framework/brawl/*`, `engine/framework/rollback/*`, `platform/mobile/bench_game.cpp`, `platform/ios/view.mm`, `platform/android/native_main.cpp`, `platform/mobile/resim_bench.cmake`, `scripts/mobile_bench.sh` |
 | Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | 2026-10-20 | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `engine/framework/brawl/seat_*`, `engine/framework/brawl/section_*`, `engine/framework/brawl/stage_*`, `engine/framework/brawl/wave_*` |
 | Neon Rumble on a real Android phone, built against the mobile SDK prefix: it starts, Home and back re-attach the surface to the same fight, and it is the desktop's fight | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 1 | **an Android phone**, Android 10 or newer | — | `platform/android/*`, `platform/mobile/*`, `games/neon-rumble/src/rumble_mobile.*`, `games/neon-rumble/src/rumble_demo.*`, `cmake/like_nes_mobile_app.cmake`, `scripts/android_rumble.sh` |
-| The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Aseprite 1.3 | — | `docs/art/*` |
+| The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Pixelorama 1.2.3 and ChatGPT Images | — | `docs/art/*` |
 
 The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
 owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
@@ -4806,32 +4806,31 @@ of the hand steps from `logcat -s like-nes`.
 
 ## 37. Gate 1 of #29 — the pilot art through its prompt package
 
-<!-- gate: open | Pixelorama 1.2.3 и ChatGPT Images: пройти шаги 0–11 docs/art/workflow.md — лист стиля, model sheet монаха (96 px) и рядового (104 px), ключи и in-betweens пилотных клипов в порядке раскладки docs/art/clips.md, три палитры рядового заменой 8 тонов swap-*, один экран фона деревни, лист рядами по 10 и .sheet с боксами, бейк assetc + clip_dump (60 строк у монаха, 32 у рядового); на каждом шаге чек-лист приёмки его файла; прислать monk.png/.sheet, bandit.png/.sheet, вывод clip_dump, три варианта рядового рядом, планы деревни, журнал генераций и пункты чек-листов, которые не прошли -->
+<!-- gate: open | Pixelorama 1.2.3 и ChatGPT Images: пройти шаги 0–11 docs/art/workflow.md с промптами docs/art/prompts.md — лист стиля, model sheet монаха (96 px) и рядового (104 px), ключи и in-betweens пилотных клипов в порядке раскладки docs/art/clips.md, три палитры рядового заменой 8 тонов swap-*, один экран фона деревни, лист рядами по 10 и .sheet с боксами, бейк assetc + clip_dump (60 строк у монаха, 32 у рядового); прислать monk.png/.sheet, bandit.png/.sheet, вывод clip_dump, три варианта рядового рядом, планы деревни, журнал генераций и промпты, которые пришлось менять, с правкой -->
 
 B1 of spec #29 is not code: it is the package in [`docs/art/`](art/README.md) that takes the pilot's
-art from a style sheet to a sprite sheet the bake reads. Each step there is a prompt, a reference to
-attach, an acceptance checklist and what to do when the generator drifts. Whether a prompt gives a
-usable figure, and whether a checklist catches what it should, only a run with the real tools shows;
-no runner has ChatGPT Images or a person who judges a pose.
+art from a style sheet to a sprite sheet the bake reads. Its prompts sit in
+[`docs/art/prompts.md`](art/prompts.md) ready to paste, with the palette inside each and the file to
+attach above it. Whether a prompt gives a usable figure only a run with the real tools shows; no
+runner has ChatGPT Images or a person who judges a pose.
 
 Steps: 0–11 of [`docs/art/workflow.md`](art/workflow.md), in that order; the background (step 10)
-may go at any time after step 1. Each step ends on the acceptance checklist of its file. The editor
-is Pixelorama 1.2.3; clips, boxes and events are the text file `.sheet`, not Aseprite JSON.
+may go at any time after step 1. The editor is Pixelorama 1.2.3; clips, boxes and events are the
+text file `.sheet`, not Aseprite JSON.
 
-What counts as a finding: a checklist item that every attempt fails, or that passes a frame you
-would not ship (the checklist is wrong, not the frame); a step the package does not describe and you
-had to invent; the monk or the bandit off their height by more than 2 px after the grid; a `swap-*`
-tone outside its part after the ramp step; a sheet the export settings do not produce
-(192×192 cells, rows of 10, 1920×1152 for the monk and 1920×768 for the bandit); a `.sheet` the
-bake refuses although it follows the package, or a `clip_dump` line count other than 60 and 32; a
-step of the box formula in `animation.md` that gives a box off the pixels it was measured on; a
-background layer whose seam shows in Tile Mode. The
-look itself is your call, not a finding of the package.
+What counts as a finding: a prompt instruction that every attempt ignores (the height, the magenta
+background, the palette, a detail of the character), or a prompt you had to rewrite to get a usable
+image; a step the package does not describe and you had to invent; the monk or the bandit off their
+height by more than 2 px after the grid; a `swap-*` tone outside its part after the ramp step; a
+sheet the export settings do not produce (192×192 cells, rows of 10, 1920×1152 for the monk and
+1920×768 for the bandit); a `.sheet` the bake refuses although it follows the package, or a
+`clip_dump` line count other than 60 and 32; a step of the box formula in `animation.md` that gives
+a box off the pixels it was measured on; a background layer whose seam shows in Tile Mode. The look
+itself is your call, not a finding of the package.
 
 Send back: `monk.png`/`.sheet` and `bandit.png`/`.sheet` with their `clip_dump` output, the three
-bandit variants side by side, the
-village layers, the generation log of [`docs/art/export.md`](art/export.md), and the checklist items
-that failed with what you did instead.
+bandit variants side by side, the village layers, the generation log of
+[`docs/art/export.md`](art/export.md), and every prompt you had to change, with the change.
 
 ## Beyond the gates
 

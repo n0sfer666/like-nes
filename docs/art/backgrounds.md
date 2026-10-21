@@ -15,6 +15,8 @@
 
 ## Планы
 
+Промпты слоёв деревни — [prompts.md](prompts.md) §6, чат на часть этапа, сообщение на слой.
+
 Шесть слоёв: 4 задних, игровая дорога и 1 передний. «Параллакс» — доля скорости камеры, с которой
 движется слой. Стартовые значения задаёт уровень Tiled, здесь — ориентир для рисунка.
 
@@ -34,57 +36,15 @@
 - **Бесшовность по x.** Движок повторяет слой по горизонтали, поэтому правый край слоя
   продолжает левый ([export.md](export.md) §Бесшовный слой).
 
-## Промпт плана
-
-**Референс:** `style-ref.png` и уже принятые планы этой части этапа, чтобы держались свет и
-линия горизонта.
-
-```text
-Pixel art background layer for a side-scrolling game, in exactly the style of the attached
-style reference. Wide landscape image. <LAYER>. Only this layer: everything that would be in
-front of it or behind it is flat solid magenta #FF00FF. No characters, no text, no frame.
-Seen straight from the side, horizon at the same height as in the attached layers.
-Dawn light from the low sun on the left, warm ochre and gold on lit faces, dusty blue shadows,
-mist between depths. Crisp pixels, stepped shading, no gradients except stepped sky bands,
-no blur. Use only these colours: <hex рамп слоя>.
-```
-
-`<LAYER>` для пилота, деревня:
-
-- **0:** `the sky at dawn: stepped horizontal colour bands from deep dusty blue at the top to peach
-  and pale gold near the horizon, a low sun on the left edge, a few long thin clouds`
-- **1:** `far mountain ridges fading into mist, pale cold blue-grey, snow on the highest peaks`
-- **2:** `mid-distance mountain slopes covered with dark pine trees, mist pooling at their foot`
-- **3:** `a small mountain village: two-storey wooden houses with curved grey tiled roofs, a low
-  stone wall, a wooden fence, laundry hanging on a line, all seen from the road side`
-- **5:** `foreground objects only: one wooden post with a paper lantern on the left, a low bush
-  on the right, the rest empty`
-
-## Приёмка плана
-
-- [ ] на изображении только свой слой, всё остальное — ровный `#ff00ff`;
-- [ ] горизонт и свет совпадают с принятыми слоями той же части;
-- [ ] у слоёв 1–3 правый край продолжает левый после склейки ([export.md](export.md));
-- [ ] слой дальше — светлее и холоднее слоя ближе;
-- [ ] нет людей, животных и текста (живность — отдельные спрайты, [props-fauna.md](props-fauna.md)).
-
 ## Тайлы дороги и моста
 
 Тайл 16×16. ChatGPT плохо держит повторяющийся узор, поэтому он даёт **образец материала**, а
-тайлы режутся и сшиваются в Pixelorama.
-
-```text
-Pixel art texture swatch, top-down-ish side view of <MATERIAL>, flat even lighting from the left,
-same style and colours as the attached reference, square image, no objects, no text.
-```
-
-`<MATERIAL>`: `packed dirt road with small stones` (**пилот**) · `worn stone pavement with moss in
-the cracks` · `wooden bridge planks with rope bindings` · `large temple stone slabs`.
+тайлы режутся и сшиваются в Pixelorama. Промпт дороги деревни — [prompts.md](prompts.md) §7. Для
+остальных частей в нём меняется материал, а с ним и строки цветов: `worn stone pavement with moss
+in the cracks` — добавить `moss` рампой `pine`; `wooden bridge planks with rope bindings` — доски
+рампой `earth`; `large temple stone slabs` — плиты рампами `hair` и `shadow`.
 
 1. Образец уменьшается до сетки ([export.md](export.md) §Сетка) и квантизуется.
 2. Из него вырезаются тайлы 16×16: заливка, верхний край (переход к ближнему плану), нижний
    край, два-три варианта заливки, чтобы узор не повторялся.
-3. Каждый тайл проверяется в **View → Tiled Mode → Both Axes**: стык не виден.
-
-**Приёмка тайлсета:** все тайлы 16×16 без зазоров на листе, заливка бесшовна по обеим осям, края
-стыкуются с заливкой, тона только из палитры.
+3. Каждый тайл проверяется в **View → Tile Mode → Tiled In Both Axis**: стык не виден.

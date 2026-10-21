@@ -60,41 +60,6 @@
 | C — пепел | `#26222a` `#45404c` `#6c6674` `#a29cab` | `#3a2410` `#6e4a18` `#a8782a` `#e0b04c` |
 
 Палитра — стартовая. После первого принятого model sheet владелец правит тона. Правка меняет
-таблицу и `.gpl`-файл палитры, а не кадры по одному ([export.md](export.md) §Палитра).
-
-## Промпт листа стиля — **пилот**
-
-**Референс:** ничего. Это первый запрос. Таблица палитры выше вставляется в текст промпта.
-
-```text
-Pixel art style sheet for a side-scrolling martial-arts beat 'em up set in a fantasy mountain
-land at dawn. One image, landscape, on a flat neutral grey background, no text, no labels.
-Show: (1) a strip of the stage — a mountain road through a small village with tiled roofs,
-a bamboo grove behind, layered misty mountains far away, warm low sun from the left;
-(2) one old martial-arts monk standing in profile, about one third of the image height;
-(3) a row of small props: a wooden crate, a clay pot, a stone, a bowl of rice.
-Style: crisp hand-placed pixels, every pixel the same size, 1-pixel outlines, dark outline
-outside and a darker tone of the fill on the lit side, stepped cel shading with 4-5 tones per
-material, no gradients, no blur, no glow, no dithering on characters.
-Light: warm golden rim light from the left, cool blue shadows, soft mist between layers.
-Palette: ochre, gold, saffron, muted pine green, bamboo green, dusty blue shadows, peach sky.
-Use only these colours: <вставить hex всех рамп из таблицы, кроме swap-*>.
-```
-
-**Приёмка:**
-
-- [ ] пиксели одного размера по всему изображению (увеличить до 400 % и проверить на глаз);
-- [ ] контур 1 px, нет чистого чёрного;
-- [ ] свет слева, тени синие, туман между планами;
-- [ ] фигура монаха читается силуэтом на фоне;
-- [ ] нет текста, рамок и водяных знаков.
-
-**Дрейф.**
-
-- *Картинка выглядит как размытая иллюстрация.* Добавить `hard edges, no anti-aliasing, visible
-  square pixels, low resolution look` и повторить.
-- *Цвета «кислотные».* Повторить с одной палитрой текстом, без описания настроения.
-- *Пиксели разного размера.* Принять как образ стиля, сетку задаст [export.md](export.md). Лист
-  стиля — ориентир, в игру он не идёт.
-
-Принятый лист сохраняется как `style-ref.png` и прикладывается ко **всем** следующим запросам.
+таблицу, `.gpl`-файл палитры, hex в промптах [prompts.md](prompts.md) и
+[props-fauna.md](props-fauna.md), а не кадры по одному
+([export.md](export.md) §Палитра).

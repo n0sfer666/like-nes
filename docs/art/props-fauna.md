@@ -25,7 +25,11 @@
 Pixel art game props in exactly the style of the attached style reference, flat solid magenta
 background #FF00FF, no text. Draw in one row, side view, lit from the left, each object on the
 same ground line: <OBJECTS>. Crisp pixels, 1-pixel outline, stepped shading, no ground shadow.
-Use only these colours: <hex рамп earth, gold, hair, ink>.
+Use only these colours, each list from dark to light:
+outline: #140c10 #2a1c24
+wood, clay, food: #3a2418 #5c3a22 #8a5a2e #b9853f #e0b45c
+stone, steel, rice: #2a2a33 #555566 #8f93a3 #d0d4dc
+highlights: #f6d27a #fff1c1 #ffffff
 ```
 
 `<OBJECTS>`: `a wooden crate bound with rope; a round grey stone; a clay pot with a narrow neck; a
@@ -35,15 +39,12 @@ grilled fish on a stick`.
 Кадры разлёта и вращения не генерируются: вращение — поворот исходного кадра на 90° в Pixelorama,
 разлёт — собранные из частей обломки.
 
-**Приёмка:** размеры из таблицы ±2 px, предмет читается на фоне дороги, еда отличается от
-метательного силуэтом и цветом (тёплая и светлая против серого и тёмного).
-
 ## Аура и искры
 
 Аура не генерируется: она рисуется руками, рампой `gold`, вокруг силуэта бойца. Контур фигуры
-снимается с кадра `idle` (**Select → Color Range** по прозрачности, **Modify → Expand** на 2–3 px) и
-заливается полупрозрачными языками, которые в `charge` поднимаются вверх, а в `burst` разлетаются
-от центра. Искра удара — четыре луча рампы `gold` и белая середина.
+снимается с кадра `idle` (**Magic Wand** по прозрачному фону, **Select → Invert**, **Select → Modify
+→ Expand** на 2–3 px) и заливается полупрозрачными языками, которые в `charge` поднимаются вверх, а
+в `burst` разлетаются от центра. Искра удара — четыре луча рампы `gold` и белая середина.
 
 ## Живность
 
@@ -59,11 +60,14 @@ grilled fish on a stick`.
 Pixel art small animals for a side-scrolling game, same style as the attached reference, flat
 solid magenta background #FF00FF, no text. In one row, side view facing right, tiny game sprites:
 <ANIMAL AND POSES>. Crisp pixels, stepped shading, no ground shadow.
+Use only these colours, each list from dark to light:
+outline: #140c10 #2a1c24
+fur, feathers, scales: #3a2418 #5c3a22 #8a5a2e #b9853f #e0b45c
+grey fur and stone: #2a2a33 #555566 #8f93a3 #d0d4dc
+fox: #5a2a14 #8f4419 #c86b1f #f0a03a #ffd27a
+bush: #1f2e2a #2f4a3a #4c6b45 #7a9356
 ```
 
 `<ANIMAL AND POSES>`: `a sparrow perched, the same sparrow with wings raised taking off, the same
 sparrow in flight with wings down` · `a small grey lizard basking on a stone, the same lizard
 running` · `a fox head peeking out of a bush, the same bush with the fox hidden`.
-
-**Приёмка:** силуэт читается на своём размере, существо не похоже на врага или предмет (ни одного
-тона `swap-*`, мельче любого пропса).
