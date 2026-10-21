@@ -17,6 +17,7 @@
 |---|---|
 | [workflow.md](workflow.md) | **с чего начать:** пошагово, что делать и в каком порядке |
 | [prompts.md](prompts.md) | все промпты пилота: лист стиля, model sheet, ключевые позы, фон деревни, дорога |
+| [pixellab-trial.md](pixellab-trial.md) | проба PixelLab на монахе: персонаж, удар, шаг — брать ли подписку |
 | [style-bible.md](style-bible.md) | стиль, свет, контур, мастер-палитра hex, запреты |
 | [characters.md](characters.md) | рост, силуэт и сменные части героев и врагов, описания для model sheet вне пилота |
 | [animation.md](animation.md) | клетка, пивот, как описать позу, in-betweens, боксы, события |
@@ -32,11 +33,11 @@
 | ChatGPT Images | style bible, model sheet, ключевые позы (1–4 за запрос), фоны по одному плану, пропсы | настоящей пиксельной сетки и палитры не держит, их задаёт [export.md](export.md) |
 | [Pixelorama](https://orama-interactive.itch.io/pixelorama) 1.2.3 (бесплатно, MIT) | чистка, сетка, палитра, in-betweens, экспорт листа | клипов и боксов в лист не пишет: их задаёт текстовый `.sheet` |
 | текстовый редактор | файл `.sheet`: клипы, боксы, события | координаты боксов снимаются курсором в Pixelorama |
-| PixelLab (бесплатно) | правка детали (inpaint), мелкие пропсы | анимация бойца недоступна: «Animate with text Pro» требует Tier 1, скелетная — холст не больше 128×128 |
+| PixelLab (проба — 40 генераций) | правка детали (inpaint), мелкие пропсы; анимация по первому кадру | **Animate with text** — до 192 × 192 и 14 кадров; подписка в РФ не продаётся |
 
 Путь анимации в пакете не опирается на PixelLab: ключевые позы рисует ChatGPT, промежуточные кадры
-дорисовываются в Pixelorama. Если подписка Tier 1 появится, шаг in-betweens в
-[animation.md](animation.md) заменяется генерацией по 4 кадра за запрос.
+дорисовываются в Pixelorama. Годится ли PixelLab на замену in-betweens в
+[animation.md](animation.md), решает проба [pixellab-trial.md](pixellab-trial.md).
 
 **Почему Pixelorama.** Aseprite платный. Из бесплатных редакторов пиксель-арта у Pixelorama есть
 всё, что нужно пакету: индексный режим с палитрой `.gpl`, onion skin, поворот cleanEdge, режим
