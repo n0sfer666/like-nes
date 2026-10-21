@@ -235,6 +235,24 @@ jobs:
         shell: bash
         run: bash scripts/owner_run_selftest.sh
 
+      # Стадии make owner (gpu, phone, aseprite) судят вывод чужих скриптов; телефона, AMD и Aseprite
+      # на раннере нет, поэтому суждения гоняются на фикстурах — на трёх ОС ради od, awk и printf.
+      - name: Owner stages selftest (gpu, phone and aseprite judgments on broken fixtures)
+        shell: bash
+        run: bash scripts/owner_stages_selftest.sh
+
+      # Скрипт чистой машины (§15/§16) едет к владельцу копией рядом с пакетом, и его суждения
+      # проверяются на сломанных пакетах: bash-половина — на трёх ОС ради tar, od и hdiutil,
+      # PowerShell-половина — на Windows под 5.1, той, что стоит на чистом Windows без установок.
+      - name: Clean check selftest (bash half on broken packages)
+        shell: bash
+        run: bash scripts/clean_check_selftest.sh
+
+      - name: Clean check selftest (PowerShell 5.1 half, fixture exe, faked msiexec)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts/clean_check_selftest.ps1
+
       - name: Owner gates — the manual list is derived from the doc, not hand-written
         if: runner.os == 'Linux'
         shell: bash

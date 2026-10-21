@@ -10,7 +10,7 @@ rem
 rem   scripts\win-dev.bat setup   winget: Build Tools + Windows SDK + Git + Python
 rem   scripts\win-dev.bat build   конфигурирование и сборка (по умолчанию)
 rem   scripts\win-dev.bat warn    собрать без -Werror и выписать ВСЕ предупреждения разом
-rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash; owner - scripts/owner_run.sh (2-й - --no-push)
+rem   scripts\win-dev.bat check   scripts/owner_check.sh шеллом git-bash; owner - scripts/owner_run.sh (2-й и 3-й - --no-push, --no-gpu)
 rem   scripts\win-dev.bat gate8   scripts/gate8_e2e.sh тем же шеллом (сквозной гейт 8 спеки #13)
 rem   scripts\win-dev.bat probe   framework_input_probe с живым падом (гейт 8 спеки #14)
 rem   scripts\win-dev.bat game    запустить собранную игру (2-й аргумент — адаптер: d3d12/vulkan/low)
@@ -215,7 +215,7 @@ set "GATE=scripts/owner_check.sh"
 goto run_gate
 
 :do_owner
-set "GATE=scripts/owner_run.sh %~2" & goto run_gate
+set "GATE=scripts/owner_run.sh %~2 %~3" & goto run_gate
 :do_sdk
 set "GATE=scripts/check_sdk_game.sh --keep"
 goto run_gate

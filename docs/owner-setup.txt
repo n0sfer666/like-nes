@@ -172,7 +172,8 @@ winget install ezwinports.make, цели сборки и игр уходят в 
 
 Оконная половина гейтов Neon Rumble — ОДНОЙ командой (Windows:
 scripts\win-dev.bat owner; без отправки отчёта — make owner "ARGS=--no-push",
-на Windows scripts\win-dev.bat owner --no-push — там флаг ровно один). Linux — из десктоп-сессии,
+без стадии gpu — "ARGS=--no-gpu", на Windows scripts\win-dev.bat owner --no-push
+--no-gpu — там флагов не больше двух). Linux — из десктоп-сессии,
 X11 и Wayland — отдельными прогонами: <os> в имени прогона их различает.
 
   make owner
@@ -201,21 +202,44 @@ X11 и Wayland — отдельными прогонами: <os> в имени �
   PASS  g33-section (gates 33)
   PASS  g35-hotseat (gates 35)
   PASS  g35-street (gates 35)
+  owner-run: stage gpu
+  PASS  gpu (gates 8 12)
+        note  §8 adapter <адаптер> | <бэкенд> - not AMD, §8 stays open for an AMD machine
+  owner-run: stage phone
+  SKIP  phone - no phone in adb devices
+  owner-run: stage aseprite
+  SKIP  aseprite - ASEPRITE_QUEEN is unset - name the Queen.ase marked by steps 1-3 of §19
   owner-run: frame sheet build-owner-run/<прогон>/index.html
   owner-run: pushed <sha> to refs/owner-runs/main, folder <прогон>
   owner-run: open gates - what the run judges, then what is left by hand:
     #<спека> гейт <N> ОТКРЫТ — <что делать> (§<N> руководства)
     ...
+    the run drives §8, §12 - read its verdicts and frames on the sheet, the rest of the gate is above
   owner-run: PASS
+
+После сценариев идут стадии. gpu (§8, §12) собирает в build/ game_sidescroller
+и light_golden и судит эталонные кадры; закрывает §8 только адаптер AMD.
+phone (§34, §36) берёт Android-телефон из adb (эмулятор не в счёт, первым ABI
+телефона — arm64-v8a, не под трансляцией): гоняет android_rumble.sh и дважды
+mobile_bench.sh android — для него нужен зелёный CI на HEAD, без него §34 —
+note, а стадия судит один §36; подключённому iPhone печатает note с моделью и
+командой для ручного прогона.
+aseprite (§19) идёт при ASEPRITE_QUEEN=<размеченный Queen.ase>: экспорт
+командой из гайда, при ASEPRITE_GUI=<каталог> — ещё и экспорт из меню:
+make owner ASEPRITE_QUEEN=<путь> ASEPRITE_GUI=<каталог> (на Windows — set
+ASEPRITE_QUEEN=<путь> перед scripts\win-dev.bat owner).
+Без телефона или переменной стадия — SKIP с причиной, а не FAIL. Прогон
+названных сценариев (make owner "ARGS=g30-wave.keys") повторяет только их,
+без стадий.
 
 FAIL у сценария печатает под собой расхождение: строка hit/react не та, хеш
 не тот, ожидаемой строки нет. Отчёт уходит в ref refs/owner-runs/main
 репозитория — его читает агент, присылать ничего не надо. Лист кадров
 index.html открыть в браузере и пролистать: под каждым кадром — что на нём
 должно быть. Под "open gates" — все открытые гейты с тем, что в них
-осталось руками (пады, двое людей, вторая машина); строка "scenarios drive"
-называет открытые, часть которых прошёл сценарий. Все гейты сценариев
-(§22–§28, §30–§33, §35) закрыты 2026-10-20 — строки нет, а прогон стал их
+осталось руками (пады, двое людей, вторая машина); строка "the run drives"
+называет открытые, часть которых прошёл сценарий или стадия. Все гейты сценариев
+(§22–§28, §30–§33, §35) закрыты 2026-10-20, а прогон стал их
 регрессией: FAIL называет гейт, закрытию которого он противоречит.
 Шаги — в owner-verification.md.
 

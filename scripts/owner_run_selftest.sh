@@ -16,24 +16,10 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/owner_gates_lib.sh"
 
 NAME=owner-run-selftest
-pass=0; fail=0
+# shellcheck source=scripts/owner_selftest_lib.sh
+. "$ROOT/scripts/owner_selftest_lib.sh"
 T=$(mktemp -d "${TMPDIR:-/tmp}/owner-run.XXXXXX")
 trap 'rm -rf "$T"' EXIT
-
-check() {
-    local name=$1 want=$2 needle=$3 got rc
-    shift 3
-    got=$("$@" 2>&1); rc=$?
-    if { [ "$want" = pass ] && [ $rc = 0 ]; } || { [ "$want" = fail ] && [ $rc != 0 ]; }; then
-        if [ -z "$needle" ] || printf '%s\n' "$got" | grep -qF -- "$needle"; then
-            printf '%s: ok   %s\n' "$NAME" "$name"
-            pass=$((pass + 1))
-            return
-        fi
-    fi
-    printf '%s: FAIL %s (rc %s, want %s with "%s"):\n%s\n' "$NAME" "$name" "$rc" "$want" "$needle" "$got" >&2
-    fail=$((fail + 1))
-}
 
 hit() { printf 'neon-rumble: hit tick %s banderas jab -> adler\n' "$1"; }
 react() { printf 'neon-rumble: react tick %s adler stagger\n' "$1"; }
@@ -121,13 +107,20 @@ manual_keeps() {
     printf '%s\n' "$got"
     printf '%s\n' "$got" | grep -qF "(§$sect руководства)"
 }
-no_sheet_line() { ! owner_run_manual "$DOC" "$@" | grep -q 'scenarios drive'; }
+no_sheet_line() { ! owner_run_manual "$DOC" "$@" | grep -q 'the run drives'; }
+stage_covers() { OWNER_RUN_COVERED="$sect" owner_run_manual "$DOC" /dev/null; }
 check "no scenario - no sheet line" pass "" no_sheet_line /dev/null
-check "covered gate §$sect is named on the sheet line" pass "scenarios drive §$sect -" manual_keeps
+check "covered gate §$sect is named on the sheet line" pass "the run drives §$sect -" manual_keeps
+check "a gate a stage covered is named on the sheet line" pass "the run drives §$sect -" stage_covers
 check "a gate number is not matched as a prefix" pass "" no_sheet_line "$T/prefix.keys"
 
 { printf '<b>&\n'; } | owner_run_html_escape > "$T/esc.out"
 check "html escape covers & < >" pass "" test "$(cat "$T/esc.out")" = "&lt;b&gt;&amp;"
+
+mkdir -p "$T/sheet/gpu"
+printf 'PASS  gpu (gates 8 12)\n' | tee "$T/sheet/summary.txt" > "$T/sheet/gpu/summary"
+printf 'ok    §8\n' > "$T/sheet/gpu/verdict.txt"
+check "the sheet carries a stage folder" pass '<h2 id="gpu">gpu</h2>' owner_run_sheet "$T/sheet" run
 
 EXE=$ROOT/build-sdk-work/game-Release/neon_rumble
 [ -f "$EXE.exe" ] && EXE=$EXE.exe

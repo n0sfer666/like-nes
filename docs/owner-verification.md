@@ -204,8 +204,9 @@ rebuilds when it finds it off — pointing it at `build-warn` costs you that reb
 
 ```sh
 make owner                      # Windows: scripts\win-dev.bat owner
-make owner ARGS=--no-push       # keep the report on this machine; Windows takes one flag:
-                                # scripts\win-dev.bat owner --no-push
+make owner ARGS=--no-push       # keep the report on this machine; Windows takes up to two flags:
+                                # scripts\win-dev.bat owner --no-push --no-gpu
+make owner ARGS=--no-gpu        # skip the gpu stage
 ```
 
 It builds the SDK and the game (`check_sdk_game.sh --keep`; `--no-build` skips it), then opens the
@@ -238,12 +239,37 @@ PASS  g32-wave (gates 32)
 PASS  g33-section (gates 33)
 PASS  g35-hotseat (gates 35)
 PASS  g35-street (gates 35)
+owner-run: stage gpu
+PASS  gpu (gates 8 12)
+      note  §8 adapter <adapter> | <backend> - not AMD, §8 stays open for an AMD machine
+owner-run: stage phone
+SKIP  phone - no phone in adb devices
+owner-run: stage aseprite
+SKIP  aseprite - ASEPRITE_QUEEN is unset - name the Queen.ase marked by steps 1-3 of §19
 owner-run: frame sheet build-owner-run/<run>/index.html
 owner-run: pushed <sha> to refs/owner-runs/main, folder <run>
 owner-run: open gates - what the run judges, then what is left by hand:
   #<spec> гейт <N> ОТКРЫТ — <what to do> (§<N> руководства)
+  the run drives §8, §12 - read its verdicts and frames on the sheet, the rest of the gate is above
 owner-run: PASS
 ```
+
+After the scenarios come three stages, each `PASS`, `FAIL` or `SKIP` with its reason, its output in
+the report and its frames on the sheet; a run of named scenarios (`make owner ARGS=g30-wave.keys`)
+repeats only those and runs no stage. **gpu** (§8, §12) builds `game_sidescroller` and
+`light_golden` in `build/`: the shooter frame against `scene_960x540.png` with its selftest and the
+`[gpu]` line — only an AMD adapter answers §8, any other is a `note` — and the lit frame with its
+table counts, against the Metal reference on macOS; `lights.png` and the unlit frame go on the sheet
+for the eight questions of §12. **phone** (§34, §36) takes the one Android phone in `adb devices`
+(an emulator does not count, and the phone must run `arm64-v8a` first — not under translation):
+`android_rumble.sh`, then `mobile_bench.sh android` twice, which wants a green CI on HEAD — without
+one §34 is a `note` and the stage judges §36 alone; a connected iPhone gets a `note` with its model
+and the command to run by hand. **aseprite** (§19)
+runs when `ASEPRITE_QUEEN` names the `Queen.ase` marked by steps 1-3 (`ASEPRITE` names the binary
+when it is not on `PATH`): the export by the command of the guide, and with `ASEPRITE_GUI=<folder>`
+also the export from the menu — `make owner ASEPRITE_QUEEN=<path> ASEPRITE_GUI=<folder>`, on Windows
+`set ASEPRITE_QUEEN=<path>` before `scripts\win-dev.bat owner`. No phone or no variable is a `SKIP`,
+not a `FAIL`.
 
 The report is committed to the ref `refs/owner-runs/main` of the repository, not to a branch: a
 push to any branch starts CI on three OSes, and a report is not code. Nothing has to be sent by
@@ -254,9 +280,9 @@ hand; to look at it from another machine, `git fetch origin refs/owner-runs/main
 plays, tick for tick; the frame sheet is the other half. Open `index.html` in a browser and read
 every frame against the line under it — that line names the section and what the frame must show.
 The list under `open gates` is every open gate with what is left of it by hand — pads, two people,
-a second machine — and a `scenarios drive §…` line names the open ones a scenario has walked part
-of. Every gate the scenarios cover (§22–§28, §30–§33, §35) closed on 2026-10-20, so that line is
-absent now and the run is their regression check: a `FAIL` names the gate whose closing it
+a second machine — and a `the run drives §…` line names the open ones a scenario or a stage has
+walked part of. Every gate the scenarios cover (§22–§28, §30–§33, §35) closed on 2026-10-20, and the
+run is their regression check: a `FAIL` names the gate whose closing it
 contradicts, and a commit touching its right-hand column is a reason to run `make owner` again.
 A `FAIL` prints the mismatch under the scenario: the line that differs, the expected line that
 never came, the line that must not be there, the frame the window did not write, or the window that
@@ -1471,7 +1497,7 @@ With both halves answered, gate 9 is closed.
 
 ## 8. Gate 2 of #17 — the reference frame on a real GPU
 
-<!-- gate: open | эталонный кадр на живом драйвере: shooter, кадр 239 против scene_960x540.png — остался AMD -->
+<!-- gate: open | make owner — стадия gpu: game_sidescroller --golden scene_960x540.png --golden-selftest (control, repeat, frame PASS) и строка [gpu]; адаптер AMD или Radeon — ответ гейта, другой — note и гейт открыт; промах кладёт кадр g8-actual.png на лист; руками: make owner на машине с AMD, прислать отчёт; эталон не перепекать -->
 
 > **Machine-side, and green on three runners.** The gate itself is automated: the shooter renders
 > frame 239 of the scripted run and compares it to `example_ugly_game/golden/scene_960x540.png`,
@@ -1858,7 +1884,7 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 
 ## 12. Gate 7 of #18 — the lit frame on a real GPU
 
-<!-- gate: open | освещённый кадр на живом GPU: куда падает свет и где ложится тень -->
+<!-- gate: open | make owner — стадия gpu: light_golden — 5 источников, normals 5/2/0, occluders 4/3/0, light-gpu: PASS, на macOS ещё сверка с lights_640x360.png; кадры lights.png и materials-unlit.png на листе; руками: восемь вопросов §12 по кадру lights.png — куда падает свет и где ложится тень (вопрос 7, fill внутри диска, — открытый пункт), прислать ответы и адаптер -->
 
 > **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
 > pass switched off returns the material frame byte for byte, switched on it changes that frame, a
@@ -2436,7 +2462,7 @@ different run. What none of them can do is look at a screen, which is why run B 
 
 ## 15. Gates 1 and 3 of #20 — the engine package runs where it was not built
 
-<!-- gate: open | пакет движка запускается там, где не собирался: .dmg, .AppImage и .msi двойным щелчком на машине без этого дерева -->
+<!-- gate: open | bash clean_check.sh рядом с пакетами на чистой машине: SHA256SUMS, распаковка дважды без разницы, version.txt без unknown, assetc --synthetic, editor_shell --gate6 из архива, 7 лицензий, .dmg — attach и --gate6 из .app, .AppImage — --gate6 (без FUSE — extract-and-run); отчёт clean-check-<os>-<время>.txt → make owner-import ARGS=<отчёт>; руками: .dmg, .AppImage и .msi двойным щелчком на машине без этого дерева — окно редактора, Gatekeeper, SmartScreen, ярлык Start, апгрейд и даунгрейд .msi -->
 
 > **All three packages are runnable from one machine today.** Verticals 1–3 of spec #20 build the
 > **macOS** package on the host, the **Linux** package in a container on that same host, and the
@@ -2603,7 +2629,8 @@ chmod +x like-nes-engine-v0.1.0-linux-aarch64.AppImage
    cannot open shared object file` error is the Linux twin of point 8 above: the runtime has to sit
    **next to** the executable in `usr/bin`, because our rpath is `$ORIGIN` — the same mechanism
    `@executable_path` gives us on macOS.
-7. On a system with no FUSE (`dlopen(): error loading libfuse.so.2`), `./…AppImage
+7. On a system with no FUSE (`Cannot mount AppImage, please check your FUSE setup` from the static
+   runtime appimagetool embeds, `dlopen(): error loading libfuse.so.2` from older ones), `./…AppImage
    --appimage-extract-and-run` is the documented fallback — that is the AppImage runtime speaking
    about the box, not our package failing. The same variable, `APPIMAGE_EXTRACT_AND_RUN=1`, is what
    the container uses, since FUSE there would need `--privileged`.
@@ -2747,9 +2774,92 @@ part of the installed feature). The installer that arrives from CI is inspected 
 `scripts/check_release_ci.sh`. Where the MSI compiler or `msitools` is missing, both skip **out
 loud** with code 0: `brew install msitools` on the owner's machine.
 
+### The clean box by script — `clean_check.sh` and `clean_check.ps1`
+
+Points 1, 2, 4 and 5 of "What to judge", the `.dmg` and `.AppImage` launches and the machine half of
+§16 are typed the same way on every box, so a script types them. It travels **beside the
+packages**, not inside them — the package stays what people install. Copy it into the folder that
+already holds the archive, its installer and `SHA256SUMS` from `release/v0.1.0/`:
+
+```
+macOS, Linux:  scripts/clean_check.sh   scripts/clean_check_lib.sh
+Windows:       scripts/clean_check.ps1  scripts/clean_check_lib.ps1
+```
+
+Then, in that folder on the clean box:
+
+```
+bash clean_check.sh
+powershell -ExecutionPolicy Bypass -File clean_check.ps1
+```
+
+The first line is macOS and Linux, the second is Windows, and both need nothing the box does not
+ship: `bash`, `tar`, `awk`, `od`, `hdiutil` — or Windows PowerShell 5.1 and `tar.exe`. Each finds
+the one `like-nes-engine-<version>-<triple>.tar.gz` next to it (two of them is a refusal; name one
+as the argument), checks the sums of the archive and the installer, unpacks twice and compares,
+reads `version.txt` against the archive name, bakes with `assetc --synthetic`, runs
+`editor_shell --gate6` from the unpacked tree and counts the licences. Then the installer: on
+macOS the `.dmg` is attached read-only and `--gate6` runs from `like-nes.app` inside it; on Linux the
+`.AppImage` runs `--gate6` itself, and on a box with no FUSE it says so in a `note` and retries with
+`APPIMAGE_EXTRACT_AND_RUN=1`; on Windows see §16 below. On macOS a package that came through a
+browser or AirDrop carries `com.apple.quarantine`, and the script says so in a `note` before the
+checks: that is the real first-download experience, so keep it for the steps by hand, but a `FAIL`
+under such a note may be Gatekeeper's word rather than the package's until a copy without the
+attribute (`scp`, a USB stick) says otherwise. Expected on macOS:
+
+```
+clean-check like-nes-engine-v0.1.0-macos-arm64 on macos at <yymmdd-hhmmss>
+system: <version> (Darwin <release> arm64)
+ok    §15 sha256 like-nes-engine-v0.1.0-macos-arm64.tar.gz <64 hex>
+ok    §15 sha256 like-nes-engine-v0.1.0-macos-arm64.dmg <64 hex>
+ok    §15 unpacked twice, diff -r finds no difference
+      like-nes engine v0.1.0
+      commit <hash>
+      target macos-arm64
+ok    §15 version.txt names v0.1.0, commit <hash> and target macos-arm64
+ok    §15 licenses/ holds 7 files, none empty
+      [assetc] synthetic <tmp>/clean-check.<random>/probe.bundle (<bytes> bytes, <n> assets)
+      [assetc] bundle_hash = 0x<16 hex>
+ok    §15 assetc --synthetic exited 0, the bundle is <bytes> bytes
+ok    §15 editor_shell from the archive: --gate6 exited 0, clean-check-macos-<time>-tar.png is <bytes> bytes
+ok    §15 the volume holds like-nes.app and the Applications shortcut
+ok    §15 .app from the .dmg: --gate6 exited 0, clean-check-macos-<time>-dmg.png is <bytes> bytes
+by hand - what the script cannot see:
+  1. double-click like-nes-engine-v0.1.0-macos-arm64.dmg in Finder -> a window with like-nes.app next to an Applications shortcut
+  2. drag like-nes.app onto Applications, eject, double-click it in /Applications -> Gatekeeper: cannot verify the developer
+  3. Control-click like-nes.app > Open > Open -> the editor window opens, no Library not loaded
+  send: this report and the PNG files next to it, or on the dev machine: make owner-import ARGS=<report>
+clean-check: PASS
+clean-check: report <folder>/clean-check-macos-<time>.txt
+```
+
+Linux prints the same up to the installer, then
+`ok    §15 .AppImage: --gate6 exited 0, …-appimage.png is <bytes> bytes`. A `FAIL` line names what
+broke and prints the last lines of the program's output above it — a `Library not loaded` there is
+point 2's finding. The report is written next to the packages as
+`clean-check-<os>-<yymmdd-hhmmss>.txt`, with the home folder replaced by `~` line by line as it
+is written — a run cut short leaves no home folder in it either — and the `--gate6` frames beside
+it. A folder the script cannot write to is a refusal with code 2 before any check. Every `ok` line is one of the points above; the `by hand` list it ends with is
+what stays yours: the double click, Gatekeeper or SmartScreen, the Start menu shortcut, upgrade and
+downgrade.
+
+To send it, bring the report and its PNG files back to the dev machine and run
+`make owner-import ARGS=<path to clean-check-….txt>`: it publishes them to `refs/owner-runs/main`
+next to the `make owner` runs, in a folder named after the report. A report that still names a
+home folder (`/Users/…`, `/home/…`, `C:\Users\…`) is refused, and nothing is pushed; the folders of
+the CI runners that built the package (`/Users/runner`, `/home/runner`, `C:\Users\runneradmin`),
+which a crash may print, pass.
+
+The judgments themselves are checked on broken packages by `bash scripts/clean_check_selftest.sh`
+on all three OSes and by `scripts/clean_check_selftest.ps1` under Windows PowerShell 5.1 in CI —
+sums, a second unpack that differs, `version.txt` with `unknown`, six licences, a `--gate6` that
+writes its PNG and then crashes, a volume without the `Applications` shortcut or without the app, a
+runtime with no FUSE in both wordings, a folder it cannot write to, an installer that asks for
+elevation.
+
 ## 16. Gate 4 of #20 — no Visual C++ Redistributable, and a silent install
 
-<!-- gate: open | Windows без VC++ Redistributable: тихая установка .msi и editor_shell --gate6 на чистой машине -->
+<!-- gate: open | powershell -ExecutionPolicy Bypass -File clean_check.ps1 рядом с пакетами: where vcruntime140.dll (найден — note, ящик гейт не отвечает), 4 файла в like-nes\bin, editor_shell --gate6 через смешанный CRT, msiexec /i /qn — код 0 (1603 с Error 1925 — отказ), 4 файла в %LOCALAPPDATA%\like-nes\bin, --gate6 установленного, msiexec /x /qn — каталог исчез; отчёт → make owner-import; руками: Windows, где Redistributable не ставился, диалог VCRUNTIME140.dll — скриншот -->
 
 > **This is the half of gate 4 that a gate can prepare but not close.** Vertical 5 made the Windows
 > package self-contained: our binaries are built with the **static** CRT
@@ -2880,6 +2990,54 @@ line `тихая установка: прав не требует (Source=10)`) 
 written by the compiler and there are two compilers: `wixl` here, WiX v3 on the runner. Their
 *input* is the same file; their *behaviour* on this bit is not proven by anything, and the way that
 divergence would surface is a UAC prompt under `/qn` on your box, not a red gate.
+
+### The box half by script — `clean_check.ps1`
+
+On Windows the script of §15 also walks everything above that needs no eyes. After the checks of
+§15 it asks `where vcruntime140.dll` — found is a `note`, not a pass: the box cannot answer this
+gate, and the last line then says `PASS, but §16 stays open`. It counts the four files of
+`like-nes\bin`, runs `--gate6` across the mixed-CRT boundary, and then installs: `msiexec /i … /qn
+/l*v`, the four files in `%LOCALAPPDATA%\like-nes\bin`, `--gate6` from the installed copy,
+`msiexec /x … /qn`, and the folder gone. A `%LOCALAPPDATA%\like-nes` that is already there stops
+the installer half before it starts — uninstall the old one first, or the run would judge it.
+Expected on a clean box:
+
+```
+clean-check like-nes-engine-v0.1.0-windows-x86_64 on windows at <yymmdd-hhmmss>
+system: <Windows edition> (<version> AMD64)
+ok    §15 sha256 like-nes-engine-v0.1.0-windows-x86_64.tar.gz <64 hex>
+ok    §15 sha256 like-nes-engine-v0.1.0-windows-x86_64.msi <64 hex>
+ok    §16 where vcruntime140.dll finds nothing - no Redistributable on this box
+ok    §15 unpacked twice, the two trees agree file by file (<N> entries)
+      like-nes engine v0.1.0
+      commit <hash>
+      target windows-x86_64
+ok    §15 version.txt names v0.1.0, commit <hash> and target windows-x86_64
+ok    §15 licenses/ holds 7 files, none empty
+ok    §16 like-nes\bin of the archive holds the four files: assetc.exe editor_shell.exe vcruntime140.dll wgpu_native.dll
+      [assetc] synthetic <tmp>\clean-check.<random>\probe.bundle (<bytes> bytes, <n> assets)
+      [assetc] bundle_hash = 0x<16 hex>
+ok    §15 assetc --synthetic exited 0, the bundle is <bytes> bytes
+ok    §16 editor_shell.exe from the archive: --gate6 exited 0, clean-check-windows-<time>-tar.png is <bytes> bytes
+ok    §16 msiexec /i /qn exited 0 - nobody was there to answer a UAC prompt
+ok    §16 the installed bin holds the four files: assetc.exe editor_shell.exe vcruntime140.dll wgpu_native.dll
+ok    §16 editor_shell.exe installed by the .msi: --gate6 exited 0, clean-check-windows-<time>-msi.png is <bytes> bytes
+ok    §16 msiexec /x /qn exited 0, ~\AppData\Local\like-nes is gone
+by hand - what the script cannot see:
+  1. double-click like-nes-engine-v0.1.0-windows-x86_64.msi -> SmartScreen: unknown publisher, More info > Run anyway; then no UAC prompt
+  2. Start menu > like-nes engine -> the editor window opens, no VCRUNTIME140.dll dialog
+  3. the same .msi again, then a newer one on top -> one entry in Installed apps
+  4. an older .msi on top of a newer install -> refuses: A newer version of like-nes engine is already installed
+  5. uninstall from Installed apps -> %LOCALAPPDATA%\like-nes is gone
+  send: this report and the PNG files next to it, or on the dev machine: make owner-import ARGS=<report>
+clean-check: PASS
+clean-check: report <folder>\clean-check-windows-<time>.txt
+```
+
+A missing DLL shows up twice: as the system dialog, which waits for you — screenshot it, close it —
+and as `exited -1073741515 (0xC0000135 - a DLL is missing, screenshot the dialog)` in the report. A
+heap crash on the CRT boundary is a negative code in hex (`0xC0000374`). `1603` with
+`Error 1925` from the install log is named as the failure of step 7 of the silent install.
 
 ## 17. Gate 5 of #19 — the install page read by someone who did not write it
 
@@ -3103,7 +3261,7 @@ then replace the hand-written ones in the tree.
 
 ## 19. Gate 3 of #24 — boxes and an event out of a real Aseprite
 
-<!-- gate: open | разметить Queen.ase в Aseprite 1.3: slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices; bash scripts/aseprite_owner_check.sh <каталог> — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; тот же экспорт командой из docs/en/guide/aseprite-animations.md во второй каталог — те же четыре ok и PASS; прислать queen.json -->
+<!-- gate: open | make owner — стадия aseprite при ASEPRITE_QUEEN=<размеченный Queen.ase> (ASEPRITE=<бинарь>, если aseprite не в PATH): экспорт командой из docs/en/guide/aseprite-animations.md, лист 592x300, bash scripts/aseprite_owner_check.sh — четыре строки ok: (hit0 на кадрах 0-1 Death и 0 Hit, fall на кадре 1) и aseprite-export: PASS; при ASEPRITE_GUI=<каталог> то же для экспорта из меню; queen.json в отчёте; руками: разметить Queen.ase в Aseprite 1.3 — slice hit0 на кадрах 3-4, user data тега Death 1:fall; экспорт из меню By Rows с Columns 8 (без счёта колонок лист 2146 px, assetc отказывает), JSON Array, Tags, Slices в каталог ASEPRITE_GUI -->
 
 The importer reads boxes from slices and events from the user data of a tag, and both were tested
 on JSON written by hand to the Aseprite 1.3 format. The pack in the tree (`chewbatrij/queen.json`)
@@ -4488,7 +4646,7 @@ is 0.
 
 ## 34. Gate 14 of #25 — the resim bench on the weakest phone
 
-<!-- gate: open | самый слабый телефон (iOS или Android): bash scripts/mobile_bench.sh ios-device или android после зелёного CI на HEAD (шаг 6 §R owner-setup.txt); два прогона, ждать «against …: match» и «brawl-resim-bench: PASS»; прислать строку [bench], строки frame p50/p99 худшего прогона и вердикт -->
+<!-- gate: open | make owner — стадия phone: Android-телефон в adb (эмулятор не в счёт, первый ABI arm64-v8a), bash scripts/mobile_bench.sh android дважды после зелёного CI на HEAD — «against …: match» и «brawl-resim-bench: PASS», строка [bench] и frame p50/p99 худшего прогона в отчёте; руками: самый слабый телефон — iPhone через bash scripts/mobile_bench.sh ios-device и Cmd+R в Xcode (шаг 6 §R owner-setup.txt), два прогона; прислать строку [bench], p50/p99 худшего прогона и вердикт -->
 
 B9d of spec #25 builds `brawl_resim_bench` as the second entry of the iOS and Android shells: the same
 function the desktop bench and CI run, in an app with a black screen and no game
@@ -4617,7 +4775,7 @@ is 0.
 
 ## 36. Gate 1 of #26 — Neon Rumble on an Android phone
 
-<!-- gate: open | телефон Android 10+ по USB: bash scripts/check_sdk_game.sh --keep, затем bash scripts/android_rumble.sh (шаг 5а §R owner-setup.txt); ждать «as the phone» и «[android-rumble] PASS»; руками с logcat -s like-nes: Home и возврат из недавних, поворот, экран кнопкой питания на 5 с — каждая пара detached / attached с равными tick и world, драка идёт дальше; прислать модель и версию Android, строки скрипта и пары detached / attached из logcat -->
+<!-- gate: open | make owner — стадия phone: Android 10+ по USB в adb (эмулятор не в счёт, первый ABI arm64-v8a), после сборки check_sdk_game.sh --keep — bash scripts/android_rumble.sh, «as the phone» и «[android-rumble] PASS», модель, версия Android и phone.logcat в отчёте; руками: с adb logcat -s like-nes — Home и возврат из недавних, поворот, экран кнопкой питания на 5 с — каждая пара detached / attached с равными tick и world, драка идёт дальше; прислать пары detached / attached из logcat -->
 
 B1 of spec #26 moved the mobile shells into the SDK: Neon Rumble is a `mobile::Game` built against
 an installed mobile prefix, not against the tree, and on Android every trip to the background takes

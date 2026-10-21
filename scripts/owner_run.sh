@@ -3,7 +3,7 @@
 # games/neon-rumble/owner/*.keys (клавиши подаёт сценарий, живые пады и клавиатура отключены),
 # машинная сверка строк hit/react, лист кадров index.html и отчёт коммитом в ref refs/owner-runs/main.
 #
-#   bash scripts/owner_run.sh [--no-build] [--no-push] [сценарий.keys ...]
+#   bash scripts/owner_run.sh [--no-build] [--no-push] [--no-gpu] [сценарий.keys ...]
 #
 # Глазами остаётся то, что машина не судит: лист кадров и гейты без сценария — их список в конце.
 set -uo pipefail
@@ -17,20 +17,30 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/owner_gates_lib.sh"
 # shellcheck source=scripts/redact_home_lib.sh
 . "$ROOT/scripts/redact_home_lib.sh"
+for lib in owner_stage_gpu owner_stage_phone owner_stage_aseprite; do
+    # shellcheck source=/dev/null
+    . "$ROOT/scripts/$lib.sh"
+done
 
 BUILD=1
 PUSH=1
+STAGES="gpu phone aseprite"
 SCENARIOS=()
 for a in "$@"; do
     case $a in
         --no-build) BUILD=0 ;;
         --no-push) PUSH=0 ;;
-        -*) echo "usage: bash scripts/owner_run.sh [--no-build] [--no-push] [scenario.keys ...]" >&2; exit 2 ;;
+        --no-gpu) STAGES="phone aseprite" ;;
+        -*) echo "usage: bash scripts/owner_run.sh [--no-build] [--no-push] [--no-gpu] [scenario.keys ...]" >&2; exit 2 ;;
         /* | [A-Za-z]:*) SCENARIOS+=("$a") ;;
         *) SCENARIOS+=("$CALLER/$a") ;;
     esac
 done
-[ ${#SCENARIOS[@]} -gt 0 ] || SCENARIOS=("$ROOT"/games/neon-rumble/owner/*.keys)
+if [ ${#SCENARIOS[@]} -gt 0 ]; then
+    STAGES=""
+else
+    SCENARIOS=("$ROOT"/games/neon-rumble/owner/*.keys)
+fi
 dup=$(for k in "${SCENARIOS[@]}"; do basename "$k" .keys; done | sort | uniq -d)
 [ -z "$dup" ] || { echo "owner-run: two scenarios share the name $dup, their reports would collide" >&2; exit 2; }
 
@@ -95,9 +105,16 @@ for keys in "${SCENARIOS[@]}"; do
     printf '%-5s %s (gates %s)\n' "$verdict" "$name" "$(owner_run_directive "$keys" gate)" | tee -a "$SUMMARY"
     grep '^FAIL' "$dir/verdict.txt" | sed 's/^/      /'
 done
+for s in $STAGES; do
+    echo "owner-run: stage $s"
+    "owner_stage_$s" "$OUT/$s" "$CALLER" || fail=1
+    tee -a "$SUMMARY" < "$OUT/$s/summary"
+    grep -E '^(FAIL|note)' "$OUT/$s/verdict.txt" | sed 's/^/      /'
+done
 
 masked=1
-for f in "$OUT"/*.txt "$OUT"/*.log "$OUT"/*/*.out "$OUT"/*/*.err "$OUT"/*/*.txt; do redact_home_file "$f" || masked=0; done
+while IFS= read -r f; do redact_home_file "$f" || masked=0; done < <(find "$OUT" -type f \( -name '*.txt' -o -name '*.log' \
+    -o -name '*.out' -o -name '*.err' -o -name '*.json' -o -name '*.logcat' -o -name summary \))
 owner_run_sheet "$OUT" "$RUN" > "$OUT/index.html"
 redact_home_file "$OUT/index.html" || masked=0
 echo "owner-run: frame sheet $OUT/index.html"
@@ -115,6 +132,6 @@ elif [ $PUSH = 1 ]; then
 fi
 
 echo "owner-run: open gates - what the run judges, then what is left by hand:"
-owner_run_manual docs/owner-verification.md "${SCENARIOS[@]}"
+OWNER_RUN_COVERED=$(cat "$OUT"/*/gates 2>/dev/null) owner_run_manual docs/owner-verification.md "${SCENARIOS[@]}"
 [ $fail = 0 ] && echo "owner-run: PASS" || echo "owner-run: FAIL"
 exit $fail
