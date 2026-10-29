@@ -267,11 +267,11 @@ allowlist с поводом в файле гейта, решаемые в В2е.
 
 | | Что | Хеши после |
 |---|---|---|
-| **В2а** | каркас и инструмент:<br>• `rumble_sim` и `kit_platformer` с двумя режимами сборки; первый файл `rumble_sim` — игровой исходник из `games/neon-rumble/src/` без окна — `rumble_floor.cpp` (включает только SDK-шные `depth_floor.hpp` и `fixmath.hpp`), не из SDK;<br>• `assetc_core` + `main` и поставка в desktop SDK;<br>• `like_nes_bake(TOOL)`;<br>• `rumble_assetc` (с пекарем бойца) и `ugly_assetc` (с профилем), проект хоста `games/neon-rumble/tools/` и `-DRUMBLE_ASSETC` в мобильных гейтах;<br>• базовый `assetc` без бойца и профиля;<br>• `sim-float` на `SIM_PATHS` с мутантом | неподвижны; `sdk-game` зелёный на 3 ОС, мобильный бандл тот же |
+| **В2а** | каркас и инструмент:<br>• `rumble_sim` с двумя режимами сборки (`kit_platformer` — в В2д, решение 2026-10-28); первый файл `rumble_sim` — игровой исходник из `games/neon-rumble/src/` без окна — `rumble_floor.cpp` (включает только SDK-шные `depth_floor.hpp` и `fixmath.hpp`), не из SDK;<br>• `assetc_core` + `main` и поставка в desktop SDK;<br>• `like_nes_bake(TOOL)`;<br>• `rumble_assetc` (с пекарем бойца) и `ugly_assetc` (с профилем), проект хоста `games/neon-rumble/tools/` и `-DRUMBLE_ASSETC` в мобильных гейтах;<br>• базовый `assetc` без бойца и профиля;<br>• `sim-float` на `SIM_PATHS` с мутантом | неподвижны; `sdk-game` зелёный на 3 ОС, мобильный бандл тот же |
 | **В2б** | ядра на месте:<br>• `framework/{depth,hits,kinematic}`, дополнения `input/physics/core` и политика камеры; `brawl/` включает их;<br>• `slide` теряет `profile.hpp`;<br>• тесты ядер с позитивным контролем | неподвижны |
 | **В2в** | разрез сцены на месте:<br>• `scene::Level` / `rumble::Stage`, `ClassRule<Out>`, `scene_links` и `level_fighters` за игрой, `BadFighter`;<br>• `run_resim_bench` → `rumble_mobile.cpp` | неподвижны; пины «N cases» те же |
 | **В2г** | переезд `git mv`:<br>• `brawl/`, `ai/`, жанр `scene/` → `games/neon-rumble/sim/`;<br>• тесты, фикстуры, crossplay, бенч ресима, fuzz `LNFT` → `games/neon-rumble/tests`;<br>• гейты путей | неподвижны; каталогов нет |
-| **В2д** | `character/` режется: кит → `games/kits/platformer/`; `example_ugly_game` и rumble по киту | неподвижны; бандл платформера тот же |
+| **В2д** | `character/` режется: кит → `games/kits/platformer/` (цель `kit_platformer` с двумя режимами сборки — из В2а); `example_ugly_game` и rumble по киту | неподвижны; бандл платформера тот же |
 | **В2е** | зона параметром манифеста + голден покрытия слоёв на 640×360 со сломанным слоем-контролем; гейт `sdk-genre`; `sdk_headers.cmake`, документация en/ru | неподвижны; гейт зелёный, selftest ловит все фикстуры |
 
 ## DoD раунда

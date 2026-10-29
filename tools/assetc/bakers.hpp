@@ -8,7 +8,6 @@
 #include "clip_bake.hpp"
 #include "codec.hpp"
 #include "credits_bake.hpp"
-#include "fighter_bake.hpp"
 #include "font_bake.hpp"
 #include "tiled_import.hpp"
 #include "touch_layout.hpp"
@@ -26,7 +25,6 @@ bool shader(const codec::Tools& t, const std::string& src, const char* name, con
 bool audio(const std::string& src, const char* name, bool loop, std::vector<AssetInput>& out);
 bool achievements(const std::string& src, std::vector<AssetInput>& out);
 bool input_presets(const std::string& src, std::vector<AssetInput>& out);
-bool movement(const std::string& src, std::vector<AssetInput>& out);
 bool tilemap(const std::string& src, std::vector<AssetInput>& out);
 bool atlas_regions(const std::string& src, std::vector<AssetInput>& out);
 bool materials(const std::string& src, const std::string& wgsl_src,
@@ -37,12 +35,11 @@ bool clips(std::span<const framework::graphics::ClipSrc> clips, std::vector<Asse
 bool fonts(std::span<const framework::graphics::FontSrc> fonts, std::vector<AssetInput>& out, std::string& error);
 bool credits(const char* name, std::span<const framework::core::CreditSrc> credits, std::vector<AssetInput>& out,
              std::string& error);
-bool fighter(const char* name, const std::string& text, std::span<const framework::graphics::ClipSrc> clips,
-             std::vector<AssetInput>& out, framework::brawl::FighterBakeError& error);
 bool touch(const char* name, const framework::touch::Layout& layout, std::vector<AssetInput>& out,
            std::string& error);
 bool touch_layout(const std::string& src, std::vector<AssetInput>& out);
 void push_table(const char* name, std::vector<uint8_t>&& table, std::vector<AssetInput>& out);
+void report(const char* section, const std::string& src, int line, const std::string& message);
 void bulk(const char* name, std::vector<AssetInput>& out);
 void synthetic(std::vector<AssetInput>& out);
 

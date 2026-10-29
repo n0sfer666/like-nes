@@ -5,7 +5,7 @@
 # драке (хеш при втором attach равен хешу при detach), и драка на телефоне — та же, что у десктопной
 # игры: headless той же сборки на тике detach даёт тот же хеш.
 #
-#   bash scripts/check_sdk_game.sh --keep   # десктопный префикс: его assetc печёт бандлы игры
+#   bash scripts/check_sdk_game.sh --keep   # десктопный префикс: против него собирается rumble_assetc
 #   bash scripts/ios_sim_rumble.sh
 set -euo pipefail
 
@@ -59,9 +59,11 @@ ok "iOS SDK installed, minimum iOS $MIN"
 # а не вчерашней сборки. Движок у неё — из того префикса, а Config мобильного сверяет только
 # `_ln_build` (git-хеш) и незакоммиченную правку движка не видит: правил движок — `--keep` заново.
 run cmake --build "$DESK"
+TOOL=$(bash "$ROOT/scripts/rumble_tool.sh" "$HOST" "$ROOT/build-sdk-work/rumble-tool") || fail "rumble_assetc"
 run cmake --fresh -S "$ROOT/games/neon-rumble" -B "$GAME" -G Ninja -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN" -Dlike-nes_DIR="$PFX/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$HOST"
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN" -Dlike-nes_DIR="$PFX/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$HOST" \
+  -DRUMBLE_ASSETC="$TOOL"
 run cmake --build "$GAME"
 ok "built build-sdk-work/game-ios-sim/neon_rumble.app"
 

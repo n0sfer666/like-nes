@@ -174,6 +174,7 @@ add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
 add_subdirectory(engine/framework) # слой поверх подсистем — после них, зависимость только вниз
+add_subdirectory(games/neon-rumble/sim)
 add_subdirectory(engine/plugin)
 add_subdirectory(engine/achievements)
 add_subdirectory(engine/hotreload)
@@ -183,6 +184,7 @@ if(LIKE_NES_MOBILE)
   return()
 endif()
 add_subdirectory(tools/assetc)
+add_subdirectory(games/neon-rumble/tools)  # пекарь игры с видом fighter (#29, В2а) — после ядра пекаря
 add_subdirectory(tools/ide)
 add_subdirectory(example_ugly_game)
 add_subdirectory(docs/examples)   # примеры документации (#19) — после всех, кем они пользуются

@@ -6,7 +6,8 @@ from pathlib import Path
 
 import py_utf8
 
-SIM_DIRS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch")
+SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch",
+             "games/neon-rumble/sim")
 REQUIRED_DIR = "engine/framework/brawl"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10
@@ -47,15 +48,18 @@ def guards(files):
     return []
 
 
+def in_sim(name):
+    return any(name == p or name.startswith(p + "/") for p in SIM_PATHS)
+
+
 def scan(root):
     out = subprocess.run(
         ["git", "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
         capture_output=True, text=True, encoding="utf-8", check=True).stdout
-    prefixes = tuple(d + "/" for d in SIM_DIRS)
     files = {}
     for name in (n for n in out.split("\0") if n):
         blob = root / name
-        if Path(name).suffix in EXTS and name.startswith(prefixes) and blob.is_file():
+        if Path(name).suffix in EXTS and in_sim(name) and blob.is_file():
             files[name] = blob.read_text(encoding="utf-8", errors="replace")
     return files
 
@@ -86,6 +90,13 @@ CASES = (
     ("// внутри строки не открывает комментарий", {"a.cpp": 'auto u = "http://x"; float f;\n'}, 1),
 )
 
+PATHS = (
+    ("каталог движка в обходе", "engine/framework/brawl/a.hpp", True),
+    ("каталог игры в обходе", "games/neon-rumble/sim/rumble_floor.cpp", True),
+    ("сосед каталога с общим префиксом не в обходе", "games/neon-rumble/simx/a.cpp", False),
+    ("оболочка игры не в обходе", "games/neon-rumble/src/rumble.cpp", False),
+)
+
 
 def selftest(verbose=True):
     fails = 0
@@ -97,6 +108,11 @@ def selftest(verbose=True):
         fails += 0 if ok else 1
         if verbose or not ok:
             print(f"  {'ok' if ok else 'FAIL'}: {name} (находок {got}, ожидалось {want})")
+    for name, path, want in PATHS:
+        ok = in_sim(path) == want
+        fails += 0 if ok else 1
+        if verbose or not ok:
+            print(f"  {'ok' if ok else 'FAIL'}: путь — {name}")
     refusals = (("пустой обход", {}),
                 ("нет каталога brawl", {f"engine/framework/ai/f{i}.hpp": "fix32 x;\n" for i in range(MIN_FILES)}),
                 ("fix32 только в комментариях", {k: "// fix32\n" for k in FILLER}))
@@ -106,7 +122,7 @@ def selftest(verbose=True):
         if verbose or not ok:
             print(f"  {'ok' if ok else 'FAIL'}: охранник — {name}")
     if verbose:
-        print(f"sim-float selftest: {'PASS' if fails == 0 else 'FAIL'} — {len(CASES) + len(refusals)} контролей")
+        print(f"sim-float selftest: {'PASS' if fails == 0 else 'FAIL'} — {len(CASES) + len(PATHS) + len(refusals)} контролей")
     return fails
 
 

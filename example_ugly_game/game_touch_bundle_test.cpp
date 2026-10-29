@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     std::vector<uint8_t> bytes;
     Layout baked;
     const bool read = game::read_bundle_asset(bundle, "touch", bytes);
-    check(read, "the bundle holds a 'touch' section (rebake it with assetc --game)");
+    check(read, "the bundle holds a 'touch' section (rebake it with ugly_assetc --game)");
     check(read && framework::touch::read_layout(bytes.data(), bytes.size(), baked),
           "the section reads as a touch layout");
 

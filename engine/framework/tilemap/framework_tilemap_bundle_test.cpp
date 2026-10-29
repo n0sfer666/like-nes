@@ -14,7 +14,7 @@
 // ЧИТАТЕЛЕМ в сетку и сверяет с разбором `tilemap.txt` тайл за тайлом.
 //
 // Что он ловит ОДИН — проверено сломанной реализацией: индексация флагов в читателе, заменённая на
-// `x * height + y`, краснит этот гейт и оставляет `assetc --verify-game` зелёным. Иначе и быть не
+// `x * height + y`, краснит этот гейт и оставляет `ugly_assetc --verify-game` зелёным. Иначе и быть не
 // может: байтовая сверка сравнивает свежую выпечку с бандлом и читателя не запускает ВОВСЕ, поэтому
 // любой дефект чтения — границы, ось Y, сдвиг блока флагов — для неё невидим.
 //
@@ -51,7 +51,7 @@ bool read_section(const std::string& path, std::vector<uint8_t>& out) {
     am.request(guid);
     am.sync_point();
     if (!am.is_ready(guid)) {
-        std::printf("  FAIL: no 'tilemap' section in %s, rebake it with assetc --game\n",
+        std::printf("  FAIL: no 'tilemap' section in %s, rebake it with ugly_assetc --game\n",
                     path.c_str());
         am.close();
         return false;

@@ -454,7 +454,7 @@ Windows: не открывать проект как папку в самой Vi
 
 --- F. Бейк ассетов байт-в-байт -------------------------------------------
 
-  ./build/assetc --game example_ugly_game/assets ./rebake.bundle
+  ./build/ugly_assetc --game example_ugly_game/assets ./rebake.bundle
 
   Должен напечатать:
     [assetc] bundle_hash = 0x70722c5366978d6d
@@ -474,7 +474,7 @@ Windows: не открывать проект как папку в самой Vi
   (input.txt, achievements.txt, movement.txt, tilemap.txt, atlas.txt,
   touch.txt), с 2026-08-08 сверяются машинно и на трёх ОС:
 
-    ./build/assetc --verify-game example_ugly_game/assets \
+    ./build/ugly_assetc --verify-game example_ugly_game/assets \
         example_ugly_game/assets/game.bundle
 
   Должен напечатать:
@@ -2320,30 +2320,44 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: OK   fixture: texture record without a codec stops the game build with assetc's line
       sdk-game: OK   fixture: depfile re-bakes on an edited .tsj and a replaced PNG and only then, the bundle reaches the exe
       sdk-game: OK   fixture: a level without a bounds object clamps the camera by the map
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL without a value
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL ""
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL *-NOTFOUND
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL as a relative path
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL as a directory
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL without a .like-nes-build stamp
+      sdk-game: OK   fixture: like_nes_bake refuses TOOL stamped by another engine build
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
+      sdk-game: OK   rumble_assetc built against the desktop prefix
       sdk-game: OK   ios-sim: SDK built and installed into its own prefix
       sdk-game: OK   ios-sim: neon_rumble.app (IOSSIMULATOR, iOS 17.0) carries both bundles and the licenses
       sdk-game: OK   fixture: ios-sim prefix does not expose the tree's shooter_mobile.hpp
+      sdk-game: OK   fixture: ios-sim game refuses a rumble_assetc of another engine build
       sdk-game: OK   android-x86_64: SDK built and installed into its own prefix
       sdk-game: OK   android-x86_64: neon_rumble.apk (API 29) carries the .so, libc++_shared, both bundles and the licenses
       sdk-game: OK   fixture: android-x86_64 prefix does not expose the tree's shooter_mobile.hpp
+      sdk-game: OK   fixture: android-x86_64 game refuses a rumble_assetc of another engine build
       sdk-game: PASS (Release + Debug against the prefix, mobile packages against theirs, fixtures refused)
       sdk-game: prefixes and game builds kept in build-sdk-work/
 
   Мобильная половина (спека #26, В1д): префиксы iOS-симулятора и Android
   x86_64 ставятся из build-sdk-ios-sim и build-sdk-android-x86_64 (первый
   прогон собирает wgpu-native из Rust — минуты), Neon Rumble собирается против
-  каждого, и game.bundle пакета побайтно равен десктопному. Строк ios-sim нет
-  на Linux; на macOS и Linux без NDK 28.2.13676358 вместо трёх строк
-  android-x86_64 — «SKIP android-x86_64 (android_ndk: NDK at … is 'missing',
-  need …)»; на Windows вместо всех шести — «SKIP mobile half (no mobile toolchain on …)».
+  каждого, а бандлы печёт rumble_assetc, собранный против десктопного префикса
+  (scripts/rumble_tool.sh, спека #29 В2а), и game.bundle пакета побайтно равен
+  десктопному. Строк ios-sim нет на Linux; на macOS и Linux без NDK
+  28.2.13676358 вместо четырёх строк android-x86_64 — «SKIP android-x86_64
+  (android_ndk: NDK at … is 'missing', need …)». Строка «rumble_assetc built»
+  печатается перед первой мобильной платформой: на Linux без NDK её нет. На
+  Windows вместо всех девяти мобильных строк — «SKIP mobile half (no mobile
+  toolchain on …)».
 
   На Windows вместо SKIP — «OK   fixture: Debug game without
   like_nes_add_game fails with LNK2038», а библиотека в фикстуре —
   framework_physics.lib. Бэкенд пада в строке pad backend — свой у ОС:
   «XInput (Windows)» на Windows, «evdev (Linux)» на Linux; гейт требует
   именно имя этой ОС. Сумма fnv1a — от library.bundle и на всех ОС одна;
-  bundle_hash — от game.bundle, который assetc из SDK печёт по
+  bundle_hash — от game.bundle, который rumble_assetc игры печёт по
   games/neon-rumble/game.manifest (тайлсет Warped City, путь pixel, уровень
   levels/level1.tmj из Tiled — секции tilemap, visual, objects; листы и клипы
   бойцов из Aseprite — puffolotti/*; шрифт

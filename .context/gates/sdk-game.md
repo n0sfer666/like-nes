@@ -264,7 +264,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 Оба конфигурируются из одного состояния дерева — последняя установка перетирает Config в префиксе
 (так однажды и было: правленный `.in` поставился из Release, а Debug поставил старый поверх).
 
-## Сломанные фикстуры (в каждом прогоне, [`scripts/sdk_game_lib.sh`](../../scripts/sdk_game_lib.sh), [`scripts/sdk_game_bounds.sh`](../../scripts/sdk_game_bounds.sh))
+## Сломанные фикстуры (в каждом прогоне, [`scripts/sdk_game_lib.sh`](../../scripts/sdk_game_lib.sh), [`scripts/sdk_game_bounds.sh`](../../scripts/sdk_game_bounds.sh), [`scripts/sdk_game_bake_tool.sh`](../../scripts/sdk_game_bake_tool.sh))
 
 | фикстура | обязана упасть | по причине |
 |---|---|---|
@@ -276,6 +276,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 | копия игры: пересборка без правок; `solid oneway` → `solid` в `.tsj` (до В8д — `ladder`: с В8д лестниц на слое коллизий нет, и правка бандл не меняла); манифест без уровня; PNG подменён другим — между правками `sleep 2` | — | без правок нет строки `Baking game.bundle`; после каждой правки она есть, хеш рядом с exe после `.tsj` ≠ `bundle.hash`, после подмены PNG ≠ хешу до неё. Раунд PNG идёт без уровня: тайлсет сверяет размер картинки, и чужой PNG отбился бы отказом, а не перебейком. Отметка из будущего вместо `sleep` отравляла бы следующие раунды — файл «новее» навсегда |
 
 | копия игры: у объекта `street` класс `bounds` → `street`, запись уровня без `\|viewport` (В7б) | — | строка `bounds 0..2304 x 0..336, camera 192,228` (до В6д — `0..640`, до В8д — `0..1664`): без объекта `bounds` камера клампится по карте. Мутант «откат на нули» ловится только ею — level1 в дереве `bounds` имеет |
+| мини-проект против префикса (`find_package` + `like_nes_bake`), семь конфигурирований (спека #29, В2а): `TOOL` без значения, `TOOL ""`, `TOOL "RUMBLE_ASSETC-NOTFOUND"`, относительный путь, каталог, файл без штампа, файл со штампом `0.0.0+stale` | конфигурирование | `TOOL needs a target or an absolute path, got '…'` (первые три), `is neither a target nor an existing absolute path` (путь, каталог), `.like-nes-build stamp; build it against the desktop prefix`, `built against like-nes build '0.0.0+stale'`. Пустое значение и NOTFOUND молча откатились бы на `assetc` SDK, и отказ вида пришёл бы со сборки; `TOOL ""` `cmake_parse_arguments` не кладёт в `KEYWORDS_MISSING_VALUES` ни при какой CMP0174. Идёт на всех трёх ОС, мобильная фикстура штампа — только на macOS/Linux |
 
 Отказ без своей причины в логе — FAIL фикстуры: упало что-то другое, и она ничего не доказала.
 Фикстура CRT вне MSVC печатает SKIP — у clang/gcc нет второго CRT по построению. MSVC судится по
@@ -286,9 +287,18 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 
 ## Мобильная половина (спека #26, В1д, [`scripts/sdk_game_mobile.sh`](../../scripts/sdk_game_mobile.sh))
 
-Идёт после десктопной: бандлы мобильной игры печёт `assetc` десктопного префикса
-(`-DLIKE_NES_HOST_PREFIX`), а `game.bundle` пакета побайтно (`cmp`) равен бандлу `game-Release` —
-один манифест и один `assetc`. Префикс — свой на платформу, Release, ставится в пустой каталог
+Идёт после десктопной: бандлы мобильной игры печёт `rumble_assetc` — инструмент игры, собранный
+`scripts/rumble_tool.sh` против десктопного префикса (`<OUT>/rumble-tool`, строка `rumble_assetc built
+against the desktop prefix`, путь — в `-DRUMBLE_ASSETC`; спека #29, В2а). Собирается лениво, перед
+первой мобильной платформой (`mobile_tool`, `scripts/sdk_game_bake_tool.sh`): на Linux без NDK его
+нет; провал запоминается, и вторая платформа падает сразу, без второй сборки. Префикс
+`rumble_tool.sh` приводит к абсолютному: `like-nes_DIR` CMake считает от каталога сборки. Лог сборки — `<dir>/rumble_tool.log`;
+вне macOS/Linux скрипт отказывает (`mobile builds only`). `RUMBLE_TOOL` гейт обнуляет при старте:
+путь из окружения подсунул бы чужой пекарь. Десктопный префикс
+по-прежнему идёт в `-DLIKE_NES_HOST_PREFIX`. `game.bundle` пакета побайтно (`cmp`) равен бандлу
+`game-Release` — один манифест и один пекарь. Без `-DRUMBLE_ASSETC` мобильная сборка игры —
+`FATAL_ERROR` с командой `rumble_tool.sh`; `rumble_tool.sh` на мобильном префиксе — отказ `is not a
+desktop prefix` (оба проверены 2026-10-29, macOS). Префикс — свой на платформу, Release, ставится в пустой каталог
 (`<OUT>/prefix-ios-sim`, `<OUT>/prefix-android-x86_64`; под `--keep` — в `build-sdk-work/`); игра
 собирается через `-Dlike-nes_DIR` (тулчейн NDK переносит `CMAKE_PREFIX_PATH` в sysroot).
 
@@ -307,6 +317,10 @@ Linux без NDK (машина владельца без Android SDK) падал
 Фикстура (на каждой собранной платформе): копия игры с `#include "shooter_mobile.hpp"` в
 `rumble_mobile.cpp` обязана упасть сборкой с именем заголовка и `not found` / `No such file` —
 заголовок оболочки дерева не утёк в префикс путями include.
+Вторая фикстура там же: копия `rumble_assetc` со штампом `<бинарь>.like-nes-build` = `0.0.0+stale`
+в `-DRUMBLE_ASSETC` обязана упасть конфигурированием с `built against like-nes build '0.0.0+stale'`.
+Штамп (`_ln_build` префикса) пишет проект `games/neon-rumble/tools` рядом с бинарём, сверяет
+`like_nes_bake`: пекарь от другой сборки движка печёт секции, которые рантайм пакета прочтёт иначе.
 
 ## Отказы конфигурирования дерева (`cmake/install_sdk.cmake`, `cmake/sdk_links.cmake`)
 

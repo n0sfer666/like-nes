@@ -101,6 +101,10 @@ target_include_directories(game_platformer_input_test PRIVATE ${CMAKE_CURRENT_SO
   ${CMAKE_SOURCE_DIR}/engine/platform)
 target_link_libraries(game_platformer_input_test PRIVATE framework_input framework_character)
 
+# Пекарь игры-образца (спека #29, В2а) headless и стоит до выхода по IDE_POC: сверка бандла
+# `--verify-game` идёт в headless-наборе CI.
+add_subdirectory(tools)
+
 if(NOT IDE_POC)
   return()
 endif()

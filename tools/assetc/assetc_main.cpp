@@ -4,14 +4,13 @@
 #include <vector>
 
 #include "assetc_emit.hpp"
+#include "assetc_manifest_mode.hpp"
 #include "bakers.hpp"
 #include "bundle_writer.hpp"
 #include "codec.hpp"
 #include "format.hpp"
-#include "manifest_mode.hpp"
 #include "platform_args.hpp"
 #include "validate_materials.hpp"
-#include "verify_game.hpp"
 
 #include <webgpu/webgpu.h>
 
@@ -25,26 +24,23 @@ using namespace asset;
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
+    // Секции игры-образца приносит её инструмент (спека #29, В2а): у базового пекаря таблицы секций
+    // нет, и молча испечь бандл без них значило бы отдать игре половину её данных.
+    for (const char* moved : {"--game", "--verify-game"})
+        if (argc >= 2 && std::strcmp(argv[1], moved) == 0) {
+            std::fprintf(stderr, "assetc: %s moved to ugly_assetc (example_ugly_game/tools)\n", moved);
+            return 2;
+        }
     if (argc < 3) {
         std::fprintf(stderr,
                      "usage: assetc <src-dir> <out.bundle> [--tint P] [--basisu P]\n"
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
-                     "       assetc --verify-game <src-dir> <bundle>  (tools-free, for CI)\n"
                      "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
                      " [--lights L.txt]  (tools-free)\n"
                      "       assetc --manifest <game.manifest> <out.bundle> [--depfile D] [--basisu P]\n");
         return 2;
     }
-    if (std::strcmp(argv[1], "--manifest") == 0) return run_manifest(argc, argv);
-    // Сверка закоммиченного бандла с исходниками. Отдельный режим, а не флаг бейка: перепечь
-    // `--game` без tint/basisu нельзя, а сверить tool-free секции можно везде.
-    if (std::strcmp(argv[1], "--verify-game") == 0) {
-        if (argc < 4) {
-            std::fprintf(stderr, "usage: assetc --verify-game <src-dir> <bundle>\n");
-            return 2;
-        }
-        return verify_game_bundle(argv[2], argv[3]) ? 0 : 1;
-    }
+    if (std::strcmp(argv[1], "--manifest") == 0) return manifest::run_manifest(argc, argv, {});
     // Tools-free синтетический бейк (CI): writer+zstd, без tint/basisu.
     if (std::strcmp(argv[1], "--synthetic") == 0) {
         std::vector<AssetInput> synth;
@@ -104,30 +100,6 @@ int main(int argc, char** argv) {
         // диске бандл, которым потом кто-то нарисует кадр (гейт 2 спеки #18).
         if (!validate_materials(massets, argv[3])) return 1;
         return emit("materials", argv[4], std::move(massets));
-    }
-
-    // Игра-образец (спека #8 шов assetc→билд): плейсхолдер-atlas.png → target-native
-    // UASTC bake → game.bundle. Рантайм игры транскодит UASTC→BC7 и грузит из бандла
-    // (не из процедурного кода). Отдельный бандл — golden-хеши прочих бейков не трогаются.
-    if (std::strcmp(argv[1], "--game") == 0) {
-        if (argc < 4) {
-            std::fprintf(stderr, "usage: assetc --game <src-dir> <out.bundle> [--basisu P]\n");
-            return 2;
-        }
-        std::string gsrc = argv[2], gout = argv[3];
-        codec::Tools gtools{"tint", "basisu"};
-        for (int i = 4; i + 1 < argc; i += 2)
-            if (std::strcmp(argv[i], "--basisu") == 0) gtools.basisu = argv[i + 1];
-        std::vector<AssetInput> gassets;
-        const std::string gtmp = gout + ".ktx2.tmp";
-        if (!bakers::texture(gtools, gsrc + "/atlas.png", "atlas", gtmp, gassets)) return 1;
-        if (!bakers::achievements(gsrc + "/achievements.txt", gassets)) return 1;
-        if (!bakers::input_presets(gsrc + "/input.txt", gassets)) return 1;
-        if (!bakers::movement(gsrc + "/movement.txt", gassets)) return 1;
-        if (!bakers::tilemap(gsrc + "/tilemap.txt", gassets)) return 1;
-        if (!bakers::atlas_regions(gsrc + "/atlas.txt", gassets)) return 1;
-        if (!bakers::touch_layout(gsrc + "/touch.txt", gassets)) return 1;
-        return emit("game", gout, std::move(gassets));
     }
 
     std::string src = argv[1];

@@ -799,6 +799,13 @@ jobs:
           # cmp, а не хеш: git-bash на Windows-раннере не несёт ни shasum, ни md5sum, а сверяем мы
           # байтовое равенство двух локальных файлов — хеш тут лишний посредник.
           cmp -s syn.bundle syn2.bundle || { echo "bake not run-to-run identical"; exit 1; }
+          # Режимы игры-образца уехали в ugly_assetc (спека #29, В2а): базовый пекарь обязан
+          # отказать с подсказкой, а не молча принять ключ и испечь что-то своё.
+          for m in --game --verify-game; do
+            rc=0; "$A" "$m" x y > moved.txt 2>&1 || rc=$?
+            [ "$rc" = 2 ] && grep -q "moved to ugly_assetc" moved.txt || {
+              cat moved.txt; echo "assetc $m: rc=$rc, expected 2 and a pointer to ugly_assetc"; exit 1; }
+          done
 
       # Бандл игры закоммичен готовым, и перепечь его целиком на раннере нечем: текстурная секция
       # тянет tint и basisu, которых тут нет. Сверяются секции, что пекутся чистыми парсерами —
@@ -809,11 +816,12 @@ jobs:
       - name: Asset — committed game.bundle matches its sources (tool-free sections, all OS)
         shell: bash
         run: |
-          A=$(find build -maxdepth 2 -type f \( -name 'assetc' -o -name 'assetc.exe' \) | head -1)
-          [ -n "$A" ] || { echo "assetc not built"; exit 1; }
+          # Секции бандла приносит пекарь игры-образца (спека #29, В2а), у базового assetc их нет.
+          A=$(find build -maxdepth 2 -type f \( -name 'ugly_assetc' -o -name 'ugly_assetc.exe' \) | head -1)
+          [ -n "$A" ] || { echo "ugly_assetc not built"; exit 1; }
           "$A" --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle | tee vg.txt
-          # Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из списка
-          # SECTIONS — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
+          # Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из таблицы
+          # секций — правкой, конфликтом мержа, временным комментарием, — бинарь честно напечатает
           # меньшее число и вернёт ноль, а половина гейта выключится молча. Ассертится строка ВМЕСТЕ
           # с числом: список секций растёт осознанно, вместе с этой строкой.
           grep -q "verify: PASS - 6 tool-free section(s)" vg.txt || { echo "verify-game checked the wrong number of sections (or failed)"; exit 1; }
@@ -925,9 +933,9 @@ jobs:
         shell: bash
         run: |
           for t in material_bake_test material_source_test material_table_test \
-                   material_library_test light_table_test assetc_manifest_test assetc_bake_test \
-                   assetc_level_test assetc_clips_test assetc_fighter_test assetc_font_test \
-                   assetc_touch_test; do
+                   material_library_test light_table_test assetc_manifest_test assetc_kinds_test \
+                   assetc_bake_test assetc_level_test assetc_clips_test assetc_fighter_test \
+                   assetc_font_test assetc_touch_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -3006,6 +3014,7 @@ jobs:
           framework_json_string_test:framework-json-string: PASS
           framework_json_number_test:framework-json-number: PASS
           assetc_manifest_test:assetc-manifest: PASS
+          assetc_kinds_test:assetc-kinds: PASS
           assetc_bake_test:assetc-bake: PASS
           assetc_level_test:assetc-level: PASS
           assetc_clips_test:assetc-clips: PASS

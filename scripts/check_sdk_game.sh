@@ -36,10 +36,16 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_coop.sh"
 # shellcheck source=scripts/sdk_game_bounds.sh
 . "$ROOT/scripts/sdk_game_bounds.sh"
+# shellcheck source=scripts/sdk_game_bake_tool.sh
+. "$ROOT/scripts/sdk_game_bake_tool.sh"
 # shellcheck source=scripts/sdk_game_mobile.sh
 . "$ROOT/scripts/sdk_game_mobile.sh"
 
 GEN=Ninja
+# Пекарь хоста собирается гейтом: унаследованный из окружения путь подсунул бы чужой бинарь, а
+# унаследованный провал уронил бы мобильную половину без строки с причиной.
+RUMBLE_TOOL=
+RUMBLE_TOOL_FAILED=
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 OUT=$WORK
@@ -89,6 +95,7 @@ fixture_bundle_hash "$OUT/game-Release" || FAIL=1
 fixture_manifest_no_codec || FAIL=1
 fixture_rebake || FAIL=1
 fixture_no_bounds || FAIL=1
+fixture_bake_tool_refusals || FAIL=1
 # Фикстура CRT — только у MSVC: у clang и gcc одна стандартная библиотека на обе конфигурации, и
 # расхождения, которое она ловит, там нет по построению.
 # Судит компилятор, который выбрал CMake, а не окружение: под vcvars с CXX=clang-cl компоновщик

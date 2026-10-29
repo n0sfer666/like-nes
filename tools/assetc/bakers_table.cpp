@@ -1,10 +1,8 @@
 #include "bakers.hpp"
 
 #include <algorithm>
-#include <cstdio>
 
 #include "ach_bake.hpp"
-#include "profile_bake.hpp"
 #include "atlas_bake.hpp"
 #include "preset_bake.hpp"
 #include "map_bake.hpp"
@@ -16,18 +14,8 @@
 
 // Пекари zero-parse таблиц: текстовый исходник → байты, которые рантайм читает прямо из
 // mmap-региона, без парсинга. От соседей по `bakers.cpp` они отличаются тем, что внешних кодеков не
-// зовут вовсе, — и ровно поэтому именно эти секции сверяются `--verify-game` на трёх ОС.
+// зовут вовсе, — и ровно поэтому именно эти секции сверяет `ugly_assetc --verify-game` на трёх ОС.
 namespace asset::bakers {
-namespace {
-
-// Отказ печатается ОДИНАКОВО для всех: имя секции, файл, номер строки, причина словами.
-// Номер строки тут несущий — он единственное, что отличает «исходник не разобрался» от «а где».
-void report(const char* section, const std::string& src, int line, const std::string& message) {
-    std::fprintf(stderr, "[assetc] %s %s: line %d: %s\n", section, src.c_str(), line,
-                 message.c_str());
-}
-
-} // namespace
 
 // Достижения (спека #10): текстовый исходник → zero-parse таблица в бандле.
 // Рантайм читает её из mmap-региона без парсинга; guid = fnv1a("achievements").
@@ -52,20 +40,6 @@ bool input_presets(const std::string& src, std::vector<AssetInput>& out) {
         return false;
     }
     push_table("input", std::move(table), out);
-    return true;
-}
-
-// Профиль движения (спека #16): тот же zero-parse шов, что у пресетов. Настройка ОЩУЩЕНИЯ правится
-// десятками итераций подряд, и пересборка движка на каждую правку высоты прыжка убивает сам цикл
-// подбора — поэтому профиль едет данными; guid = fnv1a("movement").
-bool movement(const std::string& src, std::vector<AssetInput>& out) {
-    std::vector<uint8_t> table;
-    framework::character::ProfileBakeError err;
-    if (!framework::character::bake_profiles_file(src, table, err)) {
-        report("movement", src, err.line, err.message);
-        return false;
-    }
-    push_table("movement", std::move(table), out);
     return true;
 }
 

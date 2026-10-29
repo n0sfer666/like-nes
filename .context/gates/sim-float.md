@@ -2,7 +2,7 @@
 
 ```
 python3 scripts/check_sim_float.py             # блокирующий гейт, в checks.json
-python3 scripts/check_sim_float.py --selftest  # 24 контроля на фикстурах
+python3 scripts/check_sim_float.py --selftest  # 28 контролей на фикстурах
 ```
 
 Спека #25, нефункциональные: симуляция — только fix32 и целые. Хеш кроссплея сверяется между
@@ -14,7 +14,10 @@ python3 scripts/check_sim_float.py --selftest  # 24 контроля на фик
   (2026-10-11): `float leak;` в конце `scene_objects.hpp` → FAIL, строка 94; откат — PASS, 120 файлов.
   `touch` — со спеки #26 В2б (2026-10-16): ось экранного стика уходит в InputFrame и в sim-хеш, а
   оболочки отдают float. `float leak;` в конце `touch_source.hpp` → FAIL, строка 68; откат — PASS,
-  247 файлов.
+  247 файлов. `games/neon-rumble/sim` — со спеки #29 В2а (2026-10-29): симуляция игры уходит из
+  SDK в игру, и гейт идёт за ней. Список — `SIM_PATHS`, каталог или файл: путь в обходе, если равен
+  записи или лежит под ней (`simx/` соседнего каталога — нет; четыре контроля `путь — …`).
+  `float leak;` в конце `rumble_floor.cpp` → FAIL, строка 23; откат — PASS, 252 файла.
 - **Что.** Три правила. Типы и конверсии словом целиком: `float`, `double`, `float_t`, `double_t`,
   `_FloatN`, `floatN_t`, а также `from_float` и `to_double` из `fixed.hpp` — они для границ
   (авторинг, рендер), не для шага; `long double` — одна находка. Плавающие литералы: `0.5`, `1.f`,

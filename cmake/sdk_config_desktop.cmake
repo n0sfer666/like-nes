@@ -42,18 +42,23 @@ set(LIKE_NES_ASSETC "${_ln_prefix}/${_ln_assetc}")
 
 # Движок собран со статическим CRT (cmake/msvc_runtime.cmake): цель игры обязана взять тот же,
 # иначе LNK2038. Рантайм wgpu кладётся рядом с exe, rpath смотрит туда же.
+# У multi-config генератора (Visual Studio, Ninja Multi-Config) конфигурация Debug есть всегда,
+# и без Debug-набора она молча взяла бы Release-библиотеки — LNK2038 вместо названной причины.
+# Зовут игра (like_nes_add_game) и инструменты игры, собранные против префикса.
+function(like_nes_require_debug_libs target)
+  get_property(_ln_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+  if(MSVC AND NOT LIKE_NES_HAS_DEBUG AND (_ln_multi OR CMAKE_BUILD_TYPE STREQUAL "Debug"))
+    message(FATAL_ERROR "${target}: Debug on MSVC needs the Debug SDK libraries "
+                        "(lib/like-nes/debug), this prefix has Release only; with a multi-config "
+                        "generator use a single-config one (Ninja) and CMAKE_BUILD_TYPE=Release")
+  endif()
+endfunction()
+
 function(like_nes_add_game target)
   if(NOT TARGET ${target})
     message(FATAL_ERROR "like_nes_add_game: '${target}' is not a target")
   endif()
-  # У multi-config генератора (Visual Studio, Ninja Multi-Config) конфигурация Debug есть всегда,
-  # и без Debug-набора она молча взяла бы Release-библиотеки — LNK2038 вместо названной причины.
-  get_property(_ln_multi GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-  if(MSVC AND NOT LIKE_NES_HAS_DEBUG AND (_ln_multi OR CMAKE_BUILD_TYPE STREQUAL "Debug"))
-    message(FATAL_ERROR "like_nes_add_game: Debug on MSVC needs the Debug SDK libraries "
-                        "(lib/like-nes/debug), this prefix has Release only; with a multi-config "
-                        "generator use a single-config one (Ninja) and CMAKE_BUILD_TYPE=Release")
-  endif()
+  like_nes_require_debug_libs(${target})
   set_target_properties(${target} PROPERTIES
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
   if(APPLE)

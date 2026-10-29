@@ -2,9 +2,10 @@
 # Мобильная половина гейта sdk-game (спека #26, В1д): Neon Rumble собирается против МОБИЛЬНОГО
 # префикса SDK, а не против дерева. iOS-симулятор — на macOS, Android x86_64 — на Linux и на macOS с
 # пиннутым NDK. Префикс ставится в пустой каталог из своей сборки (build-sdk-ios-sim,
-# build-sdk-android-x86_64), игра собирается через like-nes_DIR и печётся assetc десктопного
-# префикса, а пакет судится по составу: бинарь своей платформы, оба бандла, все лицензии префикса.
-# game.bundle пакета сравнивается побайтно с бандлом десктопной игры: один манифест и один assetc.
+# build-sdk-android-x86_64), игра собирается через like-nes_DIR и печётся rumble_assetc, собранным
+# против десктопного префикса (`rumble_tool.sh`, спека #29, В2а), а пакет судится по составу:
+# бинарь своей платформы, оба бандла, все лицензии префикса.
+# game.bundle пакета сравнивается побайтно с бандлом десктопной игры: один манифест и один пекарь.
 # Вызывающий задаёт ROOT, WORK, OUT, PREFIX (десктопный префикс) и GEN; помощники — sdk_game_lib.sh.
 
 # shellcheck source=platform/mobile/fresh_cache.sh
@@ -35,7 +36,8 @@ mobile_game() {
     shift 3
     {
         cmake --fresh -S "$src" -B "$dir" -G "$GEN" -DCMAKE_BUILD_TYPE=Release "$@" \
-            -Dlike-nes_DIR="$pfx/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$PREFIX" &&
+            -Dlike-nes_DIR="$pfx/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$PREFIX" \
+            -DRUMBLE_ASSETC="$RUMBLE_TOOL" &&
             cmake --build "$dir"
     } > "$dir.log" 2>&1
 }
@@ -54,7 +56,7 @@ mobile_licenses() {
     printf '%s' "$list"
 }
 
-# Бандл пакета против бандла десктопной игры: расхождение — чужой assetc или чужой манифест.
+# Бандл пакета против бандла десктопной игры: расхождение — чужой пекарь или чужой манифест.
 mobile_bundle_same() {
     local plat=$1 got=$2
     [ -f "$OUT/game-Release/game.bundle" ] || {
@@ -96,7 +98,8 @@ mobile_ios() {
     done
     mobile_bundle_same ios-sim "$app/assets/game.bundle" || return 1
     sdk_ok "ios-sim: neon_rumble.app (IOSSIMULATOR, iOS $min) carries both bundles and the licenses"
-    fixture_mobile_tree_header ios-sim "$pfx" "${flags[@]}"
+    fixture_mobile_tree_header ios-sim "$pfx" "${flags[@]}" || return 1
+    fixture_mobile_stale_tool ios-sim "$pfx" "${flags[@]}"
 }
 
 # NDK выбирается тем же скриптом, что у build_apk.sh, но в подоболочке: его отказ — `exit 1`.
@@ -130,7 +133,8 @@ mobile_android() {
         sdk_bad "android-$abi: cannot extract game.bundle from the APK"; return 1; }
     mobile_bundle_same "android-$abi" "$WORK/apk-game.bundle" || return 1
     sdk_ok "android-$abi: neon_rumble.apk (API $api) carries the .so, libc++_shared, both bundles and the licenses"
-    fixture_mobile_tree_header "android-$abi" "$pfx" "${flags[@]}"
+    fixture_mobile_tree_header "android-$abi" "$pfx" "${flags[@]}" || return 1
+    fixture_mobile_stale_tool "android-$abi" "$pfx" "${flags[@]}"
 }
 
 # Заголовок оболочки дерева, которого нет в префиксе: мобильная игра, сославшаяся на шутер, обязана
@@ -156,17 +160,17 @@ fixture_mobile_tree_header() {
 mobile_half() {
     local ndk fail=0
     case "$(uname -s)" in
-        Darwin) mobile_ios || fail=1 ;;
-        Linux) ;;
+        Darwin | Linux) ;;
         *) printf 'sdk-game: SKIP mobile half (no mobile toolchain on %s)\n' "$(uname -s)"; return 0 ;;
     esac
+    [ "$(uname -s)" != Darwin ] || { mobile_tool && mobile_ios; } || fail=1
     case "${SDK_GAME_ANDROID:-}" in
         skip) printf 'sdk-game: SKIP android-x86_64 (SDK_GAME_ANDROID=skip)\n'; return "$fail" ;;
         required | "") ;;
         *) sdk_bad "SDK_GAME_ANDROID is '$SDK_GAME_ANDROID', not required, skip or empty"; return 1 ;;
     esac
     if ndk=$(android_ndk 2> "$WORK/ndk.err"); then
-        mobile_android "$ndk" || fail=1
+        { mobile_tool && mobile_android "$ndk"; } || fail=1
     elif [ "${SDK_GAME_ANDROID:-}" = required ]; then
         cat "$WORK/ndk.err" >&2; sdk_bad "android: no pinned NDK and SDK_GAME_ANDROID=required"; fail=1
     else

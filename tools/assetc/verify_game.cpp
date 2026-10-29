@@ -1,34 +1,16 @@
-#include "verify_game.hpp"
+#include "assetc_game.hpp"
 
 #include <cstdio>
 #include <cstring>
 #include <vector>
 
-#include "bakers.hpp"
 #include "bundle_view.hpp"
 #include "format.hpp"
 #include "hash.hpp"
 #include "platform_fs.hpp"
 
-namespace asset {
+namespace asset::game {
 namespace {
-
-// Секция = логическое имя для отчёта + исходник + пекарь. Добавить сюда tool-free секцию — одна
-// строка: guid брать неоткуда, кроме самого пекаря, поэтому имя ассета здесь НЕ дублируется.
-struct Section {
-    const char* label;
-    const char* file;
-    bool (*bake)(const std::string&, std::vector<AssetInput>&);
-};
-
-const Section SECTIONS[] = {
-    {"input presets", "/input.txt", bakers::input_presets},
-    {"achievements", "/achievements.txt", bakers::achievements},
-    {"movement", "/movement.txt", bakers::movement},
-    {"tilemap", "/tilemap.txt", bakers::tilemap},
-    {"atlas regions", "/atlas.txt", bakers::atlas_regions},
-    {"touch layout", "/touch.txt", bakers::touch_layout},
-};
 
 // Расхождение называется по виду, а не одним словом STALE: перепекание снимает разошедшиеся байты,
 // но не смену кодека — совет «перепеки» в ответ на неё отправляет читателя чинить не то, а отказ
@@ -98,7 +80,8 @@ const char* reason_name(OpenResult r) {
 
 } // namespace
 
-bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_path) {
+bool verify_game_bundle(const std::string& tool, const std::string& src_dir, const std::string& bundle_path,
+                        std::span<const Section> sections) {
     std::vector<uint8_t> raw;
     if (!platform::read_bytes(bundle_path, raw)) {
         std::fprintf(stderr, "[assetc] verify: cannot read %s\n", bundle_path.c_str());
@@ -123,7 +106,7 @@ bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_pa
     }
 
     bool ok = true;
-    for (const Section& s : SECTIONS) {
+    for (const Section& s : sections) {
         std::vector<AssetInput> baked;
         if (!s.bake(src_dir + s.file, baked)) {
             ok = false;
@@ -154,10 +137,10 @@ bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_pa
         if (v != Verdict::Match) {
             std::fprintf(stderr,
                          "[assetc] verify: %s STALE (%s) - %s does not match %s%s.\n"
-                         "        Rebake: assetc --game %s %s - needs tint and basisu,\n"
+                         "        Rebake: %s --game %s %s - needs tint and basisu,\n"
                          "        so it runs on the owner's machine only (docs/owner-setup.txt, F).\n",
                          s.label, v == Verdict::Meta ? "metadata" : "payload", bundle_path.c_str(),
-                         src_dir.c_str(), s.file, src_dir.c_str(), bundle_path.c_str());
+                         src_dir.c_str(), s.file, tool.c_str(), src_dir.c_str(), bundle_path.c_str());
             ok = false;
             continue;
         }
@@ -170,10 +153,10 @@ bool verify_game_bundle(const std::string& src_dir, const std::string& bundle_pa
         std::printf("[assetc] verify: %s matches (%u bytes)\n", s.label, e->payload_size);
     }
     // Число сверенных секций печатается всегда: «находок нет» и «нечего было сверять» с одного
-    // взгляда неразличимы, а список SECTIONS растёт.
+    // взгляда неразличимы, а таблица секций растёт.
     std::printf("[assetc] verify: %s - %zu tool-free section(s) checked against %s\n",
-                ok ? "PASS" : "FAIL", sizeof(SECTIONS) / sizeof(SECTIONS[0]), src_dir.c_str());
+                ok ? "PASS" : "FAIL", sections.size(), src_dir.c_str());
     return ok;
 }
 
-} // namespace asset
+} // namespace asset::game

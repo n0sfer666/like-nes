@@ -22,12 +22,50 @@
    `tools/` своей игры (`games/neon-rumble/tools/` — подкаталог игры и проект хоста,
    `example_ugly_game/tools/`); `like_nes_bake(TOOL)` опционален, мобильная сборка rumble без
    `-DRUMBLE_ASSETC` — `FATAL_ERROR` с командой сборки инструмента хоста.
+10. #29 В2а, детали (интервью 5–7): пекарь вида отдаёт ядру байты таблицы, `push_table` делает
+    ядро, `AssetInput` в публичный заголовок не идёт; `like-nes::assetc_core` — отдельная цель
+    desktop-префикса рядом с `like-nes::engine`; заголовок — `include/like-nes/assetc/`
+    (`assetc_kind.hpp`); корень дерева подключает `games/neon-rumble/tools`, там же
+    `assetc_fighter_test`; пекари секций `--game` — либа дерева `assetc_tables` (без movement),
+    movement — в `example_ugly_game/tools/`; базовый `assetc` на `--game`/`--verify-game` — отказ с
+    подсказкой про `ugly_assetc`; `kit_platformer` переносится в В2д; запись игрового вида —
+    `<вид>|<имя>|<путь>.<ext>`, в отказе виды игры идут после встроенных; мобильные гейты собирают
+    инструмент `scripts/rumble_tool.sh <desktop-prefix> <dir>`; путь `TOOL` — абсолютный и
+    существующий; `sim-float` — `SIM_PATHS` (каталоги и файлы) + `games/neon-rumble/sim`, мутант в
+    игровом каталоге, `REQUIRED_DIR` до В2г прежний.
+11. #29 В2а (интервью 8): `rumble_assetc` против префикса линкует только `like-nes::assetc_core` и
+    `like-nes::framework_brawl_fighter`, include-каталоги — из `like-nes::engine` (без webgpu);
+    `assetc_kind.hpp` — `asset::manifest`, `Kind{name, extension ".fighter", bake}`;
+    `example_ugly_game/tools` подключается из `example_ugly_game/CMakeLists.txt` до выхода по
+    `IDE_POC`; usage `run_manifest` печатает имя из `argv[0]`.
+12. #29 В2а (интервью 9, line-budget): `name_ok`/`path_ok` — публичные в `assetc_manifest.hpp`
+    (живут в `assetc_manifest_paths.cpp`); бейк игрового вида — свой файл
+    `manifest_kind_bake.{hpp,cpp}` (`TextRecord`, `bake_kind`); таблица видов игры остаётся
+    параметром, но вид с именем встроенного и второй вид с тем же именем — отказ (`kinds_ok`).
+13. #29 В2а (интервью 10, ревью): все находки — по ревьюеру; путь `TOOL` сверяется штампом
+    `<bin>.like-nes-build` (`_ln_build` префикса, против которого собран инструмент) с
+    `_ln_build` хост-префикса мобильной сборки; `report()` — определение в `assetc_core`;
+    MSVC Debug против Release-only префикса — общая функция Config, её зовут `like_nes_add_game`
+    и `rumble_assetc`.
+14. #29 В2а (интервью 11, line-budget): тесты таблицы видов — свой бинарь `assetc_kinds_test`
+    (`assetc_manifest_test` возвращается к грамматике, путям и depfile).
+15. #29 В2а (интервью 12, повторное ревью): шесть механических low/taste — по ревьюеру; отказы
+    `like_nes_bake(TOOL)` закрепляет мини-проект в desktop-половине `check_sdk_game.sh`, по фикстуре
+    на каждый отказ; `rumble_tool.sh` собирается лениво, перед первой мобильной платформой;
+    `run_manifest` — свой поставленный заголовок `assetc_manifest_mode.hpp`, `assetc_kind.hpp` — только `Kind`.
+16. #29 В2а (интервью 13): `rumble_tool.sh` приводит префикс к абсолютному (относительный не
+    находился: `like-nes_DIR` CMake считает от каталога сборки); провал ленивой сборки пекаря
+    запоминается — вторая мобильная платформа падает сразу, без второй сборки и второй строки FAIL.
+17. #29 В2а (интервью 14, ревью дельты): три low — по ревьюеру (`tr -s '[:space:]'` в фикстурах
+    TOOL, `RUMBLE_TOOL`/`RUMBLE_TOOL_FAILED` обнуляет гейт, `CDPATH='' cd --` в `rumble_tool.sh`);
+    `rumble_tool.sh` вне macOS/Linux — явный отказ; лог — `<dir>/rumble_tool.log`, а не `<dir>.log`
+    в корне репозитория.
 
 ## Состояние
 
 - [x] повестка `26-10-28-engine-finish-scope.md`
 - [x] #18/#19/#20/#22 → «Закрыта с долгом», `checks/18.md`, `19.md`, `20.md`, `22.md`
-- [ ] #29 В2а — начат: `rumble_floor` → `games/neon-rumble/sim/` (`rumble_sim`), не закоммичен
+- [ ] #29 В2а — код и проверки на macOS готовы, коммит + CI на 3 ОС; долг — `checks/29.md`
 - [ ] #29 В2б–В2е
 - [ ] #26 В2г–В2е
 - [ ] #26 В3–В7

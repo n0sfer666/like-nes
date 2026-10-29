@@ -7,56 +7,6 @@
 namespace asset::manifest {
 namespace {
 
-bool name_ok(const std::string& name) {
-    if (name.empty()) return false;
-    for (char c : name) {
-        const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
-                        c == '_' || c == '-' || c == '.';
-        if (!ok) return false;
-    }
-    return true;
-}
-
-// `..` отбивается целиком, а не только выводящий наружу: запись с ним всегда можно написать
-// прямо, а лексическая проверка «внутри ли» — второе правило, в котором можно ошибиться. Ссылки
-// не проверяются: манифест пишет автор игры о своём дереве, общие ассеты через ссылку — законный
-// приём, и правило держит переносимость записи, а не песочницу. `:` — диск или поток NTFS,
-// `\` — разделитель, который POSIX считает частью имени.
-bool path_ok(const std::string& path, std::string& error) {
-    if (path.empty()) {
-        error = "empty path";
-        return false;
-    }
-    if (path.find('\\') != std::string::npos) {
-        error = "path '" + path + "' uses '\\'; write paths with '/'";
-        return false;
-    }
-    if (path[0] == '/' || (path.size() > 1 && path[1] == ':')) {
-        error = "path '" + path + "' is absolute; paths are relative to the manifest";
-        return false;
-    }
-    if (path.find(':') != std::string::npos) {
-        error = "path '" + path + "' uses ':'; Windows reads it as a drive or a stream";
-        return false;
-    }
-    size_t start = 0;
-    while (start <= path.size()) {
-        const size_t slash = path.find('/', start);
-        const size_t end = slash == std::string::npos ? path.size() : slash;
-        const std::string seg = path.substr(start, end - start);
-        if (seg == "..") {
-            error = "path '" + path + "' uses '..'; files must lie under the manifest directory";
-            return false;
-        }
-        if (seg.empty() || seg == ".") {
-            error = "path '" + path + "' has an empty or '.' segment";
-            return false;
-        }
-        start = end + 1;
-    }
-    return true;
-}
-
 bool fail(Error& err, uint32_t line, std::string message) {
     err.line = line;
     err.message = std::move(message);
@@ -118,35 +68,48 @@ bool touch(const std::vector<std::string>& f, uint32_t line, Error& err) {
     return true;
 }
 
-bool fighter(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 3) return fail(err, line, "fighter record expected as fighter|<name>|<path>.fighter");
-    if (!f[2].ends_with(".fighter")) return fail(err, line, "fighter path '" + f[2] + "' must end in .fighter");
+bool game(const Kind& k, const std::vector<std::string>& f, uint32_t line, Error& err) {
+    const std::string shape = f[0] + "|<name>|<path>" + k.extension;
+    if (f.size() != 3) return fail(err, line, f[0] + " record expected as " + shape);
+    if (!f[2].ends_with(k.extension))
+        return fail(err, line, f[0] + " path '" + f[2] + "' must end in " + k.extension);
     return true;
 }
 
-bool kind_ok(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f[0] == "texture") return texture(f, line, err);
-    if (f[0] == "level") return level(f, line, err);
-    if (f[0] == "clips") return clips(f, line, err);
-    if (f[0] == "font") return font(f, line, err);
-    if (f[0] == "credits") return credits(f, line, err);
-    if (f[0] == "fighter") return fighter(f, line, err);
-    if (f[0] == "touch") return touch(f, line, err);
-    return fail(err, line, "unsupported record kind '" + f[0] +
-                               "' (this assetc bakes: texture, level, clips, font, credits, fighter, touch)");
+struct Builtin {
+    const char* name;
+    bool (*check)(const std::vector<std::string>& f, uint32_t line, Error& err);
+};
+constexpr Builtin BUILTIN[] = {{"texture", texture}, {"level", level}, {"clips", clips},
+                               {"font", font},       {"credits", credits}, {"touch", touch}};
+
+bool kind_ok(const std::vector<std::string>& f, uint32_t line, std::span<const Kind> kinds, Error& err) {
+    for (const Builtin& b : BUILTIN)
+        if (f[0] == b.name) return b.check(f, line, err);
+    if (const Kind* k = find_kind(kinds, f[0])) return game(*k, f, line, err);
+    std::string known;
+    for (const Builtin& b : BUILTIN) known += std::string(known.empty() ? "" : ", ") + b.name;
+    for (const Kind& k : kinds) known += std::string(", ") + k.name;
+    return fail(err, line, "unsupported record kind '" + f[0] + "' (this tool bakes: " + known + ")");
+}
+
+bool table_fail(std::string& error, const std::string& message) {
+    error = "kind table: " + message;
+    return false;
 }
 
 bool reserved(const std::string& name) {
     return name == "tilemap" || name == "visual" || name == "objects" || name == "clips" || name == "fonts";
 }
 
-bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error& err) {
-    if (!kind_ok(f, line, err)) return false;
+bool record(const std::vector<std::string>& f, uint32_t line, std::span<const Kind> kinds, Record& rec,
+            Error& err) {
+    if (!kind_ok(f, line, kinds, err)) return false;
     if (!name_ok(f[1]))
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
     if (f[0] != "level" && f[0] != "clips" && reserved(f[1]))
         return fail(err, line, f[0] + " name '" + f[1] + "' is reserved for the level, clip and font sections");
-    const bool no_codec = f[0] == "credits" || f[0] == "fighter";
+    const bool no_codec = f[0] == "credits" || find_kind(kinds, f[0]) != nullptr;
     const std::string& path = no_codec ? f[2] : f[3];
     std::string why;
     if (!path_ok(path, why)) return fail(err, line, why);
@@ -156,8 +119,36 @@ bool record(const std::vector<std::string>& f, uint32_t line, Record& rec, Error
 
 } // namespace
 
-bool parse(const std::string& text, std::vector<Record>& out, Error& err) {
+// Вид игры с именем встроенного молча проиграл бы встроенному, а второй вид с тем же именем —
+// первому (find_kind берёт первый): записи игры пеклись бы чужим пекарем.
+bool kinds_ok(std::span<const Kind> kinds, std::string& error) {
+    for (size_t i = 0; i < kinds.size(); ++i) {
+        const Kind& k = kinds[i];
+        if (!k.name || !k.extension || !k.bake)
+            return table_fail(error, "kind #" + std::to_string(i) + " has no name, extension or baker");
+        const std::string name = k.name, ext = k.extension;
+        if (!name_ok(name))
+            return table_fail(error, "kind name '" + name + "' must be letters, digits, '_', '-' or '.'");
+        if (ext.size() < 2 || ext[0] != '.' || !name_ok(ext.substr(1)))
+            return table_fail(error, "kind '" + name + "' extension '" + ext +
+                                         "' must be '.' and a suffix of letters, digits, '_', '-' or '.'");
+        for (const Builtin& b : BUILTIN)
+            if (name == b.name) return table_fail(error, "game record kind '" + name + "' shadows a built-in kind");
+        for (size_t j = 0; j < i; ++j)
+            if (name == kinds[j].name) return table_fail(error, "game record kind '" + name + "' is listed twice");
+    }
+    return true;
+}
+
+const Kind* find_kind(std::span<const Kind> kinds, const std::string& name) {
+    for (const Kind& k : kinds)
+        if (name == k.name) return &k;
+    return nullptr;
+}
+
+bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::span<const Kind> kinds) {
     out.clear();
+    if (std::string why; !kinds_ok(kinds, why)) return fail(err, 0, why);
     // BOM пишет PowerShell 5.1 (`Set-Content -Encoding UTF8`); без отдельного отказа он прилип бы
     // к первому полю и дал «unsupported record kind 'texture'» с невидимыми байтами.
     if (text.compare(0, 3, "\xEF\xBB\xBF") == 0)
@@ -175,7 +166,7 @@ bool parse(const std::string& text, std::vector<Record>& out, Error& err) {
         if (hash != std::string::npos) body.resize(hash);
         if (framework::core::trim(body).empty()) continue;
         Record rec;
-        if (!record(framework::core::split_fields(body), line, rec, err)) return false;
+        if (!record(framework::core::split_fields(body), line, kinds, rec, err)) return false;
         const auto [it, fresh] = seen.emplace(rec.name, line);
         if (!fresh)
             return fail(err, line, "duplicate name '" + rec.name + "' (first on line " +

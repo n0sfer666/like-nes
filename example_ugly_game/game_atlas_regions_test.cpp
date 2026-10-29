@@ -54,7 +54,7 @@ bool read_section(const std::string& path, std::vector<uint8_t>& out) {
     am.request(guid);
     am.sync_point();
     if (!am.is_ready(guid)) {
-        std::printf("  FAIL: no '%s' section in %s, rebake it with assetc --game\n", SECTION,
+        std::printf("  FAIL: no '%s' section in %s, rebake it with ugly_assetc --game\n", SECTION,
                     path.c_str());
         am.close();
         return false;

@@ -36,7 +36,11 @@ result and keeps everything in `build-sdk-work/`. It is the shortest way to a pr
 
 A phone build needs its own prefix per platform: `ios-sim`, `ios-device` or `android-<abi>`. It is
 built in Release only and has no `assetc`, because the baker runs on the build machine: the game
-passes the desktop prefix as `LIKE_NES_HOST_PREFIX`, and its `assetc` bakes the bundles. The
+passes the desktop prefix as `LIKE_NES_HOST_PREFIX`, and its `assetc` bakes the bundles. Neon
+Rumble bakes with its own tool, `rumble_assetc` (see below), and a phone build cannot run what it
+builds for the phone: `bash scripts/rumble_tool.sh <desktop prefix> <dir>` builds the tool for the
+build machine against the desktop prefix and prints its path, and the game takes that path as
+`-DRUMBLE_ASSETC`. Without it a phone build of Neon Rumble stops at configure with this command. The
 paths below must be absolute, because a cross toolchain does not resolve a relative
 `like-nes_DIR`. For the iOS simulator:
 
@@ -44,7 +48,8 @@ paths below must be absolute, because a cross toolchain does not resolve a relat
 cmake -S . -B build-sdk-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64
 cmake --build build-sdk-ios-sim --target like_nes_sdk
 cmake --install build-sdk-ios-sim --component sdk --prefix <ios prefix>
-cmake -S games/neon-rumble -B build-game-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -Dlike-nes_DIR=<ios prefix>/lib/cmake/like-nes -DLIKE_NES_HOST_PREFIX=<desktop prefix>
+bash scripts/rumble_tool.sh <desktop prefix> build-rumble-tool
+cmake -S games/neon-rumble -B build-game-ios-sim -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=17.0 -Dlike-nes_DIR=<ios prefix>/lib/cmake/like-nes -DLIKE_NES_HOST_PREFIX=<desktop prefix> -DRUMBLE_ASSETC=<the path it printed>
 cmake --build build-game-ios-sim
 ```
 
@@ -67,13 +72,14 @@ cmake_minimum_required(VERSION 3.21)
 project(neon_rumble CXX)
 
 find_package(like-nes 0.1 REQUIRED CONFIG)
+add_subdirectory(sim)
 
 set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
   src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
   src/rumble_depth_overlay.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
   src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
-  src/rumble_floor.cpp src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
+  src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
   src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
   src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
   src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
@@ -81,15 +87,26 @@ set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
   like_nes_mobile_app(neon_rumble SOURCES src/rumble_mobile.cpp ${RUMBLE_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
-  target_link_libraries(neon_rumble PRIVATE like-nes::engine)
+  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
-  target_link_libraries(neon_rumble PRIVATE like-nes::engine like-nes::window)
+  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)
 endif()
-like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
+# Бойцов печёт инструмент игры (спека #29, В2а). Мобильная сборка его не запускает — бинарь хоста
+# приходит готовым путём.
+if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+  if(NOT RUMBLE_ASSETC)
+    message(FATAL_ERROR "neon_rumble: a mobile build bakes with the host's rumble_assetc; build it with "
+                        "'bash scripts/rumble_tool.sh <desktop-prefix> <dir>' and pass -DRUMBLE_ASSETC=<path it prints>")
+  endif()
+  like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle TOOL "${RUMBLE_ASSETC}")
+else()
+  add_subdirectory(tools)
+  like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle TOOL rumble_assetc)
+endif()
 ```
 <!-- /snippet -->
 
@@ -99,6 +116,19 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
   brings the desktop window and native input: the GLFW keyboard and mouse pump and the gamepad
   backend of the OS (`input/source.hpp`, `make_gamepad_source`): GameController on macOS, XInput on
   Windows, evdev on Linux.
+- `add_subdirectory(sim)` adds `rumble_sim`, the fight code without a window. Its build file links
+  `like-nes::engine` when the target exists, as it does here, and the engine targets of the source
+  tree otherwise: the same library builds inside the engine tree under its strict warnings and
+  against the SDK for the game. It sets the static C runtime itself, as `like_nes_add_game` does
+  for the game.
+- `add_subdirectory(tools)` adds `rumble_assetc`: the SDK's baker core `like-nes::assetc_core` and
+  the game's own `fighter` record (`tools/fighter_kind.cpp`), which the SDK's `assetc` does not
+  know. A record kind is an `asset::manifest::Kind` from `assetc_kind.hpp`: a name, a file extension
+  and a function that turns the file's text into the bytes of a table; the core reads the manifest,
+  checks the path and writes the section. The tool's `main` hands its kinds to
+  `asset::manifest::run_manifest` from `assetc_manifest_mode.hpp`. The tool links only `like-nes::assetc_core` and
+  `like-nes::framework_brawl_fighter` and takes its include paths from `like-nes::engine`, so it
+  does not pull the renderer.
 - On iOS and Android `like_nes_mobile_app(<target> SOURCES <file>... [BUNDLES <file>...] NAME <name> ID <bundle id>)`
   builds the game on the SDK's mobile shell instead of an executable: an `.app` on iOS, a `.so` and
   the `<target>_apk` target on Android. The game defines `mobile::make_game()`
@@ -107,9 +137,16 @@ like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle)
   branch.
 - `like_nes_add_game(<target>)` makes the game use the same C runtime as the engine. On MSVC the
   engine links the CRT statically, and a Debug game without this call fails to link with
-  `LNK2038`. The call also copies the wgpu runtime next to the executable.
-- `like_nes_bake(<target> MANIFEST <file> OUT <bundle>)` runs the SDK's `assetc` on the manifest
-  and copies the game's bundle and the SDK's `library.bundle` next to the executable. `assetc`
+  `LNK2038`. The call also copies the wgpu runtime next to the executable. On MSVC Debug against a
+  Release-only prefix it stops the configure through `like_nes_require_debug_libs(<target>)`, which
+  a game's own tool built against the prefix calls too.
+- `like_nes_bake(<target> MANIFEST <file> OUT <bundle> [TOOL <baker>])` runs a baker on the manifest
+  and copies the game's bundle and the SDK's `library.bundle` next to the executable. Without `TOOL`
+  the baker is the SDK's `assetc`. `TOOL` is a target of the game's build, which is built first, or
+  an absolute path to an existing executable; anything else stops the configure. A path needs
+  `<path>.like-nes-build` beside it with the build of this SDK: `rumble_assetc` built against a
+  prefix writes it, and a tool built against another build of the engine stops the configure.
+  Neon Rumble passes `rumble_assetc` on the desktop and `${RUMBLE_ASSETC}` on a phone. The baker
   writes a depfile of every file it read (the manifest, every PNG, every `.tmj` and the `.tsj` it
   references), so editing a tileset re-bakes the bundle on the next build.
 
@@ -161,7 +198,7 @@ fighter | adler_fighter | fighters/adler.fighter
 | `clips` | name, `aseprite` or `sheet`, path | animation clips: see [Animations in Aseprite](aseprite-animations.md) |
 | `font` | name, `bitmask`, path to a `.json` | a bitmap font and its atlas: see [Fonts and credits](fonts-and-credits.md) |
 | `credits` | name, path to a `.txt` | the credits table: see [Asset licenses](asset-licenses.md) |
-| `fighter` | name, path to a `.fighter` | a fighter table: speeds, jump, depth, hp and the strikes of the fighter's clips |
+| `fighter` | name, path to a `.fighter` | a fighter table: speeds, jump, depth, hp and the strikes of the fighter's clips. A record of the game's tool `rumble_assetc`: the SDK's `assetc` refuses it |
 
 The bake refuses a line instead of guessing what it meant:
 
@@ -178,7 +215,7 @@ Every refusal names `<manifest>:<line>` and stops the game's build with that lin
 
 ## The bundle hash
 
-The bake is deterministic: the same input gives the same bytes on every OS. `assetc` prints
+The bake is deterministic: the same input gives the same bytes on every OS. The baker prints
 `[assetc] bundle_hash = 0x…` when it bakes, and Neon Rumble commits the value it expects to
 `games/neon-rumble/bundle.hash`. `check_sdk_game.sh` compares the two in Release and Debug. A
 different hash on one machine is a finding, not a reason to rewrite the file. The file changes only

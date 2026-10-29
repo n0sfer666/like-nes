@@ -16,6 +16,56 @@ bool same_ignoring_case(const std::string& a, const std::string& b) {
 
 } // namespace
 
+bool name_ok(const std::string& name) {
+    if (name.empty()) return false;
+    for (char c : name) {
+        const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') ||
+                        c == '_' || c == '-' || c == '.';
+        if (!ok) return false;
+    }
+    return true;
+}
+
+// `..` отбивается целиком, а не только выводящий наружу: запись с ним всегда можно написать
+// прямо, а лексическая проверка «внутри ли» — второе правило, в котором можно ошибиться. Ссылки
+// не проверяются: манифест пишет автор игры о своём дереве, общие ассеты через ссылку — законный
+// приём, и правило держит переносимость записи, а не песочницу. `:` — диск или поток NTFS,
+// `\` — разделитель, который POSIX считает частью имени.
+bool path_ok(const std::string& path, std::string& error) {
+    if (path.empty()) {
+        error = "empty path";
+        return false;
+    }
+    if (path.find('\\') != std::string::npos) {
+        error = "path '" + path + "' uses '\\'; write paths with '/'";
+        return false;
+    }
+    if (path[0] == '/' || (path.size() > 1 && path[1] == ':')) {
+        error = "path '" + path + "' is absolute; paths are relative to the manifest";
+        return false;
+    }
+    if (path.find(':') != std::string::npos) {
+        error = "path '" + path + "' uses ':'; Windows reads it as a drive or a stream";
+        return false;
+    }
+    size_t start = 0;
+    while (start <= path.size()) {
+        const size_t slash = path.find('/', start);
+        const size_t end = slash == std::string::npos ? path.size() : slash;
+        const std::string seg = path.substr(start, end - start);
+        if (seg == "..") {
+            error = "path '" + path + "' uses '..'; files must lie under the manifest directory";
+            return false;
+        }
+        if (seg.empty() || seg == ".") {
+            error = "path '" + path + "' has an empty or '.' segment";
+            return false;
+        }
+        start = end + 1;
+    }
+    return true;
+}
+
 // Путь лексически проверен `parse`: сегменты непустые, без `.` и `..`, разделитель `/`.
 bool resolve(const std::string& base_dir, const std::string& rel, std::string& full,
              std::string& error) {

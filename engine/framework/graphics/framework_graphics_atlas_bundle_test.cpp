@@ -13,7 +13,7 @@
 // `example_ugly_game/assets/game.bundle`, достаёт из него секцию `atlas_regions`, разворачивает её
 // ЧИТАТЕЛЕМ и сверяет с разбором `atlas.txt` регион за регионом.
 //
-// Что он ловит ОДИН: дефект ЧТЕНИЯ. Байтовая сверка `assetc --verify-game` сравнивает свежую
+// Что он ловит ОДИН: дефект ЧТЕНИЯ. Байтовая сверка `ugly_assetc --verify-game` сравнивает свежую
 // выпечку с бандлом и читателя не запускает ВОВСЕ, поэтому сдвиг блока записей, потеря знака у
 // привязки или поиск, возвращающий не тот номер, для неё невидимы.
 //
@@ -51,7 +51,7 @@ bool read_section(const std::string& path, std::vector<uint8_t>& out) {
     am.request(guid);
     am.sync_point();
     if (!am.is_ready(guid)) {
-        std::printf("  FAIL: no '%s' section in %s, rebake it with assetc --game\n", SECTION,
+        std::printf("  FAIL: no '%s' section in %s, rebake it with ugly_assetc --game\n", SECTION,
                     path.c_str());
         am.close();
         return false;

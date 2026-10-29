@@ -6,6 +6,7 @@
 
 #include "baker_guid.hpp"
 #include "clip_fixture.hpp"
+#include "fighter_kind.hpp"
 #include "fighter_read.hpp"
 #include "format.hpp"
 #include "manifest_bake.hpp"
@@ -71,6 +72,7 @@ bool bake(const std::string& root, const std::string& manifest, const std::strin
     write(root + "/game.manifest", manifest);
     b = manifest::Bake{};
     b.manifest = root + "/game.manifest";
+    b.kinds = rumble::assetc_kinds();
     b.tools = codec::Tools{"tint", root + "/no-such-basisu"};
     b.tmp = root + "/out.ktx2.tmp";
     return manifest::bake(b);

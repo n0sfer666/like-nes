@@ -15,7 +15,15 @@ if(WIN32)
 endif()
 install(TARGETS assetc RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT sdk)
 
-set(LIKE_NES_SDK_INC_ALLOWED "${glfw_SOURCE_DIR}/include" "${glfw3webgpu_SOURCE_DIR}")
+# Ядро пекаря (спека #29, В2а): инструмент игры собирается против префикса и приносит свои виды
+# записей таблицей. В like-nes::engine оно не входит — игре в рантайме пекарь не нужен.
+list(APPEND LIKE_NES_SDK_STATIC assetc_core asset_core framework_tiled framework_graphics_import
+  framework_touch framework_json libzstd_static)
+list(APPEND LIKE_NES_SDK_HEADER_PATHS tools/assetc/assetc_kind.hpp tools/assetc/assetc_manifest_mode.hpp)
+
+set(LIKE_NES_SDK_INC_ALLOWED "${glfw_SOURCE_DIR}/include" "${glfw3webgpu_SOURCE_DIR}"
+  "${zstd_SOURCE_DIR}/lib" "${CMAKE_SOURCE_DIR}/engine/framework/tilemap/tiled"
+  "${CMAKE_SOURCE_DIR}/engine/framework/touch")
 set(LIKE_NES_SDK_WEBGPU_FILE "${WGPU_RUNTIME_LIB}")
 set(LIKE_NES_SDK_EXTRA_DATA "")
 install(FILES "${CMAKE_CURRENT_LIST_DIR}/sdk_config_desktop.cmake" DESTINATION "${SDK_CMAKE}" COMPONENT sdk)

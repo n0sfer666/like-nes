@@ -1,4 +1,4 @@
-#include "manifest_mode.hpp"
+#include "assetc_manifest_mode.hpp"
 
 #include <cstdio>
 #include <cstring>
@@ -6,29 +6,37 @@
 
 #include "assetc_depfile.hpp"
 #include "assetc_emit.hpp"
+#include "assetc_manifest.hpp"
+#include "assetc_tool.hpp"
 #include "manifest_bake.hpp"
 #include "platform_path.hpp"
 
-namespace asset {
+namespace asset::manifest {
 namespace {
 
-constexpr const char* USAGE =
-    "usage: assetc --manifest <file> <out.bundle> [--depfile <file.d>] [--basisu <path>]\n";
-
-int usage(const char* bad) {
-    std::fprintf(stderr, "assetc --manifest: unexpected argument '%s'\n", bad);
-    std::fputs(USAGE, stderr);
+int usage(const std::string& tool) {
+    std::fprintf(stderr, "usage: %s --manifest <file> <out.bundle> [--depfile <file.d>] [--basisu <path>]\n",
+                 tool.c_str());
     return 2;
+}
+
+int unexpected(const std::string& tool, const char* bad) {
+    std::fprintf(stderr, "%s --manifest: unexpected argument '%s'\n", tool.c_str(), bad);
+    return usage(tool);
 }
 
 } // namespace
 
-int run_manifest(int argc, char** argv) {
-    if (argc < 4) {
-        std::fputs(USAGE, stderr);
-        return 2;
+int run_manifest(int argc, char** argv, std::span<const Kind> kinds) {
+    const std::string tool = tool_name(argc > 0 ? argv[0] : nullptr);
+    if (argc < 4) return usage(tool);
+    // Битая таблица видов — ошибка инструмента, а не манифеста: без пары `<манифест>:<строка>`.
+    if (std::string why; !kinds_ok(kinds, why)) {
+        std::fprintf(stderr, "[assetc] %s\n", why.c_str());
+        return 1;
     }
-    manifest::Bake b;
+    Bake b;
+    b.kinds = kinds;
     b.manifest = argv[2];
     b.tools = codec::Tools{"tint", "basisu"};
     const std::string out = argv[3];
@@ -37,12 +45,12 @@ int run_manifest(int argc, char** argv) {
     // Хвост по одному аргументу с отказом на неузнанном — тот же урок, что у `--materials`: флаг
     // без значения, проглоченный молча, оставил бы сборку без depfile и без перебейка.
     for (int i = 4; i < argc; ++i) {
-        if (i + 1 >= argc) return usage(argv[i]);
+        if (i + 1 >= argc) return unexpected(tool, argv[i]);
         if (std::strcmp(argv[i], "--depfile") == 0) depfile = argv[++i];
         else if (std::strcmp(argv[i], "--basisu") == 0) b.tools.basisu = argv[++i];
-        else return usage(argv[i]);
+        else return unexpected(tool, argv[i]);
     }
-    if (!manifest::bake(b)) {
+    if (!bake(b)) {
         std::fprintf(stderr, "[assetc] %s\n", b.error.c_str());
         return 1;
     }
@@ -56,4 +64,4 @@ int run_manifest(int argc, char** argv) {
     return 0;
 }
 
-} // namespace asset
+} // namespace asset::manifest

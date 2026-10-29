@@ -5,7 +5,7 @@
 # adb, уводит в фон кнопкой Home и возвращает. Судит то же, что `ios_sim_rumble.sh`: возврат
 # подключает поверхность к той же драке, и драка на телефоне — та же, что у десктопной игры.
 #
-#   bash scripts/check_sdk_game.sh --keep   # десктопный префикс: его assetc печёт бандлы игры
+#   bash scripts/check_sdk_game.sh --keep   # десктопный префикс: против него собирается rumble_assetc
 #   bash scripts/android_rumble.sh [--abi arm64-v8a|x86_64]
 set -euo pipefail
 
@@ -68,8 +68,9 @@ ok "Android SDK installed for $ABI, API $API"
 # а не вчерашней сборки. Движок у неё — из того префикса, а Config мобильного сверяет только
 # `_ln_build` (git-хеш) и незакоммиченную правку движка не видит: правил движок — `--keep` заново.
 run cmake --build "$DESK"
+TOOL=$(bash "$ROOT/scripts/rumble_tool.sh" "$HOST" "$ROOT/build-sdk-work/rumble-tool") || fail "rumble_assetc"
 run cmake --fresh -S "$ROOT/games/neon-rumble" -B "$GAME" -G Ninja -DCMAKE_BUILD_TYPE=Release "${FLAGS[@]}" \
-  -Dlike-nes_DIR="$PFX/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$HOST"
+  -Dlike-nes_DIR="$PFX/lib/cmake/like-nes" -DLIKE_NES_HOST_PREFIX="$HOST" -DRUMBLE_ASSETC="$TOOL"
 run cmake --build "$GAME"
 ok "built build-sdk-work/game-android-$ABI/neon_rumble.apk"
 

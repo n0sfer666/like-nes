@@ -96,19 +96,19 @@ core_goldens() {
 # секция тянет tint и basisu. Секции, что пекутся чистыми парсерами, сверяются везде — без этого
 # правка input.txt, achievements.txt или movement.txt без перепекания доезжает молча, а на бандле
 # стоят и игра-образец, и sim-golden.
-# Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из SECTIONS, бинарь
+# Код возврата не различает «всё сошлось» и «сверять было нечего»: выпади секция из таблицы секций ugly_assetc, бинарь
 # напечатает меньшее число и вернёт ноль. Поэтому ассертится строка вместе с числом — тем же
 # критерием, что в шаге CI.
 verify_bundle() {
     local out
-    out=$(build-ci/assetc --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle) || {
+    out=$(build-ci/ugly_assetc --verify-game example_ugly_game/assets example_ugly_game/assets/game.bundle) || {
         printf '%s\n' "$out"
         return 1
     }
     printf '%s\n' "$out"
     case $out in
         *"verify: PASS - 6 tool-free section(s)"*) ;;
-        *) echo "сверено не то число секций — список SECTIONS разошёлся с гейтом"; return 1 ;;
+        *) echo "сверено не то число секций — таблица секций ugly_assetc разошлась с гейтом"; return 1 ;;
     esac
     # Второе утверждение о том же бандле, первым не заменяемое: `--verify-game` сверяет БАЙТЫ секции
     # с перепечённым текстом («бандл отстал от исходника») и ЧИТАТЕЛЯ не запускает вовсе, а эти тесты

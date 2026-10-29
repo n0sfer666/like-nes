@@ -2,7 +2,7 @@
 # Spec #8 Gate 4 — per-OS self-contained bundle (macOS .app / Linux tarball / Windows folder).
 # Собирает game_sidescroller, ставит self-contained бандл (exe + wgpu dylib + baked game.bundle
 # + version-stamp) через install()-правила. macOS → .app, Linux → tarball. Запуск бандла читает
-# бейкнутые ассеты (шов assetc→билд, гейт 2). Пре-реквизит: game.bundle испечён (assetc --game).
+# бейкнутые ассеты (шов assetc→билд, гейт 2). Пре-реквизит: game.bundle испечён (ugly_assetc --game).
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

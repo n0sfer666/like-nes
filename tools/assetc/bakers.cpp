@@ -32,6 +32,13 @@ AssetInput synth_asset(const char* name, AssetType type, Codec codec, Residency 
 
 } // namespace
 
+// Отказ печатается ОДИНАКОВО для всех: имя секции, файл, номер строки, причина словами.
+// Номер строки тут несущий — он единственное, что отличает «исходник не разобрался» от «а где».
+void report(const char* section, const std::string& src, int line, const std::string& message) {
+    std::fprintf(stderr, "[assetc] %s %s: line %d: %s\n", section, src.c_str(), line,
+                 message.c_str());
+}
+
 bool texture(const codec::Tools& t, const std::string& src, const char* name, const std::string& tmp,
              std::vector<AssetInput>& out) {
     std::vector<uint8_t> ktx2;
