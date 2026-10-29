@@ -1,6 +1,6 @@
 #pragma once
 #include "brawl_body.hpp"
-#include "depth_floor.hpp"
+#include "belt_ride.hpp"
 
 namespace framework::scene {
 struct LevelObjects;
@@ -18,7 +18,6 @@ namespace framework::brawl {
 // захватом тело (`grip.by`) не везёт никакая: его ведёт бросок. Тело в `hitstop` сюда не доходит.
 fix32 conveyor_under(const Body& b, const scene::LevelObjects* level);
 
-// Belt: тело на полу сдвигается по `x` через стены и края полосы, упёршееся стоит.
-void ride_belt(DepthBody& d, fix32 belt, const DepthFloor& f);
+using depth::ride_belt;
 
 } // namespace framework::brawl

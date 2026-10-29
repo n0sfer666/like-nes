@@ -8,6 +8,8 @@
 
 namespace framework::brawl {
 
+using depth::DepthProfile;
+
 enum class HitType : uint8_t { Light = 0, Heavy = 1, Launch = 2, Grab = 3, Throw = 4 };
 constexpr uint8_t HIT_TYPE_LAST = static_cast<uint8_t>(HitType::Throw);
 

@@ -118,14 +118,36 @@
     теневая энергия и `EnergyGate` — общий `framework_physics_pendulum_energy.hpp`, `rope_energy`
     драки — обёртка над ним (отменяет хвост п. 27); цель — `framework_physics_pendulum_test`,
     вердикт `framework-physics-pendulum`; `rope_swing.hpp` включает `fixmath.hpp` сам.
+29. Интервью 28 (группа depth В2б): `DepthIntent{mx, mz, hop}`, нулевое намерение (пад отсутствует)
+    останавливает тело и не подбрасывает; лицо по знаку `mx` и бит прыжка — игре (`intent_of`,
+    `step_body` в `brawl/depth_step`); ядро — `grounded`/`drive`/`fall`; `move` и `belt` — одна цель
+    `framework_depth` с тестом `framework_depth_move_test` (`framework-depth-move`).
+30. Интервью 29 (depth): функции пола на `FloorView` по значению, inline-перегрузки на
+    `DepthFloor<N>` через член `view()`; ёмкость стен проверяется на `DepthFloor<3>` и дефолте;
+    тест пола — свой `check` и сломанные копии (`Tunnel`, `OpenEdge`);
+    `ride_belt(DepthBody&, belt, FloorView)` везёт только стоящее тело.
+31. Интервью 30–31 (ревью depth): у `blocked` своя группа в тесте пола (края стены замкнуты, края
+    полосы проходимы, шаг за полосу — отказ) со сломанными копиями `OpenEdge` и `NoBand`; у старых
+    случаев пола (край полосы, шов, угол, кламп) — свои контроли; сломанные копии и `Expect` —
+    заголовок `framework_depth_floor_fixture.hpp`, бинарь один; вердикт → `framework-depth-floor`
+    (отменяет «прежний вердикт» пп. 18 и 30); дубль `using depth::DepthProfile` в `fighter.hpp` и
+    `depth_step.hpp` остаётся (цепочки include между ними нет); контроль `drive_keeps_speed`; в brawl-тесте
+    отсутствующий игрок не прыгает на зажатом JUMP и не поворачивается на устаревшем стике;
+    `framework_brawl` не объявляет `framework_depth` повторно (приходит через fighter); комментарии-
+    пересказы убраны.
+32. Интервью 33–34 (повторное ревью depth): ревью дельты; параметры сломанных `sweep`/`band`,
+    живущие только в отброшенной ветке `if constexpr`, — `[[maybe_unused]]` (MSVC C4100 судит по
+    инстанцированию); `broken_blocked<OpenEdge>` проверяет полосу замкнуто, контроль держится только
+    на линиях стены; тест хода берёт `px`/`check`/`walled` из фикстуры пола; пересказ над `Break`
+    удалён, над группой `blocked` — причина.
 
 ## Состояние
 
 - [x] повестка `26-10-28-engine-finish-scope.md`
 - [x] #18/#19/#20/#22 → «Закрыта с долгом», `checks/18.md`, `19.md`, `20.md`, `22.md`
 - [x] #29 В2а — `a0a79f5`, CI зелёный на 3 ОС; долг — `checks/29.md`
-- [ ] #29 В2б–В2е: В2б — core `bb694d0`, input `9159b3e`, physics/pendulum готов; дальше depth, hits,
-  kinematic, камера, slide
+- [ ] #29 В2б–В2е: В2б — core `bb694d0`, input `9159b3e`, physics/pendulum `6559712`, depth
+  готов; дальше hits, kinematic, камера, slide
 - [ ] #26 В2г–В2е
 - [ ] #26 В3–В7
 - [ ] #27 спека + интервью + реализация

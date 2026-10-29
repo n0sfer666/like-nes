@@ -12,7 +12,8 @@ SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/
              "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp",
              "engine/framework/input/flick.hpp", "engine/framework/input/flick.cpp",
              "engine/framework/input/action_buffer.hpp", "engine/framework/input/action_buffer.cpp",
-             "engine/framework/physics/pendulum.hpp", "engine/framework/physics/pendulum.cpp")
+             "engine/framework/physics/pendulum.hpp", "engine/framework/physics/pendulum.cpp",
+             "engine/framework/depth")
 REQUIRED_DIR = "engine/framework/brawl"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10

@@ -10,10 +10,11 @@
 бит (см. [Детерминизм и арифметика с фиксированной точкой](determinism.md)). Эта страница описывает
 тело, пул, тик драки, правила попадания и файл `.fighter`, которым описывается боец.
 
-Заголовки — `depth_body.hpp`, `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`,
-`brawl_step.hpp`, `hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` и `archetype.hpp`,
-пространство имён `framework::brawl`. Они ставятся вместе с SDK (см. [SDK и своя
-игра](sdk-and-your-game.md)).
+Заголовки — `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`, `brawl_step.hpp`,
+`hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` и `archetype.hpp`, пространство имён
+`framework::brawl`; они ставятся вместе с SDK (см. [SDK и своя
+игра](sdk-and-your-game.md)). `DepthBody` приходит из `depth_body.hpp` в `framework::depth` и виден
+в `framework::brawl` под тем же именем.
 
 ## Тело на улице с глубиной
 

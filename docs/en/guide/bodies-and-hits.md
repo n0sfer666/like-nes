@@ -9,10 +9,11 @@ bit for bit (see [Determinism and fixed-point arithmetic](determinism.md)). This
 body, the pool, the tick of a fight, the rules of a hit and the `.fighter` file that describes a
 fighter.
 
-The headers are `depth_body.hpp`, `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`,
-`brawl_step.hpp`, `hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` and `archetype.hpp`, in the
-namespace `framework::brawl`. They are installed with the SDK (see [The SDK and your own
-game](sdk-and-your-game.md)).
+The headers are `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`, `brawl_step.hpp`,
+`hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` and `archetype.hpp`, in the namespace
+`framework::brawl`, and they are installed with the SDK (see [The SDK and your own
+game](sdk-and-your-game.md)). `DepthBody` comes from `depth_body.hpp` in `framework::depth` and is
+visible in `framework::brawl` under the same name.
 
 ## A body on a street with depth
 

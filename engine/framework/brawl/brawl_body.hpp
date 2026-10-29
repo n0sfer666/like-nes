@@ -12,6 +12,7 @@
 namespace framework::brawl {
 
 using core::EntId;
+using depth::DepthBody;
 
 inline constexpr uint16_t NO_STRIKE = input::NO_ACTION;
 inline constexpr uint8_t NO_CHAIN = 0xffu;

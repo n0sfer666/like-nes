@@ -66,6 +66,9 @@ void test_input_drives_and_absence_stops() {
     step_body(b, BrawlInput{held(px(1), px(1)).move, 0, false}, PROFILE, f);
     check(b.pos.x == x && b.pos.vx == fix32{}, "an absent player does not move");
     check(b.age == 5, "every step ages the body by one tick");
+    step_body(b, BrawlInput{held(px(-1), fix32{}).move, button::JUMP, false}, PROFILE, f);
+    check(b.pos.y == fix32{} && b.pos.vy == fix32{} && b.facing == 1,
+          "an absent player neither hops on a held jump nor turns on a stale stick");
 }
 
 void test_the_jump_lands_on_the_floor() {

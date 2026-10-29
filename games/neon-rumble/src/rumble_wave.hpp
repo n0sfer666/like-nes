@@ -8,7 +8,7 @@
 #include "body_pool.hpp"
 #include "brawl_step.hpp"
 #include "death_facts.hpp"
-#include "depth_floor.hpp"
+#include "brawl_floor.hpp"
 #include "hit_events.hpp"
 #include "level_progress.hpp"
 #include "living.hpp"
