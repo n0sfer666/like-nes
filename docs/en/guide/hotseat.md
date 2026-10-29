@@ -69,7 +69,7 @@ Player 2 leaves with numpad minus, not Backspace: two players at one keyboard wo
 and the map would refuse the second layout.
 
 Dodge has a second way in that needs no dodge button: hold block and flick the move axis left or
-right, from rest to three quarters of its travel within 3 ticks. `dodge_flick` reads it off the last
+right, from rest to three quarters of its travel within 3 ticks. `framework::input::flick` reads it off the last
 frames of the input buffer, so a recording replays it tick for tick; the roll goes where the fighter
 faces, whichever way the flick went, and a slow tilt keeps the block. A keyboard axis jumps to full
 in one tick, so block plus a move key is a dodge too.

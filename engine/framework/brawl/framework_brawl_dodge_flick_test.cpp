@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "codes.hpp"
-#include "dodge_flick.hpp"
+#include "flick.hpp"
 #include "framework_brawl_check.hpp"
 #include "framework_brawl_guard_fixture.hpp"
 #include "input_engine.hpp"
@@ -11,6 +11,8 @@
 namespace {
 
 using namespace framework::brawl;
+using framework::input::flick;
+using framework::input::FlickRule;
 using test::check;
 using ::input::InputFrame;
 using ::input::RawEvent;
@@ -20,58 +22,9 @@ enum Action : int { BLOCK = 3 };
 enum Axis : int { MOVE_X = 1 };
 constexpr uint32_t K = 3;
 constexpr uint32_t END = 90;
-const fix32 ONE = fix32::from_int(1);
 const FlickRule RULE{BLOCK, MOVE_X, fix32::from_int(3) / fix32::from_int(4), K};
 
 fix32 tenths(int n) { return fix32::from_int(n) / fix32::from_int(10); }
-
-InputFrame frame(fix32 x, bool block = true) {
-    InputFrame f;
-    f.axes[MOVE_X] = x;
-    if (block) f.held = uint64_t{1} << BLOCK;
-    return f;
-}
-
-bool flicks(const std::vector<InputFrame>& frames) { return dodge_flick(frames, RULE); }
-
-void test_a_flick_within_k_ticks_dodges() {
-    const fix32 t = RULE.threshold;
-    check(flicks({frame({}), frame(tenths(3)), frame(tenths(6)), frame(t)}), "rest to the threshold in exactly K ticks dodges");
-    check(!flicks({frame({}), frame(tenths(2)), frame(tenths(4)), frame(tenths(6)), frame(t)}),
-          "one tick slower than K does not dodge, though the rest frame is in the span");
-    check(flicks({frame({}), frame(ONE)}), "a keyboard axis, rest to full in one tick, dodges");
-    check(flicks({frame({}), frame(-t)}), "a flick to the left dodges");
-}
-
-void test_the_threshold_is_inclusive() {
-    const fix32 below = fix32::from_raw(RULE.threshold.raw - 1);
-    check(!flicks({frame({}), frame(below)}), "one raw step under the threshold does not dodge");
-    check(!flicks({frame({}), frame(-below)}), "one raw step under the threshold to the left does not dodge");
-}
-
-void test_block_is_held_on_the_flick_tick() {
-    check(!flicks({frame({}), frame(ONE, false)}), "a flick without block does not dodge");
-    check(!flicks({frame({}, false), frame(ONE, false), frame(ONE)}), "block pressed after the axis crossed does not dodge");
-    check(flicks({frame({}, false), frame(ONE)}), "block pressed on the flick tick dodges");
-}
-
-void test_a_flick_dodges_once() {
-    check(!flicks({frame({}), frame(ONE), frame(ONE)}), "holding the axis past the threshold does not dodge again");
-    check(!flicks({frame(-ONE), frame(ONE)}), "a swing across without rest is not a flick");
-    check(!flicks({frame({}), frame(-ONE), frame(tenths(-5)), frame(tenths(8))}),
-          "a full swing left and back right within K ticks is not a flick from rest");
-    check(!flicks({frame(ONE)}) && !flicks({}), "a span without a previous tick does not dodge");
-}
-
-void test_a_rule_out_of_range_never_dodges() {
-    const std::vector<InputFrame> frames{frame({}), frame(ONE)};
-    const fix32 t = RULE.threshold;
-    check(!dodge_flick(frames, FlickRule{BLOCK, ::input::MAX_AXES, t, K}) &&
-              !dodge_flick(frames, FlickRule{BLOCK, -1, t, K}),
-          "an axis outside the frame never dodges");
-    check(!dodge_flick(frames, FlickRule{64, MOVE_X, t, K}) && !dodge_flick(frames, FlickRule{-1, MOVE_X, t, K}),
-          "a block action outside the bitset never dodges");
-}
 
 struct Live {
     ::input::ActionMap map;
@@ -109,7 +62,7 @@ struct Live {
             engine.drain();
             engine.resolve(t, 0);
             std::array<InputFrame, K + 1> window;
-            dodged.push_back(dodge_flick(engine.buffer(0).latest(window), RULE));
+            dodged.push_back(flick(engine.buffer(0).latest(window), RULE));
         }
     }
 };
@@ -120,7 +73,7 @@ std::vector<bool> replay(const std::vector<InputFrame>& record) {
     for (const InputFrame& f : record) {
         buffer.push(f);
         std::array<InputFrame, K + 1> window;
-        out.push_back(dodge_flick(buffer.latest(window), RULE));
+        out.push_back(flick(buffer.latest(window), RULE));
     }
     return out;
 }
@@ -151,11 +104,6 @@ void test_a_backward_flick_rolls_along_facing(const Live& live) {
 
 int main() {
     std::printf("brawl: dodge flick\n");
-    test_a_flick_within_k_ticks_dodges();
-    test_the_threshold_is_inclusive();
-    test_block_is_held_on_the_flick_tick();
-    test_a_flick_dodges_once();
-    test_a_rule_out_of_range_never_dodges();
     Live live;
     live.play();
     test_the_record_replays_the_dodges(live);

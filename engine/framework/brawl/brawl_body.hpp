@@ -1,17 +1,20 @@
 #pragma once
 #include <cstdint>
 
+#include "action_buffer.hpp"
 #include "depth_body.hpp"
 #include "ent_id.hpp"
 #include "grip.hpp"
 #include "reaction.hpp"
 #include "run_state.hpp"
-#include "strike_queue.hpp"
 #include "struck_list.hpp"
 
 namespace framework::brawl {
 
 using core::EntId;
+
+inline constexpr uint16_t NO_STRIKE = input::NO_ACTION;
+inline constexpr uint8_t NO_CHAIN = 0xffu;
 
 struct Body {
     EntId id;
@@ -33,7 +36,7 @@ struct Body {
     uint16_t react_ticks = 0;
     StruckList struck;
     uint8_t chain = NO_CHAIN;
-    StrikeQueue queued;
+    input::ActionBuffer queued;
     RunState run;
     Grip grip;
 };

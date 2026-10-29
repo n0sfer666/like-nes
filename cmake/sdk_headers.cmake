@@ -27,7 +27,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/input/presets.hpp framework/input/profile_file.hpp framework/input/rebind_session.hpp
   framework/input/rebind_store.hpp framework/input/source_names.hpp
   framework/input/stick.hpp framework/input/seat_state.hpp framework/input/layout_keys.hpp
-  framework/input/lobby.hpp
+  framework/input/lobby.hpp framework/input/flick.hpp framework/input/action_buffer.hpp
   framework/physics/axis_terms.hpp framework/physics/body.hpp framework/physics/broadphase.hpp
   framework/physics/cast.hpp framework/physics/contact.hpp framework/physics/counters.hpp
   framework/physics/distance.hpp framework/physics/event_hash.hpp framework/physics/events.hpp
@@ -76,9 +76,9 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/struck_list.hpp framework/brawl/archetype.hpp framework/brawl/body_clip.hpp
   framework/brawl/hit_events.hpp framework/brawl/hit_geometry.hpp framework/brawl/hit_collect.hpp
   framework/brawl/hit_apply.hpp framework/brawl/brawl_step.hpp framework/brawl/reaction.hpp
-  framework/brawl/body_react.hpp framework/brawl/strike_queue.hpp framework/brawl/body_chain.hpp
+  framework/brawl/body_react.hpp framework/brawl/body_chain.hpp
   framework/brawl/archetype_chain.hpp framework/brawl/fighter_chain.hpp framework/brawl/fighter_name.hpp
-  framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/dodge_flick.hpp framework/brawl/fighter_move_parse.hpp
+  framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/fighter_move_parse.hpp
   framework/brawl/body_guard.hpp framework/brawl/grip.hpp framework/brawl/hit_grab.hpp framework/brawl/hit_strike.hpp
   framework/brawl/seat_step.hpp
   framework/brawl/stage_camera.hpp framework/brawl/stage_camera_hash.hpp framework/brawl/stage_step.hpp

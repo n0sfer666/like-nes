@@ -96,6 +96,21 @@
     отказ гейта на записи `SIM_PATHS` без файлов (удалённый каталог уходит из списка тем же
     коммитом); сломанная копия `Seats<3>` на двух местах; спека правится сразу; из taste — только
     порядок `sdk_headers`, лёгкий `brawl_seats.hpp` не делаем (решение 19 в силе).
+25. Интервью 24 (группа input В2б): `dodge_flick` → `input::flick` с проверкой по `::input::MAX_ACTIONS`;
+    чистые случаи → `framework_flick_test` (`framework-flick`) таблицей со сломанной копией без покоя, в
+    brawl-тесте остаются Live/replay/roll; `strike_queue` → `input::ActionBuffer` (поле `action`),
+    `NO_STRIKE`/`NO_CHAIN` — в `brawl_body.hpp`; тест буфера — три правила `take_action` и копия без
+    сброса на нуле; `begin()` по-прежнему зовёт `clear_action`.
+26. Интервью 25 (ревью input): ручные гейты owner-verification называют `input/flick.*` и
+    `input/action_buffer.*` в строках, которые раньше ловил глоб `brawl/*`; в доке `framework::input::flick`;
+    `FlickRule::block` → `hold`; нулевой срок `buffer_action` кладёт пустой буфер, `next_step` берёт
+    действие параметром, `use` не кладёт в свой буфер; `framework-flick: PASS - 18 cases` пиннут в CI;
+    двойной `clear_action` в `begin()` остаётся.
+27. Интервью 26 (группа physics В2б): `physics::Pendulum{arc, speed}` внутри `RopeState{swing, rider,
+    cooldown}`, порядок смешивания хеша прежний; функции `pendulum_turns/cap/end/tangent`,
+    `swing_pendulum(Pendulum&, length, g, push, damping)`; `ROPE_*` остаются константами драки;
+    `framework_pendulum_test` — энергия без ввода не растёт, размах зажимается, `end`/`tangent` в отвесе
+    и на пределе, сломанная копия без затухания; `rope_energy` фикстуры драки остаётся.
 
 ## Состояние
 

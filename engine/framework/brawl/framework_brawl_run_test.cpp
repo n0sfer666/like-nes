@@ -127,7 +127,7 @@ void test_buffer_edge() {
     Command queued;
     queued.strike = u.r.row("run_jab");
     u.step(queued);
-    check(u.b->queued.strike == u.r.row("run_jab"), "a slide row waits in the buffer by its row");
+    check(u.b->queued.action == u.r.row("run_jab"), "a slide row waits in the buffer by its row");
     for (int k = 0; k < 6 && u.b->move != u.r.row("run_jab"); ++k) u.step(Command{});
     check(u.b->move == u.r.row("run_jab") && u.b->run.dir == 0 && u.b->pos.vx == RUN,
           "a buffered slide row starts without a run and still rolls");

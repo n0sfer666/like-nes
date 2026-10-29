@@ -16,7 +16,7 @@ static_assert([] {
                            react, react_ticks, struck, chain, queued, run, grip] = Body{};
     [[maybe_unused]] auto [run_dir, run_held, run_tap, run_tap_ticks] = RunState{};
     [[maybe_unused]] auto [grip_by, grip_team, grip_kind] = Grip{};
-    [[maybe_unused]] auto [queued_strike, queued_ticks] = StrikeQueue{};
+    [[maybe_unused]] auto [queued_action, queued_ticks] = input::ActionBuffer{};
     [[maybe_unused]] auto [struck_at, struck_count] = StruckList{};
     [[maybe_unused]] auto [struck_seq, struck_box] = Struck{};
     [[maybe_unused]] auto [bodies, count, next_seq] = BodyPool{};
@@ -54,7 +54,7 @@ void mix_body(uint64_t& h, const Body& b) {
         physics::mix(h, s.box);
     }
     physics::mix(h, b.chain);
-    physics::mix(h, b.queued.strike);
+    physics::mix(h, b.queued.action);
     physics::mix(h, b.queued.ticks);
     physics::mix(h, static_cast<uint32_t>(b.run.dir));
     physics::mix(h, static_cast<uint32_t>(b.run.held));

@@ -3,7 +3,7 @@
 #include <array>
 
 #include "codes.hpp"
-#include "dodge_flick.hpp"
+#include "flick.hpp"
 #include "player_layout.hpp"
 #include "seat_step.hpp"
 
@@ -16,7 +16,7 @@ namespace bb = framework::brawl::button;
 
 const fix32 STICK_DEADZONE = fix32::from_int(3) / fix32::from_int(10);
 constexpr uint32_t FLICK_TICKS = 3;
-const framework::brawl::FlickRule FLICK{BLOCK, MOVE_X, fix32::from_int(3) / fix32::from_int(4), FLICK_TICKS};
+const framework::input::FlickRule FLICK{BLOCK, MOVE_X, fix32::from_int(3) / fix32::from_int(4), FLICK_TICKS};
 
 input::Source key(uint16_t c) { return {input::SourceKind::Key, c, 1}; }
 input::Source pad(uint16_t c) { return {input::SourceKind::PadButton, c, 1}; }
@@ -90,7 +90,7 @@ bool set_layouts(input::ActionMap& map, std::string& why) {
 PlayerCommand command_of(const input::InputBuffer<input::BUFFER_TICKS>& recent) {
     std::array<input::InputFrame, FLICK_TICKS + 1> window;
     const input::InputFrame& f = recent.last();
-    const bool flick = framework::brawl::dodge_flick(recent.latest(window), FLICK);
+    const bool flick = framework::input::flick(recent.latest(window), FLICK);
     PlayerCommand c;
     framework::brawl::BrawlInput& in = c.input;
     in.present = true;

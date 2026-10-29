@@ -78,7 +78,7 @@ void test_not_a_move() {
     Command past;
     past.strike = static_cast<uint16_t>(r.arena.kinds[0].move_count);
     test::tick(r.pool, r.arena, {past});
-    check(b.queued.strike == NO_STRIKE && b.clip == idle && b.elapsed > 0, "a row past the move table is not buffered");
+    check(b.queued.action == NO_STRIKE && b.clip == idle && b.elapsed > 0, "a row past the move table is not buffered");
 }
 
 uint32_t chained_at(std::size_t cancel_frame) {
@@ -112,7 +112,7 @@ void test_buffer_expires() {
     for (int t = 0; t < 2; ++t) test::tick(r.pool, r.arena, {});
     check(first == 5 && b.queued.ticks == 3, "a queued strike loses a tick for every tick it cannot start");
     for (int t = 0; t < 14; ++t) test::tick(r.pool, r.arena, {});
-    check(!striking(b, r.arena.kinds[0]) && b.queued.ticks == 0 && b.queued.strike == NO_STRIKE,
+    check(!striking(b, r.arena.kinds[0]) && b.queued.ticks == 0 && b.queued.action == NO_STRIKE,
           "a strike buffered longer than the buffer is dropped");
 }
 

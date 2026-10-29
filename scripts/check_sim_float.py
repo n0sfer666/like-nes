@@ -9,7 +9,9 @@ import py_utf8
 SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch",
              "games/neon-rumble/sim", "engine/framework/core/ent_id.hpp", "engine/framework/core/world_rng.hpp",
              "engine/framework/core/world_rng.cpp", "engine/framework/core/seats.hpp",
-             "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp")
+             "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp",
+             "engine/framework/input/flick.hpp", "engine/framework/input/flick.cpp",
+             "engine/framework/input/action_buffer.hpp", "engine/framework/input/action_buffer.cpp")
 REQUIRED_DIR = "engine/framework/brawl"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10
