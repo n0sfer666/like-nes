@@ -1,6 +1,6 @@
 #include "world_rng.hpp"
 
-namespace framework::ai {
+namespace framework::core {
 
 uint32_t next_u32(WorldRng& rng) {
     rng.state += 0x9e3779b97f4a7c15ULL;
@@ -15,4 +15,4 @@ uint32_t below(WorldRng& rng, uint32_t n) {
     return static_cast<uint32_t>((static_cast<uint64_t>(next_u32(rng)) * n) >> 32);
 }
 
-} // namespace framework::ai
+} // namespace framework::core

@@ -46,7 +46,7 @@ struct Hotseat {
 
     uint64_t hash() const {
         uint64_t h = state_hash(pool);
-        physics::mix_u64(h, seats_hash(seats));
+        physics::mix_u64(h, physics::seats_hash(seats));
         return h;
     }
 

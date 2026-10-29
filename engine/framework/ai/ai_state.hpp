@@ -7,6 +7,10 @@
 
 namespace framework::ai {
 
+using core::below;
+using core::next_u32;
+using core::WorldRng;
+
 // Снапшот ИИ — простая копия этой структуры, хеш — ai_hash.
 struct AiState {
     Brains brains;

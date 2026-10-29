@@ -11,6 +11,8 @@
 
 namespace framework::brawl {
 
+using core::EntId;
+
 struct Body {
     EntId id;
     DepthBody pos;

@@ -5,6 +5,8 @@
 
 namespace framework::brawl {
 
+using core::EntId;
+
 struct Grip {
     EntId by;
     uint8_t team = 0;

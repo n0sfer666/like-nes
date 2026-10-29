@@ -3,7 +3,7 @@
 
 #include "archetype.hpp"
 #include "body_pool.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 #include "stage_camera.hpp"
 #include "stage_waves.hpp"
 #include "wave_facts.hpp"

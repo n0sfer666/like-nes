@@ -14,6 +14,7 @@ namespace {
 
 using namespace framework::brawl;
 using framework::physics::mix_u64;
+using framework::physics::seats_hash;
 using test::area;
 using test::at;
 using test::check;

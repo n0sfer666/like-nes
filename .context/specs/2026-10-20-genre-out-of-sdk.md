@@ -93,7 +93,7 @@
 | `framework/kinematic/` | `path_follow`, `movers` (`Movers` строится и шагает по `std::span<const scene::Path>` и `dt`), `movers_snapshot`, `movers_hash` | `brawl/path_follow`, `brawl/stage_movers*` |
 | `framework/input/` (дополнение) | `flick` (`FlickRule` уже параметр), `action_buffer` (`{action, ticks}`, три операции: сброс, положить со сроком, взять с отсчётом срока и сбросом на нуле) | `brawl/dodge_flick`, `strike_queue` + `body_chain.cpp:19,26-44` |
 | `framework/physics/` (дополнение) | `pendulum`: `rope_turns`, `rope_cap`, `rope_end`, `rope_tangent`, шаг на дуге и скорости (`ROPE_PUMP`, `ROPE_DAMPING` → параметры) | `brawl/rope_swing` без `rider`, `cooldown`, `ROPE_REACH`, `ROPE_COOLDOWN` |
-| `framework/core/` (дополнение) | `ent_id`, `world_rng`, `seats` (`SEATS` → параметр шаблона, дефолт 2) + `seat_hash` | `brawl/ent_id`, `ai/world_rng`, `brawl/seat*` |
+| `framework/core/` (дополнение) | `ent_id`, `world_rng`, `seats` (`SEATS` → параметр шаблона, дефолт 2); `seat_hash` — в `framework/physics/` (core не видит `hash_mix.hpp`; `.context/notes/engine-finish.md`, п. 20) | `brawl/ent_id`, `ai/world_rng`, `brawl/seat*` |
 | `framework/graphics/` (политика камеры) | `camera_autoscroll`: состояние езды (`scroll`, `riding`, `ride`, `settle`) и шаг по оси; `SETTLE_SHARE` → параметр. Кламп к прямоугольнику — уже существующий `graphics::clamp_axis` (`camera.hpp`), нового модуля нет | ядро `autoscroll_step` |
 | `framework/scene/` | объекты без жанра: `LevelRect`, `Area`, `Mark`, `Path`, `Autoscroll`, `ScrollAxis` и их читатели; `ClassRule<Out>` и `read_objects<Out>(map, span<const ClassRule<Out>>, Out&)` — выход объявляет игра | `scene_objects.hpp`, `scene_read.cpp:124-143` |
 
@@ -122,7 +122,7 @@ belt-игре, включая не-драку. Жанровое «когда и 
 | ядро→SDK `kinematic/` | `path_follow`, `stage_movers`, `stage_movers_snapshot`, `stage_movers_hash`. Конструктор (`stage_movers.cpp:46-50`) берёт `LevelObjects`, шаг (`:52-62`) — `w.level` и `w.platform->dt`. Ядро берёт `span<const Path>` и `dt`; проверки «пути без movers» и «мир movers ≠ сцена платформы» (`:54-60`, `platform_world` — игра) остаются в игровой обёртке |
 | ядро→SDK `input/` | `dodge_flick`, `strike_queue` (буфер — `body_chain.cpp:19` сброс в `begin`, `:26-29` `queue_strike`, `:31-44` `take_strike`, сцеплен с `chain_root`/`begin`; ядро — сброс, положить, взять с отсчётом; цепочки и `NO_CHAIN` — игре) |
 | ядро→SDK `physics/` | `rope_swing` (`RopeState` с `rider`/`cooldown` и `ROPE_REACH`, `ROPE_COOLDOWN` — игре) |
-| ядро→SDK `core/` | `ent_id`, `seat`, `seat_hash` |
+| ядро→SDK `core/` | `ent_id`, `seats`; `seat_hash` → `physics/` (`engine-finish.md`, п. 20) |
 | ядро→SDK камера | `autoscroll_step` (езда → SDK; кламп к арене в `ride_scroll:47-49` и `StageCamera` — игра) |
 | игра: тело и пул | `brawl_body`, `body_pool`, `body_hash`, `body_role`, `body_kind`, `body_chain`, `body_clip`, `body_guard`, `body_react`, `body_run`, `clipless_kind`, `reaction`, `grip`, `run_state`, `living` |
 | игра: бойцы `LNFT` | `fighter`, `fighter_format`, `fighter_read`, `fighter_bake`, `fighter_chain`, `fighter_fail`, `fighter_move_parse`, `fighter_name`, `fighter_parse.cpp`, `archetype`, `archetype_chain` |
@@ -203,7 +203,7 @@ belt-игре, включая не-драку. Жанровое «когда и 
   - Каталоги: `framework/{depth,hits,kinematic}`, `games/neon-rumble/sim`,
     `games/kits/platformer`.
   - Файлы ядер в общих каталогах: `input/action_buffer`, `input/flick`, `physics/pendulum`,
-    `core/{ent_id,world_rng,seats,seat_hash}`, `graphics/camera_autoscroll`. В `graphics/` и
+    `core/{ent_id,world_rng,seats}`, `physics/seat_hash`, `graphics/camera_autoscroll`. В `graphics/` и
     `input/` целиком законный `float`.
   - `REQUIRED_DIR` → `games/neon-rumble/sim`. Мутант-фикстура с `float` — в игровом каталоге.
 - **`check_crossplay.py:9`** — `COUNT_HEADER` → `games/neon-rumble/sim/rumble_crossplay.hpp`.

@@ -60,12 +60,48 @@
     TOOL, `RUMBLE_TOOL`/`RUMBLE_TOOL_FAILED` обнуляет гейт, `CDPATH='' cd --` в `rumble_tool.sh`);
     `rumble_tool.sh` вне macOS/Linux — явный отказ; лог — `<dir>/rumble_tool.log`, а не `<dir>.log`
     в корне репозитория.
+18. #29 В2б (интервью 15–16): пространства имён по каталогу (`framework::depth`/`hits`/`kinematic`,
+    дополнения — в пространстве своего каталога); `brawl/` подключает ядра `using`-объявлениями на
+    месте, старые заголовки `brawl/` удаляются без переходников; `MAX_WALLS`/`MAX_STRUCK`/`SEATS` —
+    шаблон хранения с дефолтом, функции ядра нешаблонные на `std::span`, код в `.cpp`; цель на
+    каталог (`framework_depth`/`hits`/`kinematic` в SDK), дополнения — в существующие цели;
+    автоскролл берёт свою дорожку `graphics::ScrollLane`, игра строит её из `scene::Autoscroll`
+    каждый тик; состояние ядра — вложенным членом (`StageCamera.autoscroll`, `RopeState.swing`,
+    `Body.queued`) с прежним порядком полей; позитивный контроль — сломанная копия в самом тесте;
+    коммит на группу ядер, `framework_brawl_floor_test` → `framework_depth_floor_test` с прежним
+    вердиктом.
+19. #29 В2б (интервью 17–18): алиасы шаблонов в игровых заголовках (`DepthFloor` — новый
+    `brawl/brawl_floor.hpp`, `StruckList` — `brawl_body.hpp`, `SEATS = 2` и `Seats` — `seat_step.hpp`);
+    пол — `FloorView{band, span walls}` в `.cpp` плюс inline-перегрузки на `DepthFloor<N>`;
+    `ActionBuffer` — `clear_action`/`buffer_action`/`take_action(buf, use)`, `NO_ACTION = 0xffff`,
+    `NO_STRIKE = input::NO_ACTION`; `hits::hitstop_tick(uint16_t&)`, `place_box(DepthBody, int8_t
+    facing, Rect16)`, `physics::Pendulum{arc, speed}`, `rope_*` по спеке, `swing_pendulum(…, damping)`,
+    `ROPE_PUMP` — игре; brawl берёт `kinematic::Movers` (`StageMovers` — алиас, `step_stage_movers` —
+    игровая обёртка); автоскролл — `settle_autoscroll` + `ride_autoscroll`, `SETTLE_SHARE` — игре
+    параметром; тесты дополнений — `framework_ids_test`, `framework_flick_test`,
+    `framework_action_buffer_test`, `framework_physics_pendulum_test`,
+    `framework_graphics_autoscroll_test`; CI — в те же списки, что соседи.
+20. #29 В2б (интервью 19): `Seat`/`Seats` — в `core/seats.hpp`, `seats_hash` — в
+    `physics/seat_hash` (core не видит `hash_mix.hpp`: слой core зависит только от `engine_core`).
+21. #29 В2б (интервью 20): закрепление ГСЧ (`framework_ai_test`) и поля хеша мест
+    (`framework_brawl_seat_test`) переезжают в `framework_ids_test`; там же `EntId ==`/`!=`,
+    `seats_hash` на `Seats<3>` = хеш span и видит третье место; позитивный контроль — сломанные
+    копии `seats_hash` (забыт `present`) и `next_u32`; вердикт `framework-ids`; цель — в `physics/`;
+    параметр `Seats<N>` — `uint32_t`.
+22. #29 В2б (интервью 21): ai подключает `core::EntId` using-объявлением в `namespace ai` (запись
+    `brawl::EntId` в ai → `EntId`); `using core::WorldRng/next_u32/below` — в `ai_state.hpp`.
+23. #29 В2б (интервью 22): `sim-float` — ядра, вынесенные из жанра в `core/` и `physics/`, входят в
+    `SIM_PATHS` файлами поимённо; новые каталоги `depth`/`hits`/`kinematic` — целиком.
+24. #29 В2б (интервью 23, ревью группы core): `sim-float` — строки selftest на файловую запись и
+    отказ гейта на записи `SIM_PATHS` без файлов (удалённый каталог уходит из списка тем же
+    коммитом); сломанная копия `Seats<3>` на двух местах; спека правится сразу; из taste — только
+    порядок `sdk_headers`, лёгкий `brawl_seats.hpp` не делаем (решение 19 в силе).
 
 ## Состояние
 
 - [x] повестка `26-10-28-engine-finish-scope.md`
 - [x] #18/#19/#20/#22 → «Закрыта с долгом», `checks/18.md`, `19.md`, `20.md`, `22.md`
-- [ ] #29 В2а — код и проверки на macOS готовы, коммит + CI на 3 ОС; долг — `checks/29.md`
+- [x] #29 В2а — `a0a79f5`, CI зелёный на 3 ОС; долг — `checks/29.md`
 - [ ] #29 В2б–В2е
 - [ ] #26 В2г–В2е
 - [ ] #26 В3–В7

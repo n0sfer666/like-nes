@@ -4,7 +4,7 @@
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
   gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp query_index.cpp
-  rest.cpp sat.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp world_id.cpp)
+  rest.cpp sat.cpp seat_hash.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp world_id.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
 
@@ -156,3 +156,8 @@ target_link_libraries(framework_physics_snapshot_test PRIVATE framework_physics 
 add_executable(framework_physics_snapshot_islands_test framework_physics_snapshot_islands_test.cpp)
 target_link_libraries(framework_physics_snapshot_islands_test PRIVATE framework_physics
   platform_core)
+
+# Опознание тел, ГСЧ мира и места игроков (спека #29, В2б) — ядро SDK из core и хеш мест отсюда. Цель
+# здесь, а не в core: хеш мест стоит на `hash_mix.hpp`, а слой core ниже физики.
+add_executable(framework_ids_test framework_ids_test.cpp)
+target_link_libraries(framework_ids_test PRIVATE framework_physics platform_core)

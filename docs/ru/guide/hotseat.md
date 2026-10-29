@@ -10,9 +10,9 @@
 в тело на улице, одинаково на каждой машине, которая проигрывает этот ввод. Эта страница описывает и
 то и другое и то, как Neon Rumble вводит второго игрока в уже идущий уровень.
 
-Заголовки — `lobby.hpp` и `seat_state.hpp` в пространстве имён `framework::input` и `seat.hpp`,
-`seat_step.hpp` и `seat_hash.hpp` в `framework::brawl`. Они ставятся вместе с SDK (см. [SDK и своя
-игра](sdk-and-your-game.md)).
+Заголовки — `lobby.hpp` и `seat_state.hpp` в пространстве имён `framework::input`, `seats.hpp` в
+`framework::core`, `seat_hash.hpp` в `framework::physics` и `seat_step.hpp` в `framework::brawl`. Они
+ставятся вместе с SDK (см. [SDK и своя игра](sdk-and-your-game.md)).
 
 ## Лобби
 
@@ -80,9 +80,10 @@ present`; отключённый пад печатает `P2 lost the pad, pause
 
 ## Места в мире
 
-`Seats` держит **2** места (`SEATS`), каждое — флаг `present` и `EntId` его тела. Это часть снапшота
-и хеша мира (`seats_hash`), так что откат и реплей возвращают второго игрока ровно туда, где он был
-в живом прогоне.
+`core::Seats<N>` держит `N` мест, каждое — флаг `present` и `EntId` его тела; драка берёт
+`brawl::Seats`, то есть `core::Seats<SEATS>` с **2** местами. Это часть снапшота и хеша мира
+(`physics::seats_hash`), так что откат и реплей возвращают второго игрока ровно туда, где он был в
+живом прогоне.
 
 `step_seats(seats, pool, inputs, spawns)` — первая система тика. Читает она только флаг `present`
 каждого `BrawlInput`: место, чей ввод стал присутствующим, порождает тело, которое игра положила для

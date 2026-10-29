@@ -7,7 +7,9 @@ from pathlib import Path
 import py_utf8
 
 SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch",
-             "games/neon-rumble/sim")
+             "games/neon-rumble/sim", "engine/framework/core/ent_id.hpp", "engine/framework/core/world_rng.hpp",
+             "engine/framework/core/world_rng.cpp", "engine/framework/core/seats.hpp",
+             "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp")
 REQUIRED_DIR = "engine/framework/brawl"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10
@@ -38,9 +40,16 @@ def audit(files):
     return bad
 
 
-def guards(files):
+def under(name, path):
+    return name == path or name.startswith(path + "/")
+
+
+def guards(files, paths):
     if not any(p.startswith(REQUIRED_DIR + "/") for p in files):
         return [f"обход не нашёл {REQUIRED_DIR}: искать было негде"]
+    lost = [p for p in paths if not any(under(n, p) for n in files)]
+    if lost:
+        return [f"запись SIM_PATHS не нашла ни одного файла: {', '.join(lost)}"]
     if len(files) < MIN_FILES:
         return [f"обход дал {len(files)} файл(ов) при пороге {MIN_FILES}"]
     if not any(WITNESS.search(code_only(t)) for t in files.values()):
@@ -49,7 +58,7 @@ def guards(files):
 
 
 def in_sim(name):
-    return any(name == p or name.startswith(p + "/") for p in SIM_PATHS)
+    return any(under(name, p) for p in SIM_PATHS)
 
 
 def scan(root):
@@ -95,6 +104,9 @@ PATHS = (
     ("каталог игры в обходе", "games/neon-rumble/sim/rumble_floor.cpp", True),
     ("сосед каталога с общим префиксом не в обходе", "games/neon-rumble/simx/a.cpp", False),
     ("оболочка игры не в обходе", "games/neon-rumble/src/rumble.cpp", False),
+    ("файловая запись в обходе", "engine/framework/core/seats.hpp", True),
+    ("сосед файловой записи не в обходе", "engine/framework/core/fixmath.cpp", False),
+    ("продолжение имени файловой записи не в обходе", "engine/framework/core/seats.hppx", False),
 )
 
 
@@ -104,7 +116,7 @@ def selftest(verbose=True):
         files = dict(FILLER)
         files.update({f"{REQUIRED_DIR}/{k}": v for k, v in extra.items()})
         got = len(audit(files))
-        ok = got == want and not guards(files)
+        ok = got == want and not guards(files, (REQUIRED_DIR,))
         fails += 0 if ok else 1
         if verbose or not ok:
             print(f"  {'ok' if ok else 'FAIL'}: {name} (находок {got}, ожидалось {want})")
@@ -113,11 +125,13 @@ def selftest(verbose=True):
         fails += 0 if ok else 1
         if verbose or not ok:
             print(f"  {'ok' if ok else 'FAIL'}: путь — {name}")
-    refusals = (("пустой обход", {}),
-                ("нет каталога brawl", {f"engine/framework/ai/f{i}.hpp": "fix32 x;\n" for i in range(MIN_FILES)}),
-                ("fix32 только в комментариях", {k: "// fix32\n" for k in FILLER}))
-    for name, files in refusals:
-        ok = bool(guards(files))
+    alone = (REQUIRED_DIR,)
+    refusals = (("пустой обход", {}, alone),
+                ("нет каталога brawl", {f"engine/framework/ai/f{i}.hpp": "fix32 x;\n" for i in range(MIN_FILES)}, alone),
+                ("fix32 только в комментариях", {k: "// fix32\n" for k in FILLER}, alone),
+                ("запись SIM_PATHS без файлов", dict(FILLER), (REQUIRED_DIR, "engine/framework/core/seats.hpp")))
+    for name, files, paths in refusals:
+        ok = bool(guards(files, paths))
         fails += 0 if ok else 1
         if verbose or not ok:
             print(f"  {'ok' if ok else 'FAIL'}: охранник — {name}")
@@ -128,7 +142,7 @@ def selftest(verbose=True):
 
 def gate(root):
     files = scan(root)
-    stop = guards(files)
+    stop = guards(files, SIM_PATHS)
     for line in stop:
         print(f"sim-float: FAIL — {line}")
     if stop:

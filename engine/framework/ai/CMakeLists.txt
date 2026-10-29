@@ -1,6 +1,6 @@
-# --- framework_ai: FSM мозгов, жетоны атаки и ГСЧ мира (спека #25, В5). Всё — симуляция: в снапшоте,
-# в хеше и без float, как драка, поверх которой стоит.
-add_library(framework_ai STATIC world_rng.cpp attack_tokens.cpp ai_brain.cpp ai_state.cpp ai_step.cpp ai_target.cpp)
+# --- framework_ai: FSM мозгов и жетоны атаки (спека #25, В5); ГСЧ мира — в framework_core (спека #29,
+# В2б). Всё — симуляция: в снапшоте, в хеше и без float, как драка, поверх которой стоит.
+add_library(framework_ai STATIC attack_tokens.cpp ai_brain.cpp ai_state.cpp ai_step.cpp ai_target.cpp)
 target_include_directories(framework_ai PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_ai PUBLIC framework_brawl)
 

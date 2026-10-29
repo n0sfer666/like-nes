@@ -191,7 +191,7 @@ DrawOrder Brawl::draw_order() const {
 
 uint64_t Brawl::hash() const {
     uint64_t h = br::state_hash(pool);
-    framework::physics::mix_u64(h, br::seats_hash(seats));
+    framework::physics::mix_u64(h, framework::physics::seats_hash(seats));
     if (wave.on) framework::physics::mix_u64(h, wave.hash());
     return h;
 }

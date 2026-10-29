@@ -4,7 +4,7 @@ target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framewor
 
 add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp depth_step.cpp struck_list.cpp
   archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp dodge_flick.cpp body_guard.cpp hit_geometry.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp
-  seat_step.cpp seat_hash.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp next_arena.cpp stage_waves_hash.cpp
+  seat_step.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp next_arena.cpp stage_waves_hash.cpp
   stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
   autoscroll_step.cpp stage_leash.cpp level_clamp.cpp checkpoint_step.cpp progress_hash.cpp death_step.cpp
   path_follow.cpp stage_movers.cpp stage_movers_snapshot.cpp stage_movers_hash.cpp conveyor_step.cpp

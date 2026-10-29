@@ -6,7 +6,7 @@
 #include "depth_floor.hpp"
 #include "hit_events.hpp"
 #include "reaction.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 #include "rumble_command.hpp"
 #include "rumble_kinds.hpp"
 #include "rumble_level.hpp"

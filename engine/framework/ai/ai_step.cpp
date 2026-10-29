@@ -21,7 +21,7 @@ void step_ai(AiState& ai, const brawl::BodyPool& pool, const brawl::BrawlWorld& 
     for (uint32_t i = 0; i < ai.brains.count; ++i) {
         Brain& b = ai.brains.at[i];
         const brawl::Body* body = pool.find(b.body);
-        if (pool.find(b.target) == nullptr) b.target = brawl::EntId{};
+        if (pool.find(b.target) == nullptr) b.target = EntId{};
         if (b.timer > 0) --b.timer;
         const auto slot = static_cast<size_t>(body - pool.bodies.data());
         if (b.state >= states.size() || slot >= commands.size()) continue;

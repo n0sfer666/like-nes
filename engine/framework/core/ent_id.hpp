@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace framework::brawl {
+namespace framework::core {
 
 struct EntId {
     uint32_t seq = 0;
@@ -9,4 +9,4 @@ struct EntId {
 
 constexpr bool operator==(EntId a, EntId b) { return a.seq == b.seq; }
 
-} // namespace framework::brawl
+} // namespace framework::core

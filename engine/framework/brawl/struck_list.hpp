@@ -6,6 +6,8 @@
 
 namespace framework::brawl {
 
+using core::EntId;
+
 constexpr uint32_t MAX_STRUCK = 16;
 
 struct Struck {

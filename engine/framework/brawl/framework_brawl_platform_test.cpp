@@ -19,6 +19,7 @@ namespace {
 using namespace framework::brawl;
 using namespace framework::brawl::test;
 using framework::physics::mix_u64;
+using framework::physics::seats_hash;
 
 constexpr uint64_t GOLDEN = 0x140838f9cf5a5d4a;
 

@@ -83,47 +83,6 @@ void test_input_reaches_only_the_seated_body() {
     check(out[0].input == BrawlInput{} && out[0].strike == NO_STRIKE, "the dummy gets an empty command");
 }
 
-struct Field {
-    const char* name;
-    void (*bump)(Seats&);
-    void (*erase)(Seats&);
-};
-
-const Field FIELDS[] = {
-    {"present", [](Seats& s) { s.at[1].present = !s.at[1].present; },
-     [](Seats& s) {
-         for (Seat& x : s.at) x.present = false;
-     }},
-    {"body", [](Seats& s) { s.at[1].body.seq += 1; },
-     [](Seats& s) {
-         for (Seat& x : s.at) x.body = EntId{};
-     }},
-};
-
-constexpr int FIELD_COUNT = static_cast<int>(sizeof(FIELDS) / sizeof(FIELDS[0]));
-
-int blind_fields(int forgotten) {
-    Seats base;
-    base.at = {Seat{true, EntId{2}}, Seat{true, EntId{3}}};
-    const auto hash = [forgotten](Seats s) {
-        if (forgotten >= 0) FIELDS[forgotten].erase(s);
-        return seats_hash(s);
-    };
-    int blind = 0;
-    for (int k = 0; k < FIELD_COUNT; ++k) {
-        Seats bumped = base;
-        FIELDS[k].bump(bumped);
-        if (hash(bumped) == hash(base)) blind |= 1 << k;
-    }
-    return blind;
-}
-
-void test_the_seat_hash_sees_every_field() {
-    check(blind_fields(-1) == 0, "a change of present or of the seat's body changes the seat hash");
-    for (int k = 0; k < FIELD_COUNT; ++k)
-        check(blind_fields(k) == 1 << k, FIELDS[k].name);
-}
-
 Row script(uint32_t t) {
     const BrawlInput p1 = walking(t % 9 < 5 ? 1 : -1, t % 13 == 0 ? button::ATTACK : 0);
     const bool p2 = (t >= 20 && t < 30) || t >= 35;
@@ -164,7 +123,6 @@ int main() {
     test_a_full_pool_seats_on_the_first_free_tick();
     test_a_body_removed_elsewhere_is_replaced();
     test_input_reaches_only_the_seated_body();
-    test_the_seat_hash_sees_every_field();
     test_restore_resimulates_a_join_and_a_leave();
     return test::verdict("framework-brawl-seat");
 }

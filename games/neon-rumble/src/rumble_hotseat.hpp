@@ -6,7 +6,7 @@
 #include "input_engine.hpp"
 #include "lobby.hpp"
 #include "rumble_command.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 
 namespace rumble {
 

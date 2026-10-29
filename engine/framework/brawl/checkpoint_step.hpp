@@ -1,7 +1,7 @@
 #pragma once
 #include "body_pool.hpp"
 #include "level_progress.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 namespace framework::scene {
 struct Checkpoint;
 struct LevelObjects;

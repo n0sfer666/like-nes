@@ -6,7 +6,7 @@ namespace framework::ai {
 
 namespace {
 
-uint32_t index_of(const AttackTokens& t, brawl::EntId body) {
+uint32_t index_of(const AttackTokens& t, EntId body) {
     for (uint32_t i = 0; i < t.count; ++i)
         if (t.held[i].body == body) return i;
     return t.count;
@@ -20,9 +20,9 @@ void erase_at(AttackTokens& t, uint32_t i) {
 
 } // namespace
 
-bool holds_token(const AttackTokens& t, brawl::EntId body) { return index_of(t, body) < t.count; }
+bool holds_token(const AttackTokens& t, EntId body) { return index_of(t, body) < t.count; }
 
-bool try_take_token(AttackTokens& t, brawl::EntId body, uint32_t tick) {
+bool try_take_token(AttackTokens& t, EntId body, uint32_t tick) {
     if (body.seq == 0) return false;
     if (holds_token(t, body)) return true;
     if (t.count >= std::min(t.capacity, TOKENS_MAX)) return false;
@@ -30,7 +30,7 @@ bool try_take_token(AttackTokens& t, brawl::EntId body, uint32_t tick) {
     return true;
 }
 
-bool release_token(AttackTokens& t, brawl::EntId body) {
+bool release_token(AttackTokens& t, EntId body) {
     const uint32_t i = index_of(t, body);
     if (i >= t.count) return false;
     erase_at(t, i);

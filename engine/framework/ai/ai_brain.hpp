@@ -6,14 +6,16 @@
 
 namespace framework::ai {
 
+using core::EntId;
+
 constexpr uint32_t BRAINS_MAX = 8;
 
 // Состояние FSM — индекс в таблицу функций игры, таймер — в тиках. Фреймворк хранит, игра решает.
 struct Brain {
-    brawl::EntId body;
+    EntId body;
     uint8_t state = 0;
     uint16_t timer = 0;
-    brawl::EntId target;
+    EntId target;
 };
 
 // Порядок по seq тела — порядок шага: мозги делят жетоны и ГСЧ, и кто спросил первым, тот и взял.
@@ -22,7 +24,7 @@ struct Brains {
     uint32_t count = 0;
 };
 
-bool add_brain(Brains& b, brawl::EntId body, uint8_t state);
-Brain* find_brain(Brains& b, brawl::EntId body);
+bool add_brain(Brains& b, EntId body, uint8_t state);
+Brain* find_brain(Brains& b, EntId body);
 
 } // namespace framework::ai

@@ -2,7 +2,7 @@
 # Зависит только от engine_core: стрелка слоя направлена вниз, и проверить это должно быть можно
 # по этой строке, не читая код.
 add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp section_bake.cpp
-  section_open.cpp utf8_decode.cpp credits_bake.cpp credits_read.cpp)
+  section_open.cpp utf8_decode.cpp credits_bake.cpp credits_read.cpp world_rng.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
 

@@ -7,6 +7,8 @@
 
 namespace framework::brawl {
 
+using core::EntId;
+
 constexpr uint32_t MAX_HIT_EVENTS = 64;
 
 struct HitRules {

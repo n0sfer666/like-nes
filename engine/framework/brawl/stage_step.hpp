@@ -3,7 +3,7 @@
 
 #include "body_pool.hpp"
 #include "brawl_step.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 #include "stage_camera.hpp"
 #include "stage_movers.hpp"
 #include "stage_ropes.hpp"

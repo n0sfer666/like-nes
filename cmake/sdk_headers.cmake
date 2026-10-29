@@ -20,6 +20,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
   framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
+  framework/core/ent_id.hpp framework/core/world_rng.hpp framework/core/seats.hpp
   framework/input/pad_profile.hpp framework/input/pad_registry.hpp framework/input/player_layout.hpp
   framework/input/preset_axes.hpp framework/input/preset_bake.hpp
   framework/input/preset_format.hpp framework/input/preset_parse.hpp
@@ -36,8 +37,9 @@ set(LIKE_NES_SDK_HEADERS
   framework/physics/physics_cache.hpp framework/physics/physics_query.hpp
   framework/physics/physics_world.hpp framework/physics/prepare.hpp
   framework/physics/query_index.hpp framework/physics/rest.hpp framework/physics/sat.hpp
-  framework/physics/shape.hpp framework/physics/snapshot.hpp framework/physics/solver.hpp
-  framework/physics/state_hash.hpp framework/physics/sweep_order.hpp framework/physics/units.hpp
+  framework/physics/seat_hash.hpp framework/physics/shape.hpp framework/physics/snapshot.hpp
+  framework/physics/solver.hpp framework/physics/state_hash.hpp framework/physics/sweep_order.hpp
+  framework/physics/units.hpp
   framework/tilemap/grid.hpp framework/tilemap/map_bake.hpp framework/tilemap/map_format.hpp
   framework/tilemap/map_read.hpp framework/tilemap/tile_rules.hpp
   framework/tilemap/tile_shape.hpp framework/tilemap/tilemap_query.hpp
@@ -66,7 +68,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/text_layout.hpp framework/graphics/gpu/text_quads.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
-  framework/brawl/ent_id.hpp framework/brawl/depth_body.hpp
+  framework/brawl/depth_body.hpp
   framework/brawl/brawl_body.hpp framework/brawl/brawl_input.hpp framework/brawl/depth_profile.hpp
   framework/brawl/body_pool.hpp framework/brawl/depth_floor.hpp framework/brawl/depth_step.hpp
   framework/brawl/body_hash.hpp framework/brawl/fighter.hpp framework/brawl/fighter_format.hpp
@@ -78,7 +80,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/archetype_chain.hpp framework/brawl/fighter_chain.hpp framework/brawl/fighter_name.hpp
   framework/brawl/run_state.hpp framework/brawl/body_run.hpp framework/brawl/dodge_flick.hpp framework/brawl/fighter_move_parse.hpp
   framework/brawl/body_guard.hpp framework/brawl/grip.hpp framework/brawl/hit_grab.hpp framework/brawl/hit_strike.hpp
-  framework/brawl/seat.hpp framework/brawl/seat_step.hpp framework/brawl/seat_hash.hpp
+  framework/brawl/seat_step.hpp
   framework/brawl/stage_camera.hpp framework/brawl/stage_camera_hash.hpp framework/brawl/stage_step.hpp
   framework/brawl/stage_waves.hpp framework/brawl/stage_waves_hash.hpp framework/brawl/wave_facts.hpp framework/brawl/wave_step.hpp
   framework/brawl/next_arena.hpp
@@ -89,7 +91,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/stage_movers_snapshot.hpp framework/brawl/stage_movers_hash.hpp
   framework/brawl/rope_swing.hpp framework/brawl/stage_ropes.hpp framework/brawl/stage_ropes_hash.hpp
   framework/brawl/body_role.hpp framework/brawl/body_kind.hpp framework/brawl/clipless_kind.hpp framework/brawl/projectile.hpp
-  framework/ai/world_rng.hpp framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
+  framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
   framework/ai/ai_state.hpp framework/ai/ai_step.hpp framework/ai/ai_target.hpp
   framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_stack.hpp
   framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp

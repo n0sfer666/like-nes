@@ -80,7 +80,7 @@ struct AiBrawl {
 
     uint64_t world_hash() const {
         uint64_t h = brawl::state_hash(pool);
-        physics::mix_u64(h, brawl::seats_hash(seats));
+        physics::mix_u64(h, physics::seats_hash(seats));
         physics::mix(h, tick);
         return h;
     }

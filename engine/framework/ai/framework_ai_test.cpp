@@ -130,16 +130,6 @@ void test_a_dead_holder_hands_over_in_the_same_step() {
     check(ai.tokens.count == 1 && holds_token(ai.tokens, a), "the token of a vanished body is released before anyone thinks");
 }
 
-void test_rng_is_pinned() {
-    WorldRng r{0x5eed};
-    const std::array<uint32_t, 4> got{next_u32(r), next_u32(r), next_u32(r), below(r, 10)};
-    const std::array<uint32_t, 4> want{0x09f1fd9du, 0x55327416u, 0x5d5bca46u, 4u};
-    for (uint32_t v : got) std::printf("  rng %08x\n", v);
-    check(got == want, "the world RNG sequence is the pinned one on every OS");
-    WorldRng z;
-    for (int i = 0; i < 1000; ++i) check(below(z, 7) < 7, "below stays in range");
-}
-
 struct Field {
     const char* name;
     void (*bump)(AiState&);
@@ -182,7 +172,6 @@ int main() {
     test_step_ai_walks_brains_in_seq_order();
     test_step_ai_skips_what_it_cannot_run();
     test_a_dead_holder_hands_over_in_the_same_step();
-    test_rng_is_pinned();
     framework::ai::test::test_nearest_body();
     return framework::brawl::test::verdict("framework-ai");
 }

@@ -6,7 +6,7 @@
 #include "rumble_fighter.hpp"
 #include "rumble_level.hpp"
 #include "rumble_roster.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 
 namespace rumble {
 

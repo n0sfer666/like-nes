@@ -5,7 +5,7 @@
 #include "codes.hpp"
 #include "dodge_flick.hpp"
 #include "player_layout.hpp"
-#include "seat.hpp"
+#include "seat_step.hpp"
 
 namespace rumble {
 

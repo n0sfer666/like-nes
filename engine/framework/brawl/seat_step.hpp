@@ -4,9 +4,13 @@
 #include "body_pool.hpp"
 #include "brawl_input.hpp"
 #include "brawl_step.hpp"
-#include "seat.hpp"
+#include "seats.hpp"
 
 namespace framework::brawl {
+
+inline constexpr uint32_t SEATS = 2;
+using core::Seat;
+using Seats = core::Seats<SEATS>;
 
 // Первая система тика — тело появляется раньше ударов, и ввод тика входа уже доходит до него.
 // Input{} — отсутствие: так InputRing отвечает до первого ввода игрока. Место, чьё тело снято не

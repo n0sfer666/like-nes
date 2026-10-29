@@ -9,9 +9,9 @@ second pad, leaving in the middle of a level and coming back. The engine splits 
 every machine that replays the inputs. This page covers both and how Neon Rumble brings the second
 player into a level that is already running.
 
-The headers are `lobby.hpp` and `seat_state.hpp` in the namespace `framework::input`, and
-`seat.hpp`, `seat_step.hpp` and `seat_hash.hpp` in `framework::brawl`. They are installed with the
-SDK (see [The SDK and your own game](sdk-and-your-game.md)).
+The headers are `lobby.hpp` and `seat_state.hpp` in the namespace `framework::input`, `seats.hpp` in
+`framework::core`, `seat_hash.hpp` in `framework::physics` and `seat_step.hpp` in `framework::brawl`.
+They are installed with the SDK (see [The SDK and your own game](sdk-and-your-game.md)).
 
 ## The lobby
 
@@ -79,9 +79,10 @@ The game prints every change of a seat, for example `neon-rumble: seat tick 412:
 
 ## Seats in the world
 
-`Seats` holds **2** seats (`SEATS`), each a flag `present` and the `EntId` of its body. It is part
-of the snapshot and of the world hash (`seats_hash`), so a rollback and a replay put the second
-player back exactly where the live run had them.
+`core::Seats<N>` holds `N` seats, each a flag `present` and the `EntId` of its body; the brawl takes
+`brawl::Seats`, which is `core::Seats<SEATS>` with **2** seats. It is part of the snapshot and of the
+world hash (`physics::seats_hash`), so a rollback and a replay put the second player back exactly
+where the live run had them.
 
 `step_seats(seats, pool, inputs, spawns)` is the first system of a tick. The `present` flag of each
 `BrawlInput` is the only thing it reads: a seat whose input turned present spawns the body the game
