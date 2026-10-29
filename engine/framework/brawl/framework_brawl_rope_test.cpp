@@ -22,24 +22,24 @@ constexpr int32_t DEGREES[] = {5, 45, 89};
 
 using Swinger = void (*)(RopeState&, fix32, fix32);
 
-void semi_implicit(RopeState& r, fix32 length, fix32 g) { swing_rope(r, length, g, fix32{}); }
+void semi_implicit(RopeState& r, fix32 length, fix32 g) { framework::physics::swing_pendulum(r.swing, length, g, fix32{}, ROPE_DAMPING); }
 
 void explicit_euler(RopeState& r, fix32 length, fix32 g) {
-    const fix32 pull = g * framework::sin_turns(rope_turns(r.arc, length));
-    r.arc = r.arc + r.speed;
-    r.speed = r.speed - pull;
-    r.speed = r.speed - fix32::from_raw(r.speed.raw / ROPE_DAMPING);
-    const fix32 cap = rope_cap(length);
-    if (!(cap < framework::abs_fix(r.arc))) return;
-    r.arc = framework::clamp_fix(r.arc, -cap, cap);
-    r.speed = fix32{};
+    const fix32 pull = g * framework::sin_turns(framework::physics::pendulum_turns(r.swing.arc, length));
+    r.swing.arc = r.swing.arc + r.swing.speed;
+    r.swing.speed = r.swing.speed - pull;
+    r.swing.speed = r.swing.speed - fix32::from_raw(r.swing.speed.raw / ROPE_DAMPING);
+    const fix32 cap = framework::physics::pendulum_cap(length);
+    if (!(cap < framework::abs_fix(r.swing.arc))) return;
+    r.swing.arc = framework::clamp_fix(r.swing.arc, -cap, cap);
+    r.swing.speed = fix32{};
 }
 
 bool settles(Swinger swing, int32_t length, int32_t degrees) {
     const fix32 l = at(length);
     const fix32 g = Swing().g();
     RopeState r;
-    r.arc = deflection(l, degrees);
+    r.swing.arc = deflection(l, degrees);
     EnergyGate gate(rope_energy(r, l, g));
     for (uint32_t t = 0; t < TICKS; ++t) {
         swing(r, l, g);
@@ -62,7 +62,7 @@ void bare_swing() {
 void rider_swing() {
     Swing s;
     const EntId id = s.fighter(500);
-    s.ropes.at[0].arc = deflection(at(LENGTH), 45);
+    s.ropes.at[0].swing.arc = deflection(at(LENGTH), 45);
     s.hang_hands(id, s.end());
     s.step({grab()});
     check(s.ropes.at[0].rider == id, "the fighter does not take the rope for the energy run");
@@ -86,7 +86,7 @@ struct Script {
     uint32_t tick = 0;
 
     Script() : id(s.fighter(500)) {
-        s.ropes.at[0].arc = deflection(at(LENGTH), 30);
+        s.ropes.at[0].swing.arc = deflection(at(LENGTH), 30);
         s.hang_hands(id, s.end());
         s.step({grab()});
     }
@@ -121,8 +121,8 @@ uint64_t resim(Forget forget) {
     run.tick = tick;
     RopeState& r = run.s.ropes.at[0];
     const RopeState was = saved.at[0];
-    if (forget != Forget::Arc) r.arc = was.arc;
-    if (forget != Forget::Speed) r.speed = was.speed;
+    if (forget != Forget::Arc) r.swing.arc = was.swing.arc;
+    if (forget != Forget::Speed) r.swing.speed = was.swing.speed;
     if (forget != Forget::Rider) r.rider = was.rider;
     if (forget != Forget::Cooldown) r.cooldown = was.cooldown;
     run.step(70);
@@ -151,9 +151,9 @@ void snapshot() {
         sees = sees && !(h == last);
         last = h;
     };
-    ropes.at[0].arc = ropes.at[0].arc + fix32::from_raw(1);
+    ropes.at[0].swing.arc = ropes.at[0].swing.arc + fix32::from_raw(1);
     changed();
-    ropes.at[0].speed = ropes.at[0].speed + fix32::from_raw(1);
+    ropes.at[0].swing.speed = ropes.at[0].swing.speed + fix32::from_raw(1);
     changed();
     ropes.at[0].rider = EntId{77};
     changed();

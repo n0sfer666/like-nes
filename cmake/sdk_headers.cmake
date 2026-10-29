@@ -33,7 +33,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/physics/distance.hpp framework/physics/event_hash.hpp framework/physics/events.hpp
   framework/physics/filter.hpp framework/physics/gap.hpp framework/physics/hash_mix.hpp
   framework/physics/impulse.hpp framework/physics/island.hpp framework/physics/mass.hpp
-  framework/physics/narrowphase.hpp framework/physics/nearest.hpp
+  framework/physics/narrowphase.hpp framework/physics/nearest.hpp framework/physics/pendulum.hpp
   framework/physics/physics_cache.hpp framework/physics/physics_query.hpp
   framework/physics/physics_world.hpp framework/physics/prepare.hpp
   framework/physics/query_index.hpp framework/physics/rest.hpp framework/physics/sat.hpp

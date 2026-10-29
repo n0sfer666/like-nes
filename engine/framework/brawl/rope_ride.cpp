@@ -21,12 +21,12 @@ bool pressed(const BrawlInput& in, uint16_t mask) { return in.present && (in.but
 fix32 gravity(const PlatformWorld& p) { return p.profile.gravity_fall * p.dt * p.dt; }
 
 Vec2 hang_point(const scene::Rope& rope, fix32 arc, const PlatformWorld& p) {
-    const Vec2 end = rope_end(rope.mark.at, rope.length, arc);
+    const Vec2 end = physics::pendulum_end(rope.mark.at, rope.length, arc);
     return {end.x, end.y + hull_half(p).y};
 }
 
 void hang(character::Character& c, const RopeState& r, fix32 length, fix32 dt) {
-    c.velocity = rope_tangent(r.arc, length) * (r.speed / dt);
+    c.velocity = physics::pendulum_tangent(r.swing.arc, length) * (r.swing.speed / dt);
     c.state = character::MoveState::Air;
     c.coyote_left = 0;
     c.buffer_left = 0;
@@ -55,7 +55,7 @@ EntId let_go(RopeState& r) {
 
 EntId fall_off(RopeState& r, const scene::Rope& rope, const PlatformWorld& p) {
     const EntId gone = r.rider == EntId{} ? EntId{} : let_go(r);
-    swing_rope(r, rope.length, gravity(p), fix32{});
+    physics::swing_pendulum(r.swing, rope.length, gravity(p), fix32{}, ROPE_DAMPING);
     return gone;
 }
 
@@ -80,7 +80,7 @@ EntId ride_rope(RopeState& r, const scene::Rope& rope, BodyPool& pool, std::span
     if (b->hitstop > 0) return {};
     const fix32 foot = hull_foot(p);
     adopt_body(b->pos, foot, p.dt, s->c);
-    const Vec2 hung = hang_point(rope, r.arc, p);
+    const Vec2 hung = hang_point(rope, r.swing.arc, p);
     if (!(s->c.position.x == hung.x && s->c.position.y == hung.y)) return fall_off(r, rope, p);
     const bool strikes = b->kind < w.kinds.size() && striking(*b, w.kinds[b->kind]);
     const BrawlInput in = !strikes && i < commands.size() ? commands[i].input : BrawlInput{};
@@ -92,14 +92,14 @@ EntId ride_rope(RopeState& r, const scene::Rope& rope, BodyPool& pool, std::span
         return fall_off(r, rope, p);
     }
     s->c.jump_was_held = jump;
-    const fix32 arc = r.arc;
-    swing_rope(r, rope.length, gravity(p), pump(in, *b));
-    const Vec2 to = hang_point(rope, r.arc, p);
+    const fix32 arc = r.swing.arc;
+    physics::swing_pendulum(r.swing, rope.length, gravity(p), pump(in, *b), ROPE_DAMPING);
+    const Vec2 to = hang_point(rope, r.swing.arc, p);
     character::SceneHit hit;
     if (character::cast_nearest(p.scene, p.hull, s->c.position, to - s->c.position, hit)) {
         if (hit.body.valid()) return let_go(r);
-        r.arc = arc;
-        r.speed = fix32{};
+        r.swing.arc = arc;
+        r.swing.speed = fix32{};
     } else {
         s->c.position = to;
     }
@@ -120,11 +120,11 @@ void grab_rope(StageRopes& ropes, const scene::LevelObjects& level, Body& b, con
         RopeState& r = ropes.at[i];
         const scene::Rope& rope = level.ropes[i];
         if (!(r.rider == EntId{}) || r.cooldown > 0) continue;
-        if (!within_reach(hands, rope_end(rope.mark.at, rope.length, r.arc))) continue;
-        const Vec2 to = hang_point(rope, r.arc, p);
+        if (!within_reach(hands, physics::pendulum_end(rope.mark.at, rope.length, r.swing.arc))) continue;
+        const Vec2 to = hang_point(rope, r.swing.arc, p);
         if (blocked(p, s->c.position, to)) continue;
         r.rider = b.id;
-        r.speed = dot(s->c.velocity * p.dt, rope_tangent(r.arc, rope.length));
+        r.swing.speed = dot(s->c.velocity * p.dt, physics::pendulum_tangent(r.swing.arc, rope.length));
         s->c.position = to;
         s->c.jump_was_held = pressed(in, button::JUMP);
         hang(s->c, r, rope.length, p.dt);

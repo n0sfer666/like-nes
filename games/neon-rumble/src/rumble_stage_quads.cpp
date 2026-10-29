@@ -1,12 +1,11 @@
 #include "rumble_stage_quads.hpp"
 
-#include "rope_swing.hpp"
+#include "pendulum.hpp"
 
 namespace rumble {
 
 namespace {
 
-namespace br = framework::brawl;
 namespace sc = framework::scene;
 using framework::graphics::Rect16;
 
@@ -47,7 +46,7 @@ FighterStats draw_stage(FighterQuads& quads, const Brawl& brawl, Layers& layers,
     for (uint32_t i = 0; i < p.ropes->count; ++i) {
         const sc::Rope& rope = level.ropes[i];
         const framework::Vec2 pivot = rope.mark.at;
-        const framework::Vec2 end = br::rope_end(pivot, rope.length, p.ropes->at[i].arc);
+        const framework::Vec2 end = framework::physics::pendulum_end(pivot, rope.length, p.ropes->at[i].swing.arc);
         for (int32_t k = 1; k < ROPE_DOTS; ++k) {
             const framework::Vec2 dot = pivot + (end - pivot) * (fix32::from_int(k) / fix32::from_int(ROPE_DOTS));
             out += quads.add_box(centered(DOT), false, dot, ROPE_RGBA, layers, st, solid_texture);

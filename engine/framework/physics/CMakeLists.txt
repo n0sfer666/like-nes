@@ -3,7 +3,7 @@
 # слое не знают, и инвариант 1 спеки #14 проверяет это грепом по этой самой строке линковки.
 add_library(framework_physics STATIC
   axis_terms.cpp body.cpp broadphase.cpp cache.cpp cast.cpp distance.cpp event_hash.cpp events.cpp
-  gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp prepare.cpp query.cpp query_index.cpp
+  gap.cpp island.cpp mass.cpp narrowphase.cpp nearest.cpp pendulum.cpp prepare.cpp query.cpp query_index.cpp
   rest.cpp sat.cpp seat_hash.cpp shape.cpp snapshot.cpp solver.cpp state_hash.cpp world.cpp world_id.cpp)
 target_include_directories(framework_physics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_physics PUBLIC framework_core)
@@ -161,3 +161,8 @@ target_link_libraries(framework_physics_snapshot_islands_test PRIVATE framework_
 # здесь, а не в core: хеш мест стоит на `hash_mix.hpp`, а слой core ниже физики.
 add_executable(framework_ids_test framework_ids_test.cpp)
 target_link_libraries(framework_ids_test PRIVATE framework_physics platform_core)
+
+# Маятник (спека #29, В2б) — свой тест слоя physics, не зависящий от фикстуры драки: энергия без
+# раскачки, предел размаха и конец с касательной, каждое утверждение со сломанной копией.
+add_executable(framework_physics_pendulum_test framework_physics_pendulum_test.cpp)
+target_link_libraries(framework_physics_pendulum_test PRIVATE framework_physics platform_core)

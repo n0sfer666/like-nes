@@ -80,7 +80,7 @@
   на ход damage/hitstop/hitstun/knock/depth/hits_down/slide) → LNFT в бандле.
 - Захардкожено: ИИ (`rumble_brain.cpp:20-29`), волны/токены/ENTRY_IMMUNE (`rumble_wave.hpp:28-34`),
   ножи (`rumble_knives.hpp:14-17`), ящик, флик и мёртвая зона (`rumble_controls.cpp:17-19`),
-  камера секции (`rumble_platform.cpp`), трос (`rope_swing.hpp:23-26`), откат блока `knock/2`.
+  камера секции (`rumble_platform.cpp`), трос (`rope_swing.hpp:22-25`), откат блока `knock/2`.
 - Всё fix32 Q16.16; float только на границе. Перенос в файлы с теми же значениями хеши не
   трогает; смена значений двигает `bundle.hash` и строки `sdk_game_run.sh`/`sdk_game_coop.sh`
   (перепин руками). Crossplay идёт на фикстурах — тюнинг игры его не трогает.

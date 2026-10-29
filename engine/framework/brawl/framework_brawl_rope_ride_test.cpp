@@ -14,7 +14,7 @@ using framework::Vec2;
 
 EntId ride(Swing& s, int32_t degrees) {
     const EntId id = s.fighter(500);
-    s.ropes.at[0].arc = deflection(at(LENGTH), degrees);
+    s.ropes.at[0].swing.arc = deflection(at(LENGTH), degrees);
     s.hang_hands(id, s.end());
     s.step({grab()});
     return id;
@@ -29,7 +29,7 @@ void release() {
     const std::vector<Command> c{leap()};
     ride_rope(s.ropes.at[0], s.w.s.level.ropes[0], s.w.s.pool, c, s.w.s.sections, s.w.world());
     const framework::character::Character& h = s.section(id).c;
-    const Vec2 v = rope_tangent(before.arc, at(LENGTH)) * (before.speed / dt);
+    const Vec2 v = framework::physics::pendulum_tangent(before.swing.arc, at(LENGTH)) * (before.swing.speed / dt);
     check(h.velocity.x == v.x && h.velocity.y == v.y && h.jump_was_held, "the rider leaves without the rope velocity");
     check(s.ropes.at[0].rider == EntId{} && s.ropes.at[0].cooldown == ROPE_COOLDOWN, "the jump does not free the rope");
     Swing full;
@@ -111,10 +111,10 @@ void hitstop() {
     const RopeState before = s.ropes.at[0];
     s.idle(3);
     const RopeState frozen = s.ropes.at[0];
-    check(frozen.rider == id && frozen.arc == before.arc && frozen.speed == before.speed,
+    check(frozen.rider == id && frozen.swing.arc == before.swing.arc && frozen.swing.speed == before.swing.speed,
           "a rider in hitstop falls off or the rope swings without them");
     s.idle(1);
-    check(s.ropes.at[0].rider == id && !(s.ropes.at[0].arc == before.arc), "the rope stays frozen after the hitstop");
+    check(s.ropes.at[0].rider == id && !(s.ropes.at[0].swing.arc == before.swing.arc), "the rope stays frozen after the hitstop");
 }
 
 void wall() {
@@ -124,10 +124,10 @@ void wall() {
     fix32 reached = at(0);
     bool stopped = false;
     for (uint32_t t = 0; t < 60; ++t) {
-        const fix32 arc = s.ropes.at[0].arc;
+        const fix32 arc = s.ropes.at[0].swing.arc;
         s.step({});
         reached = framework::max_fix(reached, s.hands(id).x + half);
-        stopped = stopped || (s.ropes.at[0].speed == fix32{} && s.ropes.at[0].arc == arc);
+        stopped = stopped || (s.ropes.at[0].swing.speed == fix32{} && s.ropes.at[0].swing.arc == arc);
     }
     check(stopped && !(at(640) < reached) && at(634) < reached, "the wall does not stop the rope at the rider");
 }
@@ -135,13 +135,13 @@ void wall() {
 void pump() {
     Swing s;
     const EntId id = ride(s, 0);
-    const fix32 cap = rope_cap(at(LENGTH));
+    const fix32 cap = framework::physics::pendulum_cap(at(LENGTH));
     bool capped = false;
     bool over = false;
     for (uint32_t t = 0; t < 3000 && !capped; ++t) {
-        s.step({go(s.ropes.at[0].speed < fix32{} ? -1 : 1)});
-        capped = framework::abs_fix(s.ropes.at[0].arc) == cap && s.ropes.at[0].speed == fix32{};
-        over = over || cap < framework::abs_fix(s.ropes.at[0].arc);
+        s.step({go(s.ropes.at[0].swing.speed < fix32{} ? -1 : 1)});
+        capped = framework::abs_fix(s.ropes.at[0].swing.arc) == cap && s.ropes.at[0].swing.speed == fix32{};
+        over = over || cap < framework::abs_fix(s.ropes.at[0].swing.arc);
     }
     check(capped && !over && s.ropes.at[0].rider == id, "pumping does not reach the horizontal or passes it");
     s.step({go(-1)});

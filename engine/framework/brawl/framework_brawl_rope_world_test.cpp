@@ -15,7 +15,7 @@ using framework::Vec2;
 
 EntId ride(Swing& s, int32_t degrees) {
     const EntId id = s.fighter(500);
-    s.ropes.at[0].arc = deflection(at(LENGTH), degrees);
+    s.ropes.at[0].swing.arc = deflection(at(LENGTH), degrees);
     s.hang_hands(id, s.end());
     s.step({grab()});
     return id;
@@ -34,7 +34,7 @@ void lift() {
     bool rode = s.ropes.at[0].rider == id;
     uint32_t t = 0;
     while (s.ropes.at[0].rider == id && t++ < 60) s.step({});
-    check(rode && dropped(s) && fix32{} < s.ropes.at[0].speed && s.section(id).c.position.x < at(606),
+    check(rode && dropped(s) && fix32{} < s.ropes.at[0].swing.speed && s.section(id).c.position.x < at(606),
           "a lift in the swing stops the rope or carries the rider into it");
 }
 
@@ -68,7 +68,7 @@ void oneway() {
     const fix32 feet = s.section(id).c.position.y + hull_half(s.w.platform).y;
     check(s.ropes.at[0].rider == id && at(660) < reached,
           "a one-way ledge stops the rider from below or from the side");
-    check(fix32{} < s.ropes.at[0].arc && s.ropes.at[0].speed == fix32{} && !(at(176) < feet) && at(175) < feet,
+    check(fix32{} < s.ropes.at[0].swing.arc && s.ropes.at[0].swing.speed == fix32{} && !(at(176) < feet) && at(175) < feet,
           "a one-way ledge does not hold the rider from above");
 }
 
@@ -81,8 +81,8 @@ void strike_holds() {
     s.step({go(-facing)});
     const Body& b = s.w.get(id);
     check(b.move < s.w.s.arena.kinds[b.kind].move_count, "the jab does not run on the rope");
-    check(s.ropes.at[0].rider == id && b.facing == facing && s.ropes.at[0].speed == fix32{} &&
-              s.ropes.at[0].arc == fix32{},
+    check(s.ropes.at[0].rider == id && b.facing == facing && s.ropes.at[0].swing.speed == fix32{} &&
+              s.ropes.at[0].swing.arc == fix32{},
           "a striking rider pumps or turns the rope");
 }
 

@@ -111,13 +111,21 @@
     `swing_pendulum(Pendulum&, length, g, push, damping)`; `ROPE_*` остаются константами драки;
     `framework_pendulum_test` — энергия без ввода не растёт, размах зажимается, `end`/`tangent` в отвесе
     и на пределе, сломанная копия без затухания; `rope_energy` фикстуры драки остаётся.
+28. Интервью 27 (ревью pendulum): условия `damping > 0` и `length` 1..5000 px — в `pendulum.hpp`,
+    без проверки на горячем пути; у размаха и геометрии сломанные копии (без обнуления, без клампа,
+    стоп ровно на пределе, `sin`/`cos` переставлены, касательная `+sin`), точное сравнение вместо
+    допуска, случай «шаг ровно на предел»; owner-verification §13 называет `physics/pendulum.*`;
+    теневая энергия и `EnergyGate` — общий `framework_physics_pendulum_energy.hpp`, `rope_energy`
+    драки — обёртка над ним (отменяет хвост п. 27); цель — `framework_physics_pendulum_test`,
+    вердикт `framework-physics-pendulum`; `rope_swing.hpp` включает `fixmath.hpp` сам.
 
 ## Состояние
 
 - [x] повестка `26-10-28-engine-finish-scope.md`
 - [x] #18/#19/#20/#22 → «Закрыта с долгом», `checks/18.md`, `19.md`, `20.md`, `22.md`
 - [x] #29 В2а — `a0a79f5`, CI зелёный на 3 ОС; долг — `checks/29.md`
-- [ ] #29 В2б–В2е
+- [ ] #29 В2б–В2е: В2б — core `bb694d0`, input `9159b3e`, physics/pendulum готов; дальше depth, hits,
+  kinematic, камера, slide
 - [ ] #26 В2г–В2е
 - [ ] #26 В3–В7
 - [ ] #27 спека + интервью + реализация

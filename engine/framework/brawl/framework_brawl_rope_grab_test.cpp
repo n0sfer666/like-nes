@@ -98,7 +98,7 @@ void carries_speed() {
     mirror_body(b.c, hull_foot(s.w.platform), s.w.platform.dt, s.w.get(id).pos);
     const fix32 vx = s.w.get(id).pos.vx;
     s.step({grab()});
-    check(s.ropes.at[0].rider == id && at(1) < vx && s.ropes.at[0].speed == vx,
+    check(s.ropes.at[0].rider == id && at(1) < vx && s.ropes.at[0].swing.speed == vx,
           "the grab does not turn the body speed into the rope speed");
 }
 

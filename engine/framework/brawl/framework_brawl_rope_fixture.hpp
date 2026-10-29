@@ -3,8 +3,8 @@
 #include <vector>
 
 #include "body_hash.hpp"
-#include "fixtrig.hpp"
 #include "framework_brawl_section_fixture.hpp"
+#include "framework_physics_pendulum_energy.hpp"
 #include "hash_mix.hpp"
 #include "rope_swing.hpp"
 #include "stage_movers.hpp"
@@ -22,45 +22,13 @@ inline scene::Rope rope(int32_t x, int32_t y, int32_t length) {
     return scene::Rope{{nullptr, {at(x), at(y)}}, at(length)};
 }
 
-inline fix32 deflection(fix32 length, int32_t degrees) { return rope_cap(length) * at(degrees) / at(90); }
+inline fix32 deflection(fix32 length, int32_t degrees) { return physics::pendulum_cap(length) * at(degrees) / at(90); }
 
-// Теневая энергия полунеявного Эйлера, px²/тик² в Q16.16 без сдвига: `½v² + gL(1 − cos θ) − ½·v·g·sin θ`.
-// Её шаг сохраняет точно, а не `½v² + gL(1 − cos θ)`: та колеблется на полшага каждый тик и судила
-// бы о росте по колебанию, а не по росту.
+using physics::test::EnergyGate;
+
 inline int64_t rope_energy(const RopeState& r, fix32 length, fix32 g) {
-    const fix32 t = rope_turns(r.arc, length);
-    const int64_t v = r.speed.raw;
-    const int64_t kinetic = v * v / 2;
-    const int64_t potential = static_cast<int64_t>((g * length).raw) * (at(1) - cos_turns(t)).raw;
-    const int64_t shadow = v * (g * sin_turns(t)).raw / 2;
-    return kinetic + potential - shadow;
+    return physics::test::pendulum_energy(r.swing, length, g);
 }
-
-// Гейт энергии: пик каждого окна из `WINDOW` тиков не выше пика прошлого, пик последнего полного
-// окна ниже энергии начала. Окно, а не тик: энергия на тике колеблется в младших разрядах и на честном шаге.
-// Пик первого окна с началом не сравнивается: дуга в угол округляется, и первые тики выходят над
-// ним на доли процента (замер — до 0.26 % на 256 px и 5°), а не на рост от шага к шагу.
-struct EnergyGate {
-    static constexpr uint32_t WINDOW = 500;
-    int64_t start;
-    int64_t last_peak;
-    int64_t peak;
-    uint32_t tick = 0;
-    bool rose = false;
-
-    explicit EnergyGate(int64_t e) : start(e), last_peak(INT64_MAX), peak(e) {}
-
-    void add(int64_t e) {
-        if (++tick % WINDOW == 0) {
-            rose = rose || last_peak < peak;
-            last_peak = peak;
-            peak = e;
-        }
-        if (peak < e) peak = e;
-    }
-
-    bool settles() const { return !rose && last_peak < start; }
-};
 
 // Трос в platform-секции фикстуры `Sections`: опора (600, 60), длина 96 — в горизонтали конец
 // проходит x [504, 696] внутри секции, в отвесе корпус седока висит на 52 px над полом.
@@ -99,7 +67,7 @@ struct Swing {
 
     Vec2 end(uint32_t i = 0) const {
         const scene::Rope& r = w.s.level.ropes[i];
-        return rope_end(r.mark.at, r.length, ropes.at[i].arc);
+        return physics::pendulum_end(r.mark.at, r.length, ropes.at[i].swing.arc);
     }
 
     Vec2 hands(EntId id) {

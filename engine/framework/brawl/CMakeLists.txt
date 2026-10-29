@@ -8,7 +8,7 @@ add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_floor.cpp d
   stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
   autoscroll_step.cpp stage_leash.cpp level_clamp.cpp checkpoint_step.cpp progress_hash.cpp death_step.cpp
   path_follow.cpp stage_movers.cpp stage_movers_snapshot.cpp stage_movers_hash.cpp conveyor_step.cpp
-  rope_swing.cpp rope_ride.cpp stage_ropes.cpp stage_ropes_hash.cpp body_kind.cpp clipless_kind.cpp projectile.cpp)
+  rope_ride.cpp stage_ropes.cpp stage_ropes_hash.cpp body_kind.cpp clipless_kind.cpp projectile.cpp)
 target_include_directories(framework_brawl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl PUBLIC framework_brawl_fighter framework_character framework_physics framework_scene
   framework_input framework_core input_core)
