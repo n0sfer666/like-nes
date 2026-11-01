@@ -1,24 +1,10 @@
 #pragma once
-#include <vector>
-
 #include "brawl_step.hpp"
-#include "path_follow.hpp"
-#include "physics_world.hpp"
+#include "movers.hpp"
 
 namespace framework::brawl {
 
-// Физмир драки (#15): по кинематическому телу `w × h` на каждый `path` уровня, в порядке путей
-// уровня — и индекс тела, и ключ берутся из него, а не из порядка вызовов игры. Игра кладёт
-// `&world` в `PlatformWorld.scene.world`: контроллер #16 стоит на этих телах и едет с ними опорой.
-struct StageMovers {
-    explicit StageMovers(const scene::LevelObjects& level);
-    // `PlatformWorld.scene.world` держит адрес `world`: копия или перенос оставили бы его висеть.
-    StageMovers(const StageMovers&) = delete;
-    StageMovers& operator=(const StageMovers&) = delete;
-
-    physics::World world;
-    std::vector<PathFollow> follow;
-};
+using StageMovers = kinematic::Movers;
 
 // Начало системы 4 («физика, потом персонаж» #16): следование сдвигается, скорость тела ставится
 // так, чтобы за шаг оно пришло в точку пути, затем шаг мира. Цель — точка пути, а не прошлая цель:

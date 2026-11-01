@@ -30,10 +30,10 @@ void settles_at_bounds() {
     w.s.level.bounds = area(0, 0, 1500, 400);
     place(w, 900, 1090);
     run(w, 209);
-    check(!w.s.camera.riding && w.s.camera.center.x == at(1308), "the scroll does not end under the bounds clamp");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.center.x == at(1308), "the scroll does not end under the bounds clamp");
     place(w, 1400, 1500);
     run(w, 1);
-    check(w.s.camera.settle.x == fix32{} && w.s.camera.center.x == at(1308),
+    check(w.s.camera.autoscroll.settle.x == fix32{} && w.s.camera.center.x == at(1308),
           "the camera settles toward a goal past the bounds clamp");
 }
 
@@ -48,7 +48,7 @@ void zero_while_settling() {
         place(w, 850, 950);
         run(w, 1);
     }
-    check(w.s.camera.ride == 2 && w.s.camera.settle.x == fix32{} && w.s.camera.center.x == at(900),
+    check(w.s.camera.autoscroll.ride == 2 && w.s.camera.autoscroll.settle.x == fix32{} && w.s.camera.center.x == at(900),
           "a skipped scroll freezes the settling camera");
 }
 

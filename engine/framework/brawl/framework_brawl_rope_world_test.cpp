@@ -27,7 +27,7 @@ bool dropped(const Swing& s) { return s.ropes.at[0].rider == EntId{} && s.ropes.
 void lift() {
     Swing s;
     s.w.s.level.paths.push_back(path({{630, 180}}, 1, false));
-    StageMovers m(s.w.s.level);
+    StageMovers m(s.w.s.level.paths);
     s.w.platform.scene.world = &m.world;
     s.movers = &m;
     const EntId id = ride(s, -30);

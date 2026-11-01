@@ -35,6 +35,10 @@ python3 scripts/check_sim_float.py --selftest  # 32 контроля на фик
   `depth_move.cpp` → FAIL, строка 34, и `belt_ride.hpp` → FAIL, строка 17; откат — PASS, 260 файлов.
   `hits/` целиком (2026-11-02): `float hits_float_probe;` поочерёдно в конце `hit_box.cpp`,
   `struck_list.cpp`, `hitstop.cpp` → FAIL с именем каждого файла; откат — PASS, 267 файлов.
+  `kinematic/` и `graphics/camera_autoscroll.{hpp,cpp}` (2026-11-02): обход реального дерева
+  содержит новые ядра. Копии восьми найденных файлов (`path_follow.{hpp,cpp}`, `movers.{hpp,cpp}`,
+  `movers_hash.cpp`, `movers_snapshot.cpp`, `camera_autoscroll.{hpp,cpp}`) с добавленным `float
+  v2b_probe;` каждая отбита тем же audit; рабочие исходники при контроле не менялись.
 - **Что.** Три правила. Типы и конверсии словом целиком: `float`, `double`, `float_t`, `double_t`,
   `_FloatN`, `floatN_t`, а также `from_float` и `to_double` из `fixed.hpp` — они для границ
   (авторинг, рендер), не для шага; `long double` — одна находка. Плавающие литералы: `0.5`, `1.f`,

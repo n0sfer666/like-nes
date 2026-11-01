@@ -5,7 +5,7 @@
 
 #include "fixmath.hpp"
 
-namespace framework::brawl {
+namespace framework::kinematic {
 
 namespace {
 
@@ -59,7 +59,7 @@ void advance_path(const scene::Path& path, PathFollow& f) {
         left = left - len;
         next_segment(path, f);
     }
-    std::fprintf(stderr, "[brawl] path follow ran a whole cycle without stopping: segments disagree with the cycle\n");
+    std::fprintf(stderr, "[kinematic] path follow ran a whole cycle without stopping: segments disagree with the cycle\n");
     std::abort();
 }
 
@@ -72,4 +72,4 @@ Vec2 path_point(const scene::Path& path, const PathFollow& f) {
     return from + span * (f.traveled / len);
 }
 
-} // namespace framework::brawl
+} // namespace framework::kinematic

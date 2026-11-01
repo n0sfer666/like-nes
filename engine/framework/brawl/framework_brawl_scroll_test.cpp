@@ -14,10 +14,10 @@ void starts_on_track() {
     Sections w;
     belt_lane(w, 2);
     run(w, 1);
-    check(!w.s.camera.riding && w.s.camera.center.x == at(950), "the scroll starts before the track");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.center.x == at(950), "the scroll starts before the track");
     place(w, 900, 1090);
     run(w, 1);
-    check(w.s.camera.riding && w.s.camera.center.x == at(992), "crossing the track start does not start the scroll");
+    check(w.s.camera.autoscroll.riding && w.s.camera.center.x == at(992), "crossing the track start does not start the scroll");
     for (uint32_t t = 0; t < 9; ++t) {
         place(w, 900 + 20 * static_cast<int32_t>(t), 1100);
         run(w, 1);
@@ -30,21 +30,21 @@ void once() {
     belt_lane(w, 2);
     place(w, 900, 1090);
     run(w, 208);
-    check(w.s.camera.riding && w.s.camera.center.x == at(1406), "the scroll ends early");
+    check(w.s.camera.autoscroll.riding && w.s.camera.center.x == at(1406), "the scroll ends early");
     run(w, 1);
-    check(!w.s.camera.riding && w.s.camera.ride == 1 && w.s.camera.center.x == at(1408), "the scroll overruns the track");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.autoscroll.ride == 1 && w.s.camera.center.x == at(1408), "the scroll overruns the track");
     place(w, 1300, 1400);
     run(w, 1);
-    check(w.s.camera.settle.x == at(2) && w.s.camera.center.x == fix32::from_raw(at(1400).raw + at(3).raw / 4),
+    check(w.s.camera.autoscroll.settle.x == at(2) && w.s.camera.center.x == fix32::from_raw(at(1400).raw + at(3).raw / 4),
           "the camera jumps back to the players after the scroll");
     run(w, 17);
-    check(w.s.camera.settle.x == fix32{} && w.s.camera.center.x == at(1350),
+    check(w.s.camera.autoscroll.settle.x == fix32{} && w.s.camera.center.x == at(1350),
           "the camera does not settle on the players after the scroll");
     place(w, 850, 950);
     run(w, 1);
     place(w, 950, 1090);
     run(w, 1);
-    check(!w.s.camera.riding && w.s.camera.center.x == at(1020), "a passed scroll starts again");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.center.x == at(1020), "a passed scroll starts again");
 }
 
 void zero_speed() {
@@ -53,10 +53,10 @@ void zero_speed() {
     w.s.level.autoscrolls.push_back(lane(800, 1600, ScrollAxis::X, 2));
     place(w, 900, 1090);
     run(w, 1);
-    check(!w.s.camera.riding && w.s.camera.ride == 1 && w.s.camera.center.x == at(995), "a zero-speed scroll holds the camera");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.autoscroll.ride == 1 && w.s.camera.center.x == at(995), "a zero-speed scroll holds the camera");
     place(w, 900, 1000);
     run(w, 1);
-    check(w.s.camera.riding && w.s.camera.center.x == at(992), "the scroll after a skipped one does not start");
+    check(w.s.camera.autoscroll.riding && w.s.camera.center.x == at(992), "the scroll after a skipped one does not start");
 }
 
 void backward() {
@@ -65,10 +65,10 @@ void backward() {
     w.s.camera.center.x = at(1500);
     place(w, 1450, 1550);
     run(w, 1);
-    check(!w.s.camera.riding, "a backward scroll starts at the near end");
+    check(!w.s.camera.autoscroll.riding, "a backward scroll starts at the near end");
     place(w, 1350, 1450);
     run(w, 2);
-    check(w.s.camera.riding && w.s.camera.center.x == at(1406), "a negative speed does not scroll backward");
+    check(w.s.camera.autoscroll.riding && w.s.camera.center.x == at(1406), "a negative speed does not scroll backward");
 }
 
 // Тело belt у стены пола, край едет по `x`: стена держит тело — `crushed`; без стены край толкает тело
@@ -88,7 +88,7 @@ void crushed_belt(bool wall) {
     if (wall) check(crushed && w.s.player(0).pos.x == at(820), "the scroll edge does not crush a belt body at a wall");
     else check(!crushed && w.s.player(0).pos.x == edge, "the scroll edge crushes or drops a free belt body");
     run(w, 200);
-    check(!w.s.camera.riding && !w.s.player(0).crushed, "crushed outlives the scroll");
+    check(!w.s.camera.autoscroll.riding && !w.s.player(0).crushed, "crushed outlives the scroll");
 }
 
 // Тело platform у тайловой стены, край едет по `x`: контроллер не пускает тело в стену — `crushed`.
@@ -115,7 +115,7 @@ void along_y(bool ceiling) {
     w.s.seat(0, 600);
     w.s.camera.center = {at(600), at(400)};
     run(w, 1);
-    check(w.s.camera.riding && w.s.camera.center.y == at(292), "a platform scroll along y does not start");
+    check(w.s.camera.autoscroll.riding && w.s.camera.center.y == at(292), "a platform scroll along y does not start");
     run(w, 40);
     check(w.s.camera.center.y == at(212), "the y scroll follows the body instead of the track");
     bool crushed = false;
@@ -124,11 +124,11 @@ void along_y(bool ceiling) {
         crushed = crushed || w.s.player(0).crushed;
     }
     const fix32 feet = w.s.player(0).pos.z - w.s.player(0).pos.y;
-    check(!w.s.camera.riding && w.s.camera.center.y == at(108), "the y scroll does not end on its track");
+    check(!w.s.camera.autoscroll.riding && w.s.camera.center.y == at(108), "the y scroll does not end on its track");
     if (ceiling) check(crushed, "the scroll edge does not crush a body under the ceiling");
     else check(!crushed && about(feet, 216), "the bottom scroll edge does not lift a free body");
     run(w, 30);
-    check(w.s.camera.settle.y == fix32{}, "the camera never settles after a y scroll");
+    check(w.s.camera.autoscroll.settle.y == fix32{}, "the camera never settles after a y scroll");
 }
 
 } // namespace

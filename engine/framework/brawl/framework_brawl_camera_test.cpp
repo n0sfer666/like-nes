@@ -161,15 +161,15 @@ const Field FIELDS[] = {
     {"center x", [](StageCamera& c) { c.center.x.raw += 1; }},
     {"center y", [](StageCamera& c) { c.center.y.raw += 1; }},
     {"arena", [](StageCamera& c) { c.arena = 1; }},
-    {"scroll", [](StageCamera& c) { c.scroll.raw += 1; }},
-    {"ride", [](StageCamera& c) { c.ride = 1; }},
-    {"riding", [](StageCamera& c) { c.riding = true; }},
-    {"settle x", [](StageCamera& c) { c.settle.x.raw += 1; }},
-    {"settle y", [](StageCamera& c) { c.settle.y.raw += 1; }},
+    {"scroll", [](StageCamera& c) { c.autoscroll.scroll.raw += 1; }},
+    {"ride", [](StageCamera& c) { c.autoscroll.ride = 1; }},
+    {"riding", [](StageCamera& c) { c.autoscroll.riding = true; }},
+    {"settle x", [](StageCamera& c) { c.autoscroll.settle.x.raw += 1; }},
+    {"settle y", [](StageCamera& c) { c.autoscroll.settle.y.raw += 1; }},
 };
 
 void fields() {
-    const StageCamera base{{at(200), at(108)}, NO_ARENA, fix32{}};
+    const StageCamera base{{at(200), at(108)}, NO_ARENA, {}};
     for (const Field& f : FIELDS) {
         StageCamera c = base;
         f.bump(c);

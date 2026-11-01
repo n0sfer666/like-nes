@@ -10,7 +10,8 @@ namespace {
 
 static_assert(std::is_trivially_copyable_v<StageCamera>, "the snapshot is a plain copy of the camera");
 static_assert([] {
-    [[maybe_unused]] auto [center, arena, scroll, ride, riding, settle] = StageCamera{};
+    [[maybe_unused]] auto [center, arena, autoscroll] = StageCamera{};
+    [[maybe_unused]] auto [scroll, ride, riding, settle] = graphics::Autoscroll{};
     return true;
 }(), "a camera field was added: mix it here and add its row to framework_brawl_camera_test");
 
@@ -21,11 +22,11 @@ uint64_t camera_hash(const StageCamera& camera) {
     physics::mix(h, static_cast<uint32_t>(camera.center.x.raw));
     physics::mix(h, static_cast<uint32_t>(camera.center.y.raw));
     physics::mix(h, static_cast<uint32_t>(static_cast<int32_t>(camera.arena)));
-    physics::mix(h, static_cast<uint32_t>(camera.scroll.raw));
-    physics::mix(h, camera.ride);
-    physics::mix(h, camera.riding ? 1u : 0u);
-    physics::mix(h, static_cast<uint32_t>(camera.settle.x.raw));
-    physics::mix(h, static_cast<uint32_t>(camera.settle.y.raw));
+    physics::mix(h, static_cast<uint32_t>(camera.autoscroll.scroll.raw));
+    physics::mix(h, camera.autoscroll.ride);
+    physics::mix(h, camera.autoscroll.riding ? 1u : 0u);
+    physics::mix(h, static_cast<uint32_t>(camera.autoscroll.settle.x.raw));
+    physics::mix(h, static_cast<uint32_t>(camera.autoscroll.settle.y.raw));
     return h;
 }
 

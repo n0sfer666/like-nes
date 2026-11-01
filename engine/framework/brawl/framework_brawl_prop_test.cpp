@@ -98,7 +98,7 @@ void lifts_carry_no_props() {
     scene::Path p = path({{500, 248}, {500, 196}}, 1, false);
     p.w = 96;
     w.sec.s.level.paths.push_back(p);
-    StageMovers m(w.sec.s.level);
+    StageMovers m(w.sec.s.level.paths);
     w.sec.platform.scene.world = &m.world;
     w.movers = &m;
     const EntId c = w.crate(470, 30, FLOOR);

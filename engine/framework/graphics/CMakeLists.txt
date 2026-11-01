@@ -3,7 +3,7 @@
 # регион атласа здесь — прямоугольник в пикселях, а не текстура. Тянуть сюда RHI «на будущее»
 # значило бы связать анимацию с устройством вывода ровно тем ребром, которое инвариант 1 спеки #14
 # запрещает в обратную сторону.
-add_library(framework_graphics STATIC clip.cpp clip_bake.cpp clip_read.cpp player.cpp machine.cpp camera.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
+add_library(framework_graphics STATIC clip.cpp clip_bake.cpp clip_read.cpp player.cpp machine.cpp camera.cpp camera_autoscroll.cpp atlas_parse.cpp atlas_bake.cpp atlas_read.cpp debug_draw.cpp sprite.cpp nine_slice.cpp
   particles.cpp viewport.cpp viewport_fit.cpp sprite_flip.cpp clip_debug.cpp font_bake.cpp font_read.cpp text_layout.cpp)
 target_include_directories(framework_graphics PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # framework_core — за `fix32` и `Vec2`: камера живёт в мировых координатах, а вторая реализация
@@ -50,14 +50,10 @@ target_link_libraries(framework_graphics_hold_test PRIVATE framework_graphics pl
 #   * ..._shake_test  — ТРЯСКА: «дрожит как заказано и только в отрисовке», по координате не видно;
 #   * ..._pixel_test  — СЕТКА И ПАРАЛЛАКС: «не дрожит относительно соседа», видно только на ходу;
 #   * ..._path_test   — ГОЛДЕН траектории: «три машины сошлись», за верность не отвечает вовсе.
-add_executable(framework_graphics_camera_test framework_graphics_camera_test.cpp)
-target_link_libraries(framework_graphics_camera_test PRIVATE framework_graphics platform_core)
-
-add_executable(framework_graphics_pixel_test framework_graphics_pixel_test.cpp)
-target_link_libraries(framework_graphics_pixel_test PRIVATE framework_graphics platform_core)
-
-add_executable(framework_graphics_shake_test framework_graphics_shake_test.cpp)
-target_link_libraries(framework_graphics_shake_test PRIVATE framework_graphics platform_core)
+foreach(part camera pixel shake autoscroll)
+  add_executable(framework_graphics_${part}_test framework_graphics_${part}_test.cpp)
+  target_link_libraries(framework_graphics_${part}_test PRIVATE framework_graphics platform_core)
+endforeach()
 
 add_executable(framework_graphics_path_test framework_graphics_path_test.cpp)
 target_link_libraries(framework_graphics_path_test PRIVATE framework_graphics framework_physics

@@ -102,7 +102,7 @@ bool shake_free(bool leak) { return shaken(false, leak) == shaken(true, leak); }
 void locked_arena(Stage& s) {
     s.level.bounds = area(0, 0, 640, 216);
     s.level.arenas.push_back({area(100, 0, 400, 216), 1});
-    s.camera = StageCamera{{at(200), at(108)}, 1, fix32{}};
+    s.camera = StageCamera{{at(200), at(108)}, 1, {}};
     s.seat(0, 150);
     s.seat(1, 250);
 }

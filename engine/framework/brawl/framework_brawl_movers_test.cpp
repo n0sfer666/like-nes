@@ -6,8 +6,8 @@
 #include "framework_brawl_path_fixture.hpp"
 #include "framework_brawl_section_fixture.hpp"
 #include "hash_mix.hpp"
-#include "stage_movers_hash.hpp"
-#include "stage_movers_snapshot.hpp"
+#include "movers_hash.hpp"
+#include "movers_snapshot.hpp"
 #include "stage_sections_hash.hpp"
 
 // Платформы по `path` (спека #25, В8а): лифт, везущий бойца вверх и вбок опорой контроллера, и
@@ -20,6 +20,7 @@ using namespace framework::brawl;
 using namespace framework::brawl::test;
 using framework::Vec2;
 namespace scene = framework::scene;
+using framework::kinematic::MoversSnapshot;
 
 // Лифт выходит из пола: верх на 4 px ниже линии пола, вверх до 48 px над ней, затем вправо,
 // маятником. Верх ровно на линии пола был бы касанием, и вход в секцию счёл бы место занятым.
@@ -32,9 +33,9 @@ struct Lift {
     explicit Lift(const scene::Path& p = lift_path(580)) : w(), m(level(w, p)), id(w.body(500)) {
         w.platform.scene.world = &m.world;
     }
-    static const scene::LevelObjects& level(Sections& w, const scene::Path& p) {
+    static std::span<const scene::Path> level(Sections& w, const scene::Path& p) {
         w.s.level.paths.push_back(p);
-        return w.s.level;
+        return w.s.level.paths;
     }
     void step(uint32_t ticks) {
         for (uint32_t t = 0; t < ticks; ++t) {

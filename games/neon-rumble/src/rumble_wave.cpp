@@ -9,7 +9,7 @@
 #include "rumble_floor.hpp"
 #include "rumble_knives.hpp"
 #include "stage_camera_hash.hpp"
-#include "stage_movers_hash.hpp"
+#include "movers_hash.hpp"
 #include "stage_ropes_hash.hpp"
 #include "stage_sections_hash.hpp"
 #include "stage_step.hpp"
@@ -99,7 +99,7 @@ uint64_t Wave::hash() const {
     framework::physics::mix_u64(h, br::sections_hash(sections));
     framework::physics::mix_u64(h, br::waves_hash(waves));
     framework::physics::mix_u64(h, br::progress_hash(progress));
-    if (platform.movers) framework::physics::mix_u64(h, br::movers_hash(*platform.movers));
+    if (platform.movers) framework::physics::mix_u64(h, framework::kinematic::movers_hash(*platform.movers));
     if (platform.ropes) framework::physics::mix_u64(h, br::ropes_hash(*platform.ropes));
     return h;
 }

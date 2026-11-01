@@ -138,6 +138,11 @@ checkpoints with the same order are refused because the progress stores only the
 respawn finds the first checkpoint with it: a player who took the second would come back at the
 first.
 
+The reusable runtime is `framework::kinematic`: `Movers` takes a `std::span<const scene::Path>`,
+and `step_movers` takes the same ordered paths and `dt`. `movers_snapshot.hpp` saves the physics
+world together with path-follow state; `movers_hash.hpp` hashes both. Neon Rumble's `StageMovers`
+is an alias, with its level/platform-scene checks kept in the game wrapper.
+
 The `path` speed stops at 32 px per tick: at 60 Hz that is 1920 px/s, under the physics speed
 limit, so the platform reaches its point on the path every tick.
 

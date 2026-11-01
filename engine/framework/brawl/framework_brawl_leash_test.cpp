@@ -47,7 +47,7 @@ void floor_below() {
     w.s.level.autoscrolls.push_back({area(400, 0, 800, 600), ScrollAxis::Y, at(2)});
     const EntId id = w.s.seat(0, 600).id;
     w.s.camera.center = {at(600), at(100)};
-    check(crushed_in(w, 140, id) && w.s.camera.riding, "the top scroll edge presses a body into the floor without a crush");
+    check(crushed_in(w, 140, id) && w.s.camera.autoscroll.riding, "the top scroll edge presses a body into the floor without a crush");
 }
 
 // Тело platform в `hitstop` с подбросом в `pos`: поводок, сдвинувший его в этом тике, переносит

@@ -1,19 +1,19 @@
-#include "stage_movers_hash.hpp"
+#include "movers_hash.hpp"
 
 #include "hash_mix.hpp"
 
-namespace framework::brawl {
+namespace framework::kinematic {
 
 namespace {
 
 static_assert([] {
     [[maybe_unused]] auto [segment, direction, traveled] = PathFollow{};
     return true;
-}(), "a follow field was added: mix it here and add its forget fixture to framework_brawl_movers_test");
+}(), "a follow field was added: mix it here and add its forget fixture to framework_kinematic_movers_test");
 
 } // namespace
 
-uint64_t movers_hash(const StageMovers& m) {
+uint64_t movers_hash(const Movers& m) {
     uint64_t h = physics::FNV_OFFSET;
     physics::mix_u64(h, m.world.hash());
     physics::mix(h, static_cast<uint32_t>(m.follow.size()));
@@ -25,4 +25,4 @@ uint64_t movers_hash(const StageMovers& m) {
     return h;
 }
 
-} // namespace framework::brawl
+} // namespace framework::kinematic

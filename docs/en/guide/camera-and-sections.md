@@ -64,6 +64,12 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
 
 ## The camera
 
+The SDK policy is `graphics::Autoscroll` in `camera_autoscroll.hpp`. `settle_autoscroll`
+returns each axis toward a supplied goal with a configurable share (zero clamps to one);
+`ride_autoscroll` follows a `ScrollLane` expressed in view centers. The game converts the level's
+rectangle into that lane and keeps its arena clamp and leash. `StageCamera.autoscroll` stores
+this policy state; its hash retains the same field order.
+
 `StageCamera` holds the `center` of the view, the locked `arena` (`NO_ARENA`, -1, when none) and the
 state of the autoscroll. Screen shake is not here: it is a decoration of the renderer's
 `graphics::Camera` and never touches the simulation. `step_camera` runs inside `step_stage`:

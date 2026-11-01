@@ -1,4 +1,4 @@
-<!-- en-sha256: 0ef3623a635524c7f008e49414d872a103533ca8d4099e18e4865119d3204856 -->
+<!-- en-sha256: c4450baf5b74c1e12c085bb70bb6ae2fe49e95125bed65c8b852adc69a29c939 -->
 
 # Камера и секции
 
@@ -64,6 +64,12 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
 <!-- /snippet -->
 
 ## Камера
+
+Политика SDK — `graphics::Autoscroll` в `camera_autoscroll.hpp`. `settle_autoscroll` возвращает
+каждую ось к переданной цели с настраиваемой долей (ноль зажимается до единицы);
+`ride_autoscroll` ведёт по `ScrollLane`, выраженной в центрах вида. Игра переводит прямоугольник
+уровня в эту дорожку, сохраняя кламп по арене и поводок. `StageCamera.autoscroll` хранит
+состояние политики; порядок полей в хеше прежний.
 
 `StageCamera` держит `center` вида, запертую `arena` (`NO_ARENA`, -1, когда её нет) и состояние
 автоскролла. Тряски здесь нет: это украшение `graphics::Camera` у отрисовки, и симуляцию она не

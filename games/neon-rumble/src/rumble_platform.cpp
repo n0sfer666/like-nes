@@ -34,7 +34,7 @@ bool Platform::open(const Level& lv, const sc::LevelObjects& level) {
         std::fprintf(stderr, "neon-rumble: level %s: a platform section needs a collision layer\n", lv.name);
         return false;
     }
-    movers = std::make_unique<br::StageMovers>(level);
+    movers = std::make_unique<br::StageMovers>(level.paths);
     ropes.emplace(level);
     br::PlatformWorld& p = world.emplace();
     p.scene = framework::character::CollisionScene{&movers->world, &*lv.collision};

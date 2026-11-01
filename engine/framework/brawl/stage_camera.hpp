@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "fixmath.hpp"
+#include "camera_autoscroll.hpp"
 
 namespace framework::brawl {
 
@@ -17,10 +17,7 @@ constexpr int16_t NO_ARENA = -1;
 struct StageCamera {
     Vec2 center{};
     int16_t arena = NO_ARENA;
-    fix32 scroll{};
-    uint16_t ride = 0;
-    bool riding = false;
-    Vec2 settle{};
+    graphics::Autoscroll autoscroll{};
 };
 
 } // namespace framework::brawl

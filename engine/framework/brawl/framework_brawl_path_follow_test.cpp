@@ -10,6 +10,9 @@ namespace {
 using namespace framework::brawl;
 using namespace framework::brawl::test;
 using framework::Vec2;
+using framework::kinematic::PathFollow;
+using framework::kinematic::advance_path;
+using framework::kinematic::path_point;
 namespace scene = framework::scene;
 
 bool near(Vec2 v, int32_t x, int32_t y) { return about(v.x, x) && about(v.y, y); }

@@ -43,6 +43,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/depth/depth_body.hpp framework/depth/depth_profile.hpp framework/depth/depth_floor.hpp
   framework/depth/depth_move.hpp framework/depth/belt_ride.hpp
   framework/hits/hit_box.hpp framework/hits/struck_list.hpp framework/hits/hitstop.hpp
+  framework/kinematic/path_follow.hpp framework/kinematic/movers.hpp
+  framework/kinematic/movers_snapshot.hpp framework/kinematic/movers_hash.hpp
   framework/tilemap/grid.hpp framework/tilemap/map_bake.hpp framework/tilemap/map_format.hpp
   framework/tilemap/map_read.hpp framework/tilemap/tile_rules.hpp
   framework/tilemap/tile_shape.hpp framework/tilemap/tilemap_query.hpp
@@ -58,7 +60,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/character/slide.hpp framework/character/support.hpp
   framework/character/trajectory.hpp
   framework/graphics/atlas_bake.hpp framework/graphics/atlas_format.hpp
-  framework/graphics/atlas_read.hpp framework/graphics/camera.hpp framework/graphics/clip.hpp
+  framework/graphics/atlas_read.hpp framework/graphics/camera.hpp framework/graphics/camera_autoscroll.hpp framework/graphics/clip.hpp
   framework/graphics/debug_draw.hpp framework/graphics/graphics_sprite.hpp
   framework/graphics/machine.hpp framework/graphics/nine_slice.hpp
   framework/graphics/particles.hpp framework/graphics/player.hpp
@@ -89,8 +91,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/stage_sections.hpp framework/brawl/stage_sections_hash.hpp framework/brawl/platform_world.hpp
   framework/brawl/level_clamp.hpp framework/brawl/level_progress.hpp framework/brawl/progress_hash.hpp
   framework/brawl/checkpoint_step.hpp framework/brawl/death_facts.hpp framework/brawl/living.hpp
-  framework/brawl/death_step.hpp framework/brawl/path_follow.hpp framework/brawl/stage_movers.hpp
-  framework/brawl/stage_movers_snapshot.hpp framework/brawl/stage_movers_hash.hpp
+  framework/brawl/death_step.hpp framework/brawl/stage_movers.hpp
   framework/brawl/rope_swing.hpp framework/brawl/stage_ropes.hpp framework/brawl/stage_ropes_hash.hpp
   framework/brawl/body_role.hpp framework/brawl/body_kind.hpp framework/brawl/clipless_kind.hpp framework/brawl/projectile.hpp
   framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
@@ -101,7 +102,7 @@ set(LIKE_NES_SDK_HEADERS
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
-  framework_core framework_input framework_physics framework_depth framework_hits framework_tilemap framework_character
+  framework_core framework_input framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_brawl framework_brawl_fighter framework_ai framework_scene asset_view input_core input_native platform_core render_core
   render_surface glfw glfw3webgpu)
@@ -109,6 +110,6 @@ set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
   engine_core asset_hash asset_view platform_core input_core render_core render_surface
-  framework_core framework_input framework_physics framework_depth framework_hits framework_tilemap framework_character
+  framework_core framework_input framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_replay framework_brawl framework_brawl_fighter framework_ai framework_scene)
