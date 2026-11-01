@@ -1,11 +1,11 @@
-#include "hit_geometry.hpp"
+#include "hit_box.hpp"
 
-namespace framework::brawl {
+namespace framework::hits {
 
-HitRect place_box(const Body& b, const graphics::Rect16& box) {
-    const int32_t left = b.facing < 0 ? -(int32_t{box.x} + box.w) : int32_t{box.x};
-    const fix32 x0 = b.pos.x + fix32::from_int(left);
-    const fix32 top = b.pos.y - fix32::from_int(box.y);
+HitRect place_box(const depth::DepthBody& b, int8_t facing, const graphics::Rect16& box) {
+    const int32_t left = facing < 0 ? -(int32_t{box.x} + box.w) : int32_t{box.x};
+    const fix32 x0 = b.x + fix32::from_int(left);
+    const fix32 top = b.y - fix32::from_int(box.y);
     return HitRect{x0, x0 + fix32::from_int(box.w), top - fix32::from_int(box.h), top};
 }
 
@@ -18,4 +18,4 @@ bool depths_cross(fix32 z_a, fix32 depth_a, fix32 z_t, fix32 depth_t) {
     return gap < depth_a + depth_t;
 }
 
-} // namespace framework::brawl
+} // namespace framework::hits

@@ -141,8 +141,8 @@ def guards(files, cmake_dirs, sdk, sdk_problems):
         return [f"разбор нашёл {seen} подключений при пороге {MIN_INCLUDES}: регулярка директивы "
                 f"сломана, и молчит она неотличимо от чистого дерева"]
     if sdk_problems or len(sdk) < MIN_SDK:
-        return [f"списки SDK не разобраны ({'; '.join(sdk_problems) or f'{len(sdk)} имён при '
-                f'пороге {MIN_SDK}'}): заголовки игр сверять не с чем"]
+        reason = '; '.join(sdk_problems) or f'{len(sdk)} имён при пороге {MIN_SDK}'
+        return [f"списки SDK не разобраны ({reason}): заголовки игр сверять не с чем"]
     return []
 
 

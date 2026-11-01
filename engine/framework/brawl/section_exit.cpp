@@ -2,10 +2,13 @@
 
 #include "body_kind.hpp"
 #include "collision.hpp"
-#include "hit_geometry.hpp"
+#include "hit_box.hpp"
 #include "platform_body.hpp"
 
 namespace framework::brawl {
+
+using hits::depths_cross;
+
 
 namespace {
 

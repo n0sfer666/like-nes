@@ -9,6 +9,7 @@
 #include "depth_step.hpp"
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
+#include "hitstop.hpp"
 #include "platform_body.hpp"
 #include "projectile.hpp"
 #include "stage_ropes.hpp"
@@ -54,8 +55,7 @@ void step_one(Body& b, const Command& cmd, const BrawlWorld& w, SectionBody* pla
     }
     queue_strike(b, cmd.strike, a);
     if (b.immune > 0) --b.immune;
-    if (b.hitstop > 0) {
-        --b.hitstop;
+    if (hits::hitstop_tick(b.hitstop)) {
         ++b.age;
         return;
     }

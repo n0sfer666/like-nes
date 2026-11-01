@@ -4,18 +4,22 @@
 #include "framework_brawl_hit_fixture.hpp"
 #include "hit_apply.hpp"
 #include "hit_collect.hpp"
-#include "hit_geometry.hpp"
+#include "hit_box.hpp"
 
 namespace {
 
 using namespace framework::brawl;
 using test::check;
+using framework::hits::HitRect;
+using framework::hits::place_box;
+using framework::hits::rects_cross;
+using framework::hits::depths_cross;
 
 const fix32 RAW = fix32::from_raw(1);
 
 fix32 px(int32_t v) { return fix32::from_int(v); }
 
-bool crosses(const Body& a, const Body& t) { return rects_cross(place_box(a, test::REACH), place_box(t, test::HURT)); }
+bool crosses(const Body& a, const Body& t) { return rects_cross(place_box(a.pos, a.facing, test::REACH), place_box(t.pos, t.facing, test::HURT)); }
 
 Body at(fix32 x, fix32 y, int8_t facing) {
     Body b;
@@ -27,7 +31,7 @@ Body at(fix32 x, fix32 y, int8_t facing) {
 
 void edges_of(int8_t facing) {
     const Body a = at(px(100), px(40), facing);
-    const HitRect r = place_box(a, test::REACH);
+    const HitRect r = place_box(a.pos, a.facing, test::REACH);
     const fix32 mid_x = r.x0 + px(6);
     const fix32 mid_y = r.h0 - px(10);
     check(!crosses(a, at(r.x1 + px(8), mid_y, 1)) && crosses(a, at(r.x1 + px(8) - RAW, mid_y, 1)),
@@ -41,8 +45,8 @@ void edges_of(int8_t facing) {
 }
 
 void test_edges() {
-    const HitRect right = place_box(at(px(100), px(40), 1), test::REACH);
-    const HitRect left = place_box(at(px(100), px(40), -1), test::REACH);
+    const HitRect right = place_box(at(px(100), px(40), 1).pos, 1, test::REACH);
+    const HitRect left = place_box(at(px(100), px(40), -1).pos, -1, test::REACH);
     check(right.x0 == px(108) && right.x1 == px(120) && right.h0 == px(58) && right.h1 == px(64),
           "facing right puts the box at x + rx, height y - ry");
     check(left.x0 == px(80) && left.x1 == px(92) && left.h0 == right.h0, "facing left mirrors the box about x");

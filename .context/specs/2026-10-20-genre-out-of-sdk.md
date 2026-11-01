@@ -3,7 +3,8 @@
 - **Дата:** 2026-10-20
 - **Статус:** **Черновик** — инвентарь сделан 2026-10-20, три развилки решены владельцем
   2026-10-20 (ниже, «Решения владельца»), независимое ревью 2026-10-20 в два захода (20 и 7 находок, все ≥ low
-  исправлены здесь). Код не начат.
+  исправлены здесь). В2а реализован; В2б в работе: core, input, pendulum, depth и hits выделены.
+  Текущее состояние — [`engine-finish.md`](../notes/engine-finish.md).
 - **Родитель:** [#29 В2](2026-10-19-pilot-game-tuning.md) — таблица «Где | Что известно» и DoD
   раунда; [ADR 0021](../decisions/2026-10-19-pilot-game.md) — SDK даёт только абстракции, константы
   абстракций становятся параметрами с прежними дефолтами (решения 8–10); частично отменяет
@@ -89,7 +90,7 @@
 | Модуль | Состав | Откуда |
 |---|---|---|
 | `framework/depth/` | `depth_body`, `depth_profile`, `depth_floor` (`MAX_WALLS` = 16 → параметр `DepthFloor<N>`, функции на `FloorView`), `depth_move` (`DepthIntent`, `grounded`/`drive`/`fall`), `belt_ride` (`ride_belt`); готово 2026-10-30, алиас `brawl::DepthFloor` — `brawl/brawl_floor.hpp` | `brawl/depth_*`, `depth_step.cpp:14-39`, `conveyor_step` |
-| `framework/hits/` | `hit_box` (`HitRect`, `place_box(DepthBody, facing, box)`, `rects_cross`, `depths_cross`), `struck_list` (`MAX_STRUCK` → параметр, дефолт 16), `hitstop` (счётчик стоп-кадра: «тикнуть и сказать, заморожен ли этот тик»; потолка в ядре нет — его держит парсер бойца, `MAX_HIT_TICKS` в `fighter_parse.cpp:53`, `fighter_read.cpp:26`, игра) | `brawl/hit_geometry`, `brawl/struck_list`, `brawl_step.cpp:57-61` |
+| `framework/hits/` | `hit_box` (`HitRect`, `place_box(DepthBody, facing, box)`, `rects_cross`, `depths_cross`), `struck_list` (`MAX_STRUCK` → параметр, дефолт 16; алиас игры — `brawl_body.hpp`), `hitstop` (счётчик стоп-кадра: «тикнуть и сказать, заморожен ли этот тик»; потолка в ядре нет — его держит парсер бойца, `MAX_HIT_TICKS` в `fighter_parse.cpp:53`, `fighter_read.cpp:26`, игра) | `brawl/hit_geometry`, `brawl/struck_list`, `brawl_step.cpp:57-61` |
 | `framework/kinematic/` | `path_follow`, `movers` (`Movers` строится и шагает по `std::span<const scene::Path>` и `dt`), `movers_snapshot`, `movers_hash` | `brawl/path_follow`, `brawl/stage_movers*` |
 | `framework/input/` (дополнение) | `flick` (`FlickRule` уже параметр), `action_buffer` (`{action, ticks}`, три операции: сброс, положить со сроком, взять с отсчётом срока и сбросом на нуле) | `brawl/dodge_flick`, `strike_queue` + `body_chain.cpp:19,26-44` |
 | `framework/physics/` (дополнение) | `pendulum`: `Pendulum{arc, speed}`, `pendulum_turns`, `pendulum_cap`, `pendulum_end`, `pendulum_tangent`, `swing_pendulum` (раскачка и `damping` — параметры; `ROPE_PUMP`, `ROPE_DAMPING` остаются в драке) | `brawl/rope_swing` без `rider`, `cooldown`, `ROPE_REACH`, `ROPE_COOLDOWN` |

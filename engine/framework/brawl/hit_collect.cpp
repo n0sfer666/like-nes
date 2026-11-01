@@ -4,10 +4,16 @@
 #include "body_react.hpp"
 #include "clip.hpp"
 #include "depth_step.hpp"
-#include "hit_geometry.hpp"
+#include "hit_box.hpp"
 #include "stage_sections.hpp"
 
 namespace framework::brawl {
+
+using hits::HitRect;
+using hits::place_box;
+using hits::rects_cross;
+using hits::depths_cross;
+
 
 namespace {
 
@@ -35,7 +41,7 @@ bool boxes_crossed(const HitRect& hit, fix32 depth_a, fix32 z_a, const Body& t, 
     if (!flat && !depths_cross(z_a, depth_a, t.pos.z, kinds[t.kind].depth)) return false;
     const HitRect from = flat ? lift(hit, z_a) : hit;
     for (const ClipBox& box : body_boxes(t, kinds, kind)) {
-        const HitRect to = place_box(t, box.rect);
+        const HitRect to = place_box(t.pos, t.facing, box.rect);
         if (rects_cross(from, flat ? lift(to, t.pos.z) : to)) return true;
     }
     return false;
@@ -69,7 +75,7 @@ bool lands(const Sweep& w, const Body& a, const Body& side, const ClipBox& box, 
     const bool flat = in_platform(w, a.id);
     const BoxKind against = s.type == HitType::Grab ? BoxKind::Push : BoxKind::Hurt;
     return in_platform(w, t.id) == flat &&
-           boxes_crossed(place_box(a, box.rect), s.depth, a.pos.z, t, against, w.kinds, flat);
+           boxes_crossed(place_box(a.pos, a.facing, box.rect), s.depth, a.pos.z, t, against, w.kinds, flat);
 }
 
 void sweep(const Sweep& w, const Body& a, const Body& side, const ClipBox& box, uint8_t kind, uint8_t move) {

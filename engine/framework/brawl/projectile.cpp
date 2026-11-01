@@ -1,12 +1,16 @@
 #include "projectile.hpp"
 
 #include "body_kind.hpp"
-#include "hit_geometry.hpp"
+#include "hit_box.hpp"
 #include "platform_world.hpp"
 #include "section_mode.hpp"
 #include "shape.hpp"
 
 namespace framework::brawl {
+
+using hits::HitRect;
+using hits::place_box;
+
 
 namespace {
 
@@ -74,9 +78,7 @@ bool scene_fraction(const Body& b, const DepthBody& from, const graphics::ClipBo
                     fix32& fraction) {
     character::CollisionScene scene = p.scene;
     scene.tiles.exclude = static_cast<tilemap::TileFlags>(scene.tiles.exclude | tilemap::TILE_ONEWAY);
-    Body was = b;
-    was.pos = from;
-    const HitRect r = place_box(was, box.rect);
+    const HitRect r = place_box(from, b.facing, box.rect);
     const fix32 cx = mid_fix(r.x0, r.x1);
     const fix32 cy = from.z - mid_fix(r.h0, r.h1);
     const character::CharacterHull hull{physics::sanitize(physics::box(cx - r.x0, mid_fix(r.h0, r.h1) - r.h0)), p.hull.mask};

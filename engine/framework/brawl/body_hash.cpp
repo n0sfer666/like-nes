@@ -6,6 +6,8 @@
 
 namespace framework::brawl {
 
+using hits::Struck;
+
 namespace {
 
 static_assert(std::is_trivially_copyable_v<BodyPool>, "the snapshot is a plain copy of the pool");

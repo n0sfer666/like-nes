@@ -33,6 +33,8 @@ python3 scripts/check_sim_float.py --selftest  # 32 контроля на фик
   `pendulum.cpp` → FAIL, строка 38, и `pendulum.hpp` → FAIL, строка 34; откат — PASS, 254 файла.
   `depth/` целиком (2026-10-30, `brawl/depth_*` переехали туда же): `float leak;` в конце
   `depth_move.cpp` → FAIL, строка 34, и `belt_ride.hpp` → FAIL, строка 17; откат — PASS, 260 файлов.
+  `hits/` целиком (2026-11-02): `float hits_float_probe;` поочерёдно в конце `hit_box.cpp`,
+  `struck_list.cpp`, `hitstop.cpp` → FAIL с именем каждого файла; откат — PASS, 267 файлов.
 - **Что.** Три правила. Типы и конверсии словом целиком: `float`, `double`, `float_t`, `double_t`,
   `_FloatN`, `floatN_t`, а также `from_float` и `to_double` из `fixed.hpp` — они для границ
   (авторинг, рендер), не для шага; `long double` — одна находка. Плавающие литералы: `0.5`, `1.f`,

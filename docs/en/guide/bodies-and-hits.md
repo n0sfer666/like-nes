@@ -81,10 +81,18 @@ remember(*this, before);
 
 Every frame of a clip carries up to four hit boxes and hurt boxes (see [Animations in
 Aseprite](aseprite-animations.md#hit-boxes-hurt-boxes-and-the-pivot)). A box faces where the body
-faces: its `x` is `x + facing * rx`, and its height runs from `y - ry - h` to `y - ry`. A hit box
+faces: its left edge is `x + rx` facing right or `x - rx - w` facing left, and its height runs
+from `y - ry - h` to `y - ry`. A hit box
 meets a hurt box when they overlap on `x` and on the height, both as half-open ranges, **and** the
 depths are close: `|z_attacker - z_target| < depth_attacker + depth_target`, strictly. Boxes that
 only touch at an edge do not hit.
+
+The reusable geometry is in `framework::hits` (`hit_box.hpp`): `place_box` takes a
+`depth::DepthBody`, a facing sign and a `graphics::Rect16`; `rects_cross` and `depths_cross`
+test overlap. `struck_list.hpp` supplies `StruckList<N>` with a default capacity of 16;
+`hitstop.hpp` supplies `hitstop_tick(uint16_t&)`, which returns whether this tick is frozen
+and decrements a positive counter. The last positive tick is frozen too. Team rules, damage
+and the order of these operations belong to the game.
 
 A hit is refused before the geometry when the target is the attacker itself, a body the attacker
 owns, or a body of the same team while `HitRules::friendly_fire` is `false`. A thrown body and a

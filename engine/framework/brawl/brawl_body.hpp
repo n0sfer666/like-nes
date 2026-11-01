@@ -13,6 +13,8 @@ namespace framework::brawl {
 
 using core::EntId;
 using depth::DepthBody;
+constexpr uint32_t MAX_STRUCK = 16;
+using StruckList = hits::StruckList<MAX_STRUCK>;
 
 inline constexpr uint16_t NO_STRIKE = input::NO_ACTION;
 inline constexpr uint8_t NO_CHAIN = 0xffu;
