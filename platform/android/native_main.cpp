@@ -10,10 +10,12 @@
 
 #include "android_host.hpp"
 #include "android_gamepad.hpp"
+#include "android_haptic.hpp"
 #include "android_touch.hpp"
 #include "android_window.hpp"
 #include "apk_assets.hpp"
 #include "gpu.hpp"
+#include "haptic.hpp"
 #include "mobile_app.hpp"
 #include "mobile_probe.hpp"
 #include "platform_env.hpp"
@@ -141,7 +143,8 @@ int32_t on_input(android_app* app, AInputEvent* ev) {
 
 void on_cmd(android_app* app, int32_t cmd) {
     App& a = *static_cast<App*>(app->userData);
-    if (cmd == APP_CMD_LOST_FOCUS || cmd == APP_CMD_PAUSE) android_gamepad_cancel();
+    if (cmd == APP_CMD_LOST_FOCUS || cmd == APP_CMD_PAUSE) { android_gamepad_cancel(); haptic::suspend(); }
+    if (cmd == APP_CMD_GAINED_FOCUS || cmd == APP_CMD_RESUME) haptic::resume();
     if (cmd == APP_CMD_RESUME) android_gamepad_refresh();
     if (cmd == APP_CMD_INIT_WINDOW && app->window) attach(a, app);
     else if (cmd == APP_CMD_TERM_WINDOW) detach(a);
@@ -168,6 +171,8 @@ void android_main(android_app* app) {
     mobile::set_demo(launch.demo);
     mobile::set_args(launch.args);
     android_gamepad_begin(app->activity->vm);
+    android_haptic_begin(app->activity->vm, app->activity->clazz);
+    haptic::init();
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;
@@ -179,7 +184,9 @@ void android_main(android_app* app) {
         // Граница C-API: outData у ALooper_pollOnce — void**, looper кладёт туда android_poll_source*.
         while (ALooper_pollOnce(was_live ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&src)) >= 0) {
             if (src) src->process(app, src);
-            if (app->destroyRequested) { teardown(a); android_gamepad_end(); return; }
+            if (app->destroyRequested) {
+                teardown(a); haptic::shutdown(); android_haptic_end(); android_gamepad_end(); return;
+            }
             if (!was_live && live(a)) break;
         }
         if (!live(a)) continue;

@@ -4,6 +4,19 @@
 add_library(platform_core STATIC
   platform_fs.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp)
 target_include_directories(platform_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Haptic Phone — отдельный шов, не требующий native gamepad.
+add_library(platform_haptic STATIC)
+target_include_directories(platform_haptic PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+  target_sources(platform_haptic PRIVATE ${CMAKE_SOURCE_DIR}/platform/ios/haptic_phone.mm)
+  set_source_files_properties(${CMAKE_SOURCE_DIR}/platform/ios/haptic_phone.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+  target_link_libraries(platform_haptic PUBLIC "-framework CoreHaptics" "-framework Foundation")
+elseif(ANDROID)
+  target_sources(platform_haptic PRIVATE ${CMAKE_SOURCE_DIR}/platform/android/android_haptic.cpp)
+else()
+  target_sources(platform_haptic PRIVATE platform_haptic_none.cpp)
+endif()
 # Статическую библиотеку линкуют и MODULE-цели (плагины читают окружение через шов), а объект без
 # -fPIC в разделяемый объект не линкуется вовсе. На Ubuntu-раннере это до поры не всплывает —
 # gcc там default-PIE, — но на любой сборке без PIE линкер валится на релокации.

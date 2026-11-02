@@ -3,6 +3,7 @@
 add_subdirectory(core)
 add_subdirectory(input)
 add_subdirectory(touch)
+add_subdirectory(haptic)
 add_subdirectory(physics)
 add_subdirectory(depth)
 add_subdirectory(character)

@@ -8,6 +8,8 @@
 #include <thread>
 
 #include "android_pad_device.hpp"
+#include "android_haptic.hpp"
+#include "platform_haptic.hpp"
 #include "platform_args.hpp"
 
 int main(int argc, char** argv) {
@@ -67,6 +69,31 @@ int main(int argc, char** argv) {
     check(value == 128 && env->GetStaticLongField(vibrator, duration) == 30, "real JNI long/int argument ABI");
     mode(4); check(!android_pad_rumble(vm, 12, 1, 30) && !env->ExceptionCheck(), "absent vibrator no-op");
     mode(0); check(android_pad_rumble(vm, 12, 0, 0), "actual vibrator cancel");
+    const jclass context_class = env->FindClass("android/content/Context");
+    if (env->ExceptionCheck() || !context_class) return 1;
+    const jmethodID constructor = env->GetMethodID(context_class, "<init>", "()V");
+    if (env->ExceptionCheck() || !constructor) return 1;
+    const jobject local = env->NewObject(context_class, constructor);
+    if (env->ExceptionCheck() || !local) return 1;
+    const jobject context = env->NewGlobalRef(local);
+    if (env->ExceptionCheck() || !context) return 1;
+    env->DeleteLocalRef(local);
+    android_haptic_begin(vm, context);
+    check(haptic::phone::init(), "phone service and capability through actual JNI");
+    haptic::phone::pulse(.25f, 60000);
+    check(env->GetStaticIntField(vibrator, amplitude) == 64, "phone routes real one-shot amplitude");
+    mode(8); haptic::phone::pulse(1, 20);
+    check(!env->ExceptionCheck(), "phone vibration exception cleared");
+    mode(0); haptic::phone::cancel();
+    const jfieldID cancels = env->GetStaticFieldID(vibrator, "cancels", "I");
+    if (env->ExceptionCheck() || !cancels) return 1;
+    check(env->GetStaticIntField(vibrator, cancels) == 2, "cancel previous own effect even after failed pulse");
+    mode(4); check(!haptic::phone::init(), "no phone motor");
+    mode(6); check(!haptic::phone::init() && !env->ExceptionCheck(), "phone service exception cleared");
+    mode(7); check(!haptic::phone::init() && !env->ExceptionCheck(), "phone capability exception cleared");
+    mode(0); android_haptic_end();
+    check(!haptic::phone::init(), "borrowed activity/VM cleared on teardown");
+    env->DeleteGlobalRef(context); env->DeleteLocalRef(context_class);
     env->DeleteLocalRef(vibrator); env->DeleteLocalRef(device_class);
     check(vm->DestroyJavaVM() == JNI_OK, "VM shuts down without leaked attached native threads");
     std::puts(fails ? "android-pad-jvm: FAIL" : "android-pad-jvm: PASS real JVM checked JNI; modeled Android API, no hardware claim");

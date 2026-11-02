@@ -1,9 +1,6 @@
-#import <UIKit/UIKit.h>
+#import "view_controller.h"
 
 #include <cstdio>
-
-@interface GameViewController : UIViewController
-@end
 
 // SDK iOS 27 запускает приложение только с жизненным циклом UIScene: окно создаёт сцена, а не
 // делегат приложения, и экран берётся из неё, а не из устаревшего UIScreen.mainScreen.

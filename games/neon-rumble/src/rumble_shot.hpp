@@ -21,4 +21,8 @@ struct ShotTarget {
 bool shoot(const GpuContext& gpu, const ShotTarget& target, const render::QuadRenderer& quads,
            std::span<const render::QuadRun> runs, const std::string& path);
 
+struct WindowRun;
+bool shoot_due(const GpuContext& gpu, const ShotTarget& target, const render::QuadRenderer& quads,
+               std::span<const render::QuadRun> runs, const WindowRun& run, uint32_t tick, uint32_t frame);
+
 } // namespace rumble

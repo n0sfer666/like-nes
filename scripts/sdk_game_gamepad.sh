@@ -20,6 +20,7 @@ CMAKE
     cat > "$dir/main.cpp" <<'CPP'
 #include <cstdio>
 #include "source.hpp"
+#include "haptic.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
@@ -27,6 +28,9 @@ int main() {
     input::InputEngine engine(map);
     pad->poll(engine);
     pad->set_rumble(-1, 0, 0, 0);
+    haptic::init();
+    haptic::pulse({haptic::Kind::Phone}, 0, 0);
+    haptic::suspend(); haptic::resume(); haptic::shutdown();
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

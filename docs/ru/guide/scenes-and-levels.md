@@ -1,4 +1,4 @@
-<!-- en-sha256: 291a090f54839e014c6721698805d7d645e60bd696cdc6add20f834123eaef8c -->
+<!-- en-sha256: be8a399a39bc9777a041f0809f71010b300ae4d7436f32d9922a0a099079c6c8 -->
 
 # Сцены и уровни
 
@@ -74,12 +74,13 @@ LayerStats step_menu(Flow& flow, Hotseat& hotseat, input::GamepadSource& pads, c
 }
 
 LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSource& pads, const WindowKeys& keys,
-                      Screen& screen, const Credits& credits, const ViewportFit& fit, uint32_t tick) {
+                      Screen& screen, const Credits& credits, const ViewportFit& fit, uint32_t tick, bool feedback) {
     if (keys.hit(WindowKeys::OVERLAY)) screen.overlay = !screen.overlay;
     if (keys.hit(WindowKeys::CREDITS)) ++screen.shown;
     pads.poll(hotseat.engine());
     if (hotseat.tick(play.scene.ticks + 1, play.brawl.players)) {
         flow.run(tick);
+        if (feedback) hit_feedback(play.brawl, hotseat);
         report_step(play.brawl, play.scene.ticks);
     }
     if (keys.hit(WindowKeys::ESCAPE)) flow.leave();

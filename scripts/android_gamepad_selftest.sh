@@ -30,6 +30,8 @@ mkdir "$WORK/classes"
   "$ROOT/platform/android/tests/jvm/android/view/InputDevice.java" \
   "$ROOT/platform/android/tests/jvm/android/os/VibrationEffect.java" \
   "$ROOT/platform/android/tests/jvm/android/os/Vibrator.java"
+"$JDK/bin/javac" -encoding UTF-8 -cp "$WORK/classes" -d "$WORK/classes" \
+  "$ROOT/platform/android/tests/jvm/android/content/Context.java"
 if ! python3 -c 'import subprocess, sys; subprocess.run(sys.argv[1:], check=True, timeout=30)' \
   "$WORK/android_pad_jvm_test" "$WORK/classes" > "$WORK/jvm.log" 2>&1
 then cat "$WORK/jvm.log"; exit 1; fi

@@ -91,3 +91,22 @@ The layout lives in `games/neon-rumble/controls/touch.txt`: offsets and radii ar
 from safe-area corners, not framebuffer pixels. A layout change requires rebuilding the bundle,
 updating its expected hash and rerunning touch/SDK checks. Record the phone result separately;
 the current criterion before B3 is the live emulator movement/attack check described above.
+
+## Gamepads and haptic feedback
+
+A native gamepad can claim a free mobile seat with a button. Its axes move that fighter;
+unplugging pauses the fight until a device is reclaimed. Touch can occupy the other seat.
+A kept local hit gives one pulse per player per tick: the attacker's device gets a light pulse,
+the hurt player's a stronger pulse. Only a touch-owned seat uses the phone motor. Scripted demo
+and replay checks do not send pulses.
+
+The SDK exports `framework_haptic` and `haptic.hpp`: `haptic::pulse({haptic::Kind::Phone}, 128, 30)`
+or `haptic::pulse({haptic::Kind::Pad, slot}, 128, 30)`. Strength is a byte (0–255), duration is
+`uint16_t` milliseconds; zero strength or duration cancels. The mobile shell owns initialization,
+pause and shutdown. Desktop callers own that lifecycle. iOS uses a transient tap, whose duration
+is set by the motor; Android and gamepads use the requested duration. An unavailable phone motor
+logs `[haptic] phone unavailable (no-op)` once at startup and ignores pulses.
+
+On hardware, try a hit using touch and a hit using the pad, then background and return during
+feedback. The assigned device should respond, output should stop in the background and new hits
+should work after return. A simulator or modeled JNI test cannot confirm a real motor.

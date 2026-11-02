@@ -9,6 +9,9 @@ mobile_cpu() {
     } > "$WORK/mobile-cpu-build.log" 2>&1 || {
         tail -25 "$WORK/mobile-cpu-build.log"; sdk_bad 'mobile CPU host build'; return 1; }
     exe="$dir/rumble_mobile_cpu"
+    local feedback="$dir/rumble_feedback_test"
+    [ ! -f "$feedback.exe" ] || feedback="$feedback.exe"
+    "$feedback" || { sdk_bad 'local HitEvent haptic routing'; return 1; }
     [ ! -f "$exe.exe" ] || exe="$exe.exe"
     [ ! -f "$desk.exe" ] || desk="$desk.exe"
     python3 "$ROOT/scripts/mobile_cpu_verdict.py" "$(native "$exe")" "$(native "$desk")" "$(native "$OUT/game-Release")" || {

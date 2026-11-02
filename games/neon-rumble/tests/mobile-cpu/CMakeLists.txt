@@ -10,10 +10,15 @@ add_executable(rumble_mobile_cpu main.cpp probe.cpp mobile_cpu_pads.cpp ${RUMBLE
 # Только переносимый интерфейс mobile::Game: мок заменяет оболочку, а весь игровой код настоящий.
 # Desktop SDK не несёт mobile shell/headers, движок и графика при этом берутся из его префикса.
 target_include_directories(rumble_mobile_cpu PRIVATE ${GAME_ROOT}/../../platform/mobile)
-target_link_libraries(rumble_mobile_cpu PRIVATE rumble_sim like-nes::engine)
+target_link_libraries(rumble_mobile_cpu PRIVATE rumble_sim like-nes::engine like-nes::input_gamepad)
 if(MSVC)
   target_compile_options(rumble_mobile_cpu PRIVATE /W4 /WX /utf-8)
 else()
   target_compile_options(rumble_mobile_cpu PRIVATE -Wall -Wextra -Werror -Wold-style-cast)
 endif()
 like_nes_add_game(rumble_mobile_cpu)
+
+add_executable(rumble_feedback_test feedback.cpp ${GAME_ROOT}/src/rumble_hotseat.cpp ${GAME_ROOT}/src/rumble_controls.cpp)
+target_include_directories(rumble_feedback_test PRIVATE ${GAME_ROOT}/src)
+target_link_libraries(rumble_feedback_test PRIVATE rumble_sim like-nes::engine)
+like_nes_add_game(rumble_feedback_test)

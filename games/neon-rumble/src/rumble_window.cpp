@@ -9,9 +9,11 @@
 #include <string>
 
 #include "gpu.hpp"
+#include "haptic.hpp"
 #include "quad_batch.hpp"
 #include "rumble_brawl_report.hpp"
 #include "rumble_gpu_frame.hpp"
+#include "rumble_feedback.hpp"
 #include "rumble_keys.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_no_pads.hpp"
@@ -51,12 +53,13 @@ LayerStats step_menu(Flow& flow, Hotseat& hotseat, input::GamepadSource& pads, c
 }
 
 LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSource& pads, const WindowKeys& keys,
-                      Screen& screen, const Credits& credits, const ViewportFit& fit, uint32_t tick) {
+                      Screen& screen, const Credits& credits, const ViewportFit& fit, uint32_t tick, bool feedback) {
     if (keys.hit(WindowKeys::OVERLAY)) screen.overlay = !screen.overlay;
     if (keys.hit(WindowKeys::CREDITS)) ++screen.shown;
     pads.poll(hotseat.engine());
     if (hotseat.tick(play.scene.ticks + 1, play.brawl.players)) {
         flow.run(tick);
+        if (feedback) hit_feedback(play.brawl, hotseat);
         report_step(play.brawl, play.scene.ticks);
     }
     if (keys.hit(WindowKeys::ESCAPE)) flow.leave();
@@ -64,20 +67,6 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 }
 // docs:end(flow-keys)
 
-bool shoot_due(const GpuContext& gpu, const ShotTarget& target, const render::QuadRenderer& quads,
-               std::span<const render::QuadRun> runs, const WindowRun& run, uint32_t tick, uint32_t frame) {
-    bool ok = true;
-    for (const std::string& name : run.script->shots()) {
-        const std::string path = std::string(run.shots) + "/" + name + ".png";
-        if (shoot(gpu, target, quads, runs, path)) {
-            std::printf("shot %s frame %u tick %u\n", name.c_str(), frame, tick);
-        } else {
-            std::fprintf(stderr, "neon-rumble: shot %s not written to %s\n", name.c_str(), path.c_str());
-            ok = false;
-        }
-    }
-    return ok;
-}
 
 int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& flow, Hotseat& hotseat,
                const Credits& credits, const WindowRun& run, int& drawn) {
@@ -95,6 +84,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
     auto screen = std::make_unique<Screen>();
     NoPads no_pads;
     input::GamepadSource* pads = run.script ? &no_pads : open_pads(window, hotseat);
+    if (!run.script) haptic::init();
     WindowKeys keys;
     bool cropped = false;
     bool warned = false;
@@ -138,7 +128,7 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
         if (run.script)
             run.script->feed(play != nullptr, play != nullptr ? play->scene.ticks + 1 : tick, hotseat.engine(), keys);
         const LayerStats st = play != nullptr
-                                  ? step_level(flow, *play, hotseat, *pads, keys, *screen, credits, fit, tick)
+                                  ? step_level(flow, *play, hotseat, *pads, keys, *screen, credits, fit, tick, !run.script)
                                   : step_menu(flow, hotseat, *pads, keys, *screen, credits, fit, tick);
         keys.consume();
         if (!quads.upload(screen->layers().quads(st), spec.width, spec.height) && !upload_warned) {
@@ -189,6 +179,7 @@ int run_window(Flow& flow, Hotseat& hotseat, const Credits& credits, const Windo
         }
     }
     if (surface) wgpuSurfaceRelease(surface);
+    haptic::shutdown();
     gpu.shutdown();
     if (window) glfwDestroyWindow(window);
     glfwTerminate();

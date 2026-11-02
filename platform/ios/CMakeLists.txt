@@ -16,7 +16,7 @@ set(LIKE_NES_IOS_VIEW ${CMAKE_CURRENT_SOURCE_DIR}/view.mm CACHE FILEPATH "UIKit 
 # Оболочка — библиотекой, одной на игру и бенч: вход UIKit, слой Metal и жизненный цикл поверхности
 # не знают, какую mobile::Game им отдаст make_game() цели. gpu.cpp едет здесь, а не в игре: контекст
 # поднимает оболочка, до того как игра появится.
-set(SHELL_SRC app.mm host.mm metal_view.mm touch_probe.mm weak_proxy.mm view_layout.mm)
+set(SHELL_SRC app.mm host.mm metal_view.mm touch_probe.mm weak_proxy.mm view_layout.mm view_policy.mm)
 list(TRANSFORM SHELL_SRC PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 list(APPEND SHELL_SRC ${LIKE_NES_IOS_VIEW})
 add_library(like_nes_mobile STATIC ${SHELL_SRC} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
@@ -24,7 +24,7 @@ set_source_files_properties(${SHELL_SRC} PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
 target_include_directories(like_nes_mobile PUBLIC ${MOBILE} ${CMAKE_SOURCE_DIR}/engine/render)
 # Свой каталог — явно: мутант view.mm живой самопроверки лежит вне него, а заголовки ищет здесь.
 target_include_directories(like_nes_mobile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(like_nes_mobile PUBLIC webgpu input_gamepad
+target_link_libraries(like_nes_mobile PUBLIC webgpu framework_haptic
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")
 

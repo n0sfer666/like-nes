@@ -7,6 +7,7 @@
 
 #include "render_capture.hpp"
 #include "rumble_gpu_frame.hpp"
+#include "rumble_window.hpp"
 
 namespace rumble {
 
@@ -46,6 +47,21 @@ bool shoot(const GpuContext& gpu, const ShotTarget& target, const render::QuadRe
     if (is_bgra(target.format))
         for (size_t i = 0; i + 3 < px.size(); i += 4) std::swap(px[i], px[i + 2]);
     return capture::write_png(path.c_str(), px, target.width, target.height);
+}
+
+bool shoot_due(const GpuContext& gpu, const ShotTarget& target, const render::QuadRenderer& quads,
+               std::span<const render::QuadRun> runs, const WindowRun& run, uint32_t tick, uint32_t frame) {
+    bool ok = true;
+    for (const std::string& name : run.script->shots()) {
+        const std::string path = std::string(run.shots) + "/" + name + ".png";
+        if (shoot(gpu, target, quads, runs, path)) {
+            std::printf("shot %s frame %u tick %u\n", name.c_str(), frame, tick);
+        } else {
+            std::fprintf(stderr, "neon-rumble: shot %s not written to %s\n", name.c_str(), path.c_str());
+            ok = false;
+        }
+    }
+    return ok;
 }
 
 } // namespace rumble

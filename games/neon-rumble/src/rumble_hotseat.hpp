@@ -22,6 +22,7 @@ public:
     input::InputEngine& engine() { return engine_; }
     const framework::input::Lobby& lobby() const { return lobby_; }
     int touch_player() const;
+    input::PlayerAssign assignment(int player) const { return map_.assignment(player); }
 
     // Возвращает false в паузе: драка в этот тик не шагает.
     bool tick(uint32_t t, Players& out);

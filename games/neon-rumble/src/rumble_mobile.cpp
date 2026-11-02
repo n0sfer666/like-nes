@@ -15,6 +15,7 @@ std::unique_ptr<mobile::Game> mobile::make_game() { return rumble::make_bench_ga
 #include "rumble_demo.hpp"
 #include "rumble_join_report.hpp"
 #include "rumble_gpu_frame.hpp"
+#include "rumble_feedback.hpp"
 #include "rumble_report.hpp"
 
 namespace rumble {
@@ -141,6 +142,7 @@ void MobileRumble::step() {
     const framework::brawl::Seats was = play->brawl.seats;
     flow_.run(ticks_);
     observe_punch(*play);
+    if (!demo_) hit_feedback(play->brawl, hotseat_);
     report_step(play->brawl, play->scene.ticks);
     report_joins(play->brawl, was, play->scene.ticks);
 }

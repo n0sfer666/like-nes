@@ -1,8 +1,9 @@
-#import <UIKit/UIKit.h>
+#import "view_controller.h"
 
 #include <webgpu/webgpu.h>
 
 #include "gpu.hpp"
+#include "haptic.hpp"
 #include "mobile_app.hpp"
 
 #import "metal_view.h"
@@ -11,7 +12,7 @@
 #import "view_layout.hpp"
 
 // Оболочка не знает, какую игру держит: всё игровое — за mobile::Game из make_game().
-@interface GameViewController : UIViewController {
+@interface GameViewController () {
     GpuContext gpu_;
     std::unique_ptr<mobile::Game> game_;
     WGPUSurface surface_;
@@ -49,6 +50,7 @@
     gpu_.instance = wgpuCreateInstance(nullptr);
     if (![self makeSurface] || !gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); [self releaseGpu]; return; }
     game_ = mobile::make_game();
+    haptic::init();
     if (!game_->init(gpu_) || !game_->attach_surface(surface_, layout_.width, layout_.height, layout_.safe)) {
         NSLog(@"[game] game init failed");
         [self teardown];
@@ -89,6 +91,7 @@
 - (void)pause {
     if (!started_ || !surface_) return;
     link_.paused = YES;
+    haptic::suspend();
     game_->cancel();
     game_->suspend();
     game_->detach_surface();
@@ -103,6 +106,7 @@
         return;
     }
     game_->resume();
+    haptic::resume();
     if (probe_) probe_expose_safe_area(self.view, run_);
     last_ = 0;
     [self pace];
@@ -149,6 +153,7 @@
         game_.reset();
     }
     [self releaseGpu];
+    haptic::shutdown();
 }
 
 - (void)dealloc {
@@ -190,11 +195,5 @@
     [self dispatch:touches phase:mobile::Touch::Up];
 }
 
-- (BOOL)prefersStatusBarHidden { return YES; }
-- (BOOL)prefersHomeIndicatorAutoHidden { return YES; }
-- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures { return UIRectEdgeAll; }
-- (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskLandscape;
-}
 
 @end

@@ -1232,6 +1232,13 @@ jobs:
           "$TC" | tee itc.txt
           grep -q "input-touch: PASS - 7 cases" itc.txt
 
+      - name: Haptic — dispatch and lifecycle without motors
+        shell: bash
+        run: |
+          HP=$(find build -maxdepth 2 -type f \( -name 'haptic_test' -o -name 'haptic_test.exe' \) | head -1)
+          [ -n "$HP" ] || { echo "haptic_test not built"; exit 1; }
+          "$HP"
+
       - name: Input — race/timing-independence (gate #2, one-way SPSC)
         shell: bash
         run: |

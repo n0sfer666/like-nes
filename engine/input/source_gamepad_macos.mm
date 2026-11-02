@@ -1,5 +1,7 @@
 #include "source.hpp"
 #include "codes.hpp"
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #import <GameController/GameController.h>
 #import <CoreHaptics/CoreHaptics.h>
@@ -16,11 +18,13 @@ namespace c = input::code;
 
 namespace {
 struct PadCache {
-    uintptr_t id = 0;          // идентичность GCController (только сравнение указателя)
+    uintptr_t controller_id = 0; // идентичность GCController (только сравнение указателя)
     bool active = false;
     uint32_t btns = 0;         // уровни кнопок (наши коды)
     int32_t axes[PAD_AXES] = {};
     CHHapticEngine* haptics = nullptr;
+    id<CHHapticPatternPlayer> player = nil;
+    bool haptic_warned = false;
 };
 
 // Граница ObjC: `__bridge` приводит без передачи ARC-владения (C++-формы у него нет), а
@@ -42,7 +46,7 @@ public:
             if (slot < 0) continue;
             seen[slot] = true;
             if (!cache_[slot].active) {
-                cache_[slot].active = true; cache_[slot].id = identity(ctl);
+                cache_[slot].active = true; cache_[slot].controller_id = identity(ctl);
                 e.post({RawKind::DeviceConnected, DeviceKind::Gamepad, static_cast<uint8_t>(slot), 0, 0, seq_++});
                 pads_[slot] = ctl;
                 fill_info(slot, ctl);
@@ -59,7 +63,12 @@ public:
 
     void set_rumble(int slot, float low, float high, int ms) override {
         if (slot < 0 || slot >= MAX_DEVICES || !pads_[slot]) return;
-        float intensity = low > high ? low : high;
+        const float intensity = std::isfinite(low) && std::isfinite(high) ? std::clamp(std::max(low, high), 0.f, 1.f) : 0.f;
+        if (intensity <= 0 || ms <= 0) {
+            [cache_[slot].player stopAtTime:CHHapticTimeImmediate error:nil];
+            cache_[slot].player = nil;
+            return;
+        }
         play_haptic(slot, intensity, ms);
     }
 
@@ -87,7 +96,7 @@ private:
     }
 
     int slot_for(GCController* ctl) {
-        for (int s = 0; s < MAX_DEVICES; ++s) if (cache_[s].active && cache_[s].id == identity(ctl)) return s;
+        for (int s = 0; s < MAX_DEVICES; ++s) if (cache_[s].active && cache_[s].controller_id == identity(ctl)) return s;
         for (int s = 0; s < MAX_DEVICES; ++s) if (!cache_[s].active) return s;
         return -1;
     }
@@ -132,20 +141,28 @@ private:
 
     void play_haptic(int slot, float intensity, int ms) {
         GCController* ctl = pads_[slot];
-        if (!ctl.haptics) { NSLog(@"[input] pad slot %d: no haptics (rumble unsupported)", slot); return; }
+        if (!ctl.haptics) {
+            if (!cache_[slot].haptic_warned) NSLog(@"[input] pad slot %d: no haptics (rumble unsupported)", slot);
+            cache_[slot].haptic_warned = true; return;
+        }
         NSError* err = nil;
         if (!cache_[slot].haptics) {
             cache_[slot].haptics = [ctl.haptics createEngineWithLocality:GCHapticsLocalityDefault];
-            [cache_[slot].haptics startAndReturnError:&err];
         }
         CHHapticEngine* eng = cache_[slot].haptics;
-        if (!eng) { NSLog(@"[input] pad slot %d: haptic engine unavailable", slot); return; }
+        if (!eng || ![eng startAndReturnError:&err]) {
+            if (!cache_[slot].haptic_warned) NSLog(@"[input] pad slot %d: haptic engine unavailable", slot);
+            cache_[slot].haptic_warned = true; return;
+        }
+        [cache_[slot].player stopAtTime:CHHapticTimeImmediate error:nil];
         CHHapticEventParameter* ip = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticIntensity value:intensity];
         CHHapticEventParameter* sp = [[CHHapticEventParameter alloc] initWithParameterID:CHHapticEventParameterIDHapticSharpness value:0.5f];
         CHHapticEvent* ev = [[CHHapticEvent alloc] initWithEventType:CHHapticEventTypeHapticContinuous
                               parameters:@[ip, sp] relativeTime:0 duration:(ms / 1000.0)];
         CHHapticPattern* pat = [[CHHapticPattern alloc] initWithEvents:@[ev] parameters:@[] error:&err];
+        if (!pat || err) return;
         id<CHHapticPatternPlayer> player = [eng createPlayerWithPattern:pat error:&err];
+        cache_[slot].player = player;
         [player startAtTime:0 error:&err];
         if (err) NSLog(@"[input] pad slot %d: haptic error %@", slot, err);
     }

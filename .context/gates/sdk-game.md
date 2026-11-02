@@ -409,3 +409,10 @@ host со stock NDK headers и установленным engine: mapping, chann
 production-мутантов. Дополнительно настоящий JVM -Xcheck:jni с моделируемыми Android API
 исполняет настоящие JNI device/rumble функции (50 native attach/detach, UTF-8, ошибки и long/int).
 Это не аппаратный тест. Gamepad-only fixture также линкуется под Android из свежего префикса.
+
+
+В3в #26: gamepad-only fixture также линкует haptic API из свежего SDK и запускает no-engine
+Phone lifecycle на desktop. CPU fixture rumble_feedback_test поднимает настоящее Hotseat-лобби:
+локальные Phone/Pad, kept-only, coalesce, Lost/absent/NPC исключения. JVM-модель дополнена
+Context.getSystemService/Vibrator Phone: ошибки сервиса/мотора, cancel предыдущего эффекта
+после failed vibrate, borrowed context teardown. Реальных моторов эти проверки не подтверждают.
