@@ -1,6 +1,7 @@
 # --- Слой gameplay-фреймворка (спека #14). Правила слоя — README.md рядом.
 # Модуль на подкаталог: раунды #15–#18 добавляют свои, не трогая соседей.
 add_subdirectory(core)
+add_subdirectory(save)
 add_subdirectory(input)
 add_subdirectory(touch)
 add_subdirectory(haptic)

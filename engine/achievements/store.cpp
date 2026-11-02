@@ -10,22 +10,8 @@ namespace ach {
 std::string temp_path_for(const std::string& path) { return path + ".tmp"; }
 
 bool write_atomic(const std::string& path, const uint8_t* data, std::size_t size) {
-    const std::string tmp = temp_path_for(path);
-    std::FILE* f = platform::open_file(tmp, "wb");
-    if (f == nullptr) return false;
-    const bool written = size == 0 || std::fwrite(data, 1, size, f) == size;
-    const bool synced = written && platform::sync_file(f);
-    const bool closed = std::fclose(f) == 0;
-    if (!written || !synced || !closed) {
-        platform::remove_file(tmp);
-        return false;
-    }
-    if (!platform::replace_file(tmp, path)) {
-        platform::remove_file(tmp);
-        return false;
-    }
-    platform::sync_dir_of(path);
-    return true;
+    if (size > 0 && !data) return false;
+    return platform::write_atomic(path, {data, size});
 }
 
 bool read_file(const std::string& path, std::vector<uint8_t>& out, std::size_t max_bytes) {

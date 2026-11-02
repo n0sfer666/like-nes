@@ -21,21 +21,6 @@ bool parse_index(const std::string& s, uint32_t& out) {
     return true;
 }
 
-bool write_atomic(const std::string& path, const std::string& text) {
-    const std::string tmp = path + ".tmp";
-    std::FILE* f = platform::open_file(tmp, "wb");
-    if (f == nullptr) return false;
-    const bool written = text.empty() || std::fwrite(text.data(), 1, text.size(), f) == text.size();
-    const bool synced = written && platform::sync_file(f);
-    const bool closed = std::fclose(f) == 0;
-    if (!written || !synced || !closed || !platform::replace_file(tmp, path)) {
-        platform::remove_file(tmp);
-        return false;
-    }
-    platform::sync_dir_of(path);
-    return true;
-}
-
 } // namespace
 
 void RebindStore::set(const std::string& action, uint32_t which, ::input::Source src) {
@@ -111,7 +96,8 @@ bool RebindStore::parse(const std::string& text, std::string& preset_out) {
 }
 
 bool RebindStore::save(const std::string& path, const std::string& preset) const {
-    return write_atomic(path, serialize(preset));
+    const std::string text = serialize(preset);
+    return platform::write_atomic(path, {reinterpret_cast<const uint8_t*>(text.data()), text.size()});
 }
 
 bool RebindStore::load(const std::string& path, std::string& preset_out) {

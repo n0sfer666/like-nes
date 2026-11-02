@@ -1943,6 +1943,16 @@ jobs:
           need "$CT" ach_crash_test
           "$CT" | tee achc.txt && grep -q "PASS" achc.txt
 
+      - name: "Save — atomic protocol and local filesystem"
+        shell: bash
+        run: |
+          for T in platform_atomic_test save_atomic_test; do
+            EXE=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+            [ -n "$EXE" ] || { echo "$T not built"; exit 1; }
+            "$EXE" || exit 1
+          done
+          python3 scripts/atomic_links_selftest.py "$EXE"
+
       - name: "Achievements — assetc bake -> bundle -> runtime (gate #4, all OS)"
         shell: bash
         run: |

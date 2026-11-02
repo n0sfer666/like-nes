@@ -19,8 +19,11 @@ endif()
 CMAKE
     cat > "$dir/main.cpp" <<'CPP'
 #include <cstdio>
+#include <vector>
 #include "source.hpp"
 #include "haptic.hpp"
+#include "save.hpp"
+#include "platform_fs.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
@@ -31,6 +34,12 @@ int main() {
     haptic::init();
     haptic::pulse({haptic::Kind::Phone}, 0, 0);
     haptic::suspend(); haptic::resume(); haptic::shutdown();
+    const uint8_t bytes[]{1, 0, 255};
+    if (!save::write_atomic("sdk-atomic.bin", bytes)) return 1;
+    std::vector<uint8_t> saved;
+    const bool exact = platform::read_bytes("sdk-atomic.bin", saved) && saved == std::vector<uint8_t>{1, 0, 255};
+    platform::remove_file("sdk-atomic.bin");
+    if (!exact) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;
@@ -49,7 +58,7 @@ CPP
             MINGW* | MSYS* | CYGWIN*) exe="$exe.exe" ;;
         esac
         expect=$(sdk_pad_backend)
-        "$exe" > "$dir/run.log" 2>&1 && grep -Fq "gamepad-only: $expect" "$dir/run.log" || {
+        (cd "$dir" && "$exe") > "$dir/run.log" 2>&1 && grep -Fq "gamepad-only: $expect" "$dir/run.log" || {
             cat "$dir/run.log"; sdk_bad 'desktop: gamepad-only backend failed'; return 1; }
     fi
     sdk_ok "$plat: native gamepad linked from prefix without GLFW"

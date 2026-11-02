@@ -2,7 +2,7 @@
 # выбирает ЭТОТ файл — потому условной компиляции по ОС нет ни в одном .cpp платформы, и
 # инвариант «#ifdef не расползается» проверяется грепом по всему дереву, а не обещанием.
 add_library(platform_core STATIC
-  platform_fs.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp)
+  platform_fs.cpp platform_atomic.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp)
 target_include_directories(platform_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Haptic Phone — отдельный шов, не требующий native gamepad.
@@ -26,6 +26,9 @@ set_target_properties(platform_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # трёх ОС, потому и объявлен вне ветки WIN32.
 add_executable(platform_env_test platform_env_test.cpp)
 target_link_libraries(platform_env_test PRIVATE platform_core)
+
+add_executable(platform_atomic_test platform_atomic_test.cpp platform_atomic.cpp)
+target_include_directories(platform_atomic_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Маскировка домашнего каталога в печатаемых путях (аудит #21 A·3·12): обе семантики сравнения
 # проверяются на каждой ОС, перегрузка по окружению — своей, потому тоже вне ветки WIN32.
@@ -80,6 +83,11 @@ if(WIN32)
     DLL_SEARCH_PLUGIN="$<TARGET_FILE:dll_search_plugin>"
     DLL_SEARCH_DEP="$<TARGET_FILE:dll_search_dep>")
 else()
+  if(APPLE)
+    target_sources(platform_core PRIVATE platform_sync_apple.cpp)
+  else()
+    target_sources(platform_core PRIVATE platform_sync_posix.cpp)
+  endif()
   target_sources(platform_core PRIVATE
     platform_io_posix.cpp platform_fs_posix.cpp platform_path_posix.cpp platform_env_posix.cpp
     platform_redact_posix.cpp platform_module_posix.cpp platform_guard_posix.cpp

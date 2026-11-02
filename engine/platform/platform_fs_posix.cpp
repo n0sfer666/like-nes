@@ -94,17 +94,14 @@ bool remove_file(const std::string& path) {
     return ::unlink(path.c_str()) == 0 || errno == ENOENT;
 }
 
-bool sync_file(std::FILE* f) {
-    return std::fflush(f) == 0 && ::fsync(fileno(f)) == 0;
-}
-
-void sync_dir_of(const std::string& file_path) {
+bool sync_dir_of(const std::string& file_path) {
     const size_t slash = file_path.find_last_of('/');
-    const std::string dir = slash == std::string::npos ? std::string(".") : file_path.substr(0, slash);
+    const std::string dir = slash == std::string::npos ? "." : slash == 0 ? "/" : file_path.substr(0, slash);
     const int fd = ::open(dir.c_str(), O_RDONLY);
-    if (fd < 0) return;
-    ::fsync(fd);
-    ::close(fd);
+    if (fd < 0) return false;
+    const bool synced = ::fsync(fd) == 0;
+    const bool closed = ::close(fd) == 0;
+    return synced && closed;
 }
 
 bool replace_file(const std::string& from, const std::string& to) {

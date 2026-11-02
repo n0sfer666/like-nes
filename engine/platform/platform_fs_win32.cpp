@@ -104,10 +104,10 @@ bool remove_file(const std::string& path) {
 }
 
 bool sync_file(std::FILE* f) {
-    return std::fflush(f) == 0 && _commit(_fileno(f)) == 0;
+    return f && std::fflush(f) == 0 && _commit(_fileno(f)) == 0;
 }
 
-void sync_dir_of(const std::string&) {}
+bool sync_dir_of(const std::string&) { return true; }
 
 bool replace_file(const std::string& from, const std::string& to) {
     const std::wstring wfrom = win32::widen(from), wto = win32::widen(to);

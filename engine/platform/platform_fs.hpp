@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <span>
 #include <string>
 #include <vector>
 
@@ -79,7 +80,11 @@ bool remove_file(const std::string& path);
 // для каталога файлом. На Windows каталог отдельной фиксации не требует — там это делает сам
 // replace_file, поэтому sync_dir_of ничего не делает (а не «не реализован»).
 bool sync_file(std::FILE* f);
-void sync_dir_of(const std::string& file_path);
+bool sync_dir_of(const std::string& file_path);
+
+// Один писатель на путь. Temp <path>.tmp фиксируется до замены, каталог — после неё.
+// false после replace означает, что замена видима, но долговечность каталога не подтверждена.
+bool write_atomic(const std::string& path, std::span<const uint8_t> bytes);
 
 // Атомарная замена существующего файла. Ровно то, на чём стоит сейв-транзакция: обычный
 // rename на Windows отказывается перезаписывать цель, и «атомарная» запись превращалась бы

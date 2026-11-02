@@ -293,9 +293,12 @@
   игре для сообщения. `MigrateFailed` — оригинал уже в `.pre`, слот стартует пустым.
 - Счётчик записей не сбрасывается карантином: новый слот продолжает с max(счётчики читаемых
   заголовков слота и его карантина) + 1.
-- `save::Backend` — шов (`read/write/list`), единственная реализация `LocalBackend`. Конфликт двух
+- `save::Backend` — шов (`read/write/list/move_new`), единственная реализация `LocalBackend`. Конфликт двух
   копий — больший счётчик записей; часы не участвуют. Правило судится тестом на fake-backend с двумя
-  копиями.
+  копиями. move_new переносит без перезаписи; при ошибке исходник сохраняется (решение владельца
+  2026-11-02, [контракт Backend](../decisions/2026-11-02-save-backend-quarantine.md)).
+  Уточнение владельца 2026-11-02: при равных счётчиках и разном содержимом обе копии
+  сохраняются, возвращается `Conflict`; игра решает явно, автоматического победителя нет.
 - Фон: iOS — `applicationDidEnterBackground` пишет синхронно под `beginBackgroundTask`. Android —
   `APP_CMD_PAUSE` ставит паузу; запись — на `APP_CMD_SAVE_STATE` (`android_native_app_glue` ждёт
   его обработки, в отличие от `PAUSE`), повтор на `APP_CMD_STOP`.
@@ -416,7 +419,7 @@ std::unique_ptr<Game> make_game();
 }
 
 namespace save {
-enum class Status { Ok, Empty, Migrated, MigrateFailed, Future, Corrupt };
+enum class Status { Ok, Empty, Migrated, MigrateFailed, Future, Corrupt, Conflict };
 using Migrate = bool (*)(std::vector<uint8_t>& body);
 Status load(const char* slot, uint16_t version, std::span<const Migrate> chain,
             std::vector<uint8_t>& body, std::string* quarantine);
