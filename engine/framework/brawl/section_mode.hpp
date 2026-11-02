@@ -1,6 +1,6 @@
 #pragma once
 #include "fixed.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 
 namespace framework::brawl {
 

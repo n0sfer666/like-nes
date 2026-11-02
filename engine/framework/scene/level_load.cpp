@@ -6,7 +6,6 @@
 #include "hash.hpp"
 #include "level_parts.hpp"
 #include "map_read.hpp"
-#include "scene_read.hpp"
 
 namespace framework::scene {
 
@@ -47,27 +46,6 @@ bool find_maps(Level& l, const char* name, LoadError& error) {
 
 fix32 px(uint32_t v) { return fix32::from_int(static_cast<int32_t>(v)); }
 
-bool read_objects(Level& l, LoadError& error) {
-    std::string text;
-    if (!read_level_objects(l.object_map, l.objects, text))
-        return load_fail(error, LoadFault::BadObjects, std::string("level ") + l.name + ": " + text);
-    if (l.objects.bounds) {
-        const LevelRect& r = l.objects.bounds->rect;
-        l.bounds = {r.x0, r.y0, r.x1, r.y1};
-        return true;
-    }
-    const auto& row = *l.map.row;
-    l.bounds = {fix32{}, fix32{}, px(row.width * row.tile_size), px(row.height * row.tile_size)};
-    return true;
-}
-
-bool load(const asset::BundleView& bundle, const char* name, Level& out, LoadError& error) {
-    out.bundle = bundle;
-    return open_table(out, "visual", out.table, error) && open_table(out, "objects", out.object_table, error) &&
-           find_maps(out, name, error) && read_objects(out, error) && load_textures(out, error) &&
-           (out.objects.waves.empty() || open_table(out, "clips", out.clips, error)) && load_fighters(out, error);
-}
-
 } // namespace
 
 bool level_table(const Level& level, const std::string& table, const uint8_t*& data, std::size_t& size,
@@ -77,13 +55,30 @@ bool level_table(const Level& level, const std::string& table, const uint8_t*& d
     return load_fail(error, LoadFault::NoTable, table + " table: " + asset::lookup_fault_name(f));
 }
 
-bool load_level(asset::BundleView bundle, const char* name, Level& out, LoadError& error) {
+bool open_level(asset::BundleView bundle, const char* name, Level& out, LoadError& error) {
     out = Level{};
     error = LoadError{};
     if (name == nullptr) return load_fail(error, LoadFault::NoLevel, "level name is null");
-    if (load(bundle, name, out, error)) return true;
+    out.bundle = bundle;
+    if (open_table(out, "visual", out.table, error) && open_table(out, "objects", out.object_table, error) &&
+        find_maps(out, name, error)) {
+        const auto& row = *out.map.row;
+        out.bounds = {fix32{}, fix32{}, px(row.width * row.tile_size), px(row.height * row.tile_size)};
+        return true;
+    }
     out = Level{};
     return false;
 }
 
+bool load_clips(Level& level, LoadError& error) {
+    error = LoadError{};
+    return open_table(level, "clips", level.clips, error);
+}
+
+bool load_level(asset::BundleView bundle, const char* name, Level& out, LoadError& error) {
+    if (!open_level(bundle, name, out, error)) return false;
+    if (load_textures(out, error)) return true;
+    out = Level{};
+    return false;
+}
 } // namespace framework::scene

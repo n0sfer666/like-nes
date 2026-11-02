@@ -5,7 +5,7 @@
 #include "archetype.hpp"
 #include "rumble_roster.hpp"
 #include "rumble_steer.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 
 namespace rumble {
 

@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "object_bake.hpp"
-#include "scene_read.hpp"
+#include "level_objects_read.hpp"
 
 namespace scene_fixture {
 

@@ -16,7 +16,7 @@
 #include "rumble_level.hpp"
 #include "rumble_platform.hpp"
 #include "rumble_roster.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "seat_step.hpp"
 #include "stage_camera.hpp"
 #include "stage_sections.hpp"

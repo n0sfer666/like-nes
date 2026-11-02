@@ -6,7 +6,7 @@
 #include "body_kind.hpp"
 #include "camera.hpp"
 #include "next_arena.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "section_mode.hpp"
 #include "viewport_fit.hpp"
 

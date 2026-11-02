@@ -5,7 +5,7 @@
 
 #include "brawl_step.hpp"
 #include "rope_swing.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "stage_sections.hpp"
 
 namespace framework::brawl {

@@ -27,7 +27,7 @@ struct Bad {
     std::function<void(Source&)> edit_source;
     std::function<void(Inputs&)> edit_bundle;
     const char* name;
-    sc::LoadFault want;
+    rumble::StageFault want;
     const char* text;
 };
 
@@ -71,22 +71,22 @@ void second_checkpoint(Source& s, int32_t to) {
 const std::string LONG_NAME(300, 'x');
 
 const Bad CASES[] = {
-    {"absent name", {}, {}, "nope", sc::LoadFault::NoLevel, "no level nope in the visual table"},
-    {"prefix of a name", {}, {}, "lv", sc::LoadFault::NoLevel, "no level lv in the visual table"},
-    {"empty name", {}, {}, "", sc::LoadFault::NoLevel, "in the visual table"},
-    {"null name", {}, {}, nullptr, sc::LoadFault::NoLevel, "level name is null"},
-    {"long name is cut, not overrun", {}, {}, LONG_NAME.c_str(), sc::LoadFault::NoLevel, "no level xxx"},
-    {"level absent from LNTM", [](Source& s) { s.maps[0].name = "gone"; }, {}, "lvl", sc::LoadFault::NoLevel,
+    {"absent name", {}, {}, "nope", rumble::StageFault::NoLevel, "no level nope in the visual table"},
+    {"prefix of a name", {}, {}, "lv", rumble::StageFault::NoLevel, "no level lv in the visual table"},
+    {"empty name", {}, {}, "", rumble::StageFault::NoLevel, "in the visual table"},
+    {"null name", {}, {}, nullptr, rumble::StageFault::NoLevel, "level name is null"},
+    {"long name is cut, not overrun", {}, {}, LONG_NAME.c_str(), rumble::StageFault::NoLevel, "no level xxx"},
+    {"level absent from LNTM", [](Source& s) { s.maps[0].name = "gone"; }, {}, "lvl", rumble::StageFault::NoLevel,
      "no level lvl in the tilemap table"},
-    {"level absent from LNOB", [](Source& s) { s.objects[0].name = "gone"; }, {}, "lvl", sc::LoadFault::NoLevel,
+    {"level absent from LNOB", [](Source& s) { s.objects[0].name = "gone"; }, {}, "lvl", rumble::StageFault::NoLevel,
      "no level lvl in the objects table"},
-    {"no LNTM", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("tilemap")); }, "lvl", sc::LoadFault::NoTable,
+    {"no LNTM", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("tilemap")); }, "lvl", rumble::StageFault::NoTable,
      "tilemap table: missing"},
-    {"no LNVL", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("visual")); }, "lvl", sc::LoadFault::NoTable,
+    {"no LNVL", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("visual")); }, "lvl", rumble::StageFault::NoTable,
      "visual table: missing"},
-    {"no LNOB", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("objects")); }, "lvl", sc::LoadFault::NoTable,
+    {"no LNOB", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("objects")); }, "lvl", rumble::StageFault::NoTable,
      "objects table: missing"},
-    {"no LNCL", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("clips")); }, "lvl", sc::LoadFault::NoTable,
+    {"no LNCL", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("clips")); }, "lvl", rumble::StageFault::NoTable,
      "clips table: missing"},
     {"texture under the LNOB name", {},
      [](Inputs& in) {
@@ -94,63 +94,63 @@ const Bad CASES[] = {
          asset::AssetInput t = texture(asset::fnv1a_str("objects"), 1, 1);
          in.push_back(t);
      },
-     "lvl", sc::LoadFault::NoTable, "objects table: wrong type"},
-    {"broken LNOB magic", {}, [](Inputs& in) { corrupt(in, "objects"); }, "lvl", sc::LoadFault::BadTable,
+     "lvl", rumble::StageFault::NoTable, "objects table: wrong type"},
+    {"broken LNOB magic", {}, [](Inputs& in) { corrupt(in, "objects"); }, "lvl", rumble::StageFault::BadTable,
      "objects table does not open"},
-    {"truncated LNOB", {}, [](Inputs& in) { truncate(in, "objects"); }, "lvl", sc::LoadFault::BadTable,
+    {"truncated LNOB", {}, [](Inputs& in) { truncate(in, "objects"); }, "lvl", rumble::StageFault::BadTable,
      "objects table does not open"},
-    {"broken LNVL", {}, [](Inputs& in) { corrupt(in, "visual"); }, "lvl", sc::LoadFault::BadTable,
+    {"broken LNVL", {}, [](Inputs& in) { corrupt(in, "visual"); }, "lvl", rumble::StageFault::BadTable,
      "visual table does not open"},
-    {"broken LNTM", {}, [](Inputs& in) { corrupt(in, "tilemap"); }, "lvl", sc::LoadFault::BadTable,
+    {"broken LNTM", {}, [](Inputs& in) { corrupt(in, "tilemap"); }, "lvl", rumble::StageFault::BadTable,
      "tilemap table does not open"},
-    {"broken LNCL", {}, [](Inputs& in) { corrupt(in, "clips"); }, "lvl", sc::LoadFault::BadTable,
+    {"broken LNCL", {}, [](Inputs& in) { corrupt(in, "clips"); }, "lvl", rumble::StageFault::BadTable,
      "clips table does not open"},
-    {"LNOB refused by the scene reader", [](Source& s) { kind(s, 7, ""); }, {}, "lvl", sc::LoadFault::BadObjects,
+    {"LNOB refused before a missing texture", [](Source& s) { kind(s, 7, ""); }, [](Inputs& in) { drop(in, STREET); }, "lvl", rumble::StageFault::BadObjects,
      "level lvl: "},
-    {"checkpoint order past int16", [](Source& s) { order(s, 32768); }, {}, "lvl", sc::LoadFault::BadObjects,
+    {"checkpoint order past int16", [](Source& s) { order(s, 32768); }, {}, "lvl", rumble::StageFault::BadObjects,
      "level lvl: checkpoint 'cp1' (id 14) property 'order' is 32768; allowed 0 to 32767"},
-    {"checkpoint order repeated", [](Source& s) { second_checkpoint(s, 1); }, {}, "lvl", sc::LoadFault::BadObjects,
+    {"checkpoint order repeated", [](Source& s) { second_checkpoint(s, 1); }, {}, "lvl", rumble::StageFault::BadObjects,
      "level lvl: checkpoint 'cp9' (id 40) repeats checkpoint order 1 of object id 14"},
-    {"unknown kind", [](Source& s) { kind(s, 7, "ghost"); }, {}, "lvl", sc::LoadFault::UnknownKind,
+    {"unknown kind", [](Source& s) { kind(s, 7, "ghost"); }, {}, "lvl", rumble::StageFault::UnknownKind,
      "level lvl: spawn grunt1 kind ghost: no table ghost_fighter"},
     {"kind of the last spawn has no LNFT", {}, [](Inputs& in) { drop(in, asset::fnv1a_str("banderas_fighter")); },
-     "lvl", sc::LoadFault::UnknownKind, "spawn boss kind banderas: no table banderas_fighter"},
-    {"broken LNFT", {}, [](Inputs& in) { corrupt(in, "adler_fighter"); }, "lvl", sc::LoadFault::BadFighter,
+     "lvl", rumble::StageFault::UnknownKind, "spawn boss kind banderas: no table banderas_fighter"},
+    {"broken LNFT", {}, [](Inputs& in) { corrupt(in, "adler_fighter"); }, "lvl", rumble::StageFault::BadFighter,
      "adler_fighter table does not open"},
     {"LNFT under a texture", {},
      [](Inputs& in) {
          drop(in, asset::fnv1a_str("adler_fighter"));
          in.push_back(texture(asset::fnv1a_str("adler_fighter"), 1, 1));
      },
-     "lvl", sc::LoadFault::BadFighter, "adler_fighter table: wrong type"},
+     "lvl", rumble::StageFault::BadFighter, "adler_fighter table: wrong type"},
     {"LNFT move without its clip in LNCL",
      [](Source& s) { std::erase_if(s.clips, [](const gr::ClipSrc& c) { return c.name == "adler/kick"; }); }, {},
-     "lvl", sc::LoadFault::BadFighter, "adler_fighter: no clip adler/kick in the clips table"},
-    {"nine textures", [](Source& s) { add_images(s, 7); }, {}, "lvl", sc::LoadFault::Capacity,
+     "lvl", rumble::StageFault::BadFighter, "adler_fighter: no clip adler/kick in the clips table"},
+    {"nine textures", [](Source& s) { add_images(s, 7); }, {}, "lvl", rumble::StageFault::Capacity,
      "level lvl needs more than 8 textures"},
-    {"nine fighter kinds", [](Source& s) { add_kinds(s, 7); }, {}, "lvl", sc::LoadFault::Capacity,
+    {"nine fighter kinds", [](Source& s) { add_kinds(s, 7); }, {}, "lvl", rumble::StageFault::Capacity,
      "level lvl needs more than 8 fighter kinds"},
-    {"image layer texture missing", {}, [](Inputs& in) { drop(in, SKY); }, "lvl", sc::LoadFault::Texture,
+    {"image layer texture missing", {}, [](Inputs& in) { drop(in, SKY); }, "lvl", rumble::StageFault::Texture,
      ": missing"},
     {"tileset texture of a foreign format", {},
      [](Inputs& in) {
          for (asset::AssetInput& a : in)
              if (a.guid == STREET) a.tex_format = asset::TEX_FORMAT_RGBA8_UNORM + 1;
      },
-     "lvl", sc::LoadFault::Texture, "wrong texture format"},
+     "lvl", rumble::StageFault::Texture, "wrong texture format"},
 };
 
-bool reset(const sc::Level& l) {
-    return l.name[0] == '\0' && !l.collision && l.map.row == nullptr && l.object_map.row == nullptr &&
-           l.objects.waves.empty() && l.texture_count == 0 && l.fighter_count == 0 && !l.clips.valid();
+bool reset(const rumble::Stage& l) {
+    return l.level.name[0] == '\0' && !l.level.collision && l.level.map.row == nullptr && l.level.object_map.row == nullptr &&
+           l.objects.waves.empty() && l.level.texture_count == 0 && l.fighter_count == 0 && !l.level.clips.valid();
 }
 
-bool loaded(sc::Level& l) {
+bool loaded(rumble::Stage& l) {
     Inputs in;
     std::string error;
     asset::BundleView bundle;
-    sc::LoadError e;
-    return bake(source(), in, error) && open(std::move(in), bundle) && sc::load_level(bundle, "lvl", l, e);
+    rumble::StageError e;
+    return bake(source(), in, error) && open(std::move(in), bundle) && rumble::load_stage(bundle, "lvl", l, e);
 }
 
 void run(const Bad& c) {
@@ -162,14 +162,14 @@ void run(const Bad& c) {
     std::string error;
     if (!bake(s, in, error)) return check(false, what + ": fixture does not bake: " + error);
     if (c.edit_bundle) c.edit_bundle(in);
-    sc::Level l;
+    rumble::Stage l;
     check(loaded(l), what + ": the Level is loaded before the refusal");
     asset::BundleView bundle;
     if (!open(std::move(in), bundle)) return check(false, what + ": bundle does not open");
-    sc::LoadError e;
-    check(!sc::load_level(bundle, c.name, l, e), what + ": refused");
-    check(e.fault == c.want, what + ": fault " + sc::load_fault_name(e.fault) + ", want " +
-                                 sc::load_fault_name(c.want));
+    rumble::StageError e;
+    check(!rumble::load_stage(bundle, c.name, l, e), what + ": refused");
+    check(e.fault == c.want, what + ": fault " + rumble::stage_fault_name(e.fault) + ", want " +
+                                 rumble::stage_fault_name(c.want));
     check(std::strstr(e.text, c.text) != nullptr, what + ": text '" + e.text + "' lacks '" + c.text + "'");
     check(std::strlen(e.text) < sc::LOAD_ERROR_TEXT, what + ": text fits its buffer");
     check(reset(l), what + ": the Level is cleared, not left half loaded");
@@ -177,8 +177,8 @@ void run(const Bad& c) {
 
 void test_cut() {
     ++cases;
-    sc::LoadError e;
-    sc::load_fail(e, sc::LoadFault::NoLevel, std::string(1000, 'y'));
+    rumble::StageError e;
+    rumble::stage_fail(e, rumble::StageFault::NoLevel, std::string(1000, 'y'));
     check(std::strlen(e.text) == sc::LOAD_ERROR_TEXT - 1 && e.text[0] == 'y', "long text is cut at the buffer");
 }
 
@@ -186,7 +186,7 @@ void test_cut() {
 
 int main() {
     std::printf("level load refuses broken bundles with a reason\n");
-    sc::Level base;
+    rumble::Stage base;
     check(loaded(base), "base bundle loads before any edit");
     for (const Bad& c : CASES) run(c);
     test_cut();

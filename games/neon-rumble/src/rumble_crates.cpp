@@ -20,11 +20,11 @@ bool place_crates(const Level& level, const tl::ObjectMap& map, const br::DepthF
         b.kind = static_cast<uint8_t>(CRATE);
         const char* name = tl::object_text(map, o.name_offset);
         if (o.shape != static_cast<uint8_t>(tl::ObjectShape::Point) || !on_floor(floor, b.pos.x, b.pos.z)) {
-            std::fprintf(stderr, "neon-rumble: level %s: crate %s is not a point on the floor\n", level.name, name);
+            std::fprintf(stderr, "neon-rumble: level %s: crate %s is not a point on the floor\n", level.level.name, name);
             return false;
         }
         if (pool.spawn(b) == br::EntId{}) {
-            std::fprintf(stderr, "neon-rumble: level %s: crate %s does not fit the body pool\n", level.name, name);
+            std::fprintf(stderr, "neon-rumble: level %s: crate %s does not fit the body pool\n", level.level.name, name);
             return false;
         }
     }

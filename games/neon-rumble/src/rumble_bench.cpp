@@ -2,14 +2,11 @@
 #include <string>
 #include <thread>
 
-#if defined(__APPLE__)
-#include <pthread/qos.h>
-#endif
-
-#include "mobile_app.hpp"
+#include "rumble_bench.hpp"
 #include "mobile_host.hpp"
 #include "resim_bench.hpp"
 
+namespace rumble {
 namespace {
 
 // Бенч ресима глазами оболочки — та же игра, что и шутер, только без кадра: счёт идёт в своём
@@ -22,10 +19,7 @@ public:
         std::printf("[bench] %s\n", mobile::device_info().c_str());
         std::fflush(stdout);
         worker_ = std::thread([against = mobile::asset_path("crossplay.txt")] {
-#if defined(__APPLE__)
-            // Поток по умолчанию iOS ставит ниже интерактивного: бюджет мерил бы планировщик.
-            pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
-#endif
+            mobile::interactive_thread();
             framework::ai::bench::run_resim_bench(against);
             std::fflush(stdout);
         });
@@ -51,4 +45,6 @@ private:
 
 } // namespace
 
-std::unique_ptr<mobile::Game> mobile::make_game() { return std::make_unique<BenchGame>(); }
+std::unique_ptr<mobile::Game> make_bench_game() { return std::make_unique<BenchGame>(); }
+
+} // namespace rumble

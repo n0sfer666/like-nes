@@ -1,4 +1,5 @@
 #include "stage_movers.hpp"
+#include "level_objects.hpp"
 
 #include <cstdio>
 #include <cstdlib>

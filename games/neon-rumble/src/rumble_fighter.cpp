@@ -37,7 +37,7 @@ bool Fighter::open(const Level& level, const char* fighter) {
         std::fprintf(stderr, "neon-rumble: clip %s is on another sheet than %s\n", clip.c_str(), first.c_str());
         return false;
     }
-    const asset::LookupFault f = asset::raw_rgba8(level.bundle, guid, sheet);
+    const asset::LookupFault f = asset::raw_rgba8(level.level.bundle, guid, sheet);
     if (f != asset::LookupFault::Ok) {
         std::fprintf(stderr, "neon-rumble: %s sheet %016llx: %s\n", fighter, static_cast<unsigned long long>(guid),
                      asset::lookup_fault_name(f));

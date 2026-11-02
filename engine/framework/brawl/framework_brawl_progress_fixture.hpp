@@ -10,7 +10,7 @@
 #include "framework_brawl_hit_fixture.hpp"
 #include "hash_mix.hpp"
 #include "progress_hash.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "seat_hash.hpp"
 #include "seat_step.hpp"
 

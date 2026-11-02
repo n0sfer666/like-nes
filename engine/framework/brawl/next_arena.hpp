@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 
 namespace framework::brawl {
 

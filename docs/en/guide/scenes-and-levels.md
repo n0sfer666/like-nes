@@ -5,7 +5,7 @@ English · [Русский](../../ru/guide/scenes-and-levels.md)
 A game is more than one level: it has a menu, a level, maybe a pause screen over the level. The
 engine keeps them on a **scene stack**, where each scene has its own
 [schedule](tick-and-schedule.md), and loads a level from the bundle by its name with one call,
-`load_level`, which refuses a broken level with a text instead of crashing. This page covers both,
+`load_stage`, which refuses a broken level with a text instead of crashing. This page covers both,
 how long a loaded level lives, and the menu of Neon Rumble, which is built on them.
 
 The headers are `scene_stack.hpp`, `level_load.hpp`, `level_error.hpp` and `scene_level.hpp`, in
@@ -88,7 +88,16 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 
 ## Loading a level
 
-`load_level(bundle, name, out, error)` finds the level `name` in the bundle and fills `out` with everything a fight needs:
+The SDK's `scene::Level` holds the bundle views, maps, textures and camera bounds. Neon Rumble's
+`Stage` contains that SDK level as `level`, plus game objects and fighter tables; its existing
+`Level` name is an alias for `Stage`. The game loader is `rumble::load_stage`.
+
+SDK loading has two phases: `open_level` reads tables and maps; the game then checks its objects;
+`load_textures` loads the images afterwards. `load_clips` is optional and explicit. For other
+games, SDK `load_level` remains a complete maps-and-textures convenience call. This preserves
+Neon Rumble's refusal order: objects, textures, clips, fighters.
+
+`load_stage(bundle, name, out, error)` finds the level `name` in the bundle and fills `out` with everything a fight needs:
 
 - the `visual` table and its map of `name`, and the collision grid from the `tilemap` table;
 - the `objects` table, read into `LevelObjects` by the class dictionary below, and the camera
@@ -101,7 +110,7 @@ It returns `true`, or `false` with `error.fault` and `error.text` set. The text 
 of 192 bytes, and the engine never prints it: showing it is the game's decision. After a refusal
 `out` is an empty `Level` again, never a level loaded halfway.
 
-| `LoadFault` | Example of `error.text` |
+| `StageFault` | Example of `error.text` |
 |---|---|
 | `NoTable` | `objects table: missing` |
 | `BadTable` | `visual table does not open` |
@@ -114,7 +123,7 @@ of 192 bytes, and the engine never prints it: showing it is the game's decision.
 
 ### The object classes
 
-[Levels in Tiled](tiled-levels.md#objects) describes how objects reach the bundle. `load_level`
+[Levels in Tiled](tiled-levels.md#objects) describes how objects reach the bundle. `load_stage`
 gives meaning to these classes and skips every other one, which is left for the game:
 
 | Class | Shape | Properties |
@@ -193,9 +202,9 @@ find it.
 
 A `Level` copies nothing out of the bundle. Its name, the `kind` of each fighter, the pixels of the
 textures and the rows of every table are views into the mapped bundle, so a `Level` must not
-outlive the mapping it was loaded from. The bundle itself is kept inside as `level.bundle`, and
-`load_level` takes it **by value**: `load_level(level.bundle, "level2", level, error)` reloads
-into the same `Level` safely, although the first thing `load_level` does is to clear `out`.
+outlive the mapping it was loaded from. The bundle itself is kept inside as `level.level.bundle`, and
+`load_stage` takes it **by value**: `load_stage(level.level.bundle, "level2", level, error)` reloads
+into the same `Level` safely, although the first thing `load_stage` does is to clear `out`.
 
 A `Level` does not move once a fight is opened on it: the fight keeps pointers to it, and the
 schedule of a scene keeps pointers to its systems' data. Neon Rumble therefore keeps the level,
@@ -206,8 +215,8 @@ entry:
 ```cpp
 std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* name, bool waves, std::string& error) {
     auto play = std::make_unique<Play>();
-    framework::scene::LoadError load;
-    if (!framework::scene::load_level(bundle, name, play->level, load)) {
+    StageError load;
+    if (!load_stage(bundle, name, play->level, load)) {
         error = load.text;
         return nullptr;
     }

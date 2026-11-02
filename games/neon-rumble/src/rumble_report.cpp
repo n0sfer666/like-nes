@@ -47,18 +47,18 @@ bool report_library_bundle(const std::string& path) {
 // каждая текстура карты лежит сырым RGBA8, политика вьюпорта на 960x540 и на окне меньше зоны,
 // камера в границах `bounds`, кадр 960x540 весь ложится в квады.
 void report_level(const Level& level) {
-    const auto& row = *level.map.row;
+    const auto& row = *level.level.map.row;
     std::printf("neon-rumble: level %s %ux%u tile %u, %zu visual layer(s), %zu animated tile(s), %u texture(s)",
-                level.name, row.width, row.height, row.tile_size, level.map.layers.size(),
-                level.map.anims.size(), level.texture_count);
-    for (uint32_t i = 0; i < level.texture_count; ++i)
-        std::printf(" %ux%u", level.pixels[i].width, level.pixels[i].height);
+                level.level.name, row.width, row.height, row.tile_size, level.level.map.layers.size(),
+                level.level.map.anims.size(), level.level.texture_count);
+    for (uint32_t i = 0; i < level.level.texture_count; ++i)
+        std::printf(" %ux%u", level.level.pixels[i].width, level.level.pixels[i].height);
     std::printf("\n");
     const ViewportFit fit = report_viewport(960, 540);
     report_viewport(300, 200);
     Layers layers;
     const LayerStats st = layers.build(level, fit, 0);
-    const auto& b = level.bounds;
+    const auto& b = level.level.bounds;
     const auto& c = layers.frame().camera.center;
     std::printf("neon-rumble: bounds %d..%d x %d..%d, camera %d,%d\n", b.min_x.to_int(), b.max_x.to_int(),
                 b.min_y.to_int(), b.max_y.to_int(), c.x.to_int(), c.y.to_int());
@@ -88,7 +88,7 @@ void report_credits(const Level& level, const Credits& credits) {
         const uint32_t before = st.quads;
         const uint32_t lost = page == 0 ? 0 : st.dropped;
         const CreditStats cs =
-            quads.add(credits, page, fit, layers, st, atlas_texture(level.texture_count), solid_texture(level.texture_count));
+            quads.add(credits, page, fit, layers, st, atlas_texture(level.level.texture_count), solid_texture(level.level.texture_count));
         pages = cs.pages;
         sum.lines += cs.lines;
         sum.glyphs += cs.glyphs;

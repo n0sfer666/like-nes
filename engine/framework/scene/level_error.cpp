@@ -12,8 +12,6 @@ const char* load_fault_name(LoadFault f) {
     case LoadFault::NoLevel: return "no level";
     case LoadFault::BadObjects: return "bad objects";
     case LoadFault::Texture: return "texture";
-    case LoadFault::UnknownKind: return "unknown kind";
-    case LoadFault::BadFighter: return "bad fighter";
     case LoadFault::Capacity: return "capacity";
     }
     return "unknown fault";

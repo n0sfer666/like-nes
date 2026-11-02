@@ -1,6 +1,6 @@
 #include "conveyor_step.hpp"
 
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 
 namespace framework::brawl {
 

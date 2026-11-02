@@ -1,5 +1,5 @@
 #pragma once
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "stage_camera.hpp"
 
 namespace framework::brawl {

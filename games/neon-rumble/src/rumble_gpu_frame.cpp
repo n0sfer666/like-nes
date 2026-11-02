@@ -22,7 +22,7 @@ double channel(uint32_t rgba, int shift, bool srgb) {
 } // namespace
 
 WGPUColor background(const Level& level, WGPUTextureFormat format) {
-    const uint32_t rgba = level.map.row->background_rgba;
+    const uint32_t rgba = level.level.map.row->background_rgba;
     const bool srgb = render::quad_target_srgb(format);
     return {channel(rgba, 24, srgb), channel(rgba, 16, srgb), channel(rgba, 8, srgb), 1.0};
 }
@@ -67,9 +67,9 @@ void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view
 bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
                 const Level& level, const Fighters& fighters, const Credits& credits) {
     if (!quads.init(gpu.device, gpu.queue, format, Layers::CAPACITY)) return false;
-    for (uint32_t i = 0; i < level.texture_count; ++i)
-        if (!quads.add_texture(level.pixels[i].pixels, level.pixels[i].width,
-                               level.pixels[i].height))
+    for (uint32_t i = 0; i < level.level.texture_count; ++i)
+        if (!quads.add_texture(level.level.pixels[i].pixels, level.level.pixels[i].width,
+                               level.level.pixels[i].height))
             return false;
     for (const Fighter& f : fighters)
         if (!quads.add_texture(f.sheet.pixels, f.sheet.width, f.sheet.height)) return false;

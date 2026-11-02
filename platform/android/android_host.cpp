@@ -9,6 +9,9 @@
 #include "mobile_host.hpp"
 
 namespace mobile {
+
+void interactive_thread() {}
+
 namespace {
 
 std::string& asset_dir() {

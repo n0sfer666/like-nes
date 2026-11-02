@@ -73,6 +73,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/text_layout.hpp framework/graphics/gpu/text_quads.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
+  framework/brawl/level_objects.hpp framework/brawl/level_objects_read.hpp
   framework/brawl/brawl_body.hpp framework/brawl/brawl_input.hpp framework/brawl/brawl_floor.hpp
   framework/brawl/body_pool.hpp framework/brawl/depth_step.hpp
   framework/brawl/body_hash.hpp framework/brawl/fighter.hpp framework/brawl/fighter_format.hpp
@@ -96,7 +97,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/brawl/body_role.hpp framework/brawl/body_kind.hpp framework/brawl/clipless_kind.hpp framework/brawl/projectile.hpp
   framework/ai/attack_tokens.hpp framework/ai/ai_brain.hpp
   framework/ai/ai_state.hpp framework/ai/ai_step.hpp framework/ai/ai_target.hpp
-  framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_stack.hpp
+  framework/scene/scene_paths.hpp framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_object.hpp framework/scene/scene_stack.hpp
   framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp
 )
 

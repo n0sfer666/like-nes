@@ -30,9 +30,11 @@ target_link_libraries(like_nes_mobile PUBLIC webgpu
 
 include(${MOBILE}/resim_bench.cmake)
 if(LIKE_NES_MOBILE_BENCH)
-  like_nes_mobile_app(like_nes_resim_bench SOURCES ${MOBILE}/bench_game.cpp
+  like_nes_mobile_app(like_nes_resim_bench SOURCES ${CMAKE_SOURCE_DIR}/games/neon-rumble/src/rumble_mobile.cpp
+    ${CMAKE_SOURCE_DIR}/games/neon-rumble/src/rumble_bench.cpp
     BUNDLES ${RESIM_BENCH_AGAINST} NAME like-nes-bench ID com.likenes.resimbench)
   target_link_libraries(like_nes_resim_bench PRIVATE resim_bench)
+  target_compile_definitions(like_nes_resim_bench PRIVATE RUMBLE_RESIM_BENCH=1)
   set_target_properties(like_nes_resim_bench PROPERTIES XCODE_ATTRIBUTE_CODE_SIGN_STYLE Automatic)
   return()
 endif()

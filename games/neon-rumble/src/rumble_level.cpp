@@ -14,7 +14,7 @@ bool read_table(const asset::BundleView& bundle, const char* table_name, const u
 }
 
 bool read_table(const Level& level, const char* table_name, const uint8_t*& data, size_t& size) {
-    return read_table(level.bundle, table_name, data, size);
+    return read_table(level.level.bundle, table_name, data, size);
 }
 
 } // namespace rumble

@@ -5,7 +5,7 @@
 #include "brawl_floor.hpp"
 #include "platform_world.hpp"
 #include "rumble_level.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "stage_movers.hpp"
 #include "stage_ropes.hpp"
 

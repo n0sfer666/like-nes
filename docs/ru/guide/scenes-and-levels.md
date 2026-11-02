@@ -1,4 +1,4 @@
-<!-- en-sha256: 38374d79d8ef36446cb3d2873f9ebcb52fcf9d1fe77ad5e8191a87d09b8368be -->
+<!-- en-sha256: 360d2d854d03279be86115238857dd2e8e44dda101d165ac961d3889f2c689e0 -->
 
 # Сцены и уровни
 
@@ -6,7 +6,7 @@
 
 Игра — это не один уровень: у неё есть меню, уровень, может быть экран паузы поверх уровня. Движок
 держит их на **стеке сцен**, где у каждой сцены своё [расписание](tick-and-schedule.md), и грузит
-уровень из бандла по имени одним вызовом, `load_level`, который отбивает битый уровень текстом, а не
+уровень из бандла по имени одним вызовом, `load_stage`, который отбивает битый уровень текстом, а не
 крашем. Эта страница описывает и то и другое, время жизни загруженного уровня и меню Neon Rumble,
 построенное на них.
 
@@ -90,7 +90,16 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 
 ## Загрузка уровня
 
-`load_level(bundle, name, out, error)` находит в бандле уровень `name` и заполняет `out` всем, что
+SDK-тип `scene::Level` хранит виды в бандл, карты, текстуры и границы камеры. `Stage` игры
+Neon Rumble содержит этот SDK-уровень в поле `level`, а также игровые объекты и таблицы бойцов;
+прежнее имя `Level` — алиас для `Stage`. Загрузчик игры — `rumble::load_stage`.
+
+Загрузка SDK разделена на этапы: `open_level` читает таблицы и карты; затем игра проверяет свои
+объекты; `load_textures` загружает изображения после них. `load_clips` — явный необязательный
+этап. SDK `load_level` остаётся полной удобной загрузкой карт и текстур для других игр.
+Порядок отказов Neon Rumble прежний: объекты, текстуры, клипы, бойцы.
+
+`load_stage(bundle, name, out, error)` находит в бандле уровень `name` и заполняет `out` всем, что
 нужно драке:
 
 - таблицу `visual` и её карту `name`, сетку коллизий из таблицы `tilemap`;
@@ -104,7 +113,7 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 фиксированном буфере на 192 байта, и движок его не печатает: показывать его — решение игры. После
 отказа `out` снова пустой `Level`, а не уровень, загруженный наполовину.
 
-| `LoadFault` | Пример `error.text` |
+| `StageFault` | Пример `error.text` |
 |---|---|
 | `NoTable` | `objects table: missing` |
 | `BadTable` | `visual table does not open` |
@@ -118,7 +127,7 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 ### Классы объектов
 
 Как объекты попадают в бандл, описывает страница [Уровни в Tiled](tiled-levels.md).
-`load_level` придаёт смысл этим классам и пропускает все остальные — их толкует игра:
+`load_stage` придаёт смысл этим классам и пропускает все остальные — их толкует игра:
 
 | Класс | Форма | Свойства |
 |---|---|---|
@@ -189,9 +198,9 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 
 `Level` ничего не копирует из бандла. Его имя, `kind` каждого бойца, пиксели текстур и строки всех
 таблиц — виды в отображённый бандл, поэтому `Level` не должен пережить отображение, из которого
-загружен. Сам бандл хранится внутри как `level.bundle`, и `load_level` принимает его **по значению**:
-`load_level(level.bundle, "level2", level, error)` безопасно перезагружает тот же `Level`, хотя
-первым делом `load_level` очищает `out`.
+загружен. Сам бандл хранится внутри как `level.level.bundle`, и `load_stage` принимает его **по значению**:
+`load_stage(level.level.bundle, "level2", level, error)` безопасно перезагружает тот же `Level`, хотя
+первым делом `load_stage` очищает `out`.
 
 `Level` не перемещается, когда на нём открыта драка: драка держит указатели на него, а расписание
 сцены — указатели на данные своих систем. Поэтому Neon Rumble держит уровень, бойцов, драку и сцену
@@ -201,8 +210,8 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 ```cpp
 std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* name, bool waves, std::string& error) {
     auto play = std::make_unique<Play>();
-    framework::scene::LoadError load;
-    if (!framework::scene::load_level(bundle, name, play->level, load)) {
+    StageError load;
+    if (!load_stage(bundle, name, play->level, load)) {
         error = load.text;
         return nullptr;
     }

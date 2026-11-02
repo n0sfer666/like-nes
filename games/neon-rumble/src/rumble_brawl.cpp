@@ -36,13 +36,13 @@ bool read_floor(const Level& level, const tl::ObjectMap& map, br::DepthFloor& fl
     const auto bands = tl::objects_of_class(map, "depth_band");
     if (bands.size() != 1 || !rect_of(bands.front(), floor.band)) {
         std::fprintf(stderr, "neon-rumble: level %s needs one rectangle of class depth_band, has %zu\n",
-                     level.name, bands.size());
+                     level.level.name, bands.size());
         return false;
     }
     for (const tl::MapObject& o : tl::objects_of_class(map, "wall")) {
         br::FloorRect r;
         if (rect_of(o, r) && floor.add_wall(r)) continue;
-        std::fprintf(stderr, "neon-rumble: level %s: wall %s is not a rectangle or does not fit\n", level.name,
+        std::fprintf(stderr, "neon-rumble: level %s: wall %s is not a rectangle or does not fit\n", level.level.name,
                      tl::object_text(map, o.name_offset));
         return false;
     }
@@ -60,7 +60,7 @@ bool read_spawns(const Level& level, const tl::ObjectMap& map, const br::DepthFl
                    std::strcmp(tl::object_text(map, o.name_offset), r.spawn) == 0;
         });
         if (it == spawns.end()) {
-            std::fprintf(stderr, "neon-rumble: level %s has no spawn named %s for %s\n", level.name, r.spawn,
+            std::fprintf(stderr, "neon-rumble: level %s has no spawn named %s for %s\n", level.level.name, r.spawn,
                          r.fighter);
             return false;
         }
@@ -75,7 +75,7 @@ bool read_spawns(const Level& level, const tl::ObjectMap& map, const br::DepthFl
         b.clip = kinds.types[i].idle;
         if (!on_floor(floor, b.pos.x, b.pos.z)) {
             std::fprintf(stderr, "neon-rumble: level %s: spawn %s is outside the depth band or inside a wall\n",
-                         level.name, r.spawn);
+                         level.level.name, r.spawn);
             return false;
         }
     }
@@ -116,7 +116,7 @@ bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
     wave = Wave{};
     wave.on = waves;
     if (!kinds.open(level, fighters)) return false;
-    const tl::ObjectMap& map = level.object_map;
+    const tl::ObjectMap& map = level.level.object_map;
     if (!read_floor(level, map, floor) || !read_spawns(level, map, floor, kinds, spawns)) return false;
     if (waves && !wave.open(level, map, floor, spawns)) return false;
     std::array<br::BrawlInput, br::SEATS> first{};

@@ -2,7 +2,7 @@
 #include <span>
 
 #include "platform_world.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "stage_ropes.hpp"
 
 namespace framework::brawl {

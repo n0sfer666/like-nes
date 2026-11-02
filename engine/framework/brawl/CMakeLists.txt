@@ -2,7 +2,7 @@ add_library(framework_brawl_fighter STATIC fighter_parse.cpp fighter_move_parse.
 target_include_directories(framework_brawl_fighter PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_brawl_fighter PUBLIC framework_graphics framework_depth framework_core)
 
-add_library(framework_brawl STATIC body_pool.cpp body_hash.cpp depth_step.cpp
+add_library(framework_brawl STATIC level_objects_read.cpp scene_links.cpp body_pool.cpp body_hash.cpp depth_step.cpp
   archetype.cpp archetype_chain.cpp body_clip.cpp body_react.cpp body_chain.cpp body_run.cpp body_guard.cpp hit_collect.cpp hit_grab.cpp hit_apply.cpp brawl_step.cpp
   seat_step.cpp stage_step.cpp stage_camera_hash.cpp wave_step.cpp next_arena.cpp stage_waves_hash.cpp
   stage_sections.cpp stage_sections_hash.cpp platform_body.cpp section_mode.cpp section_exit.cpp section_step.cpp
@@ -111,3 +111,8 @@ add_executable(framework_brawl_projectile_edge_test framework_brawl_projectile_e
 target_link_libraries(framework_brawl_projectile_edge_test PRIVATE framework_brawl)
 add_executable(framework_brawl_prop_test framework_brawl_prop_test.cpp)
 target_link_libraries(framework_brawl_prop_test PRIVATE framework_brawl)
+
+add_executable(framework_scene_test framework_scene_test.cpp)
+target_link_libraries(framework_scene_test PRIVATE framework_brawl)
+add_executable(framework_scene_refusal_test framework_scene_refusal_test.cpp)
+target_link_libraries(framework_scene_refusal_test PRIVATE framework_brawl)

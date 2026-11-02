@@ -55,13 +55,13 @@ macOS M-серии, Release: снапшот 5904 B, кадр p50 ≈ 43 us (0.25
 файла — `FATAL_ERROR` при конфигурировании: бенч на телефоне без сверки хешей ответил бы только
 на половину гейта.
 
-- iOS: `platform/mobile/bench_game.cpp` поверх оболочки `like_nes_mobile` — строка
+- iOS: `games/neon-rumble/src/rumble_bench.cpp` поверх оболочки `like_nes_mobile` — строка
   `[bench] iOS <версия>, <машина>`, бенч в своём потоке с `QOS_CLASS_USER_INTERACTIVE`, stdout построчный → консоль Xcode
   (`simctl launch --stdout` в симуляторе). Цель `like_nes_resim_bench`, бандл собирает та же
   `like_nes_mobile_app`, что и игру (`cmake/like_nes_mobile_app.cmake`, В1в спеки #26). С В1б спеки #26 бенч стоит на общей оболочке и тянет wgpu-native, как
   игра: GPU и окно поднимаются и для него (`[gpu]` — первая строка вывода), а кадров он не просит
   (`wants_frames() == false`). Решение, а не долг: бенч судит оболочку, на которой поедет игра.
-- Android: `platform/mobile/bench_game.cpp` поверх оболочки `like_nes_mobile` (`libbench.so`, манифест — общий шаблон
+- Android: `games/neon-rumble/src/rumble_bench.cpp` поверх оболочки `like_nes_mobile` (`libbench.so`, манифест — общий шаблон
   `AndroidManifest.xml.in` с id `com.likenes.resimbench`)
   — строка `[bench] Android <версия> (API n), <производитель> <модель>, soc <soc>`, бенч в своём
   потоке, stdout → logcat тегом `like-nes`. APK — `build_apk.sh --bench <файл>`.

@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <string>
 
-#include "level_parts.hpp"
+#include "level_load.hpp"
 
 namespace framework::scene {
 
@@ -37,6 +37,7 @@ bool load_texture(Level& l, uint32_t i, LoadError& error) {
 } // namespace
 
 bool load_textures(Level& level, LoadError& error) {
+    error = LoadError{};
     for (const auto& ts : level.map.tilesets)
         if (!add_guid(level, ts.texture_guid, error)) return false;
     for (const auto& layer : level.map.layers)

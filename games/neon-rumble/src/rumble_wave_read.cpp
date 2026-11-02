@@ -6,7 +6,7 @@
 #include "rumble_facing.hpp"
 #include "rumble_floor.hpp"
 #include "rumble_wave.hpp"
-#include "scene_read.hpp"
+#include "level_objects_read.hpp"
 #include "viewport_fit.hpp"
 
 namespace rumble {
@@ -30,7 +30,7 @@ bool foe_of(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor& flo
     const char* name = tl::object_text(map, s.mark.object->name_offset);
     const uint32_t k = fighter_of(s.kind);
     if (k == FIGHTERS || k == PLAYER) {
-        std::fprintf(stderr, "neon-rumble: level %s: wave spawn %s at %d,%d: kind %.*s is not a foe fighter\n", lv.name,
+        std::fprintf(stderr, "neon-rumble: level %s: wave spawn %s at %d,%d: kind %.*s is not a foe fighter\n", lv.level.name,
                      name, s.mark.at.x.to_int(), s.mark.at.y.to_int(), static_cast<int>(s.kind.size()), s.kind.data());
         return false;
     }
@@ -41,7 +41,7 @@ bool foe_of(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor& flo
     out.facing = facing_of(map, *s.mark.object);
     if (on_floor(floor, out.pos.x, out.pos.z)) return true;
     std::fprintf(stderr, "neon-rumble: level %s: wave spawn %s at %d,%d is outside the depth band or inside a wall\n",
-                 lv.name, name, out.pos.x.to_int(), out.pos.z.to_int());
+                 lv.level.name, name, out.pos.x.to_int(), out.pos.z.to_int());
     return false;
 }
 
@@ -50,7 +50,7 @@ bool waves_fit(const Level& lv, const sc::LevelObjects& level) {
         uint32_t n = 0;
         for (const sc::WaveSpawn& o : level.waves) n += o.arena == s.arena && o.wave == s.wave ? 1 : 0;
         if (n <= framework::ai::BRAINS_MAX) continue;
-        std::fprintf(stderr, "neon-rumble: level %s: arena %d wave %d has %u spawns, at most %u\n", lv.name, s.arena,
+        std::fprintf(stderr, "neon-rumble: level %s: arena %d wave %d has %u spawns, at most %u\n", lv.level.name, s.arena,
                      s.wave, n, framework::ai::BRAINS_MAX);
         return false;
     }
@@ -63,7 +63,7 @@ bool Wave::open(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor&
                 const std::array<br::Body, FIGHTERS>& spawns) {
     std::string error;
     if (!sc::read_level_objects(map, level, error)) {
-        std::fprintf(stderr, "neon-rumble: level %s: %s\n", lv.name, error.c_str());
+        std::fprintf(stderr, "neon-rumble: level %s: %s\n", lv.level.name, error.c_str());
         return false;
     }
     foes.assign(level.waves.size(), br::Body{});

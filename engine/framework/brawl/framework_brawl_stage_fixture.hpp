@@ -2,7 +2,7 @@
 #include <cstdint>
 
 #include "framework_brawl_hit_fixture.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "stage_step.hpp"
 
 namespace framework::brawl::test {

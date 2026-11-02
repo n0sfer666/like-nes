@@ -13,6 +13,9 @@ std::string asset_path(const char* name);
 // Флаг запуска (`--demo`): iOS — аргументы процесса, Android — пока всегда false.
 bool has_arg(const char* flag);
 
+// Подсказка планировщику: текущий рабочий поток обслуживает интерактивную задачу.
+void interactive_thread();
+
 // Строка устройства для журнала бенча: ОС, версия, модель.
 std::string device_info();
 

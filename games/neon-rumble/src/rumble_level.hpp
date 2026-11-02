@@ -2,11 +2,11 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "scene_level.hpp"
+#include "rumble_stage.hpp"
 
 namespace rumble {
 
-using Level = framework::scene::Level;
+using Level = Stage;
 
 bool read_table(const asset::BundleView& bundle, const char* table_name, const uint8_t*& data, size_t& size);
 bool read_table(const Level& level, const char* table_name, const uint8_t*& data, size_t& size);

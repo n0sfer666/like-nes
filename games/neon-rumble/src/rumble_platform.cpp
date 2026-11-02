@@ -30,14 +30,14 @@ bool Platform::open(const Level& lv, const sc::LevelObjects& level) {
     ropes.reset();
     world.reset();
     if (!has_platform(level)) return true;
-    if (!lv.collision) {
-        std::fprintf(stderr, "neon-rumble: level %s: a platform section needs a collision layer\n", lv.name);
+    if (!lv.level.collision) {
+        std::fprintf(stderr, "neon-rumble: level %s: a platform section needs a collision layer\n", lv.level.name);
         return false;
     }
     movers = std::make_unique<br::StageMovers>(level.paths);
     ropes.emplace(level);
     br::PlatformWorld& p = world.emplace();
-    p.scene = framework::character::CollisionScene{&movers->world, &*lv.collision};
+    p.scene = framework::character::CollisionScene{&movers->world, &*lv.level.collision};
     p.hull.shape = framework::physics::sanitize(
         framework::physics::box(fix32::from_int(HULL_HALF_W), fix32::from_int(HULL_HALF_H)));
     p.profile = framework::character::default_profile();

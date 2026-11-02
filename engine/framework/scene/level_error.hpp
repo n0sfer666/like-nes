@@ -14,8 +14,6 @@ enum class LoadFault : uint32_t {
     NoLevel = 3,
     BadObjects = 4,
     Texture = 5,
-    UnknownKind = 6,
-    BadFighter = 7,
     Capacity = 8,
 };
 

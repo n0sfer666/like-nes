@@ -1,3 +1,8 @@
+#if defined(RUMBLE_RESIM_BENCH)
+#include "rumble_bench.hpp"
+
+std::unique_ptr<mobile::Game> mobile::make_game() { return rumble::make_bench_game(); }
+#else
 #include "rumble_mobile.hpp"
 
 #include <algorithm>
@@ -169,3 +174,5 @@ void MobileRumble::shutdown() {
 } // namespace rumble
 
 std::unique_ptr<mobile::Game> mobile::make_game() { return std::make_unique<rumble::MobileRumble>(); }
+
+#endif

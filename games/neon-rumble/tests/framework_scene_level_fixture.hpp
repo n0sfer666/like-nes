@@ -10,7 +10,7 @@
 #include "framework_brawl_fighter_fixture.hpp"
 #include "framework_scene_fixture.hpp"
 #include "hash.hpp"
-#include "level_load.hpp"
+#include "rumble_stage_load.hpp"
 #include "map_bake.hpp"
 #include "visual_bake.hpp"
 

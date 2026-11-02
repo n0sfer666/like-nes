@@ -1,6 +1,6 @@
 #include "rumble_play.hpp"
 
-#include "level_load.hpp"
+#include "rumble_stage_load.hpp"
 #include "rumble_roster.hpp"
 
 namespace rumble {
@@ -8,8 +8,8 @@ namespace rumble {
 // docs:begin(level-enter)
 std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* name, bool waves, std::string& error) {
     auto play = std::make_unique<Play>();
-    framework::scene::LoadError load;
-    if (!framework::scene::load_level(bundle, name, play->level, load)) {
+    StageError load;
+    if (!load_stage(bundle, name, play->level, load)) {
         error = load.text;
         return nullptr;
     }

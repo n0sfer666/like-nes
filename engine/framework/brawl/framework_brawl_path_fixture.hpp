@@ -4,7 +4,7 @@
 #include <utility>
 
 #include "framework_brawl_stage_fixture.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 
 namespace framework::brawl::test {
 

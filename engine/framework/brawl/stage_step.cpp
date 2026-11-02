@@ -5,7 +5,7 @@
 #include "autoscroll_step.hpp"
 #include "level_clamp.hpp"
 #include "platform_world.hpp"
-#include "scene_objects.hpp"
+#include "level_objects.hpp"
 #include "section_mode.hpp"
 #include "section_step.hpp"
 #include "stage_leash.hpp"
