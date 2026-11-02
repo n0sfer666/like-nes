@@ -84,7 +84,7 @@ void test_the_level_has_edges(const std::string& path) {
 //
 // Утверждение здесь, как и про край уровня: голден маршрута про этот угол карты не говорит ничего,
 // а дописать его в скрипт значило бы сдвинуть хеш ради случая, к нему не относящегося. Правило
-// движка пришпилено своим гейтом (`framework_character_platform_test`), здесь — ровно та
+// движка пришпилено своим гейтом (`kit_platformer_platform_test`), здесь — ровно та
 // обстановка, в которой владелец это увидел.
 void test_the_rider_is_not_crushed_at_the_overhang(const std::string& path) {
     platformer::Stage st;

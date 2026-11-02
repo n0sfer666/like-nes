@@ -72,7 +72,7 @@ inline fix32 lowest_y(const physics::WorldShape& s) {
 // направление пути. Без этого правила порядок решал индекс, то есть номер тайла, и персонаж,
 // садящийся на ПЛОСКИЙ пол ровно на стыке двух тайлов, получал вместо нормали пола диагональ:
 // скольжение вдоль пола обнулялось, и он вставал на ровном месте (найдено переездом контроллера
-// на сетку, гейт угла в `framework_character_tunnel_test`).
+// на сетку, гейт угла в `kit_platformer_tunnel_test`).
 inline bool axial(Vec2 n) { return n.x == fix32{} || n.y == fix32{}; }
 
 inline bool closer(const TileHit& candidate, const TileHit& best, bool have_best) {

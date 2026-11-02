@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 
 // Уровень ЦЕЛЕВОГО РАЗМЕРА для гейта 7 спеки #16 — и его же уменьшенная копия.
 //

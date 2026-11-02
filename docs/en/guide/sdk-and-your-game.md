@@ -121,6 +121,10 @@ endif()
   tree otherwise: the same library builds inside the engine tree under its strict warnings and
   against the SDK for the game. It sets the static C runtime itself, as `like_nes_add_game` does
   for the game.
+- `rumble_sim` also adds the shared platformer kit from `games/kits/platformer/` as
+  `kit_platformer`. The kit owns the controller and movement profile and compiles against the SDK;
+  the SDK supplies collision, slide, support, push and character state. These kit sources travel
+  with the game sources, outside the installed prefix.
 - `add_subdirectory(tools)` adds `rumble_assetc`: the SDK's baker core `like-nes::assetc_core` and
   the game's own `fighter` record (`tools/fighter_kind.cpp`), which the SDK's `assetc` does not
   know. A record kind is an `asset::manifest::Kind` from `assetc_kind.hpp`: a name, a file extension

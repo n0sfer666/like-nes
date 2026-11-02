@@ -2,7 +2,7 @@
 
 #include "assist.hpp"
 #include "controller.hpp"
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 
 // Гейт прощения УГЛА ПОТОЛКА (вертикаль 3): сдвиг случается ровно в заявленном окне — на границе,

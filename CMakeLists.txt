@@ -174,6 +174,7 @@ add_subdirectory(engine/asset)
 add_subdirectory(engine/audio)
 add_subdirectory(engine/input)
 add_subdirectory(engine/framework) # слой поверх подсистем — после них, зависимость только вниз
+add_subdirectory(games/kits/platformer)
 add_subdirectory(games/neon-rumble/sim)
 add_subdirectory(games/neon-rumble/tests)
 add_subdirectory(engine/plugin)

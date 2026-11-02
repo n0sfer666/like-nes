@@ -38,7 +38,7 @@ SlideResult move_and_slide(const CollisionScene& s, const CharacterHull& hull, V
         // которого заведена. Цена инварианта названа числом: за тик набегает не больше
         // `SLIDE_PASSES * SKIN` = 0.5 юнита, и набегает только на РАЗНЫХ касаниях, каждому из
         // которых зазор нужен самому. Что персонаж после такого отхода не оказывается вжатым во
-        // встречную поверхность, пинит случай внутреннего угла в `framework_character_tunnel_test`.
+        // встречную поверхность, пинит случай внутреннего угла в `kit_platformer_tunnel_test`.
         const Vec2 advance = travel * hit.fraction;
         position = position + advance + hit.normal * SKIN;
         travel = slide_along(travel - advance, hit.normal);

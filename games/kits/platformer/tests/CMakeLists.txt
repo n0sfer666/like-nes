@@ -1,0 +1,130 @@
+# Гейт 1 спеки #16: записанный ввод даёт ту же траекторию побитово на трёх ОС.
+add_executable(kit_platformer_test kit_platformer_test.cpp)
+target_link_libraries(kit_platformer_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Гейт 2: окна прощения срабатывают РОВНО в заявленном окне тиков — на границе и за ней. Отдельной
+# целью от голдена, потому что голден отвечает «три ОС сошлись», а не «сошлись на верном»: окно,
+# укоротившееся на тик, даёт стабильный хеш на всех трёх машинах.
+add_executable(kit_platformer_window_test kit_platformer_window_test.cpp)
+target_link_libraries(kit_platformer_window_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Прыжок ЦЕЛЕВОЙ ВЫСОТОЙ: вершина совпадает с `jump_height` в пределах, выведенных в profile.cpp,
+# и удержание кнопки меняет высоту. Требование спеки записано в юнитах, поэтому и проверяется
+# юнитами, а не хешем.
+add_executable(kit_platformer_jump_test kit_platformer_jump_test.cpp)
+target_link_libraries(kit_platformer_jump_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Лестница (вертикаль 3, шаг D) — своей целью: предмет здесь не геометрия, а РЕЖИМ движения, и
+# половина утверждений о нём про то, чего лестница НЕ делает без намерения игрока.
+add_executable(kit_platformer_ladder_test kit_platformer_ladder_test.cpp)
+target_link_libraries(kit_platformer_ladder_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Шов смешанной сцены (вертикаль 3): порядок слияния ответов тел и тайлов. Отдельной целью от
+# голдена, потому что голден отвечает «траектория та же», а не «спор разобран заявленным правилом»:
+# порядок наблюдаем только там, где оба источника отвечают на одной доле пути.
+add_executable(kit_platformer_collision_test kit_platformer_collision_test.cpp)
+target_link_libraries(kit_platformer_collision_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Геометрическое прощение (вертикаль 3): сдвиг из-под угла потолка и притяжение к полу
+# срабатывают ровно в заявленном окне ЮНИТОВ. Отдельной целью от гейта окон, который меряет то же
+# самое ТИКАМИ на общей сцене: здесь нужна своя геометрия — потолок с проёмом и ступенька вниз, — а
+# дописывать её в общую сцену значило бы менять обстановку под голденом.
+#
+# Целей ДВЕ, по приёму на каждую, и граница между ними — не длина файла, а раскладка: у сдвига она
+# про потолок, у притяжения про пол, и общего у сцен нет ничего, кроме клина, которым обе проверяют
+# отказ по нормали. Один файл на оба приёма упирался бы в жёсткий потолок бюджета длины ровно тогда,
+# когда к таблице окон добавится случай, а резать таблицу пополам ради счётчика — это и есть тот
+# разрез не по смыслу, от которого предостерегает allowlist.
+add_executable(kit_platformer_corner_test kit_platformer_corner_test.cpp)
+target_link_libraries(kit_platformer_corner_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+add_executable(kit_platformer_snap_test kit_platformer_snap_test.cpp)
+target_link_libraries(kit_platformer_snap_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Ходьба по склону (шаг B вертикали 3). Третьей целью, а не случаем в двух гейтах выше: вопрос у неё
+# не про окно прощения, а про то, ЧЕМ грань считается, и раскладка — своя (ступенька в тайл со
+# склоном на весь перепад), потому что окна прощения на ней не срабатывают вовсе.
+add_executable(kit_platformer_slope_test kit_platformer_slope_test.cpp)
+target_link_libraries(kit_platformer_slope_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Односторонняя платформа (шаг B вертикали 3). Четвёртой целью по тому же основанию, что и склон:
+# вопрос у неё не про грань и не про окно, а про то, КОМУ тайл отвечает и как с него сойти по
+# команде, и раскладка своя — платформа с просветом над сплошным полом.
+add_executable(kit_platformer_oneway_test kit_platformer_oneway_test.cpp)
+target_link_libraries(kit_platformer_oneway_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# ПИН клина «подножие склона + стена в ширину корпуса» (находка вертикали 3, шаг C). Отдельной
+# целью, а не случаем в гейте склона: тот держит ИСПРАВНОЕ поведение и обязан оставаться зелёным
+# смыслом, а здесь утверждения перевёрнуты — зелено то, что дефект воспроизводится. Смешав их в
+# одном файле, мы получили бы гейт, про который нельзя сказать, что означает его цвет.
+add_executable(kit_platformer_wedge_test kit_platformer_wedge_test.cpp)
+target_link_libraries(kit_platformer_wedge_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Движущаяся платформа (шаг B3 вертикали 3). Пятой целью по тому же основанию, что склон и
+# односторонняя платформа, и с самым сильным из них: голден траектории идёт по сцене, где мир не
+# шагается НИ РАЗУ, то есть про движущуюся геометрию не утверждает ничего. Раскладка своя и вынесена
+# в заголовок — здесь обстановка, в гейте утверждения.
+add_executable(kit_platformer_platform_test kit_platformer_platform_test.cpp)
+target_link_libraries(kit_platformer_platform_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Снос движущимся телом (находка владельческого прогона §6). Шестой целью по тому же основанию,
+# что и перенос опорой: раскладка общая с ним, а вопрос другой — не «еду ли я вместе с опорой», а
+# «убирают ли меня с дороги того, на чём я не стою».
+add_executable(kit_platformer_push_test kit_platformer_push_test.cpp)
+target_link_libraries(kit_platformer_push_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Инвариант 2 спеки #16: на максимальной скорости сквозь тонкую стену прохода нет.
+add_executable(kit_platformer_tunnel_test kit_platformer_tunnel_test.cpp)
+target_link_libraries(kit_platformer_tunnel_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# Инвариант 5 спеки #16: тик не ходит в кучу. Счётчик и его позитивный контроль общие с гейтом 6
+# спеки #15 — `framework_alloc_probe.hpp` подменяет глобальные operator new/delete и допустим ровно
+# в одном TU на программу, поэтому цель отдельная, а не случай в голдене.
+add_executable(kit_platformer_alloc_test kit_platformer_alloc_test.cpp)
+target_link_libraries(kit_platformer_alloc_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core framework_alloc_probe_control)
+
+# Профиль как испечённые ДАННЫЕ (решение 2 спеки #16) — ТРИ цели, и граница между ними та же, что у
+# пресетов ввода #14: имя упавшей цели в логе CI обязано называть класс поломки.
+#   * ..._profile_test — round-trip, голден байтов, отказы читателя (согласованы ли пекарь с
+#     читателем и не поехала ли раскладка);
+#   * ..._profile_refusal_test — отказы пекаря НОМЕРОМ СТРОКИ (не испёкся ли манифест молча);
+#   * ..._bundle_test — секция из ЛЕЖАЩЕГО В GIT game.bundle против default_profile() (доехало ли
+#     испечённое до рантайма, и перепечён ли бандл после правки манифеста).
+add_executable(kit_platformer_profile_test kit_platformer_profile_test.cpp)
+target_link_libraries(kit_platformer_profile_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+add_executable(kit_platformer_profile_refusal_test
+               kit_platformer_profile_refusal_test.cpp)
+target_link_libraries(kit_platformer_profile_refusal_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core)
+
+# asset_core — только здесь: бандл открывается менеджером ассетов, и тянуть его в саму библиотеку
+# значило бы связать профиль с форматом хранения. Направление зависимостей это не ломает —
+# инвариант 1 спеки #14 запрещает обратное ребро, от подсистем к слою.
+add_executable(kit_platformer_bundle_test kit_platformer_bundle_test.cpp)
+target_link_libraries(kit_platformer_bundle_test PRIVATE kit_platformer framework_character
+  framework_tilemap asset_core platform_core)
+
+# Гейт 7 спеки #16: уровень целевого размера укладывается в бюджет кадра, и цена тика не зависит от
+# размера карты (инвариант 4). Отдельной целью от гейта аллокаций по тому же контракту, что развёл
+# гейты 6 и 8 физики: `framework_alloc_probe.hpp` подменяет операторы всей программе и допустим
+# ровно в одном TU, а вопросы у целей разные — там «тик не ходит в кучу», здесь «сколько тайлов
+# стоит тик и меняется ли это от размера уровня».
+add_executable(kit_platformer_perf_test kit_platformer_perf_test.cpp)
+target_link_libraries(kit_platformer_perf_test PRIVATE kit_platformer framework_character
+  framework_tilemap platform_core framework_alloc_probe_control)

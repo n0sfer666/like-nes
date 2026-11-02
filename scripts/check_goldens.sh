@@ -123,7 +123,7 @@ verify_bundle() {
     # обе судят бандл, а второй источник живёт в C++. И секция `touch` — путём мобильного шутера
     # (`read_bundle_asset` + `read_layout`) против разбора `touch.txt`: без неё шутер не стартует.
     local bin rc t all=0
-    for t in framework_character_bundle_test framework_tilemap_bundle_test game_platformer_sim_test \
+    for t in kit_platformer_bundle_test framework_tilemap_bundle_test game_platformer_sim_test \
         framework_graphics_atlas_bundle_test game_atlas_regions_test game_touch_bundle_test; do
         bin=$(find build-ci build-full -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) 2>/dev/null | head -1)
         if [ -z "$bin" ]; then echo "$t не собран"; all=1; continue; fi

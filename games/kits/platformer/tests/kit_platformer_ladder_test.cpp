@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "framework_character_ladder_scene.hpp"
+#include "kit_platformer_ladder_scene.hpp"
 #include "platform_args.hpp"
 
 // Гейт ЛЕСТНИЦЫ (вертикаль 3, шаг D): лазание как отдельный режим движения и переходы машины

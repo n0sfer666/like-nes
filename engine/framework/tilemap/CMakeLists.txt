@@ -6,7 +6,7 @@ add_library(framework_tilemap STATIC grid.cpp query.cpp map_parse.cpp map_bake.c
   object_read.cpp object_bake.cpp)
 target_include_directories(framework_tilemap PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 # platform_core — PRIVATE: наружу из модуля торчит сетка, а не файловый шов, которым пекарь читает
-# исходник. То же устройство, что у framework_character и framework_input.
+# исходник. То же устройство, что у kit_platformer и framework_input.
 target_link_libraries(framework_tilemap PUBLIC framework_physics PRIVATE platform_core)
 
 # Гейт шага A: три запроса против ответов, посчитанных ИЗ РАСКЛАДКИ, плюс голден свёртки всех

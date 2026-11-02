@@ -25,7 +25,7 @@ function(platformer_live_target name)
   target_include_directories(${name} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
   target_link_libraries(${name} PRIVATE
-    engine_core framework_character framework_graphics_tiles framework_input asset_core
+    engine_core kit_platformer framework_character framework_graphics_tiles framework_input asset_core
     material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
   if(APPLE)
     target_link_libraries(${name} PRIVATE

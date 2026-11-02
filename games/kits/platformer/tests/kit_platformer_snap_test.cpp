@@ -2,7 +2,7 @@
 
 #include "assist.hpp"
 #include "controller.hpp"
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 
 // Гейт ПРИТЯЖЕНИЯ К ЗЕМЛЕ на спусках (вертикаль 3): притяжение случается ровно в заявленном окне —

@@ -5,7 +5,7 @@
 // контракт — ровно один TU на программу, и владеть им обязан тот, кто программу и составляет.
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
-#include "framework_character_perf_probe.hpp"
+#include "kit_platformer_perf_probe.hpp"
 #include "platform_args.hpp"
 
 // Гейт 7 спеки #16: уровень целевого размера укладывается в бюджет кадра.

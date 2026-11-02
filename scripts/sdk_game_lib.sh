@@ -24,6 +24,8 @@ fixture_copy() {
     local name=$1
     rm -rf "${WORK:?}/fx-$name"
     cp -R "$ROOT/games/neon-rumble" "$WORK/fx-$name"
+    # Сохраняем относительный адрес общего кита для копии игры вне её исходного каталога.
+    if [ ! -d "$WORK/kits" ]; then cp -R "$ROOT/games/kits" "$WORK/kits"; fi
     printf '%s' "$WORK/fx-$name"
 }
 

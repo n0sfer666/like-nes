@@ -2,14 +2,14 @@
 
 ```
 python3 scripts/check_sim_float.py             # блокирующий гейт, в checks.json
-python3 scripts/check_sim_float.py --selftest  # 32 контроля на фикстурах
+python3 scripts/check_sim_float.py --selftest  # 35 контролей на фикстурах
 ```
 
 Спека #25, нефункциональные: симуляция — только fix32 и целые. Хеш кроссплея сверяется между
 тремя ОС, и одно `float` в шаге даёт расхождение, которое назовёт джоб `crossplay`, но не причину.
 Гейт называет причину строкой.
 
-- **Где.** `engine/framework/{scene,touch,depth,hits,kinematic}` и `games/neon-rumble/sim` — файлы глазами `git ls-files --cached --others
+- **Где.** `engine/framework/{scene,touch,depth,hits,kinematic}` и `games/neon-rumble/sim`, `games/kits/platformer` — файлы глазами `git ls-files --cached --others
   --exclude-standard`, расширения C/C++. Драка и `ai` переехали в игру в В2г #29; исторически `ai` — с В5, `scene` — с В6а
   (2026-10-11): `float leak;` в конце `scene_objects.hpp` → FAIL, строка 94; откат — PASS, 120 файлов.
   `touch` — со спеки #26 В2б (2026-10-16): ось экранного стика уходит в InputFrame и в sim-хеш, а
@@ -59,3 +59,7 @@ python3 scripts/check_sim_float.py --selftest  # 32 контроля на фик
 Позитивный контроль 2026-10-06: `float leak;` в конце `depth_profile.hpp` → FAIL; после ревью —
 `#include <cmath>` и `constexpr auto leak_k = 1.5e2;` там же → две находки (строки 11 и 12), FAIL;
 откат — PASS, 20 файлов.
+
+В2д #29: контроллер и профиль проверяются в `games/kits/platformer`; подкаталог `tests/`
+исключён, потому что тестовые геометрия и диагностика используют float. Три контроля
+селектора отличают производственный файл, tests и соседний tests_extra; последний не исключён.

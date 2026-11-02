@@ -4,11 +4,11 @@
 #include <cstdio>
 
 #include "controller.hpp"
-#include "framework_character_perf_level.hpp"
+#include "kit_platformer_perf_level.hpp"
 #include "trajectory.hpp"
 
 // Измерительная половина гейта 7 спеки #16: прогон маршрута, снятие счётчиков и печать. Утверждения
-// живут отдельно (`framework_character_perf_test.cpp`) — граница ровно та же, что у гейта 8 физики:
+// живут отдельно (`kit_platformer_perf_test.cpp`) — граница ровно та же, что у гейта 8 физики:
 // замер правится вслед за формой счётчиков, утверждения — вслед за поведением тика.
 //
 // `framework_alloc_probe.hpp` этот заголовок НЕ включает, хотя и читает его счётчик: тот подменяет

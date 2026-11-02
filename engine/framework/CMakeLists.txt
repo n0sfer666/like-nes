@@ -18,4 +18,4 @@ add_subdirectory(kinematic)
 # дефект один и тот же строкой в каждом читателе, и цель на модуль утверждала бы его четырежды.
 add_executable(framework_section_align_test framework_section_align_test.cpp)
 target_link_libraries(framework_section_align_test PRIVATE framework_input framework_graphics
-  framework_character framework_tilemap platform_core)
+  kit_platformer framework_character framework_tilemap platform_core)

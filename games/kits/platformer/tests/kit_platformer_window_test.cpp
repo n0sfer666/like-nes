@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "controller.hpp"
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 
 // Гейт 2 спеки #16: окна прощения срабатывают РОВНО в заявленном окне тиков — на границе и за ней.
@@ -148,7 +148,7 @@ fix32 buffered_apex(const MoveProfile& p, const MoveDerived& d, uint32_t landing
 // пропустил бы и прыжок, обрезанный до нуля. Ожидание здесь — РОВНО `min_jump_height`, и это не
 // совпадение: обрыв случается в том же тике, что и старт, поэтому первым же шагом интегрируется уже
 // урезанная скорость, а она выведена так, чтобы дать ровно эту высоту. Касание с удержанием
-// (`framework_character_jump_test`) поднимает выше на `jump_speed*dt` — там первый тик успевает
+// (`kit_platformer_jump_test`) поднимает выше на `jump_speed*dt` — там первый тик успевает
 // проинтегрировать полную скорость до того, как отпускание становится наблюдаемым.
 void test_buffered_tap_stays_short() {
     const MoveProfile p = default_profile();

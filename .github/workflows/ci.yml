@@ -2024,7 +2024,7 @@ jobs:
         run: |
           SAN="-std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1"
           INC="-Iengine/framework/input -Iengine/framework/core -Iengine/framework/graphics"
-          INC="$INC -Iengine/framework/character -Iengine/framework/tilemap"
+          INC="$INC -Iengine/framework/character -Igames/kits/platformer -Iengine/framework/tilemap"
           INC="$INC -Iengine/framework/physics -Iengine/core -Iengine/input -Iengine/asset"
           INC="$INC -Iengine/platform -Iengine/framework/touch"
           COMMON=$(find engine/framework/input engine/framework/core engine/framework/touch engine/platform \
@@ -2032,7 +2032,7 @@ jobs:
             | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
           IMPORT=$(sed -n '/add_library(framework_graphics_import/,/)/p' engine/framework/graphics/import.cmake \
             | grep -oE '[a-z_]+\.cpp' | sed 's|^|graphics/|')
-          FW=$(find engine/framework/graphics engine/framework/character \
+          FW=$(find engine/framework/graphics engine/framework/character games/kits/platformer \
             engine/framework/tilemap engine/framework/physics \
             -maxdepth 1 -name '*.cpp' | grep -vE '_test\.cpp$' | grep -vF "$IMPORT")
           CORE=$(bash scripts/cmake_target_sources.sh engine/input/CMakeLists.txt input_core)
@@ -2321,15 +2321,15 @@ jobs:
                    rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test \
                    rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test \
                    rumble_ai_test rumble_ai_resim_test \
-                   framework_character_test framework_character_window_test \
-                   framework_character_jump_test framework_character_tunnel_test \
-                   framework_character_collision_test framework_character_corner_test \
-                   framework_character_snap_test framework_character_slope_test \
-                   framework_character_oneway_test framework_character_platform_test \
-                   framework_character_push_test \
-                   framework_character_wedge_test framework_character_ladder_test \
-                   framework_character_alloc_test framework_character_profile_test \
-                   framework_character_profile_refusal_test framework_character_bundle_test \
+                   kit_platformer_test kit_platformer_window_test \
+                   kit_platformer_jump_test kit_platformer_tunnel_test \
+                   kit_platformer_collision_test kit_platformer_corner_test \
+                   kit_platformer_snap_test kit_platformer_slope_test \
+                   kit_platformer_oneway_test kit_platformer_platform_test \
+                   kit_platformer_push_test \
+                   kit_platformer_wedge_test kit_platformer_ladder_test \
+                   kit_platformer_alloc_test kit_platformer_profile_test \
+                   kit_platformer_profile_refusal_test kit_platformer_bundle_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
                    framework_tilemap_bundle_test game_platformer_sim_test \
                    game_platformer_rollback_test \
@@ -2348,12 +2348,12 @@ jobs:
             || { echo "PHYSICS STATE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Гейт 1 спеки #16 той же строкой и по той же причине: траектория персонажа — второй
           # голден, идущий через три ОС, и его ЗНАЧЕНИЕ обязано быть в логе рядом с физическим.
-          grep -q "character trajectory hash = 0x7801049c168bb301" phys_framework_character_test.txt \
+          grep -q "character trajectory hash = 0x7801049c168bb301" phys_kit_platformer_test.txt \
             || { echo "CHARACTER TRAJECTORY GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Третий голден этого шага — БАЙТЫ испечённого профиля движения. Он в логе по той же
           # причине, что два выше, и ловит своё: round-trip пережил бы согласованную перестановку
           # полей в пекаре и читателе, а `game.bundle` в git — нет.
-          grep -q "hash 0xa554e52327f8d33d" phys_framework_character_profile_test.txt \
+          grep -q "hash 0xa554e52327f8d33d" phys_kit_platformer_profile_test.txt \
             || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Байты испечённой таблицы бойца (LNFT, В2б спеки #25) — по основанию голдена профиля выше.
           grep -q "hash 0x34030b3c5a326d2d" phys_rumble_fighter_test.txt \
@@ -2459,7 +2459,7 @@ jobs:
         shell: bash
         run: |
           need() { [ -n "$1" ] || { echo "$2 not built on ${{ matrix.os }}"; exit 1; }; }
-          T=framework_character_perf_test
+          T=kit_platformer_perf_test
           B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
           need "$B" "$T"
           "$B" | tee char_perf.txt
@@ -2485,7 +2485,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_ids_test framework_rollback_plan_test framework_rollback_test framework_replay_test rumble_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test rumble_snapshot_test rumble_seat_test rumble_hotseat_test rumble_crossplay_test rumble_fighter_test rumble_fighter_refusal_test rumble_hit_test rumble_hit_rules_test rumble_immune_test rumble_strike_test rumble_chain_test rumble_react_test rumble_run_test rumble_guard_test rumble_dodge_test rumble_dodge_flick_test framework_flick_test framework_action_buffer_test rumble_grab_test rumble_clash_test rumble_throw_test rumble_camera_test rumble_stage_test rumble_wave_test rumble_wave_lock_test rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test rumble_ai_test rumble_ai_resim_test rumble_resim_bench framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_ids_test framework_rollback_plan_test framework_rollback_test framework_replay_test rumble_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test rumble_snapshot_test rumble_seat_test rumble_hotseat_test rumble_crossplay_test rumble_fighter_test rumble_fighter_refusal_test rumble_hit_test rumble_hit_rules_test rumble_immune_test rumble_strike_test rumble_chain_test rumble_react_test rumble_run_test rumble_guard_test rumble_dodge_test rumble_dodge_flick_test framework_flick_test framework_action_buffer_test rumble_grab_test rumble_clash_test rumble_throw_test rumble_camera_test rumble_stage_test rumble_wave_test rumble_wave_lock_test rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test rumble_ai_test rumble_ai_resim_test rumble_resim_bench framework_trig_test kit_platformer_test kit_platformer_window_test kit_platformer_jump_test kit_platformer_tunnel_test kit_platformer_collision_test kit_platformer_corner_test kit_platformer_snap_test kit_platformer_profile_test kit_platformer_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test kit_platformer_slope_test kit_platformer_oneway_test kit_platformer_platform_test kit_platformer_push_test kit_platformer_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test kit_platformer_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -2522,16 +2522,16 @@ jobs:
                    rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test \
                    rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test \
                    rumble_ai_test rumble_ai_resim_test rumble_resim_bench \
-                   framework_trig_test framework_character_test \
-                   framework_character_window_test framework_character_jump_test \
-                   framework_character_tunnel_test framework_character_collision_test \
-                   framework_character_corner_test framework_character_snap_test \
-                   framework_character_profile_test framework_character_profile_refusal_test \
+                   framework_trig_test kit_platformer_test \
+                   kit_platformer_window_test kit_platformer_jump_test \
+                   kit_platformer_tunnel_test kit_platformer_collision_test \
+                   kit_platformer_corner_test kit_platformer_snap_test \
+                   kit_platformer_profile_test kit_platformer_profile_refusal_test \
                    framework_tilemap_bake_test framework_tilemap_refusal_test \
-                   framework_character_slope_test framework_character_oneway_test framework_character_platform_test \
-                   framework_character_push_test framework_character_perf_test \
+                   kit_platformer_slope_test kit_platformer_oneway_test kit_platformer_platform_test \
+                   kit_platformer_push_test kit_platformer_perf_test \
                    framework_tilemap_slope_test framework_tilemap_oneway_test \
-                   framework_tilemap_ladder_test framework_character_ladder_test \
+                   framework_tilemap_ladder_test kit_platformer_ladder_test \
                    framework_graphics_clip_test framework_graphics_event_test \
                    framework_graphics_anim_test framework_graphics_path_test \
                    framework_graphics_atlas_test framework_graphics_atlas_refusal_test \
@@ -2550,11 +2550,11 @@ jobs:
             || { echo "PHYSICS DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Траектория персонажа обязана совпасть между -O0 и -O3 по тому же основанию: расхождение
           # уровней оптимизации в целочисленной арифметике это UB, а не погрешность.
-          grep -q "character trajectory hash = 0x7801049c168bb301" dbg_framework_character_test.txt \
+          grep -q "character trajectory hash = 0x7801049c168bb301" dbg_kit_platformer_test.txt \
             || { echo "CHARACTER DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица профиля собирается разбором числа из текста, то есть арифметикой по int64:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
-          grep -q "hash 0xa554e52327f8d33d" dbg_framework_character_profile_test.txt \
+          grep -q "hash 0xa554e52327f8d33d" dbg_kit_platformer_profile_test.txt \
             || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           grep -q "hash 0x34030b3c5a326d2d" dbg_rumble_fighter_test.txt \
             || { echo "FIGHTER TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
@@ -2813,16 +2813,19 @@ jobs:
           # вовсе, но линкеру это безразлично — `undefined reference to platform::read_text` стоил
           # красной сборки на единственном раннере, где шаг вообще запускается.
           # ci-lint: mirrors-target engine/framework/character/CMakeLists.txt framework_character
-          CHAR="engine/framework/character/controller.cpp engine/framework/character/collision.cpp engine/framework/character/profile.cpp engine/framework/character/slide.cpp engine/framework/character/assist.cpp engine/framework/character/support.cpp engine/framework/character/push.cpp engine/framework/character/ladder.cpp engine/framework/character/trajectory.cpp engine/framework/character/profile_parse.cpp engine/framework/character/profile_bake.cpp engine/framework/character/profile_read.cpp"
-          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
-            engine/framework/character/framework_character_test.cpp $PLAT -o char_san
+          CHAR_CORE="engine/framework/character/collision.cpp engine/framework/character/slide.cpp engine/framework/character/support.cpp engine/framework/character/push.cpp"
+          # ci-lint: mirrors-target games/kits/platformer/CMakeLists.txt kit_platformer
+          CHAR_KIT="games/kits/platformer/controller.cpp games/kits/platformer/profile.cpp games/kits/platformer/assist.cpp games/kits/platformer/ladder.cpp games/kits/platformer/trajectory.cpp games/kits/platformer/profile_parse.cpp games/kits/platformer/profile_bake.cpp games/kits/platformer/profile_read.cpp"
+          CHAR="$CHAR_CORE $CHAR_KIT"
+          c++ $SAN -Iengine/framework/character -Igames/kits/platformer -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
+            games/kits/platformer/tests/kit_platformer_test.cpp $PLAT -o char_san
           ./char_san | tee charsan.txt
           grep -q "character trajectory hash = 0x7801049c168bb301" charsan.txt
           # Шов смешанной сцены — свой вопрос к санитайзеру, не совпадающий ни с голденом, ни с
           # гейтами тайлмапа: слияние читает ответ ОДНОГО источника и переписывает им ответ другого,
           # то есть работает с полем структуры, заполненной не тем вызовом, который её объявил.
-          c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
-            engine/framework/character/framework_character_collision_test.cpp $PLAT -o char_scene_san
+          c++ $SAN -Iengine/framework/character -Igames/kits/platformer -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
+            games/kits/platformer/tests/kit_platformer_collision_test.cpp $PLAT -o char_scene_san
           ./char_scene_san | tee charscenesan.txt
           grep -q ": PASS" charscenesan.txt
           # Геометрическое прощение и склоны — третий вопрос к санитайзеру, и целей у него три:
@@ -2847,8 +2850,8 @@ jobs:
           # позиционные утверждения гейта на это молчат. Свиповые цели выше этот путь не трогают
           # вовсе: `ladder.cpp` в них линкуется и не исполняется ни разу.
           for G in corner snap slope oneway platform ladder; do
-            c++ $SAN -Iengine/framework/character -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
-              "engine/framework/character/framework_character_${G}_test.cpp" $PLAT -o "char_${G}_san"
+            c++ $SAN -Iengine/framework/character -Igames/kits/platformer -Iengine/framework/tilemap $LIB $TILES $TILES_FS $CHAR \
+              "games/kits/platformer/tests/kit_platformer_${G}_test.cpp" $PLAT -o "char_${G}_san"
             "./char_${G}_san" | tee "char${G}san.txt"
             grep -q ": PASS" "char${G}san.txt"
           done

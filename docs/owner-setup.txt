@@ -863,12 +863,12 @@ owner_check.sh гоняет это сам и кладёт вывод в отчё
 
 --- L. Цена тика персонажа (гейт 7 спеки #16) ------------------------------
 
-  cmake --build build --target framework_character_perf_test
-  ./build/framework_character_perf_test
+  cmake --build build --target kit_platformer_perf_test
+  ./build/kit_platformer_perf_test
 
 owner_check.sh гоняет это вместе с пунктом J одним этапом (scripts/owner_perf.sh)
 и кладёт вывод в отчёт — руками нужно, только если смотришь отдельно. Windows:
-build\framework_character_perf_test.exe из того же prompt.
+build\kit_platformer_perf_test.exe из того же prompt.
 
   Гейт прогоняет ОДИН И ТОТ ЖЕ записанный маршрут по двум картам — 256x32 и
   1024x256, ровно в 32 раза больше по площади. Счётчики обязаны совпасть
@@ -2543,7 +2543,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
     DISCONNECTED
   - числа "best / median" (цикл правка→сборка→hot-reload)
   - вывод framework_physics_perf_test целиком (пункт J)
-  - вывод framework_character_perf_test целиком (пункт L): строки счётчиков
+  - вывод kit_platformer_perf_test целиком (пункт L): строки счётчиков
     обязаны совпасть у small и target и между машинами, worst/mean — нет
   - вывод owner_net_budget.sh целиком (пункт M): две строки "худший кадр" и
     четыре строки замеров над ними, с пометкой, что машина была не занята

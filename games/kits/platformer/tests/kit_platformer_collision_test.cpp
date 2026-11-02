@@ -1,6 +1,6 @@
 #include <cstdio>
 
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 #include "profile.hpp"
 

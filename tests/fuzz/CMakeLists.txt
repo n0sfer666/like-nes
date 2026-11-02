@@ -21,7 +21,7 @@ target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 # Порядок — ОТ ЗАВИСЯЩЕГО К ЗАВИСИМОСТИ, и это не вкусовщина. CMake сохраняет заявленный порядок
 # прямых зависимостей, а чтобы статический архив стоял после того, кто из него тянет символы,
 # дописывает его на линию ВТОРОЙ раз. `material_core` перед `material_bake` (а `framework_tilemap`
-# перед `framework_character`) давал ровно это, и ld64 отвечал `ignoring duplicate libraries` —
+# перед `kit_platformer`) давал ровно это, и ld64 отвечал `ignoring duplicate libraries` —
 # предупреждение, которое сборочный гейт не умеет считать неважным, и правильно делает.
 # Список собирается переменной, а не вторым вызовом `target_link_libraries`, по той же причине:
 # сцена IDE тянет материалы, тайлмап и платформу своим замыканием и обязана быть в НАЧАЛЕ списка.
@@ -32,7 +32,7 @@ set(FUZZ_LIBS
   framework_json
   asset_core
   ach_core
-  rumble_fighter framework_character framework_graphics framework_input framework_tilemap
+  rumble_fighter kit_platformer framework_character framework_graphics framework_input framework_tilemap
   framework_touch
   material_bake material_core
   plugin_core

@@ -37,7 +37,7 @@ inline int64_t tick_period_ns() {
 }
 
 // Персонаж ростом в два тайла и шириной в один: карта рисовалась под эти полуразмеры, и проходы в
-// ней считаны от них. Совпадение с фикстурой гейтов (`framework_character_scene.hpp`) не случайно,
+// ней считаны от них. Совпадение с фикстурой гейтов (`kit_platformer_scene.hpp`) не случайно,
 // но и не связано — там своя геометрия, здесь своя.
 constexpr fix32 HULL_HALF_W = fix32::from_int(8);
 constexpr fix32 HULL_HALF_H = fix32::from_int(16);

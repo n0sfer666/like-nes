@@ -7,7 +7,7 @@ from pathlib import Path
 import py_utf8
 
 SIM_PATHS = ("engine/framework/scene", "engine/framework/touch",
-             "games/neon-rumble/sim", "engine/framework/core/ent_id.hpp", "engine/framework/core/world_rng.hpp",
+             "games/neon-rumble/sim", "games/kits/platformer", "engine/framework/core/ent_id.hpp", "engine/framework/core/world_rng.hpp",
              "engine/framework/core/world_rng.cpp", "engine/framework/core/seats.hpp",
              "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp",
              "engine/framework/input/flick.hpp", "engine/framework/input/flick.cpp",
@@ -63,6 +63,9 @@ def guards(files, paths):
 
 
 def in_sim(name):
+    # Файлы тестов кита используют float для диагностики и задания геометрии; тик — уровнем выше.
+    if under(name, "games/kits/platformer/tests"):
+        return False
     return any(under(name, p) for p in SIM_PATHS)
 
 
@@ -105,6 +108,9 @@ CASES = (
 )
 
 PATHS = (
+    ("кит в обходе", "games/kits/platformer/controller.cpp", True),
+    ("диагностика тестов кита не в обходе", "games/kits/platformer/tests/kit_platformer_test.cpp", False),
+    ("сосед tests не исключён", "games/kits/platformer/tests_extra/controller.cpp", True),
     ("каталог движка в обходе", "engine/framework/depth/a.hpp", True),
     ("каталог игры в обходе", "games/neon-rumble/sim/rumble_floor.cpp", True),
     ("сосед каталога с общим префиксом не в обходе", "games/neon-rumble/simx/a.cpp", False),

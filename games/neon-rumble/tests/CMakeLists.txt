@@ -1,18 +1,18 @@
 add_executable(rumble_test rumble_test.cpp)
-target_link_libraries(rumble_test PRIVATE rumble_sim framework_character)
+target_link_libraries(rumble_test PRIVATE rumble_sim kit_platformer)
 
 add_executable(rumble_snapshot_test rumble_snapshot_test.cpp)
-target_link_libraries(rumble_snapshot_test PRIVATE rumble_sim framework_character)
+target_link_libraries(rumble_snapshot_test PRIVATE rumble_sim kit_platformer)
 
 add_executable(rumble_seat_test rumble_seat_test.cpp)
-target_link_libraries(rumble_seat_test PRIVATE rumble_sim framework_character)
+target_link_libraries(rumble_seat_test PRIVATE rumble_sim kit_platformer)
 
 add_executable(rumble_hotseat_test rumble_hotseat_test.cpp)
-target_link_libraries(rumble_hotseat_test PRIVATE rumble_sim framework_character
+target_link_libraries(rumble_hotseat_test PRIVATE rumble_sim kit_platformer
   framework_input framework_replay)
 
 add_executable(rumble_crossplay_test rumble_crossplay_test.cpp)
-target_link_libraries(rumble_crossplay_test PRIVATE rumble_sim framework_character)
+target_link_libraries(rumble_crossplay_test PRIVATE rumble_sim kit_platformer)
 target_include_directories(rumble_crossplay_test PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
 

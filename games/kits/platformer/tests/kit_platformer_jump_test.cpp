@@ -1,7 +1,7 @@
 #include <cstdio>
 
 #include "controller.hpp"
-#include "framework_character_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 
 // Прыжок ЦЕЛЕВОЙ ВЫСОТОЙ: вершина совпадает с `jump_height` профиля, и удержание кнопки этой

@@ -52,13 +52,8 @@ set(LIKE_NES_SDK_HEADERS
   framework/tilemap/visual_format.hpp framework/tilemap/visual_read.hpp
   framework/tilemap/visual_texels.hpp framework/tilemap/object_format.hpp
   framework/tilemap/object_read.hpp
-  framework/character/assist.hpp framework/character/character_state.hpp
-  framework/character/collision.hpp framework/character/controller.hpp
-  framework/character/ladder.hpp framework/character/profile.hpp
-  framework/character/profile_bake.hpp framework/character/profile_format.hpp
-  framework/character/profile_read.hpp framework/character/push.hpp
-  framework/character/slide.hpp framework/character/support.hpp
-  framework/character/trajectory.hpp
+  framework/character/character_state.hpp framework/character/collision.hpp
+  framework/character/push.hpp framework/character/slide.hpp framework/character/support.hpp
   framework/graphics/atlas_bake.hpp framework/graphics/atlas_format.hpp
   framework/graphics/atlas_read.hpp framework/graphics/camera.hpp framework/graphics/camera_autoscroll.hpp framework/graphics/clip.hpp
   framework/graphics/debug_draw.hpp framework/graphics/graphics_sprite.hpp

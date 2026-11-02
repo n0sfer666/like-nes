@@ -1,3 +1,6 @@
+if(NOT TARGET kit_platformer)
+  add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/../../kits/platformer ${CMAKE_CURRENT_BINARY_DIR}/kit-platformer)
+endif()
 include(${CMAKE_CURRENT_LIST_DIR}/fighter.cmake)
 add_library(rumble_sim STATIC rumble_floor.cpp rumble_stage_load.cpp rumble_stage_fighters.cpp rumble_stage_error.cpp
   level_objects_read.cpp scene_links.cpp body_pool.cpp body_hash.cpp depth_step.cpp
@@ -11,9 +14,9 @@ add_library(rumble_sim STATIC rumble_floor.cpp rumble_stage_load.cpp rumble_stag
 target_include_directories(rumble_sim PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(rumble_sim PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 if(TARGET like-nes::engine)
-  target_link_libraries(rumble_sim PUBLIC rumble_fighter like-nes::engine)
+  target_link_libraries(rumble_sim PUBLIC rumble_fighter kit_platformer like-nes::engine)
 elseif(TARGET framework_depth)
-  target_link_libraries(rumble_sim PUBLIC rumble_fighter framework_character framework_physics framework_scene
+  target_link_libraries(rumble_sim PUBLIC rumble_fighter kit_platformer framework_physics framework_scene
     framework_kinematic framework_hits framework_input framework_core input_core)
 else()
   message(FATAL_ERROR "rumble_sim: neither like-nes::engine nor the engine tree targets; call find_package(like-nes) first")

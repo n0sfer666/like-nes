@@ -25,8 +25,8 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | End-to-end: clone → build → editor → edit game code → change visible | [#13](../.context/specs/2026-07-26-desktop-dev-parity.md) 8 | Linux **and** Windows | 2026-08-05/06 | build loop, watcher, hot-reload, `win-dev.bat` |
 | Live input: pad passport, profile, runtime rebind, unplug mid-session | [#14](../.context/specs/2026-07-26-framework-input.md) 8 | Linux **and** Windows | 2026-08-07 | `engine/input` backends, presets, profiles |
 | Physics frame cost against a real frame budget | [#15](../.context/specs/2026-07-26-physics-core.md) 8 | Linux **and** Windows | 2026-08-22 | `engine/framework/physics`, load scenes, solver iterations |
-| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, query window |
-| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
+| A target-size level costs a small one's tick, and that tick fits a frame | [#16](../.context/specs/2026-07-26-character-tilemap.md) 7 | Linux **and** Windows | 2026-09-01 | `games/kits/platformer`, `engine/framework/character`, `engine/framework/tilemap`, query window |
+| The platformer sample plays: slope, one-way, moving platform, and it feels responsive | [#16](../.context/specs/2026-07-26-character-tilemap.md) 8 | **all three** | 2026-08-30, re-closed with artefacts 2026-09-01 | `games/kits/platformer`, `engine/framework/character`, `engine/framework/tilemap`, `example_ugly_game/platformer_*` |
 | The samples look the same after being moved onto the graphics framework | [#17](../.context/specs/2026-07-26-graphics-framework.md) 9 | **any one** | 2026-09-02 | `example_ugly_game/platformer_view.*`, `example_ugly_game/fx*`, `example_ugly_game/sprite_out.*`, `engine/framework/graphics` |
 | The reference frame holds against a real GPU driver, not a software rasteriser | [#17](../.context/specs/2026-07-26-graphics-framework.md) 2 | **all three** (a real AMD/NVIDIA/Intel driver each) | — | `engine/render/*`, `example_ugly_game/golden/scene_960x540.png`, shader sources |
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | 2026-10-03 | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
@@ -920,7 +920,7 @@ both noise checks — `ok`, `?` (nothing to compare against) or `ШУМ`.
 > is closed by CI and needs no machine of yours: the same
 > scripted route over a 256×32 map and over a 1024×256 one — thirty-two times the area — returns the
 > *same* `queries`, the same `scanned`, the same worst tick and the same trajectory hash, on three
-> OSes and in both configurations (`framework_character_perf_test`). That is invariant 4 of spec
+> OSes and in both configurations (`kit_platformer_perf_test`). That is invariant 4 of spec
 > [#16](../.context/specs/2026-07-26-character-tilemap.md) — the cost of a query does not depend on
 > the size of the level — and it is observable only by **comparison**, never by an absolute number.
 >
@@ -964,12 +964,12 @@ This gate is the character half of the frame-cost stage of `owner_check.sh`, so 
 already carries it. Alone:
 
 ```sh
-cmake --build build --target framework_character_perf_test
-./build/framework_character_perf_test
+cmake --build build --target kit_platformer_perf_test
+./build/kit_platformer_perf_test
 ```
 
 (Windows: `scripts\win-dev.bat check` builds the tree, then
-`build\framework_character_perf_test.exe`. Both frame-cost measurements at once, physics and
+`build\kit_platformer_perf_test.exe`. Both frame-cost measurements at once, physics and
 character, are `bash scripts/owner_perf.sh`.)
 
 **Measure on an idle machine — that is part of the procedure, not a nicety.** On 2026-09-01 this
@@ -1055,7 +1055,7 @@ shape of a gate that has quietly stopped gating.
 > `0xfead7a87477a9258` unmoved, with both numbers the 2026-09-01 findings pinned reproduced to the
 > digit (`edge: hero=24.125 leftmost=8.000`, `rider: hero=583.542 plate=555.999 slipped=1
 > crushed=0`), plus `game_platformer_view_test`, `game_platformer_input_test`,
-> `framework_character_push_test` and `framework_character_platform_test` — evidence
+> `kit_platformer_push_test` and `kit_platformer_platform_test` — evidence
 > `build/owner-artifacts-linux/g6-headless.txt`. The live window opens and closes as the gate says
 > it must: `[gpu] Intel(R) UHD Graphics 620 (KBL GT2) | Vulkan | BC: yes`, then the one startup line
 > with `gamepad: evdev (Linux)`, then `[platformer] window clean exit`, exit code 0, nothing on
@@ -1178,7 +1178,7 @@ them — both were reachable by ordinary play and neither was visible from any g
   platform's travel. Fixed by `character/push.hpp`: a body driving into a character shoves him along
   its own direction, atomically, and reports `crushed` when the destination is blocked by something
   other than the pusher. The ladder tick gets the same step 0, because a platform arriving at a
-  character hanging on a ladder is the same event. Pinned by `framework_character_push_test` (six
+  character hanging on a ladder is the same event. Pinned by `kit_platformer_push_test` (six
   cases; on the pre-fix code the first of them measures a 53.985-unit penetration, and the
   bystander case — a still body the character merely touches, with a **lower key** than the pusher —
   is what defeats answering the question with a single nearest-hit sweep). Being crushed stays a
@@ -1214,7 +1214,7 @@ the point of the pair.
 
 Pinned twice, both red on the pre-fix code and green after it:
 
-* `framework_character_platform_test` — `test_a_blocked_ride_is_a_slip`, three assertions on a
+* `kit_platformer_platform_test` — `test_a_blocked_ride_is_a_slip`, three assertions on a
   fixture with a pillar planted in the platform's path: the blocked rider is not crushed, keeps his
   ground, and stops at the last whole carry step before contact (14, the step before 16); the pair
   without the pillar rides on; and a diagonal carry proves the vertical component is still delivered
@@ -4868,7 +4868,7 @@ Re-run them when a commit touches `engine/plugin/wasm_*`.
 - The loop timings per OS.
 - The full `framework_physics_perf_test` output per OS — both the counter lines (they must match
   across all three) and the `worst=` / `mean=` numbers (they must not, and the spread is the point).
-- The full `framework_character_perf_test` output per OS — the `small:`/`target:` counter lines must
+- The full `kit_platformer_perf_test` output per OS — the `small:`/`target:` counter lines must
   be identical to each other and to the other machines; the `worst=` / `mean=` numbers must not.
 - The `perf_sweep.sh` table from the slowest machine you have — it, not the M3 Pro, decides how many
   iterations and how many bodies this engine claims.

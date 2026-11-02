@@ -15,7 +15,7 @@ target_link_libraries(ach_plugin_test PRIVATE ach_plugin)
 add_executable(game_platformer_sim_test
   platformer_sim_test.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
 target_include_directories(game_platformer_sim_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(game_platformer_sim_test PRIVATE framework_character framework_tilemap
+target_link_libraries(game_platformer_sim_test PRIVATE kit_platformer framework_character framework_tilemap
   asset_core platform_core)
 
 # Тот же уровень и тот же маршрут, но под откатом (спека #22, вертикаль 1, шаг A3). Отдельной целью
@@ -24,7 +24,7 @@ target_link_libraries(game_platformer_sim_test PRIVATE framework_character frame
 add_executable(game_platformer_rollback_test
   platformer_rollback_test.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
 target_include_directories(game_platformer_rollback_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(game_platformer_rollback_test PRIVATE framework_character framework_tilemap
+target_link_libraries(game_platformer_rollback_test PRIVATE kit_platformer framework_character framework_tilemap
   framework_rollback framework_alloc_probe_control asset_core platform_core)
 
 # Гейт 6 спеки #22: записанный прогон переигрывается заново. Целей ЧЕТЫРЕ по числу вопросов — остра
@@ -42,7 +42,7 @@ foreach(T game_platformer_replay_test game_platformer_replay_io_test
           game_platformer_replay_refusal_test game_platformer_replay_ceiling_test)
   add_executable(${T} ${T}.cpp platformer_sim.cpp platformer_scene.cpp platformer_level.cpp)
   target_include_directories(${T} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(${T} PRIVATE framework_character framework_tilemap framework_rollback
+  target_link_libraries(${T} PRIVATE kit_platformer framework_character framework_tilemap framework_rollback
     framework_replay framework_alloc_probe_control net_core asset_core platform_core)
 endforeach()
 
@@ -62,7 +62,7 @@ add_executable(game_platformer_view_test
 # заголовки PRIVATE-связь не несёт — отсюда каталог платформы, названный руками.
 target_include_directories(game_platformer_view_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/engine/platform)
-target_link_libraries(game_platformer_view_test PRIVATE framework_character
+target_link_libraries(game_platformer_view_test PRIVATE kit_platformer framework_character
   framework_graphics_tiles asset_core)
 
 # Шов ввода образца — раскладка в намерение персонажа. Тоже headless: манифест печётся `preset_bake`
@@ -91,7 +91,7 @@ target_include_directories(game_material_runs_test PRIVATE ${CMAKE_CURRENT_SOURC
 
 add_executable(game_platformer_input_test platformer_input_test.cpp platformer_input.cpp)
 # platform_core тут НЕ в списке библиотек, хотя `platform::Args` цели нужен: и framework_input, и
-# framework_character держат его PRIVATE, то есть каждый дописывает его в замыкание СВОЕЙ строкой,
+# kit_platformer держат его PRIVATE, то есть каждый дописывает его в замыкание СВОЕЙ строкой,
 # и названный сверх этого явно он попадает на линкер-строку дважды — ld на macOS отвечает
 # `warning: ignoring duplicate libraries`. Предупреждение идёт мимо -Werror, но прямо в лог,
 # который читает build_check.sh, поэтому гейт от него красный. Тот же случай расписан у
@@ -99,7 +99,7 @@ add_executable(game_platformer_input_test platformer_input_test.cpp platformer_i
 # несёт — отсюда каталог, названный руками.
 target_include_directories(game_platformer_input_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/engine/platform)
-target_link_libraries(game_platformer_input_test PRIVATE framework_input framework_character)
+target_link_libraries(game_platformer_input_test PRIVATE framework_input kit_platformer)
 
 # Пекарь игры-образца (спека #29, В2а) headless и стоит до выхода по IDE_POC: сверка бандла
 # `--verify-game` идёт в headless-наборе CI.

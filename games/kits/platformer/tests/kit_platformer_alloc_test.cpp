@@ -3,9 +3,9 @@
 #include "controller.hpp"
 #include "framework_alloc_probe.hpp"
 #include "framework_alloc_probe_control.hpp"
-#include "framework_character_ladder_scene.hpp"
-#include "framework_character_platform_scene.hpp"
-#include "framework_character_scene.hpp"
+#include "kit_platformer_ladder_scene.hpp"
+#include "kit_platformer_platform_scene.hpp"
+#include "kit_platformer_scene.hpp"
 #include "platform_args.hpp"
 
 // Инвариант 5 спеки #16: тик персонажа не ходит в кучу.

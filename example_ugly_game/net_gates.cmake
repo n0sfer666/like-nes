@@ -22,7 +22,7 @@ foreach(gate net_test net_direct_test net_hooks_test)
     platformer_${gate}.cpp platformer_peer.cpp platformer_sim.cpp platformer_scene.cpp
     platformer_level.cpp)
   target_include_directories(game_platformer_${gate} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-  target_link_libraries(game_platformer_${gate} PRIVATE framework_character framework_tilemap
+  target_link_libraries(game_platformer_${gate} PRIVATE kit_platformer framework_character framework_tilemap
     framework_rollback framework_replay framework_alloc_probe_control net_core asset_core
     platform_core Threads::Threads)
 endforeach()
