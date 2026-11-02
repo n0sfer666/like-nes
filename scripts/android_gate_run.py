@@ -14,6 +14,7 @@ from png_mean import mean_rgb
 from touch_probe_layout import parse_layout
 from touch_probe_trace import safe_record
 from touch_verdict import verdict
+from rumble_touch_verdict import actor_verdict
 
 APP = 'com.likenes.neonrumble'
 ROOT = Path(__file__).resolve().parent.parent
@@ -108,9 +109,10 @@ def exercise(avd, work, run):
     if not any('swiftshader' in adapter.lower() for adapter, _ in gpu):
         raise RuntimeError(f'the gate requires SwiftShader, observed {gpu}')
     bad, summary = verdict(text, run, layout)
+    bad += actor_verdict(text, run, layout)
     if bad:
         raise RuntimeError('; '.join(bad))
-    print(f'[android-emu] touch PASS: {summary}; Vulkan/SwiftShader; 2 nonblack frames')
+    print(f'[android-emu] touch PASS: {summary}; actual P1 movement/jab; Vulkan/SwiftShader; 2 nonblack frames')
 
 
 def main():

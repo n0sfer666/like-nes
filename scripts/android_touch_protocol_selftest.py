@@ -48,8 +48,8 @@ def selftest():
         script = gesture_script(device, safe, layout)
         check('sendevent /dev/input/event4 3 57 101' in script and
               'sendevent /dev/input/event4 3 57 102' in script, 'two tracking ids')
-        check(script.count('sendevent /dev/input/event4 3 57 -1') == 2, 'both slots released')
-        check(script.count('sendevent /dev/input/event4 0 0 0') == 5, 'five SYN_REPORT frames')
+        check(script.count('sendevent /dev/input/event4 3 57 -1') == 3, 'join tap and both slots released')
+        check(script.count('sendevent /dev/input/event4 0 0 0') == 7, 'seven SYN_REPORT frames')
         check('sendevent /dev/input/event4 1 330 1' in script and
               'sendevent /dev/input/event4 1 330 0' in script, 'BTN_TOUCH begin/end')
     for broken in (PROBE.replace('max 9', 'max 0'), PROBE.replace('0039', '003a'),

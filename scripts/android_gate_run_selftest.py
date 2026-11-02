@@ -14,6 +14,7 @@ from android_gate_run import APP, ROOT, exercise, last_safe
 from android_touch_protocol_selftest import PROBE
 from touch_probe_layout import parse_layout
 from touch_verdict_selftest import gesture
+from rumble_touch_verdict import actor_fixture, selftest as actor_selftest
 
 
 def png(black=False):
@@ -28,7 +29,7 @@ class FakeAvd:
     def __init__(self, scenario):
         self.scenario, self.rotation, self.pids = scenario, 1, 0
         layout = parse_layout((ROOT / 'games/neon-rumble/controls/touch.txt').read_text(encoding='utf-8'))
-        self.first, self.second = gesture(1, layout), gesture(3, layout)
+        self.first, self.second = actor_fixture(gesture(1, layout)), actor_fixture(gesture(3, layout))
         self.calls = []
 
     def adb(self, *args, **kwargs):
@@ -39,8 +40,13 @@ class FakeAvd:
         if args[0] == 'logcat' and '-d' in args:
             backend = 'Gl' if self.scenario == 'gles' else 'Vulkan'
             adapter = 'other' if self.scenario == 'wrong-adapter' else 'SwiftShader Device'
-            return (f'[gpu] {adapter} | {backend} | BC: no\n' +
+            text = (f'[gpu] {adapter} | {backend} | BC: no\n' +
                     '\n'.join(self.first + (self.second if self.rotation == 3 else [])))
+            if self.scenario == 'no-actor-movement':
+                text = text.replace('player_x=236', 'player_x=200')
+            if self.scenario == 'no-actor-attack':
+                text = text.replace('jab_tick=21', 'jab_tick=0')
+            return text
         if args[:2] == ('shell', 'pidof'):
             self.pids += 1
             return '102' if self.scenario == 'restart' and self.pids > 1 else '101'
@@ -57,7 +63,7 @@ class FakeAvd:
             return PROBE.replace('0039', '003a') if self.scenario == 'no-protocol-b' else PROBE
         if args[:2] == ('shell', 'sh'):
             assert 'sendevent /dev/input/event4' in kwargs['data']
-            assert kwargs['data'].count(' 3 57 -1') == 2
+            assert kwargs['data'].count(' 3 57 -1') == 3
             return ''
         if args[:2] == ('exec-out', 'screencap'):
             assert kwargs.get('binary')
@@ -68,11 +74,13 @@ class FakeAvd:
 
 
 def selftest():
+    actor_selftest()
     cases = [('normal', None), ('gles', 'Vulkan is required'), ('wrong-adapter', 'SwiftShader'),
              ('restart', 'died/restarted'), ('background', 'lost foreground'),
              ('black', 'black screenshot'), ('no-protocol-b', 'protocol-B touchscreen'),
              ('prefix-package', 'lost foreground'), ('title-only', 'lost foreground'),
-             ('sensor-ignored', 'no landscape [safe]')]
+             ('sensor-ignored', 'no landscape [safe]'),
+             ('no-actor-movement', 'actual jab'), ('no-actor-attack', 'actual jab')]
     with tempfile.TemporaryDirectory(prefix='android-gate-selftest-') as directory:
         for scenario, reason in cases:
             work = Path(directory) / scenario

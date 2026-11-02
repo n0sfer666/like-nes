@@ -20,6 +20,10 @@ bool mobile_cpu_probe(mobile::Game& game) {
                 return false;
             game.resize(w, h, safe);
             std::cout << mobile::safe_line(w, h, safe, rotation, "cpu") << '\n';
+        } else if (action == "frames") {
+            int count = 0;
+            if (!(in >> count) || count < 1 || count > 600) return false;
+            for (int i = 0; i < count; ++i) game.frame(1.0 / 60);
         } else {
             intptr_t id = 0;
             float x = 0, y = 0;

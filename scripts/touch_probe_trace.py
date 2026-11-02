@@ -36,6 +36,7 @@ class Event:
     knob: tuple
     safe: Safe
     epoch: int
+    fields: dict
 
 
 def number(fields, key):
@@ -99,7 +100,7 @@ def parse(text, run, controls):
                 raise ValueError('invalid id32')
             owners = {key: int(fields[key]) for key in controls}
             event = Event(phase, tid, id32, number(fields, 'x'), number(fields, 'y'),
-                          owners, (number(fields, 'knob_x'), number(fields, 'knob_y')), current, epoch)
+                          owners, (number(fields, 'knob_x'), number(fields, 'knob_y')), current, epoch, fields)
             if not (0 <= event.x <= current.width and 0 <= event.y <= current.height):
                 raise ValueError('touch outside view')
             events.append(event)

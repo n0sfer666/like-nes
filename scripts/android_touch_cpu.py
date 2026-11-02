@@ -9,6 +9,7 @@ from android_touch_protocol import Axis, Device, gesture_script
 from touch_probe_layout import parse_layout
 from touch_probe_trace import Safe
 from touch_verdict import verdict
+from rumble_touch_verdict import actor_verdict
 
 
 def decode(script, device, safe):
@@ -17,6 +18,9 @@ def decode(script, device, safe):
     out = []
     for line in script.splitlines():
         fields = line.split()
+        if fields and fields[0] == 'sleep':
+            out.append(f'frames {round(float(fields[1]) * 60)}')
+            continue
         if not fields or fields[0] != 'sendevent':
             continue
         _, _, kind, code, value = fields
@@ -60,6 +64,7 @@ def check(exe, assets):
     result = subprocess.run([exe, assets, 'probe'], input='\n'.join(commands) + '\n',
                             capture_output=True, text=True, encoding='utf-8', timeout=60)
     bad, summary = verdict(result.stdout, 'cpu', layout)
+    bad += actor_verdict(result.stdout, 'cpu', layout)
     if result.returncode or 'mobile-cpu: PASS' not in result.stdout or bad:
         raise RuntimeError(f'raw axes -> real MobileRumble failed: {bad}\n{result.stdout}\n{result.stderr}')
     print(f'android-touch-cpu: PASS raw protocol B -> actual source -> shared verdict; {summary}')

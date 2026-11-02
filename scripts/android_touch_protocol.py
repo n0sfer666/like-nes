@@ -83,6 +83,17 @@ def gesture_script(device, safe, layout):
 
     sx, sy = safe.width * .25, safe.height * .5
     fx, fy = layout.buttons['a'].probe(safe)
+    # Первый A присоединяет P1; отпускание до основной пары отличает вход от атаки.
+    # Новое касание после Up вправе повторно использовать тот же tracking id.
+    position(1, fx, fy, 102)
+    if device.btn_touch:
+        send(1, 0x14a, 1)
+    sync(.3)
+    send(3, 0x2f, slot + 1)
+    send(3, 0x39, -1)
+    if device.btn_touch:
+        send(1, 0x14a, 0)
+    sync(.3)
     position(0, sx, sy, 101)
     if device.btn_touch:
         send(1, 0x14a, 1)
@@ -90,7 +101,7 @@ def gesture_script(device, safe, layout):
     position(0, sx + 30, sy)
     sync(.3)
     position(1, fx, fy, 102)
-    sync(.5)
+    sync(.12)
     send(3, 0x2f, slot + 1)
     send(3, 0x39, -1)
     sync(.3)

@@ -139,6 +139,7 @@ void MobileRumble::step() {
         wave_demo_.next(play->brawl, t) : demo_p1(t);
     const framework::brawl::Seats was = play->brawl.seats;
     flow_.run(ticks_);
+    observe_punch(*play);
     report_step(play->brawl, play->scene.ticks);
     report_joins(play->brawl, was, play->scene.ticks);
 }

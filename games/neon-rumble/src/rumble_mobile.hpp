@@ -49,6 +49,7 @@ private:
     void report_surface(const char* what) const;
     bool open_controls();
     void fit_touch(uint32_t w, uint32_t h, const mobile::SafeArea& safe);
+    void observe_punch(const Play& play);
 
     GpuContext* gpu_ = nullptr;
     WGPUSurface surface_ = nullptr;
@@ -69,6 +70,9 @@ private:
     double lag_ = 0.0;
     uint32_t ticks_ = 0;
     uint32_t attaches_ = 0;
+    uint32_t last_jab_tick_ = 0;
+    uint32_t jab_elapsed_ = 0;
+    bool was_jab_ = false;
     bool targets_ = false;
     bool lost_ = false;
     bool warned_ = false;
