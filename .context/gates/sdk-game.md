@@ -416,3 +416,7 @@ Phone lifecycle на desktop. CPU fixture rumble_feedback_test поднимае�
 локальные Phone/Pad, kept-only, coalesce, Lost/absent/NPC исключения. JVM-модель дополнена
 Context.getSystemService/Vibrator Phone: ошибки сервиса/мотора, cancel предыдущего эффекта
 после failed vibrate, borrowed context teardown. Реальных моторов эти проверки не подтверждают.
+
+В4в #26: gamepad-only fixture линкует save_backend.hpp из свежего prefix, настоящий LocalBackend
+пишет LNSV в scratch-root, переносит exclusive в .pre, читает backup и выбирает идентичные копии.
+Mobile-пакеты проверяют линковку этого же публичного контракта.

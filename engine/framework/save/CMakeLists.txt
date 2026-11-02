@@ -1,4 +1,4 @@
-add_library(framework_save STATIC save_atomic.cpp save_format.cpp)
+add_library(framework_save STATIC save_atomic.cpp save_format.cpp save_backend.cpp save_move.cpp)
 target_include_directories(framework_save PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_save PRIVATE platform_core)
 
@@ -8,3 +8,13 @@ target_include_directories(save_atomic_test PRIVATE $<TARGET_PROPERTY:platform_c
 
 add_executable(save_format_test save_format_test.cpp)
 target_link_libraries(save_format_test PRIVATE framework_save)
+
+add_executable(save_select_test save_select_test.cpp)
+target_link_libraries(save_select_test PRIVATE framework_save)
+
+add_executable(save_backend_test save_backend_test.cpp)
+target_link_libraries(save_backend_test PRIVATE framework_save)
+target_include_directories(save_backend_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(save_move_test save_move_test.cpp save_move.cpp)
+target_include_directories(save_move_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/platform)

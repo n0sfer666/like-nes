@@ -24,6 +24,7 @@ CMAKE
 #include "haptic.hpp"
 #include "save.hpp"
 #include "save_format.hpp"
+#include "save_backend.hpp"
 #include "platform_fs.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
@@ -44,6 +45,12 @@ int main() {
         save::decode_record(saved, record) == save::RecordResult::Ok && record.version == 1 && record.writes == 1;
     platform::remove_file("sdk-atomic.bin");
     if (!exact) return 1;
+    save::LocalBackend backend(platform::exe_dir() + "/save-backend-fixture");
+    if (!backend.write("progress", container) || backend.move_new("progress", "progress.v1.0.pre") != save::MoveResult::Moved)
+        return 1;
+    if (backend.read("progress.v1.0.pre", saved, container.size()) != save::ReadResult::Ok || saved != container) return 1;
+    const std::vector<std::vector<uint8_t>> copies{container, saved};
+    if (save::select_record(copies).result != save::SelectionResult::Selected) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;
