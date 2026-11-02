@@ -5,7 +5,8 @@ void probe_expose_safe_area(UIView* view) {
     const UIEdgeInsets in = view.safeAreaInsets;
     view.isAccessibilityElement = YES;
     view.accessibilityIdentifier = @"game";
-    view.accessibilityValue = [NSString stringWithFormat:@"%g %g %g %g", in.left, in.top, in.right, in.bottom];
+    view.accessibilityValue = [NSString stringWithFormat:@"%g %g %g %g %ld", in.left, in.top, in.right,
+        in.bottom, static_cast<long>(view.window.windowScene.interfaceOrientation)];
 }
 
 // Строка на касание с состоянием ПОСЛЕ него: XCUITest проигрывает жест целиком, и гейт судит историю

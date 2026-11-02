@@ -71,7 +71,9 @@
     XCUIElement* game = app.otherElements[@"game"];
     XCTAssertTrue([game waitForExistenceWithTimeout:10], @"the probe view exposes no safe area");
     NSArray<NSString*>* safe = [game.value componentsSeparatedByString:@" "];
-    XCTAssertEqual(safe.count, 4u, @"safe area is not four numbers: %@", game.value);
+    XCTAssertEqual(safe.count, 5u, @"probe is not four insets and an orientation: %@", game.value);
+    const UIInterfaceOrientation orientation = safe[4].integerValue;
+    XCTAssertTrue(UIInterfaceOrientationIsLandscape(orientation), @"app did not enter landscape");
     // Отступ не больше радиуса минус смещение пальца — и кнопка, забывшая safe area, тоже под пальцем:
     // гейт на таком экране стал бы зелёным без предмета, поэтому он красный.
     XCTAssertGreaterThan(safe[3].doubleValue, 50.0 - 40.0, @"bottom safe area too small to judge the button");
@@ -89,7 +91,7 @@
     [firePath liftUpAtOffset:1.3];
 
     id<LNEventRecord> record = [[recordClass alloc] initWithName:@"stick+fire"
-                                            interfaceOrientation:UIInterfaceOrientationPortrait];
+                                            interfaceOrientation:orientation];
     [record addPointerEventPath:stickPath];
     [record addPointerEventPath:firePath];
 

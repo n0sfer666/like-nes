@@ -1,9 +1,6 @@
 #import <UIKit/UIKit.h>
-#import <QuartzCore/CAMetalLayer.h>
 
 #include <webgpu/webgpu.h>
-
-#include <memory>
 
 #include "gpu.hpp"
 #include "mobile_app.hpp"
@@ -11,6 +8,7 @@
 #import "metal_view.h"
 #import "touch_probe.h"
 #import "weak_proxy.h"
+#import "view_layout.hpp"
 
 // Оболочка не знает, какую игру держит: всё игровое — за mobile::Game из make_game().
 @interface GameViewController : UIViewController {
@@ -19,7 +17,7 @@
     WGPUSurface surface_;
     CADisplayLink* link_;
     CFTimeInterval last_;
-    uint32_t fb_w_, fb_h_;
+    IosViewLayout layout_;
     bool started_;
     bool probe_;
     NSString* run_;
@@ -33,27 +31,8 @@
     self.view.multipleTouchEnabled = YES;   // стик + кнопка-огонь одновременно
 }
 
-- (mobile::SafeArea)safeArea {
-    const UIEdgeInsets in = self.view.safeAreaInsets;
-    return {static_cast<float>(in.left), static_cast<float>(in.top), static_cast<float>(in.right),
-            static_cast<float>(in.bottom), static_cast<float>(self.traitCollection.displayScale)};
-}
-
-// Размер кадра — в пикселях слоя: точки вида × displayScale.
-- (bool)fitLayer {
-    CAMetalLayer* layer = static_cast<CAMetalLayer*>(self.view.layer);
-    const CGFloat scale = self.traitCollection.displayScale;
-    const uint32_t w = static_cast<uint32_t>(self.view.bounds.size.width * scale);
-    const uint32_t h = static_cast<uint32_t>(self.view.bounds.size.height * scale);
-    const bool changed = w != fb_w_ || h != fb_h_;
-    layer.contentsScale = scale;
-    layer.drawableSize = CGSizeMake(w, h);
-    fb_w_ = w; fb_h_ = h;
-    return changed;
-}
-
 - (bool)makeSurface {
-    [self fitLayer];
+    (void)layout_.update(self.view);
     WGPUSurfaceDescriptorFromMetalLayer ml = {};
     ml.chain.sType = WGPUSType_SurfaceDescriptorFromMetalLayer;
     ml.layer = (__bridge void*)self.view.layer;
@@ -70,7 +49,7 @@
     gpu_.instance = wgpuCreateInstance(nullptr);
     if (![self makeSurface] || !gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); [self releaseGpu]; return; }
     game_ = mobile::make_game();
-    if (!game_->init(gpu_) || !game_->attach_surface(surface_, fb_w_, fb_h_, [self safeArea])) {
+    if (!game_->init(gpu_) || !game_->attach_surface(surface_, layout_.width, layout_.height, layout_.safe)) {
         NSLog(@"[game] game init failed");
         [self teardown];
         return;
@@ -79,7 +58,7 @@
     run_ = NSProcessInfo.processInfo.environment[@"LIKE_NES_TOUCH_RUN"] ?: @"-";
     if (probe_) probe_expose_safe_area(self.view);
     started_ = true;
-    NSLog(@"[game] iOS shell up: %ux%u", fb_w_, fb_h_);
+    NSLog(@"[game] iOS shell up: %ux%u", layout_.width, layout_.height);
 
     link_ = [CADisplayLink displayLinkWithTarget:[WeakProxy with:self] selector:@selector(frame)];
     [link_ addToRunLoop:NSRunLoop.mainRunLoop forMode:NSDefaultRunLoopMode];
@@ -110,6 +89,7 @@
 - (void)pause {
     if (!started_ || !surface_) return;
     link_.paused = YES;
+    game_->cancel();
     game_->suspend();
     game_->detach_surface();
     [self releaseSurface];
@@ -117,7 +97,7 @@
 
 - (void)resume {
     if (!started_ || surface_) return;
-    if (![self makeSurface] || !game_->attach_surface(surface_, fb_w_, fb_h_, [self safeArea])) {
+    if (![self makeSurface] || !game_->attach_surface(surface_, layout_.width, layout_.height, layout_.safe)) {
         NSLog(@"[game] surface attach failed");
         [self releaseSurface];
         return;
@@ -127,11 +107,34 @@
     [self pace];
 }
 
+- (void)updateLayout:(BOOL)force {
+    if (!started_ || !surface_) return;
+    const bool changed = layout_.update(self.view);
+    if (!force && !changed) return;
+    // При 180° размер кадра прежний, но вырез и координаты удержанного пальца уже другие.
+    game_->cancel();
+    game_->resize(layout_.width, layout_.height, layout_.safe);
+    if (probe_) probe_expose_safe_area(self.view);
+    [self pace];
+}
+
 - (void)viewDidLayoutSubviews {
     [super viewDidLayoutSubviews];
-    if (!started_ || !surface_ || ![self fitLayer]) return;
-    game_->resize(fb_w_, fb_h_, [self safeArea]);
-    [self pace];
+    [self updateLayout:NO];
+}
+
+- (void)viewSafeAreaInsetsDidChange {
+    [super viewSafeAreaInsetsDidChange];
+    [self updateLayout:NO];
+}
+
+- (void)viewWillTransitionToSize:(CGSize)size
+      withTransitionCoordinator:(id<UIViewControllerTransitionCoordinator>)coordinator {
+    [super viewWillTransitionToSize:size withTransitionCoordinator:coordinator];
+    if (started_) game_->cancel();
+    [coordinator animateAlongsideTransition:nil completion:^(id<UIViewControllerTransitionCoordinatorContext>) {
+        [self updateLayout:YES];
+    }];
 }
 
 // Идемпотентно: зовётся и уведомлением о завершении, и из dealloc.
@@ -182,12 +185,15 @@
     [self dispatch:touches phase:mobile::Touch::Up];
 }
 - (void)touchesCancelled:(NSSet<UITouch*>*)touches withEvent:(UIEvent*)event {
+    if (started_) game_->cancel();
     [self dispatch:touches phase:mobile::Touch::Up];
 }
 
 - (BOOL)prefersStatusBarHidden { return YES; }
+- (BOOL)prefersHomeIndicatorAutoHidden { return YES; }
+- (UIRectEdge)preferredScreenEdgesDeferringSystemGestures { return UIRectEdgeAll; }
 - (UIInterfaceOrientationMask)supportedInterfaceOrientations {
-    return UIInterfaceOrientationMaskPortrait;
+    return UIInterfaceOrientationMaskLandscape;
 }
 
 @end
