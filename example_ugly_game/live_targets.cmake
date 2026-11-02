@@ -13,7 +13,7 @@ set(PLATFORMER_LIVE_SRC
   platformer_window.cpp platformer_live_input.cpp
   platformer_view.cpp platformer_input.cpp platformer_scene.cpp platformer_level.cpp
   batch.cpp sprite_pipeline.cpp material_fx.cpp material_runs.cpp
-  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp bundle_asset.cpp input_setup.cpp
+  instance_stage.cpp art.cpp gpu_env.cpp assets_path.cpp save_paths.cpp bundle_asset.cpp input_setup.cpp
   ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp ${CMAKE_SOURCE_DIR}/engine/render/surface_frame.cpp
   ${GAME_INPUT_SRC})
 
@@ -25,7 +25,7 @@ function(platformer_live_target name)
   target_include_directories(${name} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/render ${CMAKE_SOURCE_DIR}/engine/platform)
   target_link_libraries(${name} PRIVATE
-    engine_core kit_platformer framework_character framework_graphics_tiles framework_input asset_core
+    framework_save engine_core kit_platformer framework_character framework_graphics_tiles framework_input asset_core
     material_gpu flecs_static webgpu glfw3webgpu glfw Threads::Threads)
   if(APPLE)
     target_link_libraries(${name} PRIVATE

@@ -1946,15 +1946,17 @@ jobs:
       - name: "Save — atomic protocol and local filesystem"
         shell: bash
         run: |
-          for T in platform_save_test platform_atomic_test save_format_test save_select_test save_slots_test save_move_test save_atomic_test; do
+          for T in game_save_paths_test platform_path_test platform_save_test save_root_test platform_atomic_test save_format_test save_select_test save_slots_test save_move_test save_atomic_test; do
             EXE=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$EXE" ] || { echo "$T not built"; exit 1; }
             "$EXE" || exit 1
           done
           python3 scripts/atomic_links_selftest.py "$EXE"
-          BACKEND=$(find build -maxdepth 2 -type f \( -name 'save_backend_test' -o -name 'save_backend_test.exe' \) | head -1)
-          [ -n "$BACKEND" ] || { echo "save_backend_test not built"; exit 1; }
-          python3 scripts/save_backend_selftest.py "$BACKEND"
+          for T in save_backend_test save_global_test probe_persistence_test game_ach_recovery_test; do
+            BACKEND=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+            [ -n "$BACKEND" ] || { echo "$T not built"; exit 1; }
+            python3 scripts/save_backend_selftest.py "$BACKEND" || exit 1
+          done
 
       - name: "Achievements — assetc bake -> bundle -> runtime (gate #4, all OS)"
         shell: bash

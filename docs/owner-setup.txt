@@ -347,9 +347,10 @@ Windows: не открывать проект как папку в самой Vi
 
 --- B. Достижения переживают перезапуск -----------------------------------
 
-  LIKENES_SAVE_DIR=./saves-probe ./build/game_sidescroller
+  Nushell (Linux/macOS), абсолютный override:
+  with-env { LIKENES_SAVE_DIR: ($env.PWD | path join saves-probe) } { ./build/game_sidescroller }
      → поиграть до тоста First Blood, выйти
-  LIKENES_SAVE_DIR=./saves-probe ./build/game_sidescroller
+  with-env { LIKENES_SAVE_DIR: ($env.PWD | path join saves-probe) } { ./build/game_sidescroller }
      → строка старта теперь говорит "N unlocked", N > 0
 
   Windows:
@@ -364,10 +365,8 @@ Windows: не открывать проект как папку в самой Vi
   Фейковый бэкенд умеет притворяться, что сети нет первые N запусков
   подключения: прогресс копится локально и досылается позже.
 
-  Linux/macOS:
-    LIKENES_SAVE_DIR=./saves-probe \
-    LIKENES_ACH_PLUGIN=build/plugin_ach_fake.so \
-    ACH_FAKE_OFFLINE=2 ./build/game_sidescroller
+  Nushell (Linux/macOS):
+    with-env { LIKENES_SAVE_DIR: ($env.PWD | path join saves-probe), LIKENES_ACH_PLUGIN: build/plugin_ach_fake.so, ACH_FAKE_OFFLINE: "2" } { ./build/game_sidescroller }
 
   Windows:
     set LIKENES_ACH_PLUGIN=build\plugin_ach_fake.dll

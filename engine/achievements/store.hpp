@@ -18,6 +18,8 @@ public:
     explicit LocalStore(std::string path) : path_(std::move(path)) {}
 
     bool load(Tracker& tr, DecodeResult* why = nullptr) const;
+    // Read validated bytes as a snapshot, without applying them to a live tracker.
+    bool read(Snapshot& snapshot, DecodeResult* why = nullptr) const;
     bool save(const Tracker& tr) const;
 
     const std::string& path() const { return path_; }

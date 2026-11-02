@@ -6,6 +6,8 @@
 // намеренно — тут нет ни одного системного вызова, а форма пути нужна и тем, кто файлов не
 // трогает вовсе (резолв каталога ассетов, склейка каталога сейвов).
 namespace platform {
+// Syntactic parent, no IO/canonicalization. Bare filename -> ".", empty -> empty; roots retained.
+std::string parent_dir(const std::string& path);
 
 // На POSIX `\` и `:` — легальные символы имени, и трактовать их по-виндовому значило бы съедать
 // настоящие каталоги (`//Library/...` при HOME=/).

@@ -38,6 +38,10 @@ uint64_t field(std::span<const uint8_t> bytes, size_t at, size_t count) {
 bool valid_slot(const std::string& slot) {
     return slot.size() <= 63 && slot.find('.') == std::string::npos && valid_key(slot);
 }
+bool valid_load(const std::string& slot, uint16_t version, std::span<const Migrate> chain) {
+    return valid_slot(slot) && version != 0 && chain.size() == static_cast<size_t>(version - 1) &&
+        std::none_of(chain.begin(), chain.end(), [](Migrate fn) { return fn == nullptr; });
+}
 bool next_counter(Backend& backend, const std::string& slot, uint64_t& next) {
     std::vector<std::string> keys;
     if (!backend.list(keys)) return false;

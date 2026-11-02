@@ -2,7 +2,8 @@
 #include <memory>
 #include <string>
 
-#include "game_world.hpp"
+#include "game_state.hpp"
+#include "ach_persistence.hpp"
 
 namespace ach {
 class Registry;
@@ -28,7 +29,7 @@ public:
     ~Achievements();
 
     void init(const std::string& bundle_path, const std::string& save_path,
-              const std::string& plugin_path);
+              const std::string& plugin_path, AchievementPath retry_path = nullptr);
     void observe(const GameState& gs);
     void pump();
     void save();

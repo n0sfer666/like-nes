@@ -244,3 +244,24 @@ The mobile build defaults to touch controls in the training arena on the level 1
 enables its existing progression; `--demo` explicitly selects scripted parity input. See
 [Touch controls on a phone](mobile-touch.md) for a fresh interactive
 launch, the five combat buttons and the physical layout check.
+
+## Save files
+
+`framework_save` exports `save.hpp`. Initialize it on the game thread with `save::init` and the
+canonical application ID (the same syntax as slot names) before using the global `load`/`store` functions. The shell's explicit save
+directory takes priority, including an empty refusal. Otherwise a nonempty absolute
+`LIKENES_SAVE_DIR` overrides the desktop OS data directory. An unavailable or relative override
+refuses persistence; it never falls back to the executable or working directory. A later write
+retries the same intended directory. `save::dir` exposes the active root; `save::file_path`
+prepares it and validates a compatibility filename. ACH and controls retain their existing formats.
+
+Slots use lowercase ASCII letters, digits, `_` and `-`, up to 63 bytes, excluding DOS device
+names. Serialize operations on a slot and its backups. LNSV bodies are limited to 16 MiB.
+`load` requires exactly one migration callback per version step from version 1 to the requested
+version; callbacks must not throw. It preserves an original `.pre` before migration, puts future
+data in `.bak` and corrupt data in `.bad`, choosing a free suffix without overwriting a backup.
+The global overload returns an absolute quarantine path. Invalid arguments and IO failures are
+distinct from corruption. New writes continue the largest readable slot/backup counter; overflow
+refuses the write. `save_backend.hpp` also offers `select_record` for replica selection and
+`LocalBackend` for the explicit backend overloads; equal counters with different valid images
+yield `Conflict` and preserve both.

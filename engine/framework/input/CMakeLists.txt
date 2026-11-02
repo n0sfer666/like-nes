@@ -11,6 +11,10 @@ target_link_libraries(framework_input PUBLIC framework_core input_core PRIVATE p
 add_executable(framework_stick_test framework_stick_test.cpp)
 target_link_libraries(framework_stick_test PRIVATE framework_input platform_core)
 
+add_executable(probe_persistence_test probe_persistence_test.cpp probe_persistence.cpp)
+target_link_libraries(probe_persistence_test PRIVATE framework_save framework_input)
+target_include_directories(probe_persistence_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
 add_executable(framework_flick_test framework_flick_test.cpp)
 target_link_libraries(framework_flick_test PRIVATE framework_input platform_core)
 
@@ -66,6 +70,6 @@ target_link_libraries(framework_golden_test PRIVATE framework_input framework_ph
 # нативный ввод (INPUT_NATIVE). В headless CI цели нет — её нечем кормить.
 if(INPUT_NATIVE)
   add_executable(framework_input_probe framework_input_probe.cpp probe_report.cpp
-                 probe_axis_report.cpp)
-  target_link_libraries(framework_input_probe PRIVATE framework_input input_native platform_core)
+                 probe_axis_report.cpp probe_persistence.cpp)
+  target_link_libraries(framework_input_probe PRIVATE framework_save framework_input input_native platform_core)
 endif()

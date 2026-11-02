@@ -110,3 +110,17 @@ logs `[haptic] phone unavailable (no-op)` once at startup and ignores pulses.
 On hardware, try a hit using touch and a hit using the pad, then background and return during
 feedback. The assigned device should respond, output should stop in the background and new hits
 should work after return. A simulator or modeled JNI test cannot confirm a real motor.
+## Background persistence
+
+`mobile::Game::suspend` pauses activity; persistent writes belong in the separate synchronous
+`save` callback. iOS invokes it under a background task before releasing the surface. Android
+uses `APP_CMD_SAVE_STATE`, whose native glue acknowledges completion after the handler returns;
+`APP_CMD_STOP` repeats the attempt without that OS wait guarantee. `PAUSE` only pauses and
+cancels held input. The shell sets the save directory before game initialization: Application
+Support on iOS and internal application data on Android.
+
+The shooter uses this callback for achievements. If its directory becomes available late, it
+preserves the old file, adds lifetime counters with saturation and unions unlocks once. Corrupt
+or unknown snapshots remain intact. Neon Rumble currently has no persistent settings/progress
+to write; its in-memory match is not serialized by this hook. Local host tests cover the real
+callback code with modeled OS events; a live background/kill check remains a separate device test.

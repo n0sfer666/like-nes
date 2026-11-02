@@ -4,18 +4,18 @@
 
 namespace platform {
 
-std::string exe_dir() {
-    const std::string p = exe_path();
+std::string parent_dir(const std::string& p) {
     if (p.empty()) return {};
     size_t slash = p.size();
     while (slash > 0 && !is_sep(p[slash - 1])) --slash;
-    if (slash == 0) return std::string(".");
+    if (slash == 0) return root_len(p) ? p.substr(0, root_len(p)) : std::string(".");
     // Обрезать разделитель можно не всегда: у exe в корне (`C:\app.exe`, `/app`) отрезанный слэш
     // оставил бы `C:` — drive-relative путь, который разрешается от текущего каталога диска, — и
     // `exe_dir() + "/assets"` уехал бы мимо. В корне возвращаем сам корень.
     const size_t root = root_len(p);
     return slash <= root ? p.substr(0, root) : p.substr(0, slash - 1);
 }
+std::string exe_dir() { return parent_dir(exe_path()); }
 
 bool read_text(const std::string& path, std::string& out) {
     std::FILE* f = open_file(path, "rb");

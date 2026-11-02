@@ -27,6 +27,7 @@ CMAKE
 #include "save_backend.hpp"
 #include "save_slots.hpp"
 #include "platform_fs.hpp"
+#include "platform_save.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
@@ -55,6 +56,10 @@ int main() {
     const std::vector<uint8_t> body{1, 0, 255};
     if (!save::store(backend, "checkpoint", 1, body) ||
         save::load(backend, "checkpoint", 1, {}, saved) != save::Status::Ok || saved != body) return 1;
+    if (!platform::set_save_dir(backend.root()) || !save::init("sdk-fixture") || save::dir() != backend.root() ||
+        !save::store("global", 1, body) || save::load("global", 1, {}, saved) != save::Status::Ok || saved != body) return 1;
+    const std::vector<std::string> legacy{"controls.txt"};
+    if (!save::migrate_legacy(backend.root(), legacy) || save::file_path("controls.txt").empty()) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

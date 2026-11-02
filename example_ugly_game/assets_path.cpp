@@ -1,23 +1,11 @@
 #include "assets_path.hpp"
 
-#include <cstdio>
-
 #include "platform_env.hpp"
 #include "platform_fs.hpp"
-#include "platform_redact.hpp"
 
 // Политика игры поверх платформенного шва (#12): ГДЕ искать ассеты и куда класть сейв.
 // Как устроены пути, каталоги и юникод на конкретной ОС — знает engine/platform, не игра.
 namespace game {
-namespace {
-
-std::string save_dir() {
-    std::string env;
-    if (platform::env_var("LIKENES_SAVE_DIR", env) && !env.empty()) return env;
-    return platform::user_data_dir("like-nes");
-}
-
-} // namespace
 
 std::string resolve_asset(const char* name) {
     std::string env;
@@ -40,19 +28,5 @@ std::string resolve_asset(const char* name) {
 }
 
 std::string resolve_bundle_path() { return resolve_asset("game.bundle"); }
-
-// Сейв пишется в пользовательский каталог, а не в CWD: у установленной сборки (.app, tarball,
-// ярлык) рабочий каталог произвольный — относительный путь либо не записывался бы вовсе, либо
-// разбрасывал прогресс по случайным папкам.
-std::string resolve_save_path(const char* name) {
-    const std::string dir = save_dir();
-    if (!dir.empty()) {
-        if (platform::ensure_dir(dir)) return dir + "/" + name;
-        std::fprintf(stderr, "[game] save dir '%s' unusable, falling back to exe dir\n",
-                     platform::redact_home(dir).c_str());
-    }
-    const std::string ed = platform::exe_dir();
-    return (ed.empty() ? std::string(".") : ed) + "/" + name;
-}
 
 } // namespace game

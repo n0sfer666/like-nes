@@ -12,6 +12,7 @@ namespace game {
 
 bool MobileGame::init(GpuContext& gpu) {
     if (inited_) return true;
+    (void)init_save_paths();
     gpu_ = &gpu;
     controls_ = Controls{};
     if (!load_controls(controls_)) {
@@ -29,7 +30,7 @@ bool MobileGame::init(GpuContext& gpu) {
     std::printf("[game] audio: %s\n", have_audio ? "on (SFX + music)" : "off");
     // Нативный бэкенд-плагин на мобиле не грузится: достижения живут локально, в песочнице.
     ach_.emplace();
-    ach_->init(resolve_bundle_path(), resolve_save_path("achievements.save"), "");
+    ach_->init(resolve_bundle_path(), resolve_save_path("achievements.save"), "", achievement_save_path);
     std::printf("[game] achievements: %zu defined, %zu unlocked\n", ach_->defined_count(),
                 ach_->unlocked_count());
     inited_ = true;

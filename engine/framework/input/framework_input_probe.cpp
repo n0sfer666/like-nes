@@ -9,17 +9,18 @@
 #include "input_engine.hpp"
 #include "pad_registry.hpp"
 #include "platform_args.hpp"
-#include "platform_env.hpp"
 #include "platform_fs.hpp"
 #include "player_layout.hpp"
 #include "preset_bake.hpp"
 #include "presets.hpp"
 #include "probe_axis_report.hpp"
 #include "probe_report.hpp"
+#include "probe_persistence.hpp"
 #include "rebind_session.hpp"
 #include "rebind_store.hpp"
 #include "source.hpp"
 #include "source_names.hpp"
+#include "save.hpp"
 
 // Гейт 8 спеки #14 (owner-HW): то, что нельзя проверить на раннере — живой пад, его паспорт,
 // выбранный по паспорту профиль, перебинд в рантайме с конфликтом и отключение пада на ходу.
@@ -50,14 +51,6 @@ pad | Nintendo Switch Pro | 0x057e | -      | Nintendo  | nintendo    | 0.15 | 0
 )";
 
 const char* PROFILE_FILE = "controls_probe.txt";
-
-std::string save_path() {
-    std::string dir;
-    if (!platform::env_var("LIKENES_SAVE_DIR", dir) || dir.empty())
-        dir = platform::user_data_dir("like-nes");
-    if (dir.empty() || !platform::ensure_dir(dir)) dir = platform::exe_dir();
-    return dir + "/" + PROFILE_FILE;
-}
 
 void rebuild(const PresetTable& table, uint32_t preset, const RebindStore& store,
              ::input::ActionMap& map) {
@@ -108,8 +101,9 @@ int main(int argc, char** argv) {
 
     RebindStore store;
     std::string stored_preset;
-    const std::string path = save_path();
-    const bool mine = store.load(path, stored_preset) && stored_preset == table.preset_name(preset);
+    (void)save::init("like-nes");
+    std::string path = save::file_path(PROFILE_FILE);
+    bool mine = store.load(path, stored_preset) && stored_preset == table.preset_name(preset);
     report_overlay(table, preset, store, mine, path);
 
     ::input::ActionMap map;
@@ -194,10 +188,11 @@ int main(int argc, char** argv) {
             which = which == 0 ? 1 : 0;
             std::printf("\n[probe] alternative slot for the next rebind: %u\n", which);
         }
-        if (edge(win, GLFW_KEY_S, key_prev[4]))
+        if (edge(win, GLFW_KEY_S, key_prev[4])) {
+            const bool saved = save_probe_profile(store, table.preset_name(preset), mine, path);
             std::printf("\n[probe] overlay %s to %s\n",
-                        store.save(path, table.preset_name(preset)) ? "saved" : "FAILED to save",
-                        path.c_str());
+                        saved ? "saved" : "FAILED to save", path.c_str());
+        }
         if (edge(win, GLFW_KEY_X, key_prev[5])) {
             store.reset_all();
             rebuild(table, preset, store, map);

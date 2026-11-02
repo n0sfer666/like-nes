@@ -30,6 +30,9 @@ target_link_libraries(platform_env_test PRIVATE platform_core)
 add_executable(platform_save_test platform_save_test.cpp)
 target_link_libraries(platform_save_test PRIVATE platform_core)
 
+add_executable(platform_path_test platform_path_test.cpp)
+target_link_libraries(platform_path_test PRIVATE platform_core)
+
 add_executable(platform_atomic_test platform_atomic_test.cpp platform_atomic.cpp)
 target_include_directories(platform_atomic_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

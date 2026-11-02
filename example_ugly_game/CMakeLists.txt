@@ -3,6 +3,7 @@
 # единственный способ его проверить. Вторая половина лежала в engine/achievements и включала
 # ../../example_ugly_game/backend_host.hpp — стрелку вверх инвариант 1 спеки #14 теперь отбивает.
 set(ACH_TEST_DIR ${CMAKE_SOURCE_DIR}/engine/achievements)
+include(${CMAKE_CURRENT_SOURCE_DIR}/save_tests.cmake)
 add_executable(ach_plugin_test
   ${ACH_TEST_DIR}/plugin_test.cpp ${ACH_TEST_DIR}/plugin_test_common.cpp
   ach_plugin_host_test.cpp backend_host.cpp)
@@ -190,8 +191,8 @@ target_link_libraries(game_sim_test PRIVATE engine_core asset_hash flecs_static 
 
 # Гейт 7 спеки #10: наблюдатель поверх скриптованного прогона — sim-хеш обязан остаться golden'ом #8.
 add_executable(ach_sim_test
-  ach_sim_test.cpp achievements.cpp backend_host.cpp ach_source_bundle.cpp
+  ach_sim_test.cpp achievements.cpp ach_persistence.cpp backend_host.cpp ach_source_bundle.cpp
   sim.cpp combat.cpp sim_hash.cpp boss.cpp)
 target_include_directories(ach_sim_test PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/engine/input)
-target_link_libraries(ach_sim_test PRIVATE engine_core ach_bundle ach_plugin flecs_static Threads::Threads)
+target_link_libraries(ach_sim_test PRIVATE framework_save engine_core ach_bundle ach_plugin flecs_static Threads::Threads)

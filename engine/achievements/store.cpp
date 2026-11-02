@@ -2,8 +2,10 @@
 #include "tracker.hpp"
 
 #include <cstdio>
+#include <cerrno>
 
 #include "platform_fs.hpp"
+#include "platform_path.hpp"
 
 namespace ach {
 
@@ -14,10 +16,13 @@ bool write_atomic(const std::string& path, const uint8_t* data, std::size_t size
     return platform::write_atomic(path, {data, size});
 }
 
-bool read_file(const std::string& path, std::vector<uint8_t>& out, std::size_t max_bytes) {
-    std::FILE* f = platform::open_file(path, "rb");
-    if (f == nullptr) return false;
+namespace {
+DecodeResult read_checked(const std::string& path, std::vector<uint8_t>& out, std::size_t max_bytes) {
     out.clear();
+    if (path.empty() || path.find('\0') != std::string::npos || !platform::is_dir(platform::parent_dir(path))) return DecodeResult::Unreadable;
+    errno = 0;
+    std::FILE* f = platform::open_file(path, "rb");
+    if (f == nullptr) return errno == ENOENT ? DecodeResult::Missing : DecodeResult::Unreadable;
     uint8_t buf[4096];
     std::size_t n = 0;
     bool ok = true;
@@ -26,9 +31,14 @@ bool read_file(const std::string& path, std::vector<uint8_t>& out, std::size_t m
         else out.insert(out.end(), buf, buf + n);
     }
     ok = ok && std::ferror(f) == 0;
-    std::fclose(f);
+    const bool closed = std::fclose(f) == 0;
+    ok = ok && closed;
     if (!ok) out.clear();
-    return ok;
+    return ok ? DecodeResult::Ok : DecodeResult::Unreadable;
+}
+}
+bool read_file(const std::string& path, std::vector<uint8_t>& out, std::size_t max_bytes) {
+    return read_checked(path, out, max_bytes) == DecodeResult::Ok;
 }
 
 bool LocalStore::save(const Tracker& tr) const {
@@ -39,16 +49,17 @@ bool LocalStore::save(const Tracker& tr) const {
     return write_atomic(path_, bytes.data(), bytes.size());
 }
 
-bool LocalStore::load(Tracker& tr, DecodeResult* why) const {
+bool LocalStore::read(Snapshot& snap, DecodeResult* why) const {
+    snap = {};
     std::vector<uint8_t> bytes;
-    if (!read_file(path_, bytes)) {
-        if (why) *why = platform::file_exists(path_) ? DecodeResult::Unreadable : DecodeResult::Missing;
-        return false;
-    }
-    Snapshot snap;
-    const DecodeResult r = decode(bytes.data(), bytes.size(), snap);
+    DecodeResult r = read_checked(path_, bytes, STATE_MAX_SIZE);
+    if (r == DecodeResult::Ok) r = decode(bytes.data(), bytes.size(), snap);
     if (why) *why = r;
-    if (r != DecodeResult::Ok) return false;
+    return r == DecodeResult::Ok;
+}
+bool LocalStore::load(Tracker& tr, DecodeResult* why) const {
+    Snapshot snap;
+    if (!read(snap, why)) return false;
     // Возврат не проверяем намеренно: неизвестные записи Tracker уносит с собой и вернёт в
     // следующий snapshot(), так что загрузка бездефектна. Их число — через Tracker::carried_count().
     // Бездефектна она до потолка переноса (Tracker::MAX_CARRIED): сверх него записи отбрасываются,

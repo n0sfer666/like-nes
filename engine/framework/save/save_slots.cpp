@@ -1,6 +1,5 @@
 #include "save_slots.hpp"
 
-#include <algorithm>
 #include <utility>
 
 #include "save_format.hpp"
@@ -22,8 +21,7 @@ Status load(Backend& backend, const std::string& slot, uint16_t version, std::sp
             std::vector<uint8_t>& body, std::string* quarantine) {
     body.clear();
     if (quarantine) quarantine->clear();
-    if (!detail::valid_slot(slot) || version == 0 || chain.size() != static_cast<size_t>(version - 1) ||
-        std::any_of(chain.begin(), chain.end(), [](Migrate fn) { return fn == nullptr; })) return Status::Invalid;
+    if (!detail::valid_load(slot, version, chain)) return Status::Invalid;
     std::vector<uint8_t> bytes;
     const auto read = backend.read(slot, bytes, MAX_RECORD_SIZE);
     if (read == ReadResult::Missing) return Status::Empty;

@@ -1,10 +1,12 @@
 #include "platformer_live_input.hpp"
+#include "assets_path.hpp"
 
 #include <cstdio>
 
 namespace platformer {
 
 bool LiveInput::open(GLFWwindow* win, const std::string& bundle) {
+    (void)game::init_save_paths();
     if (!game::load_controls(controls_, bundle) ||
         !resolve_binding(controls_.table, "default", bind_)) {
         std::fprintf(stderr, "[platformer] controls unavailable: need actions 'jump' and axes "

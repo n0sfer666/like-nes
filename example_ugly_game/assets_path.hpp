@@ -10,8 +10,10 @@ std::string resolve_asset(const char* name);
 // game.bundle (обёртка над resolve_asset).
 std::string resolve_bundle_path();
 
-// Записываемый путь для сейва: env LIKENES_SAVE_DIR → пользовательский каталог данных ОС
-// (%APPDATA% / ~/Library/Application Support / $XDG_DATA_HOME) → рядом с exe. Каталог создаётся.
+// Live/mobile startup only; demo does not load/move real user profiles. Failure is nonfatal.
+bool init_save_paths();
+// save::dir + canonical filename, empty on uninitialized/unavailable root; no exe/cwd fallback.
 std::string resolve_save_path(const char* name);
+std::string achievement_save_path(); // Retry provider: prepare directory/legacy before late ACH attach.
 
 } // namespace game

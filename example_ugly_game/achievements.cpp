@@ -4,7 +4,6 @@
 
 #include "delivery.hpp"
 #include "ach_registry.hpp"
-#include "store.hpp"
 #include "tracker.hpp"
 #include "ach_source.hpp"
 #include "backend_host.hpp"
@@ -43,7 +42,7 @@ struct Achievements::Impl {
     AchSource source;
     ach::Registry reg;
     std::unique_ptr<ach::Tracker> tracker;
-    std::unique_ptr<ach::LocalStore> store;
+    AchievementStore store;
     BackendHost host;
     std::unique_ptr<ach::Delivery> delivery;
     uint64_t prev_kills = 0;
@@ -64,7 +63,7 @@ Achievements::~Achievements() {
 // Повторный init разрушал бы Tracker и плагин под живой Delivery (она держит ссылки на оба),
 // поэтому второй вызов отвергается: пересоздание — через новый объект.
 void Achievements::init(const std::string& bundle_path, const std::string& save_path,
-                        const std::string& plugin_path) {
+                        const std::string& plugin_path, AchievementPath retry_path) {
     if (impl_->tracker) {
         std::fprintf(stderr, "[game] achievements: init called twice, ignored\n");
         return;
@@ -84,31 +83,7 @@ void Achievements::init(const std::string& bundle_path, const std::string& save_
     // снимок уже перешагнул, и такие анлоки на диске ещё не лежат — иначе autosave счёл бы их
     // сохранёнными и потерял при крэше.
     impl_->saved_unlocks = impl_->tracker->unlocked_count();
-    if (!save_path.empty()) {
-        impl_->store.reset(new ach::LocalStore(save_path));
-        ach::DecodeResult why = ach::DecodeResult::Ok;
-        if (!impl_->store->load(*impl_->tracker, &why) && why != ach::DecodeResult::Missing) {
-            std::fprintf(stderr, "[game] achievements: snapshot rejected (%s) -> starting empty\n",
-                         ach::decode_reason(why));
-        }
-        const std::size_t kept = impl_->tracker->carried_count();
-        if (kept != 0) {
-            std::fprintf(stderr,
-                         "[game] achievements: %zu snapshot records outside the catalogue, "
-                         "kept as-is\n",
-                         kept);
-        }
-        // Отброс потолком переноса обязан быть СКАЗАН: молчаливая потеря прогресса неотличима от
-        // её отсутствия, а после первого же автосейва усечённый снимок уезжает на диск — то есть
-        // молчание здесь стоит не строки в логе, а самих записей (аудит #21, A·2·4).
-        const std::size_t dropped = impl_->tracker->dropped_count();
-        if (dropped != 0) {
-            std::fprintf(stderr,
-                         "[game] achievements: %zu records dropped past the carry ceiling, "
-                         "progress for them is lost\n",
-                         dropped);
-        }
-    }
+    impl_->store.open(save_path, retry_path, *impl_->tracker);
     impl_->saved_hash = impl_->tracker->progress_hash();
     backend_ = impl_->host.load(plugin_path);
     if (backend_ == nullptr) return;
@@ -150,9 +125,9 @@ void Achievements::pump() {
 // Неудачная запись не должна выглядеть как успешная: состояние «на диске» не двигается, попытка
 // повторится, но не каждый кадр — since_save считает тики с последней ПОПЫТКИ, а не с успеха.
 void Achievements::save() {
-    if (!impl_->store) return;
+    if (!impl_->store.enabled()) return;
     impl_->since_save = 0;
-    if (!impl_->store->save(*impl_->tracker)) {
+    if (!impl_->store.save(*impl_->tracker)) {
         if (!impl_->save_failed) {
             std::fprintf(stderr, "[game] achievements: cannot write the snapshot, progress stays in memory\n");
         }
@@ -168,7 +143,7 @@ void Achievements::save() {
 // «Есть что писать» считается по состоянию трекера, а не по дельтам GameState: стат, которого нет в
 // каталоге, дельту даёт, а снимок не меняет — и автосейв писал бы идентичный файл каждые 600 тиков.
 void Achievements::autosave() {
-    if (!impl_->store) return;
+    if (!impl_->store.enabled()) return;
     ++impl_->since_save;
     const bool unlocks_pending = impl_->tracker->unlocked_count() != impl_->saved_unlocks;
     const bool changed = impl_->tracker->progress_hash() != impl_->saved_hash;

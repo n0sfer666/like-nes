@@ -87,10 +87,11 @@ int run_window(int frame_cap) {
     GameAudio audio;
     const bool have_audio = audio.init(resolve_asset("audio.bundle"));
     std::printf("[game] audio: %s\n", have_audio ? "on (SFX + music)" : "off");
+    (void)init_save_paths();
     Achievements ach;
     std::string ach_plugin;
     platform::env_var("LIKENES_ACH_PLUGIN", ach_plugin);
-    ach.init(resolve_bundle_path(), resolve_save_path("achievements.save"), ach_plugin);
+    ach.init(resolve_bundle_path(), resolve_save_path("achievements.save"), ach_plugin, achievement_save_path);
     std::printf("[game] achievements: %zu defined, %zu unlocked, backend: %s\n",
                 ach.defined_count(), ach.unlocked_count(), ach.has_backend() ? "plugin" : "local");
 
