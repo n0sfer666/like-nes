@@ -10,9 +10,11 @@ add_library(native_app_glue STATIC ${GLUE}/android_native_app_glue.c)
 target_include_directories(native_app_glue PUBLIC ${GLUE})
 like_nes_vendored_target(native_app_glue)
 like_nes_vendored_headers(native_app_glue)
+target_compile_definitions(native_app_glue PRIVATE ANativeActivity_onCreate=like_nes_glue_onCreate)
 
 set(MOBILE ${CMAKE_SOURCE_DIR}/platform/mobile)
-set(ANDROID_SHELL native_main.cpp android_host.cpp apk_assets.cpp stdout_logcat.cpp)
+set(ANDROID_SHELL native_main.cpp android_host.cpp apk_assets.cpp stdout_logcat.cpp
+  android_window.cpp android_window_jni.cpp android_touch.cpp)
 list(TRANSFORM ANDROID_SHELL PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 
 # Оболочка — библиотекой, одной на игру и бенч: вход native_app_glue, ANativeWindow и жизненный

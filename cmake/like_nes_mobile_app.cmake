@@ -83,6 +83,7 @@ function(_like_nes_apk target name id)
     COMMAND bash "${LIKE_NES_MOBILE_SHARE}/android/package_apk.sh" --abi "${ANDROID_ABI}"
             --manifest "${manifest}" ${libs} ${licenses} --out "${apk}" -- "${assets}"
     DEPENDS ${target} "${manifest}" "${LIKE_NES_MOBILE_SHARE}/android/package_apk.sh"
+            "${LIKE_NES_MOBILE_SHARE}/android/res/values/styles.xml"
             ${LIKE_NES_MOBILE_LICENSES} "${assets}"
     COMMENT "Packaging ${target}.apk"
     COMMAND_EXPAND_LISTS VERBATIM)

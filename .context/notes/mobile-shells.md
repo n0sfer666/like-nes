@@ -242,3 +242,34 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
   префикс даёт `assetc` (сборки сверяет Config), десктопная игра — хеш для сверки. iOS-префикс
   ставится в пустой временный каталог; общий разбор строк attach/detach — `ios_resumed` в
   `scripts/ios_sim_lib.sh` (его же зовёт `ios_sim_run.sh`).
+
+## Экран Android (#26 В2г, 2026-11-02)
+
+- Манифест sensorLandscape, INTERNET/VIBRATE, hasCode=false. `res/values/styles.xml` задаёт
+  fullscreen/shortEdges; package_apk компилирует ресурсы aapt2, CMake учитывает их зависимость,
+  установщик SDK переносит их, Config отказывает при отсутствии темы. Staging APK — отдельный
+  временный каталог каждого запуска (исключает общий/stale OUT.stage и его повторную очистку).
+- `android_window.cpp` — вход ANativeActivity_onCreate перед renamed native_app_glue. Системные
+  callbacks остаются на UI-потоке; onDestroy сначала ждёт glue/android_main, потом снимает fd
+  с UI-looper и закрывает pipe. Игровой поток не использует activity->env/View: получает снимок
+  под mutex, раз в30 кадров неблокирующим pipe просит новый. Focus/resume/window-created также
+  обновляют снимок до glue. Сторона выреза/rotation меняются и без изменения framebuffer.
+- JNI объединяет max отступов cutout и systemBars (API30 getInsets, 29 старые inset getters),
+  читает Display.getRotation, immersive30+ через WindowInsetsController с transient swipe,
+  29 — IMMERSIVE_STICKY. Пиксели делятся на density_scale лишь перед Game::resize/pointer.
+  Intent extra probe принимает только ASCII-токен до64 байт; используется следующим touch-гейтом.
+- AndroidJni ограничивает локальные ссылки запросом и останавливает вызовы после исключения.
+  Раннее ревью нашло сырой NewStringUTF после ошибки getIntent; все строковые JNI тоже обёрнуты.
+  Хостовый JNI mock — normal +23 injected exception paths; unchecked-NewStringUTF мутант красный.
+- `sdk_game_mobile.sh` проверяет испечённые манифест и тему через aapt2 dump; parser имеет14
+  контролей, проверяет ссылку manifest→LikeNesTheme, sensorLandscape, hasCode=false и разрешения.
+  Сборки shell/shooter APK x86_64 и sdk-game с iOS-sim/Android пакетами PASS. Java27 apksigner
+  печатает стороннее предупреждение native-access; компиляция C/C++ без предупреждений.
+- Живой AVD Pixel_4_API_32: headless SIGILL в init_cache_info до приложения, GUI Qt сообщает
+  incompatible processor/neon. Повторено вне sandbox. CoreSimulatorService также не отвечает.
+  Эти проверки остаются долгом, не засчитаны как PASS.
+
+Контракты платформ: [callbacks идут на main thread](https://developer.android.com/ndk/reference/struct/a-native-activity-callbacks),
+[UI looper fd callbacks](https://developer.android.com/ndk/reference/group/looper),
+[WindowInsets](https://developer.android.com/reference/android/view/WindowInsets),
+[immersive](https://developer.android.com/develop/ui/views/layout/immersive).

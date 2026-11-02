@@ -41,8 +41,8 @@ for f in "$MANIFEST" "${LIBS[@]}" ${LICENSES[@]+"${LICENSES[@]}"} "$@"; do
   [ -z "$f" ] || [ -f "$f" ] || { echo "package_apk: no such file: $f" >&2; exit 1; }
 done
 
-STAGE="$OUT.stage"
-rm -rf "$STAGE"
+STAGE=$(mktemp -d)
+trap 'rm -rf "$STAGE"' EXIT
 mkdir -p "$STAGE/lib/$ABI" "$STAGE/assets/licenses"
 cp "${LIBS[@]}" "$STAGE/lib/$ABI/"
 for f in "$@"; do
@@ -50,8 +50,9 @@ for f in "$@"; do
 done
 [ "${#LICENSES[@]}" -eq 0 ] || cp "${LICENSES[@]}" "$STAGE/assets/licenses/"
 
+"$BT/aapt2" compile --dir "$HERE/res" -o "$STAGE/resources.zip"
 "$BT/aapt2" link -o "$STAGE/base.apk" -I "$ANDROID_JAR" \
-  --manifest "$MANIFEST" --target-sdk-version 35
+  --manifest "$MANIFEST" --target-sdk-version 35 "$STAGE/resources.zip"
 ( cd "$STAGE" && zip -q -r base.apk lib assets )
 "$BT/zipalign" -f 4 "$STAGE/base.apk" "$OUT"
 

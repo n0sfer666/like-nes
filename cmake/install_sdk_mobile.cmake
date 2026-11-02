@@ -19,6 +19,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
                 "${CMAKE_SOURCE_DIR}/platform/android/package_apk.sh"
                 "${CMAKE_SOURCE_DIR}/platform/android/android_sdk.sh"
           DESTINATION share/like-nes/platform/android COMPONENT sdk)
+  install(DIRECTORY "${CMAKE_SOURCE_DIR}/platform/android/res"
+          DESTINATION share/like-nes/platform/android COMPONENT sdk)
 else()
   string(APPEND LIKE_NES_SDK_EXTRA_DATA "set(_ln_ios_min \"${CMAKE_OSX_DEPLOYMENT_TARGET}\")\n")
   install(FILES "${CMAKE_SOURCE_DIR}/platform/ios/Info.plist.in"

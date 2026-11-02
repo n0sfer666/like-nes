@@ -111,6 +111,10 @@ android_ndk() {
 
 mobile_android() {
     local ndk=$1 abi=x86_64 pfx="$OUT/prefix-android-x86_64" dir="$OUT/game-android-x86_64" api apk listing lacks n lic
+    local aapt
+    bash "$ROOT/scripts/android_jni_selftest.sh" || { sdk_bad 'android: JNI error paths'; return 1; }
+    python3 "$ROOT/scripts/android_package_verdict.py" --selftest || return 1
+    aapt=$( . "$ROOT/platform/android/android_sdk.sh"; printf '%s' "$SDK/build-tools/35.0.0/aapt2" )
     api=$(android_min_api)
     [ -n "$api" ] || { sdk_bad "android: no minSdkVersion in platform/android/AndroidManifest.xml.in"; return 1; }
     local flags=(-DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake"
@@ -123,6 +127,10 @@ mobile_android() {
         *) sdk_bad "android-$abi: libneon_rumble.so is not an x86-64 ELF"; return 1 ;;
     esac
     apk="$dir/neon_rumble.apk"
+    "$aapt" dump xmltree --file AndroidManifest.xml "$apk" > "$WORK/android-manifest.dump" &&
+        "$aapt" dump resources "$apk" > "$WORK/android-resources.dump" &&
+        python3 "$ROOT/scripts/android_package_verdict.py" "$WORK/android-manifest.dump" "$WORK/android-resources.dump" || {
+        sdk_bad 'android: compiled manifest or theme'; return 1; }
     listing=$(unzip -l "$apk") || { sdk_bad "android-$abi: cannot list $apk"; return 1; }
     local want=("lib/$abi/libneon_rumble.so" "lib/$abi/libc++_shared.so" assets/game.bundle assets/library.bundle)
     lic=$(mobile_licenses "android-$abi" "$pfx") || return 1

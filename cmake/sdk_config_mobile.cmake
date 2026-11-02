@@ -6,7 +6,8 @@ set(_ln_share "${_ln_prefix}/share/like-nes")
 set(_ln_needed "${_ln_lib}/${_ln_runtime}" "${CMAKE_CURRENT_LIST_DIR}/like_nes_mobile_app.cmake")
 if(_ln_platform MATCHES "^android-")
   list(APPEND _ln_needed "${_ln_share}/platform/android/AndroidManifest.xml.in"
-       "${_ln_share}/platform/android/package_apk.sh" "${_ln_share}/platform/android/android_sdk.sh")
+       "${_ln_share}/platform/android/package_apk.sh" "${_ln_share}/platform/android/android_sdk.sh"
+       "${_ln_share}/platform/android/res/values/styles.xml")
 else()
   list(APPEND _ln_needed "${_ln_share}/platform/ios/Info.plist.in")
 endif()

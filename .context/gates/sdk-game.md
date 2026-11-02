@@ -287,6 +287,13 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 
 ## Мобильная половина (спека #26, В1д, [`scripts/sdk_game_mobile.sh`](../../scripts/sdk_game_mobile.sh))
 
+С В2г #26 Android-пакет судится и по скомпилированным данным `aapt2 dump`: sensorLandscape,
+hasCode=false, INTERNET/VIBRATE и ссылка манифеста на LikeNesTheme с fullscreen/shortEdges.
+`android_package_verdict.py --selftest` —14 контролей, в том числе потеря/разрыв ссылки на тему.
+Перед сборкой Android также `android_jni_selftest.sh`: обычные вызовы +23 исключения в каждой
+точке JNI-мока; сырой NewStringUTF после ошибки обязан дать красный контроль. Нужны публичные
+заголовки хостового JDK, уже необходимого Android tooling. Это не живой Android-тест.
+
 Идёт после десктопной: бандлы мобильной игры печёт `rumble_assetc` — инструмент игры, собранный
 `scripts/rumble_tool.sh` против десктопного префикса (`<OUT>/rumble-tool`, строка `rumble_assetc built
 against the desktop prefix`, путь — в `-DRUMBLE_ASSETC`; спека #29, В2а). Собирается лениво, перед
