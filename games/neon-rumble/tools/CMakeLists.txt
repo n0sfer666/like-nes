@@ -8,16 +8,18 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   find_package(like-nes 0.1 REQUIRED CONFIG)
 endif()
 
+include(${CMAKE_CURRENT_LIST_DIR}/../sim/fighter.cmake)
+
 add_executable(rumble_assetc rumble_assetc.cpp fighter_kind.cpp)
 set_target_properties(rumble_assetc PROPERTIES MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 if(TARGET assetc_core)
-  target_link_libraries(rumble_assetc PRIVATE assetc_core framework_brawl_fighter)
+  target_link_libraries(rumble_assetc PRIVATE assetc_core rumble_fighter)
   add_executable(assetc_fighter_test assetc_fighter_test.cpp fighter_kind.cpp)
-  target_link_libraries(assetc_fighter_test PRIVATE assetc_core framework_brawl_fighter)
+  target_link_libraries(assetc_fighter_test PRIVATE assetc_core rumble_fighter)
 elseif(TARGET like-nes::assetc_core)
   # Каталоги заголовков — у like-nes::engine, но не сама цель: она тянет рендер и рантайм wgpu,
   # которые пекарю не нужны.
-  target_link_libraries(rumble_assetc PRIVATE like-nes::assetc_core like-nes::framework_brawl_fighter)
+  target_link_libraries(rumble_assetc PRIVATE like-nes::assetc_core rumble_fighter)
   target_include_directories(rumble_assetc PRIVATE
     $<TARGET_PROPERTY:like-nes::engine,INTERFACE_INCLUDE_DIRECTORIES>)
   target_compile_features(rumble_assetc PRIVATE cxx_std_20)

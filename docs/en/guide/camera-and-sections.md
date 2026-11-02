@@ -14,7 +14,7 @@ levels](scenes-and-levels.md#the-object-classes); conveyors, lifts, ropes and pr
 covered there as well. The headers are `stage_camera.hpp`, `stage_step.hpp`, `stage_sections.hpp`,
 `platform_world.hpp`, `stage_waves.hpp`, `wave_step.hpp`, `wave_facts.hpp`, `next_arena.hpp`,
 `level_progress.hpp` and `checkpoint_step.hpp`, in the namespace `framework::brawl`. They are
-installed with the SDK (see [The SDK and your own game](sdk-and-your-game.md)).
+game sources in `games/neon-rumble/sim/`, compiled by `rumble_sim` against the SDK (see [The SDK and your own game](sdk-and-your-game.md)).
 
 ## The level step
 

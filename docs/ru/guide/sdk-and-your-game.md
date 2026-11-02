@@ -1,4 +1,4 @@
-<!-- en-sha256: a4c77549d6ea32faa73219b83ef1ea7c47249fcbf0de04477885fa8ef8a20d13 -->
+<!-- en-sha256: d370c248cfd15b4466b925e8dcd315f8362de49e41c1d3ce15c4d5eae8da46c6 -->
 
 # SDK и своя игра
 
@@ -130,7 +130,7 @@ endif()
   превращающая текст файла в байты таблицы; манифест читает, путь проверяет и секцию пишет ядро.
   `main` инструмента отдаёт свои виды в `asset::manifest::run_manifest` из
   `assetc_manifest_mode.hpp`.
-  Инструмент линкует только `like-nes::assetc_core` и `like-nes::framework_brawl_fighter`, а пути
+  Инструмент линкует только `like-nes::assetc_core` и игровую `rumble_fighter`, а пути
   заголовков берёт у `like-nes::engine`, поэтому рендер не тянет.
 - На iOS и Android `like_nes_mobile_app(<цель> SOURCES <файл>... [BUNDLES <файл>...] NAME <имя> ID <bundle id>)`
   собирает игру на мобильной оболочке SDK вместо исполняемого файла: `.app` на iOS, `.so` и цель

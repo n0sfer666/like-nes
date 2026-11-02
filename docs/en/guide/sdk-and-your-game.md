@@ -127,7 +127,7 @@ endif()
   and a function that turns the file's text into the bytes of a table; the core reads the manifest,
   checks the path and writes the section. The tool's `main` hands its kinds to
   `asset::manifest::run_manifest` from `assetc_manifest_mode.hpp`. The tool links only `like-nes::assetc_core` and
-  `like-nes::framework_brawl_fighter` and takes its include paths from `like-nes::engine`, so it
+  the game-owned `rumble_fighter` and takes its include paths from `like-nes::engine`, so it
   does not pull the renderer.
 - On iOS and Android `like_nes_mobile_app(<target> SOURCES <file>... [BUNDLES <file>...] NAME <name> ID <bundle id>)`
   builds the game on the SDK's mobile shell instead of an executable: an `.app` on iOS, a `.so` and

@@ -1984,8 +1984,8 @@ jobs:
                    framework_json_test framework_json_string_test framework_json_number_test \
                    framework_tilemap_visual_test framework_tilemap_objects_test \
                    framework_tiled_test framework_tiled_refusal_test \
-                   framework_scene_test framework_scene_refusal_test framework_scene_stack_test \
-                   framework_scene_level_test framework_scene_level_refusal_test \
+                   rumble_scene_test rumble_scene_refusal_test framework_scene_stack_test \
+                   rumble_scene_level_test rumble_scene_level_refusal_test \
                    framework_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
@@ -2006,10 +2006,10 @@ jobs:
             || { echo "framework_touch_layout_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-touch-source: PASS - 35 cases" fw_framework_touch_source_test.txt \
             || { echo "framework_touch_source_test lost cases on ${{ matrix.os }}"; exit 1; }
-          grep -q "framework-scene-refusal: PASS - 68 cases" fw_framework_scene_refusal_test.txt \
-            || { echo "framework_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
-          grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_framework_scene_level_refusal_test.txt \
-            || { echo "framework_scene_level_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-scene-refusal: PASS - 68 cases" fw_rumble_scene_refusal_test.txt \
+            || { echo "rumble_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
+          grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_rumble_scene_level_refusal_test.txt \
+            || { echo "rumble_scene_level_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
 
       # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
@@ -2308,19 +2308,19 @@ jobs:
                    framework_physics_snapshot_islands_test framework_physics_id_test framework_ids_test \
                    framework_rollback_plan_test framework_rollback_test \
                    framework_replay_test \
-                   framework_brawl_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test \
-                   framework_brawl_snapshot_test framework_brawl_crossplay_test \
-                   framework_brawl_seat_test framework_brawl_hotseat_test \
-                   framework_brawl_fighter_test framework_brawl_fighter_refusal_test \
-                   framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_immune_test framework_brawl_strike_test \
-                   framework_brawl_react_test framework_brawl_chain_test framework_brawl_run_test \
-                   framework_brawl_guard_test framework_brawl_dodge_test framework_brawl_dodge_flick_test framework_flick_test framework_action_buffer_test \
-                   framework_brawl_grab_test framework_brawl_clash_test framework_brawl_throw_test \
-                   framework_brawl_camera_test framework_brawl_stage_test framework_brawl_wave_test \
-                   framework_brawl_wave_lock_test \
-                   framework_brawl_section_test framework_brawl_platform_test framework_brawl_scroll_test framework_brawl_settle_test framework_brawl_leash_test \
-                   framework_brawl_progress_test framework_brawl_progress_resim_test framework_brawl_movers_test framework_brawl_path_follow_test framework_brawl_conveyor_test framework_brawl_conveyor_platform_test framework_brawl_rope_test framework_brawl_rope_ride_test framework_brawl_rope_grab_test framework_brawl_rope_world_test framework_physics_pendulum_test framework_brawl_projectile_test framework_brawl_projectile_edge_test framework_brawl_prop_test \
-                   framework_ai_test framework_ai_resim_test \
+                   rumble_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test \
+                   rumble_snapshot_test rumble_crossplay_test \
+                   rumble_seat_test rumble_hotseat_test \
+                   rumble_fighter_test rumble_fighter_refusal_test \
+                   rumble_hit_test rumble_hit_rules_test rumble_immune_test rumble_strike_test \
+                   rumble_react_test rumble_chain_test rumble_run_test \
+                   rumble_guard_test rumble_dodge_test rumble_dodge_flick_test framework_flick_test framework_action_buffer_test \
+                   rumble_grab_test rumble_clash_test rumble_throw_test \
+                   rumble_camera_test rumble_stage_test rumble_wave_test \
+                   rumble_wave_lock_test \
+                   rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test \
+                   rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test \
+                   rumble_ai_test rumble_ai_resim_test \
                    framework_character_test framework_character_window_test \
                    framework_character_jump_test framework_character_tunnel_test \
                    framework_character_collision_test framework_character_corner_test \
@@ -2356,21 +2356,21 @@ jobs:
           grep -q "hash 0xa554e52327f8d33d" phys_framework_character_profile_test.txt \
             || { echo "MOVEMENT PROFILE TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Байты испечённой таблицы бойца (LNFT, В2б спеки #25) — по основанию голдена профиля выше.
-          grep -q "hash 0x34030b3c5a326d2d" phys_framework_brawl_fighter_test.txt \
+          grep -q "hash 0x34030b3c5a326d2d" phys_rumble_fighter_test.txt \
             || { echo "FIGHTER TABLE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Исход боя с ИИ (В5а спеки #25): ресим сверяет прогон сам с собой и расхождение ОС с ОС
           # не видит — его называет этот литерал.
-          grep -q "ai fight hash = 0x5138fba1d8279fa4" phys_framework_ai_resim_test.txt \
+          grep -q "ai fight hash = 0x5138fba1d8279fa4" phys_rumble_ai_resim_test.txt \
             || { echo "AI FIGHT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Прогресс уровня (В7г спеки #25): чекпоинты, смерти и респаун в rollback-ресиме — по
           # основанию голдена боя с ИИ выше.
-          grep -q "progress course hash = 0xf1c00aba70879d31" phys_framework_brawl_progress_resim_test.txt \
+          grep -q "progress course hash = 0xf1c00aba70879d31" phys_rumble_progress_resim_test.txt \
             || { echo "PROGRESS COURSE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Лифт по `path` (В8а спеки #25) везёт бойца опорой: физмир уровня, следование и контроллер.
-          grep -q "movers lift hash = 0x7ec76882f27ca481" phys_framework_brawl_movers_test.txt \
+          grep -q "movers lift hash = 0x7ec76882f27ca481" phys_rumble_movers_test.txt \
             || { echo "MOVERS LIFT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Трос (В8в спеки #25): седок качается, отпускает трос прыжком и берёт его снова после остывания.
-          grep -q "rope ride hash = 0x03892e88165766d3" phys_framework_brawl_rope_test.txt \
+          grep -q "rope ride hash = 0x03892e88165766d3" phys_rumble_rope_test.txt \
             || { echo "ROPE RIDE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Таблица рывка (В2б спеки #29) — числом случаев: удалённая строка таблицы иначе осталась бы зелёной.
           grep -q "framework-flick: PASS - 18 cases" phys_framework_flick_test.txt \
@@ -2403,8 +2403,8 @@ jobs:
       - name: "Brawl — crossplay hashes of the scripted scenarios (spec #25, all OS)"
         shell: bash
         run: |
-          B=$(find build -maxdepth 2 -type f \( -name framework_brawl_crossplay_test -o -name framework_brawl_crossplay_test.exe \) | head -1)
-          [ -n "$B" ] || { echo "framework_brawl_crossplay_test not built on ${{ matrix.os }}"; exit 1; }
+          B=$(find build -maxdepth 2 -type f \( -name rumble_crossplay_test -o -name rumble_crossplay_test.exe \) | head -1)
+          [ -n "$B" ] || { echo "rumble_crossplay_test not built on ${{ matrix.os }}"; exit 1; }
           "$B" --crossplay "crossplay-${{ runner.os }}.txt"
           cat "crossplay-${{ runner.os }}.txt"
 
@@ -2414,10 +2414,10 @@ jobs:
       - name: "Brawl — resim bench at the umbrella budget (spec #25 B9, all OS)"
         shell: bash
         run: |
-          B=$(find build -maxdepth 2 -type f \( -name brawl_resim_bench -o -name brawl_resim_bench.exe \) | head -1)
-          [ -n "$B" ] || { echo "brawl_resim_bench not built on ${{ matrix.os }}"; exit 1; }
+          B=$(find build -maxdepth 2 -type f \( -name rumble_resim_bench -o -name rumble_resim_bench.exe \) | head -1)
+          [ -n "$B" ] || { echo "rumble_resim_bench not built on ${{ matrix.os }}"; exit 1; }
           "$B" --against "crossplay-${{ runner.os }}.txt" | tee resim_bench.txt
-          grep -q "brawl-resim-bench: PASS" resim_bench.txt || { echo "brawl_resim_bench FAILED on ${{ matrix.os }}"; exit 1; }
+          grep -q "brawl-resim-bench: PASS" resim_bench.txt || { echo "rumble_resim_bench FAILED on ${{ matrix.os }}"; exit 1; }
           grep -q "resim bench fight hash = 0x0f60b3fbe989d27e" resim_bench.txt \
             || { echo "RESIM BENCH FIGHT GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
@@ -2485,7 +2485,7 @@ jobs:
           LIKE_NES_BUILD_SUBSET: "1"
           LIKE_NES_BUILD_TYPE: Debug
           # ci-lint: mirrors-var scripts/check_debug_golden.sh STATE_TARGETS
-          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_ids_test framework_rollback_plan_test framework_rollback_test framework_replay_test framework_brawl_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test framework_brawl_snapshot_test framework_brawl_seat_test framework_brawl_hotseat_test framework_brawl_crossplay_test framework_brawl_fighter_test framework_brawl_fighter_refusal_test framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_immune_test framework_brawl_strike_test framework_brawl_chain_test framework_brawl_react_test framework_brawl_run_test framework_brawl_guard_test framework_brawl_dodge_test framework_brawl_dodge_flick_test framework_flick_test framework_action_buffer_test framework_brawl_grab_test framework_brawl_clash_test framework_brawl_throw_test framework_brawl_camera_test framework_brawl_stage_test framework_brawl_wave_test framework_brawl_wave_lock_test framework_brawl_section_test framework_brawl_platform_test framework_brawl_scroll_test framework_brawl_settle_test framework_brawl_leash_test framework_brawl_progress_test framework_brawl_progress_resim_test framework_brawl_movers_test framework_brawl_path_follow_test framework_brawl_conveyor_test framework_brawl_conveyor_platform_test framework_brawl_rope_test framework_brawl_rope_ride_test framework_brawl_rope_grab_test framework_brawl_rope_world_test framework_physics_pendulum_test framework_brawl_projectile_test framework_brawl_projectile_edge_test framework_brawl_prop_test framework_ai_test framework_ai_resim_test brawl_resim_bench framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
+          LIKE_NES_BUILD_TARGETS: "framework_physics_test framework_physics_point_test framework_physics_sat_test framework_physics_gap_test framework_physics_order_test framework_physics_range_test framework_physics_clamp_test framework_physics_terms_test framework_physics_rt_test framework_physics_perf_test framework_physics_query_test framework_physics_corner_test framework_tilemap_test framework_tilemap_seam_test framework_physics_overlap_test framework_physics_index_test framework_physics_filter_test framework_physics_event_test framework_physics_stack_test framework_physics_impact_test framework_physics_sleep_test framework_physics_band_test framework_physics_wake_test framework_physics_handle_test framework_physics_depth_test framework_physics_snapshot_test framework_physics_snapshot_islands_test framework_ids_test framework_rollback_plan_test framework_rollback_test framework_replay_test rumble_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test rumble_snapshot_test rumble_seat_test rumble_hotseat_test rumble_crossplay_test rumble_fighter_test rumble_fighter_refusal_test rumble_hit_test rumble_hit_rules_test rumble_immune_test rumble_strike_test rumble_chain_test rumble_react_test rumble_run_test rumble_guard_test rumble_dodge_test rumble_dodge_flick_test framework_flick_test framework_action_buffer_test rumble_grab_test rumble_clash_test rumble_throw_test rumble_camera_test rumble_stage_test rumble_wave_test rumble_wave_lock_test rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test rumble_ai_test rumble_ai_resim_test rumble_resim_bench framework_trig_test framework_character_test framework_character_window_test framework_character_jump_test framework_character_tunnel_test framework_character_collision_test framework_character_corner_test framework_character_snap_test framework_character_profile_test framework_character_profile_refusal_test framework_tilemap_bake_test framework_tilemap_refusal_test framework_character_slope_test framework_character_oneway_test framework_character_platform_test framework_character_push_test framework_character_perf_test framework_tilemap_slope_test framework_tilemap_oneway_test framework_tilemap_ladder_test framework_character_ladder_test game_platformer_sim_test game_platformer_rollback_test game_platformer_replay_test framework_graphics_clip_test framework_graphics_event_test framework_graphics_anim_test framework_graphics_path_test framework_graphics_atlas_test framework_graphics_atlas_refusal_test framework_graphics_debug_test framework_graphics_batch_test framework_graphics_tile_test framework_graphics_particle_test framework_graphics_viewport_test"
         run: |
           # Отдельный каталог, а не переконфигурация основного: тот собран Release и на нём стоят
           # все шаги выше. Целей ровно столько, сколько лежит на пути СОСТОЯНИЯ, — дерево Debug'ом
@@ -2509,19 +2509,19 @@ jobs:
                    framework_physics_snapshot_islands_test framework_ids_test \
                    framework_rollback_plan_test framework_rollback_test \
                    framework_replay_test \
-                   framework_brawl_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test \
-                   framework_brawl_snapshot_test framework_brawl_crossplay_test \
-                   framework_brawl_seat_test framework_brawl_hotseat_test \
-                   framework_brawl_fighter_test framework_brawl_fighter_refusal_test \
-                   framework_brawl_hit_test framework_brawl_hit_rules_test framework_brawl_immune_test framework_brawl_strike_test \
-                   framework_brawl_react_test framework_brawl_chain_test framework_brawl_run_test \
-                   framework_brawl_guard_test framework_brawl_dodge_test framework_brawl_dodge_flick_test framework_flick_test framework_action_buffer_test \
-                   framework_brawl_grab_test framework_brawl_clash_test framework_brawl_throw_test \
-                   framework_brawl_camera_test framework_brawl_stage_test framework_brawl_wave_test \
-                   framework_brawl_wave_lock_test \
-                   framework_brawl_section_test framework_brawl_platform_test framework_brawl_scroll_test framework_brawl_settle_test framework_brawl_leash_test \
-                   framework_brawl_progress_test framework_brawl_progress_resim_test framework_brawl_movers_test framework_brawl_path_follow_test framework_brawl_conveyor_test framework_brawl_conveyor_platform_test framework_brawl_rope_test framework_brawl_rope_ride_test framework_brawl_rope_grab_test framework_brawl_rope_world_test framework_physics_pendulum_test framework_brawl_projectile_test framework_brawl_projectile_edge_test framework_brawl_prop_test \
-                   framework_ai_test framework_ai_resim_test brawl_resim_bench \
+                   rumble_test framework_depth_floor_test framework_depth_move_test framework_hits_box_test framework_hits_struck_test framework_hits_hitstop_test framework_kinematic_path_test framework_kinematic_movers_test framework_graphics_autoscroll_test framework_character_core_test framework_scene_classes_test framework_scene_load_test \
+                   rumble_snapshot_test rumble_crossplay_test \
+                   rumble_seat_test rumble_hotseat_test \
+                   rumble_fighter_test rumble_fighter_refusal_test \
+                   rumble_hit_test rumble_hit_rules_test rumble_immune_test rumble_strike_test \
+                   rumble_react_test rumble_chain_test rumble_run_test \
+                   rumble_guard_test rumble_dodge_test rumble_dodge_flick_test framework_flick_test framework_action_buffer_test \
+                   rumble_grab_test rumble_clash_test rumble_throw_test \
+                   rumble_camera_test rumble_stage_test rumble_wave_test \
+                   rumble_wave_lock_test \
+                   rumble_section_test rumble_platform_test rumble_scroll_test rumble_settle_test rumble_leash_test \
+                   rumble_progress_test rumble_progress_resim_test rumble_movers_test rumble_path_follow_test rumble_conveyor_test rumble_conveyor_platform_test rumble_rope_test rumble_rope_ride_test rumble_rope_grab_test rumble_rope_world_test framework_physics_pendulum_test rumble_projectile_test rumble_projectile_edge_test rumble_prop_test \
+                   rumble_ai_test rumble_ai_resim_test rumble_resim_bench \
                    framework_trig_test framework_character_test \
                    framework_character_window_test framework_character_jump_test \
                    framework_character_tunnel_test framework_character_collision_test \
@@ -2556,17 +2556,17 @@ jobs:
           # расхождение -O0 с -O3 здесь означало бы UB, а не погрешность, — как и у двух выше.
           grep -q "hash 0xa554e52327f8d33d" dbg_framework_character_profile_test.txt \
             || { echo "PROFILE TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "hash 0x34030b3c5a326d2d" dbg_framework_brawl_fighter_test.txt \
+          grep -q "hash 0x34030b3c5a326d2d" dbg_rumble_fighter_test.txt \
             || { echo "FIGHTER TABLE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "ai fight hash = 0x5138fba1d8279fa4" dbg_framework_ai_resim_test.txt \
+          grep -q "ai fight hash = 0x5138fba1d8279fa4" dbg_rumble_ai_resim_test.txt \
             || { echo "AI FIGHT DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "progress course hash = 0xf1c00aba70879d31" dbg_framework_brawl_progress_resim_test.txt \
+          grep -q "progress course hash = 0xf1c00aba70879d31" dbg_rumble_progress_resim_test.txt \
             || { echo "PROGRESS COURSE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "resim bench fight hash = 0x0f60b3fbe989d27e" dbg_brawl_resim_bench.txt \
+          grep -q "resim bench fight hash = 0x0f60b3fbe989d27e" dbg_rumble_resim_bench.txt \
             || { echo "RESIM BENCH FIGHT DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "movers lift hash = 0x7ec76882f27ca481" dbg_framework_brawl_movers_test.txt \
+          grep -q "movers lift hash = 0x7ec76882f27ca481" dbg_rumble_movers_test.txt \
             || { echo "MOVERS LIFT DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
-          grep -q "rope ride hash = 0x03892e88165766d3" dbg_framework_brawl_rope_test.txt \
+          grep -q "rope ride hash = 0x03892e88165766d3" dbg_rumble_rope_test.txt \
             || { echo "ROPE RIDE DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
           # Ответы сетки складываются из долей и точек, то есть из той же арифметики fix32:
           # расхождение -O0 с -O3 здесь означало бы UB ровно по основанию трёх голденов выше.
@@ -3042,7 +3042,7 @@ jobs:
           framework_tiled_test:framework-tiled: PASS
           framework_tiled_refusal_test:framework-tiled-refusal: PASS - 53 cases
           framework_ids_test:framework-ids: PASS
-          framework_brawl_test:framework-brawl: PASS
+          rumble_test:framework-brawl: PASS
           framework_depth_floor_test:framework-depth-floor: PASS
           framework_depth_move_test:framework-depth-move: PASS
           framework_hits_box_test:framework-hits-box: PASS
@@ -3054,57 +3054,57 @@ jobs:
           framework_character_core_test:framework-character-core: PASS
           framework_scene_classes_test:framework-scene-classes: PASS
           framework_scene_load_test:framework-scene-load: PASS
-          framework_brawl_snapshot_test:framework-brawl-snapshot: PASS
-          framework_brawl_seat_test:framework-brawl-seat: PASS
-          framework_brawl_hotseat_test:framework-brawl-hotseat: PASS
-          framework_brawl_crossplay_test:framework-brawl-crossplay: PASS
-          framework_brawl_fighter_test:framework-brawl-fighter: PASS
-          framework_brawl_fighter_refusal_test:framework-brawl-fighter-refusal: PASS
-          framework_brawl_hit_test:framework-brawl-hit: PASS
-          framework_brawl_hit_rules_test:framework-brawl-hit-rules: PASS
-          framework_brawl_immune_test:framework-brawl-immune: PASS
-          framework_brawl_strike_test:framework-brawl-strike: PASS
-          framework_brawl_react_test:framework-brawl-react: PASS
-          framework_brawl_chain_test:framework-brawl-chain: PASS
-          framework_brawl_run_test:framework-brawl-run: PASS
-          framework_brawl_guard_test:framework-brawl-guard: PASS
-          framework_brawl_dodge_test:framework-brawl-dodge: PASS
-          framework_brawl_dodge_flick_test:framework-brawl-dodge-flick: PASS
+          rumble_snapshot_test:framework-brawl-snapshot: PASS
+          rumble_seat_test:framework-brawl-seat: PASS
+          rumble_hotseat_test:framework-brawl-hotseat: PASS
+          rumble_crossplay_test:framework-brawl-crossplay: PASS
+          rumble_fighter_test:framework-brawl-fighter: PASS
+          rumble_fighter_refusal_test:framework-brawl-fighter-refusal: PASS
+          rumble_hit_test:framework-brawl-hit: PASS
+          rumble_hit_rules_test:framework-brawl-hit-rules: PASS
+          rumble_immune_test:framework-brawl-immune: PASS
+          rumble_strike_test:framework-brawl-strike: PASS
+          rumble_react_test:framework-brawl-react: PASS
+          rumble_chain_test:framework-brawl-chain: PASS
+          rumble_run_test:framework-brawl-run: PASS
+          rumble_guard_test:framework-brawl-guard: PASS
+          rumble_dodge_test:framework-brawl-dodge: PASS
+          rumble_dodge_flick_test:framework-brawl-dodge-flick: PASS
           framework_flick_test:framework-flick: PASS - 18 cases
           framework_action_buffer_test:framework-action-buffer: PASS
-          framework_brawl_grab_test:framework-brawl-grab: PASS
-          framework_brawl_clash_test:framework-brawl-clash: PASS
-          framework_brawl_throw_test:framework-brawl-throw: PASS
-          framework_brawl_camera_test:framework-brawl-camera: PASS
-          framework_brawl_stage_test:framework-brawl-stage: PASS
-          framework_brawl_wave_test:framework-brawl-wave: PASS
-          framework_brawl_wave_lock_test:framework-brawl-wave-lock: PASS
-          framework_brawl_section_test:framework-brawl-section: PASS
-          framework_brawl_platform_test:framework-brawl-platform: PASS
-          framework_brawl_scroll_test:framework-brawl-scroll: PASS
-          framework_brawl_settle_test:framework-brawl-settle: PASS
-          framework_brawl_leash_test:framework-brawl-leash: PASS
-          framework_brawl_progress_test:framework-brawl-progress: PASS
-          framework_brawl_progress_resim_test:framework-brawl-progress-resim: PASS
-          framework_brawl_movers_test:framework-brawl-movers: PASS
-          framework_brawl_path_follow_test:framework-brawl-path-follow: PASS
-          framework_brawl_conveyor_test:framework-brawl-conveyor: PASS
-          framework_brawl_conveyor_platform_test:framework-brawl-conveyor-platform: PASS
-          framework_brawl_rope_test:framework-brawl-rope: PASS
-          framework_brawl_rope_ride_test:framework-brawl-rope-ride: PASS
-          framework_brawl_rope_grab_test:framework-brawl-rope-grab: PASS
-          framework_brawl_rope_world_test:framework-brawl-rope-world: PASS
+          rumble_grab_test:framework-brawl-grab: PASS
+          rumble_clash_test:framework-brawl-clash: PASS
+          rumble_throw_test:framework-brawl-throw: PASS
+          rumble_camera_test:framework-brawl-camera: PASS
+          rumble_stage_test:framework-brawl-stage: PASS
+          rumble_wave_test:framework-brawl-wave: PASS
+          rumble_wave_lock_test:framework-brawl-wave-lock: PASS
+          rumble_section_test:framework-brawl-section: PASS
+          rumble_platform_test:framework-brawl-platform: PASS
+          rumble_scroll_test:framework-brawl-scroll: PASS
+          rumble_settle_test:framework-brawl-settle: PASS
+          rumble_leash_test:framework-brawl-leash: PASS
+          rumble_progress_test:framework-brawl-progress: PASS
+          rumble_progress_resim_test:framework-brawl-progress-resim: PASS
+          rumble_movers_test:framework-brawl-movers: PASS
+          rumble_path_follow_test:framework-brawl-path-follow: PASS
+          rumble_conveyor_test:framework-brawl-conveyor: PASS
+          rumble_conveyor_platform_test:framework-brawl-conveyor-platform: PASS
+          rumble_rope_test:framework-brawl-rope: PASS
+          rumble_rope_ride_test:framework-brawl-rope-ride: PASS
+          rumble_rope_grab_test:framework-brawl-rope-grab: PASS
+          rumble_rope_world_test:framework-brawl-rope-world: PASS
           framework_physics_pendulum_test:framework-physics-pendulum: PASS
-          framework_brawl_projectile_test:framework-brawl-projectile: PASS
-          framework_brawl_projectile_edge_test:framework-brawl-projectile-edge: PASS
-          framework_brawl_prop_test:framework-brawl-prop: PASS
-          framework_ai_test:framework-ai: PASS
-          framework_ai_resim_test:framework-ai-resim: PASS
-          framework_scene_test:framework-scene: PASS
-          framework_scene_refusal_test:framework-scene-refusal: PASS - 68 cases
+          rumble_projectile_test:framework-brawl-projectile: PASS
+          rumble_projectile_edge_test:framework-brawl-projectile-edge: PASS
+          rumble_prop_test:framework-brawl-prop: PASS
+          rumble_ai_test:framework-ai: PASS
+          rumble_ai_resim_test:framework-ai-resim: PASS
+          rumble_scene_test:framework-scene: PASS
+          rumble_scene_refusal_test:framework-scene-refusal: PASS - 68 cases
           framework_scene_stack_test:framework-scene-stack: PASS
-          framework_scene_level_test:framework-scene-level: PASS
-          framework_scene_level_refusal_test:framework-scene-level-refusal: PASS - 30 cases"
+          rumble_scene_level_test:framework-scene-level: PASS
+          rumble_scene_level_refusal_test:framework-scene-level-refusal: PASS - 30 cases"
           mapfile -t san_targets < <(cut -d: -f1 <<<"$T")
           cmake --build build-fuzz-san --target "${san_targets[@]}" plugin_wasm_test plugin_wind
           ran=0

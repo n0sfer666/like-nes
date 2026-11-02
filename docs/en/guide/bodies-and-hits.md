@@ -11,7 +11,8 @@ fighter.
 
 The headers are `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`, `brawl_step.hpp`,
 `hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` and `archetype.hpp`, in the namespace
-`framework::brawl`, and they are installed with the SDK (see [The SDK and your own
+`framework::brawl`, in `games/neon-rumble/sim/`. They are game sources compiled by
+`rumble_sim` and `rumble_fighter` against the SDK (see [The SDK and your own
 game](sdk-and-your-game.md)). `DepthBody` comes from `depth_body.hpp` in `framework::depth` and is
 visible in `framework::brawl` under the same name.
 

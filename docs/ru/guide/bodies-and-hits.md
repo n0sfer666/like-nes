@@ -1,4 +1,4 @@
-<!-- en-sha256: d7f86f361c39be0a3cedff7116d7358dd88069cd39ddbf392adc3da4da0698ac -->
+<!-- en-sha256: 9c0765dcc91b312cf5fa4a74581b657fca4d4e164bd288a8f276b5ab2cd0c8ce -->
 
 # Тело и удары
 
@@ -12,7 +12,8 @@
 
 Заголовки — `brawl_body.hpp`, `body_pool.hpp`, `brawl_input.hpp`, `brawl_step.hpp`,
 `hit_events.hpp`, `reaction.hpp`, `fighter_read.hpp` и `archetype.hpp`, пространство имён
-`framework::brawl`; они ставятся вместе с SDK (см. [SDK и своя
+`framework::brawl`, в `games/neon-rumble/sim/`. Это исходники игры, которые `rumble_sim`
+и `rumble_fighter` собирают против SDK (см. [SDK и своя
 игра](sdk-and-your-game.md)). `DepthBody` приходит из `depth_body.hpp` в `framework::depth` и виден
 в `framework::brawl` под тем же именем.
 

@@ -8,13 +8,15 @@ add_executable(fuzz_readers
   fuzz_targets.cpp
   fuzz_targets_ach.cpp
   fuzz_targets_content.cpp
+  ${CMAKE_SOURCE_DIR}/games/neon-rumble/tests/rumble_fighter_fuzz.cpp
   fuzz_targets_engine.cpp
   fuzz_targets_framework.cpp
   fuzz_targets_json.cpp
   fuzz_targets_level.cpp
   fuzz_targets_plugin.cpp)
 
-target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_SOURCE_DIR}/games/neon-rumble/tests)
 
 # Порядок — ОТ ЗАВИСЯЩЕГО К ЗАВИСИМОСТИ, и это не вкусовщина. CMake сохраняет заявленный порядок
 # прямых зависимостей, а чтобы статический архив стоял после того, кто из него тянет символы,
@@ -30,7 +32,7 @@ set(FUZZ_LIBS
   framework_json
   asset_core
   ach_core
-  framework_brawl_fighter framework_character framework_graphics framework_input framework_tilemap
+  rumble_fighter framework_character framework_graphics framework_input framework_tilemap
   framework_touch
   material_bake material_core
   plugin_core

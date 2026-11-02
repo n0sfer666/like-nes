@@ -6,7 +6,7 @@ from pathlib import Path
 
 import py_utf8
 
-SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/scene", "engine/framework/touch",
+SIM_PATHS = ("engine/framework/scene", "engine/framework/touch",
              "games/neon-rumble/sim", "engine/framework/core/ent_id.hpp", "engine/framework/core/world_rng.hpp",
              "engine/framework/core/world_rng.cpp", "engine/framework/core/seats.hpp",
              "engine/framework/physics/seat_hash.hpp", "engine/framework/physics/seat_hash.cpp",
@@ -15,7 +15,7 @@ SIM_PATHS = ("engine/framework/brawl", "engine/framework/ai", "engine/framework/
              "engine/framework/physics/pendulum.hpp", "engine/framework/physics/pendulum.cpp",
              "engine/framework/depth", "engine/framework/hits", "engine/framework/kinematic",
              "engine/framework/graphics/camera_autoscroll.hpp", "engine/framework/graphics/camera_autoscroll.cpp")
-REQUIRED_DIR = "engine/framework/brawl"
+REQUIRED_DIR = "games/neon-rumble/sim"
 EXTS = {".c", ".cc", ".cxx", ".cpp", ".h", ".hpp", ".inl"}
 MIN_FILES = 10
 RULES = (
@@ -105,7 +105,7 @@ CASES = (
 )
 
 PATHS = (
-    ("каталог движка в обходе", "engine/framework/brawl/a.hpp", True),
+    ("каталог движка в обходе", "engine/framework/depth/a.hpp", True),
     ("каталог игры в обходе", "games/neon-rumble/sim/rumble_floor.cpp", True),
     ("сосед каталога с общим префиксом не в обходе", "games/neon-rumble/simx/a.cpp", False),
     ("оболочка игры не в обходе", "games/neon-rumble/src/rumble.cpp", False),
@@ -132,7 +132,7 @@ def selftest(verbose=True):
             print(f"  {'ok' if ok else 'FAIL'}: путь — {name}")
     alone = (REQUIRED_DIR,)
     refusals = (("пустой обход", {}, alone),
-                ("нет каталога brawl", {f"engine/framework/ai/f{i}.hpp": "fix32 x;\n" for i in range(MIN_FILES)}, alone),
+                ("нет каталога sim", {f"engine/framework/depth/f{i}.hpp": "fix32 x;\n" for i in range(MIN_FILES)}, alone),
                 ("fix32 только в комментариях", {k: "// fix32\n" for k in FILLER}, alone),
                 ("запись SIM_PATHS без файлов", dict(FILLER), (REQUIRED_DIR, "engine/framework/core/seats.hpp")))
     for name, files, paths in refusals:

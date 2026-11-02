@@ -1,4 +1,4 @@
-<!-- en-sha256: 68b0f8015fddbe41bd38026bf2722e6183067107b8bf35d9672fc06311adeb77 -->
+<!-- en-sha256: 628744a4cd5f80eff63147fe1be5efd2becd870fed8eae3035cd38667a0e3a71 -->
 
 # Хотсит
 
@@ -11,8 +11,8 @@
 то и другое и то, как Neon Rumble вводит второго игрока в уже идущий уровень.
 
 Заголовки — `lobby.hpp` и `seat_state.hpp` в пространстве имён `framework::input`, `seats.hpp` в
-`framework::core`, `seat_hash.hpp` в `framework::physics` и `seat_step.hpp` в `framework::brawl`. Они
-ставятся вместе с SDK (см. [SDK и своя игра](sdk-and-your-game.md)).
+`framework::core`, `seat_hash.hpp` в `framework::physics` и `seat_step.hpp` в `framework::brawl`. Первые четыре
+ставятся вместе с SDK; `seat_step.hpp` живёт в `games/neon-rumble/sim/` и собирается `rumble_sim` (см. [SDK и своя игра](sdk-and-your-game.md)).
 
 ## Лобби
 

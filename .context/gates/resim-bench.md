@@ -1,14 +1,14 @@
-# Бенч ресима на бюджете зонтика — `brawl_resim_bench`
+# Бенч ресима на бюджете зонтика — `rumble_resim_bench`
 
 ```
-./build/brawl_resim_bench [--against <файл crossplay>]   # CI × 3 ОС, после шага crossplay
+./build/rumble_resim_bench [--against <файл crossplay>]   # CI × 3 ОС, после шага crossplay
 bash scripts/mobile_bench.sh ios-sim|ios-device|android  # телефон, ручной гейт §34 владельца
 ```
 
 Спека #25, В9в (2026-10-14). Тело — `framework::ai::bench::run_resim_bench(against)` в
-`engine/framework/ai/resim_bench.cpp` (библиотека `resim_bench`), драка —
-`framework::ai::bench::Fight` в `framework_ai_bench_fight.hpp` (Sim для `rollback::Session`).
-Десктопный вход — `brawl_resim_bench.cpp`: только разбор `--against`.
+`games/neon-rumble/tests/resim_bench.cpp` (библиотека `resim_bench`), драка —
+`framework::ai::bench::Fight` в `rumble_ai_bench_fight.hpp` (Sim для `rollback::Session`).
+Десктопный вход — `rumble_resim_bench.cpp`: только разбор `--against`.
 
 Драка: 2 игрока (`scripted`), 8 врагов с мозгом `APPROACH`, 4 ящика (hp 30) и 12 снарядов
 (жизнь 24 тика) — ровно `POOL_CAPACITY` 26. Бойцы не умирают (`TOUGH`): мозг снимается только
@@ -29,12 +29,12 @@ PASS — детерминизм и полнота бюджета, **не вре�
 - минимум по ролям за тик равен бюджету (2/8/4/12);
 - `hits_dropped == 0`; контроль — попадания, сломанные ящики и выпущенные снаряды больше нуля;
 - `--against`: текст сценариев кроссплея (`имя 0x<16hex>\n`) побайтово равен файлу
-  `framework_brawl_crossplay_test --crossplay` той же ОС. Оба пишут/читают в двоичном режиме — CRLF
+  `rumble_crossplay_test --crossplay` той же ОС. Оба пишут/читают в двоичном режиме — CRLF
   на Windows не возникает.
 
 ## Позитивный контроль (2026-10-14)
 
-Мутанты `framework_ai_bench_fight.hpp`, каждый падает своей проверкой: ввод P2 постоянный →
+Мутанты `rumble_ai_bench_fight.hpp`, каждый падает своей проверкой: ввод P2 постоянный →
 «rolled back 8 ticks»; без `restock` → «full umbrella budget» и контроль; `restore` без `ai` или
 без `tick` → «resimulated … ends where the straight one does». `--against` с изменённым хешем,
 с CRLF и с отсутствующим файлом → FAIL; без пути → код 2.

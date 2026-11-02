@@ -1,4 +1,4 @@
-option(LIKE_NES_MOBILE_BENCH "Build brawl_resim_bench as the shell app instead of the game (spec #25, B9d)" OFF)
+option(LIKE_NES_MOBILE_BENCH "Build rumble_resim_bench as the shell app instead of the game (spec #25, B9d)" OFF)
 set(LIKE_NES_BENCH_AGAINST "" CACHE FILEPATH "Crossplay file of a CI run the bench on the phone judges its scenario hashes against")
 
 if(LIKE_NES_MOBILE_BENCH)

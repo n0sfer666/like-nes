@@ -2097,7 +2097,7 @@ owner_check.sh гоняет это отдельным этапом сразу п
   Перепрогон — когда коммит тронул cmake/install_sdk.cmake, cmake/sdk_*.cmake,
   cmake/like-nesConfig.cmake.in, cmake/like_nes_bake.cmake, tools/assetc/,
   engine/asset/, engine/framework/tilemap/, engine/framework/graphics/,
-  engine/framework/ai/, engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
+  games/neon-rumble/sim/, engine/render/ или games/ — окно игры рисуют слои graphics и квады render.
 
   macOS и Linux, в корне репозитория:
 

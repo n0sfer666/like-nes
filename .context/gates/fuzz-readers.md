@@ -194,7 +194,7 @@
   ASan даёт `heap-buffer-overflow` в `font_glyph_ok` на первых случаях `--target fonts`; снятая
   проверка `attribution_offset` в `credits_read.cpp` даёт `BUS` в `strlen` у `--target credits`.
   Цель `fighter` (спека #25 В2б, там же, после `credits`): таблица бойца `LNFT`, семя — фикстура
-  `framework_brawl_fighter_fixture.hpp` с тремя ударами (с В3г — `run_kick`, LNFT v4). Позитивный
+  `rumble_fighter_fixture.hpp` с тремя ударами (с В3г — `run_kick`, LNFT v4). Позитивный
   контроль (2026-10-07): снятая проверка `clip_offset` удара в `fighter_read.cpp` даёт `BUS` (код
   138) у `--target fighter` в релизе без санитайзера. С В3г цель читает и `move_name`, `slides`,
   `buffer_ticks`, `run_tap_ticks`; снятая проверка `name_offset` — тот же `BUS` (2026-10-09), а

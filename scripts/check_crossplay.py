@@ -6,7 +6,7 @@ from pathlib import Path
 import py_utf8
 
 OSES = ("Linux", "Windows", "macOS")
-COUNT_HEADER = "engine/framework/brawl/framework_brawl_crossplay.hpp"
+COUNT_HEADER = "games/neon-rumble/sim/rumble_crossplay.hpp"
 COUNT = re.compile(r"\bCROSSPLAY_SCENARIOS\s*=\s*(\d+)\b")
 LINE = re.compile(r"[a-z0-9][a-z0-9-]* 0x[0-9a-f]{16}")
 

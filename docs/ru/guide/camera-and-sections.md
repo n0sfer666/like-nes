@@ -1,4 +1,4 @@
-<!-- en-sha256: c4450baf5b74c1e12c085bb70bb6ae2fe49e95125bed65c8b852adc69a29c939 -->
+<!-- en-sha256: 515b0fd8064efbc002fd71d036e8539bd5b3e3ba872c0b6665f453054a30acdc -->
 
 # Камера и секции
 
@@ -15,7 +15,7 @@
 конвейеры, лифты, тросы и снаряды описаны там же. Заголовки — `stage_camera.hpp`, `stage_step.hpp`,
 `stage_sections.hpp`, `platform_world.hpp`, `stage_waves.hpp`, `wave_step.hpp`, `wave_facts.hpp`,
 `next_arena.hpp`, `level_progress.hpp` и `checkpoint_step.hpp`, пространство имён
-`framework::brawl`. Они ставятся вместе с SDK (см. [SDK и своя игра](sdk-and-your-game.md)).
+`framework::brawl`. Они живут в `games/neon-rumble/sim/` и собираются целью `rumble_sim` против SDK (см. [SDK и своя игра](sdk-and-your-game.md)).
 
 ## Шаг уровня
 

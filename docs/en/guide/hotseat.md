@@ -11,7 +11,8 @@ player into a level that is already running.
 
 The headers are `lobby.hpp` and `seat_state.hpp` in the namespace `framework::input`, `seats.hpp` in
 `framework::core`, `seat_hash.hpp` in `framework::physics` and `seat_step.hpp` in `framework::brawl`.
-They are installed with the SDK (see [The SDK and your own game](sdk-and-your-game.md)).
+The first four are installed with the SDK; `seat_step.hpp` belongs to
+`games/neon-rumble/sim/` and is compiled by `rumble_sim` (see [The SDK and your own game](sdk-and-your-game.md)).
 
 ## The lobby
 

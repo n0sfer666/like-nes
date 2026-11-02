@@ -11,8 +11,6 @@ add_subdirectory(graphics)
 add_subdirectory(hits)
 add_subdirectory(rollback)
 add_subdirectory(replay)
-add_subdirectory(brawl)
-add_subdirectory(ai)
 add_subdirectory(scene)
 add_subdirectory(kinematic)
 
