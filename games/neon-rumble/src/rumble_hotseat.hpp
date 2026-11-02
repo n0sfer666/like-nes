@@ -17,9 +17,11 @@ using Players = std::array<PlayerCommand, framework::brawl::SEATS>;
 // ним §29 судит вход, паузу и выход на живом железе.
 class Hotseat {
 public:
-    bool open();
+    // Мобильное лобби пусто: первый тач или пад занимает P1; экран может занять лишь одно место.
+    bool open(bool mobile = false);
     input::InputEngine& engine() { return engine_; }
     const framework::input::Lobby& lobby() const { return lobby_; }
+    int touch_player() const;
 
     // Возвращает false в паузе: драка в этот тик не шагает.
     bool tick(uint32_t t, Players& out);

@@ -20,7 +20,7 @@ enum Key : uint16_t {
 
 // Раскладки ставятся в карту на месте, а не возвращаются значением: GCC 13 -O3 видит в возврате
 // ActionLayout запись за буфером (stringop-overflow), которой нет. Отказ карты — текстом в `why`.
-[[nodiscard]] bool set_layouts(input::ActionMap& map, std::string& why);
+[[nodiscard]] bool set_layouts(input::ActionMap& map, std::string& why, bool touch = false);
 
 PlayerCommand command_of(const input::InputBuffer<input::BUFFER_TICKS>& recent);
 

@@ -125,3 +125,11 @@ endforeach()
 
 add_executable(rumble_zone_test rumble_zone_test.cpp)
 target_link_libraries(rumble_zone_test PRIVATE rumble_sim asset_core)
+
+add_executable(rumble_touch_test rumble_touch_test.cpp ../src/rumble_touch.cpp
+  ../src/rumble_controls.cpp ../src/rumble_hotseat.cpp)
+target_include_directories(rumble_touch_test PRIVATE ../src)
+target_include_directories(rumble_touch_test PRIVATE
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+target_compile_definitions(rumble_touch_test PRIVATE RUMBLE_TEST_TOUCH="${CMAKE_CURRENT_SOURCE_DIR}/../controls/touch.txt")
+target_link_libraries(rumble_touch_test PRIVATE rumble_sim framework_touch asset_core)

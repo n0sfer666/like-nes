@@ -7,6 +7,7 @@
 # Global viewport settings: positive integer sides, standard values add no bundle section.
 zone | 384 | 216
 zone_limit | 576 | 312
+touch | touch | layout | controls/touch.txt
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png

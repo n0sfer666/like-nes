@@ -36,9 +36,20 @@ void bind_pad(input::ActionLayout& l) {
     l.bind_axis(MOVE_Z, stick(code::LY), {}, STICK_DEADZONE);
 }
 
-[[nodiscard]] bool set_p1(input::ActionMap& map, input::SharedInput* shared) {
+void bind_touch(input::ActionLayout& l) {
+    l.bind(PUNCH, {input::SourceKind::TouchButton, code::TouchA, 1});
+    l.bind(KICK, {input::SourceKind::TouchButton, code::TouchB, 1});
+    l.bind(JUMP, {input::SourceKind::TouchButton, code::TouchC, 1});
+    l.bind(GRAB, {input::SourceKind::TouchButton, code::TouchD, 1});
+    l.bind(BLOCK, {input::SourceKind::TouchButton, code::TouchE, 1});
+    l.bind_axis(MOVE_X, {input::SourceKind::TouchAxis, code::StickX, 1}, {}, STICK_DEADZONE);
+    l.bind_axis(MOVE_Z, {input::SourceKind::TouchAxis, code::StickY, 1}, {}, STICK_DEADZONE);
+}
+
+[[nodiscard]] bool set_p1(input::ActionMap& map, input::SharedInput* shared, bool touch) {
     input::ActionLayout l;
     bind_pad(l);
+    if (touch) bind_touch(l);
     l.bind_axis(MOVE_X, key(code::D), key(code::A), fix32{});
     l.bind_axis(MOVE_Z, key(code::S), key(code::W), fix32{});
     l.bind(JUMP, key(code::Space));
@@ -55,9 +66,10 @@ void bind_pad(input::ActionLayout& l) {
 
 // Выход P2 с клавиатуры — минус нампада, а не Backspace: двое за одной клавиатурой делили бы
 // клавишу, и карта отказала бы в раскладке.
-[[nodiscard]] bool set_p2(input::ActionMap& map, input::SharedInput* shared) {
+[[nodiscard]] bool set_p2(input::ActionMap& map, input::SharedInput* shared, bool touch) {
     input::ActionLayout l;
     bind_pad(l);
+    if (touch) bind_touch(l);
     l.bind_axis(MOVE_X, key(KEY_RIGHT), key(KEY_LEFT), fix32{});
     l.bind_axis(MOVE_Z, key(KEY_DOWN), key(KEY_UP), fix32{});
     l.bind(JUMP, key(KEY_KP0));
@@ -79,10 +91,10 @@ uint16_t with(uint16_t buttons, bool on, uint16_t bit) {
 
 } // namespace
 
-bool set_layouts(input::ActionMap& map, std::string& why) {
+bool set_layouts(input::ActionMap& map, std::string& why, bool touch) {
     static_assert(framework::brawl::SEATS == 2);
     input::SharedInput shared;
-    if (set_p1(map, &shared) && set_p2(map, &shared)) return true;
+    if (set_p1(map, &shared, touch) && set_p2(map, &shared, touch)) return true;
     why = framework::input::shared_input_text(shared);
     return false;
 }

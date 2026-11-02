@@ -18,7 +18,7 @@ install(TARGETS assetc RUNTIME DESTINATION bin CONFIGURATIONS Release COMPONENT 
 # Ядро пекаря (спека #29, В2а): инструмент игры собирается против префикса и приносит свои виды
 # записей таблицей. В like-nes::engine оно не входит — игре в рантайме пекарь не нужен.
 list(APPEND LIKE_NES_SDK_STATIC assetc_core asset_core framework_tiled framework_graphics_import
-  framework_touch framework_json libzstd_static)
+  framework_json libzstd_static)
 list(APPEND LIKE_NES_SDK_HEADER_PATHS tools/assetc/assetc_kind.hpp tools/assetc/assetc_manifest_mode.hpp)
 
 set(LIKE_NES_SDK_INC_ALLOWED "${glfw_SOURCE_DIR}/include" "${glfw3webgpu_SOURCE_DIR}"

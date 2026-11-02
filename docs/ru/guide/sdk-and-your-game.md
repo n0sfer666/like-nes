@@ -1,4 +1,4 @@
-<!-- en-sha256: 95e050fc7b9f531173c9c6a6a7c4fdd21567b138b081fa19a70a478d83ac7632 -->
+<!-- en-sha256: 7c45e27eba83c353cc5546ad7a5d3abde2b8866b2b185f0415c34d41155c9d2d -->
 
 # SDK и своя игра
 
@@ -81,7 +81,7 @@ add_subdirectory(sim)
 set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
   src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
-  src/rumble_depth_overlay.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
+  src/rumble_depth_overlay.cpp src/rumble_touch.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
   src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
   src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
   src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
@@ -180,6 +180,7 @@ cmake --build build-game
 # Global viewport settings: positive integer sides, standard values add no bundle section.
 zone | 384 | 216
 zone_limit | 576 | 312
+touch | touch | layout | controls/touch.txt
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png

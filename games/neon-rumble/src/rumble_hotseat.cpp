@@ -24,18 +24,26 @@ const char* state_name(SeatState s) {
 
 } // namespace
 
-bool Hotseat::open() {
+bool Hotseat::open(bool mobile) {
     std::string why;
-    if (!set_layouts(map_, why)) {
+    if (!set_layouts(map_, why, mobile)) {
         std::fprintf(stderr, "neon-rumble: controls: %s\n", why.c_str());
         return false;
     }
-    if (!lobby_.join(0, input::PlayerAssign{.use_kbd_mouse = true})) {
+    if (!mobile && !lobby_.join(0, input::PlayerAssign{.use_kbd_mouse = true})) {
         std::fprintf(stderr, "neon-rumble: player 1 does not get the keyboard\n");
         return false;
     }
+    // До первого касания: оно должно дать фронт входа, а не стать исходным held-состоянием лобби.
+    if (mobile) lobby_.update(engine_.device());
     for (uint32_t p = 0; p < was_.size(); ++p) was_[p] = lobby_.state(static_cast<int>(p));
     return true;
+}
+
+int Hotseat::touch_player() const {
+    for (int p = 0; p < lobby_.seats(); ++p)
+        if (lobby_.state(p) != framework::input::SeatState::Free && map_.assignment(p).use_touch) return p;
+    return -1;
 }
 
 // docs:begin(hotseat-tick)

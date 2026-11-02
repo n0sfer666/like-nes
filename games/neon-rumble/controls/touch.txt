@@ -1,0 +1,8 @@
+# Landscape, точки от угла safe area. a=PUNCH, b=KICK, c=JUMP, d=GRAB, e=BLOCK.
+# CROSS — цепочка бойца, DODGE — удержанный BLOCK + рывок стика, отдельных кнопок нет.
+stick | 48
+button | a | bottom-right | 68 | 68 | 30
+button | b | bottom-right | 144 | 68 | 30
+button | c | bottom-right | 68 | 144 | 30
+button | d | bottom-right | 220 | 68 | 30
+button | e | bottom-right | 144 | 144 | 30

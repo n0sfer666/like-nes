@@ -67,6 +67,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/font_format.hpp framework/graphics/font_read.hpp framework/graphics/font_bake.hpp
   framework/graphics/text_layout.hpp framework/graphics/gpu/text_quads.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
+  framework/touch/touch_layout.hpp framework/touch/touch_format.hpp framework/touch/touch_source.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
   framework/scene/scene_paths.hpp framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_object.hpp framework/scene/scene_stack.hpp
   framework/scene/viewport_load.hpp framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp
@@ -74,7 +75,7 @@ set(LIKE_NES_SDK_HEADERS
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
-  framework_core framework_input framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
+  framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native platform_core render_core
   render_surface glfw glfw3webgpu)
@@ -82,6 +83,6 @@ set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
   engine_core asset_hash asset_view platform_core input_core render_core render_surface
-  framework_core framework_input framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
+  framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_replay framework_scene)
