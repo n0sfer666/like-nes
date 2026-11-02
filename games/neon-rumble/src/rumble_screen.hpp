@@ -27,6 +27,7 @@ public:
     LayerStats level(const Play& play, const Hotseat& hotseat, const Credits& credits,
                      const framework::graphics::ViewportFit& fit, uint64_t tick);
     const Layers& layers() const { return layers_; }
+    Layers& layers() { return layers_; }
 
 private:
     void credits_page(const Credits& credits, const framework::graphics::ViewportFit& fit, LayerStats& st,

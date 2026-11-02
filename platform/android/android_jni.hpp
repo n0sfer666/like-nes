@@ -49,6 +49,11 @@ public:
         const jmethodID m = method(obj, name, sig);
         if (m) env_->CallVoidMethod(obj, m, args...);
     }
+    template<class... A>
+    bool boolean(jobject obj, const char* name, const char* sig, A... args) {
+        const jmethodID m = method(obj, name, sig);
+        return m && env_->CallBooleanMethod(obj, m, args...) == JNI_TRUE;
+    }
     int field(jobject obj, const char* name) {
         if (!check() || !obj) { ok_ = false; return 0; }
         const jclass c = env_->GetObjectClass(obj);

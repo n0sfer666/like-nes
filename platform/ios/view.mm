@@ -56,7 +56,7 @@
     }
     probe_ = [NSProcessInfo.processInfo.arguments containsObject:@"--touch-probe"];
     run_ = NSProcessInfo.processInfo.environment[@"LIKE_NES_TOUCH_RUN"] ?: @"-";
-    if (probe_) probe_expose_safe_area(self.view);
+    if (probe_) probe_expose_safe_area(self.view, run_);
     started_ = true;
     NSLog(@"[game] iOS shell up: %ux%u", layout_.width, layout_.height);
 
@@ -103,6 +103,7 @@
         return;
     }
     game_->resume();
+    if (probe_) probe_expose_safe_area(self.view, run_);
     last_ = 0;
     [self pace];
 }
@@ -114,7 +115,7 @@
     // При 180° размер кадра прежний, но вырез и координаты удержанного пальца уже другие.
     game_->cancel();
     game_->resize(layout_.width, layout_.height, layout_.safe);
-    if (probe_) probe_expose_safe_area(self.view);
+    if (probe_) probe_expose_safe_area(self.view, run_);
     [self pace];
 }
 

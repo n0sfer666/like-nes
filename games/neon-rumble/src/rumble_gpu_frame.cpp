@@ -28,7 +28,8 @@ WGPUColor background(const Level& level, WGPUTextureFormat format) {
 }
 
 void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear, const PixelRect& shown,
-                  const render::QuadRenderer& quads, std::span<const render::QuadRun> runs) {
+                  const render::QuadRenderer& quads, std::span<const render::QuadRun> runs,
+                  const QuadOverlay& overlay) {
     WGPURenderPassColorAttachment color = {};
     color.view = view;
     color.loadOp = WGPULoadOp_Clear;
@@ -45,6 +46,11 @@ void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear, 
     wgpuRenderPassEncoderSetScissorRect(pass, static_cast<uint32_t>(shown.x), static_cast<uint32_t>(shown.y),
                                         shown.w, shown.h);
     quads.draw(pass, runs);
+    if (!overlay.runs.empty()) {
+        wgpuRenderPassEncoderSetScissorRect(pass, static_cast<uint32_t>(overlay.clip.x),
+            static_cast<uint32_t>(overlay.clip.y), overlay.clip.w, overlay.clip.h);
+        quads.draw(pass, overlay.runs);
+    }
     wgpuRenderPassEncoderEnd(pass);
     wgpuRenderPassEncoderRelease(pass);
     WGPUCommandBuffer cmd = wgpuCommandEncoderFinish(enc, nullptr);
@@ -55,8 +61,8 @@ void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear, 
 
 void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
                 const PixelRect& shown, const render::QuadRenderer& quads,
-                std::span<const render::QuadRun> runs) {
-    submit_quads(gpu, view, clear, shown, quads, runs);
+                std::span<const render::QuadRun> runs, const QuadOverlay& overlay) {
+    submit_quads(gpu, view, clear, shown, quads, runs, overlay);
     wgpuSurfacePresent(surface);
 }
 

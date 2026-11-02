@@ -1,15 +1,21 @@
 #include "android_touch.hpp"
 
+#include "mobile_probe.hpp"
+
 namespace {
 
-void dispatch(mobile::Game& game, AInputEvent* ev, size_t idx, mobile::Touch phase, float scale) {
-    game.pointer(AMotionEvent_getPointerId(ev, idx), phase,
-                 AMotionEvent_getX(ev, idx) / scale, AMotionEvent_getY(ev, idx) / scale);
+void dispatch(mobile::Game& game, AInputEvent* ev, size_t idx, mobile::Touch phase, float scale,
+              const std::string& probe) {
+    const int32_t id = AMotionEvent_getPointerId(ev, idx);
+    const float x = AMotionEvent_getX(ev, idx) / scale, y = AMotionEvent_getY(ev, idx) / scale;
+    game.pointer(id, phase, x, y);
+    if (!probe.empty()) std::fprintf(stderr, "%s\n", mobile::touch_line(id, phase, x, y, game.touch_state(),
+                                                                        probe.c_str()).c_str());
 }
 
 } // namespace
 
-int32_t android_touch(mobile::Game& game, AInputEvent* ev, float scale) {
+int32_t android_touch(mobile::Game& game, AInputEvent* ev, float scale, const std::string& probe) {
     if (AInputEvent_getType(ev) != AINPUT_EVENT_TYPE_MOTION || scale <= 0) return 0;
     // Джойстики тоже посылают MotionEvent: сенсорный экран не должен забирать их касаниями.
     if ((AInputEvent_getSource(ev) & AINPUT_SOURCE_TOUCHSCREEN) != AINPUT_SOURCE_TOUCHSCREEN) return 0;
@@ -21,14 +27,14 @@ int32_t android_touch(mobile::Game& game, AInputEvent* ev, float scale) {
     switch (action) {
         case AMOTION_EVENT_ACTION_DOWN:
         case AMOTION_EVENT_ACTION_POINTER_DOWN:
-            if (idx < count) dispatch(game, ev, idx, mobile::Touch::Down, scale);
+            if (idx < count) dispatch(game, ev, idx, mobile::Touch::Down, scale, probe);
             break;
         case AMOTION_EVENT_ACTION_MOVE:
-            for (size_t i = 0; i < count; ++i) dispatch(game, ev, i, mobile::Touch::Move, scale);
+            for (size_t i = 0; i < count; ++i) dispatch(game, ev, i, mobile::Touch::Move, scale, probe);
             break;
         case AMOTION_EVENT_ACTION_UP:
         case AMOTION_EVENT_ACTION_POINTER_UP:
-            if (idx < count) dispatch(game, ev, idx, mobile::Touch::Up, scale);
+            if (idx < count) dispatch(game, ev, idx, mobile::Touch::Up, scale, probe);
             break;
         case AMOTION_EVENT_ACTION_CANCEL:
             game.cancel();

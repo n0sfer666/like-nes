@@ -4,6 +4,7 @@
 #include <sys/system_properties.h>
 
 #include <cstdio>
+#include <cstring>
 #include <utility>
 
 #include "mobile_host.hpp"
@@ -19,6 +20,8 @@ std::string& asset_dir() {
     return dir;
 }
 
+thread_local bool demo_mode = false;
+
 std::string property(const char* name) {
     char value[PROP_VALUE_MAX] = {};
     return __system_property_get(name, value) > 0 ? value : "?";
@@ -27,11 +30,12 @@ std::string property(const char* name) {
 } // namespace
 
 void set_asset_dir(std::string dir) { asset_dir() = std::move(dir); }
+void set_demo(bool enabled) { demo_mode = enabled; }
 
 std::string asset_path(const char* name) { return asset_dir() + "/" + name; }
 
-// У NativeActivity нет argv: флаги запуска дойдут сюда через extras интента, когда понадобятся.
-bool has_arg(const char*) { return false; }
+// У NativeActivity нет argv: UI-поток читает extra demo, android_main передаёт его перед init игры.
+bool has_arg(const char* flag) { return std::strcmp(flag, "--demo") == 0 && demo_mode; }
 
 std::string device_info() {
     char buf[256];

@@ -66,6 +66,9 @@ bundles and the licenses, and that its `game.bundle` is byte for byte the deskto
 
 This is the whole build file of Neon Rumble:
 
+The shared source list is in [`sources.cmake`](../../../games/neon-rumble/sources.cmake).
+The mobile app and its CPU host test build the same game code from that list.
+
 <!-- snippet: games/neon-rumble/CMakeLists.txt -->
 ```cmake
 cmake_minimum_required(VERSION 3.21)
@@ -74,18 +77,9 @@ project(neon_rumble CXX)
 find_package(like-nes 0.1 REQUIRED CONFIG)
 add_subdirectory(sim)
 
-set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
-  src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
-  src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
-  src/rumble_depth_overlay.cpp src/rumble_touch.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
-  src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
-  src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
-  src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
-  src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
-  src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
-  src/rumble_join_report.cpp src/rumble_demo.cpp)
+include(${CMAKE_CURRENT_LIST_DIR}/sources.cmake)
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
-  like_nes_mobile_app(neon_rumble SOURCES src/rumble_mobile.cpp ${RUMBLE_SOURCES}
+  like_nes_mobile_app(neon_rumble SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
@@ -116,6 +110,8 @@ endif()
   brings the desktop window and native input: the GLFW keyboard and mouse pump and the gamepad
   backend of the OS (`input/source.hpp`, `make_gamepad_source`): GameController on macOS, XInput on
   Windows, evdev on Linux.
+  `like-nes::engine` also includes `framework_touch`: layouts and `TouchSource` turn screen
+  coordinates into the same action map as the other input devices.
 - `add_subdirectory(sim)` adds `rumble_sim`, the fight code without a window. Its build file links
   `like-nes::engine` when the target exists, as it does here, and the engine targets of the source
   tree otherwise: the same library builds inside the engine tree under its strict warnings and

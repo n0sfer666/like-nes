@@ -8,6 +8,7 @@ struct AndroidWindowSnapshot {
     int left = 0, top = 0, right = 0, bottom = 0;
     int rotation = -1;
     bool insets = false;
+    bool demo = false;
     std::string probe;
     bool operator==(const AndroidWindowSnapshot&) const = default;
 };

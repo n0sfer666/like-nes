@@ -75,6 +75,24 @@ void created(ANativeActivity* a, ANativeWindow* window) {
     if (w.previous.onNativeWindowCreated) w.previous.onNativeWindowCreated(a, window);
 }
 
+void resized(ANativeActivity* a, ANativeWindow* window) {
+    Window& w = *lookup(a);
+    sample(w);
+    if (w.previous.onNativeWindowResized) w.previous.onNativeWindowResized(a, window);
+}
+
+void configuration(ANativeActivity* a) {
+    Window& w = *lookup(a);
+    sample(w);
+    if (w.previous.onConfigurationChanged) w.previous.onConfigurationChanged(a);
+}
+
+void content(ANativeActivity* a, const ARect* rect) {
+    Window& w = *lookup(a);
+    sample(w);
+    if (w.previous.onContentRectChanged) w.previous.onContentRectChanged(a, rect);
+}
+
 void destroy(ANativeActivity* a) {
     Window& w = *lookup(a);
     if (w.previous.onDestroy) w.previous.onDestroy(a); // glue ждёт выхода android_main
@@ -130,6 +148,9 @@ extern "C" void ANativeActivity_onCreate(ANativeActivity* a, void* saved, size_t
     w.previous = *a->callbacks;
     a->callbacks->onWindowFocusChanged = focus;
     a->callbacks->onNativeWindowCreated = created;
+    a->callbacks->onNativeWindowResized = resized;
+    a->callbacks->onConfigurationChanged = configuration;
+    a->callbacks->onContentRectChanged = content;
     a->callbacks->onResume = resume;
     a->callbacks->onDestroy = destroy;
 }

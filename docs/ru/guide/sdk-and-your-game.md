@@ -1,4 +1,4 @@
-<!-- en-sha256: 7c45e27eba83c353cc5546ad7a5d3abde2b8866b2b185f0415c34d41155c9d2d -->
+<!-- en-sha256: 7513b3742ac3f27ecbfd259c21b6def3b5a3aeb0196a4bb24a369f3d96208d14 -->
 
 # SDK и своя игра
 
@@ -70,6 +70,9 @@ macOS и Linux с пиннутым NDK). Он проверяет, что каж�
 
 Это весь файл сборки Neon Rumble:
 
+Общий список исходников — в [`sources.cmake`](../../../games/neon-rumble/sources.cmake).
+Мобильное приложение и его CPU-тест с моком хоста собирают один игровой код по этому списку.
+
 <!-- snippet: games/neon-rumble/CMakeLists.txt -->
 ```cmake
 cmake_minimum_required(VERSION 3.21)
@@ -78,18 +81,9 @@ project(neon_rumble CXX)
 find_package(like-nes 0.1 REQUIRED CONFIG)
 add_subdirectory(sim)
 
-set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
-  src/rumble_fighter.cpp src/rumble_fighter_quads.cpp src/rumble_credits.cpp src/rumble_brawl.cpp
-  src/rumble_roster_quads.cpp src/rumble_report.cpp src/rumble_brawl_report.cpp src/rumble_kinds.cpp
-  src/rumble_depth_overlay.cpp src/rumble_touch.cpp src/rumble_controls.cpp src/rumble_hotseat.cpp src/rumble_banner.cpp
-  src/rumble_gpu_frame.cpp src/rumble_wave.cpp src/rumble_wave_read.cpp src/rumble_facing.cpp
-  src/rumble_brain.cpp src/rumble_wave_script.cpp src/rumble_steer.cpp
-  src/rumble_menu.cpp src/rumble_menu_quads.cpp src/rumble_play.cpp src/rumble_flow.cpp
-  src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
-  src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
-  src/rumble_join_report.cpp src/rumble_demo.cpp)
+include(${CMAKE_CURRENT_LIST_DIR}/sources.cmake)
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
-  like_nes_mobile_app(neon_rumble SOURCES src/rumble_mobile.cpp ${RUMBLE_SOURCES}
+  like_nes_mobile_app(neon_rumble SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
@@ -120,6 +114,8 @@ endif()
   настольное окно и нативный ввод: GLFW-пумп клавиатуры и мыши и бэкенд пада ОС
   (`input/source.hpp`, `make_gamepad_source`): GameController на macOS, XInput на Windows, evdev на
   Linux.
+  В `like-nes::engine` также входит `framework_touch`: раскладки и `TouchSource` переводят
+  координаты экрана в ту же карту действий, что у остальных устройств ввода.
 - `add_subdirectory(sim)` добавляет `rumble_sim` — код драки без окна. Его файл сборки линкует
   `like-nes::engine`, если такая цель есть, как здесь, а иначе — цели движка из дерева исходников:
   одна библиотека собирается и в дереве движка под его строгими предупреждениями, и против SDK для

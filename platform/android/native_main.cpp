@@ -15,6 +15,7 @@
 #include "apk_assets.hpp"
 #include "gpu.hpp"
 #include "mobile_app.hpp"
+#include "mobile_probe.hpp"
 #include "platform_env.hpp"
 #include "stdout_logcat.hpp"
 
@@ -40,7 +41,7 @@ double now_s() {
 // Касания приходят в пикселях окна, а игра ждёт точки: плотность 160 dpi — одна точка на пиксель.
 float density_scale(AConfiguration* config) {
     const int32_t d = config ? AConfiguration_getDensity(config) : 0;
-    if (d <= 0 || d == ACONFIGURATION_DENSITY_NONE) return 1;
+    if (d <= 0 || d == ACONFIGURATION_DENSITY_NONE || d == ACONFIGURATION_DENSITY_ANY) return 1;
     return static_cast<float>(d) / static_cast<float>(ACONFIGURATION_DENSITY_MEDIUM);
 }
 
@@ -66,6 +67,11 @@ void release_surface(App& a) {
 mobile::SafeArea safe_area(const App& a) {
     return {static_cast<float>(a.window.left) / a.scale, static_cast<float>(a.window.top) / a.scale,
             static_cast<float>(a.window.right) / a.scale, static_cast<float>(a.window.bottom) / a.scale, a.scale};
+}
+
+void report_safe(const App& a) {
+    if (!a.window.probe.empty()) std::fprintf(stderr, "%s\n",
+        mobile::safe_line(a.fb_w, a.fb_h, safe_area(a), a.window.rotation, a.window.probe.c_str()).c_str());
 }
 
 void teardown(App& a) {
@@ -107,6 +113,7 @@ void attach(App& a, android_app* app) {
         release_surface(a);
     }
     a.last = 0;
+    report_safe(a);
 }
 
 void detach(App& a) {
@@ -128,13 +135,14 @@ void resize(App& a, android_app* app) {
     a.window = window;
     a.fb_w = static_cast<uint32_t>(w); a.fb_h = static_cast<uint32_t>(h); a.scale = scale;
     a.game->resize(a.fb_w, a.fb_h, safe_area(a));
+    report_safe(a);
 }
 
 bool live(const App& a) { return a.game && a.surface && a.game->wants_frames(); }
 
 int32_t on_input(android_app* app, AInputEvent* ev) {
     App& a = *static_cast<App*>(app->userData);
-    return a.game && a.surface ? android_touch(*a.game, ev, a.scale) : 0;
+    return a.game && a.surface ? android_touch(*a.game, ev, a.scale, a.window.probe) : 0;
 }
 
 void on_cmd(android_app* app, int32_t cmd) {
@@ -160,6 +168,7 @@ void android_main(android_app* app) {
     mobile::set_asset_dir(assets);
     platform::env_put("LIKENES_ASSETS", assets.c_str());
     platform::env_put("LIKENES_SAVE_DIR", data.c_str());
+    mobile::set_demo(android_window_read(app->activity).demo);
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;

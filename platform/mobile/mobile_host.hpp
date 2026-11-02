@@ -10,7 +10,7 @@ namespace mobile {
 // песочнице (exe_dir у приложения Android — app_process системы, рядом с ним ассетов нет).
 std::string asset_path(const char* name);
 
-// Флаг запуска (`--demo`): iOS — аргументы процесса, Android — пока всегда false.
+// Флаг запуска (`--demo`): iOS — аргументы процесса, Android — boolean extra demo интента.
 bool has_arg(const char* flag);
 
 // Подсказка планировщику: текущий рабочий поток обслуживает интерактивную задачу.

@@ -31,6 +31,7 @@ jfieldID JNICALL field(JNIEnv*, jclass, const char*, const char*) {
 jobject JNICALL get_object(JNIEnv*, jobject, jmethodID, va_list) { return call() ? &object : nullptr; }
 jint JNICALL get_int(JNIEnv*, jobject, jmethodID, va_list) { return call() ? 1 : 0; }
 jint JNICALL get_static(JNIEnv*, jclass, jmethodID, va_list) { return call() ? 1 : 0; }
+jboolean JNICALL get_bool(JNIEnv*, jobject, jmethodID, va_list) { return call() ? JNI_TRUE : JNI_FALSE; }
 jint JNICALL get_field(JNIEnv*, jobject, jfieldID) { return call() ? 1 : 0; }
 void JNICALL invoke(JNIEnv*, jobject, jmethodID, va_list) { (void)call(); }
 jstring JNICALL new_text(JNIEnv*, const char*) { return call() ? &text : nullptr; }
@@ -46,6 +47,7 @@ JNINativeInterface_ functions() {
     f.GetMethodID = method; f.GetStaticMethodID = method; f.GetFieldID = field;
     f.CallObjectMethodV = get_object; f.CallIntMethodV = get_int;
     f.CallStaticIntMethodV = get_static; f.GetIntField = get_field; f.CallVoidMethodV = invoke;
+    f.CallBooleanMethodV = get_bool;
     f.NewStringUTF = new_text; f.GetStringUTFLength = length;
     f.GetStringUTFChars = chars; f.ReleaseStringUTFChars = release;
     return f;
@@ -67,6 +69,7 @@ bool exercise(JNIEnv& env, int failure) {
         (void)j.static_integer("android/view/WindowInsets$Type", "systemBars");
         (void)j.field(&object, "left");
         j.invoke(&object, "hide", "(I)V", jint{7});
+        (void)j.boolean(&object, "getBooleanExtra", "(Ljava/lang/String;Z)Z", key, jboolean{JNI_FALSE});
         ok = j.ok();
     }
     return ok == (failure == 0) && forbidden == 0 && !pending && frames == 0 &&

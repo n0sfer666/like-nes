@@ -11,7 +11,7 @@ jobject decor(AndroidJni& j, ANativeActivity* a, jobject& window) {
     return j.object(window, "getDecorView", "()Landroid/view/View;");
 }
 
-void read_probe(AndroidJni& j, ANativeActivity* a, std::string& out) {
+void read_options(AndroidJni& j, ANativeActivity* a, AndroidWindowSnapshot& out) {
     const jobject intent = j.object(a->clazz, "getIntent", "()Landroid/content/Intent;");
     const jstring key = j.text("probe");
     const jstring nonce = static_cast<jstring>(j.object(intent, "getStringExtra",
@@ -19,7 +19,9 @@ void read_probe(AndroidJni& j, ANativeActivity* a, std::string& out) {
     const std::string value = j.utf8(nonce, 64);
     // Интент — внешние данные, а нонс станет частью строки лога. Только один короткий токен.
     if (value.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-") ==
-        std::string::npos) out = value;
+        std::string::npos) out.probe = value;
+    const jstring demo = j.text("demo");
+    out.demo = j.boolean(intent, "getBooleanExtra", "(Ljava/lang/String;Z)Z", demo, jboolean{JNI_FALSE});
 }
 
 } // namespace
@@ -53,7 +55,7 @@ bool android_window_sample(ANativeActivity* a, AndroidWindowSnapshot& out) {
             next.bottom = std::max(next.bottom, j.integer(cutout, "getSafeInsetBottom"));
         }
     }
-    read_probe(j, a, next.probe);
+    read_options(j, a, next);
     if (!j.ok()) return false;
     out = next;
     return true;

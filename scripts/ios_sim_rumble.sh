@@ -77,7 +77,7 @@ xcrun simctl install "$UDID" "$GAME/neon_rumble.app" || fail "cannot install the
 ok "simulator $DEVICE $UDID on $RUNTIME, app installed"
 
 ERR="$GAME/background.stderr"
-ios_launch_up "$UDID" "$APP" "$ERR" || fail "$IOS_SAID"
+ios_launch_up "$UDID" "$APP" "$ERR" --demo || fail "$IOS_SAID"
 # Несколько секунд драки до фона: тик detach должен уйти от нуля, иначе сверка с headless пуста.
 sleep 5
 # Ждётся detach после последнего attach, а не любая: своя пара на старте (пересоздание поверхности)

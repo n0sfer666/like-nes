@@ -1,0 +1,17 @@
+# shellcheck shell=bash
+# Реальный MobileRumble на desktop SDK, без поверхности: мок только mobile_host.
+mobile_cpu() {
+    local dir="$WORK/mobile-cpu" exe desk="$OUT/game-Release/neon_rumble"
+    {
+        cmake -S "$(native "$ROOT/games/neon-rumble/tests/mobile-cpu")" -B "$(native "$dir")" -G "$GEN" \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -Dlike-nes_DIR="$(native "$PREFIX")/lib/cmake/like-nes" && cmake --build "$(native "$dir")"
+    } > "$WORK/mobile-cpu-build.log" 2>&1 || {
+        tail -25 "$WORK/mobile-cpu-build.log"; sdk_bad 'mobile CPU host build'; return 1; }
+    exe="$dir/rumble_mobile_cpu"
+    [ ! -f "$exe.exe" ] || exe="$exe.exe"
+    [ ! -f "$desk.exe" ] || desk="$desk.exe"
+    python3 "$ROOT/scripts/mobile_cpu_verdict.py" "$(native "$exe")" "$(native "$desk")" "$(native "$OUT/game-Release")" || {
+        sdk_bad 'mobile CPU input or demo parity'; return 1; }
+    sdk_ok 'MobileRumble CPU: touch, movement, cancel, safe-only rotation, suspend; demo equals desktop'
+}

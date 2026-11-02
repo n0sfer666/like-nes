@@ -111,7 +111,7 @@ waited() {
 front() {
   local said
   said=$("$ADB" shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER \
-    -n "$APP/android.app.NativeActivity" 2>&1) || { printf '%s\n' "$said" >&2; return 1; }
+    -n "$APP/android.app.NativeActivity" --ez demo true 2>&1) || { printf '%s\n' "$said" >&2; return 1; }
   printf '%s\n' "$said" >>"$LOG"
   case "$said" in *Error*) printf '%s\n' "$said" >&2; return 1 ;; esac
 }

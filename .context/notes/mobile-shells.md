@@ -252,7 +252,8 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 - `android_window.cpp` — вход ANativeActivity_onCreate перед renamed native_app_glue. Системные
   callbacks остаются на UI-потоке; onDestroy сначала ждёт glue/android_main, потом снимает fd
   с UI-looper и закрывает pipe. Игровой поток не использует activity->env/View: получает снимок
-  под mutex, раз в30 кадров неблокирующим pipe просит новый. Focus/resume/window-created также
+  под mutex, раз в30 кадров неблокирующим pipe просит новый. Focus/resume/window-created,
+  resize/config/content-rect также
   обновляют снимок до glue. Сторона выреза/rotation меняются и без изменения framebuffer.
 - JNI объединяет max отступов cutout и systemBars (API30 getInsets, 29 старые inset getters),
   читает Display.getRotation, immersive30+ через WindowInsetsController с transient swipe,
@@ -260,7 +261,8 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
   Intent extra probe принимает только ASCII-токен до64 байт; используется следующим touch-гейтом.
 - AndroidJni ограничивает локальные ссылки запросом и останавливает вызовы после исключения.
   Раннее ревью нашло сырой NewStringUTF после ошибки getIntent; все строковые JNI тоже обёрнуты.
-  Хостовый JNI mock — normal +23 injected exception paths; unchecked-NewStringUTF мутант красный.
+  Хостовый JNI mock — normal +26 injected exception paths (boolean extra demo добавил3);
+  unchecked-NewStringUTF мутант красный.
 - `sdk_game_mobile.sh` проверяет испечённые манифест и тему через aapt2 dump; parser имеет14
   контролей, проверяет ссылку manifest→LikeNesTheme, sensorLandscape, hasCode=false и разрешения.
   Сборки shell/shooter APK x86_64 и sdk-game с iOS-sim/Android пакетами PASS. Java27 apksigner
@@ -273,3 +275,30 @@ AVAudioSession на главном потоке, копящиеся `ios-sim-gat
 [UI looper fd callbacks](https://developer.android.com/ndk/reference/group/looper),
 [WindowInsets](https://developer.android.com/reference/android/view/WindowInsets),
 [immersive](https://developer.android.com/develop/ui/views/layout/immersive).
+
+## Тач Neon Rumble и пробы (#26 В2г, 2026-11-02)
+
+- Обычный запуск MobileRumble — пустое лобби с тачем. --demo (iOS) / boolean extra demo
+  (Android, has_arg на game thread) сохраняет прежний скрипт; оба старых smoke-скрипта передают
+  этот флаг явно. sources.cmake — единый список кода приложения и CPU fixture.
+- Attach/resize передают размер в точках и safe area в TouchSource, pointer переводит float→fix32
+  на границе; NaN/inf отменяют касания. Resize обновляет модель ввода и без поверхности.
+  Detach/cancel/suspend/смена сцены отпускают всё; suspend/resume сбрасывают лаг часов.
+- TouchQuads — пять подписанных кругов и плавающий стик, размеры по плотности экрана. Оверлей
+  идёт после сцены тем же QuadRenderer и атласами, с scissor всего framebuffer; сцена сохраняет
+  shown. Геометрия внутри hit-кругов, без новых аллокаций в кадре. Видимость хранит маску падов:
+  любое новое подключение скрывает незанятый тач, касание показывает, владелец тача имеет приоритет.
+- mobile_probe.hpp задаёт общую грамматику safe/touch для NSLog и logcat. fb_w/fb_h — пиксели,
+  scale — px/point, insets и x/y — точки, rotation0/1/2/3 (iOS landscape-left1/right3).
+  iOS также экспонирует исходный UIInterfaceOrientation в accessibility для синтезатора.
+- iOS plist объявляет обе landscape, LocalNetworkUsageDescription и Bonjour `_likenes._udp`.
+  Это подготовка разрешений, не реализация discovery #27; installed-SDK gate судит готовый plist.
+- SDK CPU fixture компилирует настоящий MobileRumble и общий игровой код против desktop prefix;
+  переносимый mobile::Game берёт из дерева (desktop SDK этот заголовок не поставляет), хост — мок.
+  GPU не инициализируется, поверхности нет. Семь режимов доказывают pointer/scale/cancel/NaN,
+  safe-only rotation, suspend/resume, вход после60 тиков ожидания и демо480=desktop.
+  idle/cancel/move hash847a37a6c83e0782/fd6cb9e8ffe6a708/9864353184795342; demoafa1b0c122f176a0.
+- Геометрия UI Release/Debug/full-ASan+UBSan PASS. GPU pixels PASS локально в Linux-контейнере
+  Vulkan/llvmpipe LLVM19 (6 production cpp + test, GCC14.2, обычный pinned wgpu binary).
+  Два clip-мутанта и четыре CPU production-мутанта красные (включая пропуск позднего входа). Native Mac Metal адаптера не дал и
+  вне sandbox; живые симуляторы/телефоны и удалённый CI остаются долгом, не заменены этим тестом.

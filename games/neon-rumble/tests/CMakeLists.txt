@@ -133,3 +133,16 @@ target_include_directories(rumble_touch_test PRIVATE
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
 target_compile_definitions(rumble_touch_test PRIVATE RUMBLE_TEST_TOUCH="${CMAKE_CURRENT_SOURCE_DIR}/../controls/touch.txt")
 target_link_libraries(rumble_touch_test PRIVATE rumble_sim framework_touch asset_core)
+
+add_executable(rumble_touch_quads_test rumble_touch_quads_test.cpp
+  ../src/rumble_touch_quads.cpp ../src/rumble_layers.cpp)
+target_include_directories(rumble_touch_quads_test PRIVATE ../src
+  $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+target_compile_definitions(rumble_touch_quads_test PRIVATE RUMBLE_TEST_TOUCH="${CMAKE_CURRENT_SOURCE_DIR}/../controls/touch.txt")
+target_link_libraries(rumble_touch_quads_test PRIVATE rumble_sim framework_touch framework_graphics_gpu)
+
+add_executable(rumble_overlay_gpu_test rumble_overlay_gpu_test.cpp ../src/rumble_gpu_frame.cpp)
+target_include_directories(rumble_overlay_gpu_test PRIVATE ../src)
+target_link_libraries(rumble_overlay_gpu_test PRIVATE rumble_sim framework_graphics_gpu)
+target_copy_webgpu_binaries(rumble_overlay_gpu_test)
+reproducible_rpath(rumble_overlay_gpu_test)

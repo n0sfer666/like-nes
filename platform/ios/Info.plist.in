@@ -11,6 +11,10 @@
   <key>LSRequiresIPhoneOS</key><true/>
   <key>MinimumOSVersion</key><string>${CMAKE_OSX_DEPLOYMENT_TARGET}</string>
   <key>UILaunchScreen</key><dict/>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Connect with other players on the local network.</string>
+  <key>NSBonjourServices</key>
+  <array><string>_likenes._udp</string></array>
   <key>UIApplicationSceneManifest</key>
   <dict>
     <key>UIApplicationSupportsMultipleScenes</key><false/>

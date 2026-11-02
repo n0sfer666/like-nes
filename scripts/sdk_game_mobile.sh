@@ -91,6 +91,11 @@ mobile_ios() {
     esac
     [ "$(plutil -extract MinimumOSVersion raw "$app/Info.plist" 2>&1)" = "$min" ] || {
         sdk_bad "ios-sim: Info.plist MinimumOSVersion is not $min"; return 1; }
+    [ "$(plutil -extract UISupportedInterfaceOrientations.0 raw "$app/Info.plist")" = UIInterfaceOrientationLandscapeLeft ] &&
+        [ "$(plutil -extract UISupportedInterfaceOrientations.1 raw "$app/Info.plist")" = UIInterfaceOrientationLandscapeRight ] &&
+        [ "$(plutil -extract NSLocalNetworkUsageDescription raw "$app/Info.plist")" = 'Connect with other players on the local network.' ] &&
+        [ "$(plutil -extract NSBonjourServices.0 raw "$app/Info.plist")" = _likenes._udp ] || {
+        sdk_bad 'ios-sim: landscape or LAN usage declarations missing from Info.plist'; return 1; }
     lic=$(mobile_licenses ios-sim "$pfx") || return 1
     for n in assets/game.bundle assets/library.bundle $lic; do
         case "$n" in assets/*) ;; *) n="licenses/$n" ;; esac

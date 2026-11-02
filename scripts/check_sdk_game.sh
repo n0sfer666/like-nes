@@ -42,11 +42,16 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_bake_tool.sh"
 # shellcheck source=scripts/sdk_game_mobile.sh
 . "$ROOT/scripts/sdk_game_mobile.sh"
+# shellcheck source=scripts/sdk_game_mobile_cpu.sh
+. "$ROOT/scripts/sdk_game_mobile_cpu.sh"
 
 GEN=Ninja
 # Пекарь хоста собирается гейтом: унаследованный из окружения путь подсунул бы чужой бинарь, а
 # унаследованный провал уронил бы мобильную половину без строки с причиной.
+# Обе переменные читает mobile_tool из подключённой sdk_game_bake_tool.sh.
+# shellcheck disable=SC2034
 RUMBLE_TOOL=
+# shellcheck disable=SC2034
 RUMBLE_TOOL_FAILED=
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -91,6 +96,7 @@ for cfg in Release Debug; do
     fi
 done
 
+mobile_cpu || FAIL=1
 fixture_internal_header || FAIL=1
 fixture_missing_library || FAIL=1
 fixture_bundle_hash "$OUT/game-Release" || FAIL=1

@@ -16,7 +16,6 @@ std::unique_ptr<mobile::Game> mobile::make_game() { return rumble::make_bench_ga
 #include "rumble_join_report.hpp"
 #include "rumble_gpu_frame.hpp"
 #include "rumble_report.hpp"
-#include "viewport_fit.hpp"
 
 namespace rumble {
 
@@ -40,10 +39,10 @@ bool MobileRumble::init(GpuContext& gpu) {
         return false;
     }
     if (!credits_.open(bundle_) || !menu_.init("level1", false) || !flow_.open()) return false;
-    // Вход в уровень сразу, как у headless: меню телефону выбирать нечем, пока нет касаний.
+    // Вход в уровень сразу; мобильные экраны меню приходят с UI-вертикалью.
     flow_.enter();
     flow_.apply();
-    if (flow_.play() == nullptr || !hotseat_.open()) return false;
+    if (flow_.play() == nullptr || !open_controls()) return false;
     screen_ = std::make_unique<Screen>();
     inited_ = true;
     return true;
@@ -79,9 +78,10 @@ void MobileRumble::report_surface(const char* what) const {
                  static_cast<unsigned long long>(play != nullptr ? play->brawl.hash() : 0));
 }
 
-bool MobileRumble::attach_surface(WGPUSurface surface, uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea&) {
+bool MobileRumble::attach_surface(WGPUSurface surface, uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea& safe) {
     if (!inited_ || !surface) return false;
     surface_ = surface;
+    fit_touch(fb_w, fb_h, safe);
     build_targets(fb_w, fb_h);
     const std::string what = "attached #" + std::to_string(++attaches_);
     report_surface(what.c_str());
@@ -90,13 +90,15 @@ bool MobileRumble::attach_surface(WGPUSurface surface, uint32_t fb_w, uint32_t f
 
 void MobileRumble::detach_surface() {
     if (!inited_) return;
+    cancel();
     release_targets();
     surface_ = nullptr;
     report_surface("detached");
 }
 
 // Поворот меняет только размер: формат поверхности тот же, и текстуры сцены перезаливать незачем.
-void MobileRumble::resize(uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea&) {
+void MobileRumble::resize(uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea& safe) {
+    fit_touch(fb_w, fb_h, safe);
     if (!surface_) return;
     if (!targets_ || fb_w == 0 || fb_h == 0) {
         build_targets(fb_w, fb_h);
@@ -122,9 +124,15 @@ void MobileRumble::step() {
         return;
     }
     const uint32_t t = play->scene.ticks;
-    demo_p2(hotseat_.engine(), t + 1);
-    if (!hotseat_.tick(t + 1, play->brawl.players)) return;
-    play->brawl.players[PLAYER] = demo_p1(t);
+    if (demo_) demo_p2(hotseat_.engine(), t + 1);
+    const bool run = hotseat_.tick(t + 1, play->brawl.players);
+    static_assert(input::MAX_DEVICES <= 32);
+    uint32_t pads = 0;
+    for (int slot = 0; slot < input::MAX_DEVICES; ++slot)
+        if (hotseat_.engine().device().pad_connected[slot]) pads |= 1u << slot;
+    touch_.update_pads(pads);
+    if (!run) return;
+    if (demo_) play->brawl.players[PLAYER] = demo_p1(t);
     const framework::brawl::Seats was = play->brawl.seats;
     flow_.run(ticks_);
     report_step(play->brawl, play->scene.ticks);
@@ -134,6 +142,7 @@ void MobileRumble::step() {
 void MobileRumble::frame(double dt) {
     if (!inited_) return;
     if (flow_.apply()) {
+        cancel();
         screen_->reset();
         if (targets_) targets_ = bind();
     }
@@ -146,27 +155,9 @@ void MobileRumble::frame(double dt) {
     if (targets_ && !lost_) draw();
 }
 
-void MobileRumble::draw() {
-    const SurfaceFrame sf = acquire_frame(spec_, *gpu_, "neon-rumble", warned_);
-    lost_ = sf.quit;
-    if (!sf.texture) return;
-    const framework::graphics::ViewportFit fit = framework::graphics::viewport_fit(
-        {spec_.width, spec_.height}, flow_.viewport().zone, flow_.viewport().limit);
-    const Play* play = flow_.play();
-    const LayerStats st = play != nullptr ? screen_->level(*play, hotseat_, credits_, fit, ticks_)
-                                          : screen_->menu(flow_.menu(), credits_, fit, ticks_);
-    if (!quads_.upload(screen_->layers().quads(st), spec_.width, spec_.height) && !upload_warned_) {
-        std::fprintf(stderr, "neon-rumble: %u quad(s) not uploaded, frame left empty\n", st.quads);
-        upload_warned_ = true;
-    }
-    WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
-    draw_frame(*gpu_, surface_, view, clear_, fit.shown, quads_, screen_->layers().runs(st));
-    wgpuTextureViewRelease(view);
-    wgpuTextureRelease(sf.texture);
-}
-
 void MobileRumble::shutdown() {
     if (!inited_) return;
+    cancel();
     inited_ = false;
     release_targets();
     surface_ = nullptr;

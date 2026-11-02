@@ -13,13 +13,18 @@
 
 namespace rumble {
 
+struct QuadOverlay {
+    framework::graphics::PixelRect clip;
+    std::span<const render::QuadRun> runs;
+};
+
 WGPUColor background(const Level& level, WGPUTextureFormat format);
 void submit_quads(const GpuContext& gpu, WGPUTextureView view, WGPUColor clear,
                   const framework::graphics::PixelRect& shown, const render::QuadRenderer& quads,
-                  std::span<const render::QuadRun> runs);
+                  std::span<const render::QuadRun> runs, const QuadOverlay& overlay = {});
 void draw_frame(const GpuContext& gpu, WGPUSurface surface, WGPUTextureView view, WGPUColor clear,
                 const framework::graphics::PixelRect& shown, const render::QuadRenderer& quads,
-                std::span<const render::QuadRun> runs);
+                std::span<const render::QuadRun> runs, const QuadOverlay& overlay = {});
 bool init_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,
                 const Level& level, const Fighters& fighters, const Credits& credits);
 bool init_menu_quads(render::QuadRenderer& quads, const GpuContext& gpu, WGPUTextureFormat format,

@@ -33,8 +33,9 @@ ios_device() {
 # старт бывает дольше любой паузы. Отказ — код 1 и причина в IOS_SAID.
 ios_launch_up() {
   local udid=$1 app=$2 err=$3
+  shift 3
   : >"$err"
-  xcrun simctl launch --stderr="$err" "$udid" "$app" >/dev/null || { IOS_SAID="cannot launch $app"; return 1; }
+  xcrun simctl launch --stderr="$err" "$udid" "$app" "$@" >/dev/null || { IOS_SAID="cannot launch $app"; return 1; }
   for _ in $(seq 60); do
     grep -q "iOS shell up" "$err" && return 0
     sleep 1
@@ -47,6 +48,8 @@ ios_launch_up() {
 # detach и до запуска: последний attach в логе — тот, с которого ушли в фон. Суд улик —
 # `resume_judged` (`mobile_resume_lib.sh`). Успех — IOS_SAID с уликой и IOS_DETACHED=`tick=T world=H`,
 # отказ — код 1 и причина в IOS_SAID.
+# IOS_SAID и IOS_DETACHED — результаты функции, их читают подключающие скрипты.
+# shellcheck disable=SC2034
 ios_resumed() {
   local udid=$1 app=$2 err=$3 rc=0 n
   n=$(last_attach "$err")
