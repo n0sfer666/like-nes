@@ -49,3 +49,10 @@ overlay обязан менять сторону. Шесть сломанных 
 Android-сценарий двух пальцев реализован в [android-emu](android-emu.md): task-owned AVD,
 protocol B, оба landscape, Vulkan/SwiftShader, PID/foreground/кадры, CI Linux/KVM. Его pure
 контроли и raw→настоящий MobileRumble CPU PASS; живой запуск требует avdmanager и рабочего AVD.
+
+Физическая В2е — [гейт владельца§38](../../docs/owner-verification.md#38-gate-2-of-26--the-touch-layout-on-a-phone),
+[сценарий en/ru](../../docs/ru/guide/mobile-touch.md). Команды запуска для Nushell проверены с
+fake adb: явный serial, уникальный nonce, новый процесс без demo и запись лога. Реальные
+телефоны в adb отсутствуют; удобство/прохождение уровня1 не проверены. Решение владельца
+2026-11-02: ближайшая приёмка перед В3 — живое движение и атака в эмуляторе от виртуальных
+контролов без demo. Физическая эргономика остаётся отдельным долгом§38, CPU этот критерий не заменяет.

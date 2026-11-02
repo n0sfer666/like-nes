@@ -239,3 +239,8 @@ the keyboard, numpad − player 2, Back on a pad its player. **F3** toggles the 
 credits screen and turns its pages; the press after the last page closes it.
 `--frames <n>` closes the window after `n` frames with exit code 0. `--headless` needs `--frames`
 with `n` above 0, so a headless run always ends.
+
+The mobile build defaults to touch controls in the training arena on the level 1 map. `--wave`
+enables its existing progression; `--demo` explicitly selects scripted parity input. See
+[Touch controls on a phone](mobile-touch.md) for a fresh interactive
+launch, the five combat buttons and the physical layout check.

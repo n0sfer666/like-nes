@@ -1,4 +1,4 @@
-<!-- en-sha256: a908c5ac07e901bafd39a4aa172c8876d507a29bbdb0ea4f24d95385a442d74e -->
+<!-- en-sha256: 6a3ad9b861591a10422f9ec329f907855e52ad18bf1ec15c98aa5fbbd2b48e6f -->
 
 # Документация like-nes
 
@@ -22,6 +22,7 @@
   - [Тик и расписание](guide/tick-and-schedule.md)
   - [Детерминизм и арифметика с фиксированной точкой](guide/determinism.md)
   - [SDK и своя игра](guide/sdk-and-your-game.md)
+  - [Тач на телефоне](guide/mobile-touch.md)
   - [Уровни в Tiled](guide/tiled-levels.md)
   - [Сцены и уровни](guide/scenes-and-levels.md)
   - [Тело и удары](guide/bodies-and-hits.md)

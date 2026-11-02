@@ -118,6 +118,7 @@ mobile_android() {
     local ndk=$1 abi=x86_64 pfx="$OUT/prefix-android-x86_64" dir="$OUT/game-android-x86_64" api apk listing lacks n lic
     local aapt
     bash "$ROOT/scripts/android_jni_selftest.sh" || { sdk_bad 'android: JNI error paths'; return 1; }
+    bash "$ROOT/scripts/android_host_selftest.sh" || { sdk_bad 'android: launch flags'; return 1; }
     python3 "$ROOT/scripts/android_package_verdict.py" --selftest || return 1
     aapt=$( . "$ROOT/platform/android/android_sdk.sh"; printf '%s' "$SDK/build-tools/35.0.0/aapt2" )
     api=$(android_min_api)

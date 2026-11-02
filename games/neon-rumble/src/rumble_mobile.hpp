@@ -15,12 +15,14 @@
 #include "rumble_screen.hpp"
 #include "rumble_touch.hpp"
 #include "rumble_touch_quads.hpp"
+#include "rumble_wave_script.hpp"
 #include "surface_frame.hpp"
 
 namespace rumble {
 
 // Neon Rumble на телефоне: уровень 1 сразу, тач занимает P1 первым нажатием. Явный --demo
-// оставляет скрипт хотсита для сверки с десктопом. Бандл, титры, стек сцен и драка живут от init до
+// оставляет скрипт для сверки с десктопом, --wave выбирает прохождение волн уровня1. Бандл,
+// титры, стек сцен и драка живут от init до
 // shutdown; квады с текстурами сцены зависят от формата поверхности и живут от attach до detach.
 class MobileRumble final : public mobile::Game {
 public:
@@ -60,6 +62,7 @@ private:
     Hotseat hotseat_;
     Touch touch_;
     TouchQuads touch_quads_;
+    WaveScript wave_demo_;
     std::unique_ptr<Screen> screen_;
     render::QuadRenderer quads_;
     WGPUColor clear_{};

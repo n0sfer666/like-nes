@@ -38,11 +38,14 @@ bool MobileRumble::init(GpuContext& gpu) {
         std::fprintf(stderr, "neon-rumble: cannot open %s\n", path.c_str());
         return false;
     }
-    if (!credits_.open(bundle_) || !menu_.init("level1", false) || !flow_.open()) return false;
-    // Вход в уровень сразу; мобильные экраны меню приходят с UI-вертикалью.
+    const bool waves = mobile::has_arg("--wave");
+    wave_demo_ = {};
+    if (!credits_.open(bundle_) || !menu_.init("level1", waves) || !flow_.open()) return false;
+    // Мобильный гейт входит в выбранный режим сразу, без desktop-меню.
     flow_.enter();
     flow_.apply();
     if (flow_.play() == nullptr || !open_controls()) return false;
+    std::fprintf(stderr, "[game] level mode %s\n", waves ? "wave" : "arena");
     screen_ = std::make_unique<Screen>();
     inited_ = true;
     return true;
@@ -124,7 +127,7 @@ void MobileRumble::step() {
         return;
     }
     const uint32_t t = play->scene.ticks;
-    if (demo_) demo_p2(hotseat_.engine(), t + 1);
+    if (demo_ && menu_.item != MenuItem::Wave) demo_p2(hotseat_.engine(), t + 1);
     const bool run = hotseat_.tick(t + 1, play->brawl.players);
     static_assert(input::MAX_DEVICES <= 32);
     uint32_t pads = 0;
@@ -132,7 +135,8 @@ void MobileRumble::step() {
         if (hotseat_.engine().device().pad_connected[slot]) pads |= 1u << slot;
     touch_.update_pads(pads);
     if (!run) return;
-    if (demo_) play->brawl.players[PLAYER] = demo_p1(t);
+    if (demo_) play->brawl.players[PLAYER] = menu_.item == MenuItem::Wave ?
+        wave_demo_.next(play->brawl, t) : demo_p1(t);
     const framework::brawl::Seats was = play->brawl.seats;
     flow_.run(ticks_);
     report_step(play->brawl, play->scene.ticks);

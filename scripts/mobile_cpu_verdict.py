@@ -42,8 +42,26 @@ def main() -> int:
         raise RuntimeError(f"mobile touch movement/cancel did not affect simulation: {hashes}")
     if hashes["cancel"] != hashes["rotate"] or hashes["cancel"] != hashes["suspend"]:
         raise RuntimeError("safe-only rotation or suspend did not cancel like explicit cancel")
+    wave = run([exe, assets, "wave-demo"])
+    desktop_wave = run([desk, "--headless", "--wave", "--frames", "8640"])
+    mobile_hash = re.search(r"surface detached tick=8640 world=([0-9a-f]{16})", wave)
+    desktop_hash = re.search(r"brawl tick 8640: hash ([0-9a-f]{16})", desktop_wave)
+    if not mobile_hash or not desktop_hash or mobile_hash[1] != desktop_hash[1]:
+        raise RuntimeError("mobile wave demo differs from desktop at tick 8640")
+    for evidence in ("[game] controls demo", "[game] level mode wave", "mobile-cpu: PASS",
+                     "arena tick 3736: arena 0 released", "arena tick 7530: arena 1 released"):
+        if evidence not in wave:
+            raise RuntimeError(f"wave demo lacks {evidence}")
+    touch_wave = run([exe, assets, "wave-touch"])
+    for evidence in ("[game] controls touch", "[game] level mode wave", "mobile-cpu: PASS",
+                     "seat tick 1: P1 joining", "seat tick 2: P1 present",
+                     "checkpoint tick 202: order 0 at 600,248", "arena tick 258: arena 0 locked",
+                     "wave tick 258: arena 0 wave 0,", "surface detached tick=480"):
+        if evidence not in touch_wave:
+            raise RuntimeError(f"interactive wave lacks {evidence}")
     print(f"mobile-cpu: PASS demo={hashes['demo']}, idle/cancel/move="
-          f"{hashes['idle']}/{hashes['cancel']}/{hashes['move']}, rotation=suspend=cancel, late join ok")
+          f"{hashes['idle']}/{hashes['cancel']}/{hashes['move']}, rotation=suspend=cancel, late join ok; "
+          f"wave8640={mobile_hash[1]}, interactive wave checkpoint202/arena258")
     return 0
 
 

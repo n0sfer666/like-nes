@@ -290,18 +290,23 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 С В2г #26 Android-пакет судится и по скомпилированным данным `aapt2 dump`: sensorLandscape,
 hasCode=false, INTERNET/VIBRATE и ссылка манифеста на LikeNesTheme с fullscreen/shortEdges.
 `android_package_verdict.py --selftest` —14 контролей, в том числе потеря/разрыв ссылки на тему.
-Перед сборкой Android также `android_jni_selftest.sh`: обычные вызовы +26 исключений в каждой
+Перед сборкой Android также `android_jni_selftest.sh`: обычные вызовы +33 исключения в каждой
 точке JNI-мока; сырой NewStringUTF после ошибки обязан дать красный контроль. Нужны публичные
-заголовки хостового JDK, уже необходимого Android tooling. Это не живой Android-тест.
+заголовки хостового JDK, уже необходимого Android tooling. `android_host_selftest.sh` собирает
+настоящий android_host.cpp с заглушками только двух OS-info API: generic args tokens, exact
+matching без prefix, legacy boolean demo и thread locality; substring-мутант обязан падать.
+Это не живой Android-тест.
 
 Перед мобильной упаковкой `sdk_game_mobile_cpu.sh` собирает настоящий MobileRumble с моком
 только хоста против desktop prefix, без GPU/поверхности. Общие sources.cmake исключают вторую
 копию списка приложения. Переносимый заголовок mobile::Game берётся из дерева: desktop SDK
 его не поставляет, но весь engine/framework — из префикса. Строгие предупреждения включены.
-`mobile_cpu_verdict.py` проверяет7 режимов: demo480=desktop, idle/move/cancel различают реальную
+`mobile_cpu_verdict.py` проверяет9 режимов: demo480=desktop, idle/move/cancel различают реальную
 симуляцию, rotate=suspend=cancel, поздний вход (Joining61/Present62) после ожидания. Четыре
 локальных production-мутанта (скрипт поверх тача, потерянный pointer, demo off-by-one, нет позднего
-входа при сохранении pointer ownership) отвергнуты. Это не проверка UIKit/JNI.
+входа при сохранении pointer ownership) отвергнуты. Дополнительно wave-demo8640 равен desktop
+--wave (b19d2fdfd5ab60f1, release арен3736/7530), wave-touch без demo через настоящие pointer
+проходит checkpoint202 и включает arena0/wave0 на258. Старые7 хешей прежние. Это не проверка UIKit/JNI.
 iOS-пакет дополнительно проверяется по plist: landscape обеих сторон и LAN/Bonjour-декларации;
 Bonjour `_likenes._udp` пока только декларация до реализации discovery #27.
 

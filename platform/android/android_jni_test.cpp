@@ -70,6 +70,10 @@ bool exercise(JNIEnv& env, int failure) {
         (void)j.field(&object, "left");
         j.invoke(&object, "hide", "(I)V", jint{7});
         (void)j.boolean(&object, "getBooleanExtra", "(Ljava/lang/String;Z)Z", key, jboolean{JNI_FALSE});
+        const jstring args = j.text("args");
+        const jstring flags = static_cast<jstring>(j.object(&object, "getStringExtra",
+            "(Ljava/lang/String;)Ljava/lang/String;", args));
+        (void)j.utf8(flags, 512);
         ok = j.ok();
     }
     return ok == (failure == 0) && forbidden == 0 && !pending && frames == 0 &&

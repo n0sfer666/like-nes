@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <utility>
 
 #include "mobile_host.hpp"
@@ -21,6 +22,7 @@ std::string& asset_dir() {
 }
 
 thread_local bool demo_mode = false;
+thread_local std::string launch_args;
 
 std::string property(const char* name) {
     char value[PROP_VALUE_MAX] = {};
@@ -31,11 +33,18 @@ std::string property(const char* name) {
 
 void set_asset_dir(std::string dir) { asset_dir() = std::move(dir); }
 void set_demo(bool enabled) { demo_mode = enabled; }
+void set_args(std::string flags) { launch_args = std::move(flags); }
 
 std::string asset_path(const char* name) { return asset_dir() + "/" + name; }
 
-// У NativeActivity нет argv: UI-поток читает extra demo, android_main передаёт его перед init игры.
-bool has_arg(const char* flag) { return std::strcmp(flag, "--demo") == 0 && demo_mode; }
+// У NativeActivity нет argv: UI-поток читает extra, android_main передаёт их перед init игры.
+bool has_arg(const char* flag) {
+    if (std::strcmp(flag, "--demo") == 0 && demo_mode) return true;
+    std::istringstream words(launch_args);
+    std::string word;
+    while (words >> word) if (word == flag) return true;
+    return false;
+}
 
 std::string device_info() {
     char buf[256];

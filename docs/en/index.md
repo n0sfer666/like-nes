@@ -20,6 +20,7 @@ nothing here assumes you have read them.
   - [The tick and the schedule](guide/tick-and-schedule.md)
   - [Determinism and fixed-point arithmetic](guide/determinism.md)
   - [The SDK and your own game](guide/sdk-and-your-game.md)
+  - [Touch controls on a phone](guide/mobile-touch.md)
   - [Levels in Tiled](guide/tiled-levels.md)
   - [Scenes and levels](guide/scenes-and-levels.md)
   - [Bodies and hits](guide/bodies-and-hits.md)

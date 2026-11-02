@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**26 of the 38 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 12 stay here as the procedure, because each needs a machine a CI runner is not: a
+**26 of the 39 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -59,6 +59,7 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | Two players in hotseat go through level 1 of `--wave`: both arenas with their two-player waves, a knock-out of each back on the checkpoint, the platform section with the belt, and P2 leaving and joining again inside it | [#25](../.context/specs/2026-10-05-brawl-framework.md) 15 | **any one** with a screen, a keyboard with a numpad and, if you have one, a pad | 2026-10-20 | `games/neon-rumble/levels/level1.tmj`, `games/neon-rumble/src/rumble_hotseat.*`, `games/neon-rumble/src/rumble_platform.*`, `games/neon-rumble/src/rumble_wave*`, `games/neon-rumble/sim/seat_*`, `games/neon-rumble/sim/section_*`, `games/neon-rumble/sim/stage_*`, `games/neon-rumble/sim/wave_*`, `engine/framework/kinematic/*`, `engine/framework/graphics/camera_autoscroll.*` |
 | Neon Rumble on a real Android phone, built against the mobile SDK prefix: it starts, Home and back re-attach the surface to the same fight, and it is the desktop's fight | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 1 | **an Android phone**, Android 10 or newer | — | `platform/android/*`, `platform/mobile/*`, `games/neon-rumble/src/rumble_mobile.*`, `games/neon-rumble/src/rumble_demo.*`, `cmake/like_nes_mobile_app.cmake`, `scripts/android_rumble.sh` |
 | The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Pixelorama 1.2.3 and ChatGPT Images | — | `docs/art/*` |
+| The five touch buttons are reachable while walking level 1 with both thumbs, in both landscapes, and no hold survives rotation or backgrounding | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 2 | **a physical phone** with interactive Neon Rumble | — | `games/neon-rumble/controls/touch.txt`, `games/neon-rumble/src/rumble_touch*`, `games/neon-rumble/src/rumble_mobile*`, `platform/ios/*`, `platform/android/*` |
 
 The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
 owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
@@ -4838,9 +4839,34 @@ Send back: `monk.png`/`.sheet` and `bandit.png`/`.sheet` with their `clip_dump` 
 bandit variants side by side, the village layers, the generation log of
 [`docs/art/export.md`](art/export.md), and every prompt you had to change, with the change.
 
+## 38. Gate 2 of #26 — the touch layout on a phone
+
+<!-- gate: open | docs/ru/guide/mobile-touch.md: настоящий телефон, интерактивный Neon Rumble с --wave без --demo (level mode wave), P1 первым PUNCH, пройти уровень1 двумя большими пальцами — по10 нажатий PUNCH/KICK/JUMP/GRAB/BLOCK при удержанном стике, BLOCK+флик, обе landscape-стороны, отмена удержаний на180°/Home/питании; прислать модель/ОС/экран, коммит, nonce log, два скриншота, промахи/случайные нажатия по кнопкам и нужную правку раскладки; отдельный долг эргономики после первичной приёмки движения/атаки в эмуляторе -->
+
+The emulator and CPU gates can prove routing and coordinates. They cannot decide whether a thumb
+reaches BLOCK without changing grip or a button hides an enemy. The owner's 2026-11-02 decision
+sets live movement/attacks from virtual controls in an emulator as the immediate criterion before
+B3. This physical ergonomics gate remains open as a separate follow-up.
+
+Follow [Touch controls on a phone](en/guide/mobile-touch.md)
+([Русский](ru/guide/mobile-touch.md)); owner setup R.5c points to the same procedure. Start a fresh
+interactive process with `--wave` (`[game] level mode wave`): the old phone parity script explicitly launches `--demo`, which cannot judge
+the controls. Play level 1 with both thumbs, try each of the five labelled buttons while walking,
+flick with BLOCK, rotate to both landscapes and return from Home and the power button.
+
+What counts as a finding: an unreachable or painful control, an accidental neighbouring press,
+unreadable labels, the controls or thumbs hiding too much of the fight; one finger stealing the
+other's control; a hold surviving rotation/backgrounding; a button under the cutout or gesture
+edge. A grab out of range and equal UIKit side insets are expected. No gamepad or haptic check is
+claimed here; those belong to B3.
+
+Send back: commit, model/OS/screen size and density, the nonce-scoped log and both screenshots,
+missed/accidental presses per button, progress through level 1, pass or the exact discomfort and
+the proposed layout change. This gate remains open: no physical phone run has been recorded.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 26 of the 38 are closed, and the open 12 are listed by
+The gates above are what the ADRs waited on; 26 of the 39 are closed, and the open 13 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

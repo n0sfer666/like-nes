@@ -168,7 +168,9 @@ void android_main(android_app* app) {
     mobile::set_asset_dir(assets);
     platform::env_put("LIKENES_ASSETS", assets.c_str());
     platform::env_put("LIKENES_SAVE_DIR", data.c_str());
-    mobile::set_demo(android_window_read(app->activity).demo);
+    const AndroidWindowSnapshot launch = android_window_read(app->activity);
+    mobile::set_demo(launch.demo);
+    mobile::set_args(launch.args);
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;

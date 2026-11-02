@@ -22,6 +22,10 @@ void read_options(AndroidJni& j, ANativeActivity* a, AndroidWindowSnapshot& out)
         std::string::npos) out.probe = value;
     const jstring demo = j.text("demo");
     out.demo = j.boolean(intent, "getBooleanExtra", "(Ljava/lang/String;Z)Z", demo, jboolean{JNI_FALSE});
+    const jstring args = j.text("args");
+    const jstring flags = static_cast<jstring>(j.object(intent, "getStringExtra",
+        "(Ljava/lang/String;)Ljava/lang/String;", args));
+    out.args = j.utf8(flags, 512);
 }
 
 } // namespace

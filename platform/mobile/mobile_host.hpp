@@ -10,7 +10,8 @@ namespace mobile {
 // песочнице (exe_dir у приложения Android — app_process системы, рядом с ним ассетов нет).
 std::string asset_path(const char* name);
 
-// Флаг запуска (`--demo`): iOS — аргументы процесса, Android — boolean extra demo интента.
+// Флаги запуска: iOS — аргументы процесса; Android — разделённые пробелами флаги string extra args
+// (не больше512 байт). Boolean extra demo по-прежнему включает --demo для старых smoke-скриптов.
 bool has_arg(const char* flag);
 
 // Подсказка планировщику: текущий рабочий поток обслуживает интерактивную задачу.

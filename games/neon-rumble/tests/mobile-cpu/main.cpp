@@ -11,6 +11,7 @@
 namespace {
 std::string assets;
 bool demo;
+bool waves;
 int fails;
 
 void check(bool ok, const char* why) { if (!ok) { ++fails; std::printf("mobile-cpu: FAIL %s\n", why); } }
@@ -23,19 +24,22 @@ bool owns(const mobile::Game& game, const char* field) {
 
 // Мок лишь хоста: GPU не инициализируется, поверхность не подключается, игровой CPU-цикл настоящий.
 std::string mobile::asset_path(const char* name) { return assets + "/" + name; }
-bool mobile::has_arg(const char* flag) { return demo && std::strcmp(flag, "--demo") == 0; }
+bool mobile::has_arg(const char* flag) {
+    return (demo && std::strcmp(flag, "--demo") == 0) || (waves && std::strcmp(flag, "--wave") == 0);
+}
 void mobile::interactive_thread() {}
 std::string mobile::device_info() { return "CPU test host"; }
 bool mobile_cpu_probe(mobile::Game& game);
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
-    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe>"); return 1; }
+    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe|wave-demo|wave-touch>"); return 1; }
     assets = argv[1];
     const std::string mode = argv[2];
-    demo = mode == "demo";
+    demo = mode == "demo" || mode == "wave-demo";
+    waves = mode == "wave-demo" || mode == "wave-touch";
     if (!demo && mode != "idle" && mode != "move" && mode != "cancel" && mode != "rotate" &&
-        mode != "suspend" && mode != "late" && mode != "probe") return 1;
+        mode != "suspend" && mode != "late" && mode != "probe" && mode != "wave-touch") return 1;
     GpuContext gpu;
     auto game = mobile::make_game();
     if (!game->init(gpu)) { std::puts("mobile-cpu: FAIL init"); return 1; }
@@ -44,7 +48,15 @@ int main(int argc, char** argv) {
     if (mode == "probe") {
         check(mobile_cpu_probe(*game), "valid probe input stream");
     } else if (demo) {
-        frames(*game, 480);
+        frames(*game, waves ? 8640 : 480);
+    } else if (mode == "wave-touch") {
+        game->pointer(1, mobile::Touch::Down, 732, 301);
+        frames(*game, 1);
+        game->pointer(1, mobile::Touch::Up, 732, 301);
+        frames(*game, 1);
+        game->pointer(2, mobile::Touch::Down, 200, 240);
+        game->pointer(2, mobile::Touch::Move, 248, 240);
+        frames(*game, 478);
     } else {
         if (mode == "late") frames(*game, 60);
         game->pointer(1, mobile::Touch::Down, 732, 301);
