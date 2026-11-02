@@ -61,6 +61,7 @@ bool waves_fit(const Level& lv, const sc::LevelObjects& level) {
 
 bool Wave::open(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor& floor,
                 const std::array<br::Body, FIGHTERS>& spawns) {
+    zone = lv.viewport.zone;
     std::string error;
     if (!sc::read_level_objects(map, level, error)) {
         std::fprintf(stderr, "neon-rumble: level %s: %s\n", lv.level.name, error.c_str());
@@ -75,7 +76,7 @@ bool Wave::open(const Level& lv, const tl::ObjectMap& map, const br::DepthFloor&
     tick = 0;
     camera = br::StageCamera{};
     const br::Body& p1 = spawns[PLAYER];
-    camera.center = br::clamp_level({p1.pos.x, p1.pos.z}, br::NO_ARENA, level, framework::graphics::view_zone_half());
+    camera.center = br::clamp_level({p1.pos.x, p1.pos.z}, br::NO_ARENA, level, framework::graphics::view_zone_half(zone));
     sections = br::StageSections{};
     waves = br::StageWaves{};
     waves.seen = camera.center.x;

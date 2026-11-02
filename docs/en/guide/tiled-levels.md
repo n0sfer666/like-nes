@@ -84,6 +84,13 @@ The level record can make the bake check this:
 level | level1 | tiled | levels/level1.tmj | viewport
 ```
 
+The manifest may set `zone | <width> | <height>` and `zone_limit | <width> | <height>` once each,
+anywhere among its records. Sides are integers from 1 to 32767. The defaults are 384×216 and
+576×312; explicit defaults produce exactly the same bundle bytes. Nondefault values add a
+`viewport` section. The SDK reader treats an absent section as defaults and refuses a corrupt
+present section. Neon Rumble reads these settings explicitly for both simulation and rendering,
+on desktop and mobile. A limit narrower than the zone is clamped to the zone by the common APIs.
+
 With `|viewport`, the bake moves the camera over every position inside the `bounds` rectangle of
 the level, or over the whole map if there is none. For each position it checks that every layer
 covers the widest possible view, with its parallax, its offset and up to 8 px of camera shake. A

@@ -58,10 +58,10 @@ void step_camera(StageCamera& camera, BodyPool& pool, const Seats& seats, StageS
     camera.center.x = middle(live, [](const Body& b) { return b.pos.x; });
     if (follows_y(w, camera.center.x))
         camera.center.y = dead_zone(camera.center.y, middle(live, screen_y), w.platform->dead_y);
-    const Vec2 half = graphics::view_zone_half();
+    const Vec2 half = graphics::view_zone_half(w.zone);
     Ride ride;
     if (w.level != nullptr) {
-        ride = ride_scroll(camera, before, *w.level);
+        ride = ride_scroll(camera, before, *w.level, w.zone);
         camera.center = clamp_level(camera.center, camera.arena, *w.level, half);
     }
     const Leash leash{camera.center, half, ride.on && ride.axis == scene::ScrollAxis::X,

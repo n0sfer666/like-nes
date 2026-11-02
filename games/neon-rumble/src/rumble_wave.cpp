@@ -46,7 +46,7 @@ void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& level_
         b.pos.x = x;
         b.pos.z = z;
     }
-    const fix32 half = framework::graphics::view_zone_half().x - fix32::from_int(ENTRY_MARGIN);
+    const fix32 half = framework::max_fix(fix32{}, framework::graphics::view_zone_half(zone).x - fix32::from_int(ENTRY_MARGIN));
     const fix32 lo = framework::max_fix(camera.center.x - half, floor.band.x0);
     const fix32 hi = framework::min_fix(camera.center.x + half, floor.band.x1);
     for (br::Body& b : at) {
@@ -74,7 +74,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
     took = br::step_checkpoints(progress, pool, seats, level);
     was_arena = camera.arena;
     was_wave = waves.wave;
-    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts);
+    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts, world.zone);
     spawned_count = 0;
     for (uint32_t i = 0; i < facts.count; ++i) {
         const br::EntId id = pool.spawn(foes[facts.starts[i]]);

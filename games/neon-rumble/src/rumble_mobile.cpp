@@ -150,7 +150,8 @@ void MobileRumble::draw() {
     const SurfaceFrame sf = acquire_frame(spec_, *gpu_, "neon-rumble", warned_);
     lost_ = sf.quit;
     if (!sf.texture) return;
-    const framework::graphics::ViewportFit fit = framework::graphics::viewport_fit({spec_.width, spec_.height});
+    const framework::graphics::ViewportFit fit = framework::graphics::viewport_fit(
+        {spec_.width, spec_.height}, flow_.viewport().zone, flow_.viewport().limit);
     const Play* play = flow_.play();
     const LayerStats st = play != nullptr ? screen_->level(*play, hotseat_, credits_, fit, ticks_)
                                           : screen_->menu(flow_.menu(), credits_, fit, ticks_);

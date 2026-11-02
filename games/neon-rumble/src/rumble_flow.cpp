@@ -6,6 +6,7 @@
 #include "rumble.hpp"
 #include "rumble_brawl_report.hpp"
 #include "rumble_report.hpp"
+#include "viewport_load.hpp"
 
 namespace rumble {
 
@@ -13,6 +14,11 @@ namespace sc = framework::scene;
 
 // docs:begin(flow-apply)
 bool Flow::open() {
+    std::string error;
+    if (!sc::load_viewport_settings(bundle_, viewport_, error)) {
+        std::fprintf(stderr, "neon-rumble: %s\n", error.c_str());
+        return false;
+    }
     const sc::SceneResult r = stack_.push(menu_.stack_scene());
     if (r != sc::SceneResult::Ok) {
         std::fprintf(stderr, "neon-rumble: menu scene: %s\n", sc::scene_reason(r));

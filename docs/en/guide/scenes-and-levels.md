@@ -119,6 +119,7 @@ of 192 bytes, and the engine never prints it: showing it is the game's decision.
 | `Texture` | `level lvl: texture <guid in hex>: wrong texture format` |
 | `UnknownKind` | `level lvl: spawn a1 w0 kind boss: no table boss_fighter` |
 | `BadFighter` | `adler_fighter: no clip adler/jab in the clips table` |
+| `BadViewport` | `viewport table does not open` or an incompatible viewport asset |
 | `Capacity` | `level lvl needs more than 8 fighter kinds` (or 8 textures) |
 
 ### The object classes
@@ -246,6 +247,11 @@ level in `apply()`, once the menu is on top again:
 <!-- snippet: games/neon-rumble/src/rumble_flow.cpp#flow-apply -->
 ```cpp
 bool Flow::open() {
+    std::string error;
+    if (!sc::load_viewport_settings(bundle_, viewport_, error)) {
+        std::fprintf(stderr, "neon-rumble: %s\n", error.c_str());
+        return false;
+    }
     const sc::SceneResult r = stack_.push(menu_.stack_scene());
     if (r != sc::SceneResult::Ok) {
         std::fprintf(stderr, "neon-rumble: menu scene: %s\n", sc::scene_reason(r));

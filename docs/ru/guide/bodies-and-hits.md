@@ -1,4 +1,4 @@
-<!-- en-sha256: 9c0765dcc91b312cf5fa4a74581b657fca4d4e164bd288a8f276b5ab2cd0c8ce -->
+<!-- en-sha256: 6c0c05ab96e4a84a614d108179045fe0e7302eda75171f50733db6fa83183ada -->
 
 # Тело и удары
 
@@ -66,7 +66,7 @@ for (uint32_t i = 0; i < pool.count; ++i) {
     if (b.team == 0 && b.kind < br::SEATS)
         commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
 }
-const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}};
+const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}, nullptr, nullptr, viewport.zone};
 if (!wave.on) {
     br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
     return;

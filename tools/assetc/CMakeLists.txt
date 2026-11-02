@@ -4,7 +4,7 @@
 # таблицей, а ядро едет в desktop-префикс SDK как `like-nes::assetc_core`.
 add_library(assetc_core STATIC bakers.cpp bakers_pixel.cpp assetc_manifest.cpp
   assetc_manifest_paths.cpp assetc_depfile.cpp assetc_emit.cpp assetc_tool.cpp manifest_bake.cpp
-  manifest_kind_bake.cpp manifest_mode.cpp game_mode.cpp verify_game.cpp level_source.cpp bakers_level.cpp
+  manifest_kind_bake.cpp manifest_viewport.cpp manifest_mode.cpp game_mode.cpp verify_game.cpp level_source.cpp bakers_level.cpp
   bakers_clips.cpp bakers_fonts.cpp bakers_credits.cpp bakers_touch.cpp push_table.cpp)
 target_include_directories(assetc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(assetc_core PUBLIC asset_core framework_core framework_tiled framework_graphics_import
@@ -44,3 +44,6 @@ add_executable(assetc_font_test assetc_font_test.cpp)
 target_link_libraries(assetc_font_test PRIVATE assetc_core)
 add_executable(assetc_touch_test assetc_touch_test.cpp)
 target_link_libraries(assetc_touch_test PRIVATE assetc_core)
+
+add_executable(assetc_viewport_test assetc_viewport_test.cpp)
+target_link_libraries(assetc_viewport_test PRIVATE assetc_core)

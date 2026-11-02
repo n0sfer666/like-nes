@@ -16,8 +16,8 @@ namespace {
 using framework::graphics::PixelRect;
 using framework::graphics::ViewportFit;
 
-ViewportFit report_viewport(uint32_t w, uint32_t h) {
-    const ViewportFit fit = framework::graphics::viewport_fit({w, h});
+ViewportFit report_viewport(uint32_t w, uint32_t h, const framework::graphics::ViewportSettings& settings) {
+    const ViewportFit fit = framework::graphics::viewport_fit({w, h}, settings.zone, settings.limit);
     const auto rect = [](const PixelRect& r) { std::printf("%d,%d %ux%u", r.x, r.y, r.w, r.h); };
     std::printf("neon-rumble: viewport %ux%u scale %u, visible %ux%u, zone ", w, h, fit.scale,
                 fit.visible.w, fit.visible.h);
@@ -54,8 +54,8 @@ void report_level(const Level& level) {
     for (uint32_t i = 0; i < level.level.texture_count; ++i)
         std::printf(" %ux%u", level.level.pixels[i].width, level.level.pixels[i].height);
     std::printf("\n");
-    const ViewportFit fit = report_viewport(960, 540);
-    report_viewport(300, 200);
+    const ViewportFit fit = report_viewport(960, 540, level.viewport);
+    report_viewport(300, 200, level.viewport);
     Layers layers;
     const LayerStats st = layers.build(level, fit, 0);
     const auto& b = level.level.bounds;
@@ -79,7 +79,7 @@ void report_credits(const Level& level, const Credits& credits) {
     }
     Layers layers;
     CreditsQuads quads;
-    const ViewportFit fit = framework::graphics::viewport_fit({960, 540});
+    const ViewportFit fit = framework::graphics::viewport_fit({960, 540}, level.viewport.zone, level.viewport.limit);
     CreditStats sum;
     uint32_t drawn = 0;
     uint32_t pages = 1;

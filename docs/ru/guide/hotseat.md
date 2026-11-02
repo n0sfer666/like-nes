@@ -1,4 +1,4 @@
-<!-- en-sha256: 628744a4cd5f80eff63147fe1be5efd2becd870fed8eae3035cd38667a0e3a71 -->
+<!-- en-sha256: 40ba0d32550070dd8e061020fbca6eba5b2d7620f8f4a858f87351a3cd2bc49d -->
 
 # Хотсит
 
@@ -128,7 +128,7 @@ void Wave::entry(std::span<br::Body, br::SEATS> at, const br::DepthFloor& level_
         b.pos.x = x;
         b.pos.z = z;
     }
-    const fix32 half = framework::graphics::view_zone_half().x - fix32::from_int(ENTRY_MARGIN);
+    const fix32 half = framework::max_fix(fix32{}, framework::graphics::view_zone_half(zone).x - fix32::from_int(ENTRY_MARGIN));
     const fix32 lo = framework::max_fix(camera.center.x - half, floor.band.x0);
     const fix32 hi = framework::min_fix(camera.center.x + half, floor.band.x1);
     for (br::Body& b : at) {

@@ -14,8 +14,8 @@ struct Track {
 
 bool along_x(const scene::Autoscroll& s) { return s.axis == scene::ScrollAxis::X; }
 
-Track track(const scene::Autoscroll& s) {
-    const Vec2 half = graphics::view_zone_half();
+Track track(const scene::Autoscroll& s, graphics::PixelSize zone) {
+    const Vec2 half = graphics::view_zone_half(zone);
     const fix32 lo = along_x(s) ? s.area.rect.x0 : s.area.rect.y0;
     const fix32 hi = along_x(s) ? s.area.rect.x1 : s.area.rect.y1;
     const fix32 h = along_x(s) ? half.x : half.y;
@@ -28,12 +28,12 @@ constexpr uint32_t SETTLE_SHARE = 8;
 
 } // namespace
 
-Ride ride_scroll(StageCamera& camera, Vec2 before, const scene::LevelObjects& level) {
-    const Vec2 goal = clamp_level(camera.center, camera.arena, level, graphics::view_zone_half());
+Ride ride_scroll(StageCamera& camera, Vec2 before, const scene::LevelObjects& level, graphics::PixelSize zone) {
+    const Vec2 goal = clamp_level(camera.center, camera.arena, level, graphics::view_zone_half(zone));
     graphics::settle_autoscroll(camera.autoscroll, camera.center, before, goal, SETTLE_SHARE);
     if (camera.autoscroll.ride >= level.autoscrolls.size()) return {};
     const scene::Autoscroll& s = level.autoscrolls[camera.autoscroll.ride];
-    const Track t = track(s);
+    const Track t = track(s, zone);
     const graphics::ScrollAxis axis = along_x(s) ? graphics::ScrollAxis::X : graphics::ScrollAxis::Y;
     const graphics::ScrollLane lane{axis, t.start, t.end, s.speed};
     return {graphics::ride_autoscroll(camera.autoscroll, camera.center, before, lane), s.axis};

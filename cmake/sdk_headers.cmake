@@ -59,7 +59,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/debug_draw.hpp framework/graphics/graphics_sprite.hpp
   framework/graphics/machine.hpp framework/graphics/nine_slice.hpp
   framework/graphics/particles.hpp framework/graphics/player.hpp
-  framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp framework/graphics/viewport_fit.hpp
+  framework/graphics/tile_draw.hpp framework/graphics/viewport.hpp framework/graphics/viewport_fit.hpp framework/graphics/viewport_settings.hpp
   framework/graphics/layer_draw.hpp framework/graphics/gpu/layer_quads.hpp
   framework/graphics/sprite_flip.hpp framework/graphics/clip_format.hpp
   framework/graphics/clip_read.hpp framework/graphics/clip_bake.hpp
@@ -69,7 +69,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
   framework/scene/scene_paths.hpp framework/scene/scene_objects.hpp framework/scene/scene_read.hpp framework/scene/scene_object.hpp framework/scene/scene_stack.hpp
-  framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp
+  framework/scene/viewport_load.hpp framework/scene/scene_level.hpp framework/scene/level_error.hpp framework/scene/level_load.hpp
 )
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.

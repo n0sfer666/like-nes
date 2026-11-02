@@ -4,6 +4,7 @@
 
 #include "level_load.hpp"
 #include "level_objects_read.hpp"
+#include "viewport_load.hpp"
 
 namespace rumble {
 namespace {
@@ -19,6 +20,8 @@ bool load(asset::BundleView bundle, const char* name, Stage& out, StageError& er
         const auto& r = out.objects.bounds->rect;
         out.level.bounds = {r.x0, r.y0, r.x1, r.y1};
     }
+    if (!sc::load_viewport_settings(bundle, out.viewport, text))
+        return stage_fail(error, StageFault::BadViewport, text);
     if (!copy_level_error(sc::load_textures(out.level, sdk), sdk, error)) return false;
     if (!out.objects.waves.empty() && !copy_level_error(sc::load_clips(out.level, sdk), sdk, error)) return false;
     return load_stage_fighters(out, error);

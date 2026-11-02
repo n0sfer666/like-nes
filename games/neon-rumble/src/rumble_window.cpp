@@ -128,10 +128,11 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
             if (run.script && flow.play() != nullptr) run.script->enter_level();
         }
         const auto tick = static_cast<uint32_t>(drawn);
-        const ViewportFit fit = framework::graphics::viewport_fit({spec.width, spec.height});
+        const ViewportFit fit = framework::graphics::viewport_fit(
+            {spec.width, spec.height}, flow.viewport().zone, flow.viewport().limit);
         if (fit.cropped && !cropped)
             std::fprintf(stderr, "neon-rumble: window %ux%u is smaller than the %ux%u zone, the zone is cropped\n",
-                         spec.width, spec.height, framework::graphics::VIEW_ZONE.w, framework::graphics::VIEW_ZONE.h);
+                         spec.width, spec.height, flow.viewport().zone.w, flow.viewport().zone.h);
         cropped = fit.cropped;
         Play* play = flow.play();
         if (run.script)

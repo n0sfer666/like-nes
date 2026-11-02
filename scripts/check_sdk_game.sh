@@ -36,6 +36,8 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_coop.sh"
 # shellcheck source=scripts/sdk_game_bounds.sh
 . "$ROOT/scripts/sdk_game_bounds.sh"
+# shellcheck source=scripts/sdk_game_viewport.sh
+. "$ROOT/scripts/sdk_game_viewport.sh"
 # shellcheck source=scripts/sdk_game_bake_tool.sh
 . "$ROOT/scripts/sdk_game_bake_tool.sh"
 # shellcheck source=scripts/sdk_game_mobile.sh
@@ -95,6 +97,7 @@ fixture_bundle_hash "$OUT/game-Release" || FAIL=1
 fixture_manifest_no_codec || FAIL=1
 fixture_rebake || FAIL=1
 fixture_no_bounds || FAIL=1
+fixture_viewport || FAIL=1
 fixture_bake_tool_refusals || FAIL=1
 # Фикстура CRT — только у MSVC: у clang и gcc одна стандартная библиотека на обе конфигурации, и
 # расхождения, которое она ловит, там нет по построению.

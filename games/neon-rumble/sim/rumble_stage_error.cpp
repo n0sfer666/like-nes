@@ -5,6 +5,7 @@
 namespace rumble {
 
 const char* stage_fault_name(StageFault fault) {
+    if (fault == StageFault::BadViewport) return "bad viewport";
     if (fault == StageFault::UnknownKind) return "unknown kind";
     if (fault == StageFault::BadFighter) return "bad fighter";
     return framework::scene::load_fault_name(static_cast<framework::scene::LoadFault>(fault));

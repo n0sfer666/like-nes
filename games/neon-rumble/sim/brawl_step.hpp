@@ -7,6 +7,7 @@
 #include "brawl_input.hpp"
 #include "brawl_floor.hpp"
 #include "hit_events.hpp"
+#include "viewport_fit.hpp"
 namespace framework::scene {
 struct LevelObjects;
 }
@@ -29,6 +30,7 @@ struct BrawlWorld {
     HitRules rules;
     const scene::LevelObjects* level = nullptr;
     const PlatformWorld* platform = nullptr;
+    graphics::PixelSize zone = graphics::VIEW_ZONE;
 };
 
 // `platform` — запись тела в platform: его движение ведёт контроллер #16 мира `w.platform`, FSM та же.

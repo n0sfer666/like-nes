@@ -30,6 +30,7 @@ public:
     Play* play() { return bound_ == &menu_ ? nullptr : play_.get(); }
     const Play* play() const { return bound_ == &menu_ ? nullptr : play_.get(); }
     Menu& menu() { return menu_; }
+    const framework::graphics::ViewportSettings& viewport() const { return viewport_; }
 
 private:
     void refuse(const std::string& error);
@@ -38,6 +39,7 @@ private:
     const Credits& credits_;
     Menu& menu_;
     framework::scene::SceneStack stack_;
+    framework::graphics::ViewportSettings viewport_;
     std::unique_ptr<Play> play_;
     const void* bound_ = nullptr;
 };

@@ -122,3 +122,6 @@ foreach(part level level_refusal)
   add_executable(rumble_scene_${part}_test rumble_scene_${part}_test.cpp)
   target_link_libraries(rumble_scene_${part}_test PRIVATE rumble_sim asset_core)
 endforeach()
+
+add_executable(rumble_zone_test rumble_zone_test.cpp)
+target_link_libraries(rumble_zone_test PRIVATE rumble_sim asset_core)

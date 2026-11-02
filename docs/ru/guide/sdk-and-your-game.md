@@ -1,4 +1,4 @@
-<!-- en-sha256: 3a89219303a1b6092735344572b76569762bccec12e601008acce8ddaf7db407 -->
+<!-- en-sha256: 95e050fc7b9f531173c9c6a6a7c4fdd21567b138b081fa19a70a478d83ac7632 -->
 
 # SDK и своя игра
 
@@ -177,6 +177,9 @@ cmake --build build-game
 # A trailing |viewport on a level makes the bake prove its layers cover the viewport limit (B7).
 # font|<name>|bitmask|<path>.json bakes a glyph atlas and the fonts section, credits|<name>|<path>.txt
 # the credits section (B8b). fighter|<name>|<path>.fighter bakes a fighter table (spec #25, B2b).
+# Global viewport settings: positive integer sides, standard values add no bundle section.
+zone | 384 | 216
+zone_limit | 576 | 312
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png

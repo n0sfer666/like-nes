@@ -7,6 +7,7 @@
 #include "stage_camera.hpp"
 #include "stage_waves.hpp"
 #include "wave_facts.hpp"
+#include "viewport_fit.hpp"
 namespace framework::scene {
 struct LevelObjects;
 }
@@ -32,6 +33,7 @@ namespace framework::brawl {
 // паузы, и вошедший в паузе учтён; не нашлось на старте — замок снят после паузы. Мест нет вовсе —
 // старт ждёт игрока, а не сжигает волны арены.
 void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, std::span<const Archetype> kinds,
-                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out);
+                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out,
+                graphics::PixelSize zone = graphics::VIEW_ZONE);
 
 } // namespace framework::brawl

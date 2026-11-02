@@ -44,6 +44,7 @@ static_assert(framework::brawl::SEATS + framework::ai::BRAINS_MAX <= framework::
 // `facts`, `deaths`, `took`, `was_arena`, `was_wave` и `spawned` — только для отчёта тика, как hp_before.
 struct Wave {
     bool on = false;
+    framework::graphics::PixelSize zone = framework::graphics::VIEW_ZONE;
     framework::ai::AiState ai;
     uint32_t tick = 0;
     framework::scene::LevelObjects level;

@@ -10,6 +10,7 @@
 #include "layer_cover.hpp"
 #include "level_source.hpp"
 #include "manifest_kind_bake.hpp"
+#include "manifest_viewport.hpp"
 #include "platform_fs.hpp"
 
 namespace asset::manifest {
@@ -56,7 +57,7 @@ bool level(Bake& b, const Record& r, const std::string& file, LevelSource& src,
     std::string why;
     if (!framework::tiled::import_tmj(r.name, file, std::as_bytes(std::span<const uint8_t>(bytes)), src, lv, why))
         return bake_fail(b, r.line, why);
-    if (r.viewport && !framework::graphics::check_layer_cover(lv.visual, lv.objects, why))
+    if (r.viewport && !framework::graphics::check_layer_cover(lv.visual, lv.objects, why, b.viewport.zone, b.viewport.limit))
         return bake_fail(b, r.line, file + ": " + why);
     out.push_back(std::move(lv));
     return true;
@@ -162,7 +163,7 @@ bool bake(Bake& b) {
     b.deps.push_back(b.manifest);
     std::vector<Record> records;
     Error err;
-    if (!parse(text, records, err, b.kinds)) return bake_fail(b, err.line, err.message);
+    if (!parse(text, records, err, b.kinds, &b.viewport)) return bake_fail(b, err.line, err.message);
     const std::string base = dir_of(b.manifest);
     Textures textures;
     LevelSource src(base, textures, b.deps);
@@ -182,7 +183,7 @@ bool bake(Bake& b) {
     if (!g.fonts.empty() && !bakers::fonts(g.fonts, b.assets, why)) return bake_fail(b, g.last_font, why);
     for (const TextRecord& f : g.games)
         if (!bake_kind(b, f, g.clips)) return false;
-    return true;
+    return bake_viewport(b);
 }
 
 } // namespace asset::manifest

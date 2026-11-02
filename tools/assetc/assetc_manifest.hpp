@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "assetc_kind.hpp"
+#include "viewport_settings.hpp"
 
 // Манифест бейка игры (спека #24, В4–В5): `|`-грамматика, одна запись на строку, `#` — комментарий.
 //
@@ -33,7 +34,8 @@ struct Error {
     std::string message;
 };
 
-bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::span<const Kind> kinds = {});
+bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::span<const Kind> kinds = {},
+           framework::graphics::ViewportSettings* viewport = nullptr);
 const Kind* find_kind(std::span<const Kind> kinds, const std::string& name);
 // Таблица видов игры: имя по лексике записи, расширение `.<суффикс>`, без затенения встроенного и
 // без дубля. Отказ — `kind table: …`: ошибка инструмента, а не манифеста.

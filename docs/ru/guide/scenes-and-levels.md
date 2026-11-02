@@ -1,4 +1,4 @@
-<!-- en-sha256: 360d2d854d03279be86115238857dd2e8e44dda101d165ac961d3889f2c689e0 -->
+<!-- en-sha256: 291a090f54839e014c6721698805d7d645e60bd696cdc6add20f834123eaef8c -->
 
 # Сцены и уровни
 
@@ -122,6 +122,7 @@ Neon Rumble содержит этот SDK-уровень в поле `level`, а
 | `Texture` | `level lvl: texture <guid в hex>: wrong texture format` |
 | `UnknownKind` | `level lvl: spawn a1 w0 kind boss: no table boss_fighter` |
 | `BadFighter` | `adler_fighter: no clip adler/jab in the clips table` |
+| `BadViewport` | `viewport table does not open` или несовместимый ассет viewport |
 | `Capacity` | `level lvl needs more than 8 fighter kinds` (или 8 textures) |
 
 ### Классы объектов
@@ -240,6 +241,11 @@ std::unique_ptr<Play> enter_level(const asset::BundleView& bundle, const char* n
 <!-- snippet: games/neon-rumble/src/rumble_flow.cpp#flow-apply -->
 ```cpp
 bool Flow::open() {
+    std::string error;
+    if (!sc::load_viewport_settings(bundle_, viewport_, error)) {
+        std::fprintf(stderr, "neon-rumble: %s\n", error.c_str());
+        return false;
+    }
     const sc::SceneResult r = stack_.push(menu_.stack_scene());
     if (r != sc::SceneResult::Ok) {
         std::fprintf(stderr, "neon-rumble: menu scene: %s\n", sc::scene_reason(r));

@@ -43,6 +43,7 @@ struct Knockouts {
 
 struct Brawl {
     framework::brawl::DepthFloor floor;
+    framework::graphics::ViewportSettings viewport;
     framework::brawl::BodyPool pool;
     Kinds kinds;
     framework::brawl::HitEvents events;

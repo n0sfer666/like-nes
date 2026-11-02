@@ -1,4 +1,4 @@
-<!-- en-sha256: 6e7986d76b6bf9cb3c5f608aff987908decada708db9b60c87dae8772043baf1 -->
+<!-- en-sha256: e5d27f55f13b596634a629f6cce8028b546f2bf3865903cb9617af578f831392 -->
 
 # Камера и секции
 
@@ -44,7 +44,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
     took = br::step_checkpoints(progress, pool, seats, level);
     was_arena = camera.arena;
     was_wave = waves.wave;
-    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts);
+    br::step_waves(waves, camera, pool, world.kinds, seats, level, br::WaveRules{WAVE_LULL}, facts, world.zone);
     spawned_count = 0;
     for (uint32_t i = 0; i < facts.count; ++i) {
         const br::EntId id = pool.spawn(foes[facts.starts[i]]);

@@ -3,6 +3,7 @@
 #include <map>
 
 #include "text_fields.hpp"
+#include "manifest_viewport.hpp"
 
 namespace asset::manifest {
 namespace {
@@ -89,6 +90,7 @@ bool kind_ok(const std::vector<std::string>& f, uint32_t line, std::span<const K
     if (const Kind* k = find_kind(kinds, f[0])) return game(*k, f, line, err);
     std::string known;
     for (const Builtin& b : BUILTIN) known += std::string(known.empty() ? "" : ", ") + b.name;
+    known += ", zone, zone_limit";
     for (const Kind& k : kinds) known += std::string(", ") + k.name;
     return fail(err, line, "unsupported record kind '" + f[0] + "' (this tool bakes: " + known + ")");
 }
@@ -105,6 +107,8 @@ bool reserved(const std::string& name) {
 bool record(const std::vector<std::string>& f, uint32_t line, std::span<const Kind> kinds, Record& rec,
             Error& err) {
     if (!kind_ok(f, line, kinds, err)) return false;
+    if (f[1] == "viewport" && f[0] != "level" && f[0] != "clips")
+        return fail(err, line, "name 'viewport' is reserved for viewport settings");
     if (!name_ok(f[1]))
         return fail(err, line, "name '" + f[1] + "' must be letters, digits, '_', '-' or '.'");
     if (f[0] != "level" && f[0] != "clips" && reserved(f[1]))
@@ -132,6 +136,7 @@ bool kinds_ok(std::span<const Kind> kinds, std::string& error) {
         if (ext.size() < 2 || ext[0] != '.' || !name_ok(ext.substr(1)))
             return table_fail(error, "kind '" + name + "' extension '" + ext +
                                          "' must be '.' and a suffix of letters, digits, '_', '-' or '.'");
+        if (viewport_key(name)) return table_fail(error, "game record kind '" + name + "' shadows a built-in kind");
         for (const Builtin& b : BUILTIN)
             if (name == b.name) return table_fail(error, "game record kind '" + name + "' shadows a built-in kind");
         for (size_t j = 0; j < i; ++j)
@@ -146,8 +151,12 @@ const Kind* find_kind(std::span<const Kind> kinds, const std::string& name) {
     return nullptr;
 }
 
-bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::span<const Kind> kinds) {
+bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::span<const Kind> kinds,
+           framework::graphics::ViewportSettings* viewport) {
     out.clear();
+    if (viewport) *viewport = {};
+    framework::graphics::ViewportSettings pending;
+    ViewportLines viewport_lines;
     if (std::string why; !kinds_ok(kinds, why)) return fail(err, 0, why);
     // BOM пишет PowerShell 5.1 (`Set-Content -Encoding UTF8`); без отдельного отказа он прилип бы
     // к первому полю и дал «unsupported record kind 'texture'» с невидимыми байтами.
@@ -165,8 +174,13 @@ bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::s
         const size_t hash = body.find('#');
         if (hash != std::string::npos) body.resize(hash);
         if (framework::core::trim(body).empty()) continue;
+        const auto fields = framework::core::split_fields(body);
+        if (viewport_key(fields[0])) {
+            if (!read_viewport(fields, line, pending, viewport_lines, err)) return false;
+            continue;
+        }
         Record rec;
-        if (!record(framework::core::split_fields(body), line, kinds, rec, err)) return false;
+        if (!record(fields, line, kinds, rec, err)) return false;
         const auto [it, fresh] = seen.emplace(rec.name, line);
         if (!fresh)
             return fail(err, line, "duplicate name '" + rec.name + "' (first on line " +
@@ -174,6 +188,7 @@ bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::s
         out.push_back(std::move(rec));
     }
     if (out.empty()) return fail(err, 0, "manifest has no records");
+    if (viewport) *viewport = pending;
     return true;
 }
 

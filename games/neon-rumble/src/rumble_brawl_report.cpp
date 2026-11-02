@@ -68,7 +68,7 @@ void report_fighters(const Level& level, const Fighters& fighters, const Brawl& 
     FighterQuads quads;
     framework::Vec2 follow = screen_plane(brawl.spawns[PLAYER]);
     if (!follow_point(brawl, follow)) follow = screen_plane(brawl.spawns[PLAYER]);
-    LayerStats st = layers.build(level, gfx::viewport_fit({960, 540}), 0, &follow);
+    LayerStats st = layers.build(level, gfx::viewport_fit({960, 540}, level.viewport.zone, level.viewport.limit), 0, &follow);
     for (const uint32_t i : brawl.draw_order()) {
         const br::Body& b = brawl.pool.bodies[i];
         if (b.kind >= FIGHTERS) continue;

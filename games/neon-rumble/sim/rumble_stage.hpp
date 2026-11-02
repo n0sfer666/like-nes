@@ -4,6 +4,7 @@
 
 #include "fighter_read.hpp"
 #include "scene_level.hpp"
+#include "viewport_settings.hpp"
 #include "level_objects.hpp"
 
 namespace rumble {
@@ -16,6 +17,7 @@ struct LevelFighter {
 
 struct Stage {
     framework::scene::Level level;
+    framework::graphics::ViewportSettings viewport;
     framework::scene::LevelObjects objects;
     std::array<LevelFighter, LEVEL_FIGHTERS> fighters{};
     uint32_t fighter_count = 0;

@@ -5,7 +5,7 @@ namespace rumble {
 
 enum class StageFault : uint32_t {
     Ok = 0, NoTable = 1, BadTable = 2, NoLevel = 3, BadObjects = 4,
-    Texture = 5, UnknownKind = 6, BadFighter = 7, Capacity = 8,
+    Texture = 5, UnknownKind = 6, BadFighter = 7, Capacity = 8, BadViewport = 9,
 };
 
 struct StageError {

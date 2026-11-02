@@ -1,5 +1,5 @@
 add_library(framework_scene STATIC scene_object.cpp scene_paths.cpp scene_stack.cpp
-  level_error.cpp level_load.cpp level_textures.cpp)
+  level_error.cpp level_load.cpp level_textures.cpp viewport_load.cpp)
 target_include_directories(framework_scene PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_scene PUBLIC framework_tilemap framework_graphics asset_view
   asset_hash)
@@ -14,3 +14,6 @@ target_link_libraries(framework_scene_classes_test PRIVATE framework_scene)
 
 add_executable(framework_scene_load_test framework_scene_load_test.cpp)
 target_link_libraries(framework_scene_load_test PRIVATE framework_scene asset_core)
+
+add_executable(framework_viewport_settings_test framework_viewport_settings_test.cpp)
+target_link_libraries(framework_viewport_settings_test PRIVATE framework_scene asset_core)

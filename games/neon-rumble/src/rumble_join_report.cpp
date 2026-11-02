@@ -16,7 +16,7 @@ void report_joins(const Brawl& brawl, const framework::brawl::Seats& was, uint32
                     label(brawl, *b).text.data(), b->pos.x.to_int(), b->pos.z.to_int(), b->pos.y.to_int(), b->immune);
         const Wave& w = brawl.wave;
         if (w.on) {
-            const fix32 half = framework::graphics::view_zone_half().x;
+            const fix32 half = framework::graphics::view_zone_half(brawl.viewport.zone).x;
             std::printf(", view %d..%d, %s", (w.camera.center.x - half).to_int(), (w.camera.center.x + half).to_int(),
                         w.sections.find(b->id) != nullptr ? "platform" : "belt");
         }

@@ -1,6 +1,7 @@
 #pragma once
 #include "level_objects.hpp"
 #include "stage_camera.hpp"
+#include "viewport_fit.hpp"
 
 namespace framework::brawl {
 
@@ -25,6 +26,7 @@ struct Ride {
 // `speed = 0` пропускается на старте: такая дорожка держала бы камеру навсегда. По `y` центр
 // следует только в platform, и в belt старт по `y` возможен лишь ровно на центре вида. `on` — край
 // в этом тике двигал камеру и толкает игроков.
-Ride ride_scroll(StageCamera& camera, Vec2 before, const scene::LevelObjects& level);
+Ride ride_scroll(StageCamera& camera, Vec2 before, const scene::LevelObjects& level,
+                 graphics::PixelSize zone = graphics::VIEW_ZONE);
 
 } // namespace framework::brawl

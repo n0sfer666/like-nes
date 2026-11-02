@@ -6,6 +6,7 @@
 #include "assetc_kind.hpp"
 #include "bundle_writer.hpp"
 #include "codec.hpp"
+#include "viewport_settings.hpp"
 
 // Бейк по манифесту (спека #24, В4): записи → ассеты бандла и список прочитанных файлов для
 // depfile. Запись бандла и depfile на диск — у вызывающего: пекарь не знает, куда кладётся выход.
@@ -16,6 +17,7 @@ struct Bake {
     codec::Tools tools;       // basisu для записей hd
     std::string tmp;          // временный файл basisu
     std::span<const Kind> kinds;    // виды записей игры, пекутся после clips и fonts
+    framework::graphics::ViewportSettings viewport;
     std::vector<AssetInput> assets;
     std::vector<std::string> deps;  // манифест и каждый прочитанный файл, в порядке чтения
     std::string error;        // `<манифест>:<строка>: …` по-английски

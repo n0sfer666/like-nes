@@ -27,8 +27,8 @@ bool covers(fix32 at, fix32 lo, fix32 hi, fix32 half) {
     return clamp_fix(at, min_fix(a, b), max_fix(a, b)) == at;
 }
 
-bool reached(fix32 seen, Vec2 at, const scene::LevelRect& r, const scene::LevelObjects& level) {
-    const Vec2 half = graphics::view_zone_half();
+bool reached(fix32 seen, Vec2 at, const scene::LevelRect& r, const scene::LevelObjects& level, graphics::PixelSize zone) {
+    const Vec2 half = graphics::view_zone_half(zone);
     const bool x = crossed(seen, at.x, r.x0, r.x1, half.x);
     if (mode_at(level, at.x) == scene::SectionMode::Belt) return x;
     return (x || covers(at.x, r.x0, r.x1, half.x)) && clamp_fix(at.y, r.y0, r.y1) == at.y;
@@ -88,13 +88,13 @@ void start(StageWaves& waves, StageCamera& camera, const scene::LevelObjects& le
 } // namespace
 
 void step_waves(StageWaves& waves, StageCamera& camera, const BodyPool& pool, std::span<const Archetype> kinds,
-                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out) {
+                const Seats& seats, const scene::LevelObjects& level, const WaveRules& rules, WaveFacts& out, graphics::PixelSize zone) {
     out = WaveFacts{};
     const fix32 seen = std::exchange(waves.seen, camera.center.x);
     const int32_t players = present(seats);
     if (camera.arena == NO_ARENA) {
         const scene::Arena* arena = next_arena(level, waves.cleared);
-        if (arena == nullptr || !reached(seen, camera.center, arena->area.rect, level)) return;
+        if (arena == nullptr || !reached(seen, camera.center, arena->area.rect, level, zone)) return;
         camera.arena = static_cast<int16_t>(arena->id);
         out.locked = true;
         start(waves, camera, level, players, out);

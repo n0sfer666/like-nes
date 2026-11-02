@@ -108,6 +108,7 @@ uint16_t strike_of(Attack attack, const PlayerMoves& moves, const br::Body& b) {
 } // namespace
 
 bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
+    viewport = level.viewport;
     floor = br::DepthFloor{};
     pool = br::BodyPool{};
     events = br::HitEvents{};
@@ -155,7 +156,7 @@ void Brawl::step() {
         if (b.team == 0 && b.kind < br::SEATS)
             commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
     }
-    const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}};
+    const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}, nullptr, nullptr, viewport.zone};
     if (!wave.on) {
         br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
         return;

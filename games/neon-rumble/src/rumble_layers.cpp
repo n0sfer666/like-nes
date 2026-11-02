@@ -35,7 +35,7 @@ LayerStats Layers::build(const Level& level, const framework::graphics::Viewport
     LayerFrame f;
     f.view = fit.view;
     f.config.policies = framework::graphics::CAMERA_BOUNDS;
-    f.config.half_view = framework::graphics::view_zone_half();
+    f.config.half_view = framework::graphics::view_zone_half(level.viewport.zone);
     f.config.bounds = level.level.bounds;
     const framework::Vec2 target = follow != nullptr ? *follow : sweep(level.level.bounds, f.config.half_view, tick);
     framework::graphics::camera_follow(f.camera, f.config, target, 0);

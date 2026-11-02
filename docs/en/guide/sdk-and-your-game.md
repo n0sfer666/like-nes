@@ -175,6 +175,9 @@ each line, separated by `|`:
 # A trailing |viewport on a level makes the bake prove its layers cover the viewport limit (B7).
 # font|<name>|bitmask|<path>.json bakes a glyph atlas and the fonts section, credits|<name>|<path>.txt
 # the credits section (B8b). fighter|<name>|<path>.fighter bakes a fighter table (spec #25, B2b).
+# Global viewport settings: positive integer sides, standard values add no bundle section.
+zone | 384 | 216
+zone_limit | 576 | 312
 texture | street_tiles | pixel | assets/warped-city/tileset.png
 texture | sign_tiles | pixel | assets/warped-city/signs.png
 texture | sky | pixel | assets/warped-city/sky.png

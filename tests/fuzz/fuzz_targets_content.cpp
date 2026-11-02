@@ -11,6 +11,7 @@
 #include "fuzz_target.hpp"
 #include "text_layout.hpp"
 #include "touch_layout.hpp"
+#include "viewport_settings.hpp"
 
 namespace fuzz {
 namespace {
@@ -95,11 +96,26 @@ bool read_touch(const uint8_t* data, size_t size) {
     return true;
 }
 
+std::vector<uint8_t> seed_viewport() {
+    std::vector<uint8_t> bytes;
+    std::string error;
+    gr::bake_viewport_settings({{640, 360}, {960, 540}}, bytes, error);
+    return bytes;
+}
+
+bool read_viewport(const uint8_t* data, size_t size) {
+    gr::ViewportSettings out;
+    if (!gr::read_viewport_settings(data, size, out)) return false;
+    consume_all(out.zone.w, out.zone.h, out.limit.w, out.limit.h);
+    return true;
+}
+
 const Target TARGETS[] = {
     {"fonts", seed_fonts, read_fonts},
     {"credits", seed_credits, read_credits},
     {"fighter", seed_fighter, read_fighter},
     {"touch", seed_touch, read_touch},
+    {"viewport", seed_viewport, read_viewport},
 };
 
 } // namespace
