@@ -28,7 +28,7 @@ target_link_libraries(input_touch_test PRIVATE input_core)
 # Нативный ввод: GLFW-пумп (kbd/mouse) + native gamepad (GameController/XInput/evdev) + rumble.
 # Библиотека — на любом десктопе, а не под INPUT_NATIVE: её ставит SDK (like-nes::window), и игра
 # против префикса без неё не получила бы ни клавиатуры, ни пада. Под опцией — только live-демо.
-if(NOT LIKE_NES_MOBILE)
+if(NOT LIKE_NES_MOBILE OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
   if(APPLE)
     set(INPUT_GAMEPAD_SRC source_gamepad_macos.mm)
   elseif(WIN32)
@@ -39,15 +39,26 @@ if(NOT LIKE_NES_MOBILE)
   # Бэкенды отдельной библиотекой, а не списком исходников у каждого потребителя: probe слоя
   # фреймворка (спека #14) берёт ровно тот же нативный ввод, и второй список платформенных
   # ветвлений разошёлся бы с этим при первой же правке.
-  add_library(input_native STATIC source_glfw.cpp ${INPUT_GAMEPAD_SRC})
-  target_link_libraries(input_native PUBLIC input_core glfw)
+  # Пад не зависит от окна: тот же GameController работает в UIKit без GLFW.
+  add_library(input_gamepad STATIC ${INPUT_GAMEPAD_SRC})
+  target_link_libraries(input_gamepad PUBLIC input_core)
   if(APPLE)
     # ARC для .mm: без него createEngine/createPlayer (autoreleased) повисают → UAF + утечки.
     set_source_files_properties(source_gamepad_macos.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
-    target_link_libraries(input_native PUBLIC "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+    target_link_libraries(input_gamepad PUBLIC "-framework GameController" "-framework CoreHaptics" "-framework Foundation")
+    if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
+      target_compile_definitions(input_gamepad PRIVATE "INPUT_GAMEPAD_BACKEND_NAME=\"GameController.framework (iOS)\"")
+    else()
+      target_compile_definitions(input_gamepad PRIVATE "INPUT_GAMEPAD_BACKEND_NAME=\"GameController.framework (macOS)\"")
+    endif()
   elseif(WIN32)
-    target_link_libraries(input_native PUBLIC Xinput9_1_0)
+    target_link_libraries(input_gamepad PUBLIC Xinput9_1_0)
   endif()
+endif()
+
+if(NOT LIKE_NES_MOBILE)
+  add_library(input_native STATIC source_glfw.cpp)
+  target_link_libraries(input_native PUBLIC input_core input_gamepad glfw)
 endif()
 
 # Live-демо: реальные устройства → owner-HW (macOS live). OFF в headless CI (нужен дисплей/HID).

@@ -4,7 +4,12 @@
 #import <GameController/GameController.h>
 #import <CoreHaptics/CoreHaptics.h>
 
-// macOS native gamepad: GameController.framework (Xbox/DualSense/Switch, hot-plug, haptics).
+// Старые standalone-цели ещё компилируют этот TU напрямую; их macOS-имя сохраняется.
+#ifndef INPUT_GAMEPAD_BACKEND_NAME
+#define INPUT_GAMEPAD_BACKEND_NAME "GameController.framework (macOS)"
+#endif
+
+// Нативный пад Apple: GameController.framework (Xbox/DualSense/Switch, hot-plug, хаптика).
 // Диффим состояние против кэша → эмитим только изменения как RawEvent. Слот = порядок открытия.
 namespace input {
 namespace c = input::code;
@@ -58,7 +63,7 @@ public:
         play_haptic(slot, intensity, ms);
     }
 
-    const char* backend_name() const override { return "GameController.framework (macOS)"; }
+    const char* backend_name() const override { return INPUT_GAMEPAD_BACKEND_NAME; }
 
     // GameController.framework не отдаёт VID/PID вовсе: производителя видно только именем.
     // Профиль ищется по нему, поэтому имя берётся у vendorName, а не у productCategory —

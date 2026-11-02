@@ -24,7 +24,7 @@ set_source_files_properties(${SHELL_SRC} PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
 target_include_directories(like_nes_mobile PUBLIC ${MOBILE} ${CMAKE_SOURCE_DIR}/engine/render)
 # Свой каталог — явно: мутант view.mm живой самопроверки лежит вне него, а заголовки ищет здесь.
 target_include_directories(like_nes_mobile PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(like_nes_mobile PUBLIC webgpu
+target_link_libraries(like_nes_mobile PUBLIC webgpu input_gamepad
   "-framework UIKit" "-framework Metal" "-framework QuartzCore"
   "-framework Foundation" "-framework CoreGraphics")
 

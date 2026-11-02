@@ -394,3 +394,11 @@ Linux без NDK (машина владельца без Android SDK) падал
 дырой. Фикстура SDK пинит scale1, visible960×540, zone160,90 640×360 и четыре полосы в отчёте
 реальной игры. Камера тика1 пинится на424,168: потерянная проводка в BrawlWorld дала бы296,172.
 Обычные desktop/mobile прогоны продолжают пинить старые хеши и bundle.hash.
+
+В3а #26: native backend отделён в input_gamepad без GLFW. `sdk_game_gamepad.sh` линкует
+поставленный backend отдельно от окна, проверяет отсутствие GLFW/input_native в closure,
+на desktop запускает init/poll и проверяет прежнее имя, под iOS собирает настоящий executable
+с GameController/CoreHaptics. Это линковка/доступность API, не проверка физического пада/хаптики.
+Обход раскрывает LINK_ONLY у PRIVATE-рёбер статики и отмечает посещённые цели, чтобы держать
+циклы. `gamepad_closure_selftest.py` проверяет3 допустимых графа и4 оконных нарушения,
+включая косвенное GLFW-ребро через LINK_ONLY; запускается каждым sdk-game.

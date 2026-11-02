@@ -103,6 +103,7 @@ mobile_ios() {
     done
     mobile_bundle_same ios-sim "$app/assets/game.bundle" || return 1
     sdk_ok "ios-sim: neon_rumble.app (IOSSIMULATOR, iOS $min) carries both bundles and the licenses"
+    fixture_gamepad_source ios-sim "$pfx" "${flags[@]}" || return 1
     fixture_mobile_tree_header ios-sim "$pfx" "${flags[@]}" || return 1
     fixture_mobile_stale_tool ios-sim "$pfx" "${flags[@]}"
 }

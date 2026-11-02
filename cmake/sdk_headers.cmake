@@ -77,7 +77,7 @@ set(LIKE_NES_SDK_HEADERS
 set(LIKE_NES_SDK_STATIC
   framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
-  framework_scene asset_view input_core input_native platform_core render_core
+  framework_scene asset_view input_core input_native input_gamepad platform_core render_core
   render_surface glfw glfw3webgpu)
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
