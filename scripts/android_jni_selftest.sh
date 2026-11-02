@@ -16,8 +16,13 @@ trap 'rm -rf "$WORK"' EXIT
   -I "$JDK/include" -I "$JDK/include/$JNI_OS" -I "$ROOT/platform/android" \
   "$ROOT/platform/android/android_jni_test.cpp" -o "$WORK/android_jni_test"
 "$WORK/android_jni_test"
+"${CXX:-c++}" -std=c++20 -Wall -Wextra -Werror -pedantic \
+  -I "$JDK/include" -I "$JDK/include/$JNI_OS" -I "$ROOT/platform/android" \
+  "$ROOT/platform/android/android_vm_test.cpp" -o "$WORK/android_vm_test"
+"$WORK/android_vm_test"
 # Тот же дефект, что нашло ревью: сырой NewStringUTF после предыдущего исключения.
 cp "$ROOT/platform/android/android_jni_test.cpp" "$WORK/"
+cp "$ROOT/platform/android/android_vibration.hpp" "$WORK/"
 sed 's/return check() ? env_->NewStringUTF(value) : nullptr;/return env_->NewStringUTF(value);/' \
   "$ROOT/platform/android/android_jni.hpp" > "$WORK/android_jni.hpp"
 cmp -s "$ROOT/platform/android/android_jni.hpp" "$WORK/android_jni.hpp" && {

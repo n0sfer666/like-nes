@@ -32,6 +32,11 @@ bool MobileRumble::open_controls() {
         return false;
     }
     touch_.source().bind(&hotseat_.engine());
+    pads_ = demo_ ? nullptr : input::make_gamepad_source();
+    if (pads_ && !pads_->init()) {
+        std::fprintf(stderr, "[game] pad backend %s did not start\n", pads_->backend_name());
+        pads_ = nullptr;
+    }
     std::fprintf(stderr, "[game] controls %s\n", demo_ ? "demo" : "touch");
     return true;
 }

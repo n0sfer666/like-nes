@@ -22,7 +22,7 @@ list(TRANSFORM ANDROID_SHELL PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
 # в игре: контекст поднимает оболочка, до того как игра появится.
 add_library(like_nes_mobile STATIC ${ANDROID_SHELL} ${CMAKE_SOURCE_DIR}/engine/render/gpu.cpp)
 target_include_directories(like_nes_mobile PUBLIC ${MOBILE} ${CMAKE_SOURCE_DIR}/engine/render)
-target_link_libraries(like_nes_mobile PUBLIC webgpu PRIVATE platform_core native_app_glue android log)
+target_link_libraries(like_nes_mobile PUBLIC webgpu input_gamepad PRIVATE platform_core native_app_glue android log)
 
 include(${MOBILE}/resim_bench.cmake)
 if(LIKE_NES_MOBILE_BENCH)

@@ -8,8 +8,6 @@ list(APPEND LIKE_NES_SDK_STATIC like_nes_mobile)
 set(LIKE_NES_SDK_INC_ALLOWED "")
 set(LIKE_NES_SDK_EXTRA_DATA "")
 if(CMAKE_SYSTEM_NAME STREQUAL "Android")
-  # Android-бэкенд добавляется отдельно; Apple-архива в этом тулчейне нет.
-  list(REMOVE_ITEM LIKE_NES_SDK_STATIC input_gamepad)
   # Заголовок native_app_glue нужен только оболочке, а архив — каждой .so: вход NativeActivity в нём.
   list(APPEND LIKE_NES_SDK_STATIC native_app_glue)
   list(APPEND LIKE_NES_SDK_INC_ALLOWED "${CMAKE_ANDROID_NDK}/sources/android/native_app_glue")

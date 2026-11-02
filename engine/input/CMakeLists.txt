@@ -28,9 +28,13 @@ target_link_libraries(input_touch_test PRIVATE input_core)
 # Нативный ввод: GLFW-пумп (kbd/mouse) + native gamepad (GameController/XInput/evdev) + rumble.
 # Библиотека — на любом десктопе, а не под INPUT_NATIVE: её ставит SDK (like-nes::window), и игра
 # против префикса без неё не получила бы ни клавиатуры, ни пада. Под опцией — только live-демо.
-if(NOT LIKE_NES_MOBILE OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
+if(NOT LIKE_NES_MOBILE OR CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
   if(APPLE)
     set(INPUT_GAMEPAD_SRC source_gamepad_macos.mm)
+  elseif(ANDROID)
+    set(INPUT_GAMEPAD_SRC ${CMAKE_SOURCE_DIR}/platform/android/android_gamepad.cpp
+      ${CMAKE_SOURCE_DIR}/platform/android/android_pad_events.cpp
+      ${CMAKE_SOURCE_DIR}/platform/android/android_pad_device.cpp)
   elseif(WIN32)
     set(INPUT_GAMEPAD_SRC source_gamepad_win.cpp)
   else()
@@ -53,6 +57,8 @@ if(NOT LIKE_NES_MOBILE OR CMAKE_SYSTEM_NAME STREQUAL "iOS")
     endif()
   elseif(WIN32)
     target_link_libraries(input_gamepad PUBLIC Xinput9_1_0)
+  elseif(ANDROID)
+    target_link_libraries(input_gamepad PRIVATE android)
   endif()
 endif()
 

@@ -17,6 +17,7 @@
 #include "rumble_touch_quads.hpp"
 #include "rumble_wave_script.hpp"
 #include "surface_frame.hpp"
+#include "source.hpp"
 
 namespace rumble {
 
@@ -52,6 +53,7 @@ private:
     void observe_punch(const Play& play);
 
     GpuContext* gpu_ = nullptr;
+    input::GamepadSource* pads_ = nullptr;
     WGPUSurface surface_ = nullptr;
     SurfaceSpec spec_{};
     platform::MappedFile file_;

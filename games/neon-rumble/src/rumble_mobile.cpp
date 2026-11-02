@@ -120,6 +120,7 @@ bool MobileRumble::wants_frames() const {
 // Порядок шага — как у run_headless: клавиши P2 до тика лобби, команда P1 поверх собранной им, места
 // до шага — до run, отчёты — после него.
 void MobileRumble::step() {
+    if (pads_) pads_->poll(hotseat_.engine());
     Play* play = flow_.play();
     if (play == nullptr) {
         hotseat_.engine().drain();
@@ -164,6 +165,7 @@ void MobileRumble::shutdown() {
     if (!inited_) return;
     cancel();
     inited_ = false;
+    pads_ = nullptr;
     release_targets();
     surface_ = nullptr;
 }

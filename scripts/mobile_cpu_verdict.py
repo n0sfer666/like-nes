@@ -21,11 +21,11 @@ def main() -> int:
         return 1
     exe, desk, assets = sys.argv[1:]
     hashes = {}
-    for mode in ("demo", "idle", "move", "cancel", "rotate", "suspend", "late"):
+    for mode in ("demo", "idle", "move", "cancel", "rotate", "suspend", "late", "pad", "pad-drop"):
         text = run([exe, assets, mode])
         if "mobile-cpu: PASS" not in text or f"[game] controls {'demo' if mode == 'demo' else 'touch'}" not in text:
             raise RuntimeError(f"{mode}: no verdict or wrong controls mode\n{text}")
-        ticks = 480 if mode == "demo" else 180 if mode == "late" else 120
+        ticks = 480 if mode == "demo" else 180 if mode == "late" else 60 if mode == "pad-drop" else 120
         found = re.search(rf"surface detached tick={ticks} world=([0-9a-f]{{16}})", text)
         if not found:
             raise RuntimeError(f"{mode}: no world at tick {ticks}\n{text}")
@@ -34,6 +34,8 @@ def main() -> int:
             for tick, state in ((61, "joining"), (62, "present")):
                 if not re.search(rf"^neon-rumble: seat tick {tick}: P1 {state}$", text, re.M):
                     raise RuntimeError(f"late contact did not join P1 ({state} at {tick})\n{text}")
+        if mode == "pad-drop" and 'seat tick 61: P1 lost the pad, paused' not in text:
+            raise RuntimeError('native pad disconnect did not pause MobileRumble')
     desktop = run([desk, "--headless", "--frames", "480"])
     found = re.search(r"brawl tick 480: hash ([0-9a-f]{16})", desktop)
     if not found or hashes["demo"] != found[1]:
@@ -42,6 +44,8 @@ def main() -> int:
         raise RuntimeError(f"mobile touch movement/cancel did not affect simulation: {hashes}")
     if hashes["cancel"] != hashes["rotate"] or hashes["cancel"] != hashes["suspend"]:
         raise RuntimeError("safe-only rotation or suspend did not cancel like explicit cancel")
+    if hashes['pad'] != hashes['move']:
+        raise RuntimeError('native pad command stream differs from the equivalent touch movement')
     wave = run([exe, assets, "wave-demo"])
     desktop_wave = run([desk, "--headless", "--wave", "--frames", "8640"])
     mobile_hash = re.search(r"surface detached tick=8640 world=([0-9a-f]{16})", wave)
@@ -61,7 +65,7 @@ def main() -> int:
             raise RuntimeError(f"interactive wave lacks {evidence}")
     print(f"mobile-cpu: PASS demo={hashes['demo']}, idle/cancel/move="
           f"{hashes['idle']}/{hashes['cancel']}/{hashes['move']}, rotation=suspend=cancel, late join ok; "
-          f"wave8640={mobile_hash[1]}, interactive wave checkpoint202/arena258")
+          f"wave8640={mobile_hash[1]}, interactive wave checkpoint202/arena258; pad=touch, unplug pauses at60")
     return 0
 
 

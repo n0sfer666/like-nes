@@ -7,6 +7,7 @@
 #include "mobile_app.hpp"
 #include "mobile_host.hpp"
 #include "platform_args.hpp"
+#include "mobile_cpu_pads.hpp"
 
 namespace {
 std::string assets;
@@ -33,13 +34,15 @@ bool mobile_cpu_probe(mobile::Game& game);
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
-    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe|wave-demo|wave-touch>"); return 1; }
+    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe|wave-demo|wave-touch|pad|pad-drop>"); return 1; }
     assets = argv[1];
     const std::string mode = argv[2];
     demo = mode == "demo" || mode == "wave-demo";
     waves = mode == "wave-demo" || mode == "wave-touch";
+    const bool pad = mode == "pad" || mode == "pad-drop";
+    mobile_cpu_pad_mode(pad, mode == "pad-drop");
     if (!demo && mode != "idle" && mode != "move" && mode != "cancel" && mode != "rotate" &&
-        mode != "suspend" && mode != "late" && mode != "probe" && mode != "wave-touch") return 1;
+        mode != "suspend" && mode != "late" && mode != "probe" && mode != "wave-touch" && !pad) return 1;
     GpuContext gpu;
     auto game = mobile::make_game();
     if (!game->init(gpu)) { std::puts("mobile-cpu: FAIL init"); return 1; }
@@ -47,6 +50,8 @@ int main(int argc, char** argv) {
     game->resize(2532, 1170, safe);
     if (mode == "probe") {
         check(mobile_cpu_probe(*game), "valid probe input stream");
+    } else if (pad) {
+        frames(*game, 120);
     } else if (demo) {
         frames(*game, waves ? 8640 : 480);
     } else if (mode == "wave-touch") {

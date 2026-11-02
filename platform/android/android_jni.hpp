@@ -3,7 +3,7 @@
 
 #include <string>
 
-// Локальные ссылки и исключения ограничены одним UI-запросом; после первой ошибки вызовов нет.
+// Локальные ссылки и исключения ограничены запросом текущего потока; после первой ошибки вызовов нет.
 class AndroidJni {
 public:
     explicit AndroidJni(JNIEnv* env) : env_(env), ok_(env->PushLocalFrame(64) == JNI_OK) {}
@@ -32,6 +32,25 @@ public:
     jobject object(jobject obj, const char* name, const char* sig, A... args) {
         const jmethodID m = method(obj, name, sig);
         return m ? env_->CallObjectMethod(obj, m, args...) : nullptr;
+    }
+    template<class... A>
+    jobject static_object(const char* type, const char* name, const char* sig, A... args) {
+        if (!check()) return nullptr;
+        const jclass c = env_->FindClass(type);
+        if (!c || !check()) { ok_ = false; return nullptr; }
+        const jmethodID m = env_->GetStaticMethodID(c, name, sig);
+        if (!m) ok_ = false;
+        return check() ? env_->CallStaticObjectMethod(c, m, args...) : nullptr;
+    }
+    bool integers(jintArray array, jint* values, size_t capacity, size_t& used) {
+        used = 0;
+        if (!check() || !array || !values) return false;
+        const jsize count = env_->GetArrayLength(array);
+        if (!check() || count < 0 || static_cast<size_t>(count) > capacity) return false;
+        env_->GetIntArrayRegion(array, 0, count, values);
+        if (!check()) return false;
+        used = static_cast<size_t>(count);
+        return true;
     }
     int integer(jobject obj, const char* name) {
         const jmethodID m = method(obj, name, "()I");

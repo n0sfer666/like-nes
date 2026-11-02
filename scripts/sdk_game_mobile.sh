@@ -120,6 +120,7 @@ mobile_android() {
     local aapt
     bash "$ROOT/scripts/android_jni_selftest.sh" || { sdk_bad 'android: JNI error paths'; return 1; }
     bash "$ROOT/scripts/android_host_selftest.sh" || { sdk_bad 'android: launch flags'; return 1; }
+    bash "$ROOT/scripts/android_gamepad_selftest.sh" "$PREFIX" || { sdk_bad 'android: native gamepad'; return 1; }
     python3 "$ROOT/scripts/android_package_verdict.py" --selftest || return 1
     aapt=$( . "$ROOT/platform/android/android_sdk.sh"; printf '%s' "$SDK/build-tools/35.0.0/aapt2" )
     api=$(android_min_api)
@@ -148,6 +149,7 @@ mobile_android() {
         sdk_bad "android-$abi: cannot extract game.bundle from the APK"; return 1; }
     mobile_bundle_same "android-$abi" "$WORK/apk-game.bundle" || return 1
     sdk_ok "android-$abi: neon_rumble.apk (API $api) carries the .so, libc++_shared, both bundles and the licenses"
+    fixture_gamepad_source "android-$abi" "$pfx" "${flags[@]}" || return 1
     fixture_mobile_tree_header "android-$abi" "$pfx" "${flags[@]}" || return 1
     fixture_mobile_stale_tool "android-$abi" "$pfx" "${flags[@]}"
 }

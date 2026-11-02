@@ -1,5 +1,4 @@
 #include <android_native_app_glue.h>
-#include <android/configuration.h>
 #include <android/input.h>
 #include <android/native_window.h>
 
@@ -10,6 +9,7 @@
 #include <memory>
 
 #include "android_host.hpp"
+#include "android_gamepad.hpp"
 #include "android_touch.hpp"
 #include "android_window.hpp"
 #include "apk_assets.hpp"
@@ -36,13 +36,6 @@ double now_s() {
     timespec ts = {};
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return static_cast<double>(ts.tv_sec) + static_cast<double>(ts.tv_nsec) * 1e-9;
-}
-
-// Касания приходят в пикселях окна, а игра ждёт точки: плотность 160 dpi — одна точка на пиксель.
-float density_scale(AConfiguration* config) {
-    const int32_t d = config ? AConfiguration_getDensity(config) : 0;
-    if (d <= 0 || d == ACONFIGURATION_DENSITY_NONE || d == ACONFIGURATION_DENSITY_ANY) return 1;
-    return static_cast<float>(d) / static_cast<float>(ACONFIGURATION_DENSITY_MEDIUM);
 }
 
 bool make_surface(App& a, ANativeWindow* win) {
@@ -88,7 +81,7 @@ void teardown(App& a) {
 // поверхность: игра пережила уход в фон. Отказ первого круга освобождает всё поднятое, иначе
 // instance и поверхность копились бы с каждым INIT_WINDOW.
 void attach(App& a, android_app* app) {
-    a.scale = density_scale(app->config);
+    a.scale = android_touch_scale(app->config);
     a.window = android_window_read(app->activity);
     if (!a.game) {
         a.gpu.instance = wgpuCreateInstance(nullptr);
@@ -126,7 +119,7 @@ void detach(App& a) {
 void resize(App& a, android_app* app) {
     if (!a.game || !a.surface || !app->window) return;
     const int32_t w = ANativeWindow_getWidth(app->window), h = ANativeWindow_getHeight(app->window);
-    const float scale = density_scale(app->config);
+    const float scale = android_touch_scale(app->config);
     if (w <= 0 || h <= 0) return;
     const AndroidWindowSnapshot window = android_window_read(app->activity);
     if (static_cast<uint32_t>(w) == a.fb_w && static_cast<uint32_t>(h) == a.fb_h &&
@@ -142,11 +135,14 @@ bool live(const App& a) { return a.game && a.surface && a.game->wants_frames(); 
 
 int32_t on_input(android_app* app, AInputEvent* ev) {
     App& a = *static_cast<App*>(app->userData);
+    if (android_gamepad_event(ev)) return 1;
     return a.game && a.surface ? android_touch(*a.game, ev, a.scale, a.window.probe) : 0;
 }
 
 void on_cmd(android_app* app, int32_t cmd) {
     App& a = *static_cast<App*>(app->userData);
+    if (cmd == APP_CMD_LOST_FOCUS || cmd == APP_CMD_PAUSE) android_gamepad_cancel();
+    if (cmd == APP_CMD_RESUME) android_gamepad_refresh();
     if (cmd == APP_CMD_INIT_WINDOW && app->window) attach(a, app);
     else if (cmd == APP_CMD_TERM_WINDOW) detach(a);
     else if (cmd == APP_CMD_WINDOW_RESIZED || cmd == APP_CMD_CONFIG_CHANGED) resize(a, app);
@@ -171,6 +167,7 @@ void android_main(android_app* app) {
     const AndroidWindowSnapshot launch = android_window_read(app->activity);
     mobile::set_demo(launch.demo);
     mobile::set_args(launch.args);
+    android_gamepad_begin(app->activity->vm);
     App a;
     app->userData = &a;
     app->onAppCmd = on_cmd;
@@ -182,7 +179,7 @@ void android_main(android_app* app) {
         // Граница C-API: outData у ALooper_pollOnce — void**, looper кладёт туда android_poll_source*.
         while (ALooper_pollOnce(was_live ? 0 : -1, nullptr, &events, reinterpret_cast<void**>(&src)) >= 0) {
             if (src) src->process(app, src);
-            if (app->destroyRequested) { teardown(a); return; }
+            if (app->destroyRequested) { teardown(a); android_gamepad_end(); return; }
             if (!was_live && live(a)) break;
         }
         if (!live(a)) continue;

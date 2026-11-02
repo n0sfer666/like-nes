@@ -1,5 +1,7 @@
 #include "android_touch.hpp"
 
+#include <cstdio>
+
 #include "mobile_probe.hpp"
 
 namespace {
@@ -14,6 +16,13 @@ void dispatch(mobile::Game& game, AInputEvent* ev, size_t idx, mobile::Touch pha
 }
 
 } // namespace
+
+// Касания приходят в пикселях окна, игра ждёт точки: 160dpi — одна точка на пиксель.
+float android_touch_scale(AConfiguration* config) {
+    const int32_t d = config ? AConfiguration_getDensity(config) : 0;
+    if (d <= 0 || d == ACONFIGURATION_DENSITY_NONE || d == ACONFIGURATION_DENSITY_ANY) return 1;
+    return static_cast<float>(d) / static_cast<float>(ACONFIGURATION_DENSITY_MEDIUM);
+}
 
 int32_t android_touch(mobile::Game& game, AInputEvent* ev, float scale, const std::string& probe) {
     if (AInputEvent_getType(ev) != AINPUT_EVENT_TYPE_MOTION || scale <= 0) return 0;

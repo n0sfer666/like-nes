@@ -290,7 +290,7 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 С В2г #26 Android-пакет судится и по скомпилированным данным `aapt2 dump`: sensorLandscape,
 hasCode=false, INTERNET/VIBRATE и ссылка манифеста на LikeNesTheme с fullscreen/shortEdges.
 `android_package_verdict.py --selftest` —14 контролей, в том числе потеря/разрыв ссылки на тему.
-Перед сборкой Android также `android_jni_selftest.sh`: обычные вызовы +33 исключения в каждой
+Перед сборкой Android также `android_jni_selftest.sh`: обычные вызовы +47 исключений в каждой
 точке JNI-мока; сырой NewStringUTF после ошибки обязан дать красный контроль. Нужны публичные
 заголовки хостового JDK, уже необходимого Android tooling. `android_host_selftest.sh` собирает
 настоящий android_host.cpp с заглушками только двух OS-info API: generic args tokens, exact
@@ -301,12 +301,12 @@ matching без prefix, legacy boolean demo и thread locality; substring-мут
 только хоста против desktop prefix, без GPU/поверхности. Общие sources.cmake исключают вторую
 копию списка приложения. Переносимый заголовок mobile::Game берётся из дерева: desktop SDK
 его не поставляет, но весь engine/framework — из префикса. Строгие предупреждения включены.
-`mobile_cpu_verdict.py` проверяет9 режимов: demo480=desktop, idle/move/cancel различают реальную
+`mobile_cpu_verdict.py` проверяет11 режимов: demo480=desktop, idle/move/cancel различают реальную
 симуляцию, rotate=suspend=cancel, поздний вход (Joining61/Present62) после ожидания. Четыре
 локальных production-мутанта (скрипт поверх тача, потерянный pointer, demo off-by-one, нет позднего
 входа при сохранении pointer ownership) отвергнуты. Дополнительно wave-demo8640 равен desktop
 --wave (b19d2fdfd5ab60f1, release арен3736/7530), wave-touch без demo через настоящие pointer
-проходит checkpoint202 и включает arena0/wave0 на258. Старые7 хешей прежние. Это не проверка UIKit/JNI.
+проходит checkpoint202 и включает arena0/wave0 на258. Старые7 хешей прежние. Native pad=touch hash, unplug61 останавливает сцену на60. Это не проверка UIKit/JNI.
 iOS-пакет дополнительно проверяется по plist: landscape обеих сторон и LAN/Bonjour-декларации;
 Bonjour `_likenes._udp` пока только декларация до реализации discovery #27.
 
@@ -402,3 +402,10 @@ Linux без NDK (машина владельца без Android SDK) падал
 Обход раскрывает LINK_ONLY у PRIVATE-рёбер статики и отмечает посещённые цели, чтобы держать
 циклы. `gamepad_closure_selftest.py` проверяет3 допустимых графа и4 оконных нарушения,
 включая косвенное GLFW-ребро через LINK_ONLY; запускается каждым sdk-game.
+
+В3б #26: android_gamepad_selftest.sh DESKTOP_SDK_PREFIX исполняет настоящий NDK backend на
+host со stock NDK headers и установленным engine: mapping, channels, passport→PadRegistry,
+тихий unplug, real Lobby Lost при замене id и сброс после JNI failure. Подтверждены6
+production-мутантов. Дополнительно настоящий JVM -Xcheck:jni с моделируемыми Android API
+исполняет настоящие JNI device/rumble функции (50 native attach/detach, UTF-8, ошибки и long/int).
+Это не аппаратный тест. Gamepad-only fixture также линкуется под Android из свежего префикса.
