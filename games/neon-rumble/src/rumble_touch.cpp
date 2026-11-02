@@ -32,9 +32,11 @@ bool Touch::load(asset::BundleView bundle, std::string& why) {
 std::string Touch::state() const {
     using framework::touch::Control;
     const auto id = [&](Control c) { return static_cast<long long>(source_.owner(c).value_or(-1)); };
-    char buf[192];
-    std::snprintf(buf, sizeof buf, "stick=%lld a=%lld b=%lld c=%lld d=%lld e=%lld", id(Control::Stick),
-                  id(Control::A), id(Control::B), id(Control::C), id(Control::D), id(Control::E));
+    const auto knob = source_.stick_knob().value_or(framework::Vec2{});
+    char buf[256];
+    std::snprintf(buf, sizeof buf, "stick=%lld a=%lld b=%lld c=%lld d=%lld e=%lld knob_x=%.3f knob_y=%.3f",
+                  id(Control::Stick), id(Control::A), id(Control::B), id(Control::C), id(Control::D),
+                  id(Control::E), knob.x.to_double(), knob.y.to_double());
     return buf;
 }
 

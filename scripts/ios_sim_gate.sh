@@ -84,7 +84,7 @@ MIN_OS=$(ios_min_os_agree "$B/Debug/like_nes_ios.app" "$B") || fail "minimum iOS
 ok "no runtime warnings, minimum iOS $MIN_OS in binary and Info.plist"
 
 xcrun simctl spawn "$UDID" log show --start "$START" --style compact \
-  --predicate 'process == "like_nes_ios" AND eventMessage CONTAINS "[touch]"' \
+  --predicate 'process == "like_nes_ios" AND (eventMessage CONTAINS "[touch]" OR eventMessage CONTAINS "[safe]")' \
   >"$RUN/touch.log" 2>"$RUN/logshow.err" || fail "log show — $RUN/logshow.err"
 python3 "$ROOT/scripts/ios_touch_verdict.py" "$RUN/touch.log" "$RUN_ID" || fail "touch routing — $RUN/touch.log"
 
@@ -98,6 +98,6 @@ for png in "$RUN"/attach/*.png; do
   python3 "$ROOT/scripts/png_mean.py" "$png" | awk '{ exit !($1 + $2 + $3 >= 30) }' \
     || fail "screenshot is black: $png"
 done
-[ "$SHOTS" -eq 2 ] || fail "expected 2 screenshots (launch, after-gesture), got $SHOTS in $RUN/attach"
-ok "2 screenshots rendered, evidence in $RUN"
+[ "$SHOTS" -eq 4 ] || fail "expected 4 screenshots (before/after each landscape gesture), got $SHOTS in $RUN/attach"
+ok "4 screenshots rendered, evidence in $RUN"
 echo "[ios-sim] PASS"

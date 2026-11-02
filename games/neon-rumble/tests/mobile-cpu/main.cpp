@@ -51,8 +51,10 @@ int main(int argc, char** argv) {
         frames(*game, 1);
         if (mode != "idle" && mode != "late") {
             game->pointer(2, mobile::Touch::Down, 200, 240);
+            check(owns(*game, "knob_x=200.000"), "probe exposes the actual source knob at down");
             game->pointer(2, mobile::Touch::Move, 248, 240);
             check(owns(*game, "stick=2"), "actual MobileRumble receives the floating stick");
+            check(owns(*game, "knob_x=248.000"), "probe exposes the routed source move");
         }
         frames(*game, 58);
         if (mode == "cancel") game->cancel();

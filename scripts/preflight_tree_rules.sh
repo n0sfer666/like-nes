@@ -137,5 +137,7 @@ stage "Кросс-компиляция: листинг APK называет ка
 # Xcode, а живые мутанты (`ios_sim_gate_live_selftest.sh`) — руками, им нужен симулятор.
 stage "Вердикт гейта iOS-симулятора — самопроверка правил" \
     python3 scripts/ios_touch_verdict.py --selftest
+stage "Общий мобильный вердикт — две landscape-ориентации и маршрутизация" \
+    python3 scripts/touch_verdict.py --selftest
 
 stages_verdict "правила дерева"

@@ -83,6 +83,8 @@ void combat() {
           (r.players[0].input.buttons & bb::DODGE), "real command_of turns BLOCK + stick flick into DODGE");
     check(r.touch.state().find("stick=42") != std::string::npos &&
           r.touch.state().find("e=104") != std::string::npos, "probe reports independent owners");
+    check(r.touch.state().find("knob_x=228.000 knob_y=240.000") != std::string::npos,
+          "probe reports the source knob after a routed move");
     r.touch.source().set_view(pt(844), pt(390), {pt(68), {}, pt(20), pt(21)});
     check(r.step() && r.players[0].input.move.move_x == pt(0) && r.players[0].input.buttons == 0 &&
           r.touch.source().idle(), "safe-only change releases stick and buttons");

@@ -116,9 +116,11 @@ void ShooterTouch::demo(uint32_t tick) {
 
 std::string ShooterTouch::state() const {
     const std::optional<intptr_t> stick = source_.owner(Control::Stick), a = source_.owner(Control::A);
-    char buf[64];
-    std::snprintf(buf, sizeof buf, "stick=%ld a=%ld", static_cast<long>(stick.value_or(-1)),
-                  static_cast<long>(a.value_or(-1)));
+    const auto knob = source_.stick_knob().value_or(Vec2{});
+    char buf[160];
+    std::snprintf(buf, sizeof buf, "stick=%lld a=%lld knob_x=%.3f knob_y=%.3f",
+                  static_cast<long long>(stick.value_or(-1)), static_cast<long long>(a.value_or(-1)),
+                  fl(knob.x), fl(knob.y));
     return buf;
 }
 

@@ -369,6 +369,10 @@ jobs:
         shell: bash
         run: python3 scripts/check_asset_budget.py --selftest
 
+      - name: Mobile touch verdict selftest (both landscapes, ownership and safe geometry)
+        shell: bash
+        run: python3 scripts/touch_verdict.py --selftest
+
       - name: Third-party assets of a game stay within 30 MiB
         if: runner.os == 'Linux'
         shell: bash
