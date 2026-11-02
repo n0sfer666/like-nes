@@ -428,3 +428,7 @@ save_slots.hpp устанавливается SDK, private migration/counter hel
 grant/refusal/expiry/repeat. Android gamepad host gate также исполняет android_lifecycle.cpp
 с настоящими enum пиннутого native_app_glue: PAUSE без IO, SAVE_STATE/STOP synchronous save,
 repeat/RESUME/no game. Это модели системных событий, не live background/kill тесты телефонов.
+
+В5а1 #26: gamepad-only fixture также печёт строгую таблицу LNST публичным strings_bake.hpp и
+читает перевод через Strings из установленного SDK. На desktop код исполняется, на iOS/Android
+проверяется линковка; приватные fixtures и indexed baker в SDK не поставляются.

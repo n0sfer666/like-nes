@@ -1471,10 +1471,10 @@ jobs:
           grep -q "plugin-determinism: PASS" asan_plugin.txt
           # Глубина урезана флагом, а НЕ списком seed'ов: ASan под clang-cl — самая медленная
           # конфигурация дерева, а восемь seed'ов и есть предмет, ради которого список зашит в
-          # код. targets=19, а не 20, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
+          # код. targets=20, а не 21, и это тоже утверждение: у задачи `-DIDE_POC=OFF`, сцены здесь
           # нет вовсе, и грепом закреплено, что под `#if` уехала ровно одна цель.
           "$S/fuzz_readers.exe" --cases 200 | tee asan_fuzz.txt
-          grep -q "\[fuzz\] PASS targets=19 " asan_fuzz.txt
+          grep -q "\[fuzz\] PASS targets=20 " asan_fuzz.txt
           # Ожидание ОБРАТНОЕ: дырявая цель обязана упасть. Судить о ней КОДОМ ВОЗВРАТА нельзя —
           # `--selftest` возвращает 1 в обоих исходах (у самопроверки зелёного вердикта не бывает),
           # поэтому ветка была недостижима с рождения гейта и позитивный контроль на сам санитайзер
@@ -2171,7 +2171,8 @@ jobs:
                    framework_graphics_viewport_refusal_test \
                    framework_graphics_viewport_fit_test framework_graphics_layer_cover_test \
                    framework_graphics_font_test framework_graphics_font_import_test \
-                   framework_graphics_text_layout_test framework_text_quads_test; do
+                   framework_graphics_text_layout_test framework_text_quads_test \
+                   framework_strings_test framework_strings_limits_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -3010,7 +3011,7 @@ jobs:
           BIN=$(find build -maxdepth 2 -type f \( -name 'fuzz_readers' -o -name 'fuzz_readers.exe' \) | head -1)
           [ -n "$BIN" ] || { echo "fuzz_readers not built"; exit 1; }
           "$BIN" | tee fuzz.txt
-          grep -q "\[fuzz\] PASS targets=20 " fuzz.txt
+          grep -q "\[fuzz\] PASS targets=21 " fuzz.txt
 
       # Здесь у гейта появляется ГЛАЗ: без санитайзера чтение за границей кучи чаще всего не
       # падает вовсе, и релизный прогон выше доказывает только отсутствие зависаний и отказов.
@@ -3029,7 +3030,7 @@ jobs:
             -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
-          grep -q "\[fuzz\] PASS targets=20 " fuzz_san.txt
+          grep -q "\[fuzz\] PASS targets=21 " fuzz_san.txt
           # Ожидание ОБРАТНОЕ, и это позитивный контроль на сам санитайзер: дырявая цель обязана
           # упасть. Судить КОДОМ ВОЗВРАТА нельзя — `--selftest` возвращает 1 в обоих исходах (у
           # самопроверки зелёного вердикта не бывает), поэтому ветка была недостижима с рождения
@@ -3078,6 +3079,8 @@ jobs:
           framework_graphics_font_test:framework-graphics-font: PASS
           framework_graphics_font_import_test:framework-graphics-font-import: PASS
           framework_graphics_text_layout_test:framework-graphics-text-layout: PASS
+          framework_strings_test:strings: PASS
+          framework_strings_limits_test:strings-limits: PASS
           framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
           framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
           framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS

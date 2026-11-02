@@ -28,6 +28,8 @@ CMAKE
 #include "save_slots.hpp"
 #include "platform_fs.hpp"
 #include "platform_save.hpp"
+#include "strings.hpp"
+#include "strings_bake.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
@@ -60,6 +62,14 @@ int main() {
         !save::store("global", 1, body) || save::load("global", 1, {}, saved) != save::Status::Ok || saved != body) return 1;
     const std::vector<std::string> legacy{"controls.txt"};
     if (!save::migrate_legacy(backend.root(), legacy) || save::file_path("controls.txt").empty()) return 1;
+    framework::graphics::FontSrc font;
+    font.name = "mono"; font.line_height = 1; font.page_w = font.page_h = 1;
+    font.glyphs = {{'?', 0, 0, 1, 1}, {'A', 0, 0, 1, 1}};
+    const framework::ui::StringSrc label{"label", "A", "A"};
+    std::vector<uint8_t> strings; framework::ui::StringsStats stats; std::string error;
+    if (!framework::ui::bake_strings({&label, 1}, font, true, strings, stats, error)) return 1;
+    framework::ui::Strings table;
+    if (!table.open(strings.data(), strings.size()) || table.find("label", framework::ui::Language::Ru) != "A") return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

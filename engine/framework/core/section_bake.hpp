@@ -12,6 +12,8 @@ public:
     explicit SectionBuilder(std::size_t rows_bytes);
     uint32_t block(const void* data, std::size_t bytes, std::size_t align);
     uint32_t text(const std::string& s);
+    // Exact encoded bytes so far, including the deduplicated string pool and header/rows.
+    uint64_t encoded_size() const { return static_cast<uint64_t>(bytes_.size()) + blob_.size(); }
     bool finish(const uint8_t (&magic)[4], uint32_t version, uint32_t count, const void* rows,
                 std::vector<uint8_t>& out, std::string& error);
 
