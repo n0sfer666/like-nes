@@ -1946,7 +1946,7 @@ jobs:
       - name: "Save — atomic protocol and local filesystem"
         shell: bash
         run: |
-          for T in platform_atomic_test save_format_test save_select_test save_move_test save_atomic_test; do
+          for T in platform_atomic_test save_format_test save_select_test save_slots_test save_move_test save_atomic_test; do
             EXE=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$EXE" ] || { echo "$T not built"; exit 1; }
             "$EXE" || exit 1

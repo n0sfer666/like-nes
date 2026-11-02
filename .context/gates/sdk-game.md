@@ -420,3 +420,6 @@ Context.getSystemService/Vibrator Phone: ошибки сервиса/мотор�
 В4в #26: gamepad-only fixture линкует save_backend.hpp из свежего prefix, настоящий LocalBackend
 пишет LNSV в scratch-root, переносит exclusive в .pre, читает backup и выбирает идентичные копии.
 Mobile-пакеты проверяют линковку этого же публичного контракта.
+
+В4г #26: тот же fixture вызывает публичные save::store/load с LocalBackend и сверяет body;
+save_slots.hpp устанавливается SDK, private migration/counter helpers — нет.

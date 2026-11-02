@@ -286,8 +286,9 @@
   Support`, не видна в Files; Android — `internalDataPath`); десктоп — `user_data_dir(app)`.
   `save::dir()` пустой или недоступный — отказ записи с сообщением, а не запись в текущий каталог.
 - `load(slot, version, chain, body, &quarantine) → Ok | Empty | Migrated | MigrateFailed | Future |
-  Corrupt`. Контракт цепочки: `chain[i]` переводит v(i+1) → v(i+2), `chain.size() == version − 1`,
-  иначе отказ (ошибка программы).
+  Corrupt`. Уточнение реализации: `Invalid` — ошибка параметров/цепочки без IO, `Error` — отказ IO
+  или переполнение counter, без ложного карантина. Контракт цепочки: `chain[i]` переводит
+  v(i+1) → v(i+2), `chain.size() == version − 1`, все callbacks ненулевые, иначе отказ (ошибка программы).
 - Карантин без перезаписи: `<slot>.v<N>.<k>.bak` (будущая версия), `<slot>.<k>.bad` (битый),
   `<slot>.v<N>.<k>.pre` (копия до миграции), `k` — первый свободный. Путь карантина возвращается
   игре для сообщения. `MigrateFailed` — оригинал уже в `.pre`, слот стартует пустым.
@@ -419,7 +420,7 @@ std::unique_ptr<Game> make_game();
 }
 
 namespace save {
-enum class Status { Ok, Empty, Migrated, MigrateFailed, Future, Corrupt, Conflict };
+enum class Status { Ok, Empty, Migrated, MigrateFailed, Future, Corrupt, Conflict, Invalid, Error };
 using Migrate = bool (*)(std::vector<uint8_t>& body);
 Status load(const char* slot, uint16_t version, std::span<const Migrate> chain,
             std::vector<uint8_t>& body, std::string* quarantine);
@@ -457,8 +458,8 @@ namespace audio { class MusicStream { public: void want(uint32_t track); void ti
 - Системный жест / шторка / звонок → `cancel()`: все действия отпущены в том же тике.
 - Поворот посреди касания — отпустить, а не перенести координаты.
 - `TERM_WINDOW` без `DESTROY` (фон) и повторный `INIT_WINDOW` — та же игра, новая поверхность.
-- Сейв: обрыв между temp и replace — старый файл; длина больше файла — `Corrupt`; две копии с равным
-  счётчиком — локальная; второй битый слот подряд — новый `k`, прежний `.bad` цел.
+- Сейв: обрыв между temp и replace — старый файл; длина больше файла — `Corrupt`; две разные копии
+  с равным счётчиком — `Conflict` с сохранением обеих; второй битый слот подряд — новый `k`, прежний `.bad` цел.
 - Каталог сейвов недоступен (полный диск) — игра идёт, сообщение один раз, запись повторяется на
   следующем `store`.
 - Музыка: трек короче кольца, `loop_end` = длина, `loop_start` = 0; третье желание во время

@@ -1,6 +1,9 @@
 #include "save_backend.hpp"
+#include "save_slots.hpp"
+#include "save_format.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstdio>
 
 #include "platform_args.hpp"
@@ -9,6 +12,7 @@
 namespace {
 int fails;
 void check(bool good, const char* why) { if (!good) { ++fails; std::printf("save-backend: FAIL %s\n", why); } }
+bool migrate(std::vector<uint8_t>& body) { body.push_back(8); return true; }
 }
 
 int main(int argc, char** argv) {
@@ -63,6 +67,23 @@ int main(int argc, char** argv) {
           !relative.list(keys) && keys.empty(), "invalid backend never writes to cwd");
     save::LocalBackend bad(root + "/progress/child");
     check(bad.root().empty() && !bad.write("x", small), "file parent refuses root creation");
+    check(save::store(backend, "checkpoint", 1, small), "slot writes through real LocalBackend");
+    const std::array<save::Migrate, 1> chain{migrate};
+    std::string quarantine;
+    check(save::load(backend, "checkpoint", 2, chain, got, &quarantine) == save::Status::Migrated &&
+          got == std::vector<uint8_t>({0, 255, 3, 8}) && quarantine == "checkpoint.v1.0.pre", "real migration and backup");
+    check(backend.read(quarantine, got, 100) == ReadResult::Ok, "real backup readable");
+    save::RecordView record;
+    check(save::decode_record(got, record) == save::RecordResult::Ok && record.writes == 1 && record.version == 1,
+          "real premigration copy retains old version and counter");
+    for (int i = 0; i < 2; ++i) {
+        check(save::encode_record(2, 70 + i, small, got), "corruption fixture encoded");
+        got.back() ^= 1;
+        check(backend.write("checkpoint", got) && save::load(backend, "checkpoint", 2, chain, got, &quarantine) == save::Status::Corrupt &&
+              quarantine == "checkpoint." + std::to_string(i) + ".bad", "real repeated quarantine exclusive");
+    }
+    check(save::store(backend, "checkpoint", 2, small) && backend.read("checkpoint", got, 100) == ReadResult::Ok &&
+          save::decode_record(got, record) == save::RecordResult::Ok && record.writes == 72, "real counter survives corrupt quarantine");
     std::puts(fails ? "save-backend: FAIL" : "save-backend: PASS bounded reads, keys, roots, exclusive move and preservation");
     return fails ? 1 : 0;
 }

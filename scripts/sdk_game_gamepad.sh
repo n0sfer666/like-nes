@@ -25,6 +25,7 @@ CMAKE
 #include "save.hpp"
 #include "save_format.hpp"
 #include "save_backend.hpp"
+#include "save_slots.hpp"
 #include "platform_fs.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
@@ -51,6 +52,9 @@ int main() {
     if (backend.read("progress.v1.0.pre", saved, container.size()) != save::ReadResult::Ok || saved != container) return 1;
     const std::vector<std::vector<uint8_t>> copies{container, saved};
     if (save::select_record(copies).result != save::SelectionResult::Selected) return 1;
+    const std::vector<uint8_t> body{1, 0, 255};
+    if (!save::store(backend, "checkpoint", 1, body) ||
+        save::load(backend, "checkpoint", 1, {}, saved) != save::Status::Ok || saved != body) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

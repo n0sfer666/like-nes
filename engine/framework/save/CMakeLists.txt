@@ -1,4 +1,5 @@
-add_library(framework_save STATIC save_atomic.cpp save_format.cpp save_backend.cpp save_move.cpp)
+add_library(framework_save STATIC save_atomic.cpp save_format.cpp save_backend.cpp save_move.cpp
+  save_slots.cpp save_slots_io.cpp)
 target_include_directories(framework_save PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_save PRIVATE platform_core)
 
@@ -11,6 +12,9 @@ target_link_libraries(save_format_test PRIVATE framework_save)
 
 add_executable(save_select_test save_select_test.cpp)
 target_link_libraries(save_select_test PRIVATE framework_save)
+
+add_executable(save_slots_test save_slots_test.cpp)
+target_link_libraries(save_slots_test PRIVATE framework_save)
 
 add_executable(save_backend_test save_backend_test.cpp)
 target_link_libraries(save_backend_test PRIVATE framework_save)

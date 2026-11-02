@@ -12,7 +12,7 @@
 #include "save_io.hpp"
 
 namespace save {
-namespace {
+namespace detail {
 bool valid_key(const std::string& key) {
     if (key.empty() || key.size() > 128 || key == "." || key == ".." || key.back() == '.' || key.ends_with(".tmp")) return false;
     if (!std::all_of(key.begin(), key.end(), [](char c) {
@@ -31,7 +31,7 @@ LocalBackend::LocalBackend(std::string root) {
         root_ = std::move(root);
 }
 std::string LocalBackend::path(const std::string& key) const {
-    return root_.empty() || !valid_key(key) ? std::string{} : root_ + "/" + key;
+    return root_.empty() || !detail::valid_key(key) ? std::string{} : root_ + "/" + key;
 }
 
 ReadResult LocalBackend::read(const std::string& key, std::vector<uint8_t>& out, size_t limit) {
@@ -61,7 +61,7 @@ bool LocalBackend::write(const std::string& key, std::span<const uint8_t> bytes)
 bool LocalBackend::list(std::vector<std::string>& keys) {
     keys.clear();
     if (root_.empty() || !platform::list_dir(root_, keys)) return false;
-    keys.erase(std::remove_if(keys.begin(), keys.end(), [](const std::string& key) { return !valid_key(key); }), keys.end());
+    keys.erase(std::remove_if(keys.begin(), keys.end(), [](const std::string& key) { return !detail::valid_key(key); }), keys.end());
     std::sort(keys.begin(), keys.end());
     return true;
 }
