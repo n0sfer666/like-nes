@@ -84,7 +84,7 @@ void describe(std::string& out, const char* axis, Short s, const char* lo_side, 
 }
 
 bool layer_covers(const tilemap::VisualMapSrc& map, const VisualLayerSrc& l, Span cx, Span cy,
-                  std::string& error) {
+                  std::string& error, PixelSize limit) {
     const std::string who = "map '" + map.name + "': layer '" + l.name + "'";
     const bool rx = (l.repeat & tilemap::REPEAT_X) != 0;
     const bool ry = (l.repeat & tilemap::REPEAT_Y) != 0;
@@ -97,10 +97,10 @@ bool layer_covers(const tilemap::VisualMapSrc& map, const VisualLayerSrc& l, Spa
     const int64_t h = image ? l.image_h : int64_t{map.height} * map.tile_size;
     std::string gaps;
     if (!rx)
-        describe(gaps, "x", shortfall(cx, l.parallax_x.raw, l.offset_x.raw, w, VIEW_LIMIT.w), "left",
+        describe(gaps, "x", shortfall(cx, l.parallax_x.raw, l.offset_x.raw, w, limit.w), "left",
                  "right");
     if (!ry && l.cover_y)
-        describe(gaps, "y", shortfall(cy, l.parallax_y.raw, l.offset_y.raw, h, VIEW_LIMIT.h), "top",
+        describe(gaps, "y", shortfall(cy, l.parallax_y.raw, l.offset_y.raw, h, limit.h), "top",
                  "bottom");
     if (gaps.empty()) return true;
     error = who + " does not cover the view: " + gaps;
@@ -110,14 +110,19 @@ bool layer_covers(const tilemap::VisualMapSrc& map, const VisualLayerSrc& l, Spa
 } // namespace
 
 bool check_layer_cover(const tilemap::VisualMapSrc& map, const tilemap::ObjectMapSrc& objects,
-                       std::string& error) {
+                       std::string& error, PixelSize zone, PixelSize limit) {
+    if (zone.w == 0 || zone.h == 0) {
+        error = "map '" + map.name + "': viewport zone has a zero side";
+        return false;
+    }
+    limit = {std::max(zone.w, limit.w), std::max(zone.h, limit.h)};
     Span bx, by;
     if (!level_bounds(map, objects, bx, by, error)) return false;
-    const Vec2 half = view_zone_half();
+    const Vec2 half = view_zone_half(zone);
     const Span cx = centers(bx, half.x);
     const Span cy = centers(by, half.y);
     for (const VisualLayerSrc& l : map.layers)
-        if (!layer_covers(map, l, cx, cy, error)) return false;
+        if (!layer_covers(map, l, cx, cy, error, limit)) return false;
     return true;
 }
 

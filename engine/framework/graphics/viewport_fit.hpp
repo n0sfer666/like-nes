@@ -44,6 +44,6 @@ struct ViewportFit {
 Vec2 view_zone_half(PixelSize zone = VIEW_ZONE);
 
 // Нулевая сторона зоны — отказ: `scale == 0`, считать по такому виду нечего.
-ViewportFit viewport_fit(PixelSize screen, PixelSize zone = VIEW_ZONE);
+ViewportFit viewport_fit(PixelSize screen, PixelSize zone = VIEW_ZONE, PixelSize limit = VIEW_LIMIT);
 
 } // namespace framework::graphics

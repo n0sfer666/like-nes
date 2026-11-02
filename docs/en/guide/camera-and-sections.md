@@ -92,6 +92,10 @@ ends the camera returns to the players at `max(|speed|, gap / 8)` per tick, so i
 drags. A player that the leash of an `x` autoscroll pushes into a wall gets `Body::crushed`; what
 that means — damage, a respawn — is the game's decision.
 
+The generic helpers accept dimensions: `viewport_fit(screen, zone, limit)` uses the same zone and
+limit as `check_layer_cover(map, objects, error, zone, limit)` at bake time. Their defaults remain
+384×216 and 576×312. Both clamp a limit smaller than the zone to the zone; a zero zone is refused.
+
 ## Sections
 
 A `section` rectangle sets the mode of the level along `x`: the first section with `x0 ≤ x < x1`

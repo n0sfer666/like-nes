@@ -3,6 +3,7 @@
 
 #include "object_bake.hpp"
 #include "visual_bake.hpp"
+#include "viewport_fit.hpp"
 
 // Покрытие слоёв на бейке (спека #24, В7). Политика вьюпорта показывает мир за игровой зоной до
 // предела `VIEW_LIMIT`, и дыру за краем слоя увидит только владелец широкого экрана — поэтому она
@@ -20,6 +21,6 @@
 namespace framework::graphics {
 
 bool check_layer_cover(const tilemap::VisualMapSrc& map, const tilemap::ObjectMapSrc& objects,
-                       std::string& error);
+                       std::string& error, PixelSize zone = VIEW_ZONE, PixelSize limit = VIEW_LIMIT);
 
 } // namespace framework::graphics

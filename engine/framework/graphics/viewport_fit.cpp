@@ -32,7 +32,7 @@ Vec2 view_zone_half(PixelSize zone) {
             fix32::from_raw(fix32::sat(int64_t{zone.h} * fix32::ONE / 2))};
 }
 
-ViewportFit viewport_fit(PixelSize screen, PixelSize zone) {
+ViewportFit viewport_fit(PixelSize screen, PixelSize zone, PixelSize limit) {
     ViewportFit f;
     if (zone.w == 0 || zone.h == 0) return f;
     f.scale = std::max(1u, std::min(screen.w / zone.w, screen.h / zone.h));
@@ -40,8 +40,8 @@ ViewportFit viewport_fit(PixelSize screen, PixelSize zone) {
     f.view.screen_half = {fix32::from_int(static_cast<int32_t>(screen.w)) / fix32::from_int(2),
                           fix32::from_int(static_cast<int32_t>(screen.h)) / fix32::from_int(2)};
     f.view.zoom = fix32::from_int(static_cast<int32_t>(f.scale));
-    f.visible = {visible_side(screen.w, f.scale, zone.w, VIEW_LIMIT.w),
-                 visible_side(screen.h, f.scale, zone.h, VIEW_LIMIT.h)};
+    f.visible = {visible_side(screen.w, f.scale, zone.w, limit.w),
+                 visible_side(screen.h, f.scale, zone.h, limit.h)};
     f.shown = centered(screen, f.visible.w * k, f.visible.h * k);
     f.zone = centered(screen, zone.w * k, zone.h * k);
     f.cropped = screen.w < zone.w || screen.h < zone.h;

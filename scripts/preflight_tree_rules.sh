@@ -14,6 +14,8 @@ cd "$ROOT" || exit 1
 # shellcheck source=scripts/preflight_stage_lib.sh
 . "$ROOT/scripts/preflight_stage_lib.sh"
 
+stage "SDK без жанра — самопроверка" python3 scripts/check_sdk_genre.py --selftest
+stage "SDK без жанра — публичные заголовки" python3 scripts/check_sdk_genre.py
 stage "Линтер workflow — самопроверка правил" python3 scripts/ci_lint.py --selftest
 stage "Линтер workflow — .github/workflows" python3 scripts/ci_lint.py
 

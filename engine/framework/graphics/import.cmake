@@ -5,7 +5,7 @@ target_link_libraries(framework_graphics_import PUBLIC framework_graphics framew
 
 foreach(t framework_graphics_clip_bake_test framework_graphics_clip_import_test
     framework_graphics_clip_import_refusal_test framework_graphics_clip_read_test
-    framework_graphics_layer_cover_test framework_graphics_font_test framework_graphics_font_import_test
+    framework_graphics_layer_cover_test framework_graphics_zone_test framework_graphics_font_test framework_graphics_font_import_test
     framework_graphics_text_layout_test)
   add_executable(${t} ${t}.cpp)
   target_link_libraries(${t} PRIVATE framework_graphics_import)

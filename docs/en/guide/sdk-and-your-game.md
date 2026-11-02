@@ -25,7 +25,7 @@ cmake --install build-sdk-debug --config Debug --component sdk --prefix ../like-
 ```
 
 On Windows these commands run from the `scripts\win-dev.bat shell` window, where `cl.exe` is
-available. The headers a game may include are listed one by one in `cmake/install_sdk.cmake`. An
+available. The headers a game may include are listed one by one in `cmake/sdk_headers.cmake`. An
 engine header missing from that list is internal, and a game that includes it does not compile
 against the prefix. That is on purpose.
 

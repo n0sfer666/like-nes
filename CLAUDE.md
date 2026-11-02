@@ -97,6 +97,7 @@ SDK не даёт игре жанровых функций: «цикл драк�
 | скрипт чистой машины §15/§16 | `bash scripts/clean_check_selftest.sh` · `powershell -File scripts/clean_check_selftest.ps1` · `make owner-import ARGS=<отчёт>` | preflight · CI × 3 ОС · ps1 — CI Windows · руками | [clean-check](.context/gates/clean-check.md) |
 | константы FNV в примитивах | `python3 scripts/check_hash_seam.py` | коммит | [hash-seam](.context/gates/hash-seam.md) |
 | симуляция драки без float | `python3 scripts/check_sim_float.py` | коммит | [sim-float](.context/gates/sim-float.md) |
+| жанр отсутствует в SDK | `python3 scripts/check_sdk_genre.py` · `--selftest` | коммит | [sdk-genre](.context/gates/sdk-genre.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |
 | бенч ресима на бюджете зонтика | `./build/rumble_resim_bench [--against <файл>]` | CI × 3 ОС | [resim-bench](.context/gates/resim-bench.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
