@@ -302,7 +302,8 @@
   сохраняются, возвращается `Conflict`; игра решает явно, автоматического победителя нет.
 - Фон: iOS — `applicationDidEnterBackground` пишет синхронно под `beginBackgroundTask`. Android —
   `APP_CMD_PAUSE` ставит паузу; запись — на `APP_CMD_SAVE_STATE` (`android_native_app_glue` ждёт
-  его обработки, в отличие от `PAUSE`), повтор на `APP_CMD_STOP`.
+  его обработки, в отличие от `PAUSE`), повтор на `APP_CMD_STOP`. Уточнение API вертикали:
+  `mobile::Game::suspend` только ставит паузу, синхронная запись — отдельный `save`.
 - fuzz-цель `save` в `fuzz_readers` (битый заголовок, длина больше файла, CRC, версии 0/65535).
 
 ### В5. Строки, UI, сетка ввода
@@ -413,6 +414,7 @@ public:
     virtual void cancel() = 0;
     virtual void frame(double dt) = 0;
     virtual void suspend() = 0;
+    virtual void save() = 0;
     virtual void resume() = 0;
     virtual void shutdown() = 0;
 };

@@ -46,6 +46,7 @@ public:
     void frame(double dt) override;
     bool wants_frames() const override;
     void suspend() override;
+    void save() override;
     void resume() override {}
     void shutdown() override;
     std::string touch_state() const override;

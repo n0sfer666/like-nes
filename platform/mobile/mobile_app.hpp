@@ -41,9 +41,11 @@ public:
     // без таймаута, iOS ставит CADisplayLink на паузу) до следующего attach_surface: бенчу кадр не
     // нужен вовсе, а игре без поверхности или с потерянным устройством рисовать некуда.
     virtual bool wants_frames() const = 0;
-    // Фоновый процесс система убивает без dealloc и onDestroy: всё, что должно пережить его,
-    // сохраняется здесь.
+    // Только пауза: Android PAUSE не гарантирует завершение IO до остановки процесса.
     virtual void suspend() = 0;
+    // Синхронная запись persistent data: iOS под background task; Android SAVE_STATE/STOP.
+    // Мир матча сюда не входит: после убитого процесса игра начинает с меню.
+    virtual void save() = 0;
     virtual void resume() = 0;
     virtual void shutdown() = 0;
     // Хвост строки `[touch]` пробы iOS-гейта (кто держит стик и огонь): маршрутизацию касаний

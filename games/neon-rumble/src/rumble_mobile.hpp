@@ -38,6 +38,7 @@ public:
     void frame(double dt) override;
     bool wants_frames() const override;
     void suspend() override;
+    void save() override {} // Persistent settings/progress приходят с пилотом #29; мир матча не сейвим.
     void resume() override { lag_ = 0; }
     void shutdown() override;
 

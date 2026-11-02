@@ -76,6 +76,8 @@ apk_lacks() {
 }
 
 mobile_ios() {
+    bash "$ROOT/scripts/ios_persistence_selftest.sh" "$PREFIX/include/like-nes/third_party" || {
+        sdk_bad 'ios: background save lifecycle'; return 1; }
     local pfx="$OUT/prefix-ios-sim" dir="$OUT/game-ios-sim" app min n lic
     local flags=(-DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64)
     mobile_sdk ios-sim build-sdk-ios-sim "$pfx" "${flags[@]}" || return 1

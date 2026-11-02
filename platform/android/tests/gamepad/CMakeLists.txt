@@ -19,3 +19,12 @@ target_include_directories(android_pad_jvm_test PRIVATE ${ROOT}/engine/platform)
 target_compile_options(android_pad_jvm_test PRIVATE -idirafter ${NDK_HEADERS} -Wall -Wextra -Werror -pedantic)
 target_link_libraries(android_pad_jvm_test PRIVATE like-nes::engine ${JNI_JVM_LIBRARY})
 like_nes_add_game(android_pad_jvm_test)
+
+add_executable(android_lifecycle_test ${ROOT}/platform/android/android_lifecycle.cpp
+  ${ROOT}/platform/android/android_lifecycle_test.cpp)
+target_include_directories(android_lifecycle_test PRIVATE ${ROOT}/platform/mobile ${ROOT}/platform/android
+  ${JNI_HEADERS} ${JNI_HEADERS}/${JNI_OS})
+target_include_directories(android_lifecycle_test SYSTEM PRIVATE ${NDK_GLUE})
+target_compile_options(android_lifecycle_test PRIVATE -idirafter ${NDK_HEADERS} -Wall -Wextra -Werror -pedantic)
+target_link_libraries(android_lifecycle_test PRIVATE like-nes::engine)
+like_nes_add_game(android_lifecycle_test)

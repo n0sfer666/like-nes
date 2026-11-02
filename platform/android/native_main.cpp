@@ -11,6 +11,7 @@
 #include "android_host.hpp"
 #include "android_gamepad.hpp"
 #include "android_haptic.hpp"
+#include "android_lifecycle.hpp"
 #include "android_touch.hpp"
 #include "android_window.hpp"
 #include "apk_assets.hpp"
@@ -19,6 +20,7 @@
 #include "mobile_app.hpp"
 #include "mobile_probe.hpp"
 #include "platform_env.hpp"
+#include "platform_save.hpp"
 #include "stdout_logcat.hpp"
 
 namespace {
@@ -149,17 +151,14 @@ void on_cmd(android_app* app, int32_t cmd) {
     if (cmd == APP_CMD_INIT_WINDOW && app->window) attach(a, app);
     else if (cmd == APP_CMD_TERM_WINDOW) detach(a);
     else if (cmd == APP_CMD_WINDOW_RESIZED || cmd == APP_CMD_CONFIG_CHANGED) resize(a, app);
-    else if (cmd == APP_CMD_LOST_FOCUS && a.game) a.game->cancel();
-    else if (cmd == APP_CMD_PAUSE && a.game) { a.game->cancel(); a.game->suspend(); }
-    else if (cmd == APP_CMD_RESUME && a.game) a.game->resume();
+    else android_game_lifecycle(a.game.get(), cmd);
 }
 
 } // namespace
 
 void android_main(android_app* app) {
     game::stdout_to_logcat();
-    // exe_dir у приложения — app_process системы, а HOME не задан: пути к ассетам и сейву игра
-    // получает теми же ручками окружения, что и десктоп, только указывают они в песочницу.
+    // exe_dir — системный app_process: ассеты и сейвы задаёт оболочка в песочнице приложения.
     const std::string data = app->activity->internalDataPath;
     const std::string assets = data + "/assets";
     if (!game::unpack_apk_assets(app->activity->assetManager, assets))
@@ -167,6 +166,7 @@ void android_main(android_app* app) {
     mobile::set_asset_dir(assets);
     platform::env_put("LIKENES_ASSETS", assets.c_str());
     platform::env_put("LIKENES_SAVE_DIR", data.c_str());
+    platform::set_save_dir(data);
     const AndroidWindowSnapshot launch = android_window_read(app->activity);
     mobile::set_demo(launch.demo);
     mobile::set_args(launch.args);

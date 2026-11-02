@@ -20,11 +20,13 @@ if ! { cmake -S "$ROOT/platform/android/tests/gamepad" -B "$WORK" -G Ninja -DCMA
   -Dlike-nes_DIR="$PREFIX/lib/cmake/like-nes" -DJNI_HEADERS="$JDK/include" -DJNI_OS="$JNI_OS" \
   -DJNI_JVM_LIBRARY="$JVM_LIB" -DANDROID_PAD_SOURCE="$ROOT/platform/android/android_gamepad.cpp" \
   -DANDROID_PAD_DEVICE_SOURCE="$ROOT/platform/android/android_pad_device.cpp" \
-  -DNDK_HEADERS="$NDK/toolchains/llvm/prebuilt/$NDK_HOST/sysroot/usr/include" && cmake --build "$WORK"; } \
+  -DNDK_HEADERS="$NDK/toolchains/llvm/prebuilt/$NDK_HOST/sysroot/usr/include" \
+  -DNDK_GLUE="$NDK/sources/android/native_app_glue" && cmake --build "$WORK"; } \
   > "$WORK/build.log" 2>&1; then
   tail -25 "$WORK/build.log"; exit 1
 fi
 "$WORK/android_pad_test"
+"$WORK/android_lifecycle_test"
 mkdir "$WORK/classes"
 "$JDK/bin/javac" -encoding UTF-8 -d "$WORK/classes" \
   "$ROOT/platform/android/tests/jvm/android/view/InputDevice.java" \

@@ -2,7 +2,7 @@
 # выбирает ЭТОТ файл — потому условной компиляции по ОС нет ни в одном .cpp платформы, и
 # инвариант «#ifdef не расползается» проверяется грепом по всему дереву, а не обещанием.
 add_library(platform_core STATIC
-  platform_fs.cpp platform_atomic.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp)
+  platform_fs.cpp platform_atomic.cpp platform_args.cpp platform_watch_poll.cpp platform_redact.cpp platform_save.cpp)
 target_include_directories(platform_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 # Haptic Phone — отдельный шов, не требующий native gamepad.
@@ -26,6 +26,9 @@ set_target_properties(platform_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 # трёх ОС, потому и объявлен вне ветки WIN32.
 add_executable(platform_env_test platform_env_test.cpp)
 target_link_libraries(platform_env_test PRIVATE platform_core)
+
+add_executable(platform_save_test platform_save_test.cpp)
+target_link_libraries(platform_save_test PRIVATE platform_core)
 
 add_executable(platform_atomic_test platform_atomic_test.cpp platform_atomic.cpp)
 target_include_directories(platform_atomic_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

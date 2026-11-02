@@ -33,6 +33,7 @@ public:
     void frame(double) override {}
     bool wants_frames() const override { return false; }
     void suspend() override {}
+    void save() override {}
     void resume() override {}
     void shutdown() override {
         if (worker_.joinable()) worker_.join();

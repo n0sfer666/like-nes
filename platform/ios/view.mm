@@ -5,6 +5,7 @@
 #include "gpu.hpp"
 #include "haptic.hpp"
 #include "mobile_app.hpp"
+#include "persistence.hpp"
 
 #import "metal_view.h"
 #import "touch_probe.h"
@@ -51,6 +52,7 @@
     if (![self makeSurface] || !gpu_.init(surface_)) { NSLog(@"[game] gpu init failed"); [self releaseGpu]; return; }
     game_ = mobile::make_game();
     haptic::init();
+    ios_prepare_saves();
     if (!game_->init(gpu_) || !game_->attach_surface(surface_, layout_.width, layout_.height, layout_.safe)) {
         NSLog(@"[game] game init failed");
         [self teardown];
@@ -89,11 +91,9 @@
 // Фоновый процесс система убивает без dealloc: сохраняться надо здесь, а не при выходе. Поверхность
 // снимается тем же путём, что и окно Android на APP_CMD_TERM_WINDOW: игра переживает её потерю.
 - (void)pause {
-    if (!started_ || !surface_) return;
+    if (!started_) return;
     link_.paused = YES;
-    haptic::suspend();
-    game_->cancel();
-    game_->suspend();
+    ios_suspend_and_save(*game_);
     game_->detach_surface();
     [self releaseSurface];
 }

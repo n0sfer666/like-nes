@@ -423,3 +423,8 @@ Mobile-пакеты проверяют линковку этого же публ
 
 В4г #26: тот же fixture вызывает публичные save::store/load с LocalBackend и сверяет body;
 save_slots.hpp устанавливается SDK, private migration/counter helpers — нет.
+
+В4д1 #26: iOS shell persistence.mm исполняется на host Foundation с узкой UIKit-моделью
+grant/refusal/expiry/repeat. Android gamepad host gate также исполняет android_lifecycle.cpp
+с настоящими enum пиннутого native_app_glue: PAUSE без IO, SAVE_STATE/STOP synchronous save,
+repeat/RESUME/no game. Это модели системных событий, не live background/kill тесты телефонов.

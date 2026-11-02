@@ -153,9 +153,10 @@ void MobileGame::draw() {
 
 std::string MobileGame::touch_state() const { return touch_.state(); }
 
-// Уход в фон: система убивает фоновый процесс без dealloc и onDestroy, и статы достижений,
-// копящиеся до автосейва, пропали бы. Сохраняет, ничего не освобождая.
-void MobileGame::suspend() {
+void MobileGame::suspend() { cancel(); }
+
+// Оболочка вызывает синхронно в системном окне для сохранения, отдельно от PAUSE.
+void MobileGame::save() {
     if (!inited_) return;
     ach_->pump();
     ach_->save();
@@ -163,7 +164,7 @@ void MobileGame::suspend() {
 
 void MobileGame::shutdown() {
     if (!inited_) return;   // идемпотентно: без парного init нечего освобождать (нет double-free)
-    suspend();
+    save();
     inited_ = false;
     release_targets();
     surface_ = nullptr;
