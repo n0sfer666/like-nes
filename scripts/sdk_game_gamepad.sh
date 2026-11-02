@@ -23,6 +23,7 @@ CMAKE
 #include "source.hpp"
 #include "haptic.hpp"
 #include "save.hpp"
+#include "save_format.hpp"
 #include "platform_fs.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
@@ -35,9 +36,12 @@ int main() {
     haptic::pulse({haptic::Kind::Phone}, 0, 0);
     haptic::suspend(); haptic::resume(); haptic::shutdown();
     const uint8_t bytes[]{1, 0, 255};
-    if (!save::write_atomic("sdk-atomic.bin", bytes)) return 1;
+    std::vector<uint8_t> container;
+    if (!save::encode_record(1, 1, bytes, container) || !save::write_atomic("sdk-atomic.bin", container)) return 1;
     std::vector<uint8_t> saved;
-    const bool exact = platform::read_bytes("sdk-atomic.bin", saved) && saved == std::vector<uint8_t>{1, 0, 255};
+    save::RecordView record;
+    const bool exact = platform::read_bytes("sdk-atomic.bin", saved) && saved == container &&
+        save::decode_record(saved, record) == save::RecordResult::Ok && record.version == 1 && record.writes == 1;
     platform::remove_file("sdk-atomic.bin");
     if (!exact) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;

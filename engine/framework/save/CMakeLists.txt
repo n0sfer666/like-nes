@@ -1,7 +1,10 @@
-add_library(framework_save STATIC save_atomic.cpp)
+add_library(framework_save STATIC save_atomic.cpp save_format.cpp)
 target_include_directories(framework_save PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_save PRIVATE platform_core)
 
 add_executable(save_atomic_test save_atomic_test.cpp)
 target_link_libraries(save_atomic_test PRIVATE framework_save)
 target_include_directories(save_atomic_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(save_format_test save_format_test.cpp)
+target_link_libraries(save_format_test PRIVATE framework_save)

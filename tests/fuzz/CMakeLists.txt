@@ -13,7 +13,8 @@ add_executable(fuzz_readers
   fuzz_targets_framework.cpp
   fuzz_targets_json.cpp
   fuzz_targets_level.cpp
-  fuzz_targets_plugin.cpp)
+  fuzz_targets_plugin.cpp
+  fuzz_targets_save.cpp)
 
 target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_SOURCE_DIR}/games/neon-rumble/tests)
@@ -29,6 +30,7 @@ target_include_directories(fuzz_readers PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 # только после возврата читателя, а не вернувшийся читатель прерывается вторым потоком.
 # `find_package(Threads REQUIRED)` уже сделан в корневом CMakeLists.
 set(FUZZ_LIBS
+  framework_save
   framework_json
   asset_core
   ach_core

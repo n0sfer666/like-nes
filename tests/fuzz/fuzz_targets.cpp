@@ -65,6 +65,7 @@ const std::vector<Target>& table() {
         append(v, json_targets);
         append(v, level_targets);
         append(v, content_targets);
+        append(v, save_targets);
         return v;
     }();
     return all;
