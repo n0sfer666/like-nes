@@ -4785,9 +4785,11 @@ B1 of spec #26 moved the mobile shells into the SDK: Neon Rumble is a `mobile::G
 an installed mobile prefix, not against the tree, and on Android every trip to the background takes
 the surface away while the game lives on (`APP_CMD_TERM_WINDOW` detaches, only `APP_CMD_DESTROY`
 shuts down). The iOS half of that runs in the simulator (`scripts/ios_sim_rumble.sh`, step 2a of
-section R). On Android CI only builds the APK, for x86_64, with nothing to run it on; that the game
-starts on a phone, that Home and back give it its surface again, and that the ARM phone plays the
-fight the desktop plays are what this gate asks.
+section R). Android also has a dedicated emulator gate (section R, step 5b): two fingers after
+each landscape rotation, cutout geometry and Vulkan/SwiftShader. Its Linux/KVM job is configured;
+the new live run has not yet been confirmed. That the game starts on a physical phone, that Home
+and back give it its surface again, and that the ARM phone plays the fight the desktop plays are
+what this gate asks.
 
 `scripts/android_rumble.sh` does the scripted half: it builds the `android-arm64-v8a` prefix, the
 game against it, installs the APK, presses Home after 5 s and brings the game back with the

@@ -139,5 +139,10 @@ stage "Вердикт гейта iOS-симулятора — самопрове
     python3 scripts/ios_touch_verdict.py --selftest
 stage "Общий мобильный вердикт — две landscape-ориентации и маршрутизация" \
     python3 scripts/touch_verdict.py --selftest
+stage "Android protocol B — координаты и отпускание слотов" python3 scripts/android_touch_protocol_selftest.py
+stage "Android-гейт — вердикты транспорта" python3 scripts/android_gate_run_selftest.py
+case "$(uname -s)" in
+    Darwin|Linux) stage "Android AVD — владение, блокировка и завершение" python3 scripts/android_gate_avd_selftest.py ;;
+esac
 
 stages_verdict "правила дерева"

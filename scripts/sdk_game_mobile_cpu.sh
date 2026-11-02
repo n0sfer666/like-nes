@@ -13,5 +13,7 @@ mobile_cpu() {
     [ ! -f "$desk.exe" ] || desk="$desk.exe"
     python3 "$ROOT/scripts/mobile_cpu_verdict.py" "$(native "$exe")" "$(native "$desk")" "$(native "$OUT/game-Release")" || {
         sdk_bad 'mobile CPU input or demo parity'; return 1; }
+    python3 "$ROOT/scripts/android_touch_cpu.py" "$(native "$exe")" "$(native "$OUT/game-Release")" || {
+        sdk_bad 'Android raw coordinate gestures through the real MobileRumble source'; return 1; }
     sdk_ok 'MobileRumble CPU: touch, movement, cancel, safe-only rotation, suspend; demo equals desktop'
 }

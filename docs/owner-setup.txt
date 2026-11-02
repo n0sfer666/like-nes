@@ -1870,13 +1870,15 @@ owner_check.sh гоняет это отдельным этапом сразу п
     [ios-sim] ok: simulator like-nes-gate-iOS-27-0 <UDID> on com.apple.CoreSimulator.SimRuntime.iOS-27-0
     [ios-sim] ok: UI test passed (view: platform/ios/view.mm)
     [ios-sim] ok: no runtime warnings, minimum iOS 17.0 in binary and Info.plist
-    [ios-touch] ok: stick=<id> a=<id> held together; 42 events; int-truncated ids distinct
-    [ios-sim] ok: 2 screenshots rendered, evidence in <каталог>
+    [touch] PASS: both landscapes; <N> events; 2 safe epochs; int-truncated ids distinct
+    [ios-sim] ok: 4 screenshots rendered, evidence in <каталог>
     [ios-sim] PASS
 
   Число событий плавает на единицы: синтезатор Xcode вставляет лишний
-  короткий тап. В <каталог> — лог xcodebuild, touch.log и два скриншота
-  (attach/*.png): игра до жеста и после него, кнопка огня в покое. Каталоги
+  короткий тап. Число safe epochs может вырасти при изменении системных insets:
+  каждая эпоха с касаниями обязана иметь завершённый жест. В <каталог> — лог
+  xcodebuild, touch.log и четыре скриншота (attach/*.png): до/после жеста в
+  обеих landscape-ориентациях. Каталоги
   ios-sim-gate.* в $TMPDIR хранятся за пять последних прогонов, этот включая:
   старшие гейт удаляет сам в начале прогона. «the UI test left runtime
   warnings» — тест зелёный, но iOS предупредил о дефекте игры (так было с
@@ -2010,6 +2012,37 @@ owner_check.sh гоняет это отдельным этапом сразу п
     3. Погасить экран кнопкой питания на 5 с и разбудить → снова пара
        detached / attached с равными tick и world, номер attach вырос.
 
+
+  5б) Автогейт тача Android (#26 В2д), отдельный от телефона шага 5а:
+
+    bash scripts/android_emu_gate.sh
+
+  Нужны Android SDK Platform Tools, Emulator, Command-line Tools (avdmanager),
+  установленный rootable API29+ образ google_apis/default под архитектуру хоста,
+  pinned NDK и build-tools как для шага 5а. Linux x86_64 или Mac arm64.
+  Без инструмента — явный SKIP; для обязательного прогона, как в CI Linux/KVM:
+
+    bash scripts/android_emu_gate.sh --required --image 'system-images;android-35;google_apis;x86_64'
+
+  На Mac нужен образ arm64-v8a вместо x86_64. Гейт создаёт только свой AVD,
+  телефоны и пользовательские AVD не выбирает. Сначала boot, затем сборка
+  Neon Rumble против свежих SDK-префиксов. Ожидаемо:
+
+    [android-emu] own AVD, <образ>, Vulkan/SwiftShader; evidence <каталог>
+    [android-emu] built <каталог>/game/neon_rumble.apk (ABI <ABI>, minimum API 29)
+    [android-emu] touch PASS: both landscapes; <N> events; 2 safe epochs; int-truncated ids distinct; Vulkan/SwiftShader; 2 nonblack frames
+    [android-emu] PASS: evidence <каталог>
+
+  В каталоге — build/emulator/touch logs, getevent, жесты и два PNG. Два пальца
+  вводятся через protocol B в обеих landscape-ориентациях; показания акселерометра
+  эмулируются отдельно от user_rotation (sensorLandscape слушает датчик), фактический
+  Display rotation судится из [safe]. Cutout меняет сторону,
+  source knob действительно движется, отпускание a сохраняет стик. GLES,
+  перезапуск процесса, уход с foreground, чёрный кадр или незакрытые касания — FAIL.
+  --avd-cache <новый-каталог> сохраняет task-owned AVD/snapshot для следующих
+  прогонов; чужой непустой каталог отвергается. Локально на машине агента нет
+  avdmanager; живой прогон и Linux CI ещё не подтверждены. Это не замена
+  физическому телефону и оценке удобства кнопок.
 
   6) Бенч ресима на самом слабом телефоне (спека #25, В9г; гейт §34
   docs/owner-verification.md). НЕ прогнан агентом ни на одном телефоне.

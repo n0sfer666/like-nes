@@ -46,4 +46,6 @@ GPU PASS в локальном Linux-контейнере на Vulkan/llvmpipe L
 overlay обязан менять сторону. Шесть сломанных реализаций правил отвергнуты самопроверкой.
 Совпадение id32 информационное; общий удерживаемый native id — ошибка. iOS-обёртка вызывает
 тот же модуль с раскладкой шутера; XCTest читает её оригинал как ресурс и снимает4 кадра.
-Полноценный Android-сценарий двух пальцев — следующий шаг В2д.
+Android-сценарий двух пальцев реализован в [android-emu](android-emu.md): task-owned AVD,
+protocol B, оба landscape, Vulkan/SwiftShader, PID/foreground/кадры, CI Linux/KVM. Его pure
+контроли и raw→настоящий MobileRumble CPU PASS; живой запуск требует avdmanager и рабочего AVD.

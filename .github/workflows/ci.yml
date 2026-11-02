@@ -373,6 +373,12 @@ jobs:
         shell: bash
         run: python3 scripts/touch_verdict.py --selftest
 
+      - name: Android touch protocol and gate verdict selftests (no emulator needed)
+        shell: bash
+        run: |
+          python3 scripts/android_touch_protocol_selftest.py
+          python3 scripts/android_gate_run_selftest.py
+
       - name: Third-party assets of a game stay within 30 MiB
         if: runner.os == 'Linux'
         shell: bash
@@ -3231,3 +3237,88 @@ jobs:
         env:
           SDK_GAME_ANDROID: ${{ runner.os == 'Linux' && 'required' || 'skip' }}
         run: bash scripts/check_sdk_game.sh
+
+  android-emu:
+    name: Android emulator touch (Linux, KVM, Vulkan/SwiftShader)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Linux build dependencies and KVM access
+        id: sdk
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xorg-dev libclang-dev
+          test -c /dev/kvm
+          sudo chown "$USER" /dev/kvm
+          test -r /dev/kvm && test -w /dev/kvm
+          echo "root=$ANDROID_HOME" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Ninja
+        uses: seanmiddleditch/gha-setup-ninja@96bed6edff20d1dd61ecff9b75cc519d516e6401 # v5
+
+      - name: Cache Android system image
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ steps.sdk.outputs.root }}/system-images/android-35/google_apis/x86_64
+          key: android-image-35-google-apis-x86_64-v1
+
+      - name: Android image, pinned NDK and Rust target (Linux)
+        id: tools
+        shell: bash
+        run: |
+          pin=$(sed -n 's/^NDK_PIN=//p' platform/android/android_ndk.sh)
+          [ -n "$pin" ] || { echo 'no NDK_PIN' >&2; exit 1; }
+          mgr="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (yes || true) | "$mgr" --install "ndk;$pin" "build-tools;35.0.0" "platforms;android-35" \
+            'emulator' 'system-images;android-35;google_apis;x86_64' \
+            > "$RUNNER_TEMP/sdkmanager-touch.log" 2>&1 || { tail -40 "$RUNNER_TEMP/sdkmanager-touch.log"; exit 1; }
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$pin" >> "$GITHUB_ENV"
+          rustup target add x86_64-linux-android
+          echo "rust=$(rustc --version | cut -d ' ' -f 2)" >> "$GITHUB_OUTPUT"
+          echo "emulator=$(sed -n 's/^Pkg.Revision *= *//p' "$ANDROID_HOME/emulator/source.properties")" >> "$GITHUB_OUTPUT"
+          echo "image=$(sed -n 's/^Pkg.Revision *= *//p' "$ANDROID_HOME/system-images/android-35/google_apis/x86_64/source.properties")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache cargo and Android wgpu-native target
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            build-sdk-android-x86_64/_deps/wgpu_native_src-src/target
+          key: android-wgpu-01941-${{ steps.tools.outputs.rust }}-${{ hashFiles('platform/mobile/wgpu_native.cmake', 'platform/mobile/wgpu_bindgen.patch') }}
+
+      - name: Cache task-owned AVD and its named snapshot
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+        with:
+          path: ${{ runner.temp }}/like-nes-touch-avd
+          key: android-touch-avd-35-${{ steps.tools.outputs.emulator }}-${{ steps.tools.outputs.image }}-${{ hashFiles('scripts/android_gate_avd.py') }}
+
+      - name: Owned AVD guard selftest (Linux)
+        shell: bash
+        run: python3 scripts/android_gate_avd_selftest.py
+
+      - name: Two fingers and cutout after each landscape rotation (Linux)
+        shell: bash
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          bash scripts/android_emu_gate.sh --required \
+            --image 'system-images;android-35;google_apis;x86_64' --avd-cache "$RUNNER_TEMP/like-nes-touch-avd" \
+            | tee "$RUNNER_TEMP/android-touch-gate.log"
+          grep -q '^\[android-emu\] PASS:' "$RUNNER_TEMP/android-touch-gate.log"
+
+      - name: Upload Android touch evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: android-touch-evidence
+          path: |
+            ${{ runner.temp }}/like-nes-android-touch.*/*.log
+            ${{ runner.temp }}/like-nes-android-touch.*/*.png
+            ${{ runner.temp }}/like-nes-android-touch.*/*.txt
+            ${{ runner.temp }}/like-nes-android-touch.*/gesture-*.sh
+            ${{ runner.temp }}/sdkmanager-touch.log
+            ${{ runner.temp }}/android-touch-gate.log

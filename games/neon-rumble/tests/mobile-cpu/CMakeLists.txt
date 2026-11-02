@@ -6,7 +6,7 @@ include(${GAME_ROOT}/sources.cmake)
 list(TRANSFORM RUMBLE_SOURCES PREPEND "${GAME_ROOT}/")
 list(TRANSFORM RUMBLE_MOBILE_SOURCES PREPEND "${GAME_ROOT}/")
 add_subdirectory(${GAME_ROOT}/sim ${CMAKE_CURRENT_BINARY_DIR}/sim)
-add_executable(rumble_mobile_cpu main.cpp ${RUMBLE_SOURCES} ${RUMBLE_MOBILE_SOURCES})
+add_executable(rumble_mobile_cpu main.cpp probe.cpp ${RUMBLE_SOURCES} ${RUMBLE_MOBILE_SOURCES})
 # Только переносимый интерфейс mobile::Game: мок заменяет оболочку, а весь игровой код настоящий.
 # Desktop SDK не несёт mobile shell/headers, движок и графика при этом берутся из его префикса.
 target_include_directories(rumble_mobile_cpu PRIVATE ${GAME_ROOT}/../../platform/mobile)

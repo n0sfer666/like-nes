@@ -227,6 +227,10 @@
   повтор `[safe]` (вырез сменил сторону) и двух пальцев → `screencap`, кадр не чёрный.
 - Координаты `sendevent` — в натуральной ориентации панели (портрет); скрипт переводит зоны раскладки
   в них по `user_rotation`, вердикт судит зоны.
+  Уточнение реализации 2026-11-02: sensorLandscape предпочитает показания датчика блокировке
+  user_rotation ([AOSP](https://android.googlesource.com/platform/frameworks/base/+/48c42107e624/services/core/java/com/android/server/wm/DisplayRotation.java)).
+  Гейт дополнительно задаёт противоположные полюса accelerometer через emulator console и берёт
+  фактический Display rotation из `[safe]`; два жеста обязаны пройти при реальных1/3.
 - Вердикт — общий модуль `scripts/touch_verdict.py` (`ios_touch_verdict.py` — тонкая обёртка), строки
   с нонсом прогона.
 - Preflight + CI-джоб `android-emu` (ubuntu, KVM, x86_64-образ): кэш образа и snapshot AVD, кэш

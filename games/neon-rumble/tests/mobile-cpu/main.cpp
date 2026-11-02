@@ -26,21 +26,24 @@ std::string mobile::asset_path(const char* name) { return assets + "/" + name; }
 bool mobile::has_arg(const char* flag) { return demo && std::strcmp(flag, "--demo") == 0; }
 void mobile::interactive_thread() {}
 std::string mobile::device_info() { return "CPU test host"; }
+bool mobile_cpu_probe(mobile::Game& game);
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
-    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late>"); return 1; }
+    if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe>"); return 1; }
     assets = argv[1];
     const std::string mode = argv[2];
     demo = mode == "demo";
     if (!demo && mode != "idle" && mode != "move" && mode != "cancel" && mode != "rotate" &&
-        mode != "suspend" && mode != "late") return 1;
+        mode != "suspend" && mode != "late" && mode != "probe") return 1;
     GpuContext gpu;
     auto game = mobile::make_game();
     if (!game->init(gpu)) { std::puts("mobile-cpu: FAIL init"); return 1; }
     const mobile::SafeArea safe{44, 0, 44, 21, 3};
     game->resize(2532, 1170, safe);
-    if (demo) {
+    if (mode == "probe") {
+        check(mobile_cpu_probe(*game), "valid probe input stream");
+    } else if (demo) {
         frames(*game, 480);
     } else {
         if (mode == "late") frames(*game, 60);
