@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "vorbis_fixture.hpp"
+#include "music_ogg_corruption.hpp"
 
 namespace {
 using vorbis_fixture::check;
@@ -88,32 +89,7 @@ void refusals() {
 }
 void read_failure() {
     auto bytes = vorbis_fixture::load("tests/audio/fixtures/stereo-48000.ogg");
-    size_t page = 0;
-    for (uint32_t index = 0; index < 3; ++index) {
-        if (page + 27 > bytes.size()) { check(false, "corruption fixture page header"); return; }
-        const size_t body = page + 27 + bytes[page + 26];
-        if (body > bytes.size()) { check(false, "corruption fixture lacing"); return; }
-        size_t end = body;
-        for (size_t i = page + 27; i < body; ++i) end += bytes[i];
-        if (end > bytes.size()) { check(false, "corruption fixture page body"); return; }
-        if (index != 2) { page = end; continue; }
-        size_t packet_start = body, cursor = body; uint32_t packet = 0; bool changed = false;
-        for (size_t i = page + 27; i < body; ++i) {
-            cursor += bytes[i];
-            if (bytes[i] == 255) continue;
-            if (packet == 2 && packet_start < cursor) { bytes[packet_start] |= 1; changed = true; break; }
-            ++packet; packet_start = cursor;
-        }
-        check(changed, "third audio packet changed after valid initial packets");
-        // Пересчитываем Ogg CRC: контейнер и declared length остаются читаемыми, payload битый.
-        std::fill_n(bytes.data() + page + 22, 4, 0);
-        uint32_t crc = 0;
-        for (size_t i = page; i < end; ++i) {
-            crc ^= uint32_t{bytes[i]} << 24;
-            for (uint32_t bit = 0; bit < 8; ++bit) crc = (crc << 1) ^ ((crc & 0x80000000u) ? 0x04c11db7u : 0u);
-        }
-        for (uint32_t i = 0; i < 4; ++i) bytes[page + 22 + i] = static_cast<uint8_t>(crc >> (i * 8));
-    }
+    check(music_ogg_corruption::apply(bytes), "third audio packet changed with preserved Ogg CRC");
     audio::MusicTrack track; track.encoded = bytes; track.frames = track.loop_end = 4800;
     audio::MusicDecoder decoder; std::string error;
     check(decoder.open(track, error), "corrupted source opens with intact metadata");

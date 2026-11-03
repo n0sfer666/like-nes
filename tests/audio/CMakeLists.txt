@@ -10,6 +10,7 @@ foreach(test audio_vorbis_test audio_vorbis_threads_test)
   target_link_libraries(${test} PRIVATE audio_core platform_core)
   target_compile_definitions(${test} PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
 endforeach()
+
 # Только тест сравнивает с прежним raw C API, строго до запуска потоков.
 target_include_directories(audio_vorbis_test SYSTEM PRIVATE ${stb_SOURCE_DIR})
 
@@ -24,3 +25,12 @@ target_link_libraries(audio_music_intent_test PRIVATE audio_core framework_rollb
 add_executable(audio_music_decoder_test audio_music_decoder_test.cpp)
 target_link_libraries(audio_music_decoder_test PRIVATE audio_core platform_core)
 target_compile_definitions(audio_music_decoder_test PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
+
+foreach(test audio_music_worker_test audio_music_worker_threads_test)
+  add_executable(${test} ${test}.cpp)
+  target_link_libraries(${test} PRIVATE audio_core)
+endforeach()
+
+add_executable(audio_music_worker_vorbis_test audio_music_worker_vorbis_test.cpp)
+target_link_libraries(audio_music_worker_vorbis_test PRIVATE audio_core platform_core)
+target_compile_definitions(audio_music_worker_vorbis_test PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
