@@ -292,6 +292,18 @@ grid cannot edit data; a fully rendered frame must precede input. Character IDs 
 code point, preserving identity when a translated alphabet reorders characters. Use a distinct parent for every grid in a frame; a reused parent is refused even with another
 alphabet key. Draw the grid before its field to display the edited text in the same frame.
 
+Static screen text must come from Strings. Run `python3 scripts/check_ui_text.py --strings path/strings.tsv --screens path/screen.cpp path/pause.cpp` with explicit screen sources.
+The gate refuses unknown/direct visible literals, including aliases, raw strings, concatenation
+and printable character literals. Use literal known keys directly at UI calls, explicit
+`UiListItem{"machine-id", "label.key"}` and `UiGridLabels{"grid.erase", "grid.done"}`.
+Includes, empty buffer seeds and direct printf/fprintf/assert diagnostics are allowed; a nested
+UI call inside a diagnostic keeps its own checks. There are no per-line suppressions. Local macros overriding registry names disable their
+exemptions; Unicode identifiers cannot disguise a registry name. Backslash-LF/CRLF continuations
+are refused throughout screen sources, including raw literals and comments.
+This conservative syntax guard does not follow arbitrary C++ data flow or inspect other units;
+review still checks generated/dynamic text and function/type shadowing of registry names. Empty scans refuse. `--selftest` runs the #26 fixtures;
+pilot #29 adds actual screen sources. Details: `.context/gates/ui-text.md`.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

@@ -326,6 +326,10 @@ jobs:
           python3 scripts/check_sdk_genre.py --selftest
           python3 scripts/check_sdk_genre.py
 
+      - name: UI text literals gate selftest (screens join with pilot 29, all OS)
+        shell: bash
+        run: python3 scripts/check_ui_text.py --selftest
+
       # Шов файлового ввода-вывода (находка 6 того же аудита): .context/conventions.md называет
       # требование прямо, а проверял его никто, и обходили его девять раз. Причина конвенции не
       # стилистическая — узкие CRT-функции на Windows идут через ANSI-кодовую страницу и не
