@@ -1,0 +1,9 @@
+add_library(framework_music STATIC music_read.cpp music_bake.cpp)
+target_include_directories(framework_music PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(framework_music PUBLIC framework_core PRIVATE asset_hash)
+
+add_executable(framework_music_test music_test.cpp)
+target_link_libraries(framework_music_test PRIVATE framework_music audio_core)
+add_executable(framework_music_limits_test music_limits_test.cpp)
+target_link_libraries(framework_music_limits_test PRIVATE framework_music framework_alloc_probe_control)
+target_include_directories(framework_music_limits_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)

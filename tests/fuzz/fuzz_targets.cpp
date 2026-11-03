@@ -67,6 +67,7 @@ const std::vector<Target>& table() {
         append(v, content_targets);
         append(v, save_targets);
         append(v, strings_targets);
+        append(v, music_targets);
         return v;
     }();
     return all;

@@ -71,6 +71,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/ui/strings.hpp framework/ui/strings_format.hpp framework/ui/strings_bake.hpp
   framework/ui/ui_input.hpp
   framework/ui/ui_context.hpp
+  framework/music/music_format.hpp framework/music/music_read.hpp framework/music/music_bake.hpp
   framework/save/save.hpp framework/save/save_format.hpp framework/save/save_backend.hpp framework/save/save_slots.hpp
   framework/touch/touch_layout.hpp framework/touch/touch_format.hpp framework/touch/touch_source.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
@@ -80,14 +81,14 @@ set(LIKE_NES_SDK_HEADERS
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
-  framework_save framework_ui framework_haptic platform_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
+  framework_save framework_ui framework_music framework_haptic platform_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native input_gamepad platform_core render_core
   render_surface glfw glfw3webgpu)
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay render_types)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
-  framework_save framework_ui engine_core asset_hash asset_view platform_core input_core render_core render_surface
+  framework_save framework_ui framework_music engine_core asset_hash asset_view platform_core input_core render_core render_surface
   framework_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_replay framework_scene)

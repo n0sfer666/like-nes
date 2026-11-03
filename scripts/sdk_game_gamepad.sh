@@ -30,6 +30,8 @@ CMAKE
 #include "platform_save.hpp"
 #include "strings.hpp"
 #include "strings_bake.hpp"
+#include "music_bake.hpp"
+#include "music_read.hpp"
 #include "ui_input.hpp"
 #include "ui_context.hpp"
 #include "preset_bake.hpp"
@@ -65,6 +67,12 @@ int main() {
         !save::store("global", 1, body) || save::load("global", 1, {}, saved) != save::Status::Ok || saved != body) return 1;
     const std::vector<std::string> legacy{"controls.txt"};
     if (!save::migrate_legacy(backend.root(), legacy) || save::file_path("controls.txt").empty()) return 1;
+    framework::music::MusicSrc song;
+    song.name = "menu"; song.guid = 1; song.frames = 96000; song.fade_ms = 750;
+    std::vector<uint8_t> music_bytes; std::string music_error;
+    framework::music::MusicTable music;
+    if (!framework::music::bake_music({&song, 1}, music_bytes, music_error) || !music.open(music_bytes.data(), music_bytes.size()) ||
+        !music.find("menu") || music.find("menu")->loop_end != 96000 || music.find("menu")->fade_samples != 36000) return 1;
     framework::graphics::FontSrc font;
     font.name = "mono"; font.line_height = 1; font.page_w = font.page_h = 1;
     font.glyphs = {{'?', 0, 0, 1, 1}, {'A', 0, 0, 1, 1}};

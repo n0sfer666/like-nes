@@ -304,6 +304,16 @@ This conservative syntax guard does not follow arbitrary C++ data flow or inspec
 review still checks generated/dynamic text and function/type shadowing of registry names. Empty scans refuse. `--selftest` runs the #26 fixtures;
 pilot #29 adds actual screen sources. Details: `.context/gates/ui-text.md`.
 
+Music metadata lives in `framework::music::MusicTable` (`music_read.hpp`) and LNMU v1.
+The aligned immutable buffer must outlive the reader and its views; open/find allocate no heap.
+`music_bake.hpp` bakes `MusicSrc` records from inspected source metadata: rate 48000 Hz,
+mono/stereo, a nonempty frame range and `0 <= loop_start < loop_end <= frames`.
+An omitted loop end uses the complete source. `fade_ms` defaults to 1000 and converts exactly
+to sample frames; zero selects an instant transition, overflow refuses. Names are ASCII machine
+keys up to 128 bytes; IDs use common FNV. Rows and the string pool are canonical by ID, with
+4096 tracks and a 1 MiB section cap. Refused baking preserves the previous output.
+Ogg import and streaming are separate parts of #26 V6.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

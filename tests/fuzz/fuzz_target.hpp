@@ -84,6 +84,7 @@ const Target* level_targets(std::size_t* count);
 const Target* content_targets(std::size_t* count);
 const Target* save_targets(std::size_t* count);
 const Target* strings_targets(std::size_t* count);
+const Target* music_targets(std::size_t* count);
 
 // Позитивный контроль: читатель с ЗАВЕДОМО снятой проверкой длины. Гоняется только под
 // `--selftest` и ОБЯЗАН упасть под санитайзером — шаг CI красен, если он НЕ упал. Без него гейт

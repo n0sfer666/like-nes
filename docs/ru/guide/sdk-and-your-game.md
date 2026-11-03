@@ -1,4 +1,4 @@
-<!-- en-sha256: 4fdacf9437e8e976f662c96bde6c47e3b4f8726a3f151e7b11cefdcf42a5a18e -->
+<!-- en-sha256: 6c9feeeb51f1e45bb7d70b7bd213e2da1ff653326b03b0c254b9765c345c5eba -->
 
 # SDK и своя игра
 
@@ -308,6 +308,15 @@ Unicode identifiers не позволяют замаскировать имя. B
 и не читает другие units; review проверяет сгенерированный/динамический текст и function/type shadowing имён реестра. Пустой обход
 отказывается. `--selftest` судит фикстуры #26, пилот #29 добавляет реальные sources экранов.
 Подробности: `.context/gates/ui-text.md`.
+
+Музыкальные метаданные — `framework::music::MusicTable` (`music_read.hpp`), LNMU v1.
+Выровненный immutable buffer живёт дольше reader и views; open/find не выделяют память.
+`music_bake.hpp` печёт MusicSrc из проверенных метаданных источника:48000Гц, mono/stereo,
+непустой диапазон кадров и `0 <= loop_start < loop_end <= frames`. Пропущенный конец лупа
+означает весь источник. `fade_ms` по умолчанию1000, точно переводится в sample frames;
+ноль означает мгновенную смену, переполнение отказывается. Имена — ASCII machine keys до128байт,
+ID — общий FNV. Строки и string pool канонические по ID, максимум4096треков/1MiB на секцию.
+Отказ бейка сохраняет прежний output. Ogg import и streaming — отдельные части #26 В6.
 
 Бейк отказывает строке, а не угадывает, что имелось в виду:
 

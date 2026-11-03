@@ -448,3 +448,6 @@ quad_types.hpp/render_types едет в SDK без GPU dependency у framework_u
 С В5б3 #26 gamepad-only fixture после Context-кнопки строит glyph_grid с alphabet/labels
 из baked Strings и вводит A через настоящий InputEngine/UiInputChannel. Проверяются changed,
 invalid=false и точное содержимое buffer; прежний ui preset без optional done остаётся valid.
+
+С В6б1 #26 gamepad-only fixture через public music_bake/read.hpp печёт LNMU metadata и
+проверяет default loop_end=frames,750ms→36000samples. Это metadata ABI/link test, не Ogg/stream.
