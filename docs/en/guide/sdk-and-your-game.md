@@ -220,6 +220,27 @@ call `find(key, Language::En)` or `Language::Ru`; a missing key returns an empty
 identifies the linked font. The aligned source buffer must remain alive and unchanged: the
 reader and returned views borrow it. Opening and lookup allocate no heap memory.
 
+`framework::ui::UiInputChannel` (`ui_input.hpp`) is a separate menu channel. Bake an input
+preset named `ui` with nonempty actions `up`, `down`, `left`, `right`, `accept`, `back`, `erase`;
+optional axes are named `x` and `y`. Call `init(PresetTable)` outside the frame. It copies the
+bindings (up to 256) and shapes; the original table may then be released. For example, accept
+can bind `key:enter|pad:south`, back `key:esc|pad:east`, and erase `key:backspace|pad:west`.
+
+After the game's single input drain, call `read(engine.device(), elapsed_ms, pointers, text,
+text_source)` once per UI frame. All connected pads and the keyboard participate together,
+independently of player assignments; the channel never drains or consumes game input. A stick
+axis triggers at half the shaped range; paired x/y use radial response (x's shape when both
+pair declarations exist), other axes use axial response. Opposing active directions cancel.
+Navigation and erase repeat after 350 ms, then every 90 ms, at most once per frame. Accept/back use
+press edges. Pointer coordinates are zone pixels; IDs retain the full intptr_t width. There are
+16 pointer events and 64 text code points per frame; overflow or invalid pointer data cancels it.
+
+The default `PhysicalLatin` text source reads key edges as A–Z, digits, space, `.`, `:` via Shift
+and semicolon, and keypad digits/decimal. `Native` uses the supplied Unicode code points instead;
+invalid/control scalars are discarded. Call `cancel()` on screen transitions, focus loss or
+suspend: held buttons and navigation axes must release before acting again. read/cancel allocate
+no heap memory. The widget context and glyph grid are the next part of this UI work.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

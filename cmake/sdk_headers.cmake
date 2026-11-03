@@ -69,6 +69,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
   framework/haptic/haptic.hpp
   framework/ui/strings.hpp framework/ui/strings_format.hpp framework/ui/strings_bake.hpp
+  framework/ui/ui_input.hpp
   framework/save/save.hpp framework/save/save_format.hpp framework/save/save_backend.hpp framework/save/save_slots.hpp
   framework/touch/touch_layout.hpp framework/touch/touch_format.hpp framework/touch/touch_source.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp

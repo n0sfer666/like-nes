@@ -436,3 +436,7 @@ repeat/RESUME/no game. Это модели системных событий, н
 В5а2 #26: fixture_strings_bake использует настоящий установленный like_nes_bake/assetc.
 Debug допускает неполный ru с fallbacks=1; Release/RelWithDebInfo/MinSizeRel обязаны отказать
 по ключу menu.go и --strict. После исправления TSV Release перепекает таблицу с fallbacks=0.
+
+В5б1 #26: gamepad-only fixture также печёт LNFI ui preset из публичного SDK, конфигурирует
+UiInputChannel и читает UI accept edge из настоящего InputEngine после единственного drain.
+На desktop это исполнение, на iOS/Android — проверка публичной линковки.

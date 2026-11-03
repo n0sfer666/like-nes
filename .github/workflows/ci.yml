@@ -2172,7 +2172,7 @@ jobs:
                    framework_graphics_viewport_fit_test framework_graphics_layer_cover_test \
                    framework_graphics_font_test framework_graphics_font_import_test \
                    framework_graphics_text_layout_test framework_text_quads_test \
-                   framework_strings_test framework_strings_limits_test; do
+                   framework_strings_test framework_strings_limits_test framework_ui_input_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -3082,6 +3082,7 @@ jobs:
           framework_graphics_text_layout_test:framework-graphics-text-layout: PASS
           framework_strings_test:strings: PASS TSV, coverage, strict/fallback, collision, wire validation and zero allocations
           framework_strings_limits_test:strings-limits: PASS caps, large shared values, no allocation and malformed lengths
+          framework_ui_input_test:ui-input: PASS all devices, preset, repeat, text, pointers, cancellation and zero allocations
           framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
           framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
           framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS

@@ -30,6 +30,8 @@ CMAKE
 #include "platform_save.hpp"
 #include "strings.hpp"
 #include "strings_bake.hpp"
+#include "ui_input.hpp"
+#include "preset_bake.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
@@ -70,6 +72,16 @@ int main() {
     if (!framework::ui::bake_strings({&label, 1}, font, true, strings, stats, error)) return 1;
     framework::ui::Strings table;
     if (!table.open(strings.data(), strings.size()) || table.find("label", framework::ui::Language::Ru) != "A") return 1;
+    const char* ui = "preset|ui\naction|up|key:up\naction|down|key:down\naction|left|key:left\n"
+                     "action|right|key:right\naction|accept|key:enter\naction|back|key:esc\naction|erase|key:backspace\n";
+    framework::input::PresetBakeError input_error;
+    framework::input::PresetTable presets;
+    framework::ui::UiInputChannel ui_channel;
+    std::vector<uint8_t> preset_bytes;
+    if (!framework::input::bake_presets(ui, preset_bytes, input_error) || !presets.open(preset_bytes.data(), preset_bytes.size()) ||
+        !ui_channel.init(presets)) return 1;
+    engine.post({input::RawKind::KeyDown, input::DeviceKind::Keyboard, 0, 257}); engine.drain();
+    if (!ui_channel.read(engine.device(), 16).accept || ui_channel.read(engine.device(), 16).accept) return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;
