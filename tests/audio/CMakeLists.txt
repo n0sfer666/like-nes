@@ -34,3 +34,6 @@ endforeach()
 add_executable(audio_music_worker_vorbis_test audio_music_worker_vorbis_test.cpp)
 target_link_libraries(audio_music_worker_vorbis_test PRIVATE audio_core platform_core)
 target_compile_definitions(audio_music_worker_vorbis_test PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
+
+add_executable(audio_music_envelope_test audio_music_envelope_test.cpp)
+target_link_libraries(audio_music_envelope_test PRIVATE audio_core)

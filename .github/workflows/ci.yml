@@ -1147,13 +1147,14 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
             grep -q ': PASS' "$T.txt" || { echo "$T FAILED"; exit 1; }
           done
           grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' audio_stereo_test.txt
+          grep -qxF 'audio-music-envelope: gain hash=67cb1cc48fe494db' audio_music_envelope_test.txt
 
       - name: Audio — Debug stereo golden and bounds (all OS)
         shell: bash
@@ -1161,7 +1162,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -1169,6 +1170,7 @@ jobs:
             grep -q ': PASS' "dbg_$T.txt" || { echo "$T FAILED in Debug"; exit 1; }
           done
           grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' dbg_audio_stereo_test.txt
+          grep -qxF 'audio-music-envelope: gain hash=67cb1cc48fe494db' dbg_audio_music_envelope_test.txt
 
       - name: Music — Debug manifest, actual Ogg and transactional refusals (all OS)
         shell: bash
@@ -3177,6 +3179,7 @@ jobs:
           audio_music_worker_test:audio-music-worker: PASS two decoders, priming, partial FIFO, generations, queue bounds and shutdown
           audio_music_worker_threads_test:audio-music-worker-threads: PASS concurrent requests, PCM generations, priming and stop without callback ack
           audio_music_worker_vorbis_test:audio-music-worker-vorbis: PASS concurrent mono/stereo loops, exact samples and legacy SFX CRC safety
+          audio_music_envelope_test:audio-music-envelope: PASS linear samples, hold, retarget, endpoints, clamps and bounded arithmetic
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode
           plugin_wasm_host_test:plugin-wasm-host: PASS
