@@ -2,17 +2,20 @@
 # audio_core: микшер (Float/Fix32 seam) + декод (stb_vorbis, present в fetched stb). Без
 # устройства/ассетов → deviceless-гейты гоняются в CI на всех трёх ОС (спека #12, гейт 2).
 add_library(audio_core STATIC
-  mixer.cpp mixer_mix.cpp decoder.cpp)
+  mixer.cpp mixer_mix.cpp decoder.cpp vorbis_reader.cpp vorbis_inspect.cpp)
+set(LIKE_NES_VORBIS_CHANNELS 16)
+target_compile_definitions(audio_core PRIVATE STB_VORBIS_MAX_CHANNELS=${LIKE_NES_VORBIS_CHANNELS})
 # stb_vorbis.c — сторонний целиком, ни строки нашей: TU глушится по факту происхождения, а не
 # списком диагностик. Список не работал в принципе — `-Wno-tautological-compare` закрывал ровно
 # то, что успел показать clang, а MSVC пришёл со своим C4701 из той же чужой функции; следующий
 # компилятор пришёл бы с третьей. Ветка `if(NOT MSVC)` тут была не про переносимость флага, а про
 # то, что подход требует по флагу на компилятор.
 like_nes_vendored_object(stb_vorbis_vendored stb_vorbis_impl.c)
+target_compile_definitions(stb_vorbis_vendored PRIVATE STB_VORBIS_MAX_CHANNELS=${LIKE_NES_VORBIS_CHANNELS})
 target_include_directories(stb_vorbis_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(audio_core PRIVATE stb_vorbis_vendored)
 target_include_directories(audio_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(audio_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний
+target_include_directories(audio_core SYSTEM PRIVATE ${stb_SOURCE_DIR})   # public API не включает stb
 target_link_libraries(audio_core PUBLIC engine_core asset_hash Threads::Threads)
 
 # Гейт #1 (байт-golden хеш микса, Fix32 над детерм. PCM). CI на всех ОС.

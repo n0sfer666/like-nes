@@ -1,35 +1,41 @@
-#define STB_VORBIS_HEADER_ONLY
-#include "stb_vorbis.c"
-
-#include <cstdlib>
-
 #include "decoder.hpp"
 
-namespace audio {
+#include <climits>
+#include <utility>
 
-bool decode_vorbis(const uint8_t* data, uint32_t size, DecodedPcm& out) {
-    int channels = 0, rate = 0;
-    short* pcm = nullptr;
-    int frames = stb_vorbis_decode_memory(reinterpret_cast<const unsigned char*>(data),
-                                          static_cast<int>(size), &channels, &rate, &pcm);
-    if (frames < 0 || !pcm || channels < 1) {
-        if (pcm) std::free(pcm);
-        return false;
-    }
-    out.frames = static_cast<uint32_t>(frames);
-    out.rate = static_cast<uint32_t>(rate);
-    out.samples.resize(static_cast<size_t>(frames));
-    for (int i = 0; i < frames; ++i) {
-        if (channels == 1) {
-            out.samples[i] = pcm[i];
-        } else {
-            int32_t acc = 0; // даунмикс в mono (среднее каналов)
-            for (int c = 0; c < channels; ++c) acc += pcm[i * channels + c];
-            out.samples[i] = static_cast<int16_t>(acc / channels);
+#include "vorbis_reader.hpp"
+
+namespace audio {
+namespace {
+
+bool decode(std::span<const uint8_t> data, DecodedPcm& out) {
+    VorbisReader reader; std::string error;
+    if (!reader.open(data, error)) return false;
+    const auto info = reader.info();
+    std::vector<int16_t> block(static_cast<size_t>(info.channels) * 2048);
+    for (;;) {
+        uint32_t frames = 0;
+        if (!reader.read(block, info.channels, frames) || uint64_t{out.frames} + frames > info.frames) return false;
+        if (!frames) break;
+        const size_t begin = out.frames;
+        out.frames += frames; out.samples.resize(out.frames);
+        for (uint32_t i = 0; i < frames; ++i) {
+            int32_t sum = 0;
+            for (uint32_t c = 0; c < info.channels; ++c) sum += block[static_cast<size_t>(i) * info.channels + c];
+            out.samples[begin + i] = static_cast<int16_t>(sum / static_cast<int32_t>(info.channels));
         }
     }
-    std::free(pcm);
-    return true;
+    if (out.frames != info.frames) return false;
+    out.rate = info.rate; return true;
+}
+}
+
+bool decode_vorbis(const uint8_t* data, uint32_t size, DecodedPcm& out) {
+    DecodedPcm result;
+    // Выход меняется после закрытия reader: encoded data может лежать в старом out.samples.
+    const bool ok = data && size && size <= INT_MAX && decode({data, size}, result);
+    out = ok ? std::move(result) : DecodedPcm{};
+    return ok;
 }
 
 } // namespace audio

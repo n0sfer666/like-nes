@@ -4,3 +4,11 @@ target_link_libraries(audio_stereo_limits_test PRIVATE audio_core framework_allo
 target_include_directories(audio_stereo_limits_test PRIVATE
   $<TARGET_PROPERTY:framework_core,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+foreach(test audio_vorbis_test audio_vorbis_threads_test)
+  add_executable(${test} ${test}.cpp)
+  target_link_libraries(${test} PRIVATE audio_core platform_core)
+  target_compile_definitions(${test} PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
+endforeach()
+# Только тест сравнивает с прежним raw C API, строго до запуска потоков.
+target_include_directories(audio_vorbis_test SYSTEM PRIVATE ${stb_SOURCE_DIR})

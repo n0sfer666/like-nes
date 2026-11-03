@@ -12,7 +12,7 @@ struct DecodedPcm {
     uint32_t rate = 0;
 };
 
-// false при битом/невалидном контейнере → вызывающий ставит тишину-placeholder (не crash).
+// false при битом/пустом/слишком большом контейнере, out очищен → тишина-placeholder.
 bool decode_vorbis(const uint8_t* data, uint32_t size, DecodedPcm& out);
 
 } // namespace audio
