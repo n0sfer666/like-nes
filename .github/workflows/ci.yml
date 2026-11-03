@@ -2172,7 +2172,8 @@ jobs:
                    framework_graphics_viewport_fit_test framework_graphics_layer_cover_test \
                    framework_graphics_font_test framework_graphics_font_import_test \
                    framework_graphics_text_layout_test framework_text_quads_test \
-                   framework_strings_test framework_strings_limits_test framework_ui_input_test; do
+                   framework_strings_test framework_strings_limits_test framework_ui_input_test \
+                   framework_ui_context_test framework_ui_context_limits_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             need "$B" "$T"
             "$B" | tee "gfx_$T.txt"
@@ -2683,6 +2684,21 @@ jobs:
           grep -q "viewport hash = 0x5bcea5ecad651b07" dbg_framework_graphics_viewport_test.txt \
             || { echo "VIEWPORT DEBUG/RELEASE GOLDEN MISMATCH on ${{ matrix.os }}"; exit 1; }
 
+      - name: UI — Debug strings, input, focus and quad golden (all OS)
+        shell: bash
+        env:
+          BUILD_DIR: build-debug
+          LIKE_NES_BUILD_TYPE: Debug
+          LIKE_NES_BUILD_SUBSET: "1"
+          LIKE_NES_BUILD_TARGETS: "framework_strings_test framework_strings_limits_test framework_ui_input_test framework_ui_context_test framework_ui_context_limits_test"
+        run: |
+          bash scripts/build_check.sh
+          for t in $LIKE_NES_BUILD_TARGETS; do
+            ./build-debug/"$t" | tee "dbg_$t.txt"
+            grep -q ': PASS' "dbg_$t.txt" || { echo "$t FAILED in Debug"; exit 1; }
+          done
+          grep -q 'quad-focus hash=2a01d5ac8d6063b0' dbg_framework_ui_context_test.txt
+
       - name: Physics — ASan/UBSan (fixed-point overflow, solver, order independence, Linux)
         if: runner.os == 'Linux'
         shell: bash
@@ -3083,6 +3099,8 @@ jobs:
           framework_strings_test:strings: PASS TSV, coverage, strict/fallback, collision, wire validation and zero allocations
           framework_strings_limits_test:strings-limits: PASS caps, large shared values, no allocation and malformed lengths
           framework_ui_input_test:ui-input: PASS all devices, preset, repeat, text, pointers, cancellation and zero allocations
+          framework_ui_context_test:ui-context: PASS focus, IDs, widgets, pointer capture, language and quads
+          framework_ui_context_limits_test:ui-context-limits: PASS bounds, clipping, capacities, cancellation and zero allocations
           framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
           framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
           framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS

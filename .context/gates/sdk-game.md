@@ -440,3 +440,7 @@ Debug допускает неполный ru с fallbacks=1; Release/RelWithDebI
 В5б1 #26: gamepad-only fixture также печёт LNFI ui preset из публичного SDK, конфигурирует
 UiInputChannel и читает UI accept edge из настоящего InputEngine после единственного drain.
 На desktop это исполнение, на iOS/Android — проверка публичной линковки.
+
+В5б2 #26: fixture также печёт FontTable и init UI Context по named font строки. Seed frame даёт
+3quads/1mergedrun; fresh Enter через UiInputChannel активирует кнопку во втором кадре. Public
+quad_types.hpp/render_types едет в SDK без GPU dependency у framework_ui.

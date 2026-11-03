@@ -16,7 +16,7 @@ set(LIKE_NES_SDK_HEADERS
   input/device_state.hpp input/input_buffer.hpp input/input_engine.hpp input/input_sim.hpp
   input/input_spsc.hpp input/input_types.hpp input/player_assign.hpp input/source.hpp
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
-  render/surface_frame.hpp render/quad_batch.hpp
+  render/surface_frame.hpp render/quad_batch.hpp render/quad_types.hpp
   framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
   framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
@@ -70,6 +70,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/haptic/haptic.hpp
   framework/ui/strings.hpp framework/ui/strings_format.hpp framework/ui/strings_bake.hpp
   framework/ui/ui_input.hpp
+  framework/ui/ui_context.hpp
   framework/save/save.hpp framework/save/save_format.hpp framework/save/save_backend.hpp framework/save/save_slots.hpp
   framework/touch/touch_layout.hpp framework/touch/touch_format.hpp framework/touch/touch_source.hpp
   framework/replay/stream.hpp framework/replay/verify.hpp
@@ -83,7 +84,7 @@ set(LIKE_NES_SDK_STATIC
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native input_gamepad platform_core render_core
   render_surface glfw glfw3webgpu)
-set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay)
+set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay render_types)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
   framework_save framework_ui engine_core asset_hash asset_view platform_core input_core render_core render_surface

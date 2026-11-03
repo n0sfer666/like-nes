@@ -1,6 +1,7 @@
-add_library(framework_ui STATIC strings.cpp strings_bake.cpp strings_tsv.cpp ui_input.cpp ui_input_sources.cpp)
+add_library(framework_ui STATIC strings.cpp strings_bake.cpp strings_tsv.cpp ui_input.cpp ui_input_sources.cpp
+  ui_context.cpp ui_draw.cpp ui_widgets.cpp)
 target_include_directories(framework_ui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-target_link_libraries(framework_ui PUBLIC framework_graphics framework_input PRIVATE asset_hash)
+target_link_libraries(framework_ui PUBLIC framework_graphics framework_input render_types PRIVATE asset_hash)
 
 add_executable(framework_strings_test strings_test.cpp)
 target_link_libraries(framework_strings_test PRIVATE framework_ui framework_alloc_probe_control asset_hash)
@@ -13,3 +14,10 @@ target_include_directories(framework_strings_limits_test PRIVATE $<TARGET_PROPER
 add_executable(framework_ui_input_test ui_input_test.cpp)
 target_link_libraries(framework_ui_input_test PRIVATE framework_ui framework_alloc_probe_control)
 target_include_directories(framework_ui_input_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)
+
+add_executable(framework_ui_context_test ui_context_test.cpp)
+target_link_libraries(framework_ui_context_test PRIVATE framework_ui asset_hash)
+
+add_executable(framework_ui_context_limits_test ui_context_limits_test.cpp)
+target_link_libraries(framework_ui_context_limits_test PRIVATE framework_ui framework_alloc_probe_control)
+target_include_directories(framework_ui_context_limits_test PRIVATE $<TARGET_PROPERTY:platform_core,INTERFACE_INCLUDE_DIRECTORIES>)

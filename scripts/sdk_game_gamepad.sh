@@ -31,6 +31,7 @@ CMAKE
 #include "strings.hpp"
 #include "strings_bake.hpp"
 #include "ui_input.hpp"
+#include "ui_context.hpp"
 #include "preset_bake.hpp"
 int main() {
     auto* pad = input::make_gamepad_source();
@@ -82,6 +83,22 @@ int main() {
         !ui_channel.init(presets)) return 1;
     engine.post({input::RawKind::KeyDown, input::DeviceKind::Keyboard, 0, 257}); engine.drain();
     if (!ui_channel.read(engine.device(), 16).accept || ui_channel.read(engine.device(), 16).accept) return 1;
+    std::vector<uint8_t> font_bytes;
+    framework::graphics::FontTable fonts;
+    framework::ui::Context widgets;
+    if (!framework::graphics::bake_fonts({&font, 1}, font_bytes, error) || !fonts.open(font_bytes.data(), font_bytes.size()) ||
+        !widgets.init(table, fonts, 1, 1)) return 1;
+    const auto button = framework::ui::ui_id(0, "sdk-button");
+    widgets.begin(ui_channel.read(engine.device(), 16));
+    if (widgets.button(button, "label", {0, 0, 20, 12})) return 1;
+    auto drawn = widgets.end();
+    if (drawn.quads.size() != 3 || drawn.runs.size() != 1 || drawn.focus != button) return 1;
+    engine.post({input::RawKind::KeyUp, input::DeviceKind::Keyboard, 0, 257}); engine.drain();
+    ui_channel.read(engine.device(), 16);
+    engine.post({input::RawKind::KeyDown, input::DeviceKind::Keyboard, 0, 257}); engine.drain();
+    widgets.begin(ui_channel.read(engine.device(), 16));
+    if (!widgets.button(button, "label", {0, 0, 20, 12})) return 1;
+    widgets.end();
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

@@ -1,4 +1,6 @@
 # --- Render-вертикаль (спека #2): deferred+forward, HDR/bloom, offscreen golden ---
+add_library(render_types INTERFACE)
+target_include_directories(render_types INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 # Кадр оконной петли из поверхности (аудит #21 A·3·6) — отдельно от render_core: shell'ы на imgui
 # render_core не линкуют и компилируют gpu.cpp сами.
 add_library(render_surface STATIC surface_frame.cpp)
@@ -12,7 +14,7 @@ add_library(render_core STATIC
   renderer_forward.cpp renderer_bloom.cpp capture.cpp
   quad_batch.cpp quad_pipeline.cpp)
 target_include_directories(render_core SYSTEM PUBLIC ${stb_SOURCE_DIR})   # stb — сторонний, не варнить
-target_link_libraries(render_core PUBLIC engine_core webgpu render_surface)
+target_link_libraries(render_core PUBLIC render_types engine_core webgpu render_surface)
 like_nes_vendored_object(stb_impl_vendored stb_impl.cpp)   # TU целиком — реализация stb, ни строки нашей
 target_include_directories(stb_impl_vendored SYSTEM PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(render_core PRIVATE stb_impl_vendored)

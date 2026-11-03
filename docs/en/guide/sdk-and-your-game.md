@@ -239,7 +239,36 @@ The default `PhysicalLatin` text source reads key edges as A–Z, digits, space,
 and semicolon, and keypad digits/decimal. `Native` uses the supplied Unicode code points instead;
 invalid/control scalars are discarded. Call `cancel()` on screen transitions, focus loss or
 suspend: held buttons and navigation axes must release before acting again. read/cancel allocate
-no heap memory. The widget context and glyph grid are the next part of this UI work.
+no heap memory.
+
+`framework::ui::Context` (`ui_context.hpp`) builds fixed-capacity `render::Quad` and `QuadRun`
+spans without a GPU dependency. `init(strings, fonts, font_texture, solid_texture)` selects the
+font named by the strings table. Font and string buffers must stay alive and unchanged; the
+reader objects themselves need not. Register a white 1×1 texture for solid panels and the font
+atlas with your renderer, then pass their material indices. Quad/QuadRun layout is unchanged;
+`render_types` exposes these CPU types without linking the renderer.
+
+Call `begin(UiInput, UiView)`, then `button`, `slider`, `field` or `list`, and `end()`. UiView gives
+zone width/height, integer scale 1–64 and screen origin. Rectangles use zone pixels. `end()` returns
+borrowed spans valid until the next begin/init or Context destruction; upload and draw them in
+run order. Static labels are string keys; `set_language` selects en/ru. `ui_id(parent, key, index)`
+uses common FNV; use distinct parents for screens and an index for repeated items. ID zero is valid.
+
+Up/down move focus through enabled widgets in declaration order, wrapping; x adjusts a focused
+slider. Activation and slider input require the widget to have appeared in the previous finished
+UI frame. Pointer hits use that frame's geometry, primary-pointer capture and release inside the
+visible widget; a painted disabled widget blocks click-through. Resizing cancels the old pointer
+geometry. The game owns screen transitions and unconsumed `end().back`; cancel the input channel
+when changing screens or suspending. Use a separate Context or disable underlying controls for
+modal overlays. A field displays its NUL-terminated caller buffer (termination scan capped at 1025
+bytes) and returns activation; it does not edit it. A slider changes caller data only on input,
+not while drawing or cancelling. A list fills its rectangle with vertical rows.
+
+There are 128 widgets, 2048 quads and 512 runs per frame. Duplicate IDs and invalid rectangles are
+refused; missing labels and fully clipped widgets cannot receive input. UTF-8 text is bounded to
+256 code points per draw and clipped with adjusted UVs. Stats report clipping, invalid data and
+capacity drops; an incompletely drawn widget is disabled and slider changes are rolled back.
+All widget methods and overflow paths allocate no heap memory. Glyph-grid editing follows next.
 
 The bake refuses a line instead of guessing what it meant:
 

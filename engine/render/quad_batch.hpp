@@ -5,24 +5,12 @@
 #include <span>
 #include <vector>
 
+#include "quad_types.hpp"
+
 // Квады слоёв и спрайтов из RGBA8-текстур (спека #24, В5б). Геометрия — в экранных пикселях от
 // левого верхнего угла, источник — прямоугольник текселей; тексель берётся `textureLoad`, а не
 // семплером: пиксельный голден сравнивается точно на Metal, lavapipe и WARP.
 namespace render {
-
-struct Quad {
-    float x = 0, y = 0, w = 0, h = 0;
-    float tx = 0, ty = 0, tw = 0, th = 0;
-    uint32_t rgba = 0xffffffffu;
-    uint32_t flip = 0;
-};
-static_assert(sizeof(Quad) == 40);
-
-struct QuadRun {
-    uint32_t first = 0;
-    uint32_t count = 0;
-    uint32_t texture = 0;
-};
 
 // Квады на этой цели кодируются в sRGB при записи: цвет очистки той же цели обязан прийти линейным,
 // иначе фон и тайлы окажутся на разных шкалах.
