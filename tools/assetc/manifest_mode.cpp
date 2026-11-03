@@ -15,7 +15,7 @@ namespace asset::manifest {
 namespace {
 
 int usage(const std::string& tool) {
-    std::fprintf(stderr, "usage: %s --manifest <file> <out.bundle> [--depfile <file.d>] [--basisu <path>]\n",
+    std::fprintf(stderr, "usage: %s --manifest <file> <out.bundle> [--depfile <file.d>] [--basisu <path>] [--strict]\n",
                  tool.c_str());
     return 2;
 }
@@ -45,7 +45,8 @@ int run_manifest(int argc, char** argv, std::span<const Kind> kinds) {
     // Хвост по одному аргументу с отказом на неузнанном — тот же урок, что у `--materials`: флаг
     // без значения, проглоченный молча, оставил бы сборку без depfile и без перебейка.
     for (int i = 4; i < argc; ++i) {
-        if (i + 1 >= argc) return unexpected(tool, argv[i]);
+        if (std::strcmp(argv[i], "--strict") == 0) { b.strict = true; continue; }
+        if (i + 1 >= argc || std::strncmp(argv[i + 1], "--", 2) == 0) return unexpected(tool, argv[i]);
         if (std::strcmp(argv[i], "--depfile") == 0) depfile = argv[++i];
         else if (std::strcmp(argv[i], "--basisu") == 0) b.tools.basisu = argv[++i];
         else return unexpected(tool, argv[i]);

@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
                      "       assetc --synthetic <out.bundle>  (tools-free, for CI)\n"
                      "       assetc --materials <library.mat> <effects.wgsl> <out.bundle>"
                      " [--lights L.txt]  (tools-free)\n"
-                     "       assetc --manifest <game.manifest> <out.bundle> [--depfile D] [--basisu P]\n");
+                     "       assetc --manifest <game.manifest> <out.bundle> [--depfile D] [--basisu P] [--strict]\n");
         return 2;
     }
     if (std::strcmp(argv[1], "--manifest") == 0) return manifest::run_manifest(argc, argv, {});

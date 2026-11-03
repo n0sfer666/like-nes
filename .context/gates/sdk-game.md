@@ -432,3 +432,7 @@ repeat/RESUME/no game. Это модели системных событий, н
 В5а1 #26: gamepad-only fixture также печёт строгую таблицу LNST публичным strings_bake.hpp и
 читает перевод через Strings из установленного SDK. На desktop код исполняется, на iOS/Android
 проверяется линковка; приватные fixtures и indexed baker в SDK не поставляются.
+
+В5а2 #26: fixture_strings_bake использует настоящий установленный like_nes_bake/assetc.
+Debug допускает неполный ru с fallbacks=1; Release/RelWithDebInfo/MinSizeRel обязаны отказать
+по ключу menu.go и --strict. После исправления TSV Release перепекает таблицу с fallbacks=0.

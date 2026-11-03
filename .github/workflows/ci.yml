@@ -959,7 +959,7 @@ jobs:
           for t in material_bake_test material_source_test material_table_test \
                    material_library_test light_table_test assetc_manifest_test assetc_kinds_test \
                    assetc_bake_test assetc_level_test assetc_clips_test assetc_fighter_test \
-                   assetc_font_test assetc_touch_test; do
+                   assetc_font_test assetc_touch_test assetc_strings_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -3072,6 +3072,7 @@ jobs:
           assetc_level_test:assetc-level: PASS
           assetc_clips_test:assetc-clips: PASS
           assetc_fighter_test:assetc-fighter: PASS
+          assetc_strings_test:assetc-strings: PASS grammar, coverage, forward fonts, CLI strict/summary/depfile
           assetc_font_test:assetc-font: PASS
           assetc_touch_test:assetc-touch: PASS - 9 cases
           framework_text_test:framework-text: PASS
@@ -3079,8 +3080,8 @@ jobs:
           framework_graphics_font_test:framework-graphics-font: PASS
           framework_graphics_font_import_test:framework-graphics-font-import: PASS
           framework_graphics_text_layout_test:framework-graphics-text-layout: PASS
-          framework_strings_test:strings: PASS
-          framework_strings_limits_test:strings-limits: PASS
+          framework_strings_test:strings: PASS TSV, coverage, strict/fallback, collision, wire validation and zero allocations
+          framework_strings_limits_test:strings-limits: PASS caps, large shared values, no allocation and malformed lengths
           framework_graphics_clip_bake_test:framework-graphics-clip-bake: PASS
           framework_graphics_clip_import_test:framework-graphics-clip-import: PASS
           framework_graphics_clip_import_refusal_test:framework-graphics-clip-import-refusal: PASS

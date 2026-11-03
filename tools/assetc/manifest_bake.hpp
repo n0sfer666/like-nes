@@ -20,6 +20,7 @@ struct Bake {
     framework::graphics::ViewportSettings viewport;
     std::vector<AssetInput> assets;
     std::vector<std::string> deps;  // манифест и каждый прочитанный файл, в порядке чтения
+    bool strict = false;     // refuse strings that fall back to en
     std::string error;        // `<манифест>:<строка>: …` по-английски
 };
 

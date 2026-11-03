@@ -7,7 +7,7 @@
 // видов, инструмент игры — со своей таблицей.
 namespace asset::manifest {
 
-// `<инструмент> --manifest <file> <out.bundle> [--depfile D] [--basisu P]`. Код выхода: 0 — бандл
+// `<инструмент> --manifest <file> <out.bundle> [--depfile D] [--basisu P] [--strict]`. Код выхода: 0 — бандл
 // записан, 1 — бейк отказал, 2 — неверный вызов.
 int run_manifest(int argc, char** argv, std::span<const Kind> kinds);
 

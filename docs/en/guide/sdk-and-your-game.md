@@ -148,7 +148,8 @@ endif()
   prefix writes it, and a tool built against another build of the engine stops the configure.
   Neon Rumble passes `rumble_assetc` on the desktop and `${RUMBLE_ASSETC}` on a phone. The baker
   writes a depfile of every file it read (the manifest, every PNG, every `.tmj` and the `.tsj` it
-  references), so editing a tileset re-bakes the bundle on the next build.
+  references), so editing a tileset re-bakes the bundle on the next build. Release, RelWithDebInfo
+  and MinSizeRel add `--strict`: missing ru translations stop the bake; Debug reports fallbacks.
 
 Configure and build the game against the prefix:
 
@@ -201,8 +202,23 @@ fighter | adler_fighter | fighters/adler.fighter
 | `level` | name, `tiled`, path to a `.tmj`, optionally `viewport` | a Tiled map: see [Levels in Tiled](tiled-levels.md) |
 | `clips` | name, `aseprite` or `sheet`, path | animation clips: see [Animations in Aseprite](aseprite-animations.md) |
 | `font` | name, `bitmask`, path to a `.json` | a bitmap font and its atlas: see [Fonts and credits](fonts-and-credits.md) |
+| `strings` | name, `tsv`, path to a `.tsv`, font name | an LNST translation table; the font may be declared later |
 | `credits` | name, path to a `.txt` | the credits table: see [Asset licenses](asset-licenses.md) |
 | `fighter` | name, path to a `.fighter` | a fighter table: speeds, jump, depth, hp and the strikes of the fighter's clips. A record of the game's tool `rumble_assetc`: the SDK's `assetc` refuses it |
+
+A strings record is `strings|labels|tsv|labels.tsv|monogram`. The literal UTF-8 TSV starts with
+exactly `key`, `en`, `ru`, separated by tabs; every data row has those three fields. Spaces are
+preserved; quoting and escape sequences are not interpreted. An empty ru value uses en and adds
+one fallback to `[assetc] strings labels: keys=N fallbacks=M`. `--strict` refuses any fallback;
+an explicit ru value identical to en is complete. Every code point in both values must exist in
+the named font, including alphabets stored under `grid.ip`, `grid.name` and `grid.room`. A refusal
+names the key and `U+XXXX`. Keys use `[A-Za-z0-9_.-]`, at most 128 bytes; duplicate keys or FNV ID
+collisions are refused. A table holds up to 4096 keys; source TSV and encoded table each cap at 16 MiB.
+
+At runtime, open the named raw section with `framework::ui::Strings` from `strings.hpp`, then
+call `find(key, Language::En)` or `Language::Ru`; a missing key returns an empty view. `font_name()`
+identifies the linked font. The aligned source buffer must remain alive and unchanged: the
+reader and returned views borrow it. Opening and lookup allocate no heap memory.
 
 The bake refuses a line instead of guessing what it meant:
 

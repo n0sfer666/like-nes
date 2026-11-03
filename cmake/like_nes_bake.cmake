@@ -77,8 +77,9 @@ function(like_nes_bake target)
   # PNG и прочие исходники приходят только через depfile: в DEPENDS их не перечислить, их знает
   # лишь манифест. Сам инструмент — в DEPENDS, иначе новый SDK не перепёк бы старый бандл.
   add_custom_command(OUTPUT "${bundle}"
-    COMMAND "${tool}" --manifest "${manifest}" "${bundle}" --depfile "${bundle}.d"
+    COMMAND "${tool}" --manifest "${manifest}" "${bundle}" --depfile "${bundle}.d" "$<$<CONFIG:Release,RelWithDebInfo,MinSizeRel>:--strict>"
     DEPENDS "${manifest}" ${tool_dep}
+    COMMAND_EXPAND_LISTS
     DEPFILE "${bundle}.d"
     COMMENT "Baking ${_lnb_OUT} from ${_lnb_MANIFEST}"
     VERBATIM)

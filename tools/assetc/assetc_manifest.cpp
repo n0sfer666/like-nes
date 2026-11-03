@@ -4,6 +4,7 @@
 
 #include "text_fields.hpp"
 #include "manifest_viewport.hpp"
+#include "manifest_shapes.hpp"
 
 namespace asset::manifest {
 namespace {
@@ -14,61 +15,6 @@ bool fail(Error& err, uint32_t line, std::string message) {
     return false;
 }
 
-bool texture(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() == 3 && (f[2] == "pixel" || f[2] == "hd"))
-        return fail(err, line, "texture record needs a path: texture|<name>|" + f[2] + "|<path>");
-    if (f.size() == 3)
-        return fail(err, line, "texture record needs a codec: texture|<name>|pixel|<path> or "
-                               "texture|<name>|hd|<path>");
-    if (f.size() != 4)
-        return fail(err, line, "texture record has " + std::to_string(f.size()) +
-                                   " fields, expected texture|<name>|<codec>|<path>");
-    if (f[2] != "pixel" && f[2] != "hd")
-        return fail(err, line, "unknown codec '" + f[2] + "', expected pixel or hd");
-    return true;
-}
-
-bool level(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if ((f.size() != 4 && f.size() != 5) || f[2] != "tiled")
-        return fail(err, line, "level record expected as level|<name>|tiled|<path>.tmj or "
-                               "level|<name>|tiled|<path>.tmj|viewport");
-    if (f.size() == 5 && f[4] != "viewport")
-        return fail(err, line, "unknown level option '" + f[4] + "', expected viewport");
-    const std::string& path = f[3];
-    if (path.size() < 4 || path.compare(path.size() - 4, 4, ".tmj") != 0)
-        return fail(err, line, "level path '" + path + "' must be a Tiled JSON map (.tmj)");
-    return true;
-}
-
-bool clips(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 4 || (f[2] != "aseprite" && f[2] != "sheet"))
-        return fail(err, line, "clips record expected as clips|<name>|aseprite|<path>.json or "
-                               "clips|<name>|sheet|<path>.sheet");
-    const std::string ext = f[2] == "aseprite" ? ".json" : ".sheet";
-    if (!f[3].ends_with(ext)) return fail(err, line, "clips path '" + f[3] + "' must end in " + ext);
-    return true;
-}
-
-bool font(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 4 || f[2] != "bitmask")
-        return fail(err, line, "font record expected as font|<name>|bitmask|<path>.json");
-    if (!f[3].ends_with(".json")) return fail(err, line, "font path '" + f[3] + "' must end in .json");
-    return true;
-}
-
-bool credits(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 3) return fail(err, line, "credits record expected as credits|<name>|<path>.txt");
-    if (!f[2].ends_with(".txt")) return fail(err, line, "credits path '" + f[2] + "' must end in .txt");
-    return true;
-}
-
-bool touch(const std::vector<std::string>& f, uint32_t line, Error& err) {
-    if (f.size() != 4 || f[2] != "layout")
-        return fail(err, line, "touch record expected as touch|<name>|layout|<path>.txt");
-    if (!f[3].ends_with(".txt")) return fail(err, line, "touch path '" + f[3] + "' must end in .txt");
-    return true;
-}
-
 bool game(const Kind& k, const std::vector<std::string>& f, uint32_t line, Error& err) {
     const std::string shape = f[0] + "|<name>|<path>" + k.extension;
     if (f.size() != 3) return fail(err, line, f[0] + " record expected as " + shape);
@@ -77,19 +23,12 @@ bool game(const Kind& k, const std::vector<std::string>& f, uint32_t line, Error
     return true;
 }
 
-struct Builtin {
-    const char* name;
-    bool (*check)(const std::vector<std::string>& f, uint32_t line, Error& err);
-};
-constexpr Builtin BUILTIN[] = {{"texture", texture}, {"level", level}, {"clips", clips},
-                               {"font", font},       {"credits", credits}, {"touch", touch}};
-
 bool kind_ok(const std::vector<std::string>& f, uint32_t line, std::span<const Kind> kinds, Error& err) {
-    for (const Builtin& b : BUILTIN)
+    for (const RecordShape& b : builtin_shapes())
         if (f[0] == b.name) return b.check(f, line, err);
     if (const Kind* k = find_kind(kinds, f[0])) return game(*k, f, line, err);
     std::string known;
-    for (const Builtin& b : BUILTIN) known += std::string(known.empty() ? "" : ", ") + b.name;
+    for (const RecordShape& b : builtin_shapes()) known += std::string(known.empty() ? "" : ", ") + b.name;
     known += ", zone, zone_limit";
     for (const Kind& k : kinds) known += std::string(", ") + k.name;
     return fail(err, line, "unsupported record kind '" + f[0] + "' (this tool bakes: " + known + ")");
@@ -117,7 +56,8 @@ bool record(const std::vector<std::string>& f, uint32_t line, std::span<const Ki
     const std::string& path = no_codec ? f[2] : f[3];
     std::string why;
     if (!path_ok(path, why)) return fail(err, line, why);
-    rec = Record{line, f[0], f[1], no_codec ? std::string() : f[2], path, f.size() == 5 && f[4] == "viewport"};
+    rec = Record{line, f[0], f[1], no_codec ? std::string() : f[2], path, f[0] == "level" && f.size() == 5 && f[4] == "viewport",
+                 f[0] == "strings" ? f[4] : std::string()};
     return true;
 }
 
@@ -137,7 +77,7 @@ bool kinds_ok(std::span<const Kind> kinds, std::string& error) {
             return table_fail(error, "kind '" + name + "' extension '" + ext +
                                          "' must be '.' and a suffix of letters, digits, '_', '-' or '.'");
         if (viewport_key(name)) return table_fail(error, "game record kind '" + name + "' shadows a built-in kind");
-        for (const Builtin& b : BUILTIN)
+        for (const RecordShape& b : builtin_shapes())
             if (name == b.name) return table_fail(error, "game record kind '" + name + "' shadows a built-in kind");
         for (size_t j = 0; j < i; ++j)
             if (name == kinds[j].name) return table_fail(error, "game record kind '" + name + "' is listed twice");

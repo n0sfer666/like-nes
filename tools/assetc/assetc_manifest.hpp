@@ -16,6 +16,7 @@
 //   clips|<имя>|aseprite|<путь>.json        лист Aseprite → строки таблицы clips
 //   clips|<имя>|sheet|<путь>.sheet          ровная сетка кадров → строки таблицы clips
 //   font|<имя>|bitmask|<путь>.json          маски глифов → текстура-атлас <имя> и строка таблицы fonts
+//   strings|<имя>|tsv|<путь>.tsv|<шрифт>     строки en/ru → секция LNST с покрытием шрифтом
 //   credits|<имя>|<путь>.txt                титры чужих ассетов → секция <имя>
 //   <вид>|<имя>|<путь><расширение>          вид игры (Kind) против clips манифеста → секция <имя>
 //
@@ -27,6 +28,7 @@ struct Record {
     uint32_t line = 0;
     std::string kind, name, codec, path;
     bool viewport = false;
+    std::string font{}; // named font for strings; empty for other records
 };
 
 struct Error {

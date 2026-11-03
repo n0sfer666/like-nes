@@ -10,6 +10,7 @@
 #include "layer_cover.hpp"
 #include "level_source.hpp"
 #include "manifest_kind_bake.hpp"
+#include "manifest_strings.hpp"
 #include "manifest_viewport.hpp"
 #include "platform_fs.hpp"
 
@@ -118,10 +119,12 @@ struct Gathered {
     std::vector<framework::graphics::ClipSrc> clips;
     std::vector<framework::graphics::FontSrc> fonts;
     std::vector<TextRecord> games;
+    std::vector<StringsRecord> strings;
     uint32_t last_level = 0, last_clips = 0, last_font = 0;
 };
 
 bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src, Gathered& g) {
+    if (r.kind == "strings") { g.strings.push_back({r, file}); return true; }
     if (r.kind == "credits" || r.kind == "touch" || find_kind(b.kinds, r.kind) != nullptr) {
         std::vector<uint8_t> bytes;
         if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
@@ -181,6 +184,8 @@ bool bake(Bake& b) {
     if (!g.levels.empty() && !bakers::levels(g.levels, b.assets, why)) return bake_fail(b, g.last_level, why);
     if (!g.clips.empty() && !bakers::clips(g.clips, b.assets, why)) return bake_fail(b, g.last_clips, why);
     if (!g.fonts.empty() && !bakers::fonts(g.fonts, b.assets, why)) return bake_fail(b, g.last_font, why);
+    for (const StringsRecord& f : g.strings)
+        if (!bake_strings(b, f, g.fonts)) return false;
     for (const TextRecord& f : g.games)
         if (!bake_kind(b, f, g.clips)) return false;
     return bake_viewport(b);
