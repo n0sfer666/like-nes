@@ -345,6 +345,12 @@ a new wish settles. The count follows each tick's first forward observation; his
 stay in Session. One owning thread uses one continuous tick epoch; create a new intent after
 Session::reset/restart. This selects an intent, not an audible track; playback remains a separate step.
 
+`MusicTrack` (`music_track.hpp`) holds cold source values for the upcoming stream: a64bit ID,
+exactly one immutable encoded Ogg or stereo/48000Hz PCM span, the full frame count, loop start/end
+and fade length in samples (default48000). Both spans borrow storage until the worker stops and
+joins. The intro starts at0, then loops from the exclusive end to loop_start. The worker decoder
+uses the same bounded loop path for Ogg and PCM; a failed block is discarded in full.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

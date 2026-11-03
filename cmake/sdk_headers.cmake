@@ -10,6 +10,7 @@ set(LIKE_NES_SDK_HEADERS
   audio/mixer.hpp audio/audio_engine.hpp audio/decoder.hpp audio/vorbis_reader.hpp
   audio/audio_stereo_ring.hpp
   audio/music_intent.hpp
+  audio/music_track.hpp
   asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp platform/platform_haptic.hpp platform/platform_save.hpp

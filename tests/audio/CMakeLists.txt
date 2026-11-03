@@ -20,3 +20,7 @@ target_link_libraries(audio_stereo_ring_threads_test PRIVATE audio_core)
 
 add_executable(audio_music_intent_test audio_music_intent_test.cpp)
 target_link_libraries(audio_music_intent_test PRIVATE audio_core framework_rollback)
+
+add_executable(audio_music_decoder_test audio_music_decoder_test.cpp)
+target_link_libraries(audio_music_decoder_test PRIVATE audio_core platform_core)
+target_compile_definitions(audio_music_decoder_test PRIVATE AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")

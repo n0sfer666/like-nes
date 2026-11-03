@@ -39,6 +39,7 @@ CMAKE
 #include "vorbis_reader.hpp"
 #include "audio_stereo_ring.hpp"
 #include "music_intent.hpp"
+#include "music_track.hpp"
 #include "rollback_timing.hpp"
 int main() {
     constexpr auto settle = framework::rollback::SETTLE_TICKS<8>;
@@ -48,6 +49,9 @@ int main() {
     audio::VorbisReader decoder; std::string decode_error;
     if (decoder.open({}, decode_error) || decode_error.empty()) return 1;
     const audio::StereoFrame pcm{800, -1600};
+    audio::MusicTrack track;
+    track.id = 1; track.pcm = {&pcm, 1}; track.frames = track.loop_end = 1;
+    if (!track.encoded.empty() || track.pcm.size() != track.frames || track.fade_samples != audio::SAMPLE_RATE) return 1;
     audio::StereoRing ring; audio::StereoFrame streamed;
     if (ring.push(1, {&pcm, 1}) != 1 || ring.take(2, streamed) || streamed.left || streamed.right ||
         ring.push(2, {&pcm, 1}) != 1 || !ring.take(2, streamed) || streamed.left != 800 || streamed.right != -1600) return 1;
