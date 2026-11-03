@@ -17,3 +17,6 @@ add_executable(audio_stereo_ring_test audio_stereo_ring_test.cpp)
 target_link_libraries(audio_stereo_ring_test PRIVATE audio_core framework_alloc_probe_control platform_core)
 add_executable(audio_stereo_ring_threads_test audio_stereo_ring_threads_test.cpp)
 target_link_libraries(audio_stereo_ring_threads_test PRIVATE audio_core)
+
+add_executable(audio_music_intent_test audio_music_intent_test.cpp)
+target_link_libraries(audio_music_intent_test PRIVATE audio_core framework_rollback)

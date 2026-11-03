@@ -38,7 +38,13 @@ CMAKE
 #include "audio_engine.hpp"
 #include "vorbis_reader.hpp"
 #include "audio_stereo_ring.hpp"
+#include "music_intent.hpp"
+#include "rollback_timing.hpp"
 int main() {
+    constexpr auto settle = framework::rollback::SETTLE_TICKS<8>;
+    audio::MusicIntent intent(settle);
+    for (uint32_t t = 0; t < settle - 1; ++t) if (intent.observe(t, UINT64_MAX)) return 1;
+    if (intent.observe(0, 0) || intent.observe(settle - 1, UINT64_MAX) != UINT64_MAX) return 1;
     audio::VorbisReader decoder; std::string decode_error;
     if (decoder.open({}, decode_error) || decode_error.empty()) return 1;
     const audio::StereoFrame pcm{800, -1600};

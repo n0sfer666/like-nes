@@ -1147,7 +1147,7 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
@@ -1161,7 +1161,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -3168,6 +3168,7 @@ jobs:
           audio_stereo_limits_test:audio-stereo-limits: PASS registry bounds, empty PCM, voice reuse and zero allocations
           audio_stereo_ring_test:audio-stereo-ring: PASS stereo FIFO, bounds, generations, partial writes and zero allocations
           audio_stereo_ring_threads_test:audio-stereo-ring-threads: PASS concurrent FIFO and delayed old generation handoff
+          audio_music_intent_test:audio-music-intent: PASS stable forward ticks, wrap, gaps and actual max-depth rollback
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode
           plugin_wasm_host_test:plugin-wasm-host: PASS

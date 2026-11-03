@@ -334,6 +334,17 @@ ring capacity; a miss returns false and a zero frame. The caller counts underrun
 heap allocation or lock is involved. This is a stream primitive; worker and playback transitions
 are the next part of #26 V6.
 
+`MusicIntent` (`music_intent.hpp`) observes a complete `(simulation_tick, track_id)` pair outside
+rollback snapshots. Pass `framework::rollback::SETTLE_TICKS<Depth>` or checked `settle_ticks(depth)`
+from `rollback_timing.hpp`; depth8 gives25. Runtime overflow returns zero, an invalid/inert intent.
+Only unique forward ticks count; replayed/duplicate ticks cannot change even the candidate.
+A gap or a different forward wish restarts the count. Tick comparison handles uint32 wrap with
+modular distance below half the range. At the exact threshold, observe returns the new stable
+64bit track ID once; zero is a valid ID. `stable_track()` retains the last settled selection while
+a new wish settles. The count follows each tick's first forward observation; historical corrections
+stay in Session. One owning thread uses one continuous tick epoch; create a new intent after
+Session::reset/restart. This selects an intent, not an audible track; playback remains a separate step.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

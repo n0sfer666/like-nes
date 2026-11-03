@@ -9,6 +9,7 @@ set(LIKE_NES_SDK_HEADERS
   audio/audio_types.hpp audio/audio_spsc.hpp audio/fix_math.hpp audio/limiter.hpp audio/voice.hpp
   audio/mixer.hpp audio/audio_engine.hpp audio/decoder.hpp audio/vorbis_reader.hpp
   audio/audio_stereo_ring.hpp
+  audio/music_intent.hpp
   asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp platform/platform_haptic.hpp platform/platform_save.hpp
@@ -70,6 +71,7 @@ set(LIKE_NES_SDK_HEADERS
   framework/graphics/font_format.hpp framework/graphics/font_read.hpp framework/graphics/font_bake.hpp
   framework/graphics/text_layout.hpp framework/graphics/gpu/text_quads.hpp
   framework/rollback/input_ring.hpp framework/rollback/plan.hpp framework/rollback/session.hpp
+  framework/rollback/rollback_timing.hpp
   framework/haptic/haptic.hpp
   framework/ui/strings.hpp framework/ui/strings_format.hpp framework/ui/strings_bake.hpp
   framework/ui/ui_input.hpp
