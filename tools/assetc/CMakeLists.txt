@@ -5,10 +5,10 @@
 add_library(assetc_core STATIC bakers.cpp bakers_pixel.cpp assetc_manifest.cpp
   assetc_manifest_paths.cpp assetc_depfile.cpp assetc_emit.cpp assetc_tool.cpp manifest_bake.cpp
   manifest_kind_bake.cpp manifest_viewport.cpp manifest_shapes.cpp manifest_strings.cpp manifest_mode.cpp game_mode.cpp verify_game.cpp level_source.cpp bakers_level.cpp
-  bakers_clips.cpp bakers_fonts.cpp bakers_credits.cpp bakers_touch.cpp push_table.cpp)
+  bakers_clips.cpp bakers_fonts.cpp bakers_credits.cpp bakers_touch.cpp push_table.cpp manifest_music.cpp)
 target_include_directories(assetc_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(assetc_core PUBLIC asset_core framework_core framework_tiled framework_ui framework_graphics_import
-  framework_touch)
+  framework_touch framework_music audio_core)
 
 # Пекари zero-parse таблиц — только в дереве: их зовут базовый `assetc` (материалы и светы) и
 # `ugly_assetc` (секции игры-образца), а SDK их не ставит.
@@ -50,3 +50,7 @@ target_link_libraries(assetc_viewport_test PRIVATE assetc_core)
 
 add_executable(assetc_strings_test assetc_strings_test.cpp)
 target_link_libraries(assetc_strings_test PRIVATE assetc_core)
+
+add_executable(assetc_music_test assetc_music_test.cpp)
+target_link_libraries(assetc_music_test PRIVATE assetc_core)
+target_compile_definitions(assetc_music_test PRIVATE MUSIC_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")

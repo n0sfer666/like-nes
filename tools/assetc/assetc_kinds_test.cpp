@@ -41,7 +41,7 @@ void kinds() {
           "game kind record: " + e.message);
     check(!manifest::parse("fighter|a|f/a.fight\n", r, e, fighter) && has(e.message, "must end in .fighter"),
           "game kind extension: " + e.message);
-    check(!manifest::parse("boss|a|b.boss\n", r, e, fighter) && has(e.message, "strings, zone, zone_limit, fighter)"),
+    check(!manifest::parse("boss|a|b.boss\n", r, e, fighter) && has(e.message, "strings, music, zone, zone_limit, fighter)"),
           "game kinds listed after the built-in ones: " + e.message);
     check(!manifest::parse("texture|a|pixel|a.png\n", r, e, {bad + 4, 1}) && has(e.message, "kind table: "),
           "parse refuses a broken kind table: " + e.message);

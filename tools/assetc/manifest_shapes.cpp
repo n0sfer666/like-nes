@@ -1,6 +1,7 @@
 #include "manifest_shapes.hpp"
 
 #include "strings_format.hpp"
+#include "manifest_music.hpp"
 
 namespace asset::manifest {
 namespace {
@@ -75,7 +76,7 @@ bool strings(const std::vector<std::string>& f, uint32_t line, Error& err) {
 }
 
 constexpr RecordShape BUILTIN[] = {{"texture", texture}, {"level", level}, {"clips", clips},
-                               {"font", font},       {"credits", credits}, {"touch", touch}, {"strings", strings}};
+                               {"font", font},       {"credits", credits}, {"touch", touch}, {"strings", strings}, {"music", music_shape}};
 
 }
 std::span<const RecordShape> builtin_shapes() { return BUILTIN; }

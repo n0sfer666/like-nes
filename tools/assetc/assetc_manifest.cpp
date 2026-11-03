@@ -5,6 +5,7 @@
 #include "text_fields.hpp"
 #include "manifest_viewport.hpp"
 #include "manifest_shapes.hpp"
+#include "manifest_music.hpp"
 
 namespace asset::manifest {
 namespace {
@@ -58,6 +59,7 @@ bool record(const std::vector<std::string>& f, uint32_t line, std::span<const Ki
     if (!path_ok(path, why)) return fail(err, line, why);
     rec = Record{line, f[0], f[1], no_codec ? std::string() : f[2], path, f[0] == "level" && f.size() == 5 && f[4] == "viewport",
                  f[0] == "strings" ? f[4] : std::string()};
+    if (f[0] == "music" && !music_options(f, line, err, rec.music)) return false;
     return true;
 }
 
@@ -128,6 +130,10 @@ bool parse(const std::string& text, std::vector<Record>& out, Error& err, std::s
         out.push_back(std::move(rec));
     }
     if (out.empty()) return fail(err, 0, "manifest has no records");
+    bool has_music = false;
+    for (const auto& r : out) has_music |= r.kind == "music";
+    if (has_music) for (const auto& r : out)
+        if (r.name == "music") return fail(err, r.line, "name 'music' is reserved for the music section when music records are present");
     if (viewport) *viewport = pending;
     return true;
 }

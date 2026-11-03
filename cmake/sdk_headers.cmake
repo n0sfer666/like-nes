@@ -6,6 +6,8 @@
 
 set(LIKE_NES_SDK_HEADERS
   core/fixed.hpp core/sim_tick.hpp
+  audio/audio_types.hpp audio/audio_spsc.hpp audio/fix_math.hpp audio/limiter.hpp audio/voice.hpp
+  audio/mixer.hpp audio/audio_engine.hpp audio/decoder.hpp audio/vorbis_reader.hpp
   asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp platform/platform_haptic.hpp platform/platform_save.hpp
@@ -81,6 +83,7 @@ set(LIKE_NES_SDK_HEADERS
 
 # Статические цели SDK. Порядок не важен: граф ссылок Config выводит из целей дерева.
 set(LIKE_NES_SDK_STATIC
+  audio_core
   framework_save framework_ui framework_music framework_haptic platform_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native input_gamepad platform_core render_core
@@ -88,6 +91,7 @@ set(LIKE_NES_SDK_STATIC
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay render_types)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE
+  audio_core
   framework_save framework_ui framework_music engine_core asset_hash asset_view platform_core input_core render_core render_surface
   framework_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback

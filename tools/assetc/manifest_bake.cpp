@@ -11,6 +11,7 @@
 #include "level_source.hpp"
 #include "manifest_kind_bake.hpp"
 #include "manifest_strings.hpp"
+#include "manifest_music.hpp"
 #include "manifest_viewport.hpp"
 #include "platform_fs.hpp"
 
@@ -120,11 +121,14 @@ struct Gathered {
     std::vector<framework::graphics::FontSrc> fonts;
     std::vector<TextRecord> games;
     std::vector<StringsRecord> strings;
+    std::vector<framework::music::MusicSrc> music;
     uint32_t last_level = 0, last_clips = 0, last_font = 0;
+    uint32_t last_music = 0;
 };
 
 bool second_pass(Bake& b, const Record& r, const std::string& file, LevelSource& src, Gathered& g) {
     if (r.kind == "strings") { g.strings.push_back({r, file}); return true; }
+    if (r.kind == "music") { g.last_music = r.line; return gather_music(b, r, file, g.music); }
     if (r.kind == "credits" || r.kind == "touch" || find_kind(b.kinds, r.kind) != nullptr) {
         std::vector<uint8_t> bytes;
         if (!platform::read_bytes_capped(file, bytes, MAX_MANIFEST_BYTES))
@@ -188,7 +192,7 @@ bool bake(Bake& b) {
         if (!bake_strings(b, f, g.fonts)) return false;
     for (const TextRecord& f : g.games)
         if (!bake_kind(b, f, g.clips)) return false;
-    return bake_viewport(b);
+    return finish_music(b, g.music, g.last_music) && bake_viewport(b);
 }
 
 } // namespace asset::manifest

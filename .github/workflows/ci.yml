@@ -963,7 +963,7 @@ jobs:
           for t in material_bake_test material_source_test material_table_test \
                    material_library_test light_table_test assetc_manifest_test assetc_kinds_test \
                    assetc_bake_test assetc_level_test assetc_clips_test assetc_fighter_test \
-                   assetc_font_test assetc_touch_test assetc_strings_test; do
+                   assetc_font_test assetc_touch_test assetc_strings_test assetc_music_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$t" -o -name "$t.exe" \) | head -1)
             [ -n "$B" ] || { echo "$t not built on ${{ matrix.os }}"; exit 1; }
             "$B" > "$t.txt" 2>&1 || { cat "$t.txt"; echo "$t FAILED on ${{ matrix.os }}"; exit 1; }
@@ -1169,6 +1169,18 @@ jobs:
             grep -q ': PASS' "dbg_$T.txt" || { echo "$T FAILED in Debug"; exit 1; }
           done
           grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' dbg_audio_stereo_test.txt
+
+      - name: Music — Debug manifest, actual Ogg and transactional refusals (all OS)
+        shell: bash
+        env:
+          BUILD_DIR: build-debug
+          LIKE_NES_BUILD_TYPE: Debug
+          LIKE_NES_BUILD_SUBSET: "1"
+          LIKE_NES_BUILD_TARGETS: "assetc_music_test"
+        run: |
+          bash scripts/build_check.sh
+          ./build-debug/assetc_music_test | tee dbg_assetc_music.txt
+          grep -qxF 'assetc-music: PASS grammar, actual Ogg, loops, fades, canonical bytes and CLI refusal' dbg_assetc_music.txt
 
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         shell: bash
@@ -3165,6 +3177,7 @@ jobs:
           assetc_clips_test:assetc-clips: PASS
           assetc_fighter_test:assetc-fighter: PASS
           assetc_strings_test:assetc-strings: PASS grammar, coverage, forward fonts, CLI strict/summary/depfile
+          assetc_music_test:assetc-music: PASS grammar, actual Ogg, loops, fades, canonical bytes and CLI refusal
           assetc_font_test:assetc-font: PASS
           assetc_touch_test:assetc-touch: PASS - 9 cases
           framework_text_test:framework-text: PASS

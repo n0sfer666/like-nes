@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <vector>
@@ -17,6 +18,7 @@
 //   clips|<имя>|sheet|<путь>.sheet          ровная сетка кадров → строки таблицы clips
 //   font|<имя>|bitmask|<путь>.json          маски глифов → текстура-атлас <имя> и строка таблицы fonts
 //   strings|<имя>|tsv|<путь>.tsv|<шрифт>     строки en/ru → секция LNST с покрытием шрифтом
+//   music|<имя>|vorbis|<путь>.ogg[|start|end][|fade_ms=N]  Ogg как есть + таблица music/LNMU
 //   credits|<имя>|<путь>.txt                титры чужих ассетов → секция <имя>
 //   <вид>|<имя>|<путь><расширение>          вид игры (Kind) против clips манифеста → секция <имя>
 //
@@ -24,11 +26,17 @@
 // записи — отказ, а не пропуск строки: пропущенная запись всплыла бы у игры дырой в бандле.
 namespace asset::manifest {
 
+struct MusicOptions {
+    uint32_t loop_start = 0;
+    std::optional<uint32_t> loop_end;
+    uint32_t fade_ms = 1000;
+};
 struct Record {
     uint32_t line = 0;
     std::string kind, name, codec, path;
     bool viewport = false;
     std::string font{}; // named font for strings; empty for other records
+    MusicOptions music{};
 };
 
 struct Error {

@@ -35,7 +35,18 @@ CMAKE
 #include "ui_input.hpp"
 #include "ui_context.hpp"
 #include "preset_bake.hpp"
+#include "audio_engine.hpp"
+#include "vorbis_reader.hpp"
 int main() {
+    audio::VorbisReader decoder; std::string decode_error;
+    if (decoder.open({}, decode_error) || decode_error.empty()) return 1;
+    const audio::StereoFrame pcm{800, -1600};
+    audio::Mixer mixer(audio::Backend::Fix32);
+    if (!mixer.register_stereo_source(1, &pcm, 1)) return 1;
+    audio::AudioEngine sound(mixer); audio::PlayParams play;
+    if (!sound.play(1, play, 0)) return 1;
+    int16_t mixed[128]{}; mixer.mix(64, mixed);
+    if (mixed[94] != 800 || mixed[95] != -1600) return 1;
     auto* pad = input::make_gamepad_source();
     if (pad == nullptr || !pad->init()) return 1;
     input::ActionMap map;

@@ -7,7 +7,10 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 
 Предмет — **поставленный префикс**, а не дерево. Внутри дерева игре видны все заголовки и все цели,
 и забытый в [`cmake/sdk_headers.cmake`](../../cmake/sdk_headers.cmake) заголовок или библиотека
-проявились бы только у игрока. Гейт:
+проявились бы только у игрока. С В6б3 #26 fixture `sdk_game_music.sh` печёт actual Ogg
+установленным assetc, читает LNMU и декодирует его через поставленный audio_core в Release/Debug.
+Engine/native-pad fixture также использует stereo Mixer/VorbisReader без GLFW на трёх платформах.
+Гейт:
 
 1. конфигурирует и собирает `build-sdk-release` (`like_nes_sdk` + `assetc`) и `build-sdk-debug`
    (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;

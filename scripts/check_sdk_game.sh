@@ -48,6 +48,8 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_gamepad.sh"
 # shellcheck source=scripts/sdk_game_strings.sh
 . "$ROOT/scripts/sdk_game_strings.sh"
+# shellcheck source=scripts/sdk_game_music.sh
+. "$ROOT/scripts/sdk_game_music.sh"
 python3 "$ROOT/scripts/gamepad_closure_selftest.py" || exit 1
 
 GEN=Ninja
@@ -87,6 +89,7 @@ sdk_build build-sdk-release Release like_nes_sdk assetc || exit 1
 sdk_build build-sdk-debug Debug like_nes_sdk || exit 1
 fixture_gamepad_source desktop "$PREFIX" || FAIL=1
 fixture_strings_bake || FAIL=1
+fixture_music_bake || FAIL=1
 
 for cfg in Release Debug; do
     if game_build "$ROOT/games/neon-rumble" "$OUT/game-$cfg" "$cfg"; then

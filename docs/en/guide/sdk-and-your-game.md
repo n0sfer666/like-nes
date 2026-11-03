@@ -203,6 +203,7 @@ fighter | adler_fighter | fighters/adler.fighter
 | `clips` | name, `aseprite` or `sheet`, path | animation clips: see [Animations in Aseprite](aseprite-animations.md) |
 | `font` | name, `bitmask`, path to a `.json` | a bitmap font and its atlas: see [Fonts and credits](fonts-and-credits.md) |
 | `strings` | name, `tsv`, path to a `.tsv`, font name | an LNST translation table; the font may be declared later |
+| `music` | name, `vorbis`, path to an `.ogg`, optional loop start/end and `fade_ms=N` | original Ogg bytes and the LNMU `music` table |
 | `credits` | name, path to a `.txt` | the credits table: see [Asset licenses](asset-licenses.md) |
 | `fighter` | name, path to a `.fighter` | a fighter table: speeds, jump, depth, hp and the strikes of the fighter's clips. A record of the game's tool `rumble_assetc`: the SDK's `assetc` refuses it |
 
@@ -312,12 +313,26 @@ An omitted loop end uses the complete source. `fade_ms` defaults to 1000 and con
 to sample frames; zero selects an instant transition, overflow refuses. Names are ASCII machine
 keys up to 128 bytes; IDs use common FNV. Rows and the string pool are canonical by ID, with
 4096 tracks and a 1 MiB section cap. Refused baking preserves the previous output.
-Ogg import and streaming are separate parts of #26 V6.
+The manifest accepts `music|menu|vorbis|assets/menu.ogg[|loop_start|loop_end][|fade_ms=N]`.
+The optional named fade suffix comes last and may appear without loop points. The importer
+fully decodes the source to validate its frame count, requires 48000 Hz mono/stereo, and refuses
+an out-of-range loop. Positions count sample frames, not interleaved values. Each encoded file
+is capped at 64 MiB and stored unchanged as Audio/Vorbis/Mmap, with rate/channels/frames metadata.
+All music records share one canonical raw table named `music`; it is absent when there are no
+music records. Refusal leaves an existing output bundle and depfile unchanged.
+
+The SDK exports `audio_core` through `like-nes::engine`: `VorbisReader` (`vorbis_reader.hpp`)
+borrows immutable encoded bytes until close/destruction. Each instance belongs to one thread;
+different instances may decode in parallel. All decoding/open/seek work runs outside the audio
+callback. Reads accept native channels or stereo; EOF succeeds with zero frames. Full mono
+`decode_vorbis` remains available for effects. Mixer stereo PCM is immutable and must outlive
+the Mixer, after the callback has stopped and joined. Streaming is the next part of #26 V6.
 
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`
-  and `fonts` are reserved, because the bake gives those names to its own tables.
+  and `fonts` are reserved, because the bake gives those names to its own tables. When any music
+  records are present, `music` is also reserved for the LNMU table.
 - A path is relative to the manifest and uses `/`. `..`, `\`, `:`, a leading `/` and an empty or
   `.` segment are refused. Every segment must match the directory listing **in case**, on every
   OS. `Tiles/` written for `tiles/` would work on macOS and fail for a player on Linux.

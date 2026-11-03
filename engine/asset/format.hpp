@@ -30,9 +30,9 @@ enum class Codec : uint32_t {
 };
 
 // Для AssetType::Audio generic-слоты AssetEntry несут аудио-мету (плоско, без union). В PoC
-// заполняется только variant_key=flags (bit0=loop); tex_w/tex_h/tex_format (sample_rate/
-// channels/frames) ЗАРЕЗЕРВИРОВАНЫ под bake-time мету — сейчас рантайм выводит их из
-// ogg-контейнера (stb_vorbis). Заполнять при bake — точка расширения (нужен decode в assetc).
+// variant_key=flags (bit0=loop); tex_w/tex_h/tex_format = sample_rate/channels/frames.
+// Запись manifest music заполняет мету проверенного Ogg; старый --audio сохраняет нули,
+// и его потребитель выводит мету из контейнера. Оба пути хранят payload Ogg без изменений.
 constexpr uint32_t AUDIO_FLAG_LOOP = 1u;
 
 // WGPUTextureFormat_RGBA8Unorm: пекарь пишет target-native значение, а ни пекарь, ни читатель
