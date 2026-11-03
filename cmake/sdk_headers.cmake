@@ -8,6 +8,7 @@ set(LIKE_NES_SDK_HEADERS
   core/fixed.hpp core/sim_tick.hpp
   audio/audio_types.hpp audio/audio_spsc.hpp audio/fix_math.hpp audio/limiter.hpp audio/voice.hpp
   audio/mixer.hpp audio/audio_engine.hpp audio/decoder.hpp audio/vorbis_reader.hpp
+  audio/audio_stereo_ring.hpp
   asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp platform/platform_haptic.hpp platform/platform_save.hpp

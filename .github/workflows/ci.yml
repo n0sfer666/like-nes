@@ -1147,7 +1147,7 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
@@ -1161,7 +1161,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -1254,9 +1254,11 @@ jobs:
             -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
           BUILD_DIR=build-vorbis-tsan LIKE_NES_BUILD_TYPE=Debug LIKE_NES_BUILD_SUBSET=1 \
-            LIKE_NES_BUILD_TARGETS=audio_vorbis_threads_test bash scripts/build_check.sh
+            LIKE_NES_BUILD_TARGETS="audio_vorbis_threads_test audio_stereo_ring_threads_test" bash scripts/build_check.sh
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_vorbis_threads_test | tee vorbis_tsan.txt
           grep -qxF 'audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode' vorbis_tsan.txt
+          TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_stereo_ring_threads_test | tee ring_tsan.txt
+          grep -qxF 'audio-stereo-ring-threads: PASS concurrent FIFO and delayed old generation handoff' ring_tsan.txt
 
       # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
       # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет
@@ -3164,6 +3166,8 @@ jobs:
           audio_gain_test:audio-gain: PASS - 12 cases
           audio_stereo_test:audio-stereo: PASS independent channels, gain, loop, timing and mono compatibility
           audio_stereo_limits_test:audio-stereo-limits: PASS registry bounds, empty PCM, voice reuse and zero allocations
+          audio_stereo_ring_test:audio-stereo-ring: PASS stereo FIFO, bounds, generations, partial writes and zero allocations
+          audio_stereo_ring_threads_test:audio-stereo-ring-threads: PASS concurrent FIFO and delayed old generation handoff
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode
           plugin_wasm_host_test:plugin-wasm-host: PASS

@@ -326,7 +326,13 @@ borrows immutable encoded bytes until close/destruction. Each instance belongs t
 different instances may decode in parallel. All decoding/open/seek work runs outside the audio
 callback. Reads accept native channels or stereo; EOF succeeds with zero frames. Full mono
 `decode_vorbis` remains available for effects. Mixer stereo PCM is immutable and must outlive
-the Mixer, after the callback has stopped and joined. Streaming is the next part of #26 V6.
+the Mixer, after the callback has stopped and joined. `StereoRing` (`audio_stereo_ring.hpp`) supplies fixed storage for16384stereo frames
+(341ms at48000Hz). Allocate it before callbacks and retain it until producer and consumer join.
+One producer pushes nonzero64bit generation tags and receives the actual partial write count;
+one consumer takes its expected generation, discarding other tags. Each call scans at most the
+ring capacity; a miss returns false and a zero frame. The caller counts underruns. No cursor reset,
+heap allocation or lock is involved. This is a stream primitive; worker and playback transitions
+are the next part of #26 V6.
 
 The bake refuses a line instead of guessing what it meant:
 

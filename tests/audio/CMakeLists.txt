@@ -12,3 +12,8 @@ foreach(test audio_vorbis_test audio_vorbis_threads_test)
 endforeach()
 # Только тест сравнивает с прежним raw C API, строго до запуска потоков.
 target_include_directories(audio_vorbis_test SYSTEM PRIVATE ${stb_SOURCE_DIR})
+
+add_executable(audio_stereo_ring_test audio_stereo_ring_test.cpp)
+target_link_libraries(audio_stereo_ring_test PRIVATE audio_core framework_alloc_probe_control platform_core)
+add_executable(audio_stereo_ring_threads_test audio_stereo_ring_threads_test.cpp)
+target_link_libraries(audio_stereo_ring_threads_test PRIVATE audio_core)
