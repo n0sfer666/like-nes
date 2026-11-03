@@ -46,6 +46,11 @@ int main() {
     devices.pad_btns[7] = 1;
     check(!channel.read(devices, 0).accept, "unconnected stale pad ignored");
     devices.pad_btns[7] = 0; devices.pad_connected[7] = true;
+    devices.apply({RawKind::PadButtonDown, ::input::DeviceKind::Gamepad, 7, ::input::code::Start});
+    check(channel.read(devices, 0).done && !channel.read(devices, 1000).done, "optional done action is edge-triggered on Start");
+    channel.cancel(); channel.read(devices, 0);
+    check(!channel.read(devices, 1000).done, "cancel blocks held Start");
+    devices.apply({RawKind::PadButtonUp, ::input::DeviceKind::Gamepad, 7, ::input::code::Start}); channel.read(devices, 0);
     devices.pad_axes[7][0] = fix32::from_raw(fix32::ONE / 4);
     check(channel.read(devices, 0).x == 0, "preset deadzone");
     devices.pad_axes[7][0] = fix32::from_int(1);

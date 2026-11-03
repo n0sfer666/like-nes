@@ -34,6 +34,11 @@ struct UiOutput {
     bool back = false;
 };
 struct UiListItem { std::string_view key, label_key; bool enabled = true; };
+struct UiGridLabels { std::string_view erase = "grid.erase", done = "grid.done"; };
+struct UiGridResult {
+    bool changed = false, done = false, back = false, full = false, invalid = false;
+    uint32_t rejected = 0;
+};
 inline constexpr uint32_t UI_WIDGETS = 128, UI_QUADS = 2048, UI_RUNS = 512, UI_TEXT_GLYPHS = 256;
 inline constexpr size_t UI_FIELD_BYTES = 1025;
 
@@ -50,10 +55,17 @@ public:
                 float minimum, float maximum, float step, bool enabled = true);
     bool field(UiId id, std::string_view label_key, UiRect rect, std::span<char> buffer, bool enabled = true);
     std::optional<uint32_t> list(UiId parent, std::span<const UiListItem> items, UiRect rect, uint32_t row_height);
+    // alphabet_key — ключ Strings; max_len считает Unicode scalars, capacity включает NUL.
+    UiGridResult glyph_grid(UiId id, std::string_view alphabet_key, std::span<char> buffer,
+                            uint32_t max_len, UiRect rect, uint32_t columns = 7, UiGridLabels labels = {});
     UiOutput end(); // view до следующего begin/init или уничтожения Context
     std::optional<UiId> focus() const { return focus_; }
 private:
-    struct Widget { UiId id = 0; UiRect rect; bool enabled = false; uint32_t panel_quad = UI_QUADS; };
+    struct Widget {
+        UiId id = 0; UiRect rect; bool enabled = false; uint32_t panel_quad = UI_QUADS;
+        UiId group = 0;
+        uint32_t index = 0, cells = 0, columns = 0;
+    };
     struct Pointer { intptr_t id = 0; std::optional<UiId> target; float x = 0, y = 0; bool held = false, released = false; };
     static bool valid_rect(UiRect rect);
     static bool contains(UiRect rect, float x, float y);
@@ -64,6 +76,7 @@ private:
     bool activated(UiId id);
     bool dragging(UiId id, float& x) const;
     void pointer_events();
+    void navigate();
     std::string_view label(std::string_view key);
     void panel(UiId id, UiRect rect, bool enabled);
     void fill(UiRect rect, uint32_t color);
@@ -83,6 +96,6 @@ private:
     UiInput input_;
     Pointer pointer_;
     std::optional<UiId> focus_, click_;
-    bool ready_ = false, building_ = false, consumed_ = false;
+    bool ready_ = false, building_ = false, consumed_ = false, back_consumed_ = false;
 };
 }

@@ -11,6 +11,7 @@ inline const std::string PRESET =
     "action|accept|key:enter|pad:south\n"
     "action|back|key:esc|pad:east\n"
     "action|erase|key:backspace|pad:west\n"
+    "action|done|pad:start\n"
     "axis|x|padaxis:lx|-\n"
     "axis|y|padaxis:ly|-\n"
     "shape|x|0.25|1.0|1|-\n"

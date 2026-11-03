@@ -8,8 +8,8 @@
 
 namespace framework::ui {
 namespace {
-enum Action { Up, Down, Left, Right, Accept, Back, Erase };
-constexpr const char* ACTIONS[]{"up", "down", "left", "right", "accept", "back", "erase"};
+enum Action { Up, Down, Left, Right, Accept, Back, Erase, Done };
+constexpr const char* ACTIONS[]{"up", "down", "left", "right", "accept", "back", "erase", "done"};
 bool scalar(uint32_t cp) { return graphics::font_codepoint_ok(cp); }
 }
 int UiInputChannel::Repeat::step(int wanted, uint32_t ms) {
@@ -30,7 +30,8 @@ bool UiInputChannel::init(const input::PresetTable& table) {
     if (bindings > 256) return false; // предел до выделения ActionLayout
     for (size_t i = 0; i < actions_.size(); ++i) {
         actions_[i] = table.find_action(p, ACTIONS[i]);
-        if (actions_[i] < 0 || table.action_binding_count(p, actions_[i]) == 0) return false;
+        if (actions_[i] < 0) { if (i != Done) return false; }
+        else if (table.action_binding_count(p, actions_[i]) == 0) return false;
     }
     if (!table.bind(p, layout_)) return false;
     for (size_t i = 0; i < axes_.size(); ++i) {
@@ -102,6 +103,7 @@ UiInput UiInputChannel::read(const ::input::DeviceState& d, uint32_t ms, std::sp
         out.y = static_cast<int8_t>(y_.step(wanted[1], ms));
         out.accept = (held & ~previous_held_ & (1u << Accept)) != 0;
         out.back = (held & ~previous_held_ & (1u << Back)) != 0;
+        out.done = (held & ~previous_held_ & (1u << Done)) != 0;
         out.erase = erase_.step((held & (1u << Erase)) != 0, ms) != 0;
         out.pointer_count = static_cast<uint32_t>(pointers.size());
         std::copy(pointers.begin(), pointers.end(), out.pointers.begin());

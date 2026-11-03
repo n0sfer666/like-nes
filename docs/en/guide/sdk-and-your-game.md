@@ -268,7 +268,29 @@ There are 128 widgets, 2048 quads and 512 runs per frame. Duplicate IDs and inva
 refused; missing labels and fully clipped widgets cannot receive input. UTF-8 text is bounded to
 256 code points per draw and clipped with adjusted UVs. Stats report clipping, invalid data and
 capacity drops; an incompletely drawn widget is disabled and slider changes are rolled back.
-All widget methods and overflow paths allocate no heap memory. Glyph-grid editing follows next.
+All widget methods and overflow paths allocate no heap memory.
+
+`glyph_grid(parent, alphabet_key, buffer, max_len, rect, columns, labels)` edits a mutable
+NUL-terminated UTF-8 buffer. The alphabet is a Strings key (for example `grid.ip`, `grid.name`,
+`grid.room`), so both translations pass font coverage at bake time. There are at most 126 unique
+printable Unicode scalars, plus erase/done cells. `max_len` counts scalars; buffer capacity includes
+the terminator and is capped at 1025 bytes. Invalid UTF-8 or missing termination refuses editing.
+Existing over-limit text stays intact and can be erased; an append needs both scalar and byte space.
+
+D-pad/stick x/y move within the grid, clamping row/column; accept or a tap enters the selected
+scalar. Native keyboard code points must match the alphabet exactly (no case folding). Erase
+removes one complete UTF-8 scalar. The erase/done labels default to Strings keys `grid.erase` and
+`grid.done`; override their keys through `UiGridLabels`. Optional preset action `done` can bind
+`pad:start`; it is edge-triggered and respects cancellation. The done cell also works without it.
+A focused grid returns `back` while preserving the buffer and consumes `end().back`; the game
+owns the next screen. Map physical B to `back` or `erase` in the ui preset to choose its behavior.
+Back/done take priority over edits in the same frame. Results report changed/done/back/full,
+invalid input and rejected code points.
+
+A grid must fit entirely inside the zone and have enough widget/quad capacity. A partially drawn
+grid cannot edit data; a fully rendered frame must precede input. Character IDs include their
+code point, preserving identity when a translated alphabet reorders characters. Use a distinct parent for every grid in a frame; a reused parent is refused even with another
+alphabet key. Draw the grid before its field to display the edited text in the same frame.
 
 The bake refuses a line instead of guessing what it meant:
 

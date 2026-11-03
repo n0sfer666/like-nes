@@ -17,7 +17,7 @@ inline constexpr size_t UI_POINTERS = 16, UI_CHARACTERS = 64;
 enum class UiTextSource : uint8_t { PhysicalLatin, Native };
 struct UiInput {
     int8_t x = 0, y = 0; // шаг навигации; удержание повторяется через350/90ms
-    bool accept = false, back = false, erase = false, cancelled = false;
+    bool accept = false, back = false, erase = false, done = false, cancelled = false;
     std::array<UiPointer, UI_POINTERS> pointers{};
     std::array<uint32_t, UI_CHARACTERS> characters{};
     uint32_t pointer_count = 0, character_count = 0;
@@ -42,7 +42,7 @@ private:
     };
     void keyboard(const ::input::DeviceState& devices, UiInput& out, bool emit);
     ::input::ActionLayout layout_;
-    std::array<int, 7> actions_{};
+    std::array<int, 8> actions_{}; // done необязателен, остальные семь действий обязательны.
     std::array<int, 2> axes_{{-1, -1}};
     std::array<input::StickShape, 2> shapes_{};
     int paired_shape_ = -1;

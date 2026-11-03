@@ -44,7 +44,7 @@ bool Context::begin(const UiInput& input, UiView view) {
         building_ = false; previous_count_ = current_count_ = quad_count_ = run_count_ = 0;
         focus_.reset(); pointer_ = {}; click_.reset(); return false;
     }
-    stats_ = {}; current_count_ = quad_count_ = run_count_ = 0; consumed_ = false; click_.reset();
+    stats_ = {}; current_count_ = quad_count_ = run_count_ = 0; consumed_ = back_consumed_ = false; click_.reset();
     input_ = input;
     if (input.pointer_count > UI_POINTERS || input.character_count > UI_CHARACTERS) input_.cancelled = true;
     for (uint32_t i = 0; i < std::min<uint32_t>(input.pointer_count, static_cast<uint32_t>(UI_POINTERS)); ++i) {
@@ -55,14 +55,7 @@ bool Context::begin(const UiInput& input, UiView view) {
     view_ = view; pointer_.released = false;
     if (input_.cancelled) pointer_ = {};
     else {
-        if (input_.y && previous_count_) {
-            uint32_t at = 0;
-            for (uint32_t i = 0; i < previous_count_; ++i) if (focus_ == previous_[i].id) at = i;
-            for (uint32_t tries = 0; tries < previous_count_; ++tries) {
-                at = input_.y > 0 ? (at + 1) % previous_count_ : (at + previous_count_ - 1) % previous_count_;
-                if (previous_[at].enabled) { focus_ = previous_[at].id; break; }
-            }
-        }
+        navigate();
         pointer_events();
     }
     building_ = true;
@@ -146,6 +139,6 @@ UiOutput Context::end() {
     }
     previous_count_ = current_count_;
     std::copy_n(current_.begin(), current_count_, previous_.begin());
-    return {{quads_.data(), quad_count_}, {runs_.data(), run_count_}, stats_, focus_, !input_.cancelled && input_.back};
+    return {{quads_.data(), quad_count_}, {runs_.data(), run_count_}, stats_, focus_, !input_.cancelled && input_.back && !back_consumed_};
 }
 }

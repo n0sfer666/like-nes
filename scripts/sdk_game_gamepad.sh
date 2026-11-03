@@ -99,6 +99,13 @@ int main() {
     widgets.begin(ui_channel.read(engine.device(), 16));
     if (!widgets.button(button, "label", {0, 0, 20, 12})) return 1;
     widgets.end();
+    char name[4]{};
+    widgets.begin({});
+    widgets.glyph_grid(19, "label", name, 3, {0, 0, 60, 14}, 3, {"label", "label"}); widgets.end();
+    engine.post({input::RawKind::KeyDown, input::DeviceKind::Keyboard, 0, 65}); engine.drain();
+    widgets.begin(ui_channel.read(engine.device(), 16));
+    const auto edited = widgets.glyph_grid(19, "label", name, 3, {0, 0, 60, 14}, 3, {"label", "label"}); widgets.end();
+    if (!edited.changed || edited.invalid || std::string_view(name) != "A") return 1;
     if (pad->pad_info(-1).vid != 0) return 1;
     std::printf("gamepad-only: %s\n", pad->backend_name());
     return 0;

@@ -444,3 +444,7 @@ UiInputChannel и читает UI accept edge из настоящего InputEng
 В5б2 #26: fixture также печёт FontTable и init UI Context по named font строки. Seed frame даёт
 3quads/1mergedrun; fresh Enter через UiInputChannel активирует кнопку во втором кадре. Public
 quad_types.hpp/render_types едет в SDK без GPU dependency у framework_ui.
+
+С В5б3 #26 gamepad-only fixture после Context-кнопки строит glyph_grid с alphabet/labels
+из baked Strings и вводит A через настоящий InputEngine/UiInputChannel. Проверяются changed,
+invalid=false и точное содержимое buffer; прежний ui preset без optional done остаётся valid.
