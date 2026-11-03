@@ -2,7 +2,7 @@
 # audio_core: микшер (Float/Fix32 seam) + декод (stb_vorbis, present в fetched stb). Без
 # устройства/ассетов → deviceless-гейты гоняются в CI на всех трёх ОС (спека #12, гейт 2).
 add_library(audio_core STATIC
-  mixer.cpp decoder.cpp)
+  mixer.cpp mixer_mix.cpp decoder.cpp)
 # stb_vorbis.c — сторонний целиком, ни строки нашей: TU глушится по факту происхождения, а не
 # списком диагностик. Список не работал в принципе — `-Wno-tautological-compare` закрывал ровно
 # то, что успел показать clang, а MSVC пришёл со своим C4701 из той же чужой функции; следующий
@@ -34,6 +34,9 @@ target_link_libraries(audio_gain_test PRIVATE audio_core)
 # Сумма выше шкалы приглушается ограничителем, а не срезается в прямоугольник (аудит #21 A·3·1).
 add_executable(audio_limiter_test audio_limiter_test.cpp)
 target_link_libraries(audio_limiter_test PRIVATE audio_core)
+
+add_executable(audio_stereo_test audio_stereo_test.cpp)
+target_link_libraries(audio_stereo_test PRIVATE audio_core)
 
 # Шов asset->audio: бейкнутый vorbis → decode → mixer → offline WAV (+ --play на устройстве).
 add_executable(audio_seam audio_seam_main.cpp)

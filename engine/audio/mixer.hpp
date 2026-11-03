@@ -24,6 +24,8 @@ struct Source {
     const int16_t* pcm = nullptr;
     uint32_t frames = 0;
     SampleRing* ring = nullptr;
+    const StereoFrame* stereo_pcm = nullptr;
+    bool stereo = false;
 };
 
 class Mixer {
@@ -33,8 +35,11 @@ public:
     // Продюсер (sim/engine-поток): поставить команду. false — очередь полна.
     bool post(const AudioCommand& c) { return commands_.push(c); }
 
-    // Реестр источников (вне RT, до play): guid → резидентный PCM или стрим-ring.
+    // Реестр guid→PCM/ring: все регистрации до запуска callbacks. PCM неизменен; PCM/ring
+    // живут до уничтожения Mixer после остановки/join callback, также для queued/future play.
     void register_source(uint64_t guid, const int16_t* pcm, uint32_t frames, SampleRing* ring);
+    // Duplicate guid/full/null с ненулевой длиной отказываются; пустой источник — тишина.
+    bool register_stereo_source(uint64_t guid, const StereoFrame* pcm, uint32_t frames);
 
     // Callback устройства (RT-safe). Микширует frames стерео-фреймов в out (interleaved int16).
     void mix(uint32_t frames, int16_t* out);

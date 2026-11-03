@@ -190,6 +190,7 @@ add_subdirectory(games/neon-rumble/tools)  # пекарь игры с видом
 add_subdirectory(tools/ide)
 add_subdirectory(example_ugly_game)
 add_subdirectory(docs/examples)   # примеры документации (#19) — после всех, кем они пользуются
+add_subdirectory(tests/audio)     # сквозные audio/allocator проверки без ребра audio→framework
 add_subdirectory(tests/fuzz)      # гейт 9 аудита #21 — последним: линкует читателей всех модулей
 
 # Компоненты установки движка (#20) и SDK (#24) — после tools/, чьи цели они ставят.

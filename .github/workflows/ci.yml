@@ -1144,6 +1144,32 @@ jobs:
           "$BIN" | tee limiter.txt
           grep -q "audio-limiter: PASS - 20 cases" limiter.txt
 
+      - name: Audio — stereo channels, golden and registry limits (all OS)
+        shell: bash
+        run: |
+          for T in audio_stereo_test audio_stereo_limits_test; do
+            B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
+            [ -n "$B" ] || { echo "$T not built"; exit 1; }
+            "$B" | tee "$T.txt"
+            grep -q ': PASS' "$T.txt" || { echo "$T FAILED"; exit 1; }
+          done
+          grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' audio_stereo_test.txt
+
+      - name: Audio — Debug stereo golden and bounds (all OS)
+        shell: bash
+        env:
+          BUILD_DIR: build-debug
+          LIKE_NES_BUILD_TYPE: Debug
+          LIKE_NES_BUILD_SUBSET: "1"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test"
+        run: |
+          bash scripts/build_check.sh
+          for T in $LIKE_NES_BUILD_TARGETS; do
+            ./build-debug/"$T" | tee "dbg_$T.txt"
+            grep -q ': PASS' "dbg_$T.txt" || { echo "$T FAILED in Debug"; exit 1; }
+          done
+          grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' dbg_audio_stereo_test.txt
+
       - name: Audio — seam asset->audio (real vorbis decode via stb_vorbis, offline)
         shell: bash
         run: |
@@ -1190,18 +1216,18 @@ jobs:
           # целей сюда не приезжают: их приходится повторять руками.
           INC="-Iengine/core -Iengine/asset -Iengine/platform"
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 $INC \
-            engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp -o audio_rt_san && ./audio_rt_san
+            engine/audio/audio_rt_test.cpp engine/audio/mixer.cpp engine/audio/mixer_mix.cpp -o audio_rt_san && ./audio_rt_san
           c++ -std=gnu++20 -fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 $INC \
-            engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp -o audio_golden_san && ./audio_golden_san
+            engine/audio/audio_golden_main.cpp engine/audio/mixer.cpp engine/audio/mixer_mix.cpp -o audio_golden_san && ./audio_golden_san
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread $INC \
-            engine/audio/audio_determinism_test.cpp engine/audio/mixer.cpp -o audio_det_tsan && ./audio_det_tsan
+            engine/audio/audio_determinism_test.cpp engine/audio/mixer.cpp engine/audio/mixer_mix.cpp -o audio_det_tsan && ./audio_det_tsan
           # Аудит #21 A·3·5: курсор миксера пишет поток устройства, а читает поток игры. Реализация
           # miniaudio берётся из build-audio шага выше; C-TU собирается отдельно, как в CMake.
           MA=build-audio/_deps/miniaudio-src
           [ -f "$MA/miniaudio.h" ] || { echo "miniaudio not fetched into $MA"; exit 1; }
           cc -fsanitize=thread -g -O1 -I"$MA" -c engine/audio/miniaudio_impl.c -o miniaudio_tsan.o
           c++ -std=gnu++20 -fsanitize=thread -g -O1 -pthread $INC -I"$MA" engine/audio/audio_device_test.cpp \
-            engine/audio/device.cpp engine/audio/mixer.cpp miniaudio_tsan.o -ldl -lm -o audio_device_tsan
+            engine/audio/device.cpp engine/audio/mixer.cpp engine/audio/mixer_mix.cpp miniaudio_tsan.o -ldl -lm -o audio_device_tsan
           ./audio_device_tsan | tee adt_tsan.txt
           grep -q "audio-device: PASS - 26 cases" adt_tsan.txt
 
@@ -3083,6 +3109,8 @@ jobs:
           ach_state_test:PASS
           audio_limiter_test:audio-limiter: PASS - 20 cases
           audio_gain_test:audio-gain: PASS - 12 cases
+          audio_stereo_test:audio-stereo: PASS independent channels, gain, loop, timing and mono compatibility
+          audio_stereo_limits_test:audio-stereo-limits: PASS registry bounds, empty PCM, voice reuse and zero allocations
           plugin_wasm_host_test:plugin-wasm-host: PASS
           framework_json_test:framework-json: PASS
           framework_json_string_test:framework-json-string: PASS

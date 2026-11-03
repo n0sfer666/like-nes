@@ -17,6 +17,8 @@ struct Voice {
     uint32_t frames = 0;
     uint32_t playhead = 0;
     SampleRing* ring = nullptr;     // стрим (если != nullptr — streaming)
+    const StereoFrame* stereo_pcm = nullptr;
+    bool stereo = false;           // независимые L/R, без spatial pan/attenuation
     fix32 gain;
     fix32 x, y;                     // мировая позиция (для пана/аттенюации)
     Bus bus = Bus::Sfx;

@@ -14,6 +14,8 @@ constexpr uint32_t OUT_CHANNELS = 2;   // стерео-выход
 constexpr uint32_t TICK_HZ = sim::TICK_HZ;
 constexpr uint32_t SAMPLES_PER_TICK = SAMPLE_RATE / TICK_HZ; // 800 фреймов/тик
 constexpr uint32_t MAX_VOICES = 32;    // фикс. пул — без per-callback heap
+struct StereoFrame { int16_t left = 0, right = 0; };
+static_assert(sizeof(StereoFrame) == 2 * sizeof(int16_t));
 
 enum class Bus : uint32_t { Music = 0, Sfx = 1, Ambience = 2, Ui = 3, Count = 4 };
 

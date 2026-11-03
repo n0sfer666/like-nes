@@ -1,24 +1,13 @@
 #include "mixer.hpp"
 
-#include <cmath>
-
 namespace audio {
 namespace {
 
 const fix32 HALF = fix32::from_float(0.5);
 const fix32 ONE = fix32::from_int(1);
-const fix32 DUCK_GAIN = fix32::from_float(0.35);   // music пригашается до 0.35 при ducking
-const fix32 DUCK_STEP = fix32::from_float(0.0003); // рамп duck-огибающей ЗА СЕМПЛ (× frames)
-                                                   // → скорость от sample-time, не от размера блока
 const fix32 PAN_DIST = fix32::from_int(8);       // полу-ширина панорамы (мир→[-1,1])
 const fix32 MAX_DIST = fix32::from_int(24);      // радиус слышимости (linear rolloff)
 constexpr uint32_t BUS_N = static_cast<uint32_t>(Bus::Count);
-
-fix32 approach(fix32 cur, fix32 target, fix32 step) {
-    if (cur.raw < target.raw) { fix32 n = cur + step; return n.raw > target.raw ? target : n; }
-    fix32 n = cur - step;
-    return n.raw < target.raw ? target : n;
-}
 
 fix32 clamp_pan(fix32 p) {
     if (p.raw > ONE.raw) return ONE;
@@ -26,19 +15,6 @@ fix32 clamp_pan(fix32 p) {
     return p;
 }
 
-// Один семпл голоса + продвижение playhead. Стрим-underrun → тишина (не деактивирует).
-int16_t fetch_advance(Voice& v, uint64_t& underruns) {
-    if (v.ring) {
-        if (v.ring->readable() == 0) { ++underruns; return 0; }
-        return v.ring->pop_one();
-    }
-    if (v.frames == 0) { v.active = false; return 0; } // пустой резидент → не читаем pcm[0]
-    if (v.playhead >= v.frames) {
-        if (v.loop) v.playhead = 0;
-        else { v.active = false; return 0; }
-    }
-    return v.pcm[v.playhead++];
-}
 
 } // namespace
 
@@ -48,7 +24,15 @@ Mixer::Mixer(Backend b) : backend_(b), master_(fix32::from_int(1)), duck_env_(fi
 
 void Mixer::register_source(uint64_t guid, const int16_t* pcm, uint32_t frames, SampleRing* ring) {
     if (source_count_ >= MAX_SOURCES) return;
-    sources_[source_count_++] = Source{guid, pcm, frames, ring};
+    Source source; source.guid = guid; source.pcm = pcm; source.frames = frames; source.ring = ring;
+    sources_[source_count_++] = source;
+}
+
+bool Mixer::register_stereo_source(uint64_t guid, const StereoFrame* pcm, uint32_t frames) {
+    if (source_count_ == MAX_SOURCES || find_source(guid) || (!pcm && frames)) return false;
+    Source source; source.guid = guid; source.frames = frames; source.stereo_pcm = pcm; source.stereo = true;
+    sources_[source_count_++] = source;
+    return true;
 }
 
 const Source* Mixer::find_source(uint64_t guid) const {
@@ -69,6 +53,7 @@ void Mixer::apply(const AudioCommand& c, uint32_t offset) {
             Voice& v = pool_.alloc(seq_++);
             v.id = c.voice_id;
             v.pcm = src->pcm; v.frames = src->frames; v.ring = src->ring;
+            v.stereo_pcm = src->stereo_pcm; v.stereo = src->stereo;
             v.gain = fix_clamp01(fix32::from_raw(c.gain));
             v.x = fix32::from_raw(c.x); v.y = fix32::from_raw(c.y);
             v.bus = static_cast<Bus>(c.bus);
@@ -112,6 +97,7 @@ void Mixer::recompute_gains(uint32_t /*frames*/) {
         Voice& v = pool_[i];
         if (!v.active) continue;
         ++active;
+        if (v.stereo) { v.gl = v.gr = v.gain; continue; }
         fix32 pan = clamp_pan((v.x - listener_x_) / PAN_DIST);
         fix32 panL = fix_sqrt(fix_clamp01((ONE - pan) * HALF));
         fix32 panR = fix_sqrt(fix_clamp01((ONE + pan) * HALF));
@@ -138,55 +124,6 @@ void Mixer::mix(uint32_t frames, int16_t* out) {
             v.start_offset = v.start_offset > frames ? v.start_offset - frames : 0;
     }
     cursor_.store(cursor() + frames, std::memory_order_relaxed);
-}
-
-void Mixer::mix_fix(uint32_t frames, int16_t* out) {
-    for (uint32_t f = 0; f < frames; ++f) {
-        int64_t busL[BUS_N] = {0}, busR[BUS_N] = {0};
-        bool duck_now = false;
-        for (uint32_t i = 0; i < pool_.size(); ++i) {
-            Voice& v = pool_[i];
-            if (!v.active || f < v.start_offset) continue; // ещё не звучит в этом сэмпле
-            if (v.ducking) duck_now = true;
-            int64_t s = fetch_advance(v, underruns_);
-            busL[static_cast<uint32_t>(v.bus)] += s * v.gl.raw;
-            busR[static_cast<uint32_t>(v.bus)] += s * v.gr.raw;
-        }
-        duck_env_ = approach(duck_env_, duck_now ? DUCK_GAIN : ONE, DUCK_STEP); // per-sample рамп
-        int64_t mL = 0, mR = 0;
-        for (uint32_t b = 0; b < BUS_N; ++b) {
-            fix32 bg = bus_gain_[b];
-            if (b == static_cast<uint32_t>(Bus::Music)) bg = bg * duck_env_;
-            mL += (busL[b] * bg.raw) >> 16;
-            mR += (busR[b] * bg.raw) >> 16;
-        }
-        limiter_.apply((mL * master_.raw) >> 32, (mR * master_.raw) >> 32, out + f * 2);
-    }
-}
-
-void Mixer::mix_float(uint32_t frames, int16_t* out) {
-    for (uint32_t f = 0; f < frames; ++f) {
-        double busL[BUS_N] = {0}, busR[BUS_N] = {0};
-        bool duck_now = false;
-        for (uint32_t i = 0; i < pool_.size(); ++i) {
-            Voice& v = pool_[i];
-            if (!v.active || f < v.start_offset) continue;
-            if (v.ducking) duck_now = true;
-            double s = fetch_advance(v, underruns_);
-            busL[static_cast<uint32_t>(v.bus)] += s * v.gl.to_double();
-            busR[static_cast<uint32_t>(v.bus)] += s * v.gr.to_double();
-        }
-        duck_env_ = approach(duck_env_, duck_now ? DUCK_GAIN : ONE, DUCK_STEP); // per-sample рамп
-        double mL = 0, mR = 0;
-        for (uint32_t b = 0; b < BUS_N; ++b) {
-            double bg = bus_gain_[b].to_double();
-            if (b == static_cast<uint32_t>(Bus::Music)) bg *= duck_env_.to_double();
-            mL += busL[b] * bg;
-            mR += busR[b] * bg;
-        }
-        limiter_.apply(std::llround(mL * master_.to_double()), std::llround(mR * master_.to_double()),
-                       out + f * 2);
-    }
 }
 
 } // namespace audio
