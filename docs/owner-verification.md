@@ -111,6 +111,17 @@ thing as a copy-paste sheet for a freshly installed Windows, Fedora/Nobara or Ar
 
 ## 0. The automated half
 
+The music RT gate is `audio_music_rt_test` in both Release and Debug. It uses real Ogg/PCM
+MusicStream workers and both Mixer backends, measures each callback including close/join, and
+requires audible PCM and two live decoder slots before churn. Plain/aligned allocation controls,
+direct pthread and std::mutex controls, and a cold-thread overlap prevent an inactive or wrongly
+attributed probe from passing. macOS uses a test-only dylib interposer; Linux uses linker wrapping
+of executable/static references, which does not inspect arbitrary DSO internals. Windows explicitly
+runs the allocation gate only. The probe is never linked into an installed SDK or game. ASan/UBSan
+and TSan run the separate functional, lifetime and concurrency tests without this interceptor.
+This deviceless result does not measure phone FPS or touch ergonomics.
+
+
 ```sh
 bash scripts/owner_check.sh
 ```

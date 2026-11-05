@@ -63,3 +63,22 @@ PASS. В CI исправлены ручные Mixer source closures; их SAN RT
 локально PASS.20 actual source mutants в SAN archive отвергнуты; compile/link успешны, baseline
 PASS. Диагностика сохранена в ignored build-sdk-work/v6-vorbis/stream-mutants и stream-manual.
 Новый mobile runtime не проверен: adb devices пуст, прежние ограничения simulator остаются.
+
+## Полный RT gate
+
+Тест audio_music_rt_test использует optional TLS общего allocation probe; прежние defaults и
+операторы неизменны. Отдельный platform test shim: Apple dylib __DATA,__interpose, Linux --wrap
+executable/static references (DSO internals не охвачены), Windows явно allocation-only.
+Control TU живёт в executable: direct pthread и std::mutex обязаны дать2 перехвата на Unix.
+Plain/aligned allocations обязаны считаться, а выделения/locks cold thread при гарантированном
+пересечении hot region не должны приписываться callback. Общий g_escape helper вызывается
+только последовательно. Actual Ogg/PCM worker, оба backend, минимум два decoder до churn;
+callback измеряется также во время close/join и после source free. Пробы не линкуются в продукт.
+Новый RT gate запускается R/D отдельно от sanitizer/interposer, functional ASan/UBSan и TSan
+проверки остаются обязательными; Windows/Linux результаты требует соответствующая CI.
+
+RT gate R/D и default allocation-probe regression gates PASS. Четыре actual callback source
+mutants (new/aligned new/stdmutex/pthread) отвергнуты, compile/link успешны, baseline PASS;
+manual timeline дополнительно измеряет third/reverse/closed. Functional ASan/UBSan и TSan PASS.
+GCC16 собрал production audio и шесть functional tests, оба Mixer golden прежние. Артефакты
+ignored rt-mutants и gcc-music сохранены для независимого review и диагностики.

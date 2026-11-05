@@ -2057,6 +2057,21 @@ owner_check.sh гоняет это отдельным этапом сразу п
   живой эмулятор — персонаж двигается и атакует от виртуальных контролов без
   demo; физическая эргономика остаётся отдельным долгом.
 
+  5г) Deviceless RT-гейт музыки (#26 В6), Release и Debug:
+
+    cmake --build build --target audio_music_rt_test
+    ./build/audio_music_rt_test
+    cmake --build build-debug --target audio_music_rt_test
+    ./build-debug/audio_music_rt_test
+
+  build-debug предварительно настроен как Debug, как в автоматической половине.
+  Ожидаемо audio-music-rt: PASS; на Unix также pthread=intercepted, Windows явно
+  allocation gate only. Проверяются plain/aligned new и оба вида mutex controls,
+  исключение cold thread, manual third/reverse timeline и actual Ogg worker
+  одновременно с callback, включая close/join. Это тестовый interposer отдельного
+  процесса, без изменения ОС/продукта. SAN/TSan проверяют lifetime/concurrency
+  отдельно; этот результат не закрывает FPS и эргономику настоящего телефона.
+
   6) Бенч ресима на самом слабом телефоне (спека #25, В9г; гейт §34
   docs/owner-verification.md). НЕ прогнан агентом ни на одном телефоне.
   Это не игра: приложение like-nes-bench (com.likenes.resimbench) с чёрным

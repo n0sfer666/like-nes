@@ -1147,7 +1147,7 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test audio_music_mixer_test audio_music_mixer_limits_test audio_music_stream_test audio_music_stream_threads_test audio_music_lifetime_test audio_music_control_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test audio_music_mixer_test audio_music_mixer_limits_test audio_music_stream_test audio_music_stream_threads_test audio_music_lifetime_test audio_music_control_test audio_music_rt_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
@@ -1165,7 +1165,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test audio_music_mixer_test audio_music_mixer_limits_test audio_music_stream_test audio_music_stream_threads_test audio_music_lifetime_test audio_music_control_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test audio_music_mixer_test audio_music_mixer_limits_test audio_music_stream_test audio_music_stream_threads_test audio_music_lifetime_test audio_music_control_test audio_music_rt_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -3202,6 +3202,7 @@ jobs:
           audio_music_stream_test:audio-music-stream: PASS actual Ogg, threshold, pending queue, IDs and metadata
           audio_music_stream_threads_test:audio-music-stream-threads: PASS concurrent Ogg worker, callback, control and stats
           audio_music_control_test:audio-music-control: PASS selection, epochs, queue and IDs
+          audio_music_rt_test:audio-music-rt: PASS callback heap and mutex controls, cold overlap and concurrent stream
           audio_music_lifetime_test:audio-music-lifetime: PASS stream/mixer order, callback pin and borrowed source shutdown
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode

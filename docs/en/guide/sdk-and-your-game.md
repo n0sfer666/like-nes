@@ -331,8 +331,7 @@ the Mixer, after the callback has stopped and joined. `StereoRing` (`audio_stere
 One producer pushes nonzero64bit generation tags and receives the actual partial write count;
 one consumer takes its expected generation, discarding other tags. Each call scans at most the
 ring capacity; a miss returns false and a zero frame. The caller counts underruns. No cursor reset,
-heap allocation or lock is involved. This is a stream primitive; worker and playback transitions
-are the next part of #26 V6.
+heap allocation or lock is involved. The stream worker and per-sample transitions use this same primitive.
 
 `MusicIntent` (`music_intent.hpp`) observes a complete `(simulation_tick, track_id)` pair outside
 rollback snapshots. Pass `framework::rollback::SETTLE_TICKS<Depth>` or checked `settle_ticks(depth)`
@@ -345,11 +344,31 @@ a new wish settles. The count follows each tick's first forward observation; his
 stay in Session. One owning thread uses one continuous tick epoch; create a new intent after
 Session::reset/restart. This selects an intent, not an audible track; playback remains a separate step.
 
-`MusicTrack` (`music_track.hpp`) holds cold source values for the upcoming stream: a64bit ID,
+`MusicTrack` (`music_track.hpp`) holds cold source values for the stream: a64bit ID,
 exactly one immutable encoded Ogg or stereo/48000Hz PCM span, the full frame count, loop start/end
 and fade length in samples (default48000). Both spans borrow storage until the worker stops and
 joins. The intro starts at0, then loops from the exclusive end to loop_start. The worker decoder
 uses the same bounded loop path for Ogg and PCM; a failed block is discarded in full.
+
+`MusicStream` (`music_stream.hpp`) owns the decoder worker outside rollback snapshots. Before
+starting callbacks, call `init(mixer, tracks, settle_ticks, error)` with a nonzero rollback threshold.
+The catalogue is copied; encoded/PCM storage must remain immutable until this handle is destroyed
+and its worker joins. Each Mixer accepts one successful startup binding for its entire lifetime.
+On one control thread, call `want(track_id)` and `tick(simulation_tick)` each simulation tick.
+Unknown IDs return false without replacing the previous wish; IDs0 and UINT64_MAX are valid.
+A full queue retains the latest settled wish for retry. After Session reset/restart, call
+`reset_intent()` before the next want/tick: it preserves the threshold, clears the observation
+epoch and unpublished wishes, and leaves accepted wishes and playback running. Without a new
+want, ticks do not count. Exactly N fresh forward ticks settle the next wish.
+
+Music uses two dedicated slots, independent of the32 SFX voices, before BusMusic gain, ducking,
+master gain and the existing limiter. A return to the outgoing track reverses the fade from the
+current gains without rewinding either track; a third track releases the outgoing slot over480samples.
+`stats()` may run concurrently after init while the handle lives. Its independent atomic readings
+report music underruns, decode failures, live/peak decoders and closed; closed means stop requested,
+not that the worker has joined. Destroy the handle outside RT: close/join never waits for an audio
+acknowledgement. Before destroying Mixer, stop and join its callback externally. The handle may
+outlive Mixer and read stats safely; Mixer may outlive the handle and render silence after its tail.
 
 The bake refuses a line instead of guessing what it meant:
 

@@ -149,3 +149,6 @@ target_link_libraries(platform_net_socket_test PRIVATE platform_net)
 
 add_executable(platform_net_test platform_net_test.cpp)
 target_link_libraries(platform_net_test PRIVATE platform_net Threads::Threads)
+
+# Probe отдельно линкуется только тестовыми целями: продуктовые библиотеки его не получают.
+include(platform_mutex_probe.cmake)

@@ -336,8 +336,7 @@ Read принимает native channels или stereo; EOF успешен с н�
 Один producer пишет ненулевые64bit поколения и получает фактическое число принятых кадров;
 один consumer читает ожидаемое поколение, отбрасывая прочие теги. Вызов просматривает не более
 ёмкости кольца; при недоборе возвращает false и нулевой кадр. Счётчик underruns ведёт вызывающий.
-Сброса курсоров, heap и локов нет. Это примитив стрима; worker и переходы воспроизведения —
-следующая часть #26 В6.
+Сброса курсоров, heap и локов нет. Worker и переходы воспроизведения используют этот же примитив.
 
 MusicIntent (`music_intent.hpp`) наблюдает законченную пару `(simulation_tick, track_id)` вне
 rollback snapshot. Передайте `framework::rollback::SETTLE_TICKS<Depth>` или проверенный
@@ -352,11 +351,31 @@ replay/duplicate не меняют даже candidate. Пропуск или д�
 создаётся новый intent.
 Это выбор намерения; воспроизведение подключается отдельно.
 
-MusicTrack (`music_track.hpp`) хранит cold-параметры будущего стрима:64bit ID, ровно один
+MusicTrack (`music_track.hpp`) хранит cold-параметры стрима:64bit ID, ровно один
 immutable span Ogg или готового stereo/48000Гц PCM, полное число кадров, start/end лупа
 и длину перехода в сэмплах (default48000). Буферы заимствованы до остановки и join worker.
 Intro начинается с0, затем exclusive конец переходит в loop_start. Worker decoder использует
 один ограниченный путь лупа для Ogg и PCM; ошибочный блок отбрасывается целиком.
+
+MusicStream (`music_stream.hpp`) владеет decoder worker вне rollback snapshot. До запуска
+callbacks вызовите `init(mixer, tracks, settle_ticks, error)` с ненулевым порогом из rollback.
+Каталог копируется; encoded/PCM storage остаётся неизменным до уничтожения handle и join worker.
+Каждый Mixer принимает одну успешную startup-привязку за всё время жизни. На одном control thread
+вызывайте `want(track_id)` и `tick(simulation_tick)` каждый тик. Unknown ID возвращает false,
+не заменяя прошлое желание; IDs0 и UINT64_MAX допустимы. При полной очереди последнее устойчивое
+желание сохраняется для повтора. После Session reset/restart вызовите `reset_intent()` до новых
+want/tick: порог сохраняется, эпоха наблюдений и неопубликованные желания очищаются; уже принятые
+желания и воспроизведение продолжаются. Без нового want тики не считаются. Новый выбор требует
+ровно N свежих forward ticks.
+
+Музыка использует два выделенных слота независимо от32 SFX voices, до BusMusic gain, ducking,
+master gain и существующего limiter. Возврат к уходящему треку разворачивает fade от текущих gains
+без перемотки; третий трек освобождает уходящий слот за480samples. `stats()` можно читать
+параллельно после init, пока handle жив. Независимые atomic readings возвращают музыкальные
+underruns, decode failures, live/peak decoders и closed; closed означает запрос остановки,
+а не завершённый join. Уничтожайте handle вне RT: close/join не ждёт audio acknowledgement.
+До уничтожения Mixer остановите и join его callback снаружи. Handle может пережить Mixer и
+безопасно читать stats; Mixer может пережить handle и подавать тишину после хвоста limiter.
 
 Бейк отказывает строке, а не угадывает, что имелось в виду:
 

@@ -64,3 +64,15 @@ target_link_libraries(audio_music_lifetime_test PRIVATE audio_core)
 
 add_executable(audio_music_control_test audio_music_control_test.cpp)
 target_link_libraries(audio_music_control_test PRIVATE audio_core)
+
+# These interceptors belong only to this executable; no SDK/product dependency.
+add_executable(audio_music_rt_test audio_music_rt_test.cpp)
+target_link_libraries(audio_music_rt_test PRIVATE audio_core platform_core
+  framework_alloc_probe_control platform_mutex_probe_control)
+target_compile_definitions(audio_music_rt_test PRIVATE FRAMEWORK_ALLOC_PROBE_THREAD_LOCAL
+  AUDIO_FIXTURE_ROOT="${PROJECT_SOURCE_DIR}")
+if(UNIX)
+  target_compile_definitions(audio_music_rt_test PRIVATE AUDIO_EXPECT_PTHREAD_PROBE=1)
+else()
+  target_compile_definitions(audio_music_rt_test PRIVATE AUDIO_EXPECT_PTHREAD_PROBE=0)
+endif()

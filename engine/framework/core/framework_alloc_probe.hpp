@@ -23,8 +23,14 @@
 // поэтому дыра открылась бы от одного `alignas(32)` в структуре, до которой шаг физики дотянулся.
 namespace framework::probe {
 
+// Concurrent gates opt in per executable, so cold worker allocations do not affect RT counts.
+#if defined(FRAMEWORK_ALLOC_PROBE_THREAD_LOCAL)
+inline thread_local bool in_hot = false;
+inline thread_local long allocs = 0;
+#else
 inline bool in_hot = false;
 inline long allocs = 0;
+#endif
 
 // Выравненное выделение сделано вручную поверх `malloc`, а не через `aligned_alloc`/`_aligned_malloc`:
 // первого нет у MSVC, второй требует парного `_aligned_free`, и выбор между ними — условная
