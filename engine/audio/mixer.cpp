@@ -108,7 +108,8 @@ void Mixer::recompute_gains(uint32_t /*frames*/) {
         v.gl = g * panL;
         v.gr = g * panR;
     }
-    if (active > peak_voices_) peak_voices_ = active;
+    const uint32_t peak = peak_voices_.load(std::memory_order_relaxed);
+    if (active > peak) peak_voices_.store(active, std::memory_order_relaxed);
 }
 
 void Mixer::mix(uint32_t frames, int16_t* out) {

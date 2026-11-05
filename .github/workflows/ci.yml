@@ -1147,7 +1147,7 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
@@ -1162,7 +1162,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -1256,11 +1256,13 @@ jobs:
             -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
           BUILD_DIR=build-vorbis-tsan LIKE_NES_BUILD_TYPE=Debug LIKE_NES_BUILD_SUBSET=1 \
-            LIKE_NES_BUILD_TARGETS="audio_vorbis_threads_test audio_stereo_ring_threads_test audio_music_worker_threads_test audio_music_worker_vorbis_test" bash scripts/build_check.sh
+            LIKE_NES_BUILD_TARGETS="audio_vorbis_threads_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_worker_threads_test audio_music_worker_vorbis_test" bash scripts/build_check.sh
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_vorbis_threads_test | tee vorbis_tsan.txt
           grep -qxF 'audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode' vorbis_tsan.txt
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_stereo_ring_threads_test | tee ring_tsan.txt
           grep -qxF 'audio-stereo-ring-threads: PASS concurrent FIFO and delayed old generation handoff' ring_tsan.txt
+          TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_mixer_stats_test | tee mixer_stats_tsan.txt
+          grep -qxF 'audio-mixer-stats: PASS concurrent Float/Fix32 underruns and peak voices' mixer_stats_tsan.txt
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_music_worker_threads_test | tee worker_tsan.txt
           grep -qxF 'audio-music-worker-threads: PASS concurrent requests, PCM generations, priming and stop without callback ack' worker_tsan.txt
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_music_worker_vorbis_test | tee worker_vorbis_tsan.txt
@@ -3174,6 +3176,7 @@ jobs:
           audio_stereo_limits_test:audio-stereo-limits: PASS registry bounds, empty PCM, voice reuse and zero allocations
           audio_stereo_ring_test:audio-stereo-ring: PASS stereo FIFO, bounds, generations, partial writes and zero allocations
           audio_stereo_ring_threads_test:audio-stereo-ring-threads: PASS concurrent FIFO and delayed old generation handoff
+          audio_mixer_stats_test:audio-mixer-stats: PASS concurrent Float/Fix32 underruns and peak voices
           audio_music_intent_test:audio-music-intent: PASS stable forward ticks, wrap, gaps and actual max-depth rollback
           audio_music_decoder_test:audio-music-decoder: PASS exact intro and loop samples, PCM, mono/stereo Ogg, bounds and refusal
           audio_music_worker_test:audio-music-worker: PASS two decoders, priming, partial FIFO, generations, queue bounds and shutdown

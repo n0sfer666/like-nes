@@ -34,6 +34,7 @@ StereoFrame fetch_advance(Voice& v, uint64_t& underruns) {
 } // namespace
 
 void Mixer::mix_fix(uint32_t frames, int16_t* out) {
+    uint64_t block_underruns = 0;
     for (uint32_t f = 0; f < frames; ++f) {
         int64_t busL[BUS_N] = {0}, busR[BUS_N] = {0};
         bool duck_now = false;
@@ -41,7 +42,7 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
             Voice& v = pool_[i];
             if (!v.active || f < v.start_offset) continue; // ещё не звучит в этом сэмпле
             if (v.ducking) duck_now = true;
-            const auto sample = fetch_advance(v, underruns_);
+            const auto sample = fetch_advance(v, block_underruns);
             busL[static_cast<uint32_t>(v.bus)] += int64_t{sample.left} * v.gl.raw;
             busR[static_cast<uint32_t>(v.bus)] += int64_t{sample.right} * v.gr.raw;
         }
@@ -55,9 +56,11 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
         }
         limiter_.apply((mL * master_.raw) >> 32, (mR * master_.raw) >> 32, out + f * 2);
     }
+    if (block_underruns) underruns_.fetch_add(block_underruns, std::memory_order_relaxed);
 }
 
 void Mixer::mix_float(uint32_t frames, int16_t* out) {
+    uint64_t block_underruns = 0;
     for (uint32_t f = 0; f < frames; ++f) {
         double busL[BUS_N] = {0}, busR[BUS_N] = {0};
         bool duck_now = false;
@@ -65,7 +68,7 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
             Voice& v = pool_[i];
             if (!v.active || f < v.start_offset) continue;
             if (v.ducking) duck_now = true;
-            const auto sample = fetch_advance(v, underruns_);
+            const auto sample = fetch_advance(v, block_underruns);
             busL[static_cast<uint32_t>(v.bus)] += sample.left * v.gl.to_double();
             busR[static_cast<uint32_t>(v.bus)] += sample.right * v.gr.to_double();
         }
@@ -80,6 +83,7 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
         limiter_.apply(std::llround(mL * master_.to_double()), std::llround(mR * master_.to_double()),
                        out + f * 2);
     }
+    if (block_underruns) underruns_.fetch_add(block_underruns, std::memory_order_relaxed);
 }
 
 } // namespace audio

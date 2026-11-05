@@ -47,8 +47,8 @@ public:
     // Читается и из потока игры: часы игры, убежавшие вперёд за простой вывода, подтягиваются к
     // нему (аудит #21 A·3·5).
     uint64_t cursor() const { return cursor_.load(std::memory_order_relaxed); }
-    uint64_t underruns() const { return underruns_; }
-    uint32_t peak_voices() const { return peak_voices_; }
+    uint64_t underruns() const { return underruns_.load(std::memory_order_relaxed); }
+    uint32_t peak_voices() const { return peak_voices_.load(std::memory_order_relaxed); }
 
 private:
     void drain_commands(uint32_t frames);
@@ -71,9 +71,10 @@ private:
     fix32 listener_x_, listener_y_;
     std::atomic<uint64_t> cursor_{0};
     static_assert(std::atomic<uint64_t>::is_always_lock_free, "the RT thread takes no locks");
+    static_assert(std::atomic<uint32_t>::is_always_lock_free, "the RT thread takes no locks");
+    std::atomic<uint64_t> underruns_{0};
+    std::atomic<uint32_t> peak_voices_{0};
     uint64_t seq_ = 0;
-    uint64_t underruns_ = 0;
-    uint32_t peak_voices_ = 0;
 };
 
 } // namespace audio
