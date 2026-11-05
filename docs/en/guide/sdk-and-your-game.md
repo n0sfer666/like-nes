@@ -150,6 +150,10 @@ endif()
   writes a depfile of every file it read (the manifest, every PNG, every `.tmj` and the `.tsj` it
   references), so editing a tileset re-bakes the bundle on the next build. Release, RelWithDebInfo
   and MinSizeRel add `--strict`: missing ru translations stop the bake; Debug reports fallbacks.
+  Call it once per manifest to bake several bundles for the same target. Each bundle rebuilds
+  independently; the desktop `<target>_bundle` target stages them all together. On mobile they
+  go into `assets/`. Output and depfile names must be distinct even when case is ignored, and
+  `library.bundle` is reserved for the SDK.
 
 Configure and build the game against the prefix:
 

@@ -1,7 +1,8 @@
 # like_nes_bake(<цель> MANIFEST <файл> OUT <бандл> [TOOL <цель|путь>]) — бейк ассетов игры
 # поставленным assetc (спека #24, В4) или инструментом игры с её видами записей (спека #29, В2а).
 # Бандл печётся в `like_nes_bake/` каталога сборки, а рядом с exe его кладёт цель `<цель>_bundle`
-# вместе с library.bundle движка; в мобильном приложении оба едут в `assets/`.
+# вместе с library.bundle движка; в мобильном приложении они едут в `assets/`.
+# Одной цели можно назначить несколько манифестов, если их OUT и depfile не пересекаются.
 
 # assetc пишет в depfile абсолютные пути, и их все генераторы читают одинаково; NEW — ради одного
 # поведения у любой игры, а не того, что задал её cmake_minimum_required (у < 3.20 — OLD и
@@ -67,6 +68,17 @@ function(like_nes_bake target)
     message(FATAL_ERROR "like_nes_bake: SDK prefix has no ${LIKE_NES_LIBRARY_BUNDLE}")
   endif()
 
+  # Имена сравниваются без учёта ASCII-регистра для переносимости между файловыми системами.
+  # Hex keys не зависят от допустимых символов имени CMake-цели или разделителей list().
+  string(TOLOWER "${_lnb_OUT}" out_folded)
+  string(SHA256 out_key "${out_folded}")
+  string(SHA256 dep_key "${out_folded}.d")
+  get_target_property(path_keys ${target} LIKE_NES_BAKE_PATH_KEYS)
+  if(out_folded STREQUAL "library.bundle" OR out_key IN_LIST path_keys OR dep_key IN_LIST path_keys)
+    message(FATAL_ERROR "like_nes_bake: OUT '${_lnb_OUT}' collides with a bundle or depfile for ${target}")
+  endif()
+  set_property(TARGET ${target} APPEND PROPERTY LIKE_NES_BAKE_PATH_KEYS "${out_key}" "${dep_key}")
+
   # Свой подкаталог, а не каталог exe: у одноконфигурационного генератора они совпали бы, копия
   # ниже стала бы копией файла в себя, и гейт SDK на Ninja не судил бы шаг, без которого у Visual
   # Studio и Xcode бандла рядом с exe нет. Подкаталог цели — чтобы игра и, скажем, её редактор с
@@ -90,12 +102,21 @@ function(like_nes_bake target)
   endif()
   # Копия — отдельной всегда исполняемой целью, а не POST_BUILD: тот идёт только при перелинковке
   # exe, и перепечённый после правки PNG бандл не доехал бы до каталога exe.
-  add_custom_target(${target}_bundle
+  if(NOT path_keys)
+    if(TARGET ${target}_bundle)
+      message(FATAL_ERROR "like_nes_bake: target '${target}_bundle' is already defined")
+    endif()
+    add_custom_target(${target}_bundle
+      COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${LIKE_NES_LIBRARY_BUNDLE}"
+              "$<TARGET_FILE_DIR:${target}>/library.bundle"
+      VERBATIM)
+    add_dependencies(${target} ${target}_bundle)
+  endif()
+  set(copy_target "${target}_bundle_${out_key}")
+  add_custom_target(${copy_target}
     COMMAND "${CMAKE_COMMAND}" -E make_directory "$<TARGET_FILE_DIR:${target}>"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${bundle}" "$<TARGET_FILE_DIR:${target}>/${_lnb_OUT}"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${LIKE_NES_LIBRARY_BUNDLE}"
-            "$<TARGET_FILE_DIR:${target}>/library.bundle"
     DEPENDS "${bundle}"
     VERBATIM)
-  add_dependencies(${target} ${target}_bundle)
+  add_dependencies(${target}_bundle ${copy_target})
 endfunction()
