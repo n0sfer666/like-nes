@@ -36,24 +36,28 @@ void test_a_foreign_datagram_never_reaches_the_payload() {
     check(link.outbox_size() == 1, "and one datagram is ready");
     net::Datagram d = link.outbox_at(0);
 
-    net::Datagram bad = d;
-    bad.bytes[0] ^= 0xFFu;
-    check(link.receive(bad.bytes, bad.size, out, sizeof(out), &n) == net::Received::Foreign,
-          "a wrong magic is foreign");
-    bad = d;
-    bad.bytes[4] = 99;
-    check(link.receive(bad.bytes, bad.size, out, sizeof(out), &n) == net::Received::Foreign,
-          "a wrong version is foreign");
-    bad = d;
-    bad.bytes[5] = 0x80u;
-    check(link.receive(bad.bytes, bad.size, out, sizeof(out), &n) == net::Received::Foreign,
-          "an unknown kind bit is foreign");
+    for (const size_t field : {0u, 4u, 5u}) {
+        net::Datagram bad = d;
+        bad.bytes[field] ^= 0x80u;
+        check(link.receive(bad.bytes, bad.size, out, sizeof(out), &n) == net::Received::Foreign,
+              "wrong magic, version or kind is foreign");
+    }
     check(link.foreign() == 4, "every one of them was counted");
 
     // Живучесть: слой, испортивший состояние на чужом пакете, отдал бы этот как чужой тоже.
     check(link.receive(d.bytes, d.size, out, sizeof(out), &n) == net::Received::Delivered,
           "an honest datagram still arrives after the garbage");
     check(n == 2 && std::memcmp(out, "hi", 2) == 0, "and carries its payload");
+
+    link.pump(1);
+    check(link.outbox_size() == 1, "the received payload generated an ACK");
+    net::Datagram ack = link.outbox_at(0);
+    ack.bytes[ack.size] = 0xff;
+    check(link.receive(ack.bytes, ack.size + 1, out, sizeof(out), &n) == net::Received::Foreign,
+          "an ACK with a trailing byte is foreign");
+    check(link.unacked() == 1, "the rejected ACK leaves the outgoing message queued");
+    check(link.receive(ack.bytes, ack.size, out, sizeof(out), &n) == net::Received::Ack &&
+              link.unacked() == 0, "the intact ACK retires the message");
 }
 
 struct Peer {

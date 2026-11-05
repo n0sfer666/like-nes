@@ -50,10 +50,13 @@ public:
     // вытеснен) или слишком далеко вперёд (места в кольце нет). Оба посчитаны отдельно, потому что
     // лечатся разным: первое — глубиной, второе — задержкой ввода.
     bool deliver(Tick t, uint32_t player, const Input& in) {
-        if (t > plan_.head() + LEAD) {
+        const Tick head = plan_.head();
+        if (t > head + LEAD) {
             ++too_far_;
             return false;
         }
+        // Вытесненный тик мог бы записать свой ввод в слот другого, ещё живого тика.
+        if (t < head && head - t > plan_.depth()) return plan_.note_dirty(t);
         const bool known = ring_.confirmed(t, player);
         const bool changed = ring_.differs(t, player, in);
         // Два разных подтверждённых значения на один тик — это не «поздний ввод», а расхождение

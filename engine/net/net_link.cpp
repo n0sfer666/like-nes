@@ -120,21 +120,15 @@ Received Link::receive(const void* datagram, size_t n, void* payload, size_t cap
         ++foreign_;
         return Received::Foreign;
     }
-    if ((kind & KIND_ACK) != 0) ack_upto(ack, bits);
-    if ((kind & KIND_PAYLOAD) == 0) {
-        // Хвост у пакета без нагрузки — не «лишние байты, которые можно отбросить», а признак
-        // того, что разбор разошёлся с отправителем.
-        if (r.remaining() != 0) {
-            ++foreign_;
-            return Received::Foreign;
-        }
-        return Received::Ack;
-    }
+    const bool has_payload = (kind & KIND_PAYLOAD) != 0;
     const size_t len = r.remaining();
-    if (len == 0 || len > cap || payload == nullptr || out_n == nullptr) {
+    if (has_payload ? len == 0 || len > cap || payload == nullptr || out_n == nullptr : len != 0) {
         ++foreign_;
         return Received::Foreign;
     }
+    // Некорректная датаграмма не подтверждает ни одного сообщения.
+    if ((kind & KIND_ACK) != 0) ack_upto(ack, bits);
+    if (!has_payload) return Received::Ack;
     // Дедупликация ДО копирования наружу: повтор не имеет права переписать буфер вызывающего.
     if (!recv_.note(seq)) {
         ++duplicates_;

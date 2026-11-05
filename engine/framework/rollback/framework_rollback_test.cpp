@@ -6,12 +6,8 @@
 #include "framework_rollback_toy.hpp"
 #include "session.hpp"
 
-// Гейт 2 спеки #22 на игрушечной симуляции: прогон, где чужой ввод приезжает с задержкой, обязан
-// дать ТО ЖЕ состояние, что прогон без задержки. Плюс гейт 4 — ноль обращений к куче в тике отката.
-//
-// Сети здесь нет ни строкой, и это не упрощение: `deliver` означает «ввод стал известен», а
-// задержка — то, ради чего откат существует. Транспорт добавит к этому потери и перестановку, но
-// не изменит ни одного из здешних утверждений.
+// Гейты 2 и 4 спеки #22: задержанный ввод даёт то же состояние, что прямой прогон,
+// и тики отката не обращаются к куче. Доставка ввода моделируется без сети.
 namespace {
 
 using framework::rollback::Session;
@@ -34,9 +30,7 @@ constexpr uint32_t CHECK_EVERY = 25;
 
 using InputFn = ToyInput (*)(uint32_t, uint32_t);
 
-// Эталон: оба ввода известны сразу, откату работы нет. Он же печатает состояние ПОТИКОВО — иначе
-// расхождение отката называется одним словом «хеш не сошёлся», а нужен номер первого разошедшегося
-// тика (то же требование, что гейт 6 спеки предъявляет верификации реплея).
+// Эталон хранит хеш каждого тика, чтобы назвать первый разошедшийся тик.
 uint64_t reference(InputFn gen, uint64_t* per_tick) {
     ToySim sim;
     ToyInput in[ToySim::PLAYERS];
@@ -90,9 +84,7 @@ void test_a_delayed_run_matches_the_straight_one() {
     std::printf("  scripted: rollbacks=%u replayed=%u\n", ses.rollbacks(), ses.replayed());
 }
 
-// Позитивный контроль первого гейта: без отката тот же прогон обязан РАЗОЙТИСЬ. Ломается
-// конфигурацией, а не подменённым кодом, — глубина ноль означает «вернуться некуда», и это тот же
-// путь исполнения, что в бою.
+// Контроль: при глубине ноль тот же прогон с задержкой расходится с эталоном.
 void test_without_rollback_the_delayed_run_diverges() {
     uint64_t per_tick[TICKS];
     const uint64_t want = reference(scripted, per_tick);
@@ -108,9 +100,7 @@ void test_without_rollback_the_delayed_run_diverges() {
     check(ses.too_deep() > 0, "while the refusals are counted, not swallowed");
 }
 
-// Второй контроль, теперь по состоянию: снимок, забывший накопленное поле, обязан быть отбит.
-// Первый контроль ломает решение об откате, этот — его материал; сломанным может оказаться любой
-// из двух, а расхождение хеша у них одно на двоих.
+// Контроль снимка: потеря накопленного поля должна приводить к расхождению.
 void test_a_lossy_restore_is_rejected() {
     uint64_t per_tick[TICKS];
     const uint64_t want = reference(scripted, per_tick);
@@ -144,6 +134,19 @@ void test_a_correct_prediction_costs_nothing() {
     // опровергает. Дальше предсказание — повтор подтверждённого, и оно верно всегда.
     check(ses.rollbacks() == 1, "and only the very first tick is ever replayed");
     check(ses.replayed() == DELAY, "which costs exactly the delay in replayed ticks");
+}
+
+void test_stale_input_leaves_the_reused_slot_intact() {
+    ToySim sim;
+    Session<ToySim> ses;
+    ses.reset(ToySim::PLAYERS, DEPTH);
+    constexpr Tick future = DEPTH + Session<ToySim>::LEAD + 2;
+    for (Tick t = 0; t < future - 1; ++t) ses.advance(sim);
+    check(ses.deliver(future, 0, {42, 0}), "future input accepted");
+    check(!ses.deliver(0, 0, {9, 0}) && ses.too_deep() == 1, "stale input refused");
+    ses.advance(sim);
+    ses.advance(sim);
+    check(sim.state.pos[0] == 42, "refusal preserved the confirmed input in the reused slot");
 }
 
 // Гейт 4: тик отката не трогает кучу. Кольца выписаны один раз, снимок — присваивание в готовый
@@ -189,6 +192,7 @@ int main() {
     test_without_rollback_the_delayed_run_diverges();
     test_a_lossy_restore_is_rejected();
     test_a_correct_prediction_costs_nothing();
+    test_stale_input_leaves_the_reused_slot_intact();
     test_a_rollback_tick_touches_no_heap();
     std::printf("framework-rollback: %s\n", fails == 0 ? "PASS" : "FAIL");
     return fails == 0 ? 0 : 1;
