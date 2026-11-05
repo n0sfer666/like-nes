@@ -377,6 +377,15 @@ underruns, decode failures, live/peak decoders и closed; closed означае�
 До уничтожения Mixer остановите и join его callback снаружи. Handle может пережить Mixer и
 безопасно читать stats; Mixer может пережить handle и подавать тишину после хвоста limiter.
 
+При сборке SDK с `AUDIO_MINIAUDIO=ON` доступны `device.hpp` и опциональная цель
+`like-nes::audio_device`. Подключите её рядом с `like-nes::engine` для MiniaudioDevice.
+Start/poll/stop вызывает один owning thread вне RT; callback получает Mixer через user pointer.
+Нулевой RenderFn отвергается до открытия backend; нулевой user допустим, если callback не нужен
+контекст. `stop()` дожидается callbacks: вызывайте его до уничтожения Mixer и user-data.
+Null backend проверяет настоящее планирование без звукового оборудования; успешный прогон
+не подтверждает физическое устройство. При OFF опциональные заголовок и цель отсутствуют;
+наличие проверяется через `TARGET like-nes::audio_device` при конфигурировании.
+
 Бейк отказывает строке, а не угадывает, что имелось в виду:
 
 - Имя — `[A-Za-z0-9_.-]`, уникальное в манифесте. `tilemap`, `visual`, `objects`, `clips` и

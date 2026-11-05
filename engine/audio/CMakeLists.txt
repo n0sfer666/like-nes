@@ -53,8 +53,8 @@ if(AUDIO_MINIAUDIO)
   target_include_directories(miniaudio_vendored SYSTEM PRIVATE ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device PRIVATE miniaudio_vendored)
   target_include_directories(audio_device PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-  # SYSTEM по той же причине, что и у imgui: device.cpp — наш код в одной цели с miniaudio.
-  target_include_directories(audio_device SYSTEM PUBLIC ${miniaudio_SOURCE_DIR})
+  # Заголовок устройства не включает miniaudio: его исходник — только приватная зависимость.
+  target_include_directories(audio_device SYSTEM PRIVATE ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device PUBLIC engine_core)
   target_compile_definitions(audio_device PUBLIC AUDIO_HAVE_MINIAUDIO)
   # iOS: сессию звука miniaudio ведёт через AVAudioSession — это Objective-C, поэтому TU реализации
@@ -77,5 +77,6 @@ if(AUDIO_MINIAUDIO)
 
   # Потеря устройства посреди сессии — перезапуск, а не тишина до выхода (аудит #21 A·3·5).
   add_executable(audio_device_test audio_device_test.cpp)
+  target_include_directories(audio_device_test SYSTEM PRIVATE ${miniaudio_SOURCE_DIR})
   target_link_libraries(audio_device_test PRIVATE audio_device audio_core)
 endif()

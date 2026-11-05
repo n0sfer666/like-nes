@@ -11,6 +11,7 @@ project(music_bake CXX)
 find_package(like-nes 0.1 REQUIRED CONFIG)
 add_executable(music_game main.cpp)
 target_link_libraries(music_game PRIVATE like-nes::engine)
+like_nes_add_game(music_game)
 like_nes_bake(music_game MANIFEST game.manifest OUT music.bundle)
 CMAKE
     cat > "$dir/main.cpp" <<'CPP'

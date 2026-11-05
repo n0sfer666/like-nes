@@ -1214,7 +1214,7 @@ jobs:
           # Через гейт, а не голым `cmake --build`: реализация miniaudio — вендоренный TU, и его
           # глушение проверяется только на MSVC (D9025 — предупреждение драйвера, мимо /WX).
           # Собранное голым вызовом уезжало в лог, которого никто не читает.
-          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS="audio_seam audio_device_test" \
+          BUILD_DIR=build-audio LIKE_NES_BUILD_SUBSET=1 LIKE_NES_BUILD_TARGETS="audio_seam audio_device_test audio_music_device_test" \
             bash scripts/build_check.sh
           S=$(find build-audio -maxdepth 2 -type f \( -name 'audio_seam' -o -name 'audio_seam.exe' \) | head -1)
           "$S" audio.bundle --device-selftest | tee adev.txt
@@ -1226,6 +1226,10 @@ jobs:
           [ -n "$T" ] || { echo "audio_device_test not built on ${{ matrix.os }}"; exit 1; }
           "$T" | tee adt.txt
           grep -q "audio-device: PASS - 26 cases" adt.txt
+          M=$(find build-audio -maxdepth 2 -type f \( -name 'audio_music_device_test' -o -name 'audio_music_device_test.exe' \) | head -1)
+          [ -n "$M" ] || { echo "audio_music_device_test not built"; exit 1; }
+          "$M" | tee music_device.txt
+          grep -qxF 'audio-music-device: PASS real null callbacks, stream shutdown and source lifetime' music_device.txt
 
       - name: Audio — ASan/UBSan (gates #1/#3) + TSan (gate #2), Linux
         if: runner.os == 'Linux'
@@ -1257,13 +1261,13 @@ jobs:
         shell: bash
         run: |
           cmake -S . -B build-vorbis-tsan -G Ninja -DCMAKE_BUILD_TYPE=Debug \
-            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF \
+            -DAUDIO_MINIAUDIO=ON -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF \
             -DFETCHCONTENT_BASE_DIR="$PWD/build-audio/_deps" \
             -DCMAKE_C_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
             -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
             -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
           BUILD_DIR=build-vorbis-tsan LIKE_NES_BUILD_TYPE=Debug LIKE_NES_BUILD_SUBSET=1 \
-            LIKE_NES_BUILD_TARGETS="audio_vorbis_threads_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_stream_threads_test audio_music_lifetime_test" bash scripts/build_check.sh
+            LIKE_NES_BUILD_TARGETS="audio_vorbis_threads_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_stream_threads_test audio_music_lifetime_test audio_music_device_test" bash scripts/build_check.sh
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_vorbis_threads_test | tee vorbis_tsan.txt
           grep -qxF 'audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode' vorbis_tsan.txt
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_stereo_ring_threads_test | tee ring_tsan.txt
@@ -1278,6 +1282,8 @@ jobs:
           grep -qxF 'audio-music-stream-threads: PASS concurrent Ogg worker, callback, control and stats' stream_tsan.txt
           TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_music_lifetime_test | tee lifetime_tsan.txt
           grep -qxF 'audio-music-lifetime: PASS stream/mixer order, callback pin and borrowed source shutdown' lifetime_tsan.txt
+          TSAN_OPTIONS=halt_on_error=1 ./build-vorbis-tsan/audio_music_device_test | tee music_device_tsan.txt
+          grep -qxF 'audio-music-device: PASS real null callbacks, stream shutdown and source lifetime' music_device_tsan.txt
 
       # --- Ввод-вертикаль (спека #4) — deviceless-гейты на ВСЕХ ОС ---
       # Native-бэкенды (XInput/GameController/evdev) + GLFW-пумп собираются в CI через таргет
@@ -3148,7 +3154,7 @@ jobs:
           SAN="-fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -g -O1"
           cmake -S . -B build-fuzz-san -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             -DCMAKE_C_FLAGS="$SAN" -DCMAKE_CXX_FLAGS="$SAN" -DCMAKE_EXE_LINKER_FLAGS="$SAN" \
-            -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
+            -DAUDIO_MINIAUDIO=ON -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF
           cmake --build build-fuzz-san --target fuzz_readers
           ./build-fuzz-san/fuzz_readers | tee fuzz_san.txt
           grep -q "\[fuzz\] PASS targets=22 " fuzz_san.txt
@@ -3204,6 +3210,7 @@ jobs:
           audio_music_control_test:audio-music-control: PASS selection, epochs, queue and IDs
           audio_music_rt_test:audio-music-rt: PASS callback heap and mutex controls, cold overlap and concurrent stream
           audio_music_lifetime_test:audio-music-lifetime: PASS stream/mixer order, callback pin and borrowed source shutdown
+          audio_music_device_test:audio-music-device: PASS real null callbacks, stream shutdown and source lifetime
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode
           plugin_wasm_host_test:plugin-wasm-host: PASS

@@ -84,6 +84,7 @@ mobile_ios() {
     min=$(prefix_field "$pfx" _ln_ios_min)
     [ -n "$min" ] || { sdk_bad "ios-sim: no _ln_ios_min in the prefix Config"; return 1; }
     flags+=(-DCMAKE_OSX_DEPLOYMENT_TARGET="$min")
+    fixture_mobile_audio_output ios-sim "$pfx" "${flags[@]}" || return 1
     mobile_game "$ROOT/games/neon-rumble" "$dir" "$pfx" "${flags[@]}" || {
         tail -30 "$dir.log"; sdk_bad "ios-sim: neon-rumble did not build against the prefix"; return 1; }
     app="$dir/neon_rumble.app"
@@ -109,14 +110,12 @@ mobile_ios() {
     fixture_mobile_tree_header ios-sim "$pfx" "${flags[@]}" || return 1
     fixture_mobile_stale_tool ios-sim "$pfx" "${flags[@]}"
 }
-
 # NDK выбирается тем же скриптом, что у build_apk.sh, но в подоболочке: его отказ — `exit 1`.
 android_ndk() {
     # shellcheck source=platform/android/android_sdk.sh
     # shellcheck source=platform/android/android_ndk.sh
     ( . "$ROOT/platform/android/android_sdk.sh" && . "$ROOT/platform/android/android_ndk.sh" && printf '%s' "$NDK" )
 }
-
 mobile_android() {
     local ndk=$1 abi=x86_64 pfx="$OUT/prefix-android-x86_64" dir="$OUT/game-android-x86_64" api apk listing lacks n lic
     local aapt
@@ -130,6 +129,7 @@ mobile_android() {
     local flags=(-DCMAKE_TOOLCHAIN_FILE="$ndk/build/cmake/android.toolchain.cmake"
         -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api")
     mobile_sdk "android-$abi" "build-sdk-android-$abi" "$pfx" "${flags[@]}" || return 1
+    fixture_mobile_audio_output "android-$abi" "$pfx" "${flags[@]}" || return 1
     mobile_game "$ROOT/games/neon-rumble" "$dir" "$pfx" "${flags[@]}" || {
         tail -30 "$dir.log"; sdk_bad "android-$abi: neon-rumble did not build against the prefix"; return 1; }
     case "$(file "$dir/libneon_rumble.so")" in

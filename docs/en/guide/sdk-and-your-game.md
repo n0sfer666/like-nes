@@ -370,6 +370,15 @@ not that the worker has joined. Destroy the handle outside RT: close/join never 
 acknowledgement. Before destroying Mixer, stop and join its callback externally. The handle may
 outlive Mixer and read stats safely; Mixer may outlive the handle and render silence after its tail.
 
+When the SDK is built with `AUDIO_MINIAUDIO=ON`, it also provides `device.hpp` and the optional
+`like-nes::audio_device` target. Link it alongside `like-nes::engine` to use `MiniaudioDevice`.
+Call start/poll/stop from one owning thread outside RT; the render callback receives the Mixer
+through its user pointer. A null RenderFn is refused before opening the backend; a null user
+pointer is valid for a callback that needs no state. `stop()` joins callbacks, so call it before
+destroying Mixer or callback user-data. The null backend exercises real scheduling without sound
+hardware; its success does not certify a physical audio device. With the option OFF, the optional
+header and target are absent; test `TARGET like-nes::audio_device` at configure time.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

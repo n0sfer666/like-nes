@@ -76,3 +76,10 @@ if(UNIX)
 else()
   target_compile_definitions(audio_music_rt_test PRIVATE AUDIO_EXPECT_PTHREAD_PROBE=0)
 endif()
+
+if(TARGET audio_device)
+  add_executable(audio_music_device_test audio_music_device_test.cpp)
+  target_link_libraries(audio_music_device_test PRIVATE audio_core audio_device platform_core)
+  target_compile_definitions(audio_music_device_test PRIVATE
+    AUDIO_DEVICE_FIXTURE="${PROJECT_SOURCE_DIR}/tests/audio/fixtures/stereo-48000.ogg")
+endif()

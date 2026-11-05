@@ -11,6 +11,7 @@ set(LIKE_NES_SDK_HEADERS
   audio/audio_stereo_ring.hpp
   audio/music_intent.hpp
   audio/music_track.hpp audio/music_stats.hpp audio/music_stream.hpp
+  audio/device.hpp
   asset/hash.hpp asset/format.hpp asset/bundle_view.hpp asset/bundle_lookup.hpp
   platform/platform_args.hpp platform/platform_env.hpp platform/platform_export.h
   platform/platform_fs.hpp platform/platform_guard.hpp platform/platform_io.hpp platform/platform_haptic.hpp platform/platform_save.hpp
@@ -92,6 +93,9 @@ set(LIKE_NES_SDK_STATIC
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native input_gamepad platform_core render_core
   render_surface glfw glfw3webgpu)
+if(TARGET audio_device)
+  list(APPEND LIKE_NES_SDK_STATIC audio_device)
+endif()
 set(LIKE_NES_SDK_INTERFACE engine_core asset_hash framework_replay render_types)
 # То, что видит игра под like-nes::engine; окно и нативный ввод — отдельно, like-nes::window.
 set(LIKE_NES_SDK_ENGINE

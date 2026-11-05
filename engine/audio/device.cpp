@@ -55,7 +55,7 @@ bool settling(ma_device* dev) {
 MiniaudioDevice::~MiniaudioDevice() { stop(); }
 
 bool MiniaudioDevice::start(RenderFn fn, void* user, bool null_backend) {
-    if (device_) return false;
+    if (device_ || !fn) return false;
     fn_ = fn;
     user_ = user;
     null_backend_ = null_backend;

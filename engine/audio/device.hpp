@@ -6,6 +6,8 @@
 // AudioDevice HAL (спека #3): реальный вывод через miniaudio (WASAPI/CoreAudio/ALSA/Pulse +
 // mobile). Console/mobile-бэкенды — точки расширения. RT-поток miniaudio зовёт RenderFn;
 // в CI устройство не стартуется (deviceless-гейты гоняют mixer напрямую).
+// Управление выполняет один поток. Состояние callback/user заимствовано до возврата stop();
+// уничтожай устройство до Mixer и user. stop останавливает callback до возврата.
 namespace audio {
 
 using RenderFn = void (*)(void* user, uint32_t frames, int16_t* out);
@@ -16,8 +18,8 @@ enum class DeviceEvent { None, Restarted, Failed };
 class MiniaudioDevice {
 public:
     ~MiniaudioDevice();
-    // null_backend: тот же ma_device и тот же RT-поток, но без железа — машинный суррогат
-    // «живого звука» для CI (на раннерах аудиоустройства нет). Сенсорика — на железе владельца.
+    // Первый вызов — после холодной настройки; null user допустим. null_backend использует тот же
+    // ma_device и RT-поток без железа — суррогат для CI. Ненулевой callback обязателен.
     bool start(RenderFn fn, void* user, bool null_backend = false);
     void stop();
     // Поток игры, раз в тик (аудит #21 A·3·5). Вывод, который бэкенд остановил и за 500 мс тишины
