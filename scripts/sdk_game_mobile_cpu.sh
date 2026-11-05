@@ -14,6 +14,15 @@ mobile_cpu() {
     "$feedback" || { sdk_bad 'local HitEvent haptic routing'; return 1; }
     [ ! -f "$exe.exe" ] || exe="$exe.exe"
     [ ! -f "$desk.exe" ] || desk="$desk.exe"
+    local assets="$OUT/game-Release" bench="$WORK/mobile-cpu-bench.log"
+    if ! "$exe" "$(native "$assets")" bench-touch > "$bench" 2>&1 ||
+        ! grep -qxF 'bench-touch: PASS scripted touch joined, moved and attacked' "$bench"; then
+        tail -25 "$bench"; sdk_bad 'frame-stats scripted touch through actual game'; return 1
+    fi
+    if ! "$exe" "$(native "$assets")" bench-conflict > "$bench" 2>&1 ||
+        ! grep -qxF 'neon-rumble: --frame-stats needs the standard level and OS touch' "$bench"; then
+        tail -25 "$bench"; sdk_bad 'frame-stats mobile accepts demo'; return 1
+    fi
     python3 "$ROOT/scripts/mobile_cpu_verdict.py" "$(native "$exe")" "$(native "$desk")" "$(native "$OUT/game-Release")" || {
         sdk_bad 'mobile CPU input or demo parity'; return 1; }
     python3 "$ROOT/scripts/android_touch_cpu.py" "$(native "$exe")" "$(native "$OUT/game-Release")" || {

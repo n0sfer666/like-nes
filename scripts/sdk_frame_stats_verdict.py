@@ -25,35 +25,36 @@ def test_case(exe, mode):
             require("[frame-stats]" not in proc.stdout and not target.exists(), "bad bundle side effects")
             return
         report = report_from_text(proc.stdout)
+        complete = mode in ("ok", "env-root")
         expected = {"frames": 4, "intervals": 2, "misses": 1, "menu_frames": 2,
                     "work_p50_ns": 3000000, "work_p99_ns": 4000000,
                     "interval_p50_ns": 33333333, "interval_p99_ns": 33333333,
                     "source": "fixture-null-audio", "capture_ready": True, "audio_ok": True,
-                    "save_ok": mode not in ("no-save", "failed-save"), "complete": mode == "ok",
+                    "save_ok": mode not in ("no-save", "failed-save", "relative-root"), "complete": complete,
                     "touch_move": mode != "no-touch", "touch_attack": mode != "no-touch"}
         for key, value in expected.items():
             require(report.get(key) == value, f"{mode}: {key} != {value!r}: {report!r}")
         require((report["audible_callbacks"] > 0) == (mode != "silent"), f"{mode}: wrong PCM evidence")
         if mode == "failed-save":
             require(target.read_bytes() == b"untouched", "failed save touched an existing file")
-        if mode == "no-save":
-            require(not target.exists(), "shutdown without save created a slot")
+        if mode in ("no-save", "relative-root"):
+            require(not target.exists(), f"{mode}: unexpected slot creation")
         try:
             validate(report)
         except ValueError:
-            require(mode != "ok", "valid fixture report rejected")
+            require(not complete, "valid fixture report rejected")
         else:
-            require(mode == "ok", "incomplete fixture report passed")
+            require(complete, "incomplete fixture report passed")
 
 
 def main(exe):
     try:
-        for mode in ("ok", "no-save", "failed-save", "no-touch", "silent", "bad-bundle"):
+        for mode in ("ok", "no-save", "failed-save", "no-touch", "silent", "bad-bundle", "env-root", "relative-root"):
             test_case(exe, mode)
     except (ValueError, OSError, subprocess.TimeoutExpired) as error:
         print(f"sdk-frame-stats: FAIL: {error}", file=sys.stderr)
         return 1
-    print("sdk-frame-stats: PASS (six real SDK driver cases, no hardware claim)")
+    print("sdk-frame-stats: PASS (eight real SDK driver cases, no hardware claim)")
     return 0
 
 

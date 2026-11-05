@@ -13,6 +13,7 @@ namespace {
 std::string assets;
 bool demo;
 bool waves;
+bool frame_stats;
 int fails;
 
 void check(bool ok, const char* why) { if (!ok) { ++fails; std::printf("mobile-cpu: FAIL %s\n", why); } }
@@ -26,18 +27,22 @@ bool owns(const mobile::Game& game, const char* field) {
 // Мок лишь хоста: GPU не инициализируется, поверхность не подключается, игровой CPU-цикл настоящий.
 std::string mobile::asset_path(const char* name) { return assets + "/" + name; }
 bool mobile::has_arg(const char* flag) {
-    return (demo && std::strcmp(flag, "--demo") == 0) || (waves && std::strcmp(flag, "--wave") == 0);
+    return (demo && std::strcmp(flag, "--demo") == 0) || (waves && std::strcmp(flag, "--wave") == 0) ||
+        (frame_stats && std::strcmp(flag, "--frame-stats") == 0);
 }
 void mobile::interactive_thread() {}
 std::string mobile::device_info() { return "CPU test host"; }
 bool mobile_cpu_probe(mobile::Game& game);
+bool bench_touch(const std::string& assets);
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
     if (argc != 3) { std::puts("usage: rumble_mobile_cpu <assets-dir> <demo|idle|move|cancel|rotate|suspend|late|probe|wave-demo|wave-touch|pad|pad-drop>"); return 1; }
     assets = argv[1];
     const std::string mode = argv[2];
-    demo = mode == "demo" || mode == "wave-demo";
+    if (mode == "bench-touch") return bench_touch(assets) ? 0 : 1;
+    frame_stats = mode == "bench-conflict";
+    demo = mode == "demo" || mode == "wave-demo" || frame_stats;
     waves = mode == "wave-demo" || mode == "wave-touch";
     const bool pad = mode == "pad" || mode == "pad-drop";
     mobile_cpu_pad_mode(pad, mode == "pad-drop");
@@ -45,6 +50,7 @@ int main(int argc, char** argv) {
         mode != "suspend" && mode != "late" && mode != "probe" && mode != "wave-touch" && !pad) return 1;
     GpuContext gpu;
     auto game = mobile::make_game();
+    if (frame_stats) return game->init(gpu) ? 1 : 0;
     if (!game->init(gpu)) { std::puts("mobile-cpu: FAIL init"); return 1; }
     const mobile::SafeArea safe{44, 0, 44, 21, 3};
     game->resize(2532, 1170, safe);

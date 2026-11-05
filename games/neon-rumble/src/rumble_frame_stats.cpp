@@ -4,7 +4,9 @@
 #include <cstdio>
 #include <vector>
 
+#include "platform_env.hpp"
 #include "platform_fs.hpp"
+#include "platform_path.hpp"
 #include "platform_process.hpp"
 #include "platform_save.hpp"
 #include "save_slots.hpp"
@@ -34,8 +36,11 @@ struct SaveSample { uint64_t ns = 0; bool ok = false; };
 
 SaveSample write_sample(const FrameStatsResult& result) {
     const auto* override = platform::save_dir_override();
-    const std::string base = override == nullptr ? platform::user_data_dir("like-nes-frame-stats") :
-        override->empty() ? std::string{} : *override + "/like-nes-frame-stats";
+    std::string env;
+    if (!override && platform::env_var("LIKENES_SAVE_DIR", env) && !env.empty()) override = &env;
+    if (override && !platform::is_absolute(*override)) return {};
+    const std::string base = override ? *override + "/like-nes-frame-stats"
+                                      : platform::user_data_dir("like-nes-frame-stats");
     if (base.empty()) return {};
     static std::atomic<uint32_t> sequence{0};
     const std::string dir = base + "/run-" + std::to_string(platform::process_id()) + "-" +
@@ -95,8 +100,17 @@ void FrameStatsRun::observe_touch(bool move, bool attack) {
 
 void FrameStatsRun::tick() { if (collecting()) music_.tick(); }
 void FrameStatsRun::poll() { if (collecting()) music_.poll(); }
-void FrameStatsRun::suspend() { reset_cadence(); music_.suspend(); }
-void FrameStatsRun::resume() { reset_cadence(); if (collecting()) music_.resume(); }
+void FrameStatsRun::suspend() {
+    reset_cadence();
+    paused_ = true;
+    music_.suspend();
+}
+
+void FrameStatsRun::resume() {
+    reset_cadence();
+    paused_ = false;
+    if (collecting()) music_.resume();
+}
 
 bool FrameStatsRun::finish(bool allow_save) {
     if (!opened_ || reported_) return complete_;

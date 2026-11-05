@@ -87,12 +87,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
     NAME "Neon Rumble" ID com.likenes.neonrumble)
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
-  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
+    src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)
 endif()
+include(${CMAKE_CURRENT_LIST_DIR}/frame_stats.cmake)
+rumble_frame_stats_sources(neon_rumble)
 # Бойцов печёт инструмент игры (спека #29, В2а). Мобильная сборка его не запускает — бинарь хоста
 # приходит готовым путём.
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
@@ -104,6 +107,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
 else()
   add_subdirectory(tools)
   like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle TOOL rumble_assetc)
+endif()
+if(TARGET like-nes::audio_device)
+  like_nes_bake(neon_rumble MANIFEST bench/frame-stats.manifest OUT frame-stats.bundle)
 endif()
 ```
 <!-- /snippet -->
@@ -399,6 +405,20 @@ p50/p99, counts, misses и complete. Переполнение capacity дела�
 начинает новый замер. Пропуски — потерянные интервалы60Гц, nearest-period half-up. Индексы
 процентилей как у resim bench: N/2 и floor(99N/100). `frame_stats_verdict.py --selftest` проверяет
 схему; `--budget` требует строго меньше1% потерянных интервалов. Сам collector телефон не измеряет.
+
+Соберите стенд Neon Rumble против SDK с `AUDIO_MINIAUDIO=ON` и запустите с `--frame-stats`.
+Первые 60 отправленных кадров разогревают стенд; следующие 3600 измеряются. Стенд начинает в
+существующем меню и после кадра 120 входит в бой. На десктопе сценарий подаёт стик и PUNCH через
+реальные тач-привязки. На телефоне нажмите PUNCH для входа, подвигайтесь и атакуйте сами.
+Дождитесь `[frame-stats-ready]` и отправьте приложение в фон для замера записи.
+
+Единственная строка `[frame-stats]` содержит интервалы между началами кадров, отдельно время
+работы CPU, включая вызов показа, пропуски данных музыки и время синхронной записи слота SDK. После
+паузы базовая точка ритма сбрасывается; неудачное получение текстуры её не сдвигает. Полный
+замер требует отправленных кадров, PCM музыки, команд движения и атаки от тача и записанного
+слота. Синтетическая музыка лежит в `frame-stats.bundle`; слот — в отдельном каталоге
+`like-nes-frame-stats` (на десктопе внутри `LIKENES_SAVE_DIR`, если он задан).
+Сценарий приёмки — [§39 проверки владельца](../../owner-verification.md#39-gate-3-of-26--frame-budget-on-the-slowest-phone).
 
 Бейк отказывает строке, а не угадывает, что имелось в виду:
 

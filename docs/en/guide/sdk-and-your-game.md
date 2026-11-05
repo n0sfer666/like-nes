@@ -83,12 +83,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
     NAME "Neon Rumble" ID com.likenes.neonrumble)
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
-  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
+    src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)
 endif()
+include(${CMAKE_CURRENT_LIST_DIR}/frame_stats.cmake)
+rumble_frame_stats_sources(neon_rumble)
 # Бойцов печёт инструмент игры (спека #29, В2а). Мобильная сборка его не запускает — бинарь хоста
 # приходит готовым путём.
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
@@ -100,6 +103,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
 else()
   add_subdirectory(tools)
   like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle TOOL rumble_assetc)
+endif()
+if(TARGET like-nes::audio_device)
+  like_nes_bake(neon_rumble MANIFEST bench/frame-stats.manifest OUT frame-stats.bundle)
 endif()
 ```
 <!-- /snippet -->
@@ -392,6 +398,20 @@ misses and complete. Capacity exhaustion makes the capture incomplete; a valid i
 Misses count lost60Hz intervals using nearest-period half-up rounding. Percentile indexes match the
 resim bench: N/2 and floor(99N/100). `frame_stats_verdict.py --selftest` checks the report format;
 `--budget` requires strictly fewer than1% lost intervals. The collector alone does not measure a phone.
+
+Build the Neon Rumble stand against an SDK with `AUDIO_MINIAUDIO=ON` and launch it with
+`--frame-stats`. It warms up for 60 submitted frames and collects the next 3600, starting in the
+existing menu and switching to the fight at frame 120. The desktop stand drives the virtual stick
+and PUNCH through the real touch bindings. On a phone, join with PUNCH, move and attack yourself.
+Wait for `[frame-stats-ready]` and send the app to the background to time the actual save.
+
+The single `[frame-stats]` line reports cadence between frame starts, separate CPU work time
+through the call to present, music underruns and synchronous SDK slot write time. Cadence starts
+afresh after a lifecycle pause; failed acquisitions do not advance its baseline. The stand needs
+successful submissions, audio PCM, touch movement and attack commands, and a saved sample to
+mark the capture complete. The synthetic track is in `frame-stats.bundle`; the sample is saved
+under a separate `like-nes-frame-stats` directory (under `LIKENES_SAVE_DIR` if set on desktop).
+For the physical acceptance procedure, see [owner verification §39](../../owner-verification.md#39-gate-3-of-26--frame-budget-on-the-slowest-phone).
 
 The bake refuses a line instead of guessing what it meant:
 

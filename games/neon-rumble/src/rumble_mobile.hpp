@@ -10,6 +10,7 @@
 #include "quad_batch.hpp"
 #include "rumble_credits.hpp"
 #include "rumble_flow.hpp"
+#include "rumble_frame_stats.hpp"
 #include "rumble_hotseat.hpp"
 #include "rumble_menu.hpp"
 #include "rumble_screen.hpp"
@@ -38,8 +39,8 @@ public:
     void frame(double dt) override;
     bool wants_frames() const override;
     void suspend() override;
-    void save() override {} // Persistent settings/progress приходят с пилотом #29; мир матча не сейвим.
-    void resume() override { lag_ = 0; }
+    void save() override;
+    void resume() override;
     void shutdown() override;
 
 private:
@@ -47,9 +48,10 @@ private:
     void release_targets();
     bool bind();
     void step();
-    void draw();
+    bool draw();
     void report_surface(const char* what) const;
     bool open_controls();
+    bool open_benchmark(bool waves);
     void fit_touch(uint32_t w, uint32_t h, const mobile::SafeArea& safe);
     void observe_punch(const Play& play);
 
@@ -67,6 +69,7 @@ private:
     Touch touch_;
     TouchQuads touch_quads_;
     WaveScript wave_demo_;
+    std::unique_ptr<FrameStatsRun> bench_;
     std::unique_ptr<Screen> screen_;
     render::QuadRenderer quads_;
     WGPUColor clear_{};

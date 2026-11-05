@@ -21,7 +21,8 @@ public:
 
     bool open(const std::string& bundle, FrameStatsSource source, std::string& why,
               uint32_t capture_frames = CAPTURE_FRAMES);
-    bool collecting() const { return opened_ && !ready() && !reported_; }
+    bool collecting() const { return opened_ && !paused_ && !ready() && !reported_; }
+    bool paused() const { return paused_; }
     bool ready() const { return opened_ && frames_.size() == capacity_; }
     uint32_t presented() const { return presented_; }
     // Call only after upload and submission for presentation. A failed frame does not advance
@@ -44,7 +45,7 @@ private:
     FrameStatsSource source_ = FrameStatsSource::Fixture;
     uint32_t capacity_ = 0, presented_ = 0, menu_frames_ = 0;
     bool moved_ = false, attacked_ = false, valid_ = true, opened_ = false;
-    bool reported_ = false, complete_ = false;
+    bool paused_ = false, reported_ = false, complete_ = false;
 };
 
 } // namespace rumble

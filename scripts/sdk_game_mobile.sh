@@ -1,12 +1,8 @@
 # shellcheck shell=bash
-# Мобильная половина гейта sdk-game (спека #26, В1д): Neon Rumble собирается против МОБИЛЬНОГО
-# префикса SDK, а не против дерева. iOS-симулятор — на macOS, Android x86_64 — на Linux и на macOS с
-# пиннутым NDK. Префикс ставится в пустой каталог из своей сборки (build-sdk-ios-sim,
-# build-sdk-android-x86_64), игра собирается через like-nes_DIR и печётся rumble_assetc, собранным
-# против десктопного префикса (`rumble_tool.sh`, спека #29, В2а), а пакет судится по составу:
-# бинарь своей платформы, оба бандла, все лицензии префикса.
-# game.bundle пакета сравнивается побайтно с бандлом десктопной игры: один манифест и один пекарь.
-# Вызывающий задаёт ROOT, WORK, OUT, PREFIX (десктопный префикс) и GEN; помощники — sdk_game_lib.sh.
+# Мобильная половина SDK-гейта: iOS-симулятор на macOS, Android x86_64 с пиннутым NDK.
+# Игра линкуется против мобильного префикса, бандлы печёт инструмент хоста.
+# Проверяются бинарь, три бандла, лицензии и совпадение бандлов игры и стенда с десктопом.
+# Вызывающий задаёт ROOT, WORK, OUT, PREFIX и GEN; помощники в sdk_game_lib.sh.
 
 # shellcheck source=platform/mobile/fresh_cache.sh
 . "$ROOT/platform/mobile/fresh_cache.sh"
@@ -58,11 +54,11 @@ mobile_licenses() {
 
 # Бандл пакета против бандла десктопной игры: расхождение — чужой пекарь или чужой манифест.
 mobile_bundle_same() {
-    local plat=$1 got=$2
-    [ -f "$OUT/game-Release/game.bundle" ] || {
-        sdk_bad "$plat: no desktop game.bundle in $OUT/game-Release to compare with"; return 1; }
-    cmp -s "$got" "$OUT/game-Release/game.bundle" || {
-        sdk_bad "$plat: game.bundle of the package differs from the desktop game's"; return 1; }
+    local plat=$1 got=$2 name=$3
+    [ -f "$OUT/game-Release/$name" ] || {
+        sdk_bad "$plat: no desktop $name in $OUT/game-Release to compare with"; return 1; }
+    cmp -s "$got" "$OUT/game-Release/$name" || {
+        sdk_bad "$plat: $name of the package differs from the desktop game's"; return 1; }
 }
 
 # Состав листинга `unzip -l` — case, а не `unzip | grep -q`: grep закрыл бы трубу раньше unzip.
@@ -100,12 +96,14 @@ mobile_ios() {
         [ "$(plutil -extract NSBonjourServices.0 raw "$app/Info.plist")" = _likenes._udp ] || {
         sdk_bad 'ios-sim: landscape or LAN usage declarations missing from Info.plist'; return 1; }
     lic=$(mobile_licenses ios-sim "$pfx") || return 1
-    for n in assets/game.bundle assets/library.bundle $lic; do
+    for n in assets/game.bundle assets/library.bundle assets/frame-stats.bundle $lic; do
         case "$n" in assets/*) ;; *) n="licenses/$n" ;; esac
         [ -f "$app/$n" ] || { sdk_bad "ios-sim: neon_rumble.app has no $n"; return 1; }
     done
-    mobile_bundle_same ios-sim "$app/assets/game.bundle" || return 1
-    sdk_ok "ios-sim: neon_rumble.app (IOSSIMULATOR, iOS $min) carries both bundles and the licenses"
+    for n in game.bundle frame-stats.bundle; do
+        mobile_bundle_same ios-sim "$app/assets/$n" "$n" || return 1
+    done
+    sdk_ok "ios-sim: neon_rumble.app (IOSSIMULATOR, iOS $min) carries all three bundles and the licenses"
     fixture_gamepad_source ios-sim "$pfx" "${flags[@]}" || return 1
     fixture_mobile_tree_header ios-sim "$pfx" "${flags[@]}" || return 1
     fixture_mobile_stale_tool ios-sim "$pfx" "${flags[@]}"
@@ -142,15 +140,17 @@ mobile_android() {
         python3 "$ROOT/scripts/android_package_verdict.py" "$WORK/android-manifest.dump" "$WORK/android-resources.dump" || {
         sdk_bad 'android: compiled manifest or theme'; return 1; }
     listing=$(unzip -l "$apk") || { sdk_bad "android-$abi: cannot list $apk"; return 1; }
-    local want=("lib/$abi/libneon_rumble.so" "lib/$abi/libc++_shared.so" assets/game.bundle assets/library.bundle)
+    local want=("lib/$abi/libneon_rumble.so" "lib/$abi/libc++_shared.so" assets/game.bundle assets/library.bundle assets/frame-stats.bundle)
     lic=$(mobile_licenses "android-$abi" "$pfx") || return 1
     for n in $lic; do want+=("assets/licenses/$n"); done
     lacks=$(apk_lacks "$listing" "${want[@]}")
     [ -z "$lacks" ] || { sdk_bad "android-$abi: neon_rumble.apk lacks$lacks"; return 1; }
-    unzip -p "$apk" assets/game.bundle > "$WORK/apk-game.bundle" || {
-        sdk_bad "android-$abi: cannot extract game.bundle from the APK"; return 1; }
-    mobile_bundle_same "android-$abi" "$WORK/apk-game.bundle" || return 1
-    sdk_ok "android-$abi: neon_rumble.apk (API $api) carries the .so, libc++_shared, both bundles and the licenses"
+    for n in game.bundle frame-stats.bundle; do
+        unzip -p "$apk" "assets/$n" > "$WORK/apk-$n" || {
+            sdk_bad "android-$abi: cannot extract $n from the APK"; return 1; }
+        mobile_bundle_same "android-$abi" "$WORK/apk-$n" "$n" || return 1
+    done
+    sdk_ok "android-$abi: neon_rumble.apk (API $api) carries the .so, libc++_shared, three bundles and the licenses"
     fixture_gamepad_source "android-$abi" "$pfx" "${flags[@]}" || return 1
     fixture_mobile_tree_header "android-$abi" "$pfx" "${flags[@]}" || return 1
     fixture_mobile_stale_tool "android-$abi" "$pfx" "${flags[@]}"

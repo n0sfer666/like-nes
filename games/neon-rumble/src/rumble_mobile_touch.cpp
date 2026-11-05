@@ -55,7 +55,6 @@ void MobileRumble::pointer(intptr_t id, mobile::Touch phase, float x, float y) {
 }
 
 void MobileRumble::cancel() { touch_.source().cancel(); }
-void MobileRumble::suspend() { cancel(); lag_ = 0; }
 // Диагностика вне Brawl/снапшотов переживает конец клипа: медленный эмулятор не обязан
 // попасть пробой ровно в нужный кадр анимации длиной 240мс.
 void MobileRumble::observe_punch(const Play& play) {

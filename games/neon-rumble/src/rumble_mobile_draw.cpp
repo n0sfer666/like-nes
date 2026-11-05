@@ -9,10 +9,10 @@
 
 namespace rumble {
 
-void MobileRumble::draw() {
+bool MobileRumble::draw() {
     const SurfaceFrame sf = acquire_frame(spec_, *gpu_, "neon-rumble", warned_);
     lost_ = sf.quit;
-    if (!sf.texture) return;
+    if (!sf.texture) return false;
     const framework::graphics::ViewportFit fit = framework::graphics::viewport_fit(
         {spec_.width, spec_.height}, flow_.viewport().zone, flow_.viewport().limit);
     const Play* play = flow_.play();
@@ -24,17 +24,23 @@ void MobileRumble::draw() {
         touch_quads_.add(touch_.source(), credits_.font, touch_scale_, screen_->layers(), st,
                          solid_texture(textures), atlas_texture(textures));
     }
-    if (!quads_.upload(screen_->layers().quads(st), spec_.width, spec_.height) && !upload_warned_) {
+    const bool uploaded = quads_.upload(screen_->layers().quads(st), spec_.width, spec_.height);
+    if (!uploaded && !upload_warned_) {
         std::fprintf(stderr, "neon-rumble: %u quad(s) not uploaded, frame left empty\n", st.quads);
         upload_warned_ = true;
     }
     WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
+    if (!view) {
+        wgpuTextureRelease(sf.texture);
+        return false;
+    }
     const auto runs = screen_->layers().runs(st);
     // Кнопки живут и в полосах за игровым viewport: их scissor — весь экран, а у сцены прежний shown.
     draw_frame(*gpu_, surface_, view, clear_, fit.shown, quads_, runs.first(scene_runs),
                QuadOverlay{{0, 0, spec_.width, spec_.height}, runs.subspan(scene_runs)});
     wgpuTextureViewRelease(view);
     wgpuTextureRelease(sf.texture);
+    return uploaded && !gpu_->device_lost.load();
 }
 
 } // namespace rumble

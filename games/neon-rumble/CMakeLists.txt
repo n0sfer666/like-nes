@@ -10,12 +10,15 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
     NAME "Neon Rumble" ID com.likenes.neonrumble)
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
 else()
-  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
+  add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
+    src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
   like_nes_add_game(neon_rumble)
 endif()
+include(${CMAKE_CURRENT_LIST_DIR}/frame_stats.cmake)
+rumble_frame_stats_sources(neon_rumble)
 # Бойцов печёт инструмент игры (спека #29, В2а). Мобильная сборка его не запускает — бинарь хоста
 # приходит готовым путём.
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
@@ -27,4 +30,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
 else()
   add_subdirectory(tools)
   like_nes_bake(neon_rumble MANIFEST game.manifest OUT game.bundle TOOL rumble_assetc)
+endif()
+if(TARGET like-nes::audio_device)
+  like_nes_bake(neon_rumble MANIFEST bench/frame-stats.manifest OUT frame-stats.bundle)
 endif()

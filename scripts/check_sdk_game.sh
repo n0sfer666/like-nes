@@ -105,6 +105,7 @@ for cfg in Release Debug; do
         game_coop_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_menu_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
+        game_frame_stats "$OUT/game-$cfg" "$cfg" || FAIL=1
     else
         tail -30 "$OUT/game-$cfg.log"
         sdk_bad "$cfg: neon-rumble did not build against the prefix"

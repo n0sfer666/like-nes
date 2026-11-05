@@ -1,12 +1,10 @@
 #include "rumble_window.hpp"
 
 #include <GLFW/glfw3.h>
-#include <glfw3webgpu.h>
 #include <webgpu/webgpu.h>
 
 #include <cstdio>
 #include <memory>
-#include <string>
 
 #include "gpu.hpp"
 #include "haptic.hpp"
@@ -14,11 +12,14 @@
 #include "rumble_brawl_report.hpp"
 #include "rumble_gpu_frame.hpp"
 #include "rumble_feedback.hpp"
+#include "rumble_frame_touch.hpp"
 #include "rumble_keys.hpp"
 #include "rumble_layers.hpp"
 #include "rumble_no_pads.hpp"
 #include "rumble_screen.hpp"
 #include "rumble_shot.hpp"
+#include "rumble_window_bench.hpp"
+#include "rumble_window_loop.hpp"
 #include "source.hpp"
 #include "surface_frame.hpp"
 
@@ -68,8 +69,10 @@ LayerStats step_level(Flow& flow, Play& play, Hotseat& hotseat, input::GamepadSo
 // docs:end(flow-keys)
 
 
-int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& flow, Hotseat& hotseat,
-               const Credits& credits, const WindowRun& run, int& drawn) {
+} // namespace
+
+int window_frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& flow,
+                      Hotseat& hotseat, const Credits& credits, const WindowRun& run, int& drawn) {
     int fbw = 0, fbh = 0;
     glfwGetFramebufferSize(window, &fbw, &fbh);
     SurfaceSpec spec{surface, WGPUTextureFormat_Undefined, static_cast<uint32_t>(fbw),
@@ -83,8 +86,9 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
     }
     auto screen = std::make_unique<Screen>();
     NoPads no_pads;
-    input::GamepadSource* pads = run.script ? &no_pads : open_pads(window, hotseat);
-    if (!run.script) haptic::init();
+    auto* bench = run.benchmark;
+    input::GamepadSource* pads = run.script || bench ? &no_pads : open_pads(window, hotseat);
+    if (!run.script && !bench) haptic::init();
     WindowKeys keys;
     bool cropped = false;
     bool warned = false;
@@ -92,7 +96,13 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
     bool shots_ok = true;
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
-        if (!run.script) keys.poll(window);
+        if (!run.script && !bench) keys.poll(window);
+        if (bench && glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
+            bench->frames.suspend();
+            glfwWaitEvents();
+            continue;
+        }
+        if (bench && bench->frames.paused()) bench->frames.resume();
         int nw = 0, nh = 0;
         glfwGetFramebufferSize(window, &nw, &nh);
         if (nw > 0 && nh > 0 && (static_cast<uint32_t>(nw) != spec.width
@@ -101,6 +111,8 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
             spec.height = static_cast<uint32_t>(nh);
             reconfigure_surface(spec, gpu.device);
         }
+        const auto begin = bench ? FrameClock::now() : FrameClock::time_point{};
+        if (bench) bench->frames.poll();
         const SurfaceFrame sf = acquire_frame(spec, gpu, "neon-rumble", warned);
         if (sf.quit) return 1;
         // Пропущенный кадр всё равно разбирает очередь: GLFW пишет в неё из колбэков, и переполнение
@@ -109,10 +121,12 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
             hotseat.engine().drain();
             continue;
         }
+        if (bench && bench->frames.presented() == FrameStatsRun::MENU_FRAMES && !flow.play()) flow.enter();
         if (flow.apply()) {
             screen->reset();
             if (!bind_scene(quads, gpu, spec.format, flow, credits, clear)) {
                 std::fprintf(stderr, "neon-rumble: quad renderer or scene texture upload failed\n");
+                wgpuTextureRelease(sf.texture);
                 return 1;
             }
             if (run.script && flow.play() != nullptr) run.script->enter_level();
@@ -125,13 +139,24 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
                          spec.width, spec.height, flow.viewport().zone.w, flow.viewport().zone.h);
         cropped = fit.cropped;
         Play* play = flow.play();
+        const uint32_t level_tick = play ? play->scene.ticks : 0;
+        if (bench) {
+            bench->frames.tick();
+            if (play) bench->feed(spec.width, spec.height, level_tick);
+        }
         if (run.script)
             run.script->feed(play != nullptr, play != nullptr ? play->scene.ticks + 1 : tick, hotseat.engine(), keys);
-        const LayerStats st = play != nullptr
-                                  ? step_level(flow, *play, hotseat, *pads, keys, *screen, credits, fit, tick, !run.script)
-                                  : step_menu(flow, hotseat, *pads, keys, *screen, credits, fit, tick);
+        LayerStats st = play != nullptr
+            ? step_level(flow, *play, hotseat, *pads, keys, *screen, credits, fit, tick, !run.script && !bench)
+            : step_menu(flow, hotseat, *pads, keys, *screen, credits, fit, tick);
         keys.consume();
-        if (!quads.upload(screen->layers().quads(st), spec.width, spec.height) && !upload_warned) {
+        const auto scene_runs = st.runs;
+        if (bench && play) {
+            if (play->scene.ticks != level_tick) observe_frame_touch(bench->frames, hotseat, *play);
+            bench->overlay(*play, credits, screen->layers(), st);
+        }
+        const bool uploaded = quads.upload(screen->layers().quads(st), spec.width, spec.height);
+        if (!uploaded && !upload_warned) {
             std::fprintf(stderr, "neon-rumble: %u quad(s) not uploaded, frame left empty\n", st.quads);
             upload_warned = true;
         }
@@ -140,51 +165,24 @@ int frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, Flow& f
             shots_ok = false;
         if (run.script && run.script->quit() && play != nullptr) report_brawl(play->brawl, play->scene.ticks);
         WGPUTextureView view = wgpuTextureCreateView(sf.texture, nullptr);
-        draw_frame(gpu, surface, view, clear, fit.shown, quads, screen->layers().runs(st));
-        wgpuTextureViewRelease(view);
+        const bool submitted = view != nullptr;
+        if (submitted) {
+            const auto runs = screen->layers().runs(st);
+            draw_frame(gpu, surface, view, clear, fit.shown, quads, runs.first(scene_runs),
+                       QuadOverlay{{0, 0, spec.width, spec.height}, runs.subspan(scene_runs)});
+            wgpuTextureViewRelease(view);
+        }
         wgpuTextureRelease(sf.texture);
-        if (++drawn == run.frames || (run.script && run.script->quit())) glfwSetWindowShouldClose(window, GLFW_TRUE);
+        if (bench && submitted && uploaded && !gpu.device_lost.load())
+            bench->frames.present(begin, FrameClock::now(), play == nullptr);
+        if (++drawn == run.frames || (run.script && run.script->quit()) || (bench && bench->frames.ready()))
+            glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
     if (run.script && !run.script->quit()) {
         std::fprintf(stderr, "neon-rumble: the window closed at frame %d before the script's 'quit'\n", drawn);
         return 1;
     }
     return shots_ok ? 0 : 1;
-}
-
-} // namespace
-
-int run_window(Flow& flow, Hotseat& hotseat, const Credits& credits, const WindowRun& run) {
-    if (!glfwInit()) {
-        std::fprintf(stderr, "neon-rumble: glfwInit failed\n");
-        return 1;
-    }
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    GLFWwindow* window = glfwCreateWindow(960, 540, "Neon Rumble", nullptr, nullptr);
-    GpuContext gpu;
-    WGPUSurface surface = nullptr;
-    int rc = 1;
-    int drawn = 0;
-    if (!window) {
-        std::fprintf(stderr, "neon-rumble: window creation failed\n");
-    } else if (!(gpu.instance = gpu.create_instance())) {
-        std::fprintf(stderr, "neon-rumble: webgpu instance failed\n");
-    } else if (!(surface = glfwGetWGPUSurface(gpu.instance, window)) || !gpu.init(surface)) {
-        std::fprintf(stderr, "neon-rumble: no surface, adapter or device\n");
-    } else {
-        rc = frame_loop(window, gpu, surface, flow, hotseat, credits, run, drawn);
-        if (rc == 0 && drawn == 0) {
-            std::fprintf(stderr, "neon-rumble: window closed before the first frame\n");
-            rc = 1;
-        }
-    }
-    if (surface) wgpuSurfaceRelease(surface);
-    haptic::shutdown();
-    gpu.shutdown();
-    if (window) glfwDestroyWindow(window);
-    glfwTerminate();
-    if (rc == 0) std::printf("neon-rumble: window run ok, %d frames\n", drawn);
-    return rc;
 }
 
 } // namespace rumble

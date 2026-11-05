@@ -8,4 +8,5 @@ set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_screen.cpp src/rumble_clipless.cpp src/rumble_crates.cpp src/rumble_knives.cpp
   src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
   src/rumble_join_report.cpp src/rumble_demo.cpp)
-set(RUMBLE_MOBILE_SOURCES src/rumble_mobile.cpp src/rumble_mobile_touch.cpp src/rumble_mobile_draw.cpp)
+set(RUMBLE_MOBILE_SOURCES src/rumble_mobile.cpp src/rumble_mobile_touch.cpp src/rumble_mobile_draw.cpp
+  src/rumble_mobile_bench.cpp)

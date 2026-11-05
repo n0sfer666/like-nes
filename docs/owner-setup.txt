@@ -2072,6 +2072,31 @@ owner_check.sh гоняет это отдельным этапом сразу п
   процесса, без изменения ОС/продукта. SAN/TSan проверяют lifetime/concurrency
   отдельно; этот результат не закрывает FPS и эргономику настоящего телефона.
 
+  5д) Замер кадров Neon Rumble (#26 В7, §39 owner-verification.md).
+  Собрать SDK и игру Release с AUDIO_MINIAUDIO=ON; проверить, что рядом с exe
+  или в assets/ пакета есть frame-stats.bundle. На десктопе из сборки игры:
+
+    ./neon_rumble --frame-stats
+
+  В окне стенд сам подаёт тач и сохраняет образец после 3600 измеренных кадров.
+  Для телефона: установить подписанный Release iOS или APK своего ABI.
+  iOS — добавить --frame-stats в Arguments Passed On Launch схемы Xcode и
+  запустить с консолью. Android — начать новый процесс с аргументом:
+
+    adb shell am force-stop com.likenes.neonrumble
+    adb shell am start -n com.likenes.neonrumble/android.app.NativeActivity --es args --frame-stats
+    adb logcat -s like-nes
+
+  Без --demo и --wave. Дождаться боя после меню, войти PUNCH, идти стиком и
+  атаковать. После [frame-stats-ready] нажать Home; затем сохранить единственную
+  строку [frame-stats] этого запуска и проверить её из корня репозитория:
+
+    python3 scripts/frame_stats_verdict.py --budget phone-frame-stats.log
+
+  Вердикт проверяет схему, успешную запись слота и строго меньше 1% пропусков;
+  модель и реальный вывод звука подтверждает владелец. Не смешивать два запуска
+  в одном логе. Слот лежит отдельно от игровых сейвов.
+
   6) Бенч ресима на самом слабом телефоне (спека #25, В9г; гейт §34
   docs/owner-verification.md). НЕ прогнан агентом ни на одном телефоне.
   Это не игра: приложение like-nes-bench (com.likenes.resimbench) с чёрным
@@ -2397,11 +2422,11 @@ owner_check.sh гоняет это отдельным этапом сразу п
       sdk-game: SKIP CRT fixture (not an MSVC toolchain)
       sdk-game: OK   rumble_assetc built against the desktop prefix
       sdk-game: OK   ios-sim: SDK built and installed into its own prefix
-      sdk-game: OK   ios-sim: neon_rumble.app (IOSSIMULATOR, iOS 17.0) carries both bundles and the licenses
+      sdk-game: OK   ios-sim: neon_rumble.app (IOSSIMULATOR, iOS 17.0) carries all three bundles and the licenses
       sdk-game: OK   fixture: ios-sim prefix does not expose the tree's shooter_mobile.hpp
       sdk-game: OK   fixture: ios-sim game refuses a rumble_assetc of another engine build
       sdk-game: OK   android-x86_64: SDK built and installed into its own prefix
-      sdk-game: OK   android-x86_64: neon_rumble.apk (API 29) carries the .so, libc++_shared, both bundles and the licenses
+      sdk-game: OK   android-x86_64: neon_rumble.apk (API 29) carries the .so, libc++_shared, three bundles and the licenses
       sdk-game: OK   fixture: android-x86_64 prefix does not expose the tree's shooter_mobile.hpp
       sdk-game: OK   fixture: android-x86_64 game refuses a rumble_assetc of another engine build
       sdk-game: PASS (Release + Debug against the prefix, mobile packages against theirs, fixtures refused)

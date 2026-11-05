@@ -279,7 +279,10 @@ Ninja не судил бы (мутант «копии нет» выжил ров
 установленного SDK в Release и Debug: реальный бейк синтетического Ogg, MusicStream и callback
 miniaudio Null, пропуск одного кадра и разрыв при паузе на заданных метках времени, запись и
 чтение слота через LocalBackend. Отдельно судит отказ сейва, отсутствие вызова save, отсутствие
-тач-команд и тишину. Фикстура не измеряет рендеринг или физический вывод.
+тач-команд и тишину. Десктопная игра отвергает смешение `--frame-stats` с headless; CPU-проверка
+гоняет тот же сценарий касаний до движения и удара в настоящем бою и проверяет отказ
+мобильного `--demo` со стендом. Сумма двух бандлов игры ограничена 30 МиБ; пакет iOS/Android
+несёт оба побайтно одинаковыми с десктопом. Фикстура не измеряет GPU или физический вывод.
 
 Каталоги СВОИ, как у голдена Debug: одолженный `build-ci` поменял бы конфигурацию чужому этапу.
 Оба конфигурируются из одного состояния дерева — последняя установка перетирает Config в префиксе
@@ -348,8 +351,8 @@ desktop prefix` (оба проверены 2026-10-29, macOS). Префикс �
 
 | платформа | где | сборка SDK | пакет обязан нести |
 |---|---|---|---|
-| `ios-sim` | macOS — всегда | `build-sdk-ios-sim` (`-DCMAKE_SYSTEM_NAME=iOS`, `iphonesimulator`, arm64); минимум игры — `_ln_ios_min` из Config | бинарь `platform IOSSIMULATOR` (`vtool`), `MinimumOSVersion` = минимум префикса, `assets/game.bundle`, `assets/library.bundle`, `licenses/<каждое имя _ln_licenses>` |
-| `android-x86_64` | macOS и Linux при пиннутом NDK, иначе строка `SKIP android-x86_64 (<причина android_ndk.sh>)`; `SDK_GAME_ANDROID=required` (джоб CI Linux) — нет NDK = FAIL, `skip` (джоб CI macOS) — строка `SKIP android-x86_64 (SDK_GAME_ANDROID=skip)` | `build-sdk-android-x86_64` (тулчейн NDK пина, `ANDROID_PLATFORM` — `minSdkVersion` шаблона манифеста) | `libneon_rumble.so` — ELF x86-64; в APK `lib/x86_64/libneon_rumble.so`, `lib/x86_64/libc++_shared.so`, оба бандла, `assets/licenses/<каждое имя>` |
+| `ios-sim` | macOS — всегда | `build-sdk-ios-sim` (`-DCMAKE_SYSTEM_NAME=iOS`, `iphonesimulator`, arm64); минимум игры — `_ln_ios_min` из Config | бинарь `platform IOSSIMULATOR` (`vtool`), `MinimumOSVersion` = минимум префикса, `assets/game.bundle`, `assets/library.bundle`, `assets/frame-stats.bundle`, `licenses/<каждое имя _ln_licenses>` |
+| `android-x86_64` | macOS и Linux при пиннутом NDK, иначе строка `SKIP android-x86_64 (<причина android_ndk.sh>)`; `SDK_GAME_ANDROID=required` (джоб CI Linux) — нет NDK = FAIL, `skip` (джоб CI macOS) — строка `SKIP android-x86_64 (SDK_GAME_ANDROID=skip)` | `build-sdk-android-x86_64` (тулчейн NDK пина, `ANDROID_PLATFORM` — `minSdkVersion` шаблона манифеста) | `libneon_rumble.so` — ELF x86-64; в APK `lib/x86_64/libneon_rumble.so`, `lib/x86_64/libc++_shared.so`, три бандла, `assets/licenses/<каждое имя>` |
 
 Windows печатает `SKIP mobile half`. NDK выбирает тот же `platform/android/android_ndk.sh`, что у
 `build_apk.sh`, в подоболочке: его отказ — `exit 1`. В CI Linux ставит пин NDK, build-tools 35,

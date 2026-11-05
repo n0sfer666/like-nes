@@ -16,6 +16,7 @@ std::unique_ptr<mobile::Game> mobile::make_game() { return rumble::make_bench_ga
 #include "rumble_join_report.hpp"
 #include "rumble_gpu_frame.hpp"
 #include "rumble_feedback.hpp"
+#include "rumble_frame_touch.hpp"
 #include "rumble_report.hpp"
 
 namespace rumble {
@@ -42,10 +43,15 @@ bool MobileRumble::init(GpuContext& gpu) {
     const bool waves = mobile::has_arg("--wave");
     wave_demo_ = {};
     if (!credits_.open(bundle_) || !menu_.init("level1", waves) || !flow_.open()) return false;
-    // Мобильный гейт входит в выбранный режим сразу, без desktop-меню.
-    flow_.enter();
-    flow_.apply();
-    if (flow_.play() == nullptr || !open_controls()) return false;
+    // Обычный запуск входит сразу; стенд сначала измеряет существующее меню.
+    if (mobile::has_arg("--frame-stats")) {
+        if (!open_benchmark(waves)) return false;
+    } else {
+        flow_.enter();
+        flow_.apply();
+        if (!flow_.play()) return false;
+    }
+    if (!open_controls()) return false;
     std::fprintf(stderr, "[game] level mode %s\n", waves ? "wave" : "arena");
     screen_ = std::make_unique<Screen>();
     inited_ = true;
@@ -84,6 +90,7 @@ void MobileRumble::report_surface(const char* what) const {
 
 bool MobileRumble::attach_surface(WGPUSurface surface, uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea& safe) {
     if (!inited_ || !surface) return false;
+    if (bench_) bench_->reset_cadence();
     surface_ = surface;
     fit_touch(fb_w, fb_h, safe);
     build_targets(fb_w, fb_h);
@@ -94,6 +101,7 @@ bool MobileRumble::attach_surface(WGPUSurface surface, uint32_t fb_w, uint32_t f
 
 void MobileRumble::detach_surface() {
     if (!inited_) return;
+    if (bench_) bench_->reset_cadence();
     cancel();
     release_targets();
     surface_ = nullptr;
@@ -115,12 +123,13 @@ void MobileRumble::resize(uint32_t fb_w, uint32_t fb_h, const mobile::SafeArea& 
 }
 
 bool MobileRumble::wants_frames() const {
-    return inited_ && targets_ && !lost_ && !gpu_->device_lost.load();
+    return inited_ && targets_ && !lost_ && (!bench_ || !bench_->paused()) && !gpu_->device_lost.load();
 }
 
 // Порядок шага — как у run_headless: клавиши P2 до тика лобби, команда P1 поверх собранной им, места
 // до шага — до run, отчёты — после него.
 void MobileRumble::step() {
+    if (bench_) bench_->tick();
     if (pads_) pads_->poll(hotseat_.engine());
     Play* play = flow_.play();
     if (play == nullptr) {
@@ -137,6 +146,7 @@ void MobileRumble::step() {
         if (hotseat_.engine().device().pad_connected[slot]) pads |= 1u << slot;
     touch_.update_pads(pads);
     if (!run) return;
+    if (bench_) observe_frame_touch(*bench_, hotseat_, *play);
     if (demo_) play->brawl.players[PLAYER] = menu_.item == MenuItem::Wave ?
         wave_demo_.next(play->brawl, t) : demo_p1(t);
     const framework::brawl::Seats was = play->brawl.seats;
@@ -148,7 +158,13 @@ void MobileRumble::step() {
 }
 
 void MobileRumble::frame(double dt) {
-    if (!inited_) return;
+    if (!inited_ || (bench_ && bench_->paused())) return;
+    const bool measuring = bench_ && bench_->collecting();
+    const auto begin = measuring ? FrameClock::now() : FrameClock::time_point{};
+    if (measuring) {
+        bench_->poll();
+        if (bench_->presented() == FrameStatsRun::MENU_FRAMES && !flow_.play()) flow_.enter();
+    }
     if (flow_.apply()) {
         cancel();
         screen_->reset();
@@ -160,16 +176,10 @@ void MobileRumble::frame(double dt) {
         step();
         ++ticks_;
     }
-    if (targets_ && !lost_) draw();
-}
-
-void MobileRumble::shutdown() {
-    if (!inited_) return;
-    cancel();
-    inited_ = false;
-    pads_ = nullptr;
-    release_targets();
-    surface_ = nullptr;
+    if (targets_ && !lost_ && draw() && measuring) {
+        bench_->present(begin, FrameClock::now(), flow_.play() == nullptr);
+        if (bench_->ready()) std::fprintf(stderr, "[frame-stats-ready] background the app to measure save\n");
+    }
 }
 
 } // namespace rumble

@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**26 of the 39 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 13 stay here as the procedure, because each needs a machine a CI runner is not: a
+**26 of the 40 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 14 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -60,6 +60,7 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | Neon Rumble on a real Android phone, built against the mobile SDK prefix: it starts, Home and back re-attach the surface to the same fight, and it is the desktop's fight | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 1 | **an Android phone**, Android 10 or newer | — | `platform/android/*`, `platform/mobile/*`, `games/neon-rumble/src/rumble_mobile.*`, `games/neon-rumble/src/rumble_demo.*`, `cmake/like_nes_mobile_app.cmake`, `scripts/android_rumble.sh` |
 | The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Pixelorama 1.2.3 and ChatGPT Images | — | `docs/art/*` |
 | The five touch buttons are reachable while walking level 1 with both thumbs, in both landscapes, and no hold survives rotation or backgrounding | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 2 | **a physical phone** with interactive Neon Rumble | — | `games/neon-rumble/controls/touch.txt`, `games/neon-rumble/src/rumble_touch*`, `games/neon-rumble/src/rumble_mobile*`, `platform/ios/*`, `platform/android/*` |
+| Neon Rumble measures less than 1% lost 60 Hz intervals with music, the menu and touch, and saves the sample when sent to the background | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 3 | **the slowest physical phone** with the Release stand | — | `games/neon-rumble/src/rumble_frame_*`, `games/neon-rumble/src/rumble_mobile*`, `games/neon-rumble/bench/*`, `scripts/frame_stats_verdict.py` |
 
 The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
 owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
@@ -4875,9 +4876,25 @@ Send back: commit, model/OS/screen size and density, the nonce-scoped log and bo
 missed/accidental presses per button, progress through level 1, pass or the exact discomfort and
 the proposed layout change. This gate remains open: no physical phone run has been recorded.
 
+## 39. Gate 3 of #26 — frame budget on the slowest phone
+
+<!-- gate: open | физический самый медленный телефон владельца: Release Neon Rumble из SDK с AUDIO_MINIAUDIO=ON, запустить --frame-stats без demo; меню, PUNCH для входа, стик и атака, слышимый трек; после [frame-stats-ready] Home, снять строку [frame-stats], python3 scripts/frame_stats_verdict.py --budget <log>; прислать модель, ОС, коммит, лог и save_ms -->
+
+Use a Release build against the SDK with `AUDIO_MINIAUDIO=ON`, on the slowest physical phone
+available. Follow R.5d in [owner setup](owner-setup.txt) to launch the stand with `--frame-stats`.
+Confirm the menu draws and the synthetic track plays. When the fight opens, tap PUNCH to join,
+hold the stick to move, and tap PUNCH or KICK to attack. After `[frame-stats-ready]`, press Home
+or use the Home gesture. Take the one `[frame-stats]` line from the same process's log.
+
+Run `python3 scripts/frame_stats_verdict.py --budget <log>`. A pass requires a complete capture,
+a successful SDK save and strictly less than 1% lost 60 Hz intervals. Send the phone model, OS,
+build commit, the tagged report and the verdict. Report audible glitches and any failure to
+finish writing while backgrounding, with the measured `save_ms`. The window run, emulator
+and CPU fixture are useful diagnostics; the physical phone gate remains open.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 26 of the 39 are closed, and the open 13 are listed by
+The gates above are what the ADRs waited on; 26 of the 40 are closed, and the open 14 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "platform_args.hpp"
+#include "platform_env.hpp"
 #include "platform_fs.hpp"
 #include "platform_save.hpp"
 #include "save_slots.hpp"
@@ -42,6 +43,7 @@ void exercise(FrameStatsRun& run, std::string_view mode) {
     begin += 33333333ns; // One render/acquire failed: no record between these starts.
     run.present(begin, begin + 2ms, true);
     run.suspend();
+    run.present(begin + 20ms, begin + 29ms, false); // A lingering surface cannot count in background.
     run.resume();
     begin += 5s;
     if (mode != "no-touch") run.observe_touch(true, true);
@@ -54,8 +56,11 @@ void exercise(FrameStatsRun& run, std::string_view mode) {
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
-    if (argc != 3 || !platform::set_save_dir(argv[2])) return 2;
+    if (argc != 3) return 2;
     const std::string_view mode = argv[1];
+    if (mode == "env-root" || mode == "relative-root") {
+        if (!platform::env_put("LIKENES_SAVE_DIR", mode == "env-root" ? argv[2] : "relative")) return 2;
+    } else if (!platform::set_save_dir(argv[2])) return 2;
     FrameStatsRun run;
     std::string why;
     const auto bundle = platform::exe_dir() + "/frame-stats.bundle";
@@ -68,7 +73,8 @@ int main(int argc, char** argv) {
     }
     exercise(run, mode);
     const bool finished = run.finish(mode != "no-save");
-    if (!run.ready() || finished != (mode == "ok") || run.finish(true) != finished) return 1;
-    if (mode == "ok" || mode == "no-touch" || mode == "silent") return check_saved(argv[2]) ? 0 : 1;
+    const bool expect_complete = mode == "ok" || mode == "env-root";
+    if (!run.ready() || finished != expect_complete || run.finish(true) != finished) return 1;
+    if (expect_complete || mode == "no-touch" || mode == "silent") return check_saved(argv[2]) ? 0 : 1;
     return 0;
 }
