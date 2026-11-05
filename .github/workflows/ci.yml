@@ -1147,7 +1147,7 @@ jobs:
       - name: Audio — stereo, Vorbis samples, seek and concurrency (all OS)
         shell: bash
         run: |
-          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test; do
+          for T in audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test; do
             B=$(find build -maxdepth 2 -type f \( -name "$T" -o -name "$T.exe" \) | head -1)
             [ -n "$B" ] || { echo "$T not built"; exit 1; }
             "$B" | tee "$T.txt"
@@ -1155,6 +1155,7 @@ jobs:
           done
           grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' audio_stereo_test.txt
           grep -qxF 'audio-music-envelope: gain hash=67cb1cc48fe494db' audio_music_envelope_test.txt
+          grep -qxF 'audio-music-runtime-golden: hash=3023e102d993ecb4 underruns=0' audio_music_runtime_golden_test.txt
 
       - name: Audio — Debug stereo golden and bounds (all OS)
         shell: bash
@@ -1162,7 +1163,7 @@ jobs:
           BUILD_DIR: build-debug
           LIKE_NES_BUILD_TYPE: Debug
           LIKE_NES_BUILD_SUBSET: "1"
-          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test"
+          LIKE_NES_BUILD_TARGETS: "audio_stereo_test audio_stereo_limits_test audio_vorbis_test audio_vorbis_threads_test audio_stereo_ring_test audio_stereo_ring_threads_test audio_mixer_stats_test audio_music_intent_test audio_music_decoder_test audio_music_worker_test audio_music_worker_threads_test audio_music_worker_vorbis_test audio_music_envelope_test audio_music_runtime_test audio_music_runtime_golden_test audio_music_runtime_limits_test"
         run: |
           bash scripts/build_check.sh
           for T in $LIKE_NES_BUILD_TARGETS; do
@@ -1171,6 +1172,7 @@ jobs:
           done
           grep -qxF 'audio-stereo: mix hash=24a69db0fc56de9f' dbg_audio_stereo_test.txt
           grep -qxF 'audio-music-envelope: gain hash=67cb1cc48fe494db' dbg_audio_music_envelope_test.txt
+          grep -qxF 'audio-music-runtime-golden: hash=3023e102d993ecb4 underruns=0' dbg_audio_music_runtime_golden_test.txt
 
       - name: Music — Debug manifest, actual Ogg and transactional refusals (all OS)
         shell: bash
@@ -3183,6 +3185,9 @@ jobs:
           audio_music_worker_threads_test:audio-music-worker-threads: PASS concurrent requests, PCM generations, priming and stop without callback ack
           audio_music_worker_vorbis_test:audio-music-worker-vorbis: PASS concurrent mono/stereo loops, exact samples and legacy SFX CRC safety
           audio_music_envelope_test:audio-music-envelope: PASS linear samples, hold, retarget, endpoints, clamps and bounded arithmetic
+          audio_music_runtime_test:audio-music-runtime: PASS priming, latest wish, fade zero, repeat, bounds and closed
+          audio_music_runtime_golden_test:audio-music-runtime-golden: PASS independent Q16 timeline oracle
+          audio_music_runtime_limits_test:audio-music-runtime-limits: PASS underruns, failure generations, Ogg refusal and shutdown
           audio_vorbis_test:audio-vorbis: PASS exact samples, seek, inspection, aliasing and refusal
           audio_vorbis_threads_test:audio-vorbis-threads: PASS concurrent open, seek, read, inspect and legacy decode
           plugin_wasm_host_test:plugin-wasm-host: PASS
