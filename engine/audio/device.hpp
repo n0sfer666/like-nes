@@ -19,7 +19,8 @@ class MiniaudioDevice {
 public:
     ~MiniaudioDevice();
     // Первый вызов — после холодной настройки; null user допустим. null_backend использует тот же
-    // ma_device и RT-поток без железа — суррогат для CI. Ненулевой callback обязателен.
+    // ma_device и RT-поток без железа — суррогат для CI. Неявного отката на Null нет.
+    // Ненулевой callback обязателен.
     bool start(RenderFn fn, void* user, bool null_backend = false);
     void stop();
     // Поток игры, раз в тик (аудит #21 A·3·5). Вывод, который бэкенд остановил и за 500 мс тишины

@@ -94,6 +94,12 @@ bool MiniaudioDevice::open() {
         return false;
     }
     context_ = ctx;
+    // miniaudio's default list ends with Null. A silent test device is opt-in only.
+    if (!null_backend_ && ctx->backend == ma_backend_null) {
+        close();
+        delete t;
+        return false;
+    }
 
     auto* dev = static_cast<ma_device*>(std::malloc(sizeof(ma_device)));
     if (!dev) { close(); delete t; return false; }
