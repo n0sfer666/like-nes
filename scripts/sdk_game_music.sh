@@ -19,6 +19,7 @@ CMAKE
 #include <chrono>
 #include <cstdio>
 #include <thread>
+#include <type_traits>
 #include <vector>
 #include "bundle_lookup.hpp"
 #include "hash.hpp"
@@ -30,7 +31,18 @@ CMAKE
 #include "mixer.hpp"
 #include "music_stream.hpp"
 #include "music_track.hpp"
+#include "frame_stats.hpp"
+static_assert(!std::is_copy_constructible_v<framework::core::FrameStats>);
+static_assert(!std::is_copy_assignable_v<framework::core::FrameStats>);
+static_assert(!std::is_move_constructible_v<framework::core::FrameStats>);
+static_assert(!std::is_move_assignable_v<framework::core::FrameStats>);
 int main() {
+    framework::core::FrameStats timing;
+    if (!timing.init(3) || !timing.record(0, 5) || !timing.record(33333333, 9) ||
+        !timing.record(16666667, 1)) return 1;
+    const auto measured = timing.summary();
+    if (!measured.complete || measured.frames != 3 || measured.intervals != 2 || measured.misses != 1 ||
+        measured.work_p50_ns != 5 || measured.work_p99_ns != 9) return 1;
     std::vector<uint8_t> bytes; asset::BundleView bundle;
     if (!platform::read_bytes(platform::exe_dir() + "/music.bundle", bytes) || !bundle.open(bytes.data(), bytes.size(), false)) return 1;
     const uint8_t* table = nullptr; size_t size = 0;

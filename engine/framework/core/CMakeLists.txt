@@ -1,7 +1,7 @@
 # --- framework_core: стадии тика и расписание систем (спека #14, правила слоя — ../README.md).
 # Зависит только от engine_core: стрелка слоя направлена вниз, и проверить это должно быть можно
 # по этой строке, не читая код.
-add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp section_bake.cpp
+add_library(framework_core STATIC schedule.cpp fixmath.cpp fixtrig.cpp text_fields.cpp frame_stats.cpp section_bake.cpp
   section_open.cpp utf8_decode.cpp credits_bake.cpp credits_read.cpp world_rng.cpp)
 target_include_directories(framework_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_link_libraries(framework_core PUBLIC engine_core)
@@ -32,6 +32,12 @@ target_link_libraries(framework_text_test PRIVATE framework_core platform_core)
 
 add_executable(framework_credits_test framework_credits_test.cpp)
 target_link_libraries(framework_credits_test PRIVATE framework_core platform_core)
+
+add_executable(framework_frame_stats_test framework_frame_stats_test.cpp)
+target_link_libraries(framework_frame_stats_test PRIVATE framework_core platform_core)
+
+add_executable(framework_frame_stats_rt_test framework_frame_stats_rt_test.cpp)
+target_link_libraries(framework_frame_stats_rt_test PRIVATE framework_core framework_alloc_probe_control platform_core)
 
 # --- Разборщик JSON для пекарей контента (спека #24, В3). Отдельной целью, а не файлом внутри
 # framework_core: ему нужна `asset::ByteArena`, а ребро framework_core → asset_core протащило бы

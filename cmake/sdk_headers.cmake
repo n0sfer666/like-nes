@@ -23,7 +23,7 @@ set(LIKE_NES_SDK_HEADERS
   input/input_spsc.hpp input/input_types.hpp input/player_assign.hpp input/source.hpp
   render/arena.hpp render/gpu.hpp render/render_capture.hpp render/render_sprite.hpp
   render/surface_frame.hpp render/quad_batch.hpp render/quad_types.hpp
-  framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp
+  framework/core/fixmath.hpp framework/core/fixtrig.hpp framework/core/schedule.hpp framework/core/frame_stats.hpp
   framework/core/stage.hpp framework/core/text_fields.hpp framework/core/utf8_decode.hpp
   framework/core/credits_format.hpp framework/core/credits_read.hpp framework/core/credits_bake.hpp
   framework/core/ent_id.hpp framework/core/world_rng.hpp framework/core/seats.hpp

@@ -10,10 +10,15 @@ bash scripts/check_sdk_game.sh --keep   # то же, префикс и игра 
 проявились бы только у игрока. С В6б3 #26 fixture `sdk_game_music.sh` печёт actual Ogg
 установленным assetc, читает LNMU и декодирует его через поставленный audio_core в Release/Debug.
 Engine/native-pad fixture также использует stereo Mixer/VorbisReader без GLFW на трёх платформах.
+V7 добавляет optional audio_device/header при ON: installed R/D consumer поднимает настоящий
+miniaudio null callback с Ogg MusicStream и проверяет shutdown/source lifetime. Mobile consumer
+проверяет archive cross-link; OFF — отдельный fresh configure без установки. В музыкальном
+consumer также проверяется поставленный FrameStats header и его compiled implementation.
+
 Гейт:
 
 1. конфигурирует и собирает `build-sdk-release` (`like_nes_sdk` + `assetc`) и `build-sdk-debug`
-   (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
+   (`like_nes_sdk`) с `-DAUDIO_MINIAUDIO=ON -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF`;
 2. ставит компонент `sdk` из обоих в ОДИН префикс (`lib/like-nes/` и `lib/like-nes/debug/`);
 3. собирает `games/neon-rumble` через `find_package(like-nes 0.1 REQUIRED CONFIG)` в Release и
    Debug (`cmake --fresh`) и запускает `--headless --frames 480` (до В2г — 60, до В3а — 180, до В3г — 240, до В3е — 360). Утверждение — rc 0 **и** строки

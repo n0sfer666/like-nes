@@ -100,6 +100,7 @@ SDK не даёт игре жанровых функций: «цикл драк�
 | жанр отсутствует в SDK | `python3 scripts/check_sdk_genre.py` · `--selftest` | коммит | [sdk-genre](.context/gates/sdk-genre.md) |
 | хеши драки равны на трёх ОС | `python3 scripts/check_crossplay.py <каталог>` · `--selftest` | CI джоб `crossplay` · коммит | [crossplay](.context/gates/crossplay.md) |
 | бенч ресима на бюджете зонтика | `./build/rumble_resim_bench [--against <файл>]` | CI × 3 ОС | [resim-bench](.context/gates/resim-bench.md) |
+| отчёт о кадрах В7 | `python3 scripts/frame_stats_verdict.py --selftest` · `[--budget] <log>` | CI × 3 ОС · замер руками | [frame-stats](.context/gates/frame-stats.md) |
 | файловый ввод-вывод за швом | `python3 scripts/check_fs_seam.py` | коммит | [fs-seam](.context/gates/fs-seam.md) |
 | покрытие строк/алфавитов шрифтом | `framework_strings_test` · `framework_strings_limits_test` · assetc | CI Release/Debug/SAN · бейк | [ui-text](.context/gates/ui-text.md) |
 | видимый текст экранов только из strings | `python3 scripts/check_ui_text.py --selftest` · `--strings <tsv> --screens <cpp…>` | коммит · CI × 3 ОС · screens с #29 | [ui-text](.context/gates/ui-text.md) |

@@ -379,6 +379,16 @@ destroying Mixer or callback user-data. The null backend exercises real scheduli
 hardware; its success does not certify a physical audio device. With the option OFF, the optional
 header and target are absent; test `TARGET like-nes::audio_device` at configure time.
 
+`framework::core::FrameStats` (`frame_stats.hpp`) collects caller-supplied interval/work ns
+outside rollback snapshots. It is noncopyable and nonmovable. Call `init(capacity)` in place,
+then `record(interval_ns, work_ns)`
+without per-frame allocation. Interval0 omits the first/resumed cadence sample; work0 is valid.
+`summary()` sorts outside the measured frame and returns separate interval/work p50/p99, counts,
+misses and complete. Capacity exhaustion makes the capture incomplete; a valid init resets it.
+Misses count lost60Hz intervals using nearest-period half-up rounding. Percentile indexes match the
+resim bench: N/2 and floor(99N/100). `frame_stats_verdict.py --selftest` checks the report format;
+`--budget` requires strictly fewer than1% lost intervals. The collector alone does not measure a phone.
+
 The bake refuses a line instead of guessing what it meant:
 
 - A name is `[A-Za-z0-9_.-]` and is unique in the manifest. `tilemap`, `visual`, `objects`, `clips`

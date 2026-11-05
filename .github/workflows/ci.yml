@@ -330,6 +330,10 @@ jobs:
         shell: bash
         run: python3 scripts/check_ui_text.py --selftest
 
+      - name: Frame statistics report schema and strict budget selftest
+        shell: bash
+        run: python3 scripts/frame_stats_verdict.py --selftest
+
       # Шов файлового ввода-вывода (находка 6 того же аудита): .context/conventions.md называет
       # требование прямо, а проверял его никто, и обходили его девять раз. Причина конвенции не
       # стилистическая — узкие CRT-функции на Windows идут через ANSI-кодовую страницу и не
@@ -2102,7 +2106,8 @@ jobs:
           # дают один бит. Разойдись она — физический голден покажет расхождение, но не назовёт
           # причину. Разборщик JSON пекарей — здесь же и по той же причине: его десятичная мантисса
           # переводится в fix32 целыми, без strtod и локали, и бит обязан совпасть на трёх ОС.
-          for T in framework_schedule_test framework_stick_test framework_preset_test \
+          for T in framework_frame_stats_test framework_frame_stats_rt_test \
+                   framework_schedule_test framework_stick_test framework_preset_test \
                    framework_preset_refusal_test framework_preset_reader_test \
                    framework_preset_axes_test \
                    framework_section_align_test framework_pad_test framework_rebind_test \
@@ -2140,6 +2145,20 @@ jobs:
             || { echo "rumble_scene_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
           grep -q "framework-scene-level-refusal: PASS - 30 cases" fw_rumble_scene_level_refusal_test.txt \
             || { echo "rumble_scene_level_refusal_test lost cases on ${{ matrix.os }}"; exit 1; }
+
+      - name: Frame statistics collector and allocation probe in Debug
+        shell: bash
+        env:
+          BUILD_DIR: build-debug
+          LIKE_NES_BUILD_TYPE: Debug
+          LIKE_NES_BUILD_SUBSET: "1"
+          LIKE_NES_BUILD_TARGETS: "framework_frame_stats_test framework_frame_stats_rt_test"
+        run: |
+          bash scripts/build_check.sh
+          for T in $LIKE_NES_BUILD_TARGETS; do
+            ./build-debug/"$T" | tee "dbg_$T.txt"
+            grep -q ': PASS' "dbg_$T.txt" || { echo "$T FAILED in Debug"; exit 1; }
+          done
 
       # Читатели секций принимают чужие байты, и ровно там санитайзер говорит то, чего не говорит
       # обычный прогон: отказ проверяется отказом, а ПРОХОД проверяется только тем, что за ним не
@@ -3184,6 +3203,8 @@ jobs:
           if grep -q "gate #5 пропущен" san_cfg.txt; then echo "PLUGIN_WASM: wasmtime not picked up"; exit 1; fi
           T="platform_process_test:platform-process: PASS
           framework_preset_refusal_test:framework-preset-refusal: PASS
+          framework_frame_stats_test:framework-frame-stats: PASS
+          framework_frame_stats_rt_test:framework-frame-stats-rt: PASS
           game_platformer_replay_io_test:game-platformer-replay-io: PASS
           game_platformer_replay_ceiling_test:game-platformer-replay-ceiling: PASS
           ach_state_test:PASS
