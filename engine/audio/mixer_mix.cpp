@@ -1,4 +1,5 @@
 #include "mixer.hpp"
+#include "music_runtime.hpp"
 
 #include <cmath>
 
@@ -35,6 +36,7 @@ StereoFrame fetch_advance(Voice& v, uint64_t& underruns) {
 
 void Mixer::mix_fix(uint32_t frames, int16_t* out) {
     uint64_t block_underruns = 0;
+    uint64_t music_underruns = 0;
     for (uint32_t f = 0; f < frames; ++f) {
         int64_t busL[BUS_N] = {0}, busR[BUS_N] = {0};
         bool duck_now = false;
@@ -45,6 +47,14 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
             const auto sample = fetch_advance(v, block_underruns);
             busL[static_cast<uint32_t>(v.bus)] += int64_t{sample.left} * v.gl.raw;
             busR[static_cast<uint32_t>(v.bus)] += int64_t{sample.right} * v.gr.raw;
+        }
+        if (music_runtime_) {
+            const MusicMix music = music_runtime_->next();
+            const uint32_t music_bus = static_cast<uint32_t>(Bus::Music);
+            busL[music_bus] += music.left;
+            busR[music_bus] += music.right;
+            block_underruns += music.underruns;
+            music_underruns += music.underruns;
         }
         duck_env_ = approach(duck_env_, duck_now ? DUCK_GAIN : ONE, DUCK_STEP); // per-sample рамп
         int64_t mL = 0, mR = 0;
@@ -57,10 +67,12 @@ void Mixer::mix_fix(uint32_t frames, int16_t* out) {
         limiter_.apply((mL * master_.raw) >> 32, (mR * master_.raw) >> 32, out + f * 2);
     }
     if (block_underruns) underruns_.fetch_add(block_underruns, std::memory_order_relaxed);
+    if (music_underruns) music_runtime_->record_underruns(music_underruns);
 }
 
 void Mixer::mix_float(uint32_t frames, int16_t* out) {
     uint64_t block_underruns = 0;
+    uint64_t music_underruns = 0;
     for (uint32_t f = 0; f < frames; ++f) {
         double busL[BUS_N] = {0}, busR[BUS_N] = {0};
         bool duck_now = false;
@@ -71,6 +83,14 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
             const auto sample = fetch_advance(v, block_underruns);
             busL[static_cast<uint32_t>(v.bus)] += sample.left * v.gl.to_double();
             busR[static_cast<uint32_t>(v.bus)] += sample.right * v.gr.to_double();
+        }
+        if (music_runtime_) {
+            const MusicMix music = music_runtime_->next();
+            const uint32_t music_bus = static_cast<uint32_t>(Bus::Music);
+            busL[music_bus] += static_cast<double>(music.left) / 65536.0;
+            busR[music_bus] += static_cast<double>(music.right) / 65536.0;
+            block_underruns += music.underruns;
+            music_underruns += music.underruns;
         }
         duck_env_ = approach(duck_env_, duck_now ? DUCK_GAIN : ONE, DUCK_STEP); // per-sample рамп
         double mL = 0, mR = 0;
@@ -84,6 +104,7 @@ void Mixer::mix_float(uint32_t frames, int16_t* out) {
                        out + f * 2);
     }
     if (block_underruns) underruns_.fetch_add(block_underruns, std::memory_order_relaxed);
+    if (music_underruns) music_runtime_->record_underruns(music_underruns);
 }
 
 } // namespace audio

@@ -19,6 +19,25 @@ bool MusicRuntime::post(MusicWish wish) {
     return wishes_.push(wish);
 }
 
+bool MusicRuntime::claim_binding() {
+    bool expected = false;
+    return bound_once_.compare_exchange_strong(expected, true, std::memory_order_acq_rel);
+}
+
+void MusicRuntime::record_underruns(uint64_t count) {
+    if (count) mix_underruns_.fetch_add(count, std::memory_order_relaxed);
+}
+
+MusicStats MusicRuntime::stats() const {
+    MusicStats result;
+    result.underruns = mix_underruns_.load(std::memory_order_relaxed);
+    result.decode_failures = transport_.failures.load(std::memory_order_relaxed);
+    result.live_decoders = transport_.live_decoders.load(std::memory_order_relaxed);
+    result.peak_decoders = transport_.peak_decoders.load(std::memory_order_relaxed);
+    result.closed = transport_.closed.load(std::memory_order_acquire);
+    return result;
+}
+
 bool MusicRuntime::new_generation(uint64_t& generation) {
     if (generation_ == UINT64_MAX) {
         transport_.closed.store(true, std::memory_order_release);

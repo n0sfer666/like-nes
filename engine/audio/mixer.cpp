@@ -1,4 +1,5 @@
 #include "mixer.hpp"
+#include "music_runtime.hpp"
 
 namespace audio {
 namespace {
@@ -20,6 +21,13 @@ fix32 clamp_pan(fix32 p) {
 
 Mixer::Mixer(Backend b) : backend_(b), master_(fix32::from_int(1)), duck_env_(fix32::from_int(1)) {
     for (uint32_t i = 0; i < BUS_N; ++i) bus_gain_[i] = fix32::from_int(1);
+}
+
+Mixer::~Mixer() {
+    // Владелец устройства обязан остановить и join callback до уничтожения Mixer.
+    if (music_runtime_) music_runtime_->transport().closed.store(true, std::memory_order_release);
+    music_runtime_ = nullptr;
+    music_runtime_pin_.reset();
 }
 
 void Mixer::register_source(uint64_t guid, const int16_t* pcm, uint32_t frames, SampleRing* ring) {

@@ -1,12 +1,17 @@
 #pragma once
 
+#include <memory>
+
 #include <array>
 #include <cstdint>
 
 #include "music_envelope.hpp"
+#include "music_stats.hpp"
 #include "music_transport.hpp"
 
 namespace audio {
+class Mixer;
+class MusicStream;
 struct MusicWish { uint32_t track = 0, fade_samples = 0; };
 // Сумма двух PCM*Q16 без int16 clamp; underruns считаются по активным slot-frames, не по priming.
 struct MusicMix { int64_t left = 0, right = 0; uint32_t underruns = 0; };
@@ -16,12 +21,18 @@ struct MusicMix { int64_t left = 0, right = 0; uint32_t underruns = 0; };
 class MusicRuntime {
 public:
     explicit MusicRuntime(uint32_t track_count);
+    static bool bind(Mixer& mixer, const std::shared_ptr<MusicRuntime>& runtime);
     // Один game producer. Отказ при full/closed/невалидном индексе; caller сохраняет pending wish.
     bool post(MusicWish wish);
     MusicMix next(); // один RT consumer, один выходной sample; без heap/locks/IO
     MusicTransport& transport() { return transport_; } // подключение worker вне callback
+    MusicStats stats() const;
 
 private:
+    friend class Mixer;
+    friend class MusicStream;
+    bool claim_binding();
+    void record_underruns(uint64_t count);
     enum class Phase : uint8_t { Empty, Priming, Playing };
     enum class Gain : uint8_t { Held, Rising, Falling };
     struct Slot {
@@ -51,6 +62,8 @@ private:
     SpscQueue<MusicWish, MUSIC_REQUEST_CAP> wishes_;
     std::array<Slot, MUSIC_SLOTS> slots_{};
     std::array<PendingRequest, MUSIC_SLOTS> pending_requests_{};
+    std::atomic<bool> bound_once_{false};
+    std::atomic<uint64_t> mix_underruns_{0};
     uint64_t generation_ = 0;
     int32_t release_slot_ = -1;
     bool deferred_ = false;

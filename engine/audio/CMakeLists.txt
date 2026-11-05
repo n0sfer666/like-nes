@@ -3,7 +3,8 @@
 # устройства/ассетов → deviceless-гейты гоняются в CI на всех трёх ОС (спека #12, гейт 2).
 add_library(audio_core STATIC
   mixer.cpp mixer_mix.cpp decoder.cpp vorbis_reader.cpp vorbis_inspect.cpp music_decoder.cpp
-  music_worker.cpp music_pump.cpp music_runtime.cpp music_transition.cpp music_render.cpp)
+  music_worker.cpp music_pump.cpp music_runtime.cpp music_transition.cpp music_render.cpp music_control.cpp
+  music_bind.cpp music_stream.cpp)
 set(LIKE_NES_VORBIS_CHANNELS 16)
 target_compile_definitions(audio_core PRIVATE STB_VORBIS_MAX_CHANNELS=${LIKE_NES_VORBIS_CHANNELS})
 # stb_vorbis.c — сторонний целиком, ни строки нашей: TU глушится по факту происхождения, а не

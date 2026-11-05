@@ -40,8 +40,12 @@ CMAKE
 #include "audio_stereo_ring.hpp"
 #include "music_intent.hpp"
 #include "music_track.hpp"
+#include "music_stats.hpp"
+#include "music_stream.hpp"
 #include "rollback_timing.hpp"
 int main() {
+    audio::MusicStream music_stream;
+    if (!music_stream.stats().closed) return 1;
     constexpr auto settle = framework::rollback::SETTLE_TICKS<8>;
     audio::MusicIntent intent(settle);
     for (uint32_t t = 0; t < settle - 1; ++t) if (intent.observe(t, UINT64_MAX)) return 1;

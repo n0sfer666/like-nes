@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <cstdint>
+#include <memory>
 
 #include "audio_types.hpp"
 #include "fix_math.hpp"
@@ -13,6 +14,7 @@
 // ducking → master. Seam Float/Fix32: control-математика всегда fix32 (детерм.), различается
 // только MAC-петля семплов — Fix32 даёт байт-golden (гейт #1), Float — прод best-effort.
 namespace audio {
+class MusicRuntime;
 
 constexpr uint32_t CMD_CAP = 1024;   // степень двойки
 constexpr uint32_t MAX_SOURCES = 16; // реестр guid→PCM (регистрируется вне RT)
@@ -31,6 +33,7 @@ struct Source {
 class Mixer {
 public:
     explicit Mixer(Backend b);
+    ~Mixer();
 
     // Продюсер (sim/engine-поток): поставить команду. false — очередь полна.
     bool post(const AudioCommand& c) { return commands_.push(c); }
@@ -51,6 +54,7 @@ public:
     uint32_t peak_voices() const { return peak_voices_.load(std::memory_order_relaxed); }
 
 private:
+    friend class MusicRuntime;
     void drain_commands(uint32_t frames);
     void apply(const AudioCommand& c, uint32_t offset);
     void recompute_gains(uint32_t frames);
@@ -74,6 +78,9 @@ private:
     static_assert(std::atomic<uint32_t>::is_always_lock_free, "the RT thread takes no locks");
     std::atomic<uint64_t> underruns_{0};
     std::atomic<uint32_t> peak_voices_{0};
+    std::shared_ptr<MusicRuntime> music_runtime_pin_;
+    MusicRuntime* music_runtime_ = nullptr; // неизменен после старта; callback читает сырой pin
+    std::atomic<bool> music_bound_once_{false};
     uint64_t seq_ = 0;
 };
 
