@@ -20,6 +20,8 @@
 #define SIO_UDP_CONNRESET _WSAIOW(IOC_VENDOR, 12)
 #endif
 
+#include "platform_net_native.hpp"
+
 namespace platform {
 namespace net {
 namespace {
@@ -40,28 +42,27 @@ bool winsock_ready() {
     return ok;
 }
 
-sockaddr_in to_sockaddr(const Endpoint& e) {
-    sockaddr_in a{};
-    a.sin_family = AF_INET;
-    a.sin_port = htons(e.port);
-    a.sin_addr.s_addr = htonl(e.address);
-    return a;
-}
-
-Endpoint from_sockaddr(const sockaddr_in& a) {
-    Endpoint e;
-    e.address = ntohl(a.sin_addr.s_addr);
-    e.port = ntohs(a.sin_port);
-    return e;
-}
-
 SOCKET handle_of(intptr_t native) { return static_cast<SOCKET>(native); }
 
 } // namespace
 
-bool Socket::open(uint32_t address, uint16_t port) {
+namespace detail {
+
+bool parse_ipv6(const char* text, std::array<uint8_t, 16>& out) { return parse_ipv6_bytes(text, out); }
+
+std::string format_ipv6(const std::array<uint8_t, 16>& bytes) { return format_ipv6_bytes(bytes); }
+
+size_t resolve_host(const std::string& host, uint16_t port, std::span<Endpoint> out) {
+    return winsock_ready() ? resolve_dns(host, port, out) : 0;
+}
+
+} // namespace detail
+
+bool Socket::open(const Endpoint& endpoint) {
     if (valid() || !winsock_ready()) return false;
-    const SOCKET s = ::socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    const Endpoint want = normalized_endpoint(endpoint);
+    const int family = want.family == AddressFamily::IPv6 ? AF_INET6 : AF_INET;
+    const SOCKET s = ::socket(family, SOCK_DGRAM, IPPROTO_UDP);
     if (s == INVALID_SOCKET) return false;
 
     // Неблокирующий режим — до bind, по той же причине, что в POSIX-реализации: между bind и
@@ -98,24 +99,27 @@ bool Socket::open(uint32_t address, uint16_t port) {
         return false;
     }
 
-    Endpoint want;
-    want.address = address;
-    want.port = port;
-    const sockaddr_in addr = to_sockaddr(want);
-    if (::bind(s, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr)) != 0) {
+    const int only_v6 = 1;
+    if (family == AF_INET6 && ::setsockopt(s, IPPROTO_IPV6, IPV6_V6ONLY,
+            reinterpret_cast<const char*>(&only_v6), static_cast<int>(sizeof(only_v6))) != 0) {
+        ::closesocket(s);
+        return false;
+    }
+    const auto addr = detail::to_sockaddr(want);
+    if (::bind(s, addr.data(), addr.size) != 0) {
         ::closesocket(s);
         return false;
     }
 
-    sockaddr_in bound{};
-    int len = static_cast<int>(sizeof(bound));
-    if (::getsockname(s, reinterpret_cast<sockaddr*>(&bound), &len) != 0) {
+    detail::SocketAddress bound;
+    int len = static_cast<int>(sizeof(bound.storage));
+    if (::getsockname(s, bound.data(), &len) != 0 ||
+        !detail::from_sockaddr(bound.data(), static_cast<size_t>(len), local_)) {
         ::closesocket(s);
         return false;
     }
 
     native_ = static_cast<intptr_t>(s);
-    local_ = from_sockaddr(bound);
     return true;
 }
 
@@ -133,10 +137,11 @@ bool Socket::send_to(const Endpoint& to, const void* data, size_t n) {
 
 bool Socket::send_raw(const Endpoint& to, const void* data, size_t n) {
     if (!valid() || (data == nullptr && n != 0)) return false;
-    const sockaddr_in addr = to_sockaddr(to);
+    const Endpoint endpoint = normalized_endpoint(to);
+    if (endpoint.family != local_.family) return false;
+    const auto addr = detail::to_sockaddr(endpoint);
     const int sent = ::sendto(handle_of(native_), static_cast<const char*>(data),
-                              static_cast<int>(n), 0, reinterpret_cast<const sockaddr*>(&addr),
-                              static_cast<int>(sizeof(addr)));
+                              static_cast<int>(n), 0, addr.data(), addr.size);
     return sent == static_cast<int>(n);
 }
 
@@ -148,10 +153,10 @@ int Socket::recv_from(void* data, size_t cap, Endpoint* from) {
     // именно то, что этот шов обязан прятать.
     char staging[MAX_DATAGRAM + 1];
     for (int discarded = 0; discarded <= DISCARD_BUDGET; ++discarded) {
-        sockaddr_in addr{};
-        int len = static_cast<int>(sizeof(addr));
+        detail::SocketAddress addr;
+        int len = static_cast<int>(sizeof(addr.storage));
         const int got = ::recvfrom(handle_of(native_), staging, static_cast<int>(sizeof(staging)),
-                                   0, reinterpret_cast<sockaddr*>(&addr), &len);
+                                   0, addr.data(), &len);
         if (got == SOCKET_ERROR) {
             const int err = ::WSAGetLastError();
             if (err == WSAEWOULDBLOCK) return 0;
@@ -162,8 +167,8 @@ int Socket::recv_from(void* data, size_t cap, Endpoint* from) {
         }
         if (got == 0 || static_cast<size_t>(got) > MAX_DATAGRAM) continue;
         const size_t n = static_cast<size_t>(got);
+        if (!detail::from_sockaddr(addr.data(), static_cast<size_t>(len), *from)) continue;
         std::memcpy(data, staging, n);
-        *from = from_sockaddr(addr);
         return static_cast<int>(n);
     }
     return 0;

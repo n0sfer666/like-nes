@@ -1,6 +1,8 @@
 #pragma once
+#include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 
 // Шов №8 платформы (спека #22, решение 4): UDP-датаграммы. Реализации —
@@ -38,22 +40,31 @@ constexpr int DISCARD_BUDGET = 16;
 constexpr uint32_t ADDRESS_ANY = 0u;
 constexpr uint32_t ADDRESS_LOOPBACK = 0x7f000001u;
 
+enum class AddressFamily : uint8_t { IPv4, IPv6 };
+
 struct Endpoint {
     uint32_t address = ADDRESS_ANY;
     uint16_t port = 0;
+    AddressFamily family = AddressFamily::IPv4;
+    std::array<uint8_t, 16> address_v6{};
+    uint32_t scope_id = 0;
 
-    // Сравнение ПОЛЯМИ, а не memcmp: у структуры есть два байта выравнивания, которых никто не
-    // пишет, и байтовое сравнение читало бы мусор как различие. Ровно этим кончилось кольцо
-    // ввода отката на шаге A3 — 420 откатов на 420 тиках.
-    bool operator==(const Endpoint& o) const { return address == o.address && port == o.port; }
-    bool operator!=(const Endpoint& o) const { return !(*this == o); }
+    bool operator==(const Endpoint& o) const {
+        if (port != o.port || family != o.family) return false;
+        return family == AddressFamily::IPv4 ? address == o.address :
+            address_v6 == o.address_v6 && scope_id == o.scope_id;
+    }
 };
 
-// "127.0.0.1:7777" -> Endpoint. Отвергает всё, что не полная форма: без порта, с портом вне
-// 1..65535, с октетом вне 0..255, с лишним хвостом. Имён хостов не разрешает — DNS это сервис,
-// а не шов, и резолвер внутри платформы был бы сетевым вызовом в функции разбора строки.
+// IPv4-mapped IPv6 uses the same IPv4 identity as its dotted-decimal spelling.
+Endpoint normalized_endpoint(const Endpoint& endpoint);
+// Numeric only. Accepts "127.0.0.1:7777" or "[fe80::1%2]:7777" with a numeric scope.
+// A rejected string leaves the output intact.
 bool parse_endpoint(const std::string& text, Endpoint* out);
 std::string endpoint_text(const Endpoint& e);
+// Resolve a DNS name with the OS resolver, in its order, dropping duplicate endpoints.
+// May block. Call outside the game tick. Returns the number of entries written.
+size_t resolve_endpoints(const std::string& host, uint16_t port, std::span<Endpoint> out);
 
 class Socket {
 public:
@@ -76,7 +87,8 @@ public:
     // тик симуляции не имеет права ждать пакета, а «иногда блокирующий» сокет — это дефект,
     // который воспроизводится раз в сотню прогонов. port == 0 — эфемерный, фактический номер
     // читается из local() после успешного open.
-    bool open(uint32_t address, uint16_t port);
+    bool open(uint32_t address, uint16_t port) { return open(Endpoint{address, port}); }
+    bool open(const Endpoint& endpoint);
     void close();
     bool valid() const { return native_ != -1; }
     const Endpoint& local() const { return local_; }

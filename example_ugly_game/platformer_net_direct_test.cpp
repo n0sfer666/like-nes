@@ -15,10 +15,7 @@
 // без единого общего файла. Вторую половину — реальный лаг между двумя машинами — закрывает
 // владелец руками (§14 руководства): раннер обеих машин не имеет, и сеть у него одна на процесс.
 //
-// Отдельной целью от гейта петли, потому что предмет другой: тот утверждает, что из одного ввода
-// два адресных пространства приходят в одно состояние, этот — что сосед может быть НАЗВАН. До
-// этого раунда назвать его было нечем: знакомство умело только эфемерный порт петли, опубликованный
-// в файл, то есть требовало общей файловой системы — а её у двух машин нет по определению.
+// Этот гейт проверяет адресацию, соседний проверяет сходимость состояний.
 namespace {
 
 using platformer::ports::at_loopback;
@@ -116,9 +113,9 @@ void test_half_an_address_is_refused(const std::string& exe, const std::string& 
     }
     platform::ExitStatus st;
     const bool waited = c.wait(st);
-    std::printf("  half-addressed (%s): code=%d, %s\n", half, st.code, peer_said(st, waited));
+    std::printf("  invalid address (%s): code=%d, %s\n", half, st.code, peer_said(st, waited));
     check(waited && st.kind == platform::ExitKind::Exited && st.code == 3,
-          "a peer given half an address refuses instead of running");
+          "a peer given an invalid address refuses instead of running");
     // Одного кода мало: тот же код 3 отдаёт и пир, который УШЁЛ знакомиться файлом и не дождался
     // соседа — соседа тут нет вовсе. Различает их улика: откатившийся сначала опубликовал бы
     // СВОЙ порт файлом. Без этой строки утверждение выше зелено и на реализации, где отбитие
@@ -190,6 +187,8 @@ int main(int argc, char** argv) {
                                             {"--listen", std::to_string(lone)});
             test_half_an_address_is_refused(exe, bundle, prefix, "at",
                                             {"--at", at_loopback(lone)});
+            test_half_an_address_is_refused(exe, bundle, prefix, "ipv6",
+                                            {"--listen", std::to_string(lone), "--at", "[::1]:1"});
         }
         test_a_taken_port_is_named_as_such(exe, bundle, prefix);
     }

@@ -2,7 +2,6 @@
 # Мобильная половина SDK-гейта: iOS-симулятор на macOS, Android x86_64 с пиннутым NDK.
 # Игра линкуется против мобильного префикса, бандлы печёт инструмент хоста.
 # Проверяются бинарь, три бандла, лицензии и совпадение бандлов игры и стенда с десктопом.
-# Вызывающий задаёт ROOT, WORK, OUT, PREFIX и GEN; помощники в sdk_game_lib.sh.
 
 # shellcheck source=platform/mobile/fresh_cache.sh
 . "$ROOT/platform/mobile/fresh_cache.sh"
@@ -81,6 +80,7 @@ mobile_ios() {
     [ -n "$min" ] || { sdk_bad "ios-sim: no _ln_ios_min in the prefix Config"; return 1; }
     flags+=(-DCMAKE_OSX_DEPLOYMENT_TARGET="$min")
     fixture_mobile_audio_output ios-sim "$pfx" "${flags[@]}" || return 1
+    fixture_mobile_net ios-sim "$pfx" "${flags[@]}" || return 1
     mobile_game "$ROOT/games/neon-rumble" "$dir" "$pfx" "${flags[@]}" || {
         tail -30 "$dir.log"; sdk_bad "ios-sim: neon-rumble did not build against the prefix"; return 1; }
     app="$dir/neon_rumble.app"
@@ -128,6 +128,7 @@ mobile_android() {
         -DANDROID_ABI="$abi" -DANDROID_PLATFORM="android-$api")
     mobile_sdk "android-$abi" "build-sdk-android-$abi" "$pfx" "${flags[@]}" || return 1
     fixture_mobile_audio_output "android-$abi" "$pfx" "${flags[@]}" || return 1
+    fixture_mobile_net "android-$abi" "$pfx" "${flags[@]}" || return 1
     mobile_game "$ROOT/games/neon-rumble" "$dir" "$pfx" "${flags[@]}" || {
         tail -30 "$dir.log"; sdk_bad "android-$abi: neon-rumble did not build against the prefix"; return 1; }
     case "$(file "$dir/libneon_rumble.so")" in

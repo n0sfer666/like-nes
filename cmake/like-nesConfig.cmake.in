@@ -95,6 +95,14 @@ if(NOT TARGET like-nes::engine)
       INTERFACE_COMPILE_DEFINITIONS "${_ln_defs_${_ln_t}}")
   endforeach()
 
+  # A network consumer can link these targets without the engine umbrella.
+  set_target_properties(like-nes::platform_net PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${_ln_prefix}/include/like-nes/platform"
+    INTERFACE_COMPILE_FEATURES cxx_std_20
+    INTERFACE_COMPILE_OPTIONS "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+  set_target_properties(like-nes::net_core PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${_ln_prefix}/include/like-nes/net")
+
   set(_ln_dirs "")
   foreach(_ln_d IN LISTS _ln_includes)
     list(APPEND _ln_dirs "${_ln_prefix}/${_ln_d}")

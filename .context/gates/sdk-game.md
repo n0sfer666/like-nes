@@ -15,6 +15,10 @@ miniaudio null callback с Ogg MusicStream и проверяет shutdown/source
 проверяет archive cross-link; OFF — отдельный fresh configure без установки. В музыкальном
 consumer также проверяется поставленный FrameStats header и его compiled implementation.
 
+#27 добавляет сетевой потребитель `like-nes::net_core` в `sdk_game_net.sh`. Release и Debug
+запускают реальные UDP-петли IPv4/IPv6 и разрешение имени `localhost`. Пакеты iOS и Android
+компилируют и линкуют тот же потребитель. Сеть подключается отдельной целью.
+
 Гейт:
 
 1. конфигурирует и собирает `build-sdk-release` (`like_nes_sdk` + `assetc`) и `build-sdk-debug`

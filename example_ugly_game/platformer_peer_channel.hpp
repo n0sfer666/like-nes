@@ -66,7 +66,8 @@ inline Meet connect(Channel& c, const Where& w, const std::string& mine, const s
     // молча ушёл бы знакомиться файлом, и двухмашинный прогон превратился бы в одномашинный,
     // сказав об этом ровно ничего.
     if (direct && (w.listen_port == 0 || w.peer_at.empty())) return Meet::not_named;
-    if (direct && !pnet::parse_endpoint(w.peer_at, &c.to)) return Meet::not_named;
+    if (direct && (w.peer_at.front() == '[' || !pnet::parse_endpoint(w.peer_at, &c.to)))
+        return Meet::not_named;
     const uint32_t bind_to =
         direct && c.to.address != pnet::ADDRESS_LOOPBACK ? pnet::ADDRESS_ANY : pnet::ADDRESS_LOOPBACK;
     if (!c.socket.open(bind_to, w.listen_port)) return Meet::socket_bad;
@@ -74,8 +75,7 @@ inline Meet connect(Channel& c, const Where& w, const std::string& mine, const s
     if (!rendezvous::publish(mine, c.socket.local().port)) return Meet::not_named;
     uint16_t peer_port = 0;
     if (!rendezvous::await(theirs, peer_port, timeout_ms)) return Meet::not_named;
-    c.to.address = pnet::ADDRESS_LOOPBACK;
-    c.to.port = peer_port;
+    c.to = pnet::Endpoint{pnet::ADDRESS_LOOPBACK, peer_port};
     return Meet::ok;
 }
 

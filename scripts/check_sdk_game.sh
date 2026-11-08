@@ -54,6 +54,8 @@ cd "$ROOT" || exit 1
 . "$ROOT/scripts/sdk_game_audio.sh"
 # shellcheck source=scripts/sdk_game_frame_stats.sh
 . "$ROOT/scripts/sdk_game_frame_stats.sh"
+# shellcheck source=scripts/sdk_game_net.sh
+. "$ROOT/scripts/sdk_game_net.sh"
 python3 "$ROOT/scripts/gamepad_closure_selftest.py" || exit 1
 
 GEN=Ninja
@@ -96,6 +98,7 @@ fixture_strings_bake || FAIL=1
 fixture_music_bake || FAIL=1
 fixture_audio_output || FAIL=1
 fixture_frame_stats || FAIL=1
+fixture_net || FAIL=1
 
 for cfg in Release Debug; do
     if game_build "$ROOT/games/neon-rumble" "$OUT/game-$cfg" "$cfg"; then

@@ -66,6 +66,7 @@ bool drain(Peer& p) {
             return any;
         }
         any = true;
+        check(from == p.peer, "source endpoint matches the sending peer");
         size_t len = 0;
         if (p.link.receive(datagram, static_cast<size_t>(n), payload, sizeof(payload), &len) !=
             net::Received::Delivered)
@@ -84,19 +85,18 @@ bool drain(Peer& p) {
     }
 }
 
-} // namespace
-
-int main() {
-    std::printf("net reliability layer over the real loopback socket\n");
+void run_loopback(const char* label, const pnet::Endpoint& local) {
+    std::printf("net reliability over %s loopback\n", label);
     auto a = std::make_unique<Peer>();
     auto b = std::make_unique<Peer>();
-    check(a->socket.open(platform::net::ADDRESS_LOOPBACK, 0) &&
-              b->socket.open(platform::net::ADDRESS_LOOPBACK, 0),
-          "both peers bind an ephemeral loopback port");
-    a->peer.address = pnet::ADDRESS_LOOPBACK;
-    a->peer.port = b->socket.local().port;
-    b->peer.address = pnet::ADDRESS_LOOPBACK;
-    b->peer.port = a->socket.local().port;
+    if (!a->socket.open(local) || !b->socket.open(local)) {
+        check(false, "both peers bind an ephemeral loopback port");
+        return;
+    }
+    a->peer = b->socket.local();
+    b->peer = a->socket.local();
+    check(a->peer.family == local.family && b->peer.family == local.family,
+          "the bound endpoints retain their address family");
 
     // Такт здесь — итерация цикла, а не миллисекунда: у слоя нет собственных часов, и привязка
     // переотправки к стенному времени сделала бы прогон зависящим от загруженности машины.
@@ -120,6 +120,19 @@ int main() {
     std::printf("  a: sent=%u resent=%u delivered=%u | b: sent=%u resent=%u delivered=%u\n",
                 a->link.sent(), a->link.resent(), a->link.delivered(), b->link.sent(),
                 b->link.resent(), b->link.delivered());
+}
+
+} // namespace
+
+int main() {
+    run_loopback("IPv4", pnet::Endpoint{pnet::ADDRESS_LOOPBACK, 0});
+    pnet::Endpoint ipv6;
+    if (pnet::parse_endpoint("[::1]:1", &ipv6)) {
+        ipv6.port = 0;
+        run_loopback("IPv6", ipv6);
+    } else {
+        check(false, "IPv6 loopback address parses");
+    }
     std::printf("net-loopback: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;
 }
