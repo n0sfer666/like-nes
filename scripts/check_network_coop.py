@@ -15,6 +15,18 @@ RESULT = re.compile(r"^network result tick (\d+) hash ([a-f0-9]{16}) rollbacks (
                     re.MULTILINE)
 
 
+def delay_for(log):
+    delays = re.findall(r"^network lobby started delay ([1-3])$", log, re.MULTILINE)
+    assert len(delays) == 1, log
+    return int(delays[0])
+
+
+def same_inputs(reports):
+    by_delay = {}
+    for delay, digest in reports:
+        assert by_delay.setdefault(delay, digest) == digest, "same input delay produced different simulation"
+
+
 def bind(stack, family, address):
     sock = stack.enter_context(socket.socket(family, socket.SOCK_DGRAM))
     sock.bind((address, 0))
@@ -157,8 +169,10 @@ def run(executable, scenario, family=socket.AF_INET):
             assert proxy.replayed and hashes[0] != hashes[1], output
         else:
             assert hashes[0] == hashes[1], output
-        print(f"network-coop: {scenario} {address}, tick {FRAMES}, {', '.join(hashes)}", flush=True)
-        return hashes[0]
+        delay = delay_for(output[0])
+        assert delay_for(output[1]) == delay, output
+        print(f"network-coop: {scenario} {address}, tick {FRAMES}, delay {delay}, {', '.join(hashes)}", flush=True)
+        return delay, hashes[0]
 
 
 def main():
@@ -170,9 +184,9 @@ def main():
     if args.solo:
         run(exe, "solo")
     else:
-        baseline = run(exe, "direct")
-        for scenario, family in (("direct", socket.AF_INET6), ("mixed", socket.AF_INET), ("recover", socket.AF_INET)):
-            assert run(exe, scenario, family) == baseline, f"{scenario} diverged from baseline"
+        cases = (("direct", socket.AF_INET), ("direct", socket.AF_INET6),
+                 ("mixed", socket.AF_INET), ("recover", socket.AF_INET))
+        same_inputs(run(exe, scenario, family) for scenario, family in cases)
     print("network-coop: PASS")
 
 

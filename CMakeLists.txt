@@ -163,10 +163,12 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/warnings.cmake)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
 add_subdirectory(engine/core)
 add_subdirectory(engine/platform)   # платформенный шов — до потребителей (asset/plugin/hotreload)
 add_subdirectory(engine/net)       # надёжный слой поверх UDP (#22) — сразу за швом, его единственной зависимостью
+if(NOT CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
+  add_subdirectory(tools/relay)
+endif()
 add_subdirectory(engine/material)  # материалы (#18) — до render: golden-харнесс их потребитель
 add_subdirectory(engine/light)     # свет как данные (#18, вертикаль 3) — до render, его потребителя
 add_subdirectory(engine/render)

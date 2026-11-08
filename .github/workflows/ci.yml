@@ -1712,6 +1712,8 @@ jobs:
           run_gate net_session_wire_test 'net-session-wire: PASS'
           run_gate net_lobby_test 'net-lobby: PASS'
           run_gate rumble_lobby_test 'rumble-lobby: PASS'
+          run_gate net_relay_path_test 'net-relay-path: PASS'
+          run_gate relay_server_test 'relay-server: PASS'
 
       # Гейты 1 и 7 спеки #22: ДВА ПРОЦЕССА над сценой платформера сходятся по наблюдаемому, а пир,
       # оглохший посреди прогона, догоняет. Отдельным шагом от гейтов выше, потому что предмет

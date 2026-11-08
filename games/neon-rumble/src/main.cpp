@@ -66,7 +66,7 @@ int run_headless(rumble::Flow& flow, rumble::Play& play, rumble::Hotseat& hotsea
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
-    if (argc > 1 && (!std::strcmp(argv[1], "--net-host") || !std::strcmp(argv[1], "--net-join"))) {
+    if (argc > 1 && rumble::network_command(argv[1])) {
         return rumble::run_network_headless(argc, argv);
     }
     bool headless = false;

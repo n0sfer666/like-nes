@@ -1,15 +1,15 @@
 #include "rumble_net_headless.hpp"
 
-#include <charconv>
 #include <chrono>
 #include <cstdio>
-#include <cstring>
 #include <memory>
 #include <thread>
 
 #include "platform_fs.hpp"
 #include "platform_io.hpp"
 #include "rumble_demo.hpp"
+#include "rumble_net_args.hpp"
+#include "rumble_net_channel.hpp"
 #include "rumble_net_fight.hpp"
 
 namespace rumble {
@@ -18,9 +18,8 @@ namespace {
 using Clock = std::chrono::steady_clock;
 namespace udp = platform::net;
 
-void send(void* user, const udp::Endpoint& to, const net::Datagram& packet) {
-    auto& socket = *static_cast<udp::Socket*>(user);
-    socket.send_to(to, packet.bytes, packet.size);
+void send_game(void* user, const udp::Endpoint& to, const net::Datagram& packet) {
+    static_cast<NetworkChannel*>(user)->send(to, packet, true);
 }
 
 bool load_bundle(const char* name, platform::MappedFile& file, asset::BundleView& bundle) {
@@ -42,21 +41,17 @@ const char* phase_name(NetworkPhase phase) {
 
 class HeadlessMatch {
 public:
-    HeadlessMatch(const asset::BundleView& game, NetworkSettings settings, uint32_t frames)
-        : game_(game), lobby_(network_lobby_config(settings)), frames_(frames) {}
+    HeadlessMatch(const asset::BundleView& game, NetworkSettings settings, NetworkRun config)
+        : game_(game), lobby_(network_lobby_config(settings)), config_(config) {}
 
-    bool open(const udp::Endpoint& endpoint, bool host) {
-        udp::Endpoint local;
-        local.family = endpoint.family;
-        if (!socket_.open(host ? endpoint : local)) return false;
-        if (!host && !lobby_.join(endpoint, 0)) return false;
-        lobby_.ready();
-        return true;
+    bool open() {
+        return channel_.open({config_.endpoints.data(), config_.endpoint_count},
+                             config_.host, config_.relay, config_.code, config_.relay_only);
     }
 
     int run() {
         const auto start = Clock::now();
-        const uint64_t deadline = uint64_t{frames_} * 1000 / 60 + 70'000;
+        const uint64_t deadline = uint64_t{config_.frames} * 1000 / 60 + 70'000;
         while (true) {
             const uint64_t now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                 Clock::now() - start).count());
@@ -70,18 +65,36 @@ public:
     }
 
 private:
+    bool open_lobby(uint64_t now) {
+        if (lobby_opened_ || !channel_.ready()) return true;
+        if (!config_.host && !lobby_.join(channel_.endpoint(), now)) return false;
+        if (config_.host && config_.relay) {
+            std::printf("network room %010llx\n", static_cast<unsigned long long>(channel_.code()));
+            std::fflush(stdout);
+        }
+        lobby_.ready();
+        lobby_opened_ = true;
+        return true;
+    }
+
     bool exchange(uint64_t now) {
+        if (phase_ == NetworkPhase::Solo) return true;
+        channel_.pump(now);
+        if (!open_lobby(now)) return false;
         uint8_t bytes[udp::MAX_DATAGRAM];
         udp::Endpoint from;
         for (int i = 0; i < 32; ++i) {
-            const int n = socket_.recv_from(bytes, sizeof(bytes), &from);
+            const int n = channel_.read(bytes, from);
             if (n < 0) return false;
             if (!n) break;
-            const auto datagram = std::span<const uint8_t>(bytes, static_cast<size_t>(n));
+            const auto datagram = channel_.logical(from, {bytes, static_cast<size_t>(n)});
+            if (!open_lobby(now)) return false;
+            if (!lobby_opened_ || datagram.empty()) continue;
             lobby_.receive(from, datagram, now);
             if (fight_) fight_->receive(from, datagram, now);
         }
-        if (auto reply = lobby_.poll(now)) send(&socket_, reply->to, reply->datagram);
+        if (!lobby_opened_) return !channel_.failed();
+        if (auto reply = lobby_.poll(now)) channel_.send(reply->to, reply->datagram, false);
         if (lobby_.phase() == net::LobbyPhase::Rejected) {
             std::fprintf(stderr, "neon-rumble network: lobby refusal %u\n",
                          static_cast<unsigned>(lobby_.refusal()));
@@ -98,6 +111,8 @@ private:
                 return false;
             }
             fight_ = std::make_unique<NetworkFight>(*play_, terms, agreement, now);
+            channel_.set_match(agreement.key);
+            if (config_.relay) std::puts("network route relay");
             std::printf("network lobby started delay %u\n", static_cast<unsigned>(agreement.delay));
             std::fflush(stdout);
         }
@@ -105,8 +120,13 @@ private:
     }
 
     bool step(uint64_t now) {
-        fight_->pump(now, send, &socket_);
-        if (now >= next_tick_ && fight_->tick() < frames_) {
+        fight_->pump(now, send_game, &channel_);
+        if (config_.relay && channel_.direct() != direct_) {
+            direct_ = channel_.direct();
+            std::printf("network route %s\n", direct_ ? "direct" : "relay");
+            std::fflush(stdout);
+        }
+        if (now >= next_tick_ && fight_->tick() < config_.frames) {
             next_tick_ = now + (fight_->tick() % 3 == 0 ? 16 : 17);
             fight_->advance(demo_p1(fight_->tick() + 5 * fight_->local_seat()), now);
         }
@@ -116,30 +136,33 @@ private:
         const auto phase = fight_->phase();
         if (phase != phase_) {
             phase_ = phase;
+            if (phase == NetworkPhase::Solo) channel_.close();
             std::printf("network phase %s tick %u confirmed %u\n", phase_name(phase), fight_->tick(),
                         fight_->confirmed());
             std::fflush(stdout);
         }
         if (phase == NetworkPhase::Desynced || phase == NetworkPhase::Failed) return false;
-        if (!done_ && fight_->confirmed() >= frames_) done_ = now;
+        if (!done_ && fight_->confirmed() >= config_.frames) done_ = now;
         return true;
     }
 
     int report() const {
-        const auto hash = fight_->hash_at(frames_);
-        if (!hash || effects_ != frames_) return 1;
+        const auto hash = fight_->hash_at(config_.frames);
+        if (!hash || effects_ != config_.frames) return 1;
         std::printf("network result tick %u hash %016llx rollbacks %u reconnects %u effects %u\n",
-                    frames_, static_cast<unsigned long long>(*hash), fight_->rollbacks(),
+                    config_.frames, static_cast<unsigned long long>(*hash), fight_->rollbacks(),
                     fight_->reconnects(), effects_);
         return 0;
     }
 
     const asset::BundleView& game_;
     net::Lobby lobby_;
-    udp::Socket socket_;
+    NetworkChannel channel_;
+    NetworkRun config_;
+    bool lobby_opened_ = false;
+    bool direct_ = false;
     std::unique_ptr<Play> play_;
     std::unique_ptr<NetworkFight> fight_;
-    uint32_t frames_;
     uint32_t effects_ = 0;
     NetworkPhase phase_ = NetworkPhase::Starting;
     uint64_t next_tick_ = 0;
@@ -149,15 +172,10 @@ private:
 } // namespace
 
 int run_network_headless(int argc, char** argv) {
-    udp::Endpoint endpoint;
-    uint32_t frames = 0;
-    if (argc == 5 && std::strcmp(argv[3], "--frames") == 0) {
-        const char* end = argv[4] + std::strlen(argv[4]);
-        const auto result = std::from_chars(argv[4], end, frames);
-        if (result.ec != std::errc{} || result.ptr != end) frames = 0;
-    }
-    if (frames == 0 || !udp::parse_endpoint(argv[2], &endpoint)) {
-        std::fprintf(stderr, "usage: neon_rumble [--net-host|--net-join] ADDRESS:PORT --frames N\n");
+    NetworkRun run;
+    if (!parse_network_run(argc, argv, run)) {
+        std::fprintf(stderr, "usage: neon_rumble [--net-host|--net-join|--net-create] ADDRESS:PORT --frames N\n"
+                             "       neon_rumble --net-code RELAY:PORT CODE --frames N\n");
         return 2;
     }
     platform::MappedFile game_file, library_file;
@@ -170,8 +188,8 @@ int run_network_headless(int argc, char** argv) {
     settings.library_hash = library.header().bundle_hash;
     settings.game_hash = game.header().bundle_hash;
     settings.seed = 27;
-    HeadlessMatch match(game, settings, frames);
-    return match.open(endpoint, std::strcmp(argv[1], "--net-host") == 0) ? match.run() : 1;
+    HeadlessMatch match(game, settings, run);
+    return match.open() ? match.run() : 1;
 }
 
 } // namespace rumble

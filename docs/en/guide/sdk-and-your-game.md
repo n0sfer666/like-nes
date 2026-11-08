@@ -88,7 +88,8 @@ else()
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
-  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} src/rumble_net_headless.cpp)
+  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} src/rumble_net_headless.cpp
+    src/rumble_net_args.cpp src/rumble_net_channel.cpp)
   target_link_libraries(neon_rumble PRIVATE like-nes::net_core)
   like_nes_add_game(neon_rumble)
   include(tests/net-fixture.cmake)

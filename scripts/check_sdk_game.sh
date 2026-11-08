@@ -91,7 +91,7 @@ sdk_build() {
     sdk_ok "$cfg: SDK built and installed into the prefix"
 }
 
-sdk_build build-sdk-release Release like_nes_sdk assetc || exit 1
+sdk_build build-sdk-release Release like_nes_sdk assetc like_nes_relay || exit 1
 sdk_build build-sdk-debug Debug like_nes_sdk || exit 1
 fixture_gamepad_source desktop "$PREFIX" || FAIL=1
 fixture_strings_bake || FAIL=1
