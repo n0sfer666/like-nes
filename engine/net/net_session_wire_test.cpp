@@ -94,6 +94,16 @@ void session_codec() {
     --mutation.size;
     receive_ack(guest, mutation);
     require(sender->unacked() == 1, "invalid packet cannot retire Link's pending input");
+
+    sender->pump(4);
+    require(sender->outbox_size() == 1, "lost ACK causes retry");
+    const auto& retry = sender->outbox_at(0);
+    require(receiver->receive(retry.bytes, retry.size, &body, 1, &size) == Received::Duplicate,
+            "retry does not redeliver payload");
+    receiver->pump(4);
+    require(receiver->outbox_size() == 1, "duplicate re-arms a lost ACK");
+    const auto& replacement = receiver->outbox_at(0);
+    require(wrap_session(guest_key, {replacement.bytes, replacement.size}, d), "wrap replacement ACK");
     receive_ack(guest, d);
     require(sender->unacked() == 0, "authenticated ACK reaches Link");
 }

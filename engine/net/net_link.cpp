@@ -129,6 +129,8 @@ Received Link::receive(const void* datagram, size_t n, void* payload, size_t cap
     // Некорректная датаграмма не подтверждает ни одного сообщения.
     if ((kind & KIND_ACK) != 0) ack_upto(ack, bits);
     if (!has_payload) return Received::Ack;
+    // The previous ACK may have been lost even if this payload was delivered.
+    ack_owed_ = true;
     // Дедупликация ДО копирования наружу: повтор не имеет права переписать буфер вызывающего.
     if (!recv_.note(seq)) {
         ++duplicates_;
@@ -137,7 +139,6 @@ Received Link::receive(const void* datagram, size_t n, void* payload, size_t cap
     r.bytes(payload, len);
     *out_n = len;
     ++delivered_;
-    ack_owed_ = true;
     return Received::Delivered;
 }
 

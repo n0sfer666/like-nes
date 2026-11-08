@@ -13,6 +13,7 @@
 #include "rumble_flow.hpp"
 #include "rumble_hotseat.hpp"
 #include "rumble_join_report.hpp"
+#include "rumble_net_headless.hpp"
 #include "rumble_pad_report.hpp"
 #include "rumble_report.hpp"
 #include "rumble_wave_script.hpp"
@@ -65,6 +66,9 @@ int run_headless(rumble::Flow& flow, rumble::Play& play, rumble::Hotseat& hotsea
 
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
+    if (argc > 1 && (!std::strcmp(argv[1], "--net-host") || !std::strcmp(argv[1], "--net-join"))) {
+        return rumble::run_network_headless(argc, argv);
+    }
     bool headless = false;
     bool waves = false;
     bool coop = false;

@@ -10,3 +10,5 @@ set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_join_report.cpp src/rumble_demo.cpp)
 set(RUMBLE_MOBILE_SOURCES src/rumble_mobile.cpp src/rumble_mobile_touch.cpp src/rumble_mobile_draw.cpp
   src/rumble_mobile_bench.cpp)
+set(RUMBLE_NETWORK_SOURCES src/rumble_net_sim.cpp src/rumble_net_input.cpp
+  src/rumble_net_fight.cpp src/rumble_net_transport.cpp)

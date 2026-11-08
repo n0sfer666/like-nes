@@ -47,6 +47,7 @@ struct Brawl {
     framework::brawl::BodyPool pool;
     Kinds kinds;
     framework::brawl::HitEvents events;
+    framework::brawl::HitRules hit_rules{};
     framework::brawl::Seats seats;
     std::array<PlayerCommand, framework::brawl::SEATS> players{};
     std::array<framework::brawl::Body, FIGHTERS> spawns{};

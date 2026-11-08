@@ -33,7 +33,7 @@ void Wave::step(br::BodyPool& pool, const br::Seats& seats, br::BrawlWorld world
     const br::DepthFloor reached = platform.reach(*world.floor, level, waves.cleared);
     world.floor = &reached;
     br::note_living(pool, living);
-    ai.tokens.capacity = TOKENS_BY_PLAYERS[players(seats)];
+    ai.tokens.capacity = token_budget[players(seats)];
     ai::step_ai(ai, pool, world, tick, foe_brain(), commands);
     throw_knives(ai.brains, pool, sections, world);
     ++tick;

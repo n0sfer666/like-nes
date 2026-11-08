@@ -34,10 +34,10 @@ public:
 
     // Кольца выписываются здесь и больше не растут. Снимков `depth + 1`, потому что откат на
     // `depth` тиков назад означает возврат в состояние ПЕРЕД тем тиком.
-    void reset(uint32_t players, uint32_t depth) {
+    void reset(uint32_t players, uint32_t depth, const Snapshot& initial = Snapshot{}) {
         plan_.reset(depth);
         ring_.reset(players, depth + LEAD + 2);
-        snaps_.assign(depth + 1, Snapshot{});
+        snaps_.assign(depth + 1, initial);
         rollbacks_ = 0;
         replayed_ = 0;
         conflicts_ = 0;
@@ -45,6 +45,13 @@ public:
     }
 
     Tick tick() const { return plan_.head(); }
+
+    // Read after settle(). The current head is live in the simulation.
+    const Snapshot* snapshot_before(Tick t) const {
+        const Tick head = plan_.head();
+        if (t >= head || head - t > plan_.depth()) return nullptr;
+        return &snaps_[t % snaps_.size()];
+    }
 
     // Ввод стал известен. `false` — он не принят, и это ЗАЯВЛЕННЫЙ исход: слишком поздно (снимок
     // вытеснен) или слишком далеко вперёд (места в кольце нет). Оба посчитаны отдельно, потому что

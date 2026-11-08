@@ -16,7 +16,6 @@
 #include "rumble_floor.hpp"
 #include "seat_hash.hpp"
 #include "seat_step.hpp"
-
 namespace rumble {
 
 namespace {
@@ -112,6 +111,7 @@ bool Brawl::open(const Level& level, const Fighters& fighters, bool waves) {
     floor = br::DepthFloor{};
     pool = br::BodyPool{};
     events = br::HitEvents{};
+    hit_rules = {};
     seats = br::Seats{};
     players = {};
     wave = Wave{};
@@ -156,7 +156,7 @@ void Brawl::step() {
         if (b.team == 0 && b.kind < br::SEATS)
             commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
     }
-    const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}, nullptr, nullptr, viewport.zone};
+    const br::BrawlWorld world{kinds.types, &floor, hit_rules, nullptr, nullptr, viewport.zone};
     if (!wave.on) {
         br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
         return;

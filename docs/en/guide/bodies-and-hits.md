@@ -67,7 +67,7 @@ for (uint32_t i = 0; i < pool.count; ++i) {
     if (b.team == 0 && b.kind < br::SEATS)
         commands[i].strike = strike_of(players[b.kind].attack, kinds.moves[b.kind], b);
 }
-const br::BrawlWorld world{kinds.types, &floor, br::HitRules{}, nullptr, nullptr, viewport.zone};
+const br::BrawlWorld world{kinds.types, &floor, hit_rules, nullptr, nullptr, viewport.zone};
 if (!wave.on) {
     br::step_brawl(pool, std::span<const br::Command>(commands.data(), pool.count), world, events);
     return;

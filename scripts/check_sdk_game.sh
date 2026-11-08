@@ -106,6 +106,7 @@ for cfg in Release Debug; do
         game_wave_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_knife_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_coop_run "$OUT/game-$cfg" "$cfg" || FAIL=1
+        game_network_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         game_menu_run "$OUT/game-$cfg" "$cfg" || FAIL=1
         bundle_hash_check "$OUT/game-$cfg" "$cfg" "$ROOT/games/neon-rumble/bundle.hash" || FAIL=1
         game_frame_stats "$OUT/game-$cfg" "$cfg" || FAIL=1

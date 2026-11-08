@@ -67,3 +67,19 @@ fixture_mobile_net() {
     fi
     sdk_ok "$plat net: installed network archives compiled and linked (cross target not run)"
 }
+
+game_network_run() {
+    local dir=$1 cfg=$2 fixture="$1/rumble_network_sim_test" exe="$1/neon_rumble"
+    [ ! -f "$exe.exe" ] || exe="$exe.exe"
+    if ! cmake --build "$dir" --target rumble_network_sim_test > "$dir/network-sim-build.log" 2>&1; then
+        tail -30 "$dir/network-sim-build.log"
+        sdk_bad "$cfg: network simulation fixture failed to build"
+        return 1
+    fi
+    [ ! -f "$fixture.exe" ] || fixture="$fixture.exe"
+    if ! "$fixture" "$dir/game.bundle" || ! python3 "$ROOT/scripts/check_network_coop.py" "$exe"; then
+        sdk_bad "$cfg: Neon Rumble network fixture failed"
+        return 1
+    fi
+    sdk_ok "$cfg: two real Neon Rumble peers and deterministic rollback/recovery scenarios"
+}

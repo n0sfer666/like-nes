@@ -46,6 +46,7 @@ struct Wave {
     bool on = false;
     framework::graphics::PixelSize zone = framework::graphics::VIEW_ZONE;
     framework::ai::AiState ai;
+    std::array<uint32_t, framework::brawl::SEATS + 1> token_budget = TOKENS_BY_PLAYERS;
     uint32_t tick = 0;
     framework::scene::LevelObjects level;
     // Тело на каждую точку `level.waves`, в том же порядке: индексы `facts.starts` берут его отсюда.
