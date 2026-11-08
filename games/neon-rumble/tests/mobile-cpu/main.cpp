@@ -14,6 +14,7 @@ std::string assets;
 bool demo;
 bool waves;
 bool frame_stats;
+bool network;
 int fails;
 
 void check(bool ok, const char* why) { if (!ok) { ++fails; std::printf("mobile-cpu: FAIL %s\n", why); } }
@@ -28,12 +29,13 @@ bool owns(const mobile::Game& game, const char* field) {
 std::string mobile::asset_path(const char* name) { return assets + "/" + name; }
 bool mobile::has_arg(const char* flag) {
     return (demo && std::strcmp(flag, "--demo") == 0) || (waves && std::strcmp(flag, "--wave") == 0) ||
-        (frame_stats && std::strcmp(flag, "--frame-stats") == 0);
+        (frame_stats && std::strcmp(flag, "--frame-stats") == 0) || (network && std::strcmp(flag, "--network") == 0);
 }
 void mobile::interactive_thread() {}
 std::string mobile::device_info() { return "CPU test host"; }
 bool mobile_cpu_probe(mobile::Game& game);
 bool bench_touch(const std::string& assets);
+bool network_touch();
 
 int main(int argc, char** argv) {
     platform::Args args(argc, argv);
@@ -41,6 +43,8 @@ int main(int argc, char** argv) {
     assets = argv[1];
     const std::string mode = argv[2];
     if (mode == "bench-touch") return bench_touch(assets) ? 0 : 1;
+    network = mode == "network-touch";
+    if (network) return network_touch() ? 0 : 1;
     frame_stats = mode == "bench-conflict";
     demo = mode == "demo" || mode == "wave-demo" || frame_stats;
     waves = mode == "wave-demo" || mode == "wave-touch";

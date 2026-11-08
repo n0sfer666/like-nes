@@ -5,14 +5,18 @@ get_filename_component(GAME_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 include(${GAME_ROOT}/sources.cmake)
 list(TRANSFORM RUMBLE_SOURCES PREPEND "${GAME_ROOT}/")
 list(TRANSFORM RUMBLE_MOBILE_SOURCES PREPEND "${GAME_ROOT}/")
+list(TRANSFORM RUMBLE_NETWORK_SOURCES PREPEND "${GAME_ROOT}/")
+list(TRANSFORM RUMBLE_NETWORK_UI_SOURCES PREPEND "${GAME_ROOT}/")
 add_subdirectory(${GAME_ROOT}/sim ${CMAKE_CURRENT_BINARY_DIR}/sim)
-add_executable(rumble_mobile_cpu main.cpp probe.cpp mobile_cpu_pads.cpp bench_touch.cpp
-  "${GAME_ROOT}/src/rumble_window_bench.cpp" ${RUMBLE_SOURCES} ${RUMBLE_MOBILE_SOURCES})
+add_executable(rumble_mobile_cpu main.cpp probe.cpp mobile_cpu_pads.cpp bench_touch.cpp network_touch.cpp
+  "${GAME_ROOT}/src/rumble_window_bench.cpp" ${RUMBLE_SOURCES} ${RUMBLE_MOBILE_SOURCES}
+  ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES})
 # Только переносимый интерфейс mobile::Game: мок заменяет оболочку, а весь игровой код настоящий.
 # Desktop SDK не несёт mobile shell/headers, движок и графика при этом берутся из его префикса.
 target_include_directories(rumble_mobile_cpu PRIVATE ${GAME_ROOT}/../../platform/mobile)
 target_include_directories(rumble_mobile_cpu PRIVATE ${GAME_ROOT}/src)
-target_link_libraries(rumble_mobile_cpu PRIVATE rumble_sim like-nes::engine like-nes::input_gamepad)
+target_link_libraries(rumble_mobile_cpu PRIVATE rumble_sim like-nes::engine like-nes::input_gamepad
+  like-nes::net_core like-nes::platform_discovery)
 if(MSVC)
   target_compile_options(rumble_mobile_cpu PRIVATE /W4 /WX /utf-8)
 else()

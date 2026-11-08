@@ -9,6 +9,10 @@ set(RUMBLE_SOURCES src/rumble.cpp src/rumble_level.cpp src/rumble_layers.cpp
   src/rumble_platform.cpp src/rumble_stage_quads.cpp src/rumble_label.cpp src/rumble_coop_script.cpp
   src/rumble_join_report.cpp src/rumble_demo.cpp)
 set(RUMBLE_MOBILE_SOURCES src/rumble_mobile.cpp src/rumble_mobile_touch.cpp src/rumble_mobile_draw.cpp
-  src/rumble_mobile_bench.cpp)
+  src/rumble_mobile_bench.cpp src/rumble_mobile_network.cpp)
 set(RUMBLE_NETWORK_SOURCES src/rumble_net_sim.cpp src/rumble_net_input.cpp
-  src/rumble_net_fight.cpp src/rumble_net_transport.cpp)
+  src/rumble_net_fight.cpp src/rumble_net_transport.cpp src/rumble_net_notice.cpp
+  src/rumble_net_dump.cpp src/rumble_net_dump_pool.cpp src/rumble_net_dump_world.cpp
+  src/rumble_net_args.cpp src/rumble_net_channel.cpp)
+set(RUMBLE_NETWORK_UI_SOURCES src/rumble_net_mode.cpp src/rumble_net_menu.cpp src/rumble_net_lookup.cpp
+  src/rumble_net_panel.cpp src/rumble_net_quads.cpp)

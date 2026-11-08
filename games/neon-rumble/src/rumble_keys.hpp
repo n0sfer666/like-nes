@@ -11,7 +11,7 @@ namespace rumble {
 // копится до `consume`: кадр без текстуры его не теряет.
 class WindowKeys {
 public:
-    enum Key : uint8_t { CREDITS, OVERLAY, UP, DOWN, ENTER, ESCAPE, COUNT };
+    enum Key : uint8_t { CREDITS, OVERLAY, UP, DOWN, ENTER, ESCAPE, ERASE, COUNT };
 
     void poll(GLFWwindow* window);
     void press_code(uint16_t glfw_key);

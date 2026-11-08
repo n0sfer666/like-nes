@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <vector>
 
 namespace rumble::test {
@@ -90,12 +91,16 @@ struct Pair {
     std::vector<Pending> pending;
     std::array<std::optional<Pending>, 2> stale;
     bool delayed_echo = false;
+    bool desync_case = false;
+    uint32_t notice_block_until = 0;
+    uint32_t hide_host_hashes_after = UINT32_MAX;
 
     Pair(const asset::BundleView& game, NetworkSettings terms, const InputTape& commands, Path route)
         : a(game, terms, 0), b(game, terms, 1), tape(commands), path(route) {}
 
     void send(uint32_t from, const net::Datagram& packet) {
         ++sent;
+        if (desync_case && from == 0 && drop_desync(packet)) return;
         if (now >= CUT && path >= Path::Recover) {
             const bool one_way = path == Path::RecoverOneWay || path == Path::SoloOneWay;
             const bool permanent = path == Path::Solo || path == Path::SoloOneWay;
@@ -125,6 +130,8 @@ struct Pair {
         }
     }
 
+    bool drop_desync(const net::Datagram& packet);
+
     void inject(const Pending& p) {
         peers[p.target]->fight.receive(ENDPOINTS[1 - p.target],
             {p.packet.bytes, p.packet.size}, peer_clock(now, p.target));
@@ -152,7 +159,8 @@ struct Pair {
             }, &tx);
             if (now % 16 == 0 && p.fight.tick() < TARGET) p.fight.advance(tape[p.fight.tick()][seat], clock);
             const auto phase = p.fight.phase();
-            require(phase != NetworkPhase::Failed && phase != NetworkPhase::Desynced, "fight remains coherent");
+            require(phase != NetworkPhase::Failed && (desync_case || phase != NetworkPhase::Desynced),
+                    "fight remains coherent");
             if (phase == NetworkPhase::Paused && !p.paused) {
                 p.paused = true;
                 p.pause_at = now;

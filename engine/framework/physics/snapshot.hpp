@@ -53,6 +53,8 @@ struct WorldSnapshot {
     void apply(World& w) const;
 
     bool taken() const { return taken_; }
+    const std::vector<Body>& bodies() const { return bodies_; }
+    Vec2 gravity() const { return gravity_; }
     // Тиков в снимке нет: номер тика — свойство ОТКАТА, а не состояния мира. Мир не знает, какой
     // сейчас тик, и знать не должен — иначе снимок стал бы вторым источником правды о времени.
 

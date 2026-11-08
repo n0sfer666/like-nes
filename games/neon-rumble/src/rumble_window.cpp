@@ -15,6 +15,7 @@
 #include "rumble_frame_touch.hpp"
 #include "rumble_keys.hpp"
 #include "rumble_layers.hpp"
+#include "rumble_net_window.hpp"
 #include "rumble_no_pads.hpp"
 #include "rumble_screen.hpp"
 #include "rumble_shot.hpp"
@@ -90,6 +91,7 @@ int window_frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, 
     input::GamepadSource* pads = run.script || bench ? &no_pads : open_pads(window, hotseat);
     if (!run.script && !bench) haptic::init();
     WindowKeys keys;
+    WindowNetwork network(window, run.network);
     bool cropped = false;
     bool warned = false;
     bool upload_warned = false;
@@ -97,6 +99,7 @@ int window_frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents();
         if (!run.script && !bench) keys.poll(window);
+        if (run.network) { network.events(keys); keys.consume(); }
         if (bench && glfwGetWindowAttrib(window, GLFW_ICONIFIED)) {
             bench->frames.suspend();
             glfwWaitEvents();
@@ -146,11 +149,12 @@ int window_frame_loop(GLFWwindow* window, GpuContext& gpu, WGPUSurface surface, 
         }
         if (run.script)
             run.script->feed(play != nullptr, play != nullptr ? play->scene.ticks + 1 : tick, hotseat.engine(), keys);
-        LayerStats st = play != nullptr
+        LayerStats st = run.network ? network.step(play, hotseat, *pads, *screen, credits, fit, tick) : play != nullptr
             ? step_level(flow, *play, hotseat, *pads, keys, *screen, credits, fit, tick, !run.script && !bench)
             : step_menu(flow, hotseat, *pads, keys, *screen, credits, fit, tick);
         keys.consume();
         const auto scene_runs = st.runs;
+        network.draw(credits, play, spec.width, spec.height, *screen, st);
         if (bench && play) {
             if (play->scene.ticks != level_tick) observe_frame_touch(bench->frames, hotseat, *play);
             bench->overlay(*play, credits, screen->layers(), st);

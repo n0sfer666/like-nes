@@ -48,6 +48,7 @@ void NetworkFight::queue(uint64_t now) {
 
 void NetworkFight::pump(uint64_t now, Send send, void* user) {
     expire(now);
+    if (phase_ == NetworkPhase::Desynced) notify(now, send, user);
     if (!active()) return;
     queue(now);
     if (!active()) return;
@@ -95,7 +96,7 @@ bool NetworkFight::proof(const NetworkInputPacket& p, uint64_t now) {
     return true;
 }
 
-bool NetworkFight::check_hashes(const NetworkInputPacket& p) {
+bool NetworkFight::check_hashes(const NetworkInputPacket& p, uint64_t now) {
     bool matched = false;
     for (uint32_t i = 0; i < p.hash_count; ++i) {
         const auto at = p.hash_tick + i;
@@ -103,8 +104,7 @@ bool NetworkFight::check_hashes(const NetworkInputPacket& p) {
         const auto hash = sim_.hash_at(at);
         if (!hash) continue;
         if (*hash != p.hashes[i]) {
-            mismatch_ = at;
-            phase_ = NetworkPhase::Desynced;
+            desync(at, now);
             return false;
         }
         matched = true;
@@ -114,16 +114,17 @@ bool NetworkFight::check_hashes(const NetworkInputPacket& p) {
 
 void NetworkFight::receive(const platform::net::Endpoint& from, std::span<const uint8_t> bytes, uint64_t now) {
     expire(now);
-    if (!active()) return;
+    if (!active() && phase_ != NetworkPhase::Desynced) return;
     const auto opened = net::unwrap_session(key_, from, bytes);
     if (opened.empty()) return;
+    if (accept_notice(opened, now) || !active()) return;
     std::array<uint8_t, net::SESSION_PAYLOAD> payload{};
     size_t size = 0;
     if (link_.receive(opened.data(), opened.size(), payload.data(), payload.size(), &size) !=
         net::Received::Delivered) return;
     NetworkInputPacket p;
     if (!decode_network_input({payload.data(), size}, p) || !integrate(p)) return;
-    if (!check_hashes(p) || !proof(p, now)) return;
+    if (!check_hashes(p, now) || !proof(p, now)) return;
     alive_at_ = now;
     if (phase_ == NetworkPhase::Paused) ++reconnects_;
     phase_ = NetworkPhase::Playing;

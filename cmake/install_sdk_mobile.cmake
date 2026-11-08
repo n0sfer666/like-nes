@@ -18,6 +18,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
   install(FILES "${CMAKE_SOURCE_DIR}/platform/android/AndroidManifest.xml.in"
                 "${CMAKE_SOURCE_DIR}/platform/android/package_apk.sh"
                 "${CMAKE_SOURCE_DIR}/platform/android/android_sdk.sh"
+                "${CMAKE_SOURCE_DIR}/platform/android/DiscoveryBridge.java"
           DESTINATION share/like-nes/platform/android COMPONENT sdk)
   install(DIRECTORY "${CMAKE_SOURCE_DIR}/platform/android/res"
           DESTINATION share/like-nes/platform/android COMPONENT sdk)

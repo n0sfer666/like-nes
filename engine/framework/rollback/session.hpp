@@ -34,10 +34,10 @@ public:
 
     // Кольца выписываются здесь и больше не растут. Снимков `depth + 1`, потому что откат на
     // `depth` тиков назад означает возврат в состояние ПЕРЕД тем тиком.
-    void reset(uint32_t players, uint32_t depth, const Snapshot& initial = Snapshot{}) {
+    void reset(uint32_t players, uint32_t depth, const Snapshot& initial = Snapshot{}, uint32_t history = 0) {
         plan_.reset(depth);
         ring_.reset(players, depth + LEAD + 2);
-        snaps_.assign(depth + 1, initial);
+        snaps_.assign(history > depth ? history : depth + 1, initial);
         rollbacks_ = 0;
         replayed_ = 0;
         conflicts_ = 0;
@@ -49,7 +49,7 @@ public:
     // Read after settle(). The current head is live in the simulation.
     const Snapshot* snapshot_before(Tick t) const {
         const Tick head = plan_.head();
-        if (t >= head || head - t > plan_.depth()) return nullptr;
+        if (t >= head || head - t > snaps_.size()) return nullptr;
         return &snaps_[t % snaps_.size()];
     }
 

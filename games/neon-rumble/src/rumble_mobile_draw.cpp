@@ -16,14 +16,16 @@ bool MobileRumble::draw() {
     const framework::graphics::ViewportFit fit = framework::graphics::viewport_fit(
         {spec_.width, spec_.height}, flow_.viewport().zone, flow_.viewport().limit);
     const Play* play = flow_.play();
-    LayerStats st = play != nullptr ? screen_->level(*play, hotseat_, credits_, fit, ticks_)
-                                   : screen_->menu(flow_.menu(), credits_, fit, ticks_);
+    LayerStats st = play ? screen_->level(*play, hotseat_, credits_, fit, ticks_, network_ != nullptr)
+                         : network_ ? LayerStats{} : screen_->menu(flow_.menu(), credits_, fit, ticks_);
     const uint32_t scene_runs = st.runs;
     if (play != nullptr && !demo_ && touch_.visible(hotseat_.touch_player() >= 0)) {
         const uint32_t textures = play->level.level.texture_count;
         touch_quads_.add(touch_.source(), credits_.font, touch_scale_, screen_->layers(), st,
                          solid_texture(textures), atlas_texture(textures));
     }
+    if (network_) network_quads_.add(*network_, credits_, play, spec_.width, spec_.height, fit.scale,
+                                    screen_->layers(), st);
     const bool uploaded = quads_.upload(screen_->layers().quads(st), spec_.width, spec_.height);
     if (!uploaded && !upload_warned_) {
         std::fprintf(stderr, "neon-rumble: %u quad(s) not uploaded, frame left empty\n", st.quads);

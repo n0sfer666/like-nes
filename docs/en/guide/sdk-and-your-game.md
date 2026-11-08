@@ -3,7 +3,7 @@
 English · [Русский](../../ru/guide/sdk-and-your-game.md)
 
 A game does not live inside the engine's tree. It is a CMake project of its own that finds an
-**installed SDK** with `find_package`, links two targets and bakes its content into one
+**installed SDK** with `find_package`, links the SDK targets it uses and bakes its content into one
 `game.bundle` at build time. This page goes from an empty prefix to a running game, and uses
 `games/neon-rumble/` throughout. That is the real game, which CI builds against the installed SDK
 on all three operating systems, so the files shown below are its own files, not copies.
@@ -79,18 +79,19 @@ add_subdirectory(sim)
 
 include(${CMAKE_CURRENT_LIST_DIR}/sources.cmake)
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
-  like_nes_mobile_app(neon_rumble SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+  like_nes_mobile_app(neon_rumble DISCOVERY SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+    ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
-  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
+  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::net_core like-nes::platform_discovery)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
     src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
-  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} src/rumble_net_headless.cpp
-    src/rumble_net_args.cpp src/rumble_net_channel.cpp)
-  target_link_libraries(neon_rumble PRIVATE like-nes::net_core)
+  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
+    src/rumble_net_headless.cpp src/rumble_net_window.cpp)
+  target_link_libraries(neon_rumble PRIVATE like-nes::net_core like-nes::platform_discovery)
   like_nes_add_game(neon_rumble)
   include(tests/net-fixture.cmake)
 endif()
@@ -139,12 +140,17 @@ endif()
   `asset::manifest::run_manifest` from `assetc_manifest_mode.hpp`. The tool links only `like-nes::assetc_core` and
   the game-owned `rumble_fighter` and takes its include paths from `like-nes::engine`, so it
   does not pull the renderer.
-- On iOS and Android `like_nes_mobile_app(<target> SOURCES <file>... [BUNDLES <file>...] NAME <name> ID <bundle id>)`
+- On iOS and Android `like_nes_mobile_app(<target> SOURCES <file>... [BUNDLES <file>...] [DISCOVERY] NAME <name> ID <bundle id>)`
   builds the game on the SDK's mobile shell instead of an executable: an `.app` on iOS, a `.so` and
   the `<target>_apk` target on Android. The game defines `mobile::make_game()`
   (`mobile/mobile_app.hpp`); Neon Rumble's is `src/rumble_mobile.cpp`. `like-nes::window` is
   desktop only, so `main.cpp`, `rumble_window.cpp`, `rumble_keys.cpp` and `rumble_pad_report.cpp` stay in the desktop
   branch.
+- Link `like-nes::net_core` explicitly to use UDP endpoints, reliable input, lobbies and relay clients.
+  `like-nes::platform_discovery` is a separate option for browsing and publishing `_likenes._udp`
+  rooms with `platform_net_discovery.hpp`. A room supplies an address. The lobby still verifies the
+  connection and checks match settings. On Android, pass `DISCOVERY` to include the NsdManager bridge
+  in the APK. Other mobile targets keep their normal application packaging.
 - `like_nes_add_game(<target>)` makes the game use the same C runtime as the engine. On MSVC the
   engine links the CRT statically, and a Debug game without this call fails to link with
   `LNK2038`. The call also copies the wgpu runtime next to the executable. On MSVC Debug against a

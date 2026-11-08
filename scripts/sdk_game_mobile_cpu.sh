@@ -23,6 +23,10 @@ mobile_cpu() {
         ! grep -qxF 'neon-rumble: --frame-stats needs the standard level and OS touch' "$bench"; then
         tail -25 "$bench"; sdk_bad 'frame-stats mobile accepts demo'; return 1
     fi
+    if ! "$exe" "$(native "$assets")" network-touch > "$WORK/mobile-cpu-network.log" 2>&1 ||
+        ! grep -qxF 'network-touch: PASS host tapped lobby, moved and attacked on guest' "$WORK/mobile-cpu-network.log"; then
+        tail -25 "$WORK/mobile-cpu-network.log"; sdk_bad 'network lobby and combat touch'; return 1
+    fi
     python3 "$ROOT/scripts/mobile_cpu_verdict.py" "$(native "$exe")" "$(native "$desk")" "$(native "$OUT/game-Release")" || {
         sdk_bad 'mobile CPU input or demo parity'; return 1; }
     python3 "$ROOT/scripts/android_touch_cpu.py" "$(native "$exe")" "$(native "$OUT/game-Release")" || {

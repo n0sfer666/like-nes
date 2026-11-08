@@ -91,6 +91,8 @@ public:
     // читается из local() после успешного open.
     bool open(uint32_t address, uint16_t port) { return open(Endpoint{address, port}); }
     bool open(const Endpoint& endpoint);
+    // IPv4 multicast listener. Interface is a local IPv4 address, or zero for the system default.
+    bool open_multicast(uint32_t group, uint16_t port, uint32_t interface_address = ADDRESS_ANY);
     void close();
     bool valid() const { return native_ != -1; }
     const Endpoint& local() const { return local_; }
@@ -126,6 +128,7 @@ public:
     int recv_from(void* data, size_t cap, Endpoint* from);
 
 private:
+    bool open_impl(const Endpoint& endpoint, uint32_t group, uint32_t interface_address);
     void steal(Socket& o) noexcept {
         native_ = o.native_;
         local_ = o.local_;

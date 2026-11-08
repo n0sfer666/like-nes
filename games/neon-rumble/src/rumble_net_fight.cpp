@@ -7,7 +7,7 @@ namespace rumble {
 NetworkFight::NetworkFight(Play& play, const NetworkSettings& settings,
                            const net::MatchAgreement& match, uint64_t now)
     : sim_(play, settings), key_(match.key), delay_(match.delay),
-      entered_at_(now), alive_at_(now), next_send_(now) {
+      entered_at_(now), alive_at_(now), next_send_(now), match_hash_(match.hash) {
     local_seat_ = key_.local_role == net::Role::Host ? 0u : 1u;
     remote_seat_ = 1 - local_seat_;
     if (delay_ < 1 || delay_ > 3 || play.scene.ticks != 0 ||
@@ -18,7 +18,7 @@ NetworkFight::NetworkFight(Play& play, const NetworkSettings& settings,
 
     NetworkSnapshot initial;
     sim_.save(initial);
-    rollback_.reset(br::SEATS, NETWORK_DEPTH, initial);
+    rollback_.reset(br::SEATS, NETWORK_DEPTH, initial, NETWORK_HISTORY);
     PlayerCommand neutral{};
     neutral.input.present = true;
     for (uint32_t at = 0; at < delay_; ++at) {
@@ -41,6 +41,10 @@ uint32_t NetworkFight::shared() const { return std::min(known_, peer_known_); }
 
 uint32_t NetworkFight::confirmed() const {
     return phase_ == NetworkPhase::Solo ? tick() : std::min(shared(), tick());
+}
+
+const NetworkReplayFrame* NetworkFight::replay_at(uint32_t at) const {
+    return at <= confirmed() ? sim_.replay_at(at) : nullptr;
 }
 
 bool NetworkFight::active() const {

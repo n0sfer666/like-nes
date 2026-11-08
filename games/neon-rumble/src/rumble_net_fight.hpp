@@ -30,9 +30,14 @@ public:
     uint32_t local_seat() const { return local_seat_; }
     uint32_t rollbacks() const { return rollback_.rollbacks(); }
     uint32_t resends() const { return link_.resent(); }
+    uint32_t packets() const { return link_.sent(); }
     uint32_t reconnects() const { return reconnects_; }
     uint32_t rtt_ms() const { return rtt_ms_; }
     std::optional<uint32_t> mismatch() const { return mismatch_; }
+    bool notifying(uint64_t now) const { return now < notice_until_; }
+    uint64_t match_hash() const { return match_hash_; }
+    uint32_t delay() const { return delay_; }
+    const NetworkReplayFrame* replay_at(uint32_t tick) const;
     std::optional<uint64_t> hash_at(uint32_t tick) const { return sim_.hash_at(tick); }
 
 private:
@@ -54,7 +59,10 @@ private:
     void queue(uint64_t now);
     bool integrate(const NetworkInputPacket& p);
     bool proof(const NetworkInputPacket& p, uint64_t now);
-    bool check_hashes(const NetworkInputPacket& p);
+    bool check_hashes(const NetworkInputPacket& p, uint64_t now);
+    void desync(uint32_t tick, uint64_t now);
+    void notify(uint64_t now, Send send, void* user);
+    bool accept_notice(std::span<const uint8_t> bytes, uint64_t now);
 
     NetworkSimulation sim_;
     framework::rollback::Session<NetworkSimulation> rollback_;
@@ -78,6 +86,9 @@ private:
     uint64_t entered_at_ = 0;
     uint64_t alive_at_ = 0;
     uint64_t next_send_ = 0;
+    uint64_t match_hash_ = 0;
+    uint64_t notice_until_ = 0;
+    uint64_t next_notice_ = 0;
     std::optional<uint32_t> mismatch_;
 };
 

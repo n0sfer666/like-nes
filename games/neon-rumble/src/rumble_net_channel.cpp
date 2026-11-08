@@ -10,17 +10,34 @@ constexpr uint64_t RELAY_STALE_MS = 2'000;
 } // namespace
 
 bool NetworkChannel::open(std::span<const Endpoint> endpoints, bool host, bool relay,
-                          net::RoomCode code, bool relay_only) {
+                          net::RoomCode code, bool relay_only, uint64_t now) {
     if (endpoints.empty() || endpoints.size() > candidates_.size()) return false;
+    close();
     std::ranges::copy(endpoints, candidates_.begin());
     count_ = endpoints.size();
     host_ = host;
     join_code_ = code;
     relay_only_ = relay_only;
-    if (relay) return next_relay(0);
+    if (relay) return next_relay(now);
     Endpoint local;
     local.family = candidates_[0].family;
-    return socket_.open(host ? candidates_[0] : local);
+    if (!socket_.open(host ? candidates_[0] : local)) return false;
+    if (host && candidates_[0].family == platform::net::AddressFamily::IPv4 &&
+        candidates_[0].address == platform::net::ADDRESS_ANY) {
+        Endpoint dual;
+        dual.family = platform::net::AddressFamily::IPv6;
+        dual.port = socket_.local().port;
+        ipv6_.open(dual);
+    }
+    return true;
+}
+
+void NetworkChannel::close() {
+    socket_.close();
+    ipv6_.close();
+    relay_.reset();
+    path_.reset();
+    next_ = count_ = 0;
 }
 
 bool NetworkChannel::next_relay(uint64_t now) {
@@ -75,7 +92,12 @@ void NetworkChannel::pump(uint64_t now) {
 }
 
 int NetworkChannel::read(std::span<uint8_t> buffer, Endpoint& from) {
-    return socket_.recv_from(buffer.data(), buffer.size(), &from);
+    if (!ipv6_.valid()) return socket_.recv_from(buffer.data(), buffer.size(), &from);
+    alternate_ = !alternate_;
+    auto& first = alternate_ ? socket_ : ipv6_;
+    auto& second = alternate_ ? ipv6_ : socket_;
+    const int n = first.recv_from(buffer.data(), buffer.size(), &from);
+    return n == 0 ? second.recv_from(buffer.data(), buffer.size(), &from) : n;
 }
 
 std::span<const uint8_t> NetworkChannel::logical(Endpoint& from, std::span<const uint8_t> bytes) {
@@ -100,7 +122,8 @@ std::span<const uint8_t> NetworkChannel::logical(Endpoint& from, std::span<const
 
 void NetworkChannel::send(const Endpoint& to, const net::Datagram& packet, bool game) {
     if (!relay_) {
-        socket_.send_to(to, packet.bytes, packet.size);
+        auto& socket = ipv6_.valid() && to.family == platform::net::AddressFamily::IPv6 ? ipv6_ : socket_;
+        socket.send_to(to, packet.bytes, packet.size);
         return;
     }
     if (game && direct() && socket_.send_to(path_->candidate(), packet.bytes, packet.size)) return;

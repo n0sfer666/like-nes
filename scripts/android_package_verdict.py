@@ -7,12 +7,12 @@ from pathlib import Path
 import py_utf8
 
 
-def verdict(manifest: str, resources: str) -> str:
+def verdict(manifest: str, resources: str, has_code: bool = False) -> str:
     def attribute(name: str) -> list[str]:
         return re.findall(rf"^\s*A: http://schemas.android.com/apk/res/android:{name}"
                           r"\(0x[0-9a-f]+\)=(\S+)", manifest, re.M)
 
-    for name, want in (("screenOrientation", ["6"]), ("hasCode", ["false"])):
+    for name, want in (("screenOrientation", ["6"]), ("hasCode", [str(has_code).lower()])):
         if attribute(name) != want:
             return f"{name} must be {want[0]} exactly once"
     for permission in ("INTERNET", "VIBRATE"):
@@ -56,7 +56,10 @@ def selftest() -> int:
         if bool(verdict(m, r)) != bad:
             print(f"android-package: FAIL selftest {index}")
             return 1
-    print(f"android-package: PASS {len(cases)} controls")
+    if verdict(manifest.replace("=false", "=true"), resources, True) or not verdict(manifest, resources, True):
+        print("android-package: FAIL Java package hasCode control")
+        return 1
+    print(f"android-package: PASS {len(cases) + 2} controls")
     return 0
 
 
@@ -64,10 +67,14 @@ def main() -> int:
     py_utf8.enable()
     if sys.argv[1:] == ["--selftest"]:
         return selftest()
-    if len(sys.argv) != 3:
-        print("usage: android_package_verdict.py <manifest.dump> <resources.dump> | --selftest")
+    paths = sys.argv[1:]
+    has_code = bool(paths and paths[-1] == "--has-code")
+    if has_code:
+        paths.pop()
+    if len(paths) != 2:
+        print("usage: android_package_verdict.py <manifest.dump> <resources.dump> [--has-code] | --selftest")
         return 1
-    why = verdict(*(Path(p).read_text(encoding="utf-8") for p in sys.argv[1:]))
+    why = verdict(*(Path(p).read_text(encoding="utf-8") for p in paths), has_code=has_code)
     print(f"android-package: {'FAIL ' + why if why else 'PASS compiled landscape, permissions and cutout theme'}")
     return int(bool(why))
 

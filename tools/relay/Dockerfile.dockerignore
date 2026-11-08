@@ -11,6 +11,7 @@
 !engine/platform/platform_net.hpp
 !engine/platform/platform_net.cpp
 !engine/platform/platform_net_native.hpp
+!engine/platform/platform_net_multicast_native.hpp
 !engine/platform/platform_net_posix.cpp
 !engine/platform/platform_args.hpp
 !engine/platform/platform_args.cpp

@@ -43,10 +43,11 @@ bool MobileRumble::init(GpuContext& gpu) {
     const bool waves = mobile::has_arg("--wave");
     wave_demo_ = {};
     if (!credits_.open(bundle_) || !menu_.init("level1", waves) || !flow_.open()) return false;
+    if (!open_network()) return false;
     // Обычный запуск входит сразу; стенд сначала измеряет существующее меню.
     if (mobile::has_arg("--frame-stats")) {
         if (!open_benchmark(waves)) return false;
-    } else {
+    } else if (!network_) {
         flow_.enter();
         flow_.apply();
         if (!flow_.play()) return false;
@@ -131,6 +132,7 @@ bool MobileRumble::wants_frames() const {
 void MobileRumble::step() {
     if (bench_) bench_->tick();
     if (pads_) pads_->poll(hotseat_.engine());
+    if (network_) { network_->advance(hotseat_); update_touch_pads(); return; }
     Play* play = flow_.play();
     if (play == nullptr) {
         hotseat_.engine().drain();
@@ -140,11 +142,7 @@ void MobileRumble::step() {
     const uint32_t t = play->scene.ticks;
     if (demo_ && menu_.item != MenuItem::Wave) demo_p2(hotseat_.engine(), t + 1);
     const bool run = hotseat_.tick(t + 1, play->brawl.players);
-    static_assert(input::MAX_DEVICES <= 32);
-    uint32_t pads = 0;
-    for (int slot = 0; slot < input::MAX_DEVICES; ++slot)
-        if (hotseat_.engine().device().pad_connected[slot]) pads |= 1u << slot;
-    touch_.update_pads(pads);
+    update_touch_pads();
     if (!run) return;
     if (bench_) observe_frame_touch(*bench_, hotseat_, *play);
     if (demo_) play->brawl.players[PLAYER] = menu_.item == MenuItem::Wave ?
@@ -165,6 +163,7 @@ void MobileRumble::frame(double dt) {
         bench_->poll();
         if (bench_->presented() == FrameStatsRun::MENU_FRAMES && !flow_.play()) flow_.enter();
     }
+    if (network_) network_->poll();
     if (flow_.apply()) {
         cancel();
         screen_->reset();

@@ -43,13 +43,18 @@ bool MobileRumble::open_controls() {
 
 void MobileRumble::fit_touch(uint32_t w, uint32_t h, const mobile::SafeArea& safe) {
     touch_scale_ = std::isfinite(safe.scale) && safe.scale > 0 ? safe.scale : 1;
-    touch_.source().set_view(point(static_cast<float>(w) / touch_scale_), point(static_cast<float>(h) / touch_scale_),
+    touch_width_ = static_cast<float>(w) / touch_scale_;
+    touch_height_ = static_cast<float>(h) / touch_scale_;
+    touch_.source().set_view(point(touch_width_), point(touch_height_),
         {point(safe.left), point(safe.top), point(safe.right), point(safe.bottom)});
 }
 
 void MobileRumble::pointer(intptr_t id, mobile::Touch phase, float x, float y) {
-    if (!inited_ || demo_ || flow_.play() == nullptr) return;
+    if (!inited_ || demo_) return;
     if (!std::isfinite(x) || !std::isfinite(y)) { cancel(); return; }
+    if (network_ && phase == mobile::Touch::Down && touch_width_ > 0 && touch_height_ > 0 &&
+        network_->tap(x / touch_width_, y / touch_height_)) return;
+    if (flow_.play() == nullptr) return;
     if (phase == mobile::Touch::Down) touch_.reveal();
     touch_.source().pointer(id, phase_of(phase), point(x), point(y));
 }

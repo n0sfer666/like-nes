@@ -5,7 +5,7 @@
     <uses-feature android:glEsVersion="0x00030000" android:required="false"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
-    <application android:label="@LIKE_NES_APP_NAME@" android:hasCode="false"
+    <application android:label="@LIKE_NES_APP_NAME@" android:hasCode="@LIKE_NES_APP_HAS_CODE@"
         android:extractNativeLibs="true" android:theme="@style/LikeNesTheme">
         <activity android:name="android.app.NativeActivity"
             android:configChanges="orientation|keyboardHidden|screenSize|screenLayout|smallestScreenSize|density"

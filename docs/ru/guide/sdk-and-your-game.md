@@ -1,11 +1,11 @@
-<!-- en-sha256: 05a2af2d893b8127111e163bf46a1c514c05547dba50d8ca969d5f53719c37aa -->
+<!-- en-sha256: 61834d789a0b6eb7290ab6cfba920b703ee6d3fb10e310b7d2f990a80ce0fa0d -->
 
 # SDK и своя игра
 
 [English](../../en/guide/sdk-and-your-game.md) · Русский
 
 Игра не живёт внутри дерева движка. Это отдельный CMake-проект: он находит **поставленный SDK**
-через `find_package`, линкует две цели и во время сборки пропекает своё содержимое в один
+через `find_package`, линкует нужные цели и во время сборки пропекает своё содержимое в один
 `game.bundle`. Эта страница ведёт от пустого префикса до запущенной игры и всюду опирается на
 `games/neon-rumble/`. Это настоящая игра: CI собирает её против поставленного SDK на всех трёх
 операционных системах, поэтому файлы ниже — её собственные, а не копии.
@@ -83,18 +83,19 @@ add_subdirectory(sim)
 
 include(${CMAKE_CURRENT_LIST_DIR}/sources.cmake)
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
-  like_nes_mobile_app(neon_rumble SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+  like_nes_mobile_app(neon_rumble DISCOVERY SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+    ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
-  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
+  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::net_core like-nes::platform_discovery)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
     src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
-  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} src/rumble_net_headless.cpp
-    src/rumble_net_args.cpp src/rumble_net_channel.cpp)
-  target_link_libraries(neon_rumble PRIVATE like-nes::net_core)
+  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
+    src/rumble_net_headless.cpp src/rumble_net_window.cpp)
+  target_link_libraries(neon_rumble PRIVATE like-nes::net_core like-nes::platform_discovery)
   like_nes_add_game(neon_rumble)
   include(tests/net-fixture.cmake)
 endif()
@@ -142,11 +143,16 @@ endif()
   `assetc_manifest_mode.hpp`.
   Инструмент линкует только `like-nes::assetc_core` и игровую `rumble_fighter`, а пути
   заголовков берёт у `like-nes::engine`, поэтому рендер не тянет.
-- На iOS и Android `like_nes_mobile_app(<цель> SOURCES <файл>... [BUNDLES <файл>...] NAME <имя> ID <bundle id>)`
+- На iOS и Android `like_nes_mobile_app(<цель> SOURCES <файл>... [BUNDLES <файл>...] [DISCOVERY] NAME <имя> ID <bundle id>)`
   собирает игру на мобильной оболочке SDK вместо исполняемого файла: `.app` на iOS, `.so` и цель
   `<цель>_apk` на Android. Игра определяет `mobile::make_game()` (`mobile/mobile_app.hpp`); у Neon
   Rumble это `src/rumble_mobile.cpp`. `like-nes::window` есть только на десктопе, поэтому `main.cpp`,
   `rumble_window.cpp`, `rumble_keys.cpp` и `rumble_pad_report.cpp` остаются в десктопной ветке.
+- Подключи `like-nes::net_core` для UDP-адресов, надёжной передачи ввода, лобби и релея.
+  Отдельная цель `like-nes::platform_discovery` через `platform_net_discovery.hpp` публикует
+  комнаты `_likenes._udp` и ищет их. Запись комнаты даёт адрес, затем лобби проверяет соединение
+  и параметры матча. На Android опция `DISCOVERY` добавляет мост NsdManager в APK. Остальные
+  мобильные цели сохраняют обычную упаковку.
 - `like_nes_add_game(<цель>)` заставляет игру использовать тот же C-рантайм, что и движок. На MSVC
   движок линкует CRT статически, и Debug-игра без этого вызова не слинкуется с `LNK2038`. Вызов
   также копирует рантайм wgpu рядом с исполняемым файлом. На MSVC Debug против префикса только с

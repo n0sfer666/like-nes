@@ -2625,6 +2625,38 @@ owner_check.sh гоняет это отдельным этапом сразу п
   рабочий. gnome-session-inhibit блокировку НЕ отменяет: он держит сессию
   от засыпания, уже погашенный экран не возвращает.
 
+--- T. Сеть на двоих в Neon Rumble (#27, §40) ----------------------------
+
+На обоих клиентах используй одну Release-сборку и одинаковые game.bundle
+и library.bundle. Запусти отдельный режим.
+
+  Десктоп: ./build-game/neon_rumble --network
+  iOS Simulator: xcrun simctl launch booted com.likenes.neonrumble --network
+  iPhone: добавь --network в Arguments Passed On Launch схемы Xcode.
+  Android: adb shell am start -n com.likenes.neonrumble/android.app.NativeActivity --es args --network
+
+Стрелки выбирают, Enter подтверждает, Esc возвращает. На телефоне нажимай
+на пункты. На экране адреса и кода есть клавиатура. HOST LAN слушает UDP 7777.
+Гость выбирает комнату через FIND LAN ROOMS или вводит числовой адрес с портом
+через JOIN ADDRESS, например 192.0.2.10:7777 или [2001:db8::10]:7777. Оба
+нажимают READY. В бою F3 или NET показывают RTT, оценку потерь, откаты,
+задержку, подтверждённый тик и маршрут. Проверь ввод обоих игроков.
+
+На тестовом VPS из корня дерева собери и запусти контейнер с UDP-портом.
+
+  docker build -f tools/relay/Dockerfile -t like-nes-relay .
+  docker run --rm -p 7777:7777/udp like-nes-relay
+
+Укажи DNS-имя релея и порт на обоих клиентах. Хост выбирает CREATE RELAY
+ROOM и передаёт гостю код. Гость вводит код и выбирает JOIN BY CODE.
+Сделай отдельные прогоны на LAN, через разные NAT и с DNS64/NAT64. Порядок
+обрывов и ожидаемое поведение указаны в §40 docs/owner-verification.md.
+
+При рассинхроне строка network dump содержит путь без расширения. Для двух
+локальных комплектов .replay и .snapshot укажи оба пути без расширения.
+
+  python3 scripts/compare_network_dumps.py host-dump guest-dump
+
 ===========================================================================
 5. ЧТО ПРИСЛАТЬ НАЗАД
 ===========================================================================

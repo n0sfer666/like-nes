@@ -23,6 +23,7 @@ std::string& asset_dir() {
 
 thread_local bool demo_mode = false;
 thread_local std::string launch_args;
+thread_local ANativeActivity* native = nullptr;
 
 std::string property(const char* name) {
     char value[PROP_VALUE_MAX] = {};
@@ -33,7 +34,11 @@ std::string property(const char* name) {
 
 void set_asset_dir(std::string dir) { asset_dir() = std::move(dir); }
 void set_demo(bool enabled) { demo_mode = enabled; }
-void set_args(std::string flags) { launch_args = std::move(flags); }
+void set_args(std::string flags, ANativeActivity* activity) {
+    launch_args = std::move(flags);
+    native = activity;
+}
+ANativeActivity* native_activity() { return native; }
 
 std::string asset_path(const char* name) { return asset_dir() + "/" + name; }
 

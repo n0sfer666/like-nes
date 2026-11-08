@@ -157,9 +157,11 @@ bool teammate_hit(const asset::BundleView& bundle, NetworkSettings terms, bool f
 
 } // namespace
 
+void test_network_desync(const asset::BundleView& bundle, const InputTape& tape, const std::string& dir);
+
 int main(int argc, char** argv) {
     platform::Args utf8_argv(argc, argv);
-    require(argc == 2, "game.bundle path");
+    require(argc == 2 || argc == 3, "game.bundle path and optional dump directory");
     platform::MappedFile file;
     asset::BundleView bundle;
     require(file.open(argv[1]) && bundle.open(file.data(), file.size(), false), "validated game bundle");
@@ -172,6 +174,7 @@ int main(int argc, char** argv) {
     settings_and_snapshot(bundle, terms);
     lost_start(bundle, terms);
     const auto tape = record_input(bundle, terms);
+    if (argc == 3) test_network_desync(bundle, tape, argv[2]);
     const auto clean = paired(bundle, terms, tape, Path::Clean);
     for (auto path : {Path::Mixed, Path::HighLag, Path::Recover, Path::RecoverOneWay}) {
         require(paired(bundle, terms, tape, path) == clean, "same input agrees across network faults");

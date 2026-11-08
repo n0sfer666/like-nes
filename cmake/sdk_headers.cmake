@@ -18,7 +18,7 @@ set(LIKE_NES_SDK_HEADERS
   platform/platform_module.hpp platform/platform_noinline.hpp platform/platform_path.hpp
   platform/platform_process.hpp platform/platform_redact.hpp platform/platform_shmem.hpp
   platform/platform_watch.hpp
-  platform/platform_net.hpp
+  platform/platform_net.hpp platform/platform_net_discovery.hpp
   net/net_link.hpp net/net_ack_window.hpp net/net_wire.hpp
   net/net_lobby.hpp net/net_session_wire.hpp
   net/net_relay_wire.hpp net/net_relay_client.hpp net/net_peer_path.hpp
@@ -96,7 +96,7 @@ set(LIKE_NES_SDK_STATIC
   framework_save framework_ui framework_music framework_haptic platform_haptic framework_core framework_input framework_touch framework_physics framework_depth framework_hits framework_kinematic framework_tilemap framework_character
   framework_graphics framework_graphics_tiles framework_graphics_gpu framework_rollback
   framework_scene asset_view input_core input_native input_gamepad platform_core render_core
-  render_surface glfw glfw3webgpu platform_net net_core)
+  render_surface glfw glfw3webgpu platform_net platform_discovery net_core)
 if(TARGET audio_device)
   list(APPEND LIKE_NES_SDK_STATIC audio_device)
 endif()

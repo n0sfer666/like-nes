@@ -4,6 +4,13 @@
 
 namespace platform {
 namespace net {
+
+bool Socket::open(const Endpoint& endpoint) { return open_impl(endpoint, 0, 0); }
+
+bool Socket::open_multicast(uint32_t group, uint16_t port, uint32_t interface_address) {
+    if ((group >> 28) != 0xe || !port) return false;
+    return open_impl(Endpoint{ADDRESS_ANY, port}, group, interface_address);
+}
 namespace detail {
 bool parse_ipv6(const char* text, std::array<uint8_t, 16>& out);
 std::string format_ipv6(const std::array<uint8_t, 16>& bytes);

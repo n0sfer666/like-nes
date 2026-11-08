@@ -6,18 +6,19 @@ add_subdirectory(sim)
 
 include(${CMAKE_CURRENT_LIST_DIR}/sources.cmake)
 if(CMAKE_SYSTEM_NAME MATCHES "^(iOS|Android)$")
-  like_nes_mobile_app(neon_rumble SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+  like_nes_mobile_app(neon_rumble DISCOVERY SOURCES ${RUMBLE_MOBILE_SOURCES} ${RUMBLE_SOURCES}
+    ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
     NAME "Neon Rumble" ID com.likenes.neonrumble)
-  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine)
+  target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::net_core like-nes::platform_discovery)
 else()
   add_executable(neon_rumble src/main.cpp src/rumble_window.cpp src/rumble_window_host.cpp
     src/rumble_window_bench.cpp src/rumble_keys.cpp src/rumble_pad_report.cpp
     src/rumble_window_script.cpp src/rumble_shot.cpp
     ${RUMBLE_SOURCES})
   target_link_libraries(neon_rumble PRIVATE rumble_sim like-nes::engine like-nes::window)
-  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} src/rumble_net_headless.cpp
-    src/rumble_net_args.cpp src/rumble_net_channel.cpp)
-  target_link_libraries(neon_rumble PRIVATE like-nes::net_core)
+  target_sources(neon_rumble PRIVATE ${RUMBLE_NETWORK_SOURCES} ${RUMBLE_NETWORK_UI_SOURCES}
+    src/rumble_net_headless.cpp src/rumble_net_window.cpp)
+  target_link_libraries(neon_rumble PRIVATE like-nes::net_core like-nes::platform_discovery)
   like_nes_add_game(neon_rumble)
   include(tests/net-fixture.cmake)
 endif()

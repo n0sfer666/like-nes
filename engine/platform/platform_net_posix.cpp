@@ -16,6 +16,7 @@
 #endif
 
 #include "platform_net_native.hpp"
+#include "platform_net_multicast_native.hpp"
 
 namespace platform {
 namespace net {
@@ -43,7 +44,7 @@ bool secure_random(std::array<uint8_t, 16>& out) {
     return true;
 }
 
-bool Socket::open(const Endpoint& endpoint) {
+bool Socket::open_impl(const Endpoint& endpoint, uint32_t group, uint32_t interface_address) {
     if (valid()) return false;
     const Endpoint want = normalized_endpoint(endpoint);
     const int family = want.family == AddressFamily::IPv6 ? AF_INET6 : AF_INET;
@@ -64,7 +65,9 @@ bool Socket::open(const Endpoint& endpoint) {
         return false;
     }
     const auto addr = detail::to_sockaddr(want);
-    if (::bind(fd, addr.data(), addr.size) != 0) {
+    if ((group && !detail::multicast_bind_options(fd, interface_address)) ||
+        ::bind(fd, addr.data(), addr.size) != 0 ||
+        (group && !detail::multicast_join(fd, group, interface_address))) {
         ::close(fd);
         return false;
     }

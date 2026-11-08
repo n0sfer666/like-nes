@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**26 of the 40 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 14 stay here as the procedure, because each needs a machine a CI runner is not: a
+**26 of the 41 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 15 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -61,6 +61,7 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | The pilot art goes through its own package: one style, the monk at 96 px and the bandit at 104 px in one cell each, three bandit palettes by ramps only, one background screen tiling by x | [#29](../.context/specs/2026-10-19-pilot-game-tuning.md) 1 | **any one** with Pixelorama 1.2.3 and ChatGPT Images | — | `docs/art/*` |
 | The five touch buttons are reachable while walking level 1 with both thumbs, in both landscapes, and no hold survives rotation or backgrounding | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 2 | **a physical phone** with interactive Neon Rumble | — | `games/neon-rumble/controls/touch.txt`, `games/neon-rumble/src/rumble_touch*`, `games/neon-rumble/src/rumble_mobile*`, `platform/ios/*`, `platform/android/*` |
 | Neon Rumble measures less than 1% lost 60 Hz intervals with music, the menu and touch, and saves the sample when sent to the background | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 3 | **the slowest physical phone** with the Release stand | — | `games/neon-rumble/src/rumble_frame_*`, `games/neon-rumble/src/rumble_mobile*`, `games/neon-rumble/bench/*`, `scripts/frame_stats_verdict.py` |
+| Neon Rumble co-op across physical LAN, NAT64 and separate NATs with a VPS relay | [#27](../.context/specs/2026-11-06-network-coop.md) 1 | **two physical peers**, NAT64 and a UDP VPS | — | `engine/net/*`, `engine/platform/platform_net*`, `platform/android/DiscoveryBridge.java`, `games/neon-rumble/src/rumble_net*`, `tools/relay/*` |
 
 The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
 owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
@@ -4892,9 +4893,31 @@ build commit, the tagged report and the verdict. Report audible glitches and any
 finish writing while backgrounding, with the measured `save_ms`. The window run, emulator
 and CPU fixture are useful diagnostics; the physical phone gate remains open.
 
+## 40. Gate 1 of #27 — Neon Rumble co-op across physical LAN, NAT64 and separate NATs with a VPS relay
+<!-- gate: open | Run the LAN, NAT64 and VPS scenarios in section T and record each result. -->
+
+Use the same Release game and library bundles for both players. Launch the separate network mode
+as in section T of [owner-setup.txt](owner-setup.txt). Each player must move and attack while the
+other sees it. Record both network overlays and the confirmed tick. Capture the OS pair and
+transport for each run.
+
+1. On a physical Wi-Fi LAN, create a LAN room and join it from the list. Repeat with a numeric
+   address and test both IPv4 and IPv6 where available. Cover Bonjour, Android NSD, Windows and
+   Linux in separate pairs. The room disappears after the host closes it. Test iOS once with
+   Local Network allowed and once denied. With discovery unavailable, try a manual address on a
+   route the OS still allows and check that an OS-blocked connection times out in the lobby.
+2. Run the relay container on a test VPS with its UDP port open. Use its DNS name from a client
+   on an IPv6-only network with DNS64/NAT64, and verify that the client joins and reaches a fight.
+   Test different IPv4 NATs too. Record the F3 path for a pair that can reach each other directly
+   and a pair that needs the relay. The relay's counters should advance without tokens in stdout.
+3. Interrupt only the test client's connection briefly, then restore it. Both peers should return
+   to the same match after catching up. In a separate run, keep it down past the 30-second reconnect
+   deadline. Both peers should continue locally with just their own fighter, even after restoring
+   the connection. Save any desync dumps from both peers.
+
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 26 of the 40 are closed, and the open 14 are listed by
+The gates above are what the ADRs waited on; 26 of the 41 are closed, and the open 15 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

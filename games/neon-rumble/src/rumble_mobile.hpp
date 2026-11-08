@@ -13,6 +13,7 @@
 #include "rumble_frame_stats.hpp"
 #include "rumble_hotseat.hpp"
 #include "rumble_menu.hpp"
+#include "rumble_net_quads.hpp"
 #include "rumble_screen.hpp"
 #include "rumble_touch.hpp"
 #include "rumble_touch_quads.hpp"
@@ -52,6 +53,8 @@ private:
     void report_surface(const char* what) const;
     bool open_controls();
     bool open_benchmark(bool waves);
+    bool open_network();
+    void update_touch_pads();
     void fit_touch(uint32_t w, uint32_t h, const mobile::SafeArea& safe);
     void observe_punch(const Play& play);
 
@@ -71,6 +74,8 @@ private:
     WaveScript wave_demo_;
     std::unique_ptr<FrameStatsRun> bench_;
     std::unique_ptr<Screen> screen_;
+    std::unique_ptr<NetworkMode> network_;
+    NetworkQuads network_quads_;
     render::QuadRenderer quads_;
     WGPUColor clear_{};
     double lag_ = 0.0;
@@ -86,6 +91,8 @@ private:
     bool inited_ = false;
     bool demo_ = false;
     float touch_scale_ = 1;
+    float touch_width_ = 0;
+    float touch_height_ = 0;
 };
 
 } // namespace rumble

@@ -7,7 +7,7 @@ namespace rumble {
 namespace {
 
 constexpr std::array<int, WindowKeys::COUNT> GLFW_KEYS = {GLFW_KEY_F1, GLFW_KEY_F3, GLFW_KEY_UP,
-                                                          GLFW_KEY_DOWN, GLFW_KEY_ENTER, GLFW_KEY_ESCAPE};
+                                                          GLFW_KEY_DOWN, GLFW_KEY_ENTER, GLFW_KEY_ESCAPE, GLFW_KEY_BACKSPACE};
 
 bool key_toggled(GLFWwindow* window, int key, bool& held) {
     const bool now = glfwGetKey(window, key) == GLFW_PRESS;

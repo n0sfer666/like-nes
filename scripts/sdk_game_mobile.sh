@@ -115,8 +115,7 @@ android_ndk() {
     ( . "$ROOT/platform/android/android_sdk.sh" && . "$ROOT/platform/android/android_ndk.sh" && printf '%s' "$NDK" )
 }
 mobile_android() {
-    local ndk=$1 abi=x86_64 pfx="$OUT/prefix-android-x86_64" dir="$OUT/game-android-x86_64" api apk listing lacks n lic
-    local aapt
+    local ndk=$1 abi=x86_64 pfx="$OUT/prefix-android-x86_64" dir="$OUT/game-android-x86_64" api apk listing lacks n lic aapt
     bash "$ROOT/scripts/android_jni_selftest.sh" || { sdk_bad 'android: JNI error paths'; return 1; }
     bash "$ROOT/scripts/android_host_selftest.sh" || { sdk_bad 'android: launch flags'; return 1; }
     bash "$ROOT/scripts/android_gamepad_selftest.sh" "$PREFIX" || { sdk_bad 'android: native gamepad'; return 1; }
@@ -138,14 +137,15 @@ mobile_android() {
     apk="$dir/neon_rumble.apk"
     "$aapt" dump xmltree --file AndroidManifest.xml "$apk" > "$WORK/android-manifest.dump" &&
         "$aapt" dump resources "$apk" > "$WORK/android-resources.dump" &&
-        python3 "$ROOT/scripts/android_package_verdict.py" "$WORK/android-manifest.dump" "$WORK/android-resources.dump" || {
+        python3 "$ROOT/scripts/android_package_verdict.py" "$WORK/android-manifest.dump" "$WORK/android-resources.dump" --has-code || {
         sdk_bad 'android: compiled manifest or theme'; return 1; }
     listing=$(unzip -l "$apk") || { sdk_bad "android-$abi: cannot list $apk"; return 1; }
-    local want=("lib/$abi/libneon_rumble.so" "lib/$abi/libc++_shared.so" assets/game.bundle assets/library.bundle assets/frame-stats.bundle)
+    local want=("lib/$abi/libneon_rumble.so" "lib/$abi/libc++_shared.so" classes.dex assets/game.bundle assets/library.bundle assets/frame-stats.bundle)
     lic=$(mobile_licenses "android-$abi" "$pfx") || return 1
     for n in $lic; do want+=("assets/licenses/$n"); done
     lacks=$(apk_lacks "$listing" "${want[@]}")
     [ -z "$lacks" ] || { sdk_bad "android-$abi: neon_rumble.apk lacks$lacks"; return 1; }
+    android_discovery_dex "$apk" "${aapt%/*}/dexdump" || return 1
     for n in game.bundle frame-stats.bundle; do
         unzip -p "$apk" "assets/$n" > "$WORK/apk-$n" || {
             sdk_bad "android-$abi: cannot extract $n from the APK"; return 1; }

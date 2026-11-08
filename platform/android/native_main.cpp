@@ -169,7 +169,7 @@ void android_main(android_app* app) {
     platform::set_save_dir(data);
     const AndroidWindowSnapshot launch = android_window_read(app->activity);
     mobile::set_demo(launch.demo);
-    mobile::set_args(launch.args);
+    mobile::set_args(launch.args, app->activity);
     android_gamepad_begin(app->activity->vm);
     android_haptic_begin(app->activity->vm, app->activity->clazz);
     haptic::init();

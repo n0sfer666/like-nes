@@ -4,6 +4,9 @@
 #include <charconv>
 #include <string_view>
 
+#include "bundle_view.hpp"
+#include "platform_io.hpp"
+
 namespace rumble {
 namespace {
 
@@ -16,7 +19,10 @@ bool number(std::string_view text, Int& out, int base = 10) {
     return r.ec == std::errc{} && r.ptr == end && out != 0;
 }
 
-size_t relay_addresses(std::string_view text, std::span<udp::Endpoint> endpoints) {
+} // namespace
+
+size_t resolve_relay_address(std::string_view text, std::span<udp::Endpoint> endpoints) {
+    if (endpoints.empty()) return 0;
     if (udp::parse_endpoint(std::string(text), &endpoints.front())) return 1;
     const auto colon = text.find(':');
     if (colon == std::string_view::npos || colon == 0 || colon != text.rfind(':')) return 0;
@@ -25,11 +31,17 @@ size_t relay_addresses(std::string_view text, std::span<udp::Endpoint> endpoints
     return udp::resolve_endpoints(std::string(text.substr(0, colon)), port, endpoints);
 }
 
-} // namespace
-
 bool network_command(const char* command) {
     const std::string_view mode(command);
     return mode == "--net-host" || mode == "--net-join" || mode == "--net-create" || mode == "--net-code";
+}
+
+bool network_bundle_hash(const std::string& path, uint64_t& hash) {
+    platform::MappedFile file;
+    asset::BundleView bundle;
+    if (!file.open(path) || !bundle.open(file.data(), file.size(), false)) return false;
+    hash = bundle.header().bundle_hash;
+    return true;
 }
 
 bool parse_network_run(int argc, char** argv, NetworkRun& out) {
@@ -46,7 +58,7 @@ bool parse_network_run(int argc, char** argv, NetworkRun& out) {
         run.relay_only = true;
     }
     if (mode == "--net-code" && (!number(argv[3], run.code, 16) || run.code > net::MAX_ROOM_CODE)) return false;
-    run.endpoint_count = run.relay ? relay_addresses(argv[2], run.endpoints) :
+    run.endpoint_count = run.relay ? resolve_relay_address(argv[2], run.endpoints) :
         static_cast<size_t>(udp::parse_endpoint(argv[2], &run.endpoints[0]));
     if (!run.endpoint_count) return false;
     out = run;

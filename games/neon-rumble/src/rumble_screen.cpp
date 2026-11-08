@@ -29,15 +29,15 @@ LayerStats Screen::menu(const Menu& m, const Credits& credits, const ViewportFit
 }
 
 LayerStats Screen::level(const Play& play, const Hotseat& hotseat, const Credits& credits, const ViewportFit& fit,
-                         uint64_t tick) {
+                         uint64_t tick, bool network) {
     if (follow_point(play.brawl, follow_)) following_ = true;
     LayerStats st = layers_.build(play.level, fit, tick, following_ ? &follow_ : nullptr);
     const uint32_t textures = play.level.level.texture_count;
     const FighterStats ss = draw_stage(fighters_, play.brawl, layers_, st, solid_texture(textures));
     FighterStats fs = draw_roster(fighters_, play.fighters, play.brawl, layers_, st, textures, overlay);
     fs += ss;
-    banner_.add(credits, banner_text(hotseat.lobby()), fit, layers_, st, atlas_texture(textures),
-                solid_texture(textures));
+    if (!network) banner_.add(credits, banner_text(hotseat.lobby()), fit, layers_, st,
+                              atlas_texture(textures), solid_texture(textures));
     if (fs.rejected + fs.dropped > 0 && !fighter_warned_) {
         std::fprintf(stderr, "neon-rumble: tick %llu: fighters %u quad(s) rejected, %u dropped\n",
                      static_cast<unsigned long long>(tick), fs.rejected, fs.dropped);

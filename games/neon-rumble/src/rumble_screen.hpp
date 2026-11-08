@@ -25,7 +25,7 @@ public:
     LayerStats menu(const Menu& m, const Credits& credits, const framework::graphics::ViewportFit& fit,
                     uint64_t tick);
     LayerStats level(const Play& play, const Hotseat& hotseat, const Credits& credits,
-                     const framework::graphics::ViewportFit& fit, uint64_t tick);
+                     const framework::graphics::ViewportFit& fit, uint64_t tick, bool network = false);
     const Layers& layers() const { return layers_; }
     Layers& layers() { return layers_; }
 

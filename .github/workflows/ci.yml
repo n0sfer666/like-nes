@@ -1706,6 +1706,8 @@ jobs:
           run_gate platform_net_address_test 'platform-net-address: PASS'
           run_gate platform_net_socket_test 'platform-net-socket: PASS'
           run_gate platform_net_test 'platform-net: PASS'
+          run_gate platform_discovery_test 'platform-discovery: PASS'
+          run_gate platform_mdns_wire_test 'platform-mdns-wire: PASS'
           run_gate net_wire_test 'net-wire: PASS'
           run_gate net_link_test 'net-link: PASS'
           run_gate net_loopback_test 'net-loopback: PASS'

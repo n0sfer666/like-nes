@@ -10,7 +10,7 @@
 #include "rumble_demo.hpp"
 #include "rumble_net_args.hpp"
 #include "rumble_net_channel.hpp"
-#include "rumble_net_fight.hpp"
+#include "rumble_net_dump.hpp"
 
 namespace rumble {
 namespace {
@@ -141,7 +141,11 @@ private:
                         fight_->confirmed());
             std::fflush(stdout);
         }
-        if (phase == NetworkPhase::Desynced || phase == NetworkPhase::Failed) return false;
+        if (phase == NetworkPhase::Desynced) {
+            dump_.write(*fight_, now);
+            return fight_->notifying(now);
+        }
+        if (phase == NetworkPhase::Failed) return false;
         if (!done_ && fight_->confirmed() >= config_.frames) done_ = now;
         return true;
     }
@@ -161,6 +165,7 @@ private:
     NetworkRun config_;
     bool lobby_opened_ = false;
     bool direct_ = false;
+    NetworkDump dump_;
     std::unique_ptr<Play> play_;
     std::unique_ptr<NetworkFight> fight_;
     uint32_t effects_ = 0;

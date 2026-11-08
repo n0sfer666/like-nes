@@ -22,6 +22,7 @@
 #endif
 
 #include "platform_net_native.hpp"
+#include "platform_net_multicast_native.hpp"
 
 namespace platform {
 namespace net {
@@ -68,7 +69,7 @@ size_t resolve_host(const std::string& host, uint16_t port, std::span<Endpoint> 
 
 } // namespace detail
 
-bool Socket::open(const Endpoint& endpoint) {
+bool Socket::open_impl(const Endpoint& endpoint, uint32_t group, uint32_t interface_address) {
     if (valid() || !winsock_ready()) return false;
     const Endpoint want = normalized_endpoint(endpoint);
     const int family = want.family == AddressFamily::IPv6 ? AF_INET6 : AF_INET;
@@ -102,9 +103,9 @@ bool Socket::open(const Endpoint& endpoint) {
     // SO_EXCLUSIVEADDRUSE — тоже свойство одной ОС: на Windows чужой процесс вправе привязаться
     // к УЖЕ занятому UDP-порту через SO_REUSEADDR и получать наши датаграммы, чего POSIX для
     // одинаковых адресов не разрешает. Ставится до bind: после привязки опция не действует.
-    BOOL exclusive = TRUE;
-    if (::setsockopt(s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, reinterpret_cast<const char*>(&exclusive),
-                     static_cast<int>(sizeof(exclusive))) != 0) {
+    const bool sharing = group ? detail::multicast_bind_options(s, interface_address) :
+        detail::socket_option(s, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, BOOL{TRUE});
+    if (!sharing) {
         ::closesocket(s);
         return false;
     }
@@ -116,7 +117,7 @@ bool Socket::open(const Endpoint& endpoint) {
         return false;
     }
     const auto addr = detail::to_sockaddr(want);
-    if (::bind(s, addr.data(), addr.size) != 0) {
+    if (::bind(s, addr.data(), addr.size) != 0 || (group && !detail::multicast_join(s, group, interface_address))) {
         ::closesocket(s);
         return false;
     }

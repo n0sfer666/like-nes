@@ -67,13 +67,17 @@ void NetworkSimulation::step(const Input* players) {
 void NetworkSimulation::remember_hash() {
     uint64_t hash = play_.brawl.hash();
     framework::physics::mix(hash, tick());
-    hashes_[tick() % hashes_.size()] = {tick(), hash};
+    history_[tick() % history_.size()] = {tick(), hash, play_.brawl.players};
 }
 
 std::optional<uint64_t> NetworkSimulation::hash_at(uint32_t at) const {
-    const auto& entry = hashes_[at % hashes_.size()];
-    if (at > tick() || entry.tick != at) return {};
-    return entry.value;
+    const auto* frame = replay_at(at);
+    return frame ? std::optional<uint64_t>{frame->hash} : std::nullopt;
+}
+
+const NetworkReplayFrame* NetworkSimulation::replay_at(uint32_t at) const {
+    const auto& entry = history_[at % history_.size()];
+    return at <= tick() && entry.tick == at ? &entry : nullptr;
 }
 
 } // namespace rumble

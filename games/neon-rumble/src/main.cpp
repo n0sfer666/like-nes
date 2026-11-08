@@ -14,6 +14,8 @@
 #include "rumble_hotseat.hpp"
 #include "rumble_join_report.hpp"
 #include "rumble_net_headless.hpp"
+#include "rumble_net_args.hpp"
+#include "rumble_net_mode.hpp"
 #include "rumble_pad_report.hpp"
 #include "rumble_report.hpp"
 #include "rumble_wave_script.hpp"
@@ -73,6 +75,7 @@ int main(int argc, char** argv) {
     bool waves = false;
     bool coop = false;
     bool frame_stats = false;
+    bool network = false, russian = false;
     const char* level_name = "level1";
     int frames = 0;
     const char* script_path = nullptr;
@@ -86,6 +89,9 @@ int main(int argc, char** argv) {
             coop = true;
         } else if (!std::strcmp(argv[i], "--frame-stats")) {
             frame_stats = true;
+        } else if (!std::strcmp(argv[i], "--network") || !std::strcmp(argv[i], "--network-ru")) {
+            network = true;
+            russian = !std::strcmp(argv[i], "--network-ru");
         } else if (!std::strcmp(argv[i], "--level") && i + 1 < argc) {
             level_name = argv[++i];
         } else if (!std::strcmp(argv[i], "--script") && i + 1 < argc) {
@@ -103,6 +109,10 @@ int main(int argc, char** argv) {
     }
     if (frame_stats && argc != 2) {
         std::fprintf(stderr, "neon-rumble: --frame-stats is a standalone window run\n");
+        return 2;
+    }
+    if (network && (headless || script_path)) {
+        std::fprintf(stderr, "neon-rumble: --network is a standalone window mode\n");
         return 2;
     }
     if (coop && (!waves || !headless)) {
@@ -151,8 +161,14 @@ int main(int argc, char** argv) {
             return 1;
         }
     }
+    std::unique_ptr<rumble::NetworkMode> net_mode;
+    if (network) {
+        uint64_t library = 0;
+        if (!rumble::network_bundle_hash(platform::exe_dir() + "/library.bundle", library)) return 1;
+        net_mode = std::make_unique<rumble::NetworkMode>(flow, library, bundle.header().bundle_hash, russian);
+    }
     const rumble::WindowRun run{frames, script_path != nullptr ? &script : nullptr,
-        shots != nullptr ? shots : ".", benchmark.get()};
+        shots != nullptr ? shots : ".", benchmark.get(), net_mode.get()};
     if (!headless) {
         const int result = rumble::run_window(flow, hotseat, credits, run);
         const bool complete = !benchmark || benchmark->frames.finish(true);

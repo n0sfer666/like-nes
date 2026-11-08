@@ -34,6 +34,12 @@ struct NetworkEffects {
     bool checkpoint = false;
 };
 
+struct NetworkReplayFrame {
+    uint32_t tick = UINT32_MAX;
+    uint64_t hash = 0;
+    std::array<PlayerCommand, br::SEATS> inputs{};
+};
+
 // This adapter runs the same Sim schedule as a local Play. Output is staged
 // by tick so rollback can replace it before the match publishes it.
 class NetworkSimulation {
@@ -48,19 +54,16 @@ public:
 
     const NetworkEffects& effects(uint32_t tick) const { return effects_[tick % effects_.size()]; }
     std::optional<uint64_t> hash_at(uint32_t tick) const;
+    const NetworkReplayFrame* replay_at(uint32_t tick) const;
     Play& play() { return play_; }
     uint32_t tick() const { return play_.scene.ticks; }
 
 private:
-    struct Hash {
-        uint32_t tick = UINT32_MAX;
-        uint64_t value = 0;
-    };
     void remember_hash();
 
     Play& play_;
     std::array<NetworkEffects, NETWORK_DEPTH + 1> effects_{};
-    std::array<Hash, NETWORK_HISTORY> hashes_{};
+    std::array<NetworkReplayFrame, NETWORK_HISTORY> history_{};
 };
 
 } // namespace rumble

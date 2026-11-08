@@ -59,10 +59,18 @@ endfunction()
 
 # Упаковка — отдельной целью после линковки: ассеты, испечённые like_nes_bake, приходят свойством
 # LIKE_NES_ASSETS, которое дописывается и после вызова этой функции.
-function(_like_nes_apk target name id)
+function(_like_nes_apk target name id discovery)
   set(LIKE_NES_APP_ID "${id}")
   set(LIKE_NES_APP_NAME "${name}")
   set(LIKE_NES_APP_LIB "${target}")
+  set(LIKE_NES_APP_HAS_CODE false)
+  set(java "")
+  set(java_args "")
+  if(discovery)
+    set(LIKE_NES_APP_HAS_CODE true)
+    set(java "${LIKE_NES_MOBILE_SHARE}/android/DiscoveryBridge.java")
+    set(java_args --java "${java}")
+  endif()
   set(manifest "${CMAKE_CURRENT_BINARY_DIR}/${target}_apk/AndroidManifest.xml")
   configure_file("${LIKE_NES_MOBILE_SHARE}/android/AndroidManifest.xml.in" "${manifest}" @ONLY)
   # libc++_shared.so едет в APK всегда: его поставку обещают THIRD-PARTY-NOTICES-NDK.txt и судит
@@ -81,10 +89,10 @@ function(_like_nes_apk target name id)
   set(assets "$<TARGET_PROPERTY:${target},LIKE_NES_ASSETS>")
   add_custom_command(OUTPUT "${apk}"
     COMMAND bash "${LIKE_NES_MOBILE_SHARE}/android/package_apk.sh" --abi "${ANDROID_ABI}"
-            --manifest "${manifest}" ${libs} ${licenses} --out "${apk}" -- "${assets}"
+            --manifest "${manifest}" ${libs} ${licenses} ${java_args} --out "${apk}" -- "${assets}"
     DEPENDS ${target} "${manifest}" "${LIKE_NES_MOBILE_SHARE}/android/package_apk.sh"
             "${LIKE_NES_MOBILE_SHARE}/android/res/values/styles.xml"
-            ${LIKE_NES_MOBILE_LICENSES} "${assets}"
+            ${LIKE_NES_MOBILE_LICENSES} "${assets}" ${java}
     COMMENT "Packaging ${target}.apk"
     COMMAND_EXPAND_LISTS VERBATIM)
   # В ALL, как `.app` на iOS: голый `cmake --build` даёт игре то, что ставится на телефон.
@@ -92,7 +100,7 @@ function(_like_nes_apk target name id)
 endfunction()
 
 function(like_nes_mobile_app target)
-  cmake_parse_arguments(PARSE_ARGV 1 _lnm "" "NAME;ID" "SOURCES;BUNDLES")
+  cmake_parse_arguments(PARSE_ARGV 1 _lnm "DISCOVERY" "NAME;ID" "SOURCES;BUNDLES")
   if(_lnm_UNPARSED_ARGUMENTS OR NOT _lnm_SOURCES OR NOT _lnm_NAME OR NOT _lnm_ID)
     message(FATAL_ERROR "like_nes_mobile_app: usage like_nes_mobile_app(<target> SOURCES <file>... "
                         "[BUNDLES <file>...] NAME <name> ID <bundle id>)")
@@ -120,7 +128,7 @@ function(like_nes_mobile_app target)
     # Точки входа живут в статической оболочке, а из .so на них никто не ссылается: без `-u` они
     # выпали бы из линковки, и NativeActivity не нашла бы ANativeActivity_onCreate.
     target_link_options(${target} PRIVATE "SHELL:-u ANativeActivity_onCreate" "SHELL:-u android_main")
-    _like_nes_apk(${target} "${_lnm_NAME}" "${_lnm_ID}")
+    _like_nes_apk(${target} "${_lnm_NAME}" "${_lnm_ID}" "${_lnm_DISCOVERY}")
   else()
     message(FATAL_ERROR "like_nes_mobile_app: ${CMAKE_SYSTEM_NAME} is not a mobile platform")
   endif()
