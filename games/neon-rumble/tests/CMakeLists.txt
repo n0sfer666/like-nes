@@ -146,3 +146,7 @@ target_include_directories(rumble_overlay_gpu_test PRIVATE ../src)
 target_link_libraries(rumble_overlay_gpu_test PRIVATE rumble_sim framework_graphics_gpu)
 target_copy_webgpu_binaries(rumble_overlay_gpu_test)
 reproducible_rpath(rumble_overlay_gpu_test)
+
+add_executable(rumble_lobby_test rumble_lobby_test.cpp)
+target_include_directories(rumble_lobby_test PRIVATE ../src)
+target_link_libraries(rumble_lobby_test PRIVATE net_core Threads::Threads)

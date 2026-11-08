@@ -20,6 +20,7 @@ set(LIKE_NES_SDK_HEADERS
   platform/platform_watch.hpp
   platform/platform_net.hpp
   net/net_link.hpp net/net_ack_window.hpp net/net_wire.hpp
+  net/net_lobby.hpp net/net_session_wire.hpp
   input/action_layout.hpp input/action_map.hpp input/action_shared.hpp input/codes.hpp
   input/device_state.hpp input/input_buffer.hpp input/input_engine.hpp input/input_sim.hpp
   input/input_spsc.hpp input/input_types.hpp input/player_assign.hpp input/source.hpp

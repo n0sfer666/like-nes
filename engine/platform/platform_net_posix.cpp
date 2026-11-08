@@ -9,6 +9,12 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#if defined(__APPLE__)
+#include <cstdlib>
+#else
+#include <sys/random.h>
+#endif
+
 #include "platform_net_native.hpp"
 
 namespace platform {
@@ -25,6 +31,17 @@ size_t resolve_host(const std::string& host, uint16_t port, std::span<Endpoint> 
 }
 
 } // namespace detail
+
+bool secure_random(std::array<uint8_t, 16>& out) {
+#if defined(__APPLE__)
+    ::arc4random_buf(out.data(), out.size());
+#else
+    std::array<uint8_t, 16> bytes{};
+    if (::getentropy(bytes.data(), bytes.size()) != 0) return false;
+    out = bytes;
+#endif
+    return true;
+}
 
 bool Socket::open(const Endpoint& endpoint) {
     if (valid()) return false;

@@ -3,7 +3,7 @@
 net_fixture_project() {
     local dir=$1
     mkdir -p "$dir" || return 1
-    cp "$ROOT/engine/platform/platform_net_address_test.cpp" "$ROOT/engine/net/net_loopback_test.cpp" "$dir" || return 1
+    cp "$ROOT/engine/platform/platform_net_address_test.cpp" "$ROOT/engine/net/"{net_loopback,net_lobby,net_session_wire}_test.cpp "$dir" || return 1
     cat > "$dir/CMakeLists.txt" <<'CMAKE'
 cmake_minimum_required(VERSION 3.21)
 project(network_only LANGUAGES CXX)
@@ -12,7 +12,7 @@ get_target_property(engine_links like-nes::engine INTERFACE_LINK_LIBRARIES)
 if(like-nes::net_core IN_LIST engine_links OR like-nes::platform_net IN_LIST engine_links)
   message(FATAL_ERROR "network must stay separate from like-nes::engine")
 endif()
-foreach(test platform_net_address_test net_loopback_test)
+foreach(test platform_net_address_test net_loopback_test net_lobby_test net_session_wire_test)
   add_executable(${test} ${test}.cpp)
   target_link_libraries(${test} PRIVATE like-nes::net_core Threads::Threads)
   if(COMMAND like_nes_add_game)
@@ -43,15 +43,19 @@ fixture_net() {
         log="$dir/$cfg.log"
         if ! "$dir/$cfg/platform_net_address_test" >> "$log" 2>&1 ||
             ! "$dir/$cfg/net_loopback_test" >> "$log" 2>&1 ||
+            ! "$dir/$cfg/net_lobby_test" >> "$log" 2>&1 ||
+            ! "$dir/$cfg/net_session_wire_test" >> "$log" 2>&1 ||
             ! grep -qxF 'platform-net-address: PASS' "$log" ||
             ! grep -qxF 'net reliability over IPv6 loopback' "$log" ||
-            ! grep -qxF 'net-loopback: PASS' "$log"; then
+            ! grep -qxF 'net-loopback: PASS' "$log" ||
+            ! grep -qxF 'net-lobby: PASS' "$log" ||
+            ! grep -qxF 'net-session-wire: PASS' "$log"; then
             tail -30 "$log"
             sdk_bad "net: $cfg installed consumer failed"
             return 1
         fi
     done
-    sdk_ok 'net: installed network target runs IPv4/IPv6 UDP and resolver in Release/Debug'
+    sdk_ok 'net: installed network target runs IPv4/IPv6 UDP, resolver and lobby in Release/Debug'
 }
 
 fixture_mobile_net() {

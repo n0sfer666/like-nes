@@ -7,6 +7,7 @@
 #endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <bcrypt.h>
 
 // SIO_UDP_CONNRESET объявляется САМ, а не берётся из заголовка. Не вкус: прогон 33731818317 на
 // windows-latest (MSVC 14.51) отбил `#include <mstcpip.h>` ошибкой C2065 на этом самом имени —
@@ -24,6 +25,15 @@
 
 namespace platform {
 namespace net {
+
+bool secure_random(std::array<uint8_t, 16>& out) {
+    std::array<uint8_t, 16> bytes{};
+    if (BCryptGenRandom(nullptr, bytes.data(), static_cast<ULONG>(bytes.size()),
+                        BCRYPT_USE_SYSTEM_PREFERRED_RNG) != 0) return false;
+    out = bytes;
+    return true;
+}
+
 namespace {
 
 // Winsock требует инициализации ПРОЦЕССА, у POSIX такого шага нет вовсе. Вызов спрятан сюда, а

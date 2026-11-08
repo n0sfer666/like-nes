@@ -65,6 +65,8 @@ std::string endpoint_text(const Endpoint& e);
 // Resolve a DNS name with the OS resolver, in its order, dropping duplicate endpoints.
 // May block. Call outside the game tick. Returns the number of entries written.
 size_t resolve_endpoints(const std::string& host, uint16_t port, std::span<Endpoint> out);
+// OS CSPRNG for short protocol nonces and keys. Failure leaves out unchanged.
+bool secure_random(std::array<uint8_t, 16>& out);
 
 class Socket {
 public:
