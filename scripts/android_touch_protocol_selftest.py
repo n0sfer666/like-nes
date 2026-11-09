@@ -36,7 +36,9 @@ def selftest():
     check(device == Device('/dev/input/event4', Axis(100, 1099), Axis(200, 2199),
                            Axis(0, 9), Axis(0, 65535), True), 'axes and BTN_TOUCH read from numeric getevent')
     template = PROBE[PROBE.index('add device 2:'):]
-    numbered = [template.replace('event4', f'event{index + 20}').replace('name: ', 'name:     ')
+    virtio = (template.replace('014a', '0141  014b') +
+              '                003a : value 0, min 0, max 1024, fuzz 0\n')
+    numbered = [virtio.replace('event4', f'event{index + 20}').replace('name: ', 'name:     ')
                 .replace('virtio multi touch', f'virtio_input_multi_touch_{index}')
                 for index in range(1, 12)]
     primary = devices(numbered[0])
@@ -47,6 +49,7 @@ def selftest():
     check(len(devices(numbered[0] + numbered[0].replace('event21', 'event13'))) == 2,
           'duplicate primary devices remain ambiguous')
     check(len(devices(numbered[0] + template)) == 2, 'mixed devices remain ambiguous')
+    check(not devices(numbered[0].replace('max 1024', 'max 0')), 'rejects unusable pressure axis')
     left = Safe(800, 400, 2, 20, 0, 0, 0, 1)
     right = Safe(800, 400, 2, 0, 0, 20, 0, 3)
     check(raw_point(device, left, 0, 0) == (1099, 200), 'rotation90 top-left endpoint')
@@ -56,6 +59,15 @@ def selftest():
     check(raw_point(device, left, 50, 70) == (748, 450), 'rotation90 interior/nonzero raw min')
     check(raw_point(device, right, 50, 70) == (451, 1949), 'rotation270 interior/nonzero raw min')
     layout = parse_layout('stick|48\nbutton|a|bottom-right|68|68|30')
+    if primary:
+        pressure_script = gesture_script(primary[0], left, layout)
+        check(primary[0].pressure == Axis(0, 1024) and not primary[0].btn_touch,
+              'reads the virtio pressure axis without BTN_TOUCH')
+        for tracking in (101, 102):
+            check(pressure_script.count(f'3 57 {tracking}\nsendevent /dev/input/event21 3 58 1024\n')
+                  == (1 if tracking == 101 else 2), 'positive pressure starts each contact')
+        check(pressure_script.count('3 58 0\nsendevent /dev/input/event21 3 57 -1\n') == 3,
+              'pressure resets with each contact release')
     for safe in (left, right):
         script = gesture_script(device, safe, layout)
         check('sendevent /dev/input/event4 3 57 101' in script and
@@ -76,7 +88,7 @@ def selftest():
     for failure in failures:
         print(f'android-touch-protocol: FAIL {failure}')
     print(f'android-touch-protocol: {"FAIL" if failures else "PASS"} (endpoints, interior, '
-          'rotation1/3, two slots, release, display selection, malformed devices)')
+          'rotation1/3, two slots, pressure, release, display selection, malformed devices)')
     return int(bool(failures))
 
 

@@ -16,6 +16,10 @@ def decode(script, device, safe):
     """Model Linux protocol-B frames and AOSP's forward rotation, independently of raw_point."""
     slot, slots, previous = 0, {}, {}
     out = []
+
+    def touching(state):
+        return state.get(57, -1) >= 0 and (device.pressure is None or state.get(58, 0) > 0)
+
     for line in script.splitlines():
         fields = line.split()
         if fields and fields[0] == 'sleep':
@@ -34,7 +38,7 @@ def decode(script, device, safe):
             continue
         for sid, state in slots.items():
             before = previous.get(sid, {})
-            held, was_held = state.get(57, -1) >= 0, before.get(57, -1) >= 0
+            held, was_held = touching(state), touching(before)
             if not held and not was_held:
                 continue
             if held and was_held and state == before:
@@ -55,7 +59,8 @@ def decode(script, device, safe):
 def check(exe, assets):
     root = Path(__file__).resolve().parent.parent
     layout = parse_layout((root / 'games/neon-rumble/controls/touch.txt').read_text(encoding='utf-8'))
-    device = Device('/dev/input/event4', Axis(100, 32867), Axis(200, 32967), Axis(0, 9), Axis(0, 65535), True)
+    device = Device('/dev/input/event4', Axis(100, 32867), Axis(200, 32967),
+                    Axis(0, 9), Axis(0, 65535), False, Axis(0, 1024))
     commands = []
     for rotation in (1, 3):
         s = Safe(2532, 1170, 3, 44 if rotation == 1 else 0, 0, 44 if rotation == 3 else 0, 0, rotation)

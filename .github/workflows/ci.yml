@@ -2185,7 +2185,7 @@ jobs:
           INC="$INC -Iengine/platform -Iengine/framework/touch"
           COMMON=$(find engine/framework/input engine/framework/core engine/framework/touch engine/platform \
             -maxdepth 1 -name '*.cpp' \
-            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_android\.cpp$|_ios\.cpp$')
+            | grep -vE '_test\.cpp$|_probe\.cpp$|probe_|win32|_win\.cpp$|macos|_apple\.cpp$|_android\.cpp$|_ios\.cpp$')
           IMPORT=$(sed -n '/add_library(framework_graphics_import/,/)/p' engine/framework/graphics/import.cmake \
             | grep -oE '[a-z_]+\.cpp' | sed 's|^|graphics/|')
           FW=$(find engine/framework/graphics engine/framework/character games/kits/platformer \
