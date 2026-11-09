@@ -35,6 +35,18 @@ def selftest():
     device = candidates[0]
     check(device == Device('/dev/input/event4', Axis(100, 1099), Axis(200, 2199),
                            Axis(0, 9), Axis(0, 65535), True), 'axes and BTN_TOUCH read from numeric getevent')
+    template = PROBE[PROBE.index('add device 2:'):]
+    numbered = [template.replace('event4', f'event{index + 20}').replace('name: ', 'name:     ')
+                .replace('virtio multi touch', f'virtio_input_multi_touch_{index}')
+                for index in range(1, 12)]
+    primary = devices(numbered[0])
+    check(len(primary) == 1 and primary[0].path == '/dev/input/event21', 'primary virtio display')
+    check(devices(''.join(reversed(numbered))) == primary, 'primary selected regardless of probe order')
+    check(not devices(''.join(numbered[1:])), 'secondary displays alone have no default touchscreen')
+    check(not devices(numbered[1]), 'lone secondary display has no default touchscreen')
+    check(len(devices(numbered[0] + numbered[0].replace('event21', 'event13'))) == 2,
+          'duplicate primary devices remain ambiguous')
+    check(len(devices(numbered[0] + template)) == 2, 'mixed devices remain ambiguous')
     left = Safe(800, 400, 2, 20, 0, 0, 0, 1)
     right = Safe(800, 400, 2, 0, 0, 20, 0, 3)
     check(raw_point(device, left, 0, 0) == (1099, 200), 'rotation90 top-left endpoint')
@@ -64,7 +76,7 @@ def selftest():
     for failure in failures:
         print(f'android-touch-protocol: FAIL {failure}')
     print(f'android-touch-protocol: {"FAIL" if failures else "PASS"} (endpoints, interior, '
-          'rotation1/3, two slots, release, malformed devices)')
+          'rotation1/3, two slots, release, display selection, malformed devices)')
     return int(bool(failures))
 
 

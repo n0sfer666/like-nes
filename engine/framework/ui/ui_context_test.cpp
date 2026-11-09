@@ -86,7 +86,7 @@ int main() {
     const UiListItem items[]{{"row", "one"}, {"row", "two"}};
     ui.begin({}); ui.list(0, items, {0, 0, 40, 40}, 20); ui.end();
     ui.begin(down); const auto selected = ui.list(0, items, {0, 0, 40, 40}, 20); out = ui.end();
-    check(selected == 1 && out.stats.duplicate_ids == 0, "list index prevents identical keys sharing focus");
+    check(selected == 1u && out.stats.duplicate_ids == 0, "list index prevents identical keys sharing focus");
     UiInput cancelled = tap(10, 10); cancelled.cancelled = true;
     ui.begin(cancelled); check(!ui.list(0, items, {0, 0, 40, 40}, 20), "cancel suppresses activation"); ui.end();
     ui.begin(tap(10, 10), {512, 288, 2, 7, 9}); check(!ui.list(0, items, {0, 0, 40, 40}, 20), "view change cancels old pointer geometry");

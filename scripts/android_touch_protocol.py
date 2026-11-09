@@ -25,6 +25,7 @@ class Device:
 
 
 def devices(text):
+    """Return protocol-B candidates for input on the emulator's default display."""
     out = []
     blocks = re.finditer(r'add device \d+: (/dev/input/event\d+)\s*(.*?)(?=add device \d+:|\Z)',
                          text, re.S)
@@ -42,8 +43,13 @@ def devices(text):
             continue
         if tracking.high < 102 or tracking.low > 101:
             continue
-        out.append(Device(path, x, y, slot, tracking, bool(re.search(r'\b014a\b', body))))
-    return out
+        name = re.search(r'^[ \t]*name:[ \t]+"([^"\r\n]+)"[ \t]*\r?$', body, re.M)
+        out.append((name[1] if name else '',
+                    Device(path, x, y, slot, tracking, bool(re.search(r'\b014a\b', body)))))
+    # Emulator QEMU registers numbered virtio touch devices at display index id - 1.
+    if all(re.fullmatch(r'virtio_input_multi_touch_(?:[1-9]|1[01])', name) for name, _ in out):
+        return [device for name, device in out if name == 'virtio_input_multi_touch_1']
+    return [device for _, device in out]
 
 
 def raw_point(device, safe, x, y):

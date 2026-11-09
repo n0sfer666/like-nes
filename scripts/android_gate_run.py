@@ -73,7 +73,8 @@ def exercise(avd, work, run):
     (work / 'getevent.txt').write_text(probe, encoding='utf-8')
     inputs = devices(probe)
     if len(inputs) != 1:
-        raise RuntimeError(f'need one protocol-B touchscreen, found {len(inputs)}: {work / "getevent.txt"}')
+        raise RuntimeError(f'need one protocol-B touchscreen for the default display, '
+                           f'found {len(inputs)} candidates: {work / "getevent.txt"}')
     layout = parse_layout((ROOT / 'games/neon-rumble/controls/touch.txt').read_text(encoding='utf-8'))
     previous_rotation = None
     for requested, gravity in ((1, '9.81:0:0'), (3, '-9.81:0:0')):
