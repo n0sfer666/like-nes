@@ -21,7 +21,7 @@ int UiInputChannel::Repeat::step(int wanted, uint32_t ms) {
     return wanted;
 }
 bool UiInputChannel::init(const input::PresetTable& table) {
-    ready_ = false; layout_ = {}; previous_held_ = blocked_ = 0; previous_keys_ = {}; x_ = {}; y_ = {}; erase_ = {};
+    ready_ = false; previous_held_ = blocked_ = 0; previous_keys_ = {}; x_ = {}; y_ = {}; erase_ = {};
     pending_cancel_ = false; axes_ = {-1, -1}; paired_shape_ = -1; blocked_axes_ = {};
     const int p = table.find_preset("ui");
     if (p < 0) return false;
@@ -33,6 +33,7 @@ bool UiInputChannel::init(const input::PresetTable& table) {
         if (actions_[i] < 0) { if (i != Done) return false; }
         else if (table.action_binding_count(p, actions_[i]) == 0) return false;
     }
+    layout_ = {}; // Даже пустой ActionLayout выделяет служебную память в MSVC Debug.
     if (!table.bind(p, layout_)) return false;
     for (size_t i = 0; i < axes_.size(); ++i) {
         axes_[i] = table.find_axis(p, i ? "y" : "x");

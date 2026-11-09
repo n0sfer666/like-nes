@@ -165,6 +165,7 @@ int main() {
     const bool capped = !channel.init(table);
     framework::probe::in_hot = false;
     check(capped && framework::probe::allocs == 0, "binding cap before layout allocation");
+    check(channel.read(devices, 0).cancelled, "capped reinit disables prior layout");
     framework::input::PresetTable absent;
     check(!channel.init(absent) && channel.read(devices, 0).cancelled, "failed reinit clears prior channel");
     std::puts(fails ? "ui-input: FAIL" : "ui-input: PASS all devices, preset, repeat, text, pointers, cancellation and zero allocations");
