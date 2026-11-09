@@ -144,11 +144,12 @@ def main():
     avd = Avd(args.sdk, work, args.image, args.avd_cache)
     try:
         avd.start()
+        # Cache the booted OS before the APK or its Vulkan state can enter the snapshot.
+        avd.save_snapshot()
         abi = args.image.split(';')[-1]
         subprocess.run(['bash', str(ROOT / 'scripts/android_gate_build.sh'), str(work), abi], check=True)
         exercise(avd, work, uuid.uuid4().hex)
         avd.adb('shell', 'am', 'force-stop', APP)
-        avd.save_snapshot()
         print(f'[android-emu] PASS: evidence {work}')
         return 0
     except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as error:

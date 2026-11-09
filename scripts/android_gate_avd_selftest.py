@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Owned AVD guards and teardown, without starting adb or an emulator."""
 
+from contextlib import closing
 from pathlib import Path
 import subprocess
 import tempfile
+from unittest import TestCase
 from unittest.mock import Mock, patch
 
 from android_gate_avd import Avd
@@ -11,14 +13,18 @@ from android_gate_avd import Avd
 
 def selftest():
     image = 'system-images;android-35;google_apis;x86_64'
+    expect = TestCase()
+    failed_saves = {'missing': ('OK', None), 'empty': ('OK', b''), 'unacknowledged': ('', b'partial')}
+    refused_devices = ('wrong-avd', 'not-qemu', 'crashed')
     with tempfile.TemporaryDirectory(prefix='android-avd-selftest-') as directory:
         root = Path(directory)
-        for scenario in ('normal', 'wrong-avd', 'not-qemu', 'crashed'):
-            work = root / scenario
-            work.mkdir()
+        for scenario in ('normal', 'warm', *failed_saves, *refused_devices):
+            work = root / ('normal' if scenario == 'warm' else scenario)
+            work.mkdir(exist_ok=scenario == 'warm')
             avd = Avd(root / 'sdk', work, image)
+            snapshot = work / 'avd-cache/avd/device.avd/snapshots/like-nes-touch/snapshot.pb'
             calls = []
-            replaced = False
+            replaced = transport_replaced = False
 
             def run(command, **kwargs):
                 calls.append(command)
@@ -31,8 +37,9 @@ def selftest():
                     (Path(kwargs['env']['ANDROID_AVD_HOME']) / (name + '.ini')).write_text(
                         f'path={data}\npath.rel=avd/device.avd\n', encoding='utf-8')
                     return subprocess.CompletedProcess(command, 0, '', '')
-                assert command[1:3] == (['-t', avd.transport] if avd.transport else ['-s', avd.serial]), command
                 args = command[3:]
+                selector = ['-t', avd.transport] if avd.transport and args[0] != 'emu' else ['-s', avd.serial]
+                assert command[1:3] == selector, command
                 if args == ['shell', 'getprop', 'sys.boot_completed']:
                     out = '1'
                 elif args == ['shell', 'getprop', 'ro.kernel.qemu']:
@@ -41,8 +48,16 @@ def selftest():
                     out = ('unrelated-avd' if scenario == 'wrong-avd' or replaced else avd.name) + '\nOK\n'
                 elif args == ['transport-id']:
                     out = '88'
+                elif args == ['get-serialno']:
+                    out = 'other-serial' if transport_replaced else avd.serial
                 elif args == ['shell', 'id', '-u']:
                     out = '0'
+                elif args == ['emu', 'avd', 'snapshot', 'save', 'like-nes-touch']:
+                    assert scenario != 'warm', 'overwrote a restored snapshot'
+                    out, contents = failed_saves.get(scenario, ('OK', b'boot snapshot'))
+                    if contents is not None:
+                        snapshot.parent.mkdir(parents=True)
+                        snapshot.write_bytes(contents)
                 else:
                     out = 'OK'
                 return subprocess.CompletedProcess(command, 0, out, '')
@@ -53,73 +68,77 @@ def selftest():
             try:
                 with patch('android_gate_avd.subprocess.run', side_effect=run), \
                      patch('android_gate_avd.subprocess.Popen', return_value=process) as popen:
-                    try:
+                    if scenario in refused_devices:
+                        with expect.assertRaises(RuntimeError):
+                            avd.start()
+                        assert not any(command[3:] == ['root'] for command in calls)
+                    else:
                         avd.start()
-                        assert scenario == 'normal', f'{scenario} was accepted'
+                    if scenario in failed_saves:
+                        with expect.assertRaises((RuntimeError, ValueError)):
+                            avd.save_snapshot()
+                        avd.close()
+                        reopened = Avd(root / 'sdk', work, image)
+                        try:
+                            with expect.assertRaisesRegex(ValueError, 'interrupted task AVD snapshot save'):
+                                reopened.start()
+                        finally:
+                            reopened.close()
+                        popen.assert_called_once()
+                    if scenario in ('normal', 'warm'):
                         avd.save_snapshot()
                         args, kwargs = popen.call_args
                         command = args[0]
                         assert command[command.index('-avd') + 1] == avd.name
                         assert command[command.index('-gpu') + 1] == 'swiftshader_indirect'
+                        assert ('-snapshot' in command) == (scenario == 'warm')
+                        assert ('-no-snapshot-load' in command) == (scenario == 'normal')
+                        assert snapshot.is_file()
                         assert kwargs['env']['ANDROID_AVD_HOME'].startswith(str(work))
                         before = len(calls)
                         process.poll.return_value = -4
-                        try:
-                            avd.adb('install', '-r', 'task.apk')
-                            raise AssertionError('dead child still allowed install')
-                        except RuntimeError:
-                            assert len(calls) == before
+                        with expect.assertRaises(RuntimeError):
+                            avd.adb('install', 'task.apk')
+                        assert len(calls) == before
                         process.poll.return_value = None
                         replaced = True
-                        try:
+                        with expect.assertRaises(RuntimeError):
                             avd.adb('shell', 'pm', 'clear', 'task')
-                            raise AssertionError('replaced transport still allowed clear')
-                        except RuntimeError:
-                            assert not any(command[3:5] == ['install', '-r'] or command[3:6] ==
-                                           ['shell', 'pm', 'clear'] for command in calls)
+                        assert not any(command[3:5] == ['install', 'task.apk'] or command[3:6] ==
+                                       ['shell', 'pm', 'clear'] for command in calls)
                         replaced = False
-                    except RuntimeError:
-                        assert scenario != 'normal'
-                    if scenario != 'normal':
-                        assert not any(command[3:] == ['root'] for command in calls)
+                        transport_replaced = True
+                        for args in (('uninstall', 'task'), ('emu', 'sensor', 'set', 'acceleration', '0:0:0')):
+                            before = len(calls)
+                            with expect.assertRaises(RuntimeError):
+                                avd.adb(*args)
+                            assert [command[3:] for command in calls[before:]] == [['get-serialno']]
                     avd.close()
                     if scenario != 'crashed':
                         process.terminate.assert_called_once()
             finally:
                 avd.close()
         work = root / 'normal'
-        cached = Avd(root / 'sdk', work, image)
-        try:
+        with closing(Avd(root / 'sdk', work, image)) as cached:
             cached.prepare()
             assert cached.name.startswith('like-nes-touch-')
-            concurrent = Avd(root / 'sdk', work, image)
-            try:
-                try:
-                    concurrent.prepare()
-                    raise AssertionError('concurrent AVD writer was accepted')
-                except BlockingIOError:
-                    pass
-            finally:
-                concurrent.close()
-        finally:
-            cached.close()
+            with closing(Avd(root / 'sdk', work, image)) as concurrent, expect.assertRaises(BlockingIOError):
+                concurrent.prepare()
         ini = work / 'avd-cache/avd' / (cached.name + '.ini')
         data = work / 'avd-cache/avd/device.avd'
         config = data / 'config.ini'
         original_ini, original_config = ini.read_text(encoding='utf-8'), config.read_text(encoding='utf-8')
 
         def refuse_cache():
-            candidate = Avd(root / 'sdk', work, image)
-            try:
+            with closing(Avd(root / 'sdk', work, image)) as candidate:
                 with patch('android_gate_avd.subprocess.Popen', side_effect=AssertionError('unsafe cache launched')):
-                    try:
+                    with expect.assertRaises(ValueError):
                         candidate.start()
-                        raise AssertionError('unsafe cache was accepted')
-                    except ValueError:
-                        pass
-            finally:
-                candidate.close()
 
+        snapshot = data / 'snapshots/like-nes-touch/snapshot.pb'
+        snapshot.write_bytes(b'')
+        refuse_cache()
+        snapshot.write_bytes(b'boot snapshot')
         ini.write_text(original_ini.replace(str(data), str(root / 'unrelated.avd')), encoding='utf-8')
         refuse_cache()
         ini.write_text(original_ini + 'path.rel=../../unrelated.avd\n', encoding='utf-8')
@@ -154,11 +173,8 @@ def selftest():
         (work / 'avd-cache/user-file').write_text('keep', encoding='utf-8')
         unmarked = Avd(root / 'sdk', work, image)
         try:
-            try:
+            with expect.assertRaises(ValueError):
                 unmarked.prepare()
-                raise AssertionError('unmarked nonempty directory was accepted')
-            except ValueError:
-                pass
             assert (work / 'avd-cache/user-file').read_text(encoding='utf-8') == 'keep'
         finally:
             unmarked.close()
@@ -168,15 +184,12 @@ def selftest():
         alias.symlink_to(external, target_is_directory=True)
         linked = Avd(root / 'sdk', work, image, alias)
         try:
-            try:
+            with expect.assertRaisesRegex(ValueError, 'cache directory must not be a symlink'):
                 linked.prepare()
-                raise AssertionError('symlink at cache root was accepted')
-            except ValueError as error:
-                assert 'cache directory must not be a symlink' in str(error)
             assert not list(external.iterdir()), 'cache alias wrote outside the owned directory'
         finally:
             linked.close()
-    print('android-avd-selftest: PASS owned/pinned transport, death/replacement after boot, cached lock, own teardown')
+    print('android-avd-selftest: PASS owned/pinned transport, death/replacement, boot snapshot reuse, cached lock, own teardown')
     return 0
 
 

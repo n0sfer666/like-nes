@@ -31,7 +31,8 @@ class Avd:
 
     def _request(self, args, timeout=15, data=None, binary=False):
         self.alive()
-        selector = ['-t', self.transport] if self.transport else ['-s', self.serial]
+        # ADB forwards only the serial to its emulator-console client.
+        selector = ['-t', self.transport] if self.transport and args[0] != 'emu' else ['-s', self.serial]
         result = subprocess.run([str(self.sdk / 'platform-tools/adb'), *selector, *args],
                                 input=data, capture_output=True, text=not binary,
                                 **({} if binary else {'encoding': 'utf-8', 'errors': 'replace'}),
@@ -41,6 +42,8 @@ class Avd:
         return result.stdout
 
     def _identity_matches(self):
+        if self.transport and self._request(('get-serialno',)).strip() != self.serial:
+            return False
         lines = self._request(('emu', 'avd', 'name')).splitlines()
         return bool(lines) and lines[0].strip() == self.name
 
@@ -69,8 +72,23 @@ class Avd:
     def prepare(self):
         self.name, self.lock = prepare(self.cache, self.sdk, self.work, self.image, self.env)
 
+    def _snapshot_marker(self):
+        marker = self.cache / '.boot-snapshot.pending'
+        if marker.exists() or marker.is_symlink():
+            raise ValueError('interrupted task AVD snapshot save; choose a fresh cache path')
+        return marker
+
+    def _has_snapshot(self):
+        snapshot = self.cache / 'avd/device.avd/snapshots/like-nes-touch/snapshot.pb'
+        if not snapshot.exists() and not snapshot.is_symlink():
+            return False
+        if snapshot.is_symlink() or not snapshot.is_file() or snapshot.stat().st_size == 0:
+            raise ValueError('incomplete task AVD boot snapshot; choose a fresh cache path')
+        return True
+
     def start(self):
         self.prepare()
+        self._snapshot_marker()
         Path(self.env['ANDROID_USER_HOME']).mkdir(parents=True, exist_ok=True)
         Path(self.env['ANDROID_EMULATOR_HOME']).mkdir(parents=True, exist_ok=True)
         port = None
@@ -91,11 +109,10 @@ class Avd:
         if port is None:
             raise RuntimeError('no free emulator console/adb port pair')
         self.serial = f'emulator-{port}'
-        snapshot = self.cache / 'avd/device.avd/snapshots/like-nes-touch/snapshot.pb'
         args = [str(self.sdk / 'emulator/emulator'), '-avd', self.name, '-port', str(port),
                 '-no-window', '-no-audio', '-no-boot-anim', '-gpu', 'swiftshader_indirect',
                 '-feature', 'Vulkan', '-no-snapshot-save', '-camera-back', 'none', '-camera-front', 'none']
-        args += ['-snapshot', 'like-nes-touch'] if snapshot.exists() else ['-no-snapshot-load']
+        args += ['-snapshot', 'like-nes-touch'] if self._has_snapshot() else ['-no-snapshot-load']
         self.log = (self.work / 'emulator.log').open('w', encoding='utf-8')
         self.process = subprocess.Popen(args, stdout=self.log, stderr=subprocess.STDOUT, env=self.env)
         deadline = time.monotonic() + 180
@@ -121,9 +138,18 @@ class Avd:
             raise RuntimeError('protocol B injection needs a rootable emulator image')
 
     def save_snapshot(self):
+        self.alive()
+        if not self.ready or self.lock is None:
+            raise RuntimeError('snapshot save needs a live, owned AVD')
+        marker = self._snapshot_marker()
+        if self._has_snapshot():
+            return
+        marker.touch(exist_ok=False)
         out = self.adb('emu', 'avd', 'snapshot', 'save', 'like-nes-touch', timeout=45)
-        if 'KO:' in out:
+        response = out.strip().splitlines()
+        if not response or response[-1] != 'OK' or 'KO:' in out or not self._has_snapshot():
             raise RuntimeError(f'cannot save task AVD snapshot: {out}')
+        marker.unlink()
 
     def close(self):
         if self.process is not None and self.process.poll() is None:
