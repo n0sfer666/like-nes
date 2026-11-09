@@ -34,6 +34,12 @@ class FakeAvd:
 
     def adb(self, *args, **kwargs):
         self.calls.append(args)
+        settings = ('shell', 'settings', '--user', 'current')
+        if args == (*settings, 'get', 'secure', 'immersive_mode_confirmations'):
+            if self.scenario == 'unconfirmed-tutorial':
+                return 'null\n'
+            assert (*settings, 'put', 'secure', 'immersive_mode_confirmations', 'confirmed') in self.calls
+            return 'confirmed\n'
         # Model sensorLandscape: user_rotation has no effect, only injected acceleration does.
         if args[:4] == ('emu', 'sensor', 'set', 'acceleration') and self.scenario != 'sensor-ignored':
             self.rotation = 3 if args[-1].startswith('-') else 1
@@ -51,6 +57,7 @@ class FakeAvd:
             self.pids += 1
             return '102' if self.scenario == 'restart' and self.pids > 1 else '101'
         if args[:3] == ('shell', 'dumpsys', 'window'):
+            assert args[3:] == ('displays',)
             component = APP + '/android.app.NativeActivity'
             if self.scenario == 'background':
                 component = 'launcher/.Home'
@@ -58,7 +65,14 @@ class FakeAvd:
                 component = APP + '.clone/.OtherActivity'
             if self.scenario == 'title-only':
                 component = 'other.app/.Activity ' + APP
-            return 'mCurrentFocus=Window{0 u0 ' + component + '}'
+            if self.scenario == 'immersive-overlay':
+                component = 'ImmersiveModeConfirmation'
+            focus = ('WINDOW MANAGER DISPLAY CONTENTS (dumpsys window displays)\n'
+                     f'  mCurrentFocus=Window{{0 u0 {component}}}\n'
+                     f'  mFocusedApp=ActivityRecord{{1 u0 {APP}/android.app.NativeActivity t8}}\n')
+            if self.scenario == 'ambiguous-focus':
+                focus += '  mCurrentFocus=Window{2 u0 ImmersiveModeConfirmation}\n'
+            return focus
         if args[:2] == ('shell', 'getevent'):
             return PROBE.replace('0039', '003a') if self.scenario == 'no-protocol-b' else PROBE
         if args[:2] == ('shell', 'sh'):
@@ -79,6 +93,8 @@ def selftest():
              ('restart', 'died/restarted'), ('background', 'lost foreground'),
              ('black', 'black screenshot'), ('no-protocol-b', 'protocol-B touchscreen'),
              ('prefix-package', 'lost foreground'), ('title-only', 'lost foreground'),
+             ('unconfirmed-tutorial', 'cannot acknowledge'), ('immersive-overlay', 'lost foreground'),
+             ('ambiguous-focus', 'lost foreground'),
              ('sensor-ignored', 'no landscape [safe]'),
              ('no-actor-movement', 'actual jab'), ('no-actor-attack', 'actual jab')]
     with tempfile.TemporaryDirectory(prefix='android-gate-selftest-') as directory:

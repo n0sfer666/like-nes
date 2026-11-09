@@ -48,9 +48,12 @@ def wait_safe(avd, run, rotation, work):
 
 
 def focused_app(text):
-    components = re.findall(r'^\s*mCurrentFocus=Window\{\S+\s+u\d+\s+'
-                            r'([A-Za-z0-9_.]+/[A-Za-z0-9_.$]+)\}', text, re.M)
-    return len(components) == 1 and components[0].split('/')[0] == APP
+    windows = re.findall(r'^[ \t]*mCurrentFocus=(.*)$', text, re.M)
+    if len(windows) != 1:
+        return False
+    component = re.fullmatch(r'Window\{\S+ u\d+ ([A-Za-z0-9_.]+)/[A-Za-z0-9_.$]+\}',
+                             windows[0].strip())
+    return component is not None and component[1] == APP
 
 
 def exercise(avd, work, run):
@@ -62,6 +65,12 @@ def exercise(avd, work, run):
     avd.adb('shell', 'cmd', 'overlay', 'enable', 'com.android.internal.display.cutout.emulation.corner')
     avd.adb('shell', 'settings', 'put', 'system', 'accelerometer_rotation', '0')
     avd.adb('shell', 'settings', 'put', 'system', 'user_rotation', '1')
+    # A fresh AVD shows the system immersive tutorial above the game until acknowledged.
+    settings = ('shell', 'settings', '--user', 'current')
+    avd.adb(*settings, 'put', 'secure', 'immersive_mode_confirmations', 'confirmed')
+    confirmed = avd.adb(*settings, 'get', 'secure', 'immersive_mode_confirmations').strip()
+    if confirmed != 'confirmed':
+        raise RuntimeError('cannot acknowledge the emulator immersive-mode tutorial')
     avd.adb('logcat', '-c')
     avd.adb('shell', 'input', 'keyevent', 'KEYCODE_WAKEUP')
     avd.adb('shell', 'wm', 'dismiss-keyguard')
@@ -94,7 +103,7 @@ def exercise(avd, work, run):
         time.sleep(.5)
         if avd.adb('shell', 'pidof', APP).strip() != pid:
             raise RuntimeError('the game died/restarted during the gesture')
-        focus = avd.adb('shell', 'dumpsys', 'window', 'windows')
+        focus = avd.adb('shell', 'dumpsys', 'window', 'displays')
         (work / f'window-{rotation}.txt').write_text(focus, encoding='utf-8')
         if not focused_app(focus):
             raise RuntimeError('the game lost foreground during the gesture')
