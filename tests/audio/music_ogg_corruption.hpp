@@ -25,7 +25,7 @@ inline bool apply(std::vector<uint8_t>& bytes) {
             ++packet; packet_start = cursor;
         }
         if (!changed) return false;
-        std::fill_n(bytes.data() + page + 22, 4, 0);
+        std::fill_n(bytes.data() + page + 22, 4, uint8_t{0});
         uint32_t crc = 0;
         for (size_t i = page; i < end; ++i) {
             crc ^= uint32_t{bytes[i]} << 24;

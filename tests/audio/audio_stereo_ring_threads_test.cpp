@@ -22,10 +22,11 @@ int main() {
     const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(15);
     auto expired = [&] { return std::chrono::steady_clock::now() > deadline; };
     std::thread producer([&] {
-        std::array<StereoFrame, 37> batch;
+        constexpr uint32_t BATCH_SIZE = 37;
+        std::array<StereoFrame, BATCH_SIZE> batch;
         uint32_t i = 0;
         while (i < COUNT && !stop.load()) {
-            const uint32_t n = std::min<uint32_t>(batch.size(), COUNT - i);
+            const uint32_t n = std::min(BATCH_SIZE, COUNT - i);
             for (uint32_t j = 0; j < n; ++j) batch[j] = sample(i + j);
             i += ring->push(17, std::span(batch).first(n));
             if (expired()) { stop.store(true); break; }
