@@ -3093,6 +3093,7 @@ jobs:
           SAN="-fsanitize=address,undefined -fno-omit-frame-pointer -g -O1 -std=gnu++20 -Iengine/achievements -Iengine/core -Iengine/asset -Iengine/platform"
           # ci-lint: mirrors-group seam-fs
           PLAT_FS="engine/platform/platform_fs.cpp engine/platform/platform_fs_posix.cpp engine/platform/platform_path_posix.cpp engine/platform/platform_env_posix.cpp"
+          PLAT_ATOMIC="engine/platform/platform_atomic.cpp engine/platform/platform_sync_posix.cpp"
           # ci-lint: mirrors-group seam-args
           PLAT_ARGS="engine/platform/platform_args.cpp engine/platform/platform_args_posix.cpp"
           # ci-lint: mirrors-group seam-mod
@@ -3101,17 +3102,17 @@ jobs:
           PLUGIN_CORE="engine/plugin/registry.cpp engine/plugin/host_api.cpp engine/plugin/host.cpp engine/plugin/builtin.cpp engine/plugin/manifest.cpp"
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
-            engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp $PLAT_FS -o ach_san
+            engine/achievements/bake_parse.cpp engine/achievements/achievements_test.cpp $PLAT_FS $PLAT_ATOMIC -o ach_san
           ./ach_san | tee achsan.txt
           grep -q "0xe728fef199e87fc9" achsan.txt
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/bake.cpp \
-            engine/achievements/bake_parse.cpp engine/achievements/manifest_test.cpp $PLAT_FS -o achm_san
+            engine/achievements/bake_parse.cpp engine/achievements/manifest_test.cpp $PLAT_FS $PLAT_ATOMIC -o achm_san
           ./achm_san | tee achmsan.txt
           grep -q "PASS" achmsan.txt
           c++ $SAN engine/achievements/registry.cpp engine/achievements/tracker.cpp engine/achievements/state.cpp \
             engine/achievements/store.cpp engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
-            engine/achievements/delivery_test.cpp $PLAT_FS -o achd_san
+            engine/achievements/delivery_test.cpp $PLAT_FS $PLAT_ATOMIC -o achd_san
           ./achd_san | tee achdsan.txt
           grep -q "PASS" achdsan.txt
           ZLIB=$(find build -type f -name 'libzstd.a' | head -1)
@@ -3123,7 +3124,7 @@ jobs:
             engine/achievements/bake_parse.cpp engine/achievements/bundle_source.cpp \
             engine/achievements/bundle_test.cpp engine/asset/bundle_writer.cpp engine/asset/codec.cpp \
             engine/platform/platform_io_posix.cpp engine/platform/platform_process_posix.cpp engine/platform/platform_spawn_linux.cpp \
-            engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp $PLAT_FS $PLAT_ARGS \
+            engine/asset/bundle_view.cpp engine/asset/asset_manager.cpp $PLAT_FS $PLAT_ATOMIC $PLAT_ARGS \
             "$ZLIB" -lpthread -o achb_san
           ./achb_san | tee achbsan.txt
           grep -q "PASS" achbsan.txt
@@ -3142,7 +3143,7 @@ jobs:
             engine/achievements/manifest.cpp engine/achievements/delivery.cpp \
             engine/achievements/plugin_backend.cpp $PLUGIN_CORE example_ugly_game/backend_host.cpp \
             engine/achievements/plugin_test.cpp engine/achievements/plugin_test_common.cpp \
-            example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ARGS $PLAT_MOD \
+            example_ugly_game/ach_plugin_host_test.cpp $PLAT_FS $PLAT_ATOMIC $PLAT_ARGS $PLAT_MOD \
             -ldl -o achp_san
           # detect_leaks=0 — вынужденно: после FORCE_DLCLOSE статика выгруженного плагина видна LSan
           # как утечка без символов. UAF (то, ради чего гейт) ловит ASan, а не LSan — не «чинить»
