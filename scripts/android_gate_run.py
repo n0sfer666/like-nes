@@ -57,7 +57,13 @@ def focused_app(text):
 
 
 def exercise(avd, work, run):
-    avd.adb('install', '-r', str(work / 'game/neon_rumble.apk'), timeout=60)
+    # A restored task snapshot can contain an APK signed by another CI runner.
+    installed = avd.adb('shell', 'pm', 'list', 'packages', '--user', 'current', APP)
+    if f'package:{APP}' in installed.splitlines():
+        removed = avd.adb('uninstall', APP, timeout=60).strip()
+        if removed != 'Success':
+            raise RuntimeError(f'cannot remove the previous test APK: {removed}')
+    avd.adb('install', str(work / 'game/neon_rumble.apk'), timeout=60)
     avd.adb('shell', 'am', 'force-stop', APP)
     cleared = avd.adb('shell', 'pm', 'clear', APP)
     if 'Success' not in cleared:

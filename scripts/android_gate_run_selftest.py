@@ -34,6 +34,17 @@ class FakeAvd:
 
     def adb(self, *args, **kwargs):
         self.calls.append(args)
+        if args == ('shell', 'pm', 'list', 'packages', '--user', 'current', APP):
+            if self.scenario in ('cached-apk', 'uninstall-failed'):
+                return f'package:{APP}\n'
+            return f'package:{APP}.clone\n'
+        if args == ('uninstall', APP):
+            assert self.scenario in ('cached-apk', 'uninstall-failed')
+            return 'Failure\n' if self.scenario == 'uninstall-failed' else 'Success\n'
+        if args[0] == 'install':
+            assert len(args) == 2 and args[1].endswith('neon_rumble.apk')
+            if self.scenario == 'cached-apk':
+                assert ('uninstall', APP) in self.calls
         settings = ('shell', 'settings', '--user', 'current')
         if args == (*settings, 'get', 'secure', 'immersive_mode_confirmations'):
             if self.scenario == 'unconfirmed-tutorial':
@@ -89,7 +100,8 @@ class FakeAvd:
 
 def selftest():
     actor_selftest()
-    cases = [('normal', None), ('gles', 'Vulkan is required'), ('wrong-adapter', 'SwiftShader'),
+    cases = [('normal', None), ('cached-apk', None), ('uninstall-failed', 'cannot remove the previous test APK'),
+             ('gles', 'Vulkan is required'), ('wrong-adapter', 'SwiftShader'),
              ('restart', 'died/restarted'), ('background', 'lost foreground'),
              ('black', 'black screenshot'), ('no-protocol-b', 'protocol-B touchscreen'),
              ('prefix-package', 'lost foreground'), ('title-only', 'lost foreground'),
@@ -111,11 +123,15 @@ def selftest():
                     assert 'touch PASS:' in output.getvalue()
                 except RuntimeError as error:
                     assert reason and reason in str(error), (scenario, str(error))
-            assert ('shell', 'am', 'force-stop', APP) in avd.calls
+            if scenario == 'uninstall-failed':
+                assert not any(args[0] == 'install' for args in avd.calls)
+            else:
+                assert ('shell', 'am', 'force-stop', APP) in avd.calls
         trace = FakeAvd('normal').first[0]
         assert last_safe('[safe] broken run=OLD\n' + trace, 'R').rotation == 1
         assert last_safe(trace, 'OTHER') is None
-    print(f'android-gate-selftest: PASS 1 good + {len(cases) - 1} broken transports (GPU, PID, focus, pixels, input, sensor)')
+    print(f'android-gate-selftest: PASS 2 good + {len(cases) - 2} broken transports '
+          '(install, GPU, PID, focus, pixels, input, sensor)')
     return 0
 
 
