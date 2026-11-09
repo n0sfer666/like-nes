@@ -26,5 +26,9 @@ target_include_directories(android_lifecycle_test PRIVATE ${ROOT}/platform/mobil
   ${JNI_HEADERS} ${JNI_HEADERS}/${JNI_OS})
 target_include_directories(android_lifecycle_test SYSTEM PRIVATE ${NDK_GLUE})
 target_compile_options(android_lifecycle_test PRIVATE -idirafter ${NDK_HEADERS} -Wall -Wextra -Werror -pedantic)
+# GCC does not recognize Clang's nullability qualifiers in the NDK header.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  target_compile_definitions(android_lifecycle_test PRIVATE _Nonnull= _Nullable=)
+endif()
 target_link_libraries(android_lifecycle_test PRIVATE like-nes::engine)
 like_nes_add_game(android_lifecycle_test)

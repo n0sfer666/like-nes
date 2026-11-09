@@ -41,12 +41,12 @@ fixture_audio_off_configure() {
         [ -d "$src" ] || continue
         name=${src##*/}; name=${name%-src}; normalized=$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')
         key="FETCHCONTENT_SOURCE_DIR_$normalized"
-        case " ${fetch_keys[*]} " in *" $key "*) continue ;; esac
+        case " ${fetch_keys[*]-} " in *" $key "*) continue ;; esac
         fetch_flags+=("-D$key=$src")
     done
     cmake -S "$(native "$ROOT")" -B "$(native "$dir")" -G "$GEN" -DCMAKE_BUILD_TYPE=Release \
         -DAUDIO_MINIAUDIO=OFF -DPLUGIN_UI=OFF -DPLUGIN_WASM=OFF -DIDE_POC=OFF \
-        -DFETCHCONTENT_FULLY_DISCONNECTED=ON "${fetch_flags[@]}" > "$WORK/audio-off-configure.log" 2>&1 || {
+        -DFETCHCONTENT_FULLY_DISCONNECTED=ON ${fetch_flags[@]+"${fetch_flags[@]}"} > "$WORK/audio-off-configure.log" 2>&1 || {
         tail -30 "$WORK/audio-off-configure.log"; sdk_bad 'audio OFF: configure-only fixture failed'; return 1; }
     if grep -Eq '(^| )audio_device(:|$)' "$dir/build.ninja" ||
        grep -Eq 'audio/device\.hpp|libaudio_device' "$dir/cmake_install.cmake" ||

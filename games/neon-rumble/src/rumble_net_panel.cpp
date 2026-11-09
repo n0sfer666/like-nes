@@ -17,7 +17,7 @@ const char* difficulty(Difficulty value) {
 }
 
 std::string invite(net::RoomCode code) {
-    char digits[12];
+    char digits[17];
     std::snprintf(digits, sizeof(digits), "%010llx", static_cast<unsigned long long>(code));
     return digits;
 }

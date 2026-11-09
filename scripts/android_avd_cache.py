@@ -8,6 +8,9 @@ import subprocess
 import uuid
 
 
+DATA_PARTITION_PATH = 'disk.dataPartition.path'
+
+
 def ini_fields(path):
     fields = {}
     for line in path.read_text(encoding='utf-8').splitlines():
@@ -20,7 +23,7 @@ def ini_fields(path):
     return fields
 
 
-def validate(cache, sdk, image, name, *, allow_relative=False):
+def validate(cache, sdk, image, name, *, fresh=False):
     home, data = cache / 'avd', cache / 'avd/device.avd'
     ini, config = home / (name + '.ini'), data / 'config.ini'
     for path in (home, data, ini, config):
@@ -35,10 +38,10 @@ def validate(cache, sdk, image, name, *, allow_relative=False):
     configured = Path(fields.get('path', ''))
     if not configured.is_absolute() or configured.resolve() != data.resolve():
         raise ValueError('task AVD ini points outside the owned data directory')
-    if not allow_relative and 'path.rel' in fields:
+    if not fresh and 'path.rel' in fields:
         raise ValueError('task AVD cache must use its verified absolute data path only')
     cfg = ini_fields(config)
-    if cfg.get('AvdId') != name:
+    if cfg.get('AvdId') != name and not (fresh and 'AvdId' not in cfg):
         raise ValueError('task AVD config has a different identity')
     image_path = Path(cfg.get('image.sysdir.1', ''))
     if not image_path.is_absolute():
@@ -49,6 +52,8 @@ def validate(cache, sdk, image, name, *, allow_relative=False):
         if not config_path.exists():
             continue
         for key, value in ini_fields(config_path).items():
+            if fresh and config_path == config and key == DATA_PARTITION_PATH and value == '<temp>':
+                continue
             writable = (key.startswith('disk.') and key.endswith('.path') and key != 'disk.ramdisk.path')
             if value and (writable or key == 'sdcard.path'):
                 path = Path(value)
@@ -60,6 +65,8 @@ def validate(cache, sdk, image, name, *, allow_relative=False):
 
 
 def prepare(cache, sdk, work, image, env):
+    if cache.is_symlink():
+        raise ValueError('task AVD cache directory must not be a symlink')
     cache.mkdir(parents=True, exist_ok=True)
     marker = cache / 'like-nes-owned-avd.json'
     if marker.is_symlink():
@@ -96,8 +103,15 @@ def prepare(cache, sdk, work, image, env):
         (work / 'avdmanager.log').write_text(result.stdout + result.stderr, encoding='utf-8')
         if result.returncode:
             raise RuntimeError(f'avdmanager failed: {work / "avdmanager.log"}')
-        validate(cache, sdk, image, name, allow_relative=True)
-        # Fresh files only: remove the manager's optional fallback to a different Android home.
+        validate(cache, sdk, image, name, fresh=True)
+        # Normalize only the files just created by avdmanager while holding the cache lock.
+        config = cache / 'avd/device.avd/config.ini'
+        config_fields = ini_fields(config)
+        if 'AvdId' not in config_fields or config_fields.get(DATA_PARTITION_PATH) == '<temp>':
+            config_fields.setdefault('AvdId', name)
+            if config_fields.get(DATA_PARTITION_PATH) == '<temp>':
+                config_fields[DATA_PARTITION_PATH] = str(config.parent.resolve() / 'userdata-qemu.img')
+            config.write_text(''.join(f'{key}={value}\n' for key, value in config_fields.items()), encoding='utf-8')
         ini = cache / 'avd' / (name + '.ini')
         fields = ini_fields(ini)
         fields.pop('path.rel', None)

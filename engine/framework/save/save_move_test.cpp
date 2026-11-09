@@ -1,5 +1,6 @@
 #include "save_io.hpp"
 #include "platform_fs.hpp"
+#include "platform_tmpfile_test.hpp"
 
 #include <cstdio>
 
@@ -22,7 +23,7 @@ bool file_exists(const std::string& path) { check(path == "root/to", "checks col
 bool is_dir(const std::string&) { return false; }
 std::FILE* open_file(const std::string& path, const char*) {
     calls += "open;"; check(path == "root/to", "sync only own new copy");
-    return mode == 3 ? nullptr : std::tmpfile();
+    return mode == 3 ? nullptr : test::temporary_file();
 }
 bool sync_file(std::FILE*) { calls += "sync;"; return mode != 4; }
 bool sync_dir_of(const std::string& path) {

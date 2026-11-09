@@ -26,8 +26,8 @@ def selftest():
                     name = command[command.index('--name') + 1]
                     data = Path(command[command.index('--path') + 1])
                     data.mkdir()
-                    (data / 'config.ini').write_text(f'AvdId={name}\nimage.sysdir.1={image.replace(";", "/")}\n',
-                                                    encoding='utf-8')
+                    (data / 'config.ini').write_text(f'image.sysdir.1={image.replace(";", "/")}\n'
+                                                    'disk.dataPartition.path=<temp>\n', encoding='utf-8')
                     (Path(kwargs['env']['ANDROID_AVD_HOME']) / (name + '.ini')).write_text(
                         f'path={data}\npath.rel=avd/device.avd\n', encoding='utf-8')
                     return subprocess.CompletedProcess(command, 0, '', '')
@@ -125,9 +125,19 @@ def selftest():
         ini.write_text(original_ini + 'path.rel=../../unrelated.avd\n', encoding='utf-8')
         refuse_cache()
         ini.write_text(original_ini, encoding='utf-8')
+        assert f'AvdId={cached.name}\n' in original_config
+        partition = f'disk.dataPartition.path={data.resolve() / "userdata-qemu.img"}\n'
+        assert partition in original_config
+        config.write_text(original_config.replace(f'AvdId={cached.name}\n', ''), encoding='utf-8')
+        refuse_cache()
+        config.write_text(original_config.replace(f'AvdId={cached.name}\n', 'AvdId=foreign\n'), encoding='utf-8')
+        refuse_cache()
         config.write_text(original_config.replace('android-35', 'android-34'), encoding='utf-8')
         refuse_cache()
-        config.write_text(original_config + f'disk.dataPartition.path={root}/unrelated.img\n', encoding='utf-8')
+        config.write_text(original_config.replace(partition, 'disk.dataPartition.path=<temp>\n'), encoding='utf-8')
+        refuse_cache()
+        config.write_text(original_config.replace(partition, f'disk.dataPartition.path={root}/unrelated.img\n'),
+                          encoding='utf-8')
         refuse_cache()
         config.write_text(original_config, encoding='utf-8')
         saved = data.with_name('saved.avd')
@@ -152,6 +162,20 @@ def selftest():
             assert (work / 'avd-cache/user-file').read_text(encoding='utf-8') == 'keep'
         finally:
             unmarked.close()
+        external = root / 'external'
+        external.mkdir()
+        alias = root / 'cache-alias'
+        alias.symlink_to(external, target_is_directory=True)
+        linked = Avd(root / 'sdk', work, image, alias)
+        try:
+            try:
+                linked.prepare()
+                raise AssertionError('symlink at cache root was accepted')
+            except ValueError as error:
+                assert 'cache directory must not be a symlink' in str(error)
+            assert not list(external.iterdir()), 'cache alias wrote outside the owned directory'
+        finally:
+            linked.close()
     print('android-avd-selftest: PASS owned/pinned transport, death/replacement after boot, cached lock, own teardown')
     return 0
 

@@ -22,7 +22,7 @@ bool lamp(const SceneObject& o, Lamps& out) {
     return true;
 }
 
-constexpr ClassRule<Lamps> RULES[] = {{"lamp", tilemap::ObjectShape::Point, lamp}};
+constexpr std::array RULES{ClassRule<Lamps>{"lamp", tilemap::ObjectShape::Point, lamp}};
 constexpr char WORDS[] = "lamp\0other\0name\0value\0";
 
 struct Source {

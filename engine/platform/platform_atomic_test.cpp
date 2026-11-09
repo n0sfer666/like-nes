@@ -1,4 +1,5 @@
 #include "platform_fs.hpp"
+#include "platform_tmpfile_test.hpp"
 
 #include <cstring>
 
@@ -13,7 +14,7 @@ namespace platform {
 std::FILE* open_file(const std::string& path, const char* flags) {
     calls += "open;";
     check(path == "slot.tmp" && std::strcmp(flags, "wb") == 0, "temp path and mode");
-    return mode == 1 ? nullptr : std::tmpfile();
+    return mode == 1 ? nullptr : test::temporary_file();
 }
 bool sync_file(std::FILE* file) {
     calls += "sync;";
