@@ -1,7 +1,7 @@
 # Owner verification: the gates a runner cannot close
 
-**26 of the 41 gates below are closed**, and each closed one carries the run that closed it, with the
-evidence. The other 15 stay here as the procedure, because each needs a machine a CI runner is not: a
+**27 of the 41 gates below are closed**, and each closed one carries the run that closed it, with the
+evidence. The other 14 stay here as the procedure, because each needs a machine a CI runner is not: a
 real desktop session, a real GPU driver, a real gamepad, a second box on the same network, a box that
 never built this tree.
 
@@ -32,7 +32,7 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | The effect library draws all three effects, and they are what the material says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 1 | **macOS** (the reference is pinned on Metal) | 2026-10-03 | `engine/material/library/*`, `engine/material/cache.cpp`, `engine/render/material_*` |
 | The sample game plays with library materials, and the effects land where they should | [#18](../.context/specs/2026-07-26-materials-shaders.md) 9 | **any one** with a screen | 2026-10-03 | `engine/material/library/*`, `example_ugly_game/material_fx.*`, `example_ugly_game/assets/library.bundle` |
 | A shader edit lands without a restart, and a broken one leaves the picture alone | [#18](../.context/specs/2026-07-26-materials-shaders.md) 3 | **any one** with a screen | 2026-10-03 | `engine/material/hot_reload.cpp`, `engine/material/reload.cpp`, `tools/ide/editor/material_panel*`, `example_ugly_game/material_fx.*` |
-| Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | — | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
+| Five lights out of a table light the scene, and the light is where the data says | [#18](../.context/specs/2026-07-26-materials-shaders.md) 7 | **macOS** (the reference is pinned on Metal) | 2026-11-10 | `engine/light/*`, `engine/render/light_*`, `engine/render/shaders_light.cpp` |
 | The network frame — rollback, recording and socket — fits a real frame budget | [#22](../.context/specs/2026-09-02-deterministic-net.md) 8 | **the slowest machine you own** | 2026-10-04 | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | A live session between two machines: one input, one state over a real wire (windows still missing) | [#22](../.context/specs/2026-09-02-deterministic-net.md) 9 | **two machines on one network** | — | `engine/net/*`, `engine/framework/rollback/*`, `example_ugly_game/platformer_peer*` |
 | An engine package built here runs on a box that never saw this source tree | [#20](../.context/specs/2026-07-26-release-installers.md) 1 | **all three**, each a box that never built this tree | — | `cmake/install_engine.cmake`, `scripts/release*.sh`, `packaging/` |
@@ -63,9 +63,11 @@ ones closed before it (§18, §20, §21) keep their steps as they were run; re-r
 | Neon Rumble measures less than 1% lost 60 Hz intervals with music, the menu and touch, and saves the sample when sent to the background | [#26](../.context/specs/2026-10-15-ui-mobile-saves-music.md) 3 | **the slowest physical phone** with the Release stand | — | `games/neon-rumble/src/rumble_frame_*`, `games/neon-rumble/src/rumble_mobile*`, `games/neon-rumble/bench/*`, `scripts/frame_stats_verdict.py` |
 | Neon Rumble co-op across physical LAN, NAT64 and separate NATs with a VPS relay | [#27](../.context/specs/2026-11-06-network-coop.md) 1 | **two physical peers**, NAT64 and a UDP VPS | — | `engine/net/*`, `engine/platform/platform_net*`, `platform/android/DiscoveryBridge.java`, `games/neon-rumble/src/rumble_net*`, `tools/relay/*` |
 
-The last to close were twelve gates of #25 (§22–§28, §30–§33, §35), on 2026-10-20 on macOS: the
-owner had passed their windows by eye on 2026-10-19, and `make owner` added the machine half — 17
-scenarios against the headless run and their own expect and absent lines, with a frame sheet.
+The lit frame (§12) closed on 2026-11-10 on macOS after moving the blue fill outside the disc and
+capturing a new Metal reference. Before it, twelve gates of #25 (§22–§28, §30–§33, §35) closed
+on 2026-10-20 on macOS. The owner had passed their windows by eye on 2026-10-19, and `make owner`
+added the machine half, with 17 scenarios against the headless run, their expect and absent lines
+and a frame sheet.
 Before them, the street of Neon Rumble (§20) closed on 2026-10-07 on macOS: the window was run
 the day before, and what it lacked was the save itself, now on record with its mtimes and an empty
 diff. Before it, the first gate of #25 (§21) closed on 2026-10-06 on macOS: the first run put the
@@ -1898,11 +1900,26 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 
 ## 12. Gate 7 of #18 — the lit frame on a real GPU
 
-<!-- gate: open | make owner — стадия gpu: light_golden — 5 источников, normals 5/2/0, occluders 4/3/0, light-gpu: PASS, на macOS ещё сверка с lights_640x360.png; кадры lights.png и materials-unlit.png на листе; руками: восемь вопросов §12 по кадру lights.png — куда падает свет и где ложится тень (вопрос 7, fill внутри диска, — открытый пункт), прислать ответы и адаптер -->
+<!-- gate: closed 2026-11-10 -->
 
-> **Open.** The machine half is green on all three runners and it is genuinely load-bearing: the
-> pass switched off returns the material frame byte for byte, switched on it changes that frame, a
-> light set of a DIFFERENT length gives a different picture, and both slot passes report a MIXED set
+> **Closed 2026-11-10** on Apple M3 Pro with Metal. Moving `fill` to `0.44, 0.50` puts it between
+> the first two rows and outside the disc. Both captures reported `light-gpu: PASS`, lights 5/5,
+> normals 5/2/0 and occluders 4/3/0. The second capture matched the
+> [new 640×360 reference](../engine/render/golden/lights_640x360.png) with
+> `mean=0.00000 max=0.00000 frac=0.00000`.
+>
+> All eight visual checks passed. The sprites dim by different amounts, with warm light on the left,
+> blue on the right and a faint green patch between the lower rows. The sun adds an even wash on
+> flat normals and shapes the mapped sprites. The dome highlights face up and left under the sun,
+> and the ridges run vertically. Solid disc shadows and striped grate shadows trail away from
+> their sources. The flash domes cast no shadow, and the dissolves take flat light. A separate
+> fill-only Metal capture with and without occluders confirmed the restored blue light and its
+> shadow behind the disc. At (419,172), below the second disc, the blue channel drops from 11
+> to 1 with occluders enabled.
+
+> The machine half passed on all three runners. Switching off the pass returns the material frame
+> byte for byte. Switching it on changes that frame, a light set of a different length gives a
+> different picture, and both slot passes report a mixed set
 > — five materials whose texture slot names a normal map and two without one, four naming an
 > occluder and three without one — so the count, the normals and the shadows really do come out of
 > the tables and not out of the shader. The shadow assertions carry their own broken implementations:
@@ -1915,8 +1932,8 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 > is different but just as stable, and every counter still reads 5/2/0) while the reference PNG goes
 > red at `frac=0.129`. Lit from below is a picture question, and the picture is yours.
 >
-> **Run on 2026-10-03 on the Metal reference machine (M3 Pro): the numbers are bit-exact and seven
-> questions of eight pass. Question 7 does not, so the gate stays open.** The numbers were
+> **Previous run on 2026-10-03 on the Metal reference machine (M3 Pro).** Seven visual checks
+> passed. Question 7 kept the gate open at the time. The numbers were
 > `mean=0.00000 max=0.00000 frac=0.00000`, `light-gpu: PASS`, lights 5/5, normals 5/2/0,
 > occluders 4/3/0, cost 1.462 / 2.636 ms. Questions 1–6 and 8 come back yes.
 >
@@ -1928,10 +1945,8 @@ tick and the frame, and a visible hitch on a three-pipeline library is a finding
 > - A fill-only render reads `0 1 1` at (365,151) beside it.
 > - The same render with `fill` moved to `0.44, 0.50` lights that row: `5 10 26` at (365,90).
 >
-> A smaller oddity: the solid disc leaks 1–3 LSB radially. The fix is the owner's choice. Either
-> move `fill` out of the disc in `lights.txt` and re-bake the reference on this machine, or have
-> [`shaders_light.cpp`](../engine/render/shaders_light.cpp) stop a light being blocked by the
-> occluder it sits in.
+> The solid disc leaked 1–3 LSB radially in that diagnostic. The owner chose to move `fill` out of
+> the disc in `lights.txt` and capture a new reference on the same machine.
 
 ```sh
 cmake --build build --target light_golden
@@ -1953,9 +1968,9 @@ light-gpu: PASS
 
 The `cost` line is a measurement, not an assertion: it is printed so the pass has a price on record,
 and a threshold on it would be a statement about your machine rather than about the pass (the
-physics gate learned that in §4). Both numbers on the reference machine sit at about 1.7 ms for a
-640x360 frame, and the pass costs the difference between them — some 30 microseconds, and the price
-is honest: the scene is drawn THREE times, once into albedo, once into the normal buffer and once
+physics gate learned that in §4). In the example above, both numbers are about 1.7 ms for a
+640x360 frame and the pass costs the difference between them, about 30 microseconds. The scene is
+drawn three times, once into albedo, once into the normal buffer and once
 into the occlusion buffer. The alternative was extra render targets on the material pass, which
 would have rewritten every fragment entry point of `sprite_effects.wgsl` and moved the closed gates
 4-6 with it.
@@ -1990,7 +2005,7 @@ declaration order, four sprites each: `flash`, `flash_red`, `flash_gold` (dome),
    out dimmer, and dimmer by a DIFFERENT amount depending on where it sits. An evenly darkened copy
    of that picture means only the ambient term reached the frame and the five sources did not.
 2. **Warm at the top left, cold at the top right.** `key` is orange at `-0.42, 0.28`, `fill` is blue
-   at `0.44, 0.16`; the frame's x runs `-1.78..1.78` and its y runs `-1..1`, y UP. The top-left
+   at `0.44, 0.50`; the frame's x runs `-1.78..1.78` and its y runs `-1..1`, y UP. The top-left
    sprites must pick up the orange and the top-right ones the blue. Swapped is a sign flip in x,
    upside down is one in y — the defect class the input round hit twice.
 3. **The near-black ground is lit only where a source is close.** Between the lower rows it picks up
@@ -2004,21 +2019,25 @@ declaration order, four sprites each: `flash`, `flash_red`, `flash_gold` (dome),
    THERE means it is being attenuated like a point light. Over the mapped columns it must vary with
    the surface instead, and the two shapes differ: the domes take the wash across a round face, the
    ribbed columns break it into vertical bands.
-5. **The domes are lit from the upper left, not the lower left.** This is the question `--selftest`
-   cannot ask. Each `flash*` sprite is a hemisphere: its bright side must face the light that
-   reaches it, and with `key` at the top left the highlight sits ABOVE the sprite's centre, the
-   shaded crescent below. A dome bright underneath and dark on top is a flipped Y in
+5. **Under `sun`, the dome highlight is above and left of centre.** This is the question `--selftest`
+   cannot ask. Each `flash*` sprite is a hemisphere. With `sun` isolated in a scratch light table,
+   the highlight sits above and left of centre and the shaded crescent below. Point sources can
+   shift the highlight in the combined frame. A sunlit dome bright underneath and dark on top
+   points to a flipped Y in
    [`engine/render/slot_textures.cpp`](../engine/render/slot_textures.cpp) — the map stores its
    normal in the LIGHTING basis (+Y up), and the flip belongs in the generator, in one place.
 6. **The ribs run vertically and answer to left and right.** The `outline` columns must show four
    light-and-dark bands ACROSS the sprite, not up it. Horizontal banding means x and y were swapped
    somewhere between the generator and the pass; no banding at all means the ridge map never reached
    the outline material and the flat clear survived in its place.
-7. **Shadows fall AWAY from the source, and only two materials cast them.** Step C gives the
+7. **Shadows fall away from the source. Only the outline and dissolve families cast them.** Step C gives the
    `occlusion` slot to `outline` (a solid disc, the whole sprite blocks) and to `dissolve` (a grate,
    vertical bars blocking every other one). Their columns must trail a dim streak on the side
-   opposite each source that reaches them — orange-side streaks pointing right and down from `key`,
-   blue-side ones pointing left from `fill`. A streak pointing TOWARDS a source is a sign flip in the
+   opposite each source that reaches them. The orange streaks from `key` trail right and down
+   behind sprites below the source.
+   The blue streaks from `fill` radiate away from its position between the first two rows, including
+   down and left behind `outline` and down and right behind `outline_danger` in row 2.
+   A streak pointing TOWARDS a source is a sign flip in the
    march direction of [`shaders_light.cpp`](../engine/render/shaders_light.cpp); a sprite darkened
    evenly all over instead of trailing a streak means the occluder is shadowing ITSELF — the `here`
    term under the sample point was dropped. The two shapes must differ: the disc's shadow is a solid
@@ -4800,8 +4819,10 @@ an installed mobile prefix, not against the tree, and on Android every trip to t
 the surface away while the game lives on (`APP_CMD_TERM_WINDOW` detaches, only `APP_CMD_DESTROY`
 shuts down). The iOS half of that runs in the simulator (`scripts/ios_sim_rumble.sh`, step 2a of
 section R). Android also has a dedicated emulator gate (section R, step 5b): two fingers after
-each landscape rotation, cutout geometry and Vulkan/SwiftShader. Its Linux/KVM job is configured;
-the new live run has not yet been confirmed. That the game starts on a physical phone, that Home
+each landscape rotation, cutout geometry and Vulkan/SwiftShader. On `dea95b4`, the Linux/KVM job
+passed from a [cold boot](https://github.com/n0sfer666/like-nes/actions/runs/42670368087/job/129344992867)
+and a [restored snapshot](https://github.com/n0sfer666/like-nes/actions/runs/42670368087/job/129362010803).
+That the game starts on a physical phone, that Home
 and back give it its surface again, and that the ARM phone plays the fight the desktop plays are
 what this gate asks.
 
@@ -4917,7 +4938,7 @@ transport for each run.
 
 ## Beyond the gates
 
-The gates above are what the ADRs waited on; 26 of the 41 are closed, and the open 15 are listed by
+The gates above are what the ADRs waited on. 27 of the 41 are closed, and the open 14 are listed by
 `scripts/owner_check.sh`, which reads the marks under the headings above rather than repeating them.
 Of the two of spec #22, §14 lost its blocker on 2026-09-04 and now waits only for a second machine.
 A machine with a screen, speakers and a pad can

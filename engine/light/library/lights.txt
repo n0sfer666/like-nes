@@ -22,7 +22,7 @@ set | radius    | 1.55
 set | shadow    | 0.06
 
 light | fill | point
-set | pos       | 0.44, 0.16
+set | pos       | 0.44, 0.50
 set | height    | 0.30
 set | color     | 0.30, 0.55, 1.00
 set | intensity | 2.40
